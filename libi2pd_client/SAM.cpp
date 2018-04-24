@@ -60,7 +60,8 @@ namespace client
 		m_SocketType = eSAMSocketTypeTerminated;
 		if (m_Socket.is_open ())
 		{
-			m_Socket.shutdown ();
+			boost::system::error_code ec;
+			m_Socket.shutdown (boost::asio::ip::tcp::socket::shutdown_both, ec);
 			m_Socket.close ();
 		}
 		m_Owner.RemoveSocket(this);
@@ -749,7 +750,7 @@ namespace client
 			m_Socket,
 			boost::asio::buffer (m_StreamBuffer, sz),
 			boost::asio::transfer_all(),
-			std::bind(&SAMSocket::HandleWriteI2PData, shared_from_this(), std::placeholders::_1));
+			std::bind(&SAMSocket::HandleWriteI2PData, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 	}
 	
 	void SAMSocket::HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
