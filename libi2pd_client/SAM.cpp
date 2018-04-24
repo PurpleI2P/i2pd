@@ -725,7 +725,10 @@ namespace client
 					WriteI2PDataImmediate(buff, len);
 				}
 				else // no more data
+				{
+					delete [] buff;
 					Terminate ("no more data");
+				}
 			}
 		}
 	}
