@@ -274,10 +274,12 @@ linux:!android {
 
 windows {
         message("Using Windows settings")
+        RC_FILE = i2pd.rc
         DEFINES += BOOST_USE_WINDOWS_H WINDOWS _WINDOWS WIN32_LEAN_AND_MEAN MINIUPNP_STATICLIB
         DEFINES -= UNICODE _UNICODE
         BOOST_SUFFIX = -mt
-        QMAKE_LDFLAGS = -s -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
+        QMAKE_CXXFLAGS = -Os
+        QMAKE_LFLAGS = -s -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
 
         LIBS = -lminiupnpc \
         -lboost_system$$BOOST_SUFFIX \
