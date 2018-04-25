@@ -77,7 +77,7 @@ namespace client
 
 	class SAMBridge;
 	struct SAMSession;
-	class SAMSocket :public std::enable_shared_from_this<SAMSocket>
+	class SAMSocket: public std::enable_shared_from_this<SAMSocket>
 	{
 		public:
 
