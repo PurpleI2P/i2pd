@@ -207,7 +207,7 @@ namespace client
 	void SAMSocket::HandleMessageReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred, bool close)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogError, "SAM: reply send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ("SAM: reply send error");
@@ -224,7 +224,7 @@ namespace client
 	void SAMSocket::HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogError, "SAM: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ("SAM: read error");
@@ -569,7 +569,7 @@ namespace client
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #else
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
-		    keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
+			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
 		SendMessageReply (m_Buffer, l, false);
 	}
