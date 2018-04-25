@@ -80,7 +80,8 @@ namespace http
 	};
 
     //all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
-    void ShowStatus (std::stringstream& s, bool includeHiddenContent);
+    enum OutputFormatEnum { forWebConsole, forQtUi };
+    void ShowStatus (std::stringstream& s, bool includeHiddenContent, OutputFormatEnum outputFormat);
     void ShowLocalDestinations (std::stringstream& s);
     void ShowLeasesSets(std::stringstream& s);
     void ShowTunnels (std::stringstream& s);
