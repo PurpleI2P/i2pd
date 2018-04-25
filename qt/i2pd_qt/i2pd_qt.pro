@@ -177,7 +177,9 @@ HEADERS  += DaemonQT.h mainwindow.h \
     textbrowsertweaked1.h \
     pagewithbackbutton.h \
     widgetlock.h \
-    widgetlockregistry.h
+    widgetlockregistry.h \
+    i2pd.rc \
+    i2pd.rc
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
