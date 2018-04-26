@@ -13,7 +13,7 @@ LOCAL_STATIC_LIBRARIES := \
 LOCAL_LDLIBS := -lz
 
 LOCAL_SRC_FILES := $(IFADDRS_PATH)/ifaddrs.c \
-	$(wildcard $(LIB_SRC_PATH)/*.cpp)\
+  $(wildcard $(LIB_SRC_PATH)/*.cpp)\
 	$(wildcard $(LIB_CLIENT_SRC_PATH)/*.cpp)\
 	$(DAEMON_SRC_PATH)/UnixDaemon.cpp \
 	$(DAEMON_SRC_PATH)/Daemon.cpp \

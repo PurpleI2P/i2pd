@@ -15,7 +15,7 @@ APP_STL := gnustl_static
 # Enable c++11 extensions in source code
 APP_CPPFLAGS += -std=c++11 -fvisibility=default -fPIE
 
-APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
+APP_CPPFLAGS += -DANDROID_BINARY -DANDROID -D__ANDROID__ -DUSE_UPNP
 APP_LDFLAGS += -rdynamic -fPIE -pie
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A

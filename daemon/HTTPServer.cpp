@@ -227,7 +227,7 @@ namespace http {
 			default: s << "Unknown";
 		}
 		s << "<br>\r\n";
-#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<b>Stopping in:</b> ";
 			s << remains << " seconds";
@@ -504,7 +504,7 @@ namespace http {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
 		else
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
-#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (Daemon.gracefulShutdownInterval)
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
 		else
@@ -964,14 +964,14 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
-#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			Daemon.gracefulShutdownInterval = 10*60;
 #elif defined(WIN32_APP)
 			i2p::win32::GracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
-#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))  || defined(ANDROID_BINARY))
 			Daemon.gracefulShutdownInterval = 0;
 #elif defined(WIN32_APP)
 			i2p::win32::StopGracefulShutdown ();
