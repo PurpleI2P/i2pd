@@ -64,7 +64,7 @@ namespace util
 
 			DaemonWin32 ():isGraceful(false) {}
 	};
-#elif defined(ANDROID)
+#elif (defined(ANDROID) && !defined(ANDROID_BINARY))
 #define Daemon i2p::util::DaemonAndroid::Instance()
 	// dummy, invoked from android/jni/DaemonAndroid.*
 	class DaemonAndroid: public i2p::util::Daemon_Singleton

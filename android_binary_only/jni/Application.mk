@@ -15,7 +15,7 @@ APP_STL := gnustl_static
 # Enable c++11 extensions in source code
 APP_CPPFLAGS += -std=c++11 -fvisibility=default -fPIE
 
-APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
+APP_CPPFLAGS += -DANDROID_BINARY -DANDROID -D__ANDROID__ -DUSE_UPNP
 APP_LDFLAGS += -rdynamic -fPIE -pie
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
@@ -28,7 +28,7 @@ APP_OPTIM  := debug
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-I2PD_LIBS_PATH = /home/u/build/i2p/daemon/static.libs
+I2PD_LIBS_PATH = /path/to/libraries
 BOOST_PATH = $(I2PD_LIBS_PATH)/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $(I2PD_LIBS_PATH)/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
