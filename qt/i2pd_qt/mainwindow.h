@@ -628,7 +628,6 @@ private:
         std::string webircpass = "";
         bool gzip = true;
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-        uint32_t maxConns = i2p::stream::DEFAULT_MAX_CONNS_PER_MIN;
         std::string address = "127.0.0.1";
         bool isUniqueLocal = true;
 
@@ -646,7 +645,6 @@ private:
                                                   webircpass,
                                                   gzip,
                                                   sigType,
-                                                  maxConns,
                                                   address,
                                                   isUniqueLocal);
 
@@ -734,7 +732,6 @@ private:
                     std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
                     bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-                    uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
                     std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
                     bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
@@ -769,7 +766,6 @@ private:
                                                               webircpass,
                                                               gzip,
                                                               sigType,
-                                                              maxConns,
                                                               address,
                                                               isUniqueLocal);
                 }

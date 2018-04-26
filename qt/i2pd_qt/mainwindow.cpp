@@ -349,7 +349,9 @@ QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
     s << "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">";
 
     switch (statusPage) {
-    case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
+    case main_page:
+        i2p::http::ShowStatus(s, showHiddenInfo, i2p::http::OutputFormatEnum::forQtUi);
+        break;
     case commands: break;
     case local_destinations: i2p::http::ShowLocalDestinations(s);break;
     case leasesets: i2p::http::ShowLeasesSets(s); break;
@@ -449,7 +451,7 @@ void MainWindow::createTrayIcon() {
 }
 
 void MainWindow::setIcon() {
-    QIcon icon(":/images/icon.png");
+    QIcon icon(":icons/mask");
     trayIcon->setIcon(icon);
     setWindowIcon(icon);
 

@@ -165,6 +165,9 @@ namespace stream
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
 
+			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
+
+			/** only call close from destination thread, use Stream::AsyncClose for other threads */
 			void Close ();
 			void Cancel () { m_ReceiveTimer.cancel (); };
 

@@ -727,7 +727,7 @@ namespace client
 				sam_session.put("name", name);
 				sam_session.put("address", i2p::client::context.GetAddressBook ().ToAddress(ident));
 
-				for (const auto& socket: it.second->ListSockets())
+				for (const auto& socket: sam->ListSockets(it.first))
 				{
 					boost::property_tree::ptree stream;
 					stream.put("type", socket->GetSocketType ());

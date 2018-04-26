@@ -594,6 +594,13 @@ namespace crypto
 
 // AES
 #ifdef AESNI
+        #ifdef ARM64AES
+                void init_aesenc(void){
+			// TODO: Implementation
+		}
+		
+        #endif
+
 	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
 		"movaps	%%xmm1, %%xmm4 \n" \
