@@ -329,17 +329,17 @@ namespace client
 		switch (typeID)
 		{
 			case eI2NPData:
-				HandleDataMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
+				HandleDataMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len));
 			break;
 			case eI2NPDeliveryStatus:
 				// we assume tunnel tests non-encrypted
 				HandleDeliveryStatusMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
 			break;
 			case eI2NPDatabaseStore:
-				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
+				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len));
 			break;
 			case eI2NPDatabaseSearchReply:
-				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
+				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len));
 			break;
 			default:
 				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
@@ -859,6 +859,11 @@ namespace client
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
+		if(length > len - 4)
+		{
+			LogPrint(eLogError, "Destination: Data message length ", length, " exceeds buffer length ", len);
+			return;
+		}
 		buf += 4;
 		// we assume I2CP payload
 		uint16_t fromPort = bufbe16toh (buf + 4), // source
