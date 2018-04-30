@@ -362,8 +362,6 @@ namespace client
 	{
 		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
 		m_SharedLocalDestination->Acquire ();
-		m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
-		m_SharedLocalDestination->Start ();
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
