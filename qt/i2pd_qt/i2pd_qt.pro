@@ -283,7 +283,7 @@ windows {
         QMAKE_CXXFLAGS_RELEASE = -Os
         QMAKE_LFLAGS = -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
 
-        #strip
+        #linker's -s means "strip"
         QMAKE_LFLAGS_RELEASE += -s
 
         LIBS = -lminiupnpc \
