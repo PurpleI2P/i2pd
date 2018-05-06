@@ -4,7 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11
+QMAKE_CXXFLAGS *= -std=c++11 -ggdb
 DEFINES += USE_UPNP
 
 # change to your own path, where you will store all needed libraries with 'git clone' commands below.
@@ -280,8 +280,11 @@ windows {
         DEFINES += BOOST_USE_WINDOWS_H WINDOWS _WINDOWS WIN32_LEAN_AND_MEAN MINIUPNP_STATICLIB
         DEFINES -= UNICODE _UNICODE
         BOOST_SUFFIX = -mt
-        QMAKE_CXXFLAGS = -Os
-        QMAKE_LFLAGS = -s -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
+        QMAKE_CXXFLAGS_RELEASE = -Os
+        QMAKE_LFLAGS = -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
+
+        #strip
+        QMAKE_LFLAGS_RELEASE += -s
 
         LIBS = -lminiupnpc \
         -lboost_system$$BOOST_SUFFIX \
