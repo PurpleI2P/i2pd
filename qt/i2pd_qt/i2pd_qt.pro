@@ -93,7 +93,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     textbrowsertweaked1.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
-    widgetlockregistry.cpp
+    widgetlockregistry.cpp \
+    logviewermanager.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
@@ -179,7 +180,8 @@ HEADERS  += DaemonQT.h mainwindow.h \
     widgetlock.h \
     widgetlockregistry.h \
     i2pd.rc \
-    i2pd.rc
+    i2pd.rc \
+    logviewermanager.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client

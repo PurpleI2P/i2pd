@@ -1,6 +1,11 @@
+#include <memory>
+
 #include "DaemonQT.h"
 #include "Daemon.h"
 #include "mainwindow.h"
+
+#include "Log.h"
+
 #include <QMessageBox>
 #include <QApplication>
 #include <QMutexLocker>
@@ -90,12 +95,12 @@ namespace qt
 		delete mutex;
 	}
 
-	bool DaemonQTImpl::init(int argc, char* argv[])
+    bool DaemonQTImpl::init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream)
 	{
 		mutex=new QMutex(QMutex::Recursive);
 		setRunningCallback(0);
         m_IsRunning=false;
-		return Daemon.init(argc,argv);
+        return Daemon.init(argc,argv,logstream);
 	}
 
 	void DaemonQTImpl::start()
@@ -146,33 +151,35 @@ namespace qt
         int result;
 
         {
+            std::shared_ptr<std::iostream> logstreamptr=std::make_shared<std::stringstream>();
+            //TODO move daemon init deinit to a bg thread
             DaemonQTImpl daemon;
-            qDebug("Initialising the daemon...");
-            bool daemonInitSuccess = daemon.init(argc, argv);
+            (*logstreamptr) << "Initialising the daemon..." << std::endl;
+            bool daemonInitSuccess = daemon.init(argc, argv, logstreamptr);
             if(!daemonInitSuccess)
             {
                 QMessageBox::critical(0, "Error", "Daemon init failed");
                 return 1;
             }
-            qDebug("Initialised, creating the main window...");
-            MainWindow w;
-            qDebug("Before main window.show()...");
+            LogPrint(eLogDebug, "Initialised, creating the main window...");
+            MainWindow w(logstreamptr);
+            LogPrint(eLogDebug, "Before main window.show()...");
             w.show ();
 
             {
                 i2p::qt::Controller daemonQtController(daemon);
                 w.setI2PController(&daemonQtController);
-                qDebug("Starting the daemon...");
+                LogPrint(eLogDebug, "Starting the daemon...");
                 emit daemonQtController.startDaemon();
                 //daemon.start ();
-                qDebug("Starting GUI event loop...");
+                LogPrint(eLogDebug, "Starting GUI event loop...");
                 result = app.exec();
                 //daemon.stop ();
             }
         }
 
 		//QMessageBox::information(&w, "Debug", "demon stopped");
-		qDebug("Exiting the application");
+        LogPrint(eLogDebug, "Exiting the application");
 		return result;
 	}
 }

@@ -27,15 +27,19 @@
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
 
+#include "logviewermanager.h"
+
 std::string programOptionsWriterCurrentSection;
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent) :
     QMainWindow(parent)
+    ,logStream(logStream_)
 #ifndef ANDROID
     ,quitting(false)
 #endif
     ,wasSelectingAtStatusMainPage(false)
     ,showHiddenInfoStatusMainPage(false)
+    ,logViewerManagerPtr(nullptr)
     ,ui(new Ui::MainWindow)
     ,statusButtonsUI(new Ui::StatusButtonsForm)
     ,routerCommandsUI(new Ui::routerCommandsWidget)
@@ -131,6 +135,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(routerCommandsUI->runPeerTestPushButton, SIGNAL(released()), this, SLOT(runPeerTest()));
     QObject::connect(routerCommandsUI->acceptTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(enableTransit()));
     QObject::connect(routerCommandsUI->declineTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(disableTransit()));
+
+    QObject::connect(ui->logViewerPushButton, SIGNAL(released()), this, SLOT(showLogViewerPage()));
 
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
@@ -299,6 +305,9 @@ MainWindow::MainWindow(QWidget *parent) :
     trayIcon->show();
 #endif
 
+    logViewerManagerPtr=new LogViewerManager(logStream_,ui->logViewerTextEdit,this);
+    assert(logViewerManagerPtr!=nullptr);
+    onLoggingOptionsChange();
     //QMetaObject::connectSlotsByName(this);
 }
 
@@ -333,10 +342,11 @@ void MainWindow::showStatusPage(StatusPage newStatusPage){
     }
     wasSelectingAtStatusMainPage=false;
 }
-void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
-void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
-void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
-void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);setStatusButtonsVisible(false);}
+void MainWindow::showLogViewerPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
+void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
+void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
+void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(4);setStatusButtonsVisible(false);}
+void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(5);setStatusButtonsVisible(false);}
 
 void MainWindow::setStatusButtonsVisible(bool visible) {
     ui->statusButtonsPane->setVisible(visible);
@@ -631,6 +641,8 @@ void MainWindow::loadAllConfigs(){
     }
 
     ReadTunnelsConfig();
+
+    onLoggingOptionsChange();
 }
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
@@ -667,6 +679,8 @@ bool MainWindow::saveAllConfigs(){
     outfile.close();
 
     SaveTunnelsConfig();
+
+    onLoggingOptionsChange();
 
     return true;
 }

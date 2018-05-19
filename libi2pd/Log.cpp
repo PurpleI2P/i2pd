@@ -8,6 +8,9 @@
 
 #include "Log.h"
 
+//for std::transform
+#include <algorithm>
+
 namespace i2p {
 namespace log {
 	static Log logger;
@@ -107,7 +110,18 @@ namespace log {
 		}
 	}
 
-	void Log::SetLogLevel (const std::string& level) {
+    std::string str_tolower(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                    // static_cast<int(*)(int)>(std::tolower)         // wrong
+                    // [](int c){ return std::tolower(c); }           // wrong
+                    // [](char c){ return std::tolower(c); }          // wrong
+                       [](unsigned char c){ return std::tolower(c); } // correct
+                      );
+        return s;
+    }
+
+    void Log::SetLogLevel (const std::string& level_) {
+        std::string level=str_tolower(level_);
 		if      (level == "none")  { m_MinLevel = eLogNone; }
 		else if (level == "error") { m_MinLevel = eLogError; }
 		else if (level == "warn")  { m_MinLevel = eLogWarning; }
