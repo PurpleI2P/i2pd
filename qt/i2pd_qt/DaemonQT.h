@@ -25,7 +25,7 @@ namespace qt
          * @param argv
          * @return success
          */
-        bool init(int argc, char* argv[]);
+        bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
         void start();
         void stop();
         void restart();

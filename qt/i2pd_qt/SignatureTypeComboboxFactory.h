@@ -18,7 +18,7 @@ class SignatureTypeComboBoxFactory
     }
 
 public:
-    static const uint16_t getSigType(const QVariant& var) {
+    static uint16_t getSigType(const QVariant& var) {
         return (uint16_t)var.toInt();
     }
 

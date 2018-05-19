@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <ostream>
 
 namespace i2p
 {
@@ -12,8 +13,9 @@ namespace util
 	class Daemon_Singleton
 	{
 		public:
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
+            virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
+            virtual bool init(int argc, char* argv[]);
+            virtual bool start();
 			virtual bool stop();
 			virtual void run () {};
 

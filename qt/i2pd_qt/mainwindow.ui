@@ -58,7 +58,7 @@
       <enum>QLayout::SetMaximumSize</enum>
      </property>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,0">
        <property name="sizeConstraint">
         <enum>QLayout::SetMinimumSize</enum>
        </property>
@@ -93,6 +93,13 @@
            <width>172</width>
            <height>0</height>
           </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="logViewerPushButton">
+         <property name="text">
+          <string>Log</string>
          </property>
         </widget>
        </item>
@@ -596,7 +603,7 @@
           </palette>
          </property>
          <property name="text">
-          <string>TextLabel</string>
+          <string>wrongInputMessageLabel</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -627,7 +634,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="statusPage">
           <property name="sizePolicy">
@@ -667,6 +674,69 @@
                <enum>QLayout::SetMaximumSize</enum>
               </property>
              </layout>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+         <widget class="QWidget" name="logViewerPage">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <widget class="QWidget" name="verticalLayoutWidget_4_logViewer">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>711</width>
+             <height>531</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4_logViewer">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetMinAndMaxSize</enum>
+            </property>
+            <item>
+             <widget class="QLabel" name="logViewerTitleLabel">
+              <property name="font">
+               <font>
+                <pointsize>15</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Log</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="logViewerTextEdit">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="verticalScrollBarPolicy">
+               <enum>Qt::ScrollBarAlwaysOn</enum>
+              </property>
+              <property name="horizontalScrollBarPolicy">
+               <enum>Qt::ScrollBarAsNeeded</enum>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustIgnored</enum>
+              </property>
+              <property name="maximumBlockCount">
+               <number>10000</number>
+              </property>
+              <property name="acceptRichText" stdset="0">
+               <bool>false</bool>
+              </property>
+              <property name="widgetResizable" stdset="0">
+               <bool>true</bool>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -728,8 +798,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>689</width>
-                 <height>496</height>
+                 <width>81</width>
+                 <height>28</height>
                 </rect>
                </property>
                <property name="sizePolicy">
