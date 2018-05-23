@@ -90,8 +90,8 @@ namespace client
 
 		public:
 
-			LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr);
-			~LeaseSetDestination ();
+      LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr, boost::shared_ptr<boost::asio::io_service> service = boost::shared_ptr<boost::asio::io_service>());
+      ~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
 
 			virtual bool Start ();
@@ -101,7 +101,7 @@ namespace client
 			virtual bool Reconfigure(std::map<std::string, std::string> i2cpOpts);
 		
 			bool IsRunning () const { return m_IsRunning; };
-			boost::asio::io_service& GetService () { return m_Service; };
+      boost::asio::io_service& GetService () { return (boost::asio::io_service&)*m_Service.get(); };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
 			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
 			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
@@ -149,7 +149,7 @@ namespace client
 
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
+      boost::shared_ptr<boost::asio::io_service> m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
@@ -184,7 +184,7 @@ namespace client
 			void Ready(ReadyPromise & p);
 #endif
 
-			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+      ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr, boost::shared_ptr<boost::asio::io_service> service = boost::shared_ptr<boost::asio::io_service>());
 			~ClientDestination ();
 
 			virtual bool Start ();
