@@ -83,7 +83,15 @@ namespace api
 		auto localDestination = std::make_shared<i2p::client::ClientDestination> (keys, isPublic, params);
 		localDestination->Start ();
 		return localDestination;
-	}
+  }
+
+  std::shared_ptr<i2p::client::ClientDestination> CreateLocalDestination (const i2p::data::PrivateKeys& keys, boost::shared_ptr<boost::asio::io_service> service,
+    bool isPublic, const std::map<std::string, std::string> * params)
+  {
+    auto localDestination = std::make_shared<i2p::client::ClientDestination> (keys, isPublic, params, service);
+    //localDestination->Start ();
+    return localDestination;
+  }
 
 	std::shared_ptr<i2p::client::ClientDestination> CreateLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 		const std::map<std::string, std::string> * params)
