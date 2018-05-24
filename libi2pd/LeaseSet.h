@@ -28,7 +28,7 @@ namespace data
 		bool isUpdated; // trasient
 		/* return true if this lease expires within t millisecond + fudge factor */
 		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
-			auto expire = i2p::util::GetMillisecondsSinceEpoch ();
+			auto expire = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 			if(fudge) expire += rand() % fudge;
 			if (endDate < expire) return true;
 			return (endDate - expire) < t;

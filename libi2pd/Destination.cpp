@@ -487,7 +487,7 @@ namespace client
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is pending");
 			return;
 		}
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		if (ts < m_LastSubmissionTime + PUBLISH_MIN_INTERVAL)
 		{
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is too fast. Wait for ", PUBLISH_MIN_INTERVAL, " seconds");
@@ -625,7 +625,7 @@ namespace client
 			auto request = std::make_shared<LeaseSetRequest> (m_Service);
 			if (requestComplete)
 				request->requestComplete.push_back (requestComplete);
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
@@ -705,7 +705,7 @@ namespace client
 			if (it != m_LeaseSetRequests.end ())
 			{
 				bool done = false;
-				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+				int64_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 				if (ts < it->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
 				{
 					auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, it->second->excluded);

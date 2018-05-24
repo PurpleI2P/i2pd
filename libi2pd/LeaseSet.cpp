@@ -73,7 +73,7 @@ namespace data
 
 		// process leases
 		m_ExpirationTime = 0;
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		const uint8_t * leases = m_Buffer + size;
 		for (int i = 0; i < num; i++)
 		{
@@ -165,7 +165,7 @@ namespace data
 
 	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
 	{
-		auto now = i2p::util::GetMillisecondsSinceEpoch ();
+		auto now = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		if (fudge) now += rand() % fudge;
 		if (now >= m_ExpirationTime) return true;
 		return	m_ExpirationTime - now <= dlt;
@@ -178,7 +178,7 @@ namespace data
 
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold) const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		std::vector<std::shared_ptr<const Lease> > leases;
 		for (const auto& it: m_Leases)
 		{
@@ -195,7 +195,7 @@ namespace data
 
 	bool LeaseSet::HasExpiredLeases () const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		for (const auto& it: m_Leases)
 			if (ts >= it->endDate) return true;
 		return false;
@@ -204,7 +204,7 @@ namespace data
 	bool LeaseSet::IsExpired () const
 	{
 		if (m_StoreLeases && IsEmpty ()) return true;
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		return ts > m_ExpirationTime;
 	}
 
@@ -234,7 +234,7 @@ namespace data
 		offset++;
 		// leases
 		m_Leases = m_Buffer + offset;
-		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
+		auto currentTime = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		for (int i = 0; i < num; i++)
 		{
 			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
@@ -262,7 +262,7 @@ namespace data
 
 	bool LocalLeaseSet::IsExpired () const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		return ts > m_ExpirationTime;
 	}
 

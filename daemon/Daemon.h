@@ -17,7 +17,7 @@ namespace util
             virtual bool init(int argc, char* argv[]);
             virtual bool start();
 			virtual bool stop();
-			virtual void run () {};
+			virtual void run () { };
 
 			bool isDaemon;
 			bool running;

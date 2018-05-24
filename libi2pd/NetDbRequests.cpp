@@ -20,7 +20,7 @@ namespace data
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg(m_Destination, i2p::context.GetIdentHash(), 0, m_IsExploratory, &m_ExcludedPeers);
 		if(router)
 			m_ExcludedPeers.insert (router->GetIdentHash ());
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_CreationTime = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		return msg;
 	}
 
@@ -29,7 +29,7 @@ namespace data
 		auto msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_CreationTime = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		return msg;
 	}
 
@@ -111,7 +111,7 @@ namespace data
 
 	void NetDbRequests::ManageRequests ()
 	{
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{

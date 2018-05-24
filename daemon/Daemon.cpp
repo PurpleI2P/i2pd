@@ -68,6 +68,8 @@ namespace i2p
         {
 			i2p::config::Init();
 			i2p::config::ParseCmdline(argc, argv);
+			
+
 
 			std::string config;  i2p::config::GetOption("conf",    config);
 			std::string datadir; i2p::config::GetOption("datadir", datadir);
@@ -254,12 +256,17 @@ namespace i2p
         LogPrint(eLogInfo, "Daemon: using hidden mode");
         i2p::data::netdb.SetHidden(true);
       }
+
       return true;
 		}
 
 		bool Daemon_Singleton::start()
 		{
+
 			i2p::log::Logger().Start();
+
+			i2p::util::SyncTimeWithNTP();
+
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
 
@@ -271,7 +278,12 @@ namespace i2p
 
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
-			LogPrint(eLogInfo, "Daemon: starting Transports");
+
+
+			LogPrint(eLogInfo, "Daemon: starting Transports");		     
+			     
+
+
 			if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
 			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 

@@ -134,7 +134,7 @@ namespace transport
 
 	void NTCPSession::ServerLogin ()
 	{
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		m_LastActivityTimestamp = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		// receive Phase1
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
 			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (),
@@ -203,7 +203,7 @@ namespace transport
 		memcpy (xy, m_Establisher->phase1.pubKey, 256);
 		memcpy (xy + 256, y, 256);
 		SHA256(xy, 512, m_Establisher->phase2.encrypted.hxy);
-		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
+		uint32_t tsB = htobe32 (i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) );
 		memcpy (m_Establisher->phase2.encrypted.timestamp, &tsB, 4);
 		RAND_bytes (m_Establisher->phase2.encrypted.filler, 12);
 
@@ -288,7 +288,7 @@ namespace transport
 		htobe16buf (buf, keys.GetPublic ()->GetFullLen ());
 		buf += 2;
 		buf += i2p::context.GetIdentity ()->ToBuffer (buf, NTCP_BUFFER_SIZE);
-		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
+		uint32_t tsA = htobe32 (i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) );
 		htobuf32(buf,tsA);
 		buf += 4;
 		size_t signatureLen = keys.GetPublic ()->GetSignatureLen ();
@@ -398,13 +398,15 @@ namespace transport
 		buf += paddingLen;
 
 		// check timestamp
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		uint32_t tsA1 = be32toh (tsA);
 		if (tsA1 < ts - NTCP_CLOCK_SKEW || tsA1 > ts + NTCP_CLOCK_SKEW)
 		{
-			LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew");
-			Terminate ();
-			return;
+			if( !i2p::util::timeCorrecting(tsA1, ts, NTCP_CLOCK_SKEW, "NTCP: Phase3 time difference ") ){
+			  LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew");
+			  Terminate ();
+			  return;
+			}
 		}
 
 		// check signature
@@ -469,8 +471,10 @@ namespace transport
 		if (ecode)
 		{
 			LogPrint (eLogError, "NTCP: Phase 4 read error: ", ecode.message (), ". Check your clock");
+			
 			if (ecode != boost::asio::error::operation_aborted)
 			{
+				LogPrint(eLogError, "NTCP: Phase 4 read error: ", "Close router");
 				 // this router doesn't like us
 				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);
 				Terminate ();
@@ -482,12 +486,16 @@ namespace transport
 
 			// check timestamp
 			uint32_t tsB = bufbe32toh (m_Establisher->phase2.encrypted.timestamp);
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			if (tsB < ts - NTCP_CLOCK_SKEW || tsB > ts + NTCP_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew");
-				Terminate ();
-				return;
+				
+				if( !i2p::util::timeCorrecting(tsB, ts, NTCP_CLOCK_SKEW, "NTCP: Phase3 time difference ") )
+				{
+					LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew");
+					Terminate ();
+					return;
+				}
 			}
 
 			// verify signature
@@ -598,7 +606,7 @@ namespace transport
 			}
 			m_Handler.Flush ();
 
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			m_LastActivityTimestamp = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 			Receive ();
 		}
 	}
@@ -629,7 +637,7 @@ namespace transport
 			else
 			{
 				// timestamp
-				int diff = (int)bufbe32toh (buf + 2) - (int)i2p::util::GetSecondsSinceEpoch ();
+				int diff = (int)bufbe32toh (buf + 2) - (int)i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 				LogPrint (eLogInfo, "NTCP: Timestamp. Time difference ", diff, " seconds");
 				return true;
 			}
@@ -647,7 +655,7 @@ namespace transport
 			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->GetBuffer () - 2, m_NextMessageOffset - 4));
 			if (!memcmp (m_NextMessage->GetBuffer () - 2 + m_NextMessageOffset - 4, checksum, 4))
 			{
-				if (!m_NextMessage->IsExpired ())
+				if (!m_NextMessage->IsExpired ()) // TODO: look to
 				{
 #ifdef WITH_EVENTS
 					QueueIntEvent("transport.recvmsg", GetIdentHashBase64(), 1);
@@ -691,7 +699,7 @@ namespace transport
 			sendBuffer = m_TimeSyncBuffer;
 			len = 4;
 			htobuf16(sendBuffer, 0);
-			htobe32buf (sendBuffer + 2, i2p::util::GetSecondsSinceEpoch ());
+			htobe32buf (sendBuffer + 2, i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) );
 		}
 		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
@@ -731,7 +739,7 @@ namespace transport
 		}
 		else
 		{
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			m_LastActivityTimestamp = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			if (!m_SendQueue.empty())
@@ -1280,7 +1288,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 			// established
 			for (auto& it: m_NTCPSessions)
 				if (it.second->IsTerminationTimeoutExpired (ts))
