@@ -1,6 +1,4 @@
 #include "Poly1305.h"
-#include "CPU.h"
-#include <immintrin.h>
 /**
    This code is licensed under the MCGSI Public License
    Copyright 2018 Jeff Becker
@@ -12,48 +10,6 @@ namespace i2p
 {
 namespace crypto
 {
-#if 0
-#ifdef __AVX2__
-	struct Poly1305_AVX2 
-	{
-		Poly1305_AVX2(const uint32_t *& k)
-		{
-			__asm__
-			(
-				"VMOVNTDQA %[key0], %%ymm0 \n"
-				"VMOVNTDQA 32%[key0], %%ymm1 \n"
-				:
-				: 
-				[key0]"m"(k)
-			);
-		};
-
-		~Poly1305_AVX2()
-		{	
-			// clear out registers
-			__asm__
-			(
-				"VZEROALL\n"
-			);
-		}
-
-		void Update(const uint8_t * buf, size_t sz)
-		{
-
-		}
-
-		void Finish(uint32_t *& out)
-		{
-
-		}
-
-
-
-		size_t leftover;
-		
-	};
-#endif
-#endif
 	namespace poly1305 
 	{
 
@@ -281,23 +237,10 @@ namespace crypto
 
 	void Poly1305HMAC(uint32_t * out, const uint32_t * key, const uint8_t * buf, std::size_t sz)
 	{
-		#if 0
-		#ifdef __AVX2__
-		if(i2p::cpu::avx2)
-		{
-			Poly1305_AVX2 p(key);
-			p.Update(buf, sz);
-			p.Finish(out);
-		}
-		else
-		#endif
-		#endif
-		{
-			const uint8_t * k = (const uint8_t *) key;
-  			Poly1305 p(k);
-  			p.Update(buf, sz);
-   			p.Finish(out);
-		}
+		const uint8_t * k = (const uint8_t *) key;
+		Poly1305 p(k);
+		p.Update(buf, sz);
+		p.Finish(out);
   	}
 }
 }
