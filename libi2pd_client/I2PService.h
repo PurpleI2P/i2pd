@@ -67,8 +67,11 @@ namespace client
 			std::mutex m_HandlersMutex;
 			std::vector<std::pair<ReadyCallback, uint32_t> > m_ReadyCallbacks;
 			boost::asio::deadline_timer m_ReadyTimer;
+            bool m_ReadyTimerTriggered;
 			uint32_t m_ConnectTimeout;
 
+            const size_t NEVER_TIMES_OUT = 0;
+      
 		public:
 			bool isUpdated; // transient, used during reload only
 	};
