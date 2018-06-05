@@ -30,11 +30,7 @@ namespace crypto
 	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
 	{
 		// expand key
-		SHA512 (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH, m_ExpandedPrivateKey);
-		m_ExpandedPrivateKey[0] &= 0xF8; // drop last 3 bits
-		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] &= 0x3F; // drop first 2 bits
-		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] |= 0x40; // set second bit
-
+		Ed25519::ExpandPrivateKey (signingPrivateKey, m_ExpandedPrivateKey);
 		// generate and encode public key
 		BN_CTX * ctx = BN_CTX_new ();
 		auto publicKey = GetEd25519 ()->GeneratePublicKey (m_ExpandedPrivateKey, ctx);

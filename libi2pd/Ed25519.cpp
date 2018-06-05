@@ -411,6 +411,14 @@ namespace crypto
 		}
 	}
 
+	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
+	{
+		SHA512 (key, EDDSA25519_PRIVATE_KEY_LENGTH, expandedKey);
+		expandedKey[0] &= 0xF8; // drop last 3 bits
+		expandedKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] &= 0x3F; // drop first 2 bits
+		expandedKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] |= 0x40; // set second bit
+	}
+
 	static std::unique_ptr<Ed25519> g_Ed25519;
 	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{

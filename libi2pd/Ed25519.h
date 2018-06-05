@@ -79,6 +79,8 @@ namespace crypto
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
 
+			static void ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey); // key - 32 bytes, expandedKey - 64 bytes
+
 		private:
 
 			EDDSAPoint Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const;
