@@ -24,8 +24,8 @@ namespace transport
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
 		uint8_t h[64], ck[33];
-		SHA256 ((const uint8_t *)protocolName, 32, h);
-		memcpy (ck, h, 32);	
+		memcpy (ck, protocolName, 32);
+		SHA256 ((const uint8_t *)protocolName, 32, h);	
 		// h = SHA256(h || rs)
 		memcpy (h + 32, rs, 32); 
 		SHA256 (h, 64, h); 
@@ -60,7 +60,7 @@ namespace transport
 		BN_CTX_free (ctx);
 	}
 
-	void NTCP2Session::SendSessionRequest (const uint8_t * iv)
+	void NTCP2Session::SendSessionRequest (const uint8_t * iv, const uint8_t * rs)
 	{
 		i2p::crypto::AESAlignedBuffer<32> x;
 		CreateEphemeralKey (x);
@@ -68,7 +68,15 @@ namespace transport
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
 		encryption.SetIV (iv);
-		encryption.Encrypt (2, x.GetChipherBlock (), x.GetChipherBlock ());		
+		encryption.Encrypt (2, x.GetChipherBlock (), x.GetChipherBlock ());
+		// encryption key for next block
+		uint8_t key[32];
+		KeyDerivationFunction (rs, x, key);
+		// options
+		uint8_t options[32];
+		// TODO: fill 16 bytes options		
+		i2p::crypto::Poly1305HMAC (((uint32_t *)options) + 4, (uint32_t *)key, options, 16); // calculate MAC first
+		i2p::crypto::chacha20 (options, 16, 0, key); // then encrypt
 	}	
 }
 }
