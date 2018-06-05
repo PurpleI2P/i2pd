@@ -75,6 +75,7 @@ namespace crypto
 			EDDSAPoint GeneratePublicKey (const uint8_t * expandedPrivateKey, BN_CTX * ctx) const;
 			EDDSAPoint DecodePublicKey (const uint8_t * buf, BN_CTX * ctx) const;
 			void EncodePublicKey (const EDDSAPoint& publicKey, uint8_t * buf, BN_CTX * ctx) const;
+			void Mul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;

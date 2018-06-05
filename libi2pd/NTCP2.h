@@ -19,6 +19,7 @@ namespace transport
 
 		private:
 
+			bool KeyDerivationFunction (const uint8_t * rs, const uint8_t * pub, uint8_t * derived);
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest (const uint8_t * iv);
 

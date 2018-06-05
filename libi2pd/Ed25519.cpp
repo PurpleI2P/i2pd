@@ -411,6 +411,14 @@ namespace crypto
 		}
 	}
 
+	void Ed25519::Mul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	{
+		auto P = DecodePublicKey (p, ctx);
+		BIGNUM * e1 = DecodeBN<32> (e);
+		EncodePublicKey (Mul (P, e1, ctx), buf, ctx);
+		BN_free (e1);
+	}
+
 	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
 	{
 		SHA512 (key, EDDSA25519_PRIVATE_KEY_LENGTH, expandedKey);
