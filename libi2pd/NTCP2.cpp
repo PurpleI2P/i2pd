@@ -1,6 +1,9 @@
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
+#include <stdlib.h>
+#include "Log.h"
+#include "I2PEndian.h"
 #include "Crypto.h"
 #include "Ed25519.h"
 #include "ChaCha20.h"
@@ -11,13 +14,23 @@ namespace i2p
 {
 namespace transport
 {
-	NTCP2Session::NTCP2Session (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
-		TransportSession (in_RemoteRouter, 30)
+	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
+		TransportSession (in_RemoteRouter, 30), 
+		m_Server (server), m_Socket (m_Server.GetService ()), m_SessionRequestBuffer (nullptr)
 	{
+		auto addr = in_RemoteRouter->GetNTCPAddress ();
+		if (addr->ntcp2)
+		{
+			memcpy (m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
+			memcpy (m_RemoteIV, addr->ntcp2->iv, 16);
+		}
+		else
+			LogPrint (eLogWarning, "NTCP2: Missing NTCP2 parameters"); 
 	}
 
 	NTCP2Session::~NTCP2Session ()
 	{
+		delete[] m_SessionRequestBuffer; 
 	}
 
 	bool NTCP2Session::KeyDerivationFunction (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
@@ -60,24 +73,55 @@ namespace transport
 		BN_CTX_free (ctx);
 	}
 
-	void NTCP2Session::SendSessionRequest (const uint8_t * iv, const uint8_t * rs)
+	void NTCP2Session::SendSessionRequest ()
 	{
 		i2p::crypto::AESAlignedBuffer<32> x;
 		CreateEphemeralKey (x);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
-		encryption.SetIV (iv);
+		encryption.SetIV (m_RemoteIV);
 		encryption.Encrypt (2, x.GetChipherBlock (), x.GetChipherBlock ());
 		// encryption key for next block
 		uint8_t key[32];
-		KeyDerivationFunction (rs, x, key);
-		// options
-		uint8_t options[32];
-		// TODO: fill 16 bytes options		
+		KeyDerivationFunction (m_RemoteStaticKey, x, key);
+		// fill options
+		uint8_t options[32]; // actual options size is 16 bytes
+		memset (options, 0, 16);
+		htobe16buf (options, 2); // ver	
+		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
+		htobe16buf (options + 2, paddingLength); // padLen
+		htobe16buf (options + 4, 0); // m3p2Len TODO:
+		// 2 bytes reserved
+		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
+		// 4 bytes reserved
+		// sign and encrypt options			
 		i2p::crypto::Poly1305HMAC (((uint32_t *)options) + 4, (uint32_t *)key, options, 16); // calculate MAC first
 		i2p::crypto::chacha20 (options, 16, 0, key); // then encrypt
+		// create buffer		
+		m_SessionRequestBuffer = new uint8_t[paddingLength + 64];
+		memcpy (m_SessionRequestBuffer, x, 32);
+		memcpy (m_SessionRequestBuffer + 32, options, 32);
+		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
+		// send message
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, paddingLength + 64), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
 	}	
+
+	void NTCP2Session::HandleSessionRequestSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		(void) bytes_transferred;
+		delete[] m_SessionRequestBuffer; m_SessionRequestBuffer = nullptr;
+		if (ecode)
+		{
+			LogPrint (eLogInfo, "NTCP2: couldn't send SessionRequest message: ", ecode.message ());
+		}
+	}
+
+	void NTCP2Session::ClientLogin ()
+	{
+		SendSessionRequest ();
+	}
 }
 }
 
