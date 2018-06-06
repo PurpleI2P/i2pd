@@ -244,6 +244,18 @@ namespace data
 				}
 				else if (!strcmp (key, "caps"))
 					ExtractCaps (value);
+				else if (!strcmp (key, "s")) // ntcp2 static key
+				{
+					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
+					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);	
+				}	
+				else if (!strcmp (key, "i")) // ntcp2 iv
+				{
+					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
+					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);	
+				}	
 				else if (key[0] == 'i')
 				{
 					// introducers
@@ -735,6 +747,14 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
+	bool RouterInfo::IsNTCP2 (bool v4only) const
+	{
+		if (v4only)
+			return m_SupportedTransports & eNTCP2V4;
+		else
+			return m_SupportedTransports & (eNTCP2V4 | eNTCP2V6);
+	}
+
 	bool RouterInfo::IsV6 () const
 	{
 		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
@@ -742,19 +762,19 @@ namespace data
 
 	bool RouterInfo::IsV4 () const
 	{
-		return m_SupportedTransports & (eNTCPV4 | eSSUV4);
+		return m_SupportedTransports & (eNTCPV4 | eSSUV4 | eNTCP2V4);
 	}
 
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
-			m_SupportedTransports |= eNTCPV6 | eSSUV6;
+			m_SupportedTransports |= eNTCPV6 | eSSUV6 | eNTCP2V6;
 	}
 
   void RouterInfo::EnableV4 ()
 	{
 		if (!IsV4 ())
-			m_SupportedTransports |= eNTCPV4 | eSSUV4;
+			m_SupportedTransports |= eNTCPV4 | eSSUV4 | eNTCP2V4;
 	}
 
 
@@ -762,7 +782,7 @@ namespace data
 	{
 		if (IsV6 ())
 		{
-			m_SupportedTransports &= ~(eNTCPV6 | eSSUV6);
+			m_SupportedTransports &= ~(eNTCPV6 | eSSUV6 | eNTCP2V6);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
@@ -778,7 +798,7 @@ namespace data
 	{
 		if (IsV4 ())
 		{
-			m_SupportedTransports &= ~(eNTCPV4 | eSSUV4);
+			m_SupportedTransports &= ~(eNTCPV4 | eSSUV4 | eNTCP2V4);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
