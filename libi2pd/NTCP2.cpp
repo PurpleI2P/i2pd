@@ -47,6 +47,11 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::Done ()
+	{
+		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+	}
+
 	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
@@ -111,7 +116,9 @@ namespace transport
 		// 4 bytes reserved
 		// sign and encrypt options			
 		i2p::crypto::Poly1305HMAC (((uint32_t *)options) + 4, (uint32_t *)key, options, 16); // calculate MAC first
-		i2p::crypto::chacha20 (options, 16, 0, key); // then encrypt
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		i2p::crypto::chacha20 (options, 16, nonce, key); // then encrypt
 		// create buffer		
 		m_SessionRequestBuffer = new uint8_t[paddingLength + 64];
 		memcpy (m_SessionRequestBuffer, x, 32);
@@ -145,7 +152,7 @@ namespace transport
 		(void) bytes_transferred;
 		delete[] m_SessionCreatedBuffer; m_SessionCreatedBuffer = nullptr;
 		if (ecode)
-			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP2: SessionCreated read error: ", ecode.message ());
 		Terminate (); // TODO: continue
 	}
 
@@ -205,7 +212,7 @@ namespace transport
 
 	void NTCP2Server::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn)
 	{
-		LogPrint (eLogDebug, "NTCP: Connecting to ", address ,":",  port);
+		LogPrint (eLogDebug, "NTCP2: Connecting to ", address ,":",  port);
 		m_Service.post([this, address, port, conn]() 
 			{
 				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn));

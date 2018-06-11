@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <memory>
+#include <thread>
 #include <boost/asio.hpp>
 #include "RouterInfo.h"
 #include "TransportSession.h"
@@ -16,13 +17,15 @@ namespace transport
 	{
 		public:
 
-			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr); // TODO
+			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr); 
 			~NTCP2Session ();
 			void Terminate ();
+			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 
 			void ClientLogin (); // Alice 
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) {}; // TODO
 
 		private:
 
