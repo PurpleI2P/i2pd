@@ -1,4 +1,5 @@
 #include <fstream>
+#include <openssl/rand.h>
 #include "Config.h"
 #include "Crypto.h"
 #include "Timestamp.h"
@@ -96,6 +97,16 @@ namespace i2p
 		m_RouterInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
+	}
+
+	void RouterContext::NewNTCP2Keys ()
+	{
+		m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
+		RAND_bytes (m_NTCP2Keys->staticKey, 32);
+		RAND_bytes (m_NTCP2Keys->iv, 16);
+		// save
+		std::ofstream fk (i2p::fs::DataDirPath (NTCP2_KEYS), std::ofstream::binary | std::ofstream::out);
+		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));
 	}
 
 	void RouterContext::SetStatus (RouterStatus status)
@@ -428,6 +439,26 @@ namespace i2p
 
 		if (IsUnreachable ())
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
+
+		// read NTCP2
+		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		if (ntcp2)
+		{
+			std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
+			if (n2k) 
+			{
+				n2k.seekg (0, std::ios::end);
+				len = fk.tellg();
+				n2k.seekg (0, std::ios::beg);
+				if (len == sizeof (NTCP2PrivateKeys))
+				{
+					m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
+					n2k.read ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));				
+				}	
+			}
+			if (!m_NTCP2Keys)
+				NewNTCP2Keys ();
+		}
 
 		return true;
 	}

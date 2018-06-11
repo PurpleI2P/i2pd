@@ -14,6 +14,7 @@ namespace i2p
 {
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
+	const char NTCP2_KEYS[] = "ntcp2.keys";	
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 
 	enum RouterStatus
@@ -32,6 +33,14 @@ namespace i2p
 
 	class RouterContext: public i2p::garlic::GarlicDestination
 	{
+		private:
+
+			struct NTCP2PrivateKeys 
+			{
+				uint8_t staticKey[32];
+				uint8_t iv[16];
+			};			
+
 		public:
 
 			RouterContext ();
@@ -108,6 +117,7 @@ namespace i2p
 			void CreateNewRouter ();
 			void NewRouterInfo ();
 			void UpdateRouterInfo ();
+			void NewNTCP2Keys ();
 			bool Load ();
 			void SaveKeys ();
 
@@ -125,6 +135,7 @@ namespace i2p
 			RouterError m_Error;
 			int m_NetID;
 			std::mutex m_GarlicMutex;
+			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 	};
 
 	extern RouterContext context;
