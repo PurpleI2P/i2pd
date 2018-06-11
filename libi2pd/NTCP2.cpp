@@ -16,7 +16,9 @@ namespace transport
 {
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
 		TransportSession (in_RemoteRouter, 30), 
-		m_Server (server), m_Socket (m_Server.GetService ()), m_SessionRequestBuffer (nullptr)
+		m_Server (server), m_Socket (m_Server.GetService ()), 
+		m_IsEstablished (false), m_IsTerminated (false),
+		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr)
 	{
 		auto addr = in_RemoteRouter->GetNTCPAddress ();
 		if (addr->ntcp2)
@@ -31,9 +33,21 @@ namespace transport
 	NTCP2Session::~NTCP2Session ()
 	{
 		delete[] m_SessionRequestBuffer; 
+		delete[] m_SessionCreatedBuffer;
 	}
 
-	bool NTCP2Session::KeyDerivationFunction (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
+	void NTCP2Session::Terminate ()
+	{
+		if (!m_IsTerminated)
+		{
+			m_IsTerminated = true;
+			m_IsEstablished = false;
+			m_Socket.close ();
+			LogPrint (eLogDebug, "NTCP2: session terminated");
+		}
+	}
+
+	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
 		uint8_t h[64], ck[33];
@@ -84,7 +98,7 @@ namespace transport
 		encryption.Encrypt (2, x.GetChipherBlock (), x.GetChipherBlock ());
 		// encryption key for next block
 		uint8_t key[32];
-		KeyDerivationFunction (m_RemoteStaticKey, x, key);
+		KeyDerivationFunction1 (m_RemoteStaticKey, x, key);
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
@@ -115,12 +129,101 @@ namespace transport
 		if (ecode)
 		{
 			LogPrint (eLogInfo, "NTCP2: couldn't send SessionRequest message: ", ecode.message ());
+			Terminate ();
 		}
+		else
+		{
+			m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
+			// we receive first 56 bytes (32 Y, and 24 ChaCha/Poly frame) first
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionCreatedBuffer, sizeof (56)), boost::asio::transfer_all (),
+				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+		}
+	}
+
+	void NTCP2Session::HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		(void) bytes_transferred;
+		delete[] m_SessionCreatedBuffer; m_SessionCreatedBuffer = nullptr;
+		if (ecode)
+			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message ());
+		Terminate (); // TODO: continue
 	}
 
 	void NTCP2Session::ClientLogin ()
 	{
 		SendSessionRequest ();
+	}
+
+	NTCP2Server::NTCP2Server ():
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service)	
+	{
+	}
+
+	NTCP2Server::~NTCP2Server ()
+	{
+		Stop ();
+	}
+
+	void NTCP2Server::Start ()
+	{
+		if (!m_IsRunning)
+		{
+			m_IsRunning = true;
+			m_Thread = new std::thread (std::bind (&NTCP2Server::Run, this));
+		}
+	}
+
+	void NTCP2Server::Stop ()
+	{
+		if (m_IsRunning)
+		{
+			m_IsRunning = false;
+			m_Service.stop ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				delete m_Thread;
+				m_Thread = nullptr;
+			}
+		}
+	}
+
+	void NTCP2Server::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "NTCP2: runtime exception: ", ex.what ());
+			}
+		}
+	}
+
+	void NTCP2Server::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn)
+	{
+		LogPrint (eLogDebug, "NTCP: Connecting to ", address ,":",  port);
+		m_Service.post([this, address, port, conn]() 
+			{
+				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn));
+			});
+	}
+
+	void NTCP2Server::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn)
+	{
+		if (ecode)
+		{
+			LogPrint (eLogInfo, "NTCP2: Connect error ", ecode.message ());
+			conn->Terminate ();
+		}
+		else
+		{
+			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetSocket ().remote_endpoint ());
+			conn->ClientLogin ();
+		}
 	}
 }
 }
