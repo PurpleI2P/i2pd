@@ -94,13 +94,18 @@ namespace transport
 
 	void NTCP2Session::SendSessionRequest ()
 	{
-		i2p::crypto::AESAlignedBuffer<32> x;
+		// create buffer and fill padding
+		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
+		m_SessionRequestBuffer = new uint8_t[paddingLength + 64];
+		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
+		// generate key pair (X)
+		uint8_t x[32];
 		CreateEphemeralKey (x);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
 		encryption.SetIV (m_RemoteIV);
-		encryption.Encrypt (2, x.GetChipherBlock (), x.GetChipherBlock ());
+		encryption.Encrypt (x, 32, m_SessionRequestBuffer);
 		// encryption key for next block
 		uint8_t key[32];
 		KeyDerivationFunction1 (m_RemoteStaticKey, x, key);
@@ -108,7 +113,6 @@ namespace transport
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
 		htobe16buf (options, 2); // ver	
-		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
 		htobe16buf (options + 2, paddingLength); // padLen
 		htobe16buf (options + 4, 0); // m3p2Len TODO:
 		// 2 bytes reserved
@@ -117,13 +121,9 @@ namespace transport
 		// sign and encrypt options			
 		i2p::crypto::Poly1305HMAC (((uint32_t *)options) + 4, (uint32_t *)key, options, 16); // calculate MAC first
 		uint8_t nonce[12];
-		memset (nonce, 0, 12);
+		memset (nonce, 0, 12); // set nonce to zero
 		i2p::crypto::chacha20 (options, 16, nonce, key); // then encrypt
-		// create buffer		
-		m_SessionRequestBuffer = new uint8_t[paddingLength + 64];
-		memcpy (m_SessionRequestBuffer, x, 32);
 		memcpy (m_SessionRequestBuffer + 32, options, 32);
-		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, paddingLength + 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
