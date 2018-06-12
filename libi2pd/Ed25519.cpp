@@ -411,13 +411,13 @@ namespace crypto
 		}
 	}
 
-	BIGNUM * Ed25519::ScalarMul (const BIGNUM * p, const BIGNUM * n, BN_CTX * ctx) const
+	BIGNUM * Ed25519::ScalarMul (const BIGNUM * u, const BIGNUM * k, BN_CTX * ctx) const
 	{
 		BN_CTX_start (ctx);
-		auto x1 = BN_CTX_get (ctx); BN_copy (x1, p);
+		auto x1 = BN_CTX_get (ctx); BN_copy (x1, u);
 		auto x2 = BN_CTX_get (ctx); BN_one (x2);
 		auto z2 = BN_CTX_get (ctx); BN_zero (z2);
-		auto x3 = BN_CTX_get (ctx); BN_copy (x1, p);
+		auto x3 = BN_CTX_get (ctx); BN_copy (x3, u);
 		auto z3 = BN_CTX_get (ctx); BN_one (z3);
 		auto a24 = BN_CTX_get (ctx); BN_set_word (a24, 121665);
 		auto a = BN_CTX_get (ctx); auto aa = BN_CTX_get (ctx);
@@ -427,11 +427,11 @@ namespace crypto
 		auto da = BN_CTX_get (ctx); auto cb = BN_CTX_get (ctx);
 		auto tmp1 = BN_CTX_get (ctx); auto tmp2 = BN_CTX_get (ctx);
 		unsigned int swap = 0;
-		auto bits = BN_num_bits (n);
+		auto bits = BN_num_bits (k);
 		while(bits)
 		{
 			--bits;
-			auto k_t = BN_is_bit_set(n, bits) ? 1 : 0;
+			auto k_t = BN_is_bit_set(k, bits) ? 1 : 0;
 			swap ^= k_t;
 			if (swap) 
 			{
