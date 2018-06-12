@@ -75,7 +75,8 @@ namespace crypto
 			EDDSAPoint GeneratePublicKey (const uint8_t * expandedPrivateKey, BN_CTX * ctx) const;
 			EDDSAPoint DecodePublicKey (const uint8_t * buf, BN_CTX * ctx) const;
 			void EncodePublicKey (const EDDSAPoint& publicKey, uint8_t * buf, BN_CTX * ctx) const;
-			void Mul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number
+			void ScalarMul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number for x25519
+			void ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const;
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
@@ -98,6 +99,9 @@ namespace crypto
 			template<int len>
 			BIGNUM * DecodeBN (const uint8_t * buf) const;
 			void EncodeBN (const BIGNUM * bn, uint8_t * buf, size_t len) const;
+
+			// for x25519
+			BIGNUM * ScalarMul (const BIGNUM * p, const BIGNUM * e, BN_CTX * ctx) const; 
 
 		private:
 

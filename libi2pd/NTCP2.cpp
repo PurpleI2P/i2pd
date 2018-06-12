@@ -67,7 +67,7 @@ namespace transport
 		// x25519 between rs and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
-		i2p::crypto::GetEd25519 ()->Mul (rs, m_ExpandedPrivateKey, inputKeyMaterial, ctx); // rs*priv
+		i2p::crypto::GetEd25519 ()->ScalarMul (rs, m_ExpandedPrivateKey, inputKeyMaterial, ctx); // rs*priv
 		BN_CTX_free (ctx);
 		// temp_key = HMAC-SHA256(ck, input_key_material)
 		uint8_t tempKey[32]; unsigned int len;
@@ -87,8 +87,7 @@ namespace transport
 		RAND_bytes (key, 32);
 		i2p::crypto::Ed25519::ExpandPrivateKey (key, m_ExpandedPrivateKey);
 		BN_CTX * ctx = BN_CTX_new ();
-		auto publicKey = i2p::crypto::GetEd25519 ()->GeneratePublicKey (m_ExpandedPrivateKey, ctx);
-		i2p::crypto::GetEd25519 ()->EncodePublicKey (publicKey, pub, ctx);
+		i2p::crypto::GetEd25519 ()->ScalarMulB (m_ExpandedPrivateKey, pub, ctx);
 		BN_CTX_free (ctx);
 	}
 

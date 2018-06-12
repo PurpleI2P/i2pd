@@ -411,12 +411,103 @@ namespace crypto
 		}
 	}
 
-	void Ed25519::Mul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	BIGNUM * Ed25519::ScalarMul (const BIGNUM * p, const BIGNUM * n, BN_CTX * ctx) const
 	{
-		auto P = DecodePublicKey (p, ctx);
-		BIGNUM * e1 = DecodeBN<32> (e);
-		EncodePublicKey (Mul (P, e1, ctx), buf, ctx);
-		BN_free (e1);
+		BN_CTX_start (ctx);
+		auto x1 = BN_CTX_get (ctx); BN_copy (x1, p);
+		auto x2 = BN_CTX_get (ctx); BN_one (x2);
+		auto z2 = BN_CTX_get (ctx); BN_zero (z2);
+		auto x3 = BN_CTX_get (ctx); BN_copy (x1, p);
+		auto z3 = BN_CTX_get (ctx); BN_one (z3);
+		auto a24 = BN_CTX_get (ctx); BN_set_word (a24, 121665);
+		auto a = BN_CTX_get (ctx); auto aa = BN_CTX_get (ctx);
+		auto b = BN_CTX_get (ctx); auto bb = BN_CTX_get (ctx);
+		auto e = BN_CTX_get (ctx); auto c = BN_CTX_get (ctx);
+		auto d = BN_CTX_get (ctx);
+		auto da = BN_CTX_get (ctx); auto cb = BN_CTX_get (ctx);
+		auto tmp1 = BN_CTX_get (ctx); auto tmp2 = BN_CTX_get (ctx);
+		unsigned int swap = 0;
+		auto bits = BN_num_bits (n);
+		while(bits)
+		{
+			--bits;
+			auto k_t = BN_is_bit_set(n, bits) ? 1 : 0;
+			swap ^= k_t;
+			if (swap) 
+			{
+				std::swap (x2, x3);
+				std::swap (z2, z3);
+			}
+			swap = k_t;
+			// a = x2 + z2
+			BN_mod_add(a, x2, z2, q, ctx);
+			// aa = a^2
+			BN_mod_sqr(aa, a, q, ctx);
+			// b = x2 - z2
+			BN_mod_sub(b, x2, z2, q, ctx);
+			// bb = b^2
+			BN_mod_sqr(bb, b, q, ctx);
+			// e = aa - bb
+			BN_mod_sub(e, aa, bb, q, ctx);
+			// c = x3 + z3
+			BN_mod_add(c, x3, z3, q, ctx);
+			// d = x3 - z3
+			BN_mod_sub(d, x3, z3, q, ctx);
+			// da = d * a
+			BN_mod_mul(da, d, a, q, ctx);
+			// cb = c * b
+			BN_mod_mul(cb, c, b, q, ctx);
+			// x3 = ( da + cb )^2
+			BN_mod_add(tmp1, da, cb, q, ctx);
+			BN_mod_sqr(x3, tmp1, q, ctx);
+			// z3 == x1 * (da - cb)^2
+			BN_mod_sub(tmp1, da, cb, q, ctx);
+			BN_mod_sqr(tmp2, tmp1, q, ctx);
+			BN_mod_mul(z3, x1, tmp2, q, ctx);
+			// x2 = aa * bb
+			BN_mod_mul(x2, aa, bb, q, ctx);
+			// z2 = e * (aa + a24 * e)
+			BN_mod_mul(tmp1, a24, e, q, ctx);
+			BN_mod_add(tmp2, aa, tmp1, q, ctx);
+			BN_mod_mul(z2, e, tmp2, q, ctx);
+		}
+		if (swap) 
+		{
+			std::swap (x2, x3);
+			std::swap (z2, z3);
+		}
+		// x2 * (z2 ^ (q - 2))
+		BN_set_word(tmp1, 2);
+		BN_sub(tmp2, q, tmp1);
+		BN_mod_exp(tmp1, z2, tmp2, q, ctx);
+		BIGNUM * res =  BN_new (); // not from ctx
+		BN_mod_mul(res, x2, tmp1, q, ctx);
+		BN_CTX_end (ctx);
+		return res;
+	}
+
+	void Ed25519::ScalarMul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	{
+		BIGNUM * p1 = DecodeBN<32> (p);
+		uint8_t k[32];
+		memcpy (k, e, 32);
+		k[0] &= 248; k[31] &= 127; k[31] |= 64;
+		BIGNUM * n = DecodeBN<32> (k);
+		BIGNUM * q1 = ScalarMul (p1, n, ctx);
+		EncodeBN (q1, buf, 32);
+		BN_free (p1); BN_free (n); BN_free (q1);
+	}
+
+	void Ed25519::ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	{
+		BIGNUM *p1 = BN_new (); BN_set_word (p1, 9);
+		uint8_t k[32];
+		memcpy (k, e, 32);
+		k[0] &= 248; k[31] &= 127; k[31] |= 64;
+		BIGNUM * n = DecodeBN<32> (k);
+		BIGNUM * q1 = ScalarMul (p1, n, ctx);
+		EncodeBN (q1, buf, 32);
+		BN_free (p1); BN_free (n); BN_free (q1);
 	}
 
 	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
