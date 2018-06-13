@@ -22,7 +22,7 @@ namespace transport
 		if (addr->ntcp2)
 		{
 			memcpy (m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
-			memcpy (m_RemoteIV, addr->ntcp2->iv, 16);
+			memcpy (m_IV, addr->ntcp2->iv, 16);
 		}
 		else
 			LogPrint (eLogWarning, "NTCP2: Missing NTCP2 parameters"); 
@@ -50,7 +50,7 @@ namespace transport
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 	}
 
-	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived, uint8_t * ad)
+	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
 		uint8_t h[64], ck[33];
@@ -61,7 +61,7 @@ namespace transport
 		SHA256 (h, 64, h); 
 		// h = SHA256(h || pub)
 		memcpy (h + 32, pub, 32); 
-		SHA256 (h, 64, ad); 
+		SHA256 (h, 64, m_H); 
 		// x25519 between rs and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
@@ -101,24 +101,25 @@ namespace transport
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
-		encryption.SetIV (m_RemoteIV);
+		encryption.SetIV (m_IV);
 		encryption.Encrypt (x, 32, m_SessionRequestBuffer);
+		encryption.GetIV (m_IV); // save IV for SessionCreated	
 		// encryption key for next block
-		uint8_t key[32], ad[32];
-		KeyDerivationFunction1 (m_RemoteStaticKey, x, key, ad);
+		uint8_t key[32];
+		KeyDerivationFunction1 (m_RemoteStaticKey, x, key);
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
 		htobe16buf (options, 2); // ver	
 		htobe16buf (options + 2, paddingLength); // padLen
-		htobe16buf (options + 4, 0); // m3p2Len TODO:
+		htobe16buf (options + 4, 550); // m3p2Len TODO:
 		// 2 bytes reserved
 		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
 		// 4 bytes reserved
-		// sign and encrypt options			
+		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305Encrypt (options, 16, ad, 32, key, nonce, m_SessionRequestBuffer + 32, 32);
+		i2p::crypto::AEADChaCha20Poly1305Encrypt (options, 16, m_H, 32, key, nonce, m_SessionRequestBuffer + 32, 32);
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, paddingLength + 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
@@ -127,28 +128,37 @@ namespace transport
 	void NTCP2Session::HandleSessionRequestSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		(void) bytes_transferred;
-		delete[] m_SessionRequestBuffer; m_SessionRequestBuffer = nullptr;
 		if (ecode)
 		{
-			LogPrint (eLogInfo, "NTCP2: couldn't send SessionRequest message: ", ecode.message ());
+			LogPrint (eLogWarning, "NTCP2: couldn't send SessionRequest message: ", ecode.message ());
 			Terminate ();
 		}
 		else
 		{
 			m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
 			// we receive first 56 bytes (32 Y, and 24 ChaCha/Poly frame) first
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionCreatedBuffer, sizeof (56)), boost::asio::transfer_all (),
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionCreatedBuffer, 56), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 		}
 	}
 
 	void NTCP2Session::HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		(void) bytes_transferred;
-		delete[] m_SessionCreatedBuffer; m_SessionCreatedBuffer = nullptr;
 		if (ecode)
-			LogPrint (eLogInfo, "NTCP2: SessionCreated read error: ", ecode.message ());
-		Terminate (); // TODO: continue
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionCreated read error: ", ecode.message ());
+			Terminate ();
+		}
+		else
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionCreated received ", bytes_transferred);
+			uint8_t y[32];
+			// decrypt Y
+			i2p::crypto::CBCDecryption decryption;
+			decryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
+			decryption.SetIV (m_IV);
+			decryption.Decrypt (m_SessionCreatedBuffer, 32, y);
+		}
 	}
 
 	void NTCP2Session::ClientLogin ()

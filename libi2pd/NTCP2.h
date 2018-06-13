@@ -29,7 +29,7 @@ namespace transport
 
 		private:
 
-			bool KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived, uint8_t * ad); // for SessionRequest
+			bool KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
 
@@ -43,7 +43,7 @@ namespace transport
 			bool m_IsEstablished, m_IsTerminated;
 
 			uint8_t m_ExpandedPrivateKey[64]; // x25519 ephemeral key
-			uint8_t m_RemoteStaticKey[32], m_RemoteIV[16];
+			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32];
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer;
 	};
 

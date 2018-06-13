@@ -181,6 +181,7 @@ namespace crypto
 
 			void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
 			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_LastBlock, iv, 16); }; // 16 bytes
+			void GetIV (uint8_t * iv) const { memcpy (iv, (const uint8_t *)m_LastBlock, 16); };
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -203,6 +204,7 @@ namespace crypto
 
 			void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
 			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_IV, iv, 16); }; // 16 bytes
+			void GetIV (uint8_t * iv) const { memcpy (iv, (const uint8_t *)m_IV, 16); };
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
