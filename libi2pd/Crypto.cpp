@@ -8,6 +8,9 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
+#include "I2PEndian.h"
+#include "ChaCha20.h"
+#include "Poly1305.h"
 #include "Log.h"
 #include "Crypto.h"
 
@@ -1056,6 +1059,32 @@ namespace crypto
 			m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 		}
 	}
+
+// AEAD/ChaCha20/Poly1305
+
+	size_t AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	{
+		if (msgLen + 16 < len) return 0;
+		// generate one time poly key
+		uint8_t polyKey[64];
+		memset(polyKey, 0, sizeof(polyKey));
+		chacha20 (polyKey, 64, nonce, key, 0);
+		// encrypt data		
+		memcpy (buf, msg, msgLen);
+		chacha20 (buf, msgLen, nonce, key, 1);
+		// create Poly1305 message
+		std::vector<uint8_t> polyMsg(adLen + msgLen + 16);
+		size_t offset = 0;	
+		memcpy (polyMsg.data (), ad, adLen); offset += adLen;
+		memcpy (polyMsg.data () + offset, buf, msgLen); offset += msgLen; // encrypted data
+		htole64buf (polyMsg.data () + offset, adLen); offset += 8;			
+		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
+		// calculate Poly1305 tag and write in after encrypted data		
+		Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)key, polyMsg.data (), offset);
+		return msgLen + 16;
+	}
+
+// init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
 	static void OpensslLockingCallback(int mode, int type, const char * file, int line)

@@ -29,7 +29,7 @@ namespace transport
 
 		private:
 
-			bool KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
+			bool KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived, uint8_t * ad); // for SessionRequest
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
 

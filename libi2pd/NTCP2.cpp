@@ -6,8 +6,6 @@
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Ed25519.h"
-#include "ChaCha20.h"
-#include "Poly1305.h"
 #include "NTCP2.h"
 
 namespace i2p
@@ -52,7 +50,7 @@ namespace transport
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 	}
 
-	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
+	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived, uint8_t * ad)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
 		uint8_t h[64], ck[33];
@@ -63,7 +61,7 @@ namespace transport
 		SHA256 (h, 64, h); 
 		// h = SHA256(h || pub)
 		memcpy (h + 32, pub, 32); 
-		SHA256 (h, 64, h); 
+		SHA256 (h, 64, ad); 
 		// x25519 between rs and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
@@ -106,8 +104,8 @@ namespace transport
 		encryption.SetIV (m_RemoteIV);
 		encryption.Encrypt (x, 32, m_SessionRequestBuffer);
 		// encryption key for next block
-		uint8_t key[32];
-		KeyDerivationFunction1 (m_RemoteStaticKey, x, key);
+		uint8_t key[32], ad[32];
+		KeyDerivationFunction1 (m_RemoteStaticKey, x, key, ad);
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
@@ -118,11 +116,9 @@ namespace transport
 		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
 		// 4 bytes reserved
 		// sign and encrypt options			
-		i2p::crypto::Poly1305HMAC (((uint32_t *)options) + 4, (uint32_t *)key, options, 16); // calculate MAC first
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::chacha20 (options, 16, nonce, key); // then encrypt
-		memcpy (m_SessionRequestBuffer + 32, options, 32);
+		i2p::crypto::AEADChaCha20Poly1305Encrypt (options, 16, ad, 32, key, nonce, m_SessionRequestBuffer + 32, 32);
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, paddingLength + 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
