@@ -1073,10 +1073,23 @@ namespace crypto
 		memcpy (buf, msg, msgLen);
 		chacha20 (buf, msgLen, nonce, key, 1);
 		// create Poly1305 message
-		std::vector<uint8_t> polyMsg(adLen + msgLen + 16);
+		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
 		size_t offset = 0;	
-		memcpy (polyMsg.data (), ad, adLen); offset += adLen;
+		uint8_t padding[16]; memset (padding, 0, 16);
+		memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
+		auto rem = adLen & 0x0F; // %16
+		if (rem) 
+		{
+			// padding1
+			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+		}
 		memcpy (polyMsg.data () + offset, buf, msgLen); offset += msgLen; // encrypted data
+		rem = msgLen & 0x0F; // %16
+		if (rem) 
+		{
+			// padding2
+			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+		}
 		htole64buf (polyMsg.data () + offset, adLen); offset += 8;			
 		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
 		// calculate Poly1305 tag and write in after encrypted data		
