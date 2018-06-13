@@ -1081,6 +1081,7 @@ namespace crypto
 		if (rem) 
 		{
 			// padding1
+			rem = 16 - rem;
 			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
 		}
 		memcpy (polyMsg.data () + offset, buf, msgLen); offset += msgLen; // encrypted data
@@ -1088,12 +1089,14 @@ namespace crypto
 		if (rem) 
 		{
 			// padding2
+			rem = 16 - rem;
 			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
 		}
 		htole64buf (polyMsg.data () + offset, adLen); offset += 8;			
 		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
+
 		// calculate Poly1305 tag and write in after encrypted data		
-		Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)key, polyMsg.data (), offset);
+		Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
 		return msgLen + 16;
 	}
 
