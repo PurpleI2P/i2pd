@@ -2,6 +2,7 @@
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
 #include <stdlib.h>
+#include <vector>
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Crypto.h"
@@ -50,11 +51,11 @@ namespace transport
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 	}
 
-	bool NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
+	void NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
-		uint8_t h[64], ck[33];
-		memcpy (ck, protocolName, 32);
+		uint8_t h[64];
+		memcpy (m_CK, protocolName, 32);
 		SHA256 ((const uint8_t *)protocolName, 32, h);	
 		// h = SHA256(h || rs)
 		memcpy (h + 32, rs, 32); 
@@ -69,14 +70,43 @@ namespace transport
 		BN_CTX_free (ctx);
 		// temp_key = HMAC-SHA256(ck, input_key_material)
 		uint8_t tempKey[32]; unsigned int len;
-		HMAC(EVP_sha256(), ck, 32, inputKeyMaterial, 32, tempKey, &len); 	
-		// ck = HMAC-SHA256(temp_key, byte(0x01))
+		HMAC(EVP_sha256(), m_CK, 32, inputKeyMaterial, 32, tempKey, &len); 	
+		// ck = HMAC-SHA256(temp_key, byte(0x01)) 
 		inputKeyMaterial[0] = 1;
-		HMAC(EVP_sha256(), tempKey, 32, inputKeyMaterial, 1, ck, &len); 	
+		HMAC(EVP_sha256(), tempKey, 32, inputKeyMaterial, 1, m_CK, &len); 	
 		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
-		ck[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, ck, 33, derived, &len); 		
-		return true;
+		m_CK[32] = 2;
+		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
+	}
+
+	void NTCP2Session::KeyDerivationFunction2 (const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived)
+	{
+		uint8_t h[64];
+		memcpy (h, m_H, 32);
+		memcpy (h + 32, sessionRequest + 32, 32); // encrypted payload
+		SHA256 (h, 64, m_H); 
+		int paddingLength =  sessionRequestLen - 64;
+		if (paddingLength > 0)
+		{
+			std::vector<uint8_t> h1(paddingLength + 32);
+			memcpy (h1.data (), m_H, 32);
+			memcpy (h1.data () + 32, sessionRequest + 64, paddingLength);
+			SHA256 (h1.data (), paddingLength + 32, m_H); 
+		}	
+		// x25519 between remote pub and priv
+		uint8_t inputKeyMaterial[32];
+		BN_CTX * ctx = BN_CTX_new ();
+		i2p::crypto::GetEd25519 ()->ScalarMul (pub, m_ExpandedPrivateKey, inputKeyMaterial, ctx); 
+		BN_CTX_free (ctx);
+		// temp_key = HMAC-SHA256(ck, input_key_material)
+		uint8_t tempKey[32]; unsigned int len;
+		HMAC(EVP_sha256(), m_CK, 32, inputKeyMaterial, 32, tempKey, &len); 	
+		// ck = HMAC-SHA256(temp_key, byte(0x01)) 
+		inputKeyMaterial[0] = 1;
+		HMAC(EVP_sha256(), tempKey, 32, inputKeyMaterial, 1, m_CK, &len); 	
+		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
+		m_CK[32] = 2;
+		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 
 	}
 
 	void NTCP2Session::CreateEphemeralKey (uint8_t * pub)
@@ -93,7 +123,8 @@ namespace transport
 	{
 		// create buffer and fill padding
 		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
-		m_SessionRequestBuffer = new uint8_t[paddingLength + 64];
+		m_SessionRequestBufferLen = paddingLength + 64;
+		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
 		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// generate key pair (X)
 		uint8_t x[32];
@@ -119,9 +150,9 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305Encrypt (options, 16, m_H, 32, key, nonce, m_SessionRequestBuffer + 32, 32);
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_H, 32, key, nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
 		// send message
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, paddingLength + 64), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, m_SessionRequestBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
 	}	
 
@@ -151,13 +182,29 @@ namespace transport
 		}
 		else
 		{
-			LogPrint (eLogWarning, "NTCP2: SessionCreated received ", bytes_transferred);
+			LogPrint (eLogInfo, "NTCP2: SessionCreated received ", bytes_transferred);
 			uint8_t y[32];
 			// decrypt Y
 			i2p::crypto::CBCDecryption decryption;
 			decryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
 			decryption.SetIV (m_IV);
 			decryption.Decrypt (m_SessionCreatedBuffer, 32, y);
+			// decryption key for next block
+			uint8_t key[32];
+			KeyDerivationFunction2 (y, m_SessionRequestBuffer, m_SessionRequestBufferLen, key);
+			// decrypt and verify MAC
+			uint8_t payload[8];
+			uint8_t nonce[12];
+			memset (nonce, 0, 12); // set nonce to zero
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 8, m_H, 32, key, nonce, payload, 8, false)) // decrypt
+			{		
+				// TODO:
+			}
+			else
+			{	
+				LogPrint (eLogWarning, "NTCP2: SessionCreated MAC verification failed ");
+				Terminate ();
+			}	
 		}
 	}
 

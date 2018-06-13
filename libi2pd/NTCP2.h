@@ -29,7 +29,9 @@ namespace transport
 
 		private:
 
-			bool KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
+			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
+			void KeyDerivationFunction2 (const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
+
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
 
@@ -43,8 +45,9 @@ namespace transport
 			bool m_IsEstablished, m_IsTerminated;
 
 			uint8_t m_ExpandedPrivateKey[64]; // x25519 ephemeral key
-			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32];
+			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/;
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer;
+			size_t m_SessionRequestBufferLen;
 	};
 
 	class NTCP2Server

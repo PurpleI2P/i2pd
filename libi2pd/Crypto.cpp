@@ -1062,9 +1062,9 @@ namespace crypto
 
 // AEAD/ChaCha20/Poly1305
 
-	size_t AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len)
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
-		if (msgLen + 16 < len) return 0;
+		if (encrypt && msgLen + 16 < len) return 0;
 		// generate one time poly key
 		uint8_t polyKey[64];
 		memset(polyKey, 0, sizeof(polyKey));
@@ -1072,6 +1072,7 @@ namespace crypto
 		// encrypt data		
 		memcpy (buf, msg, msgLen);
 		chacha20 (buf, msgLen, nonce, key, 1);
+		
 		// create Poly1305 message
 		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
 		size_t offset = 0;	
@@ -1084,7 +1085,7 @@ namespace crypto
 			rem = 16 - rem;
 			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
 		}
-		memcpy (polyMsg.data () + offset, buf, msgLen); offset += msgLen; // encrypted data
+		memcpy (polyMsg.data () + offset, encrypt ? buf : msg, msgLen); offset += msgLen; // encrypted data
 		rem = msgLen & 0x0F; // %16
 		if (rem) 
 		{
@@ -1095,9 +1096,19 @@ namespace crypto
 		htole64buf (polyMsg.data () + offset, adLen); offset += 8;			
 		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
 
-		// calculate Poly1305 tag and write in after encrypted data		
-		Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
-		return msgLen + 16;
+		if (encrypt)
+		{
+			// calculate Poly1305 tag and write in after encrypted data		
+			Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
+		}
+		else
+		{
+			uint32_t tag[8];
+			// calculate Poly1305 tag
+			Poly1305HMAC (tag, (uint32_t *)polyKey, polyMsg.data (), offset);
+			if (memcmp (tag, msg + msgLen, 16)) return false; // compare with provided
+		}	
+		return true;
 	}
 
 // init and terminate

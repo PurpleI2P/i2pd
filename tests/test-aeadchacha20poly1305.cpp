@@ -43,7 +43,12 @@ uint8_t encrypted[114] =
 int main ()
 {
 	uint8_t buf[114+16];
-	i2p::crypto::AEADChaCha20Poly1305Encrypt ((uint8_t *)text, 114, ad, 12, key, nonce, buf, 114 + 16);
+	// test encryption
+	i2p::crypto::AEADChaCha20Poly1305 ((uint8_t *)text, 114, ad, 12, key, nonce, buf, 114 + 16, true);
 	assert (memcmp (buf, encrypted, 114) == 0);
-	assert(memcmp (buf + 114, tag, 16) == 0);
+	assert (memcmp (buf + 114, tag, 16) == 0);
+	// test decryption
+	uint8_t buf1[114];
+	assert (i2p::crypto::AEADChaCha20Poly1305 (buf, 114, ad, 12, key, nonce, buf1, 114, false));
+	assert (memcmp (buf1, text, 114) == 0);
 }

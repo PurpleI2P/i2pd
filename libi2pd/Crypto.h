@@ -255,7 +255,7 @@ namespace crypto
 	};
 
 // AEAD/ChaCha20/Poly1305
-	size_t AEADChaCha20Poly1305Encrypt (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len); 
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag 
    	
 // init and terminate
 	void InitCrypto (bool precomputation);
