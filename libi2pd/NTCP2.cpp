@@ -84,15 +84,18 @@ namespace transport
 		uint8_t h[64];
 		memcpy (h, m_H, 32);
 		memcpy (h + 32, sessionRequest + 32, 32); // encrypted payload
-		SHA256 (h, 64, m_H); 
+		SHA256 (h, 64, h); 
 		int paddingLength =  sessionRequestLen - 64;
 		if (paddingLength > 0)
 		{
 			std::vector<uint8_t> h1(paddingLength + 32);
-			memcpy (h1.data (), m_H, 32);
+			memcpy (h1.data (), h, 32);
 			memcpy (h1.data () + 32, sessionRequest + 64, paddingLength);
-			SHA256 (h1.data (), paddingLength + 32, m_H); 
+			SHA256 (h1.data (), paddingLength + 32, h); 
 		}	
+		memcpy (h + 32, pub, 32);
+		SHA256 (h, 64, m_H);  
+
 		// x25519 between remote pub and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
