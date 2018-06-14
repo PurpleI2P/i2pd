@@ -29,14 +29,19 @@ namespace transport
 
 		private:
 
+			void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
 			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
 			void KeyDerivationFunction2 (const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
+			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
 
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
+			void SendSessionConfirmed ();
 
 			void HandleSessionRequestSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
 		private:
 
@@ -45,9 +50,9 @@ namespace transport
 			bool m_IsEstablished, m_IsTerminated;
 
 			uint8_t m_ExpandedPrivateKey[64]; // x25519 ephemeral key
-			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/;
-			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer;
-			size_t m_SessionRequestBufferLen;
+			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32];
+			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
+			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 	};
 
 	class NTCP2Server
