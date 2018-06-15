@@ -7,6 +7,7 @@
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Ed25519.h"
+#include "RouterContext.h"
 #include "NTCP2.h"
 
 namespace i2p
@@ -153,7 +154,7 @@ namespace transport
 		memset (options, 0, 16);
 		htobe16buf (options, 2); // ver	
 		htobe16buf (options + 2, paddingLength); // padLen
-		htobe16buf (options + 4, 550); // m3p2Len TODO:
+		htobe16buf (options + 4, i2p::context.GetRouterInfo ().GetBufferLen () + 20); // m3p2Len (RI header + RI + MAC for now) TODO: implement options
 		// 2 bytes reserved
 		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
 		// 4 bytes reserved
@@ -255,24 +256,25 @@ namespace transport
 			SHA256 (h1.data (), paddingLength + 32, h); 
 		}	
 		// part1 48 bytes 
-		uint8_t s[32]; // public static
-		CreateEphemeralKey (s); // TODO: take it from RouterContext
 		m_SessionConfirmedBuffer = new uint8_t[2048]; // TODO: actual size
 		uint8_t nonce[12];
 		memset (nonce, 0, 4); htole64buf (nonce + 4, 1); // set nonce to 1
-		i2p::crypto::AEADChaCha20Poly1305 (s, 32, h, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, h, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 		// part 2
 		// update AD again
 		memcpy (h + 32, m_SessionConfirmedBuffer, 48);
 		SHA256 (h, 80, m_H); 			
 
-		size_t m3p2Len = 550; // TODO: actual size
-		uint8_t buf[550];
-		memset (buf, 0, m3p2Len - 16); // TODO: fill
+		size_t m3p2Len = i2p::context.GetRouterInfo ().GetBufferLen () + 20;
+		std::vector<uint8_t> buf(m3p2Len - 16);
+		buf[0] = 2; // block
+		htobe16buf (buf.data () + 1, i2p::context.GetRouterInfo ().GetBufferLen () + 1); // flag + RI
+		buf[3] = 0; // flag 	
+		memcpy (buf.data () + 4, i2p::context.GetRouterInfo ().GetBuffer (), i2p::context.GetRouterInfo ().GetBufferLen ());
 		uint8_t key[32];
-		KeyDerivationFunction3 (m_ExpandedPrivateKey, key); // TODO: take it from RouterContext
+		KeyDerivationFunction3 (i2p::context.GetNTCP2StaticPrivateKey (), key); 
 		memset (nonce, 0, 12); // set nonce to 0 again
-		i2p::crypto::AEADChaCha20Poly1305 (buf, m3p2Len - 16, m_H, 32, key, nonce, m_SessionConfirmedBuffer + 48, m3p2Len, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (buf.data (), m3p2Len - 16, m_H, 32, key, nonce, m_SessionConfirmedBuffer + 48, m3p2Len, true); // encrypt
 
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionConfirmedBuffer, m3p2Len + 48), boost::asio::transfer_all (),

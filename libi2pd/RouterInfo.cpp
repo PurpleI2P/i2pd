@@ -699,7 +699,7 @@ namespace data
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
-		memcpy (addr->ntcp2->iv, iv, 32);	
+		memcpy (addr->ntcp2->iv, iv, 16);	
 		m_Addresses->push_back(std::move(addr));
 	}
 
