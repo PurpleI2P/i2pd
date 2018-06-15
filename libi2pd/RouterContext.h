@@ -37,7 +37,8 @@ namespace i2p
 
 			struct NTCP2PrivateKeys 
 			{
-				uint8_t staticKey[32];
+				uint8_t staticPublicKey[32];
+				uint8_t staticPrivateKey[32];
 				uint8_t iv[16];
 			};			
 
@@ -58,6 +59,9 @@ namespace i2p
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
 			}
+			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
+			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
+			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
 
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };

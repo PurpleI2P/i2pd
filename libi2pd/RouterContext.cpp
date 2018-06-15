@@ -2,6 +2,7 @@
 #include <openssl/rand.h>
 #include "Config.h"
 #include "Crypto.h"
+#include "Ed25519.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "NetDb.hpp"
@@ -36,7 +37,7 @@ namespace i2p
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-		SaveKeys ();
+		SaveKeys ();			
 		NewRouterInfo ();
 	}
 
@@ -49,7 +50,8 @@ namespace i2p
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
-		bool nat;  i2p::config::GetOption("nat", nat);
+		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		bool nat;  i2p::config::GetOption("nat", nat);	
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
 		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
 		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
@@ -82,6 +84,11 @@ namespace i2p
 			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
 			routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
+		if (ntcp2)
+		{ 
+			NewNTCP2Keys ();
+			routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+		}
 
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
@@ -102,11 +109,14 @@ namespace i2p
 	void RouterContext::NewNTCP2Keys ()
 	{
 		m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
-		RAND_bytes (m_NTCP2Keys->staticKey, 32);
+		RAND_bytes (m_NTCP2Keys->staticPrivateKey, 32);
 		RAND_bytes (m_NTCP2Keys->iv, 16);
+		BN_CTX * ctx = BN_CTX_new ();
+		i2p::crypto::GetEd25519 ()->ScalarMulB (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey, ctx); 
+		BN_CTX_free (ctx);
 		// save
 		std::ofstream fk (i2p::fs::DataDirPath (NTCP2_KEYS), std::ofstream::binary | std::ofstream::out);
-		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));
+		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys)); 
 	}
 
 	void RouterContext::SetStatus (RouterStatus status)
@@ -455,9 +465,13 @@ namespace i2p
 					m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
 					n2k.read ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));				
 				}	
+				n2k.close ();
 			}
-			if (!m_NTCP2Keys)
+			if (!m_NTCP2Keys) 
+			{
 				NewNTCP2Keys ();
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+			}
 		}
 
 		return true;

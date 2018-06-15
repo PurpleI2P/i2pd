@@ -92,8 +92,8 @@ namespace data
 
 			struct NTCP2Ext
 			{
-				uint8_t staticKey[32];
-				uint8_t iv[16];
+				Tag<32> staticKey;
+				Tag<16> iv;
 			};
 
 			struct Address
@@ -122,6 +122,8 @@ namespace data
 				{
 					return !(*this == other);
 				}
+
+				bool IsNTCP2 () const { return (bool)ntcp2; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -143,6 +145,7 @@ namespace data
 
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv);
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
