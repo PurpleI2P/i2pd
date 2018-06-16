@@ -1,3 +1,11 @@
+i2pd (2.19.0-1) unstable; urgency=low
+
+  * updated to version 2.19.0/0.9.35
+  * update manpage (1)
+  * fixes in systemd unit (#1089, #1142, #1154, #1155)
+
+ -- R4SAS <r4sas@i2pmail.org>  Tue, 19 Jun 2018 18:00:00 +0000
+
 i2pd (2.18.0-1) unstable; urgency=low
 
   * updated to version 2.18.0/0.9.33

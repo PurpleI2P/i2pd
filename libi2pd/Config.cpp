@@ -37,8 +37,8 @@ namespace config {
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
-			("loglevel", value<std::string>()->default_value("info"),         "Set the minimal level of log messages (debug, info, warn, error)")
-			("logclftime", value<bool>()->default_value(false),               "Write full CLF-formatted date and time to log (default: write only time)")
+			("loglevel", value<std::string>()->default_value("info"),         "Set the minimal level of log messages (debug, info, warn, error, none)")
+			("logclftime", value<bool>()->zero_tokens()->default_value(false), "Write full CLF-formatted date and time to log (default: write only time)")
 			("family", value<std::string>()->default_value(""),               "Specify a family, router belongs to")
 			("datadir", value<std::string>()->default_value(""),              "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
 			("host", value<std::string>()->default_value("0.0.0.0"),          "External IP")
@@ -63,7 +63,7 @@ namespace config {
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", value<bool>()->zero_tokens()->default_value(false),  "Prevent system from sleeping")
-			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask") // TODO: add custom validator or something
+			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask")
 #endif
 		;
 
@@ -331,4 +331,3 @@ namespace config {
 
 } // namespace config
 } // namespace i2p
-
