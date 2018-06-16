@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Identity.h"
+#include "Storage.h"
 
 namespace i2p
 {
@@ -61,6 +62,9 @@ namespace data
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);
 	void InitProfilesStorage ();
 	void DeleteObsoleteProfiles ();
+	bool BeginProfilesStorageUpdate();
+	bool EndProfilesStorageUpdate();
+	void DeInitProfilesStorage();
 }
 }
 

@@ -232,6 +232,11 @@ namespace config {
 			("exploratory.outbound.quantity", value<int>()->default_value(3), "Exploratory outbound tunnels quantity")
 		;
 
+		options_description storage("Persistent storage options for NetDb, profiles, etc.");
+		storage.add_options()
+				("storage.engine", value<std::string>()->default_value("fs"), "Storage engine")
+		;
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -249,6 +254,7 @@ namespace config {
 			.add(trust)
 			.add(websocket)
 			.add(exploratory)
+			.add(storage)
 		;
 	}
 
