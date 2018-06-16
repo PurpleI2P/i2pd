@@ -16,7 +16,8 @@ REM Note: if you installed MSYS64 to different path, edit WD variable (only C:\m
 set "WD=C:\msys64\usr\bin\"
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=enabled_from_arguments
-set MSYSTEM=MSYS
+REM set MSYSTEM=MSYS
+set MSYSTEM=MINGW32
 
 set "xSH=%WD%bash -lc"
 

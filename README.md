@@ -50,12 +50,6 @@ Build instructions:
 * [windows](https://i2pd.readthedocs.io/en/latest/devs/building/windows/)
 * [iOS](https://i2pd.readthedocs.io/en/latest/devs/building/ios/)
 * [android](https://i2pd.readthedocs.io/en/latest/devs/building/android/)
-* android executable binary build:
-  - clone https://github.com/unlnown542a/i2pd.git or download https://github.com/unlnown542a/i2pd/archive/openssl.zip
-  - change to i2pd/android_binary_only
-  - edit jni/Application.mk - define path to static libs I2PD_LIBS_PATH
-  - in the directory i2pd/android_binary_only run: ndk-build -j4
-  - find compiled binary - libs/armeabi-v7a/i2pd
 
 
 **Supported systems:**
