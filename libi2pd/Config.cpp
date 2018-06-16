@@ -55,7 +55,7 @@ namespace config {
 			("notransit", value<bool>()->default_value(false),                "Router will not accept transit tunnels at startup")
 			("floodfill", value<bool>()->default_value(false),                "Router will be floodfill")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
-			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100")
+			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", value<bool>()->default_value(true),                      "Enable NTCP transport")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
