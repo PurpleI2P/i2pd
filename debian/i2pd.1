@@ -1,4 +1,4 @@
-.TH I2PD "1" "June 15, 2018"
+.TH I2PD "1" "June 16, 2018"
 
 .SH NAME
 i2pd \- Load-balanced unspoofable packet switching network
@@ -36,14 +36,14 @@ Where to write pidfile (don\'t write by default)
 \fB\-\-log=\fR
 Logs destination: \fIstdout\fR, \fIfile\fR, \fIsyslog\fR (\fIstdout\fR if not set, \fIfile\fR - otherwise, for compatibility)
 .TP
-\fB\-\-logfile\fR
+\fB\-\-logfile=\fR
 Path to logfile (default - autodetect)
 .TP
 \fB\-\-loglevel=\fR
 Log messages above this level (\fIdebug\fR, \fBinfo\fR, \fIwarn\fR, \fIerror\fR, \fInone\fR)
 .TP
 \fB\-\-logclftime\fR
-Log messages with full CLF-formatted date and time
+Log messages with full CLF-formatted date and time (\fIfalse\fR by default)
 .TP
 \fB\-\-datadir=\fR
 Path to storage of i2pd data (RI, keys, peer profiles, ...)
@@ -63,14 +63,26 @@ The network interface to bind to for IPv4 connections
 \fB\-\-ifname6=\fR
 The network interface to bind to for IPv6 connections
 .TP
+\fB\-\-ipv4\fR
+Enable communication through ipv6 (\fItrue\fR by default)
+.TP
 \fB\-\-ipv6\fR
-Enable communication through ipv6 (disabled by default)
+Enable communication through ipv6 (\fIfalse\fR by default)
+.TP
+\fB\-\-ntcp\fR
+Enable usage of NTCP transport (\fItrue\fR by default)
+.TP
+\fB\-\-ntcpproxy\fR
+Set proxy URL for NTCP transport
+.TP
+\fB\-\-ssu\fR
+Enable usage of SSU transport (\fItrue\fR by default)
 .TP
 \fB\-\-notransit\fR
-Router will not accept transit tunnels at startup
+Router will not accept transit tunnels at startup (\fIfalse\fR by default)
 .TP
 \fB\-\-floodfill\fR
-Router will be floodfill
+Router will be floodfill (\fIfalse\fR by default)
 .TP
 \fB\-\-bandwidth=\fR
 Bandwidth limit: integer in KBps or letter aliases: \fBL (32KBps)\fR, \fIO (256)\fR, \fIP (2048)\fR, \fIX (>9000)\fR
@@ -79,10 +91,10 @@ Bandwidth limit: integer in KBps or letter aliases: \fBL (32KBps)\fR, \fIO (256)
 Limit of transit traffic from max bandwidth in percents. (default: 100)
 .TP
 \fB\-\-daemon\fR
-Router will go to background after start
+Router will go to background after start (\fIfalse\fR by default)
 .TP
 \fB\-\-service\fR
-Router will use system folders like \fI/var/lib/i2pd\fR
+Router will use system folders like \fI/var/lib/i2pd\fR (\fIfalse\fR by default)
 .TP
 \fB\-\-family=\fR
 Name of a family, router belongs to.
@@ -105,6 +117,11 @@ i2pd profile directory (when running as a system service, see \fB\-\-service\fR 
 $HOME/.i2pd/
 .RS 4
 i2pd profile directory (when running as a normal user)
+.Sh SEE ALSO
+Documentation at
+.Pa https://i2pd.readthedocs.io/en/latest/ .
+.Pp
+
 .SH AUTHOR
 This manual page was written by kytv <killyourtv@i2pmail.org> for the Debian system (but may be used by others).
 .PP
