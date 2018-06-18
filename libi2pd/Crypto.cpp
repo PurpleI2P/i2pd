@@ -8,9 +8,13 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
-#include "I2PEndian.h"
+#if LEGACY_OPENSSL
 #include "ChaCha20.h"
 #include "Poly1305.h"
+#else
+#include <openssl/evp.h>
+#endif
+#include "I2PEndian.h"
 #include "Log.h"
 #include "Crypto.h"
 
@@ -1064,7 +1068,10 @@ namespace crypto
 
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
 	{
-		if (encrypt && msgLen + 16 < len) return 0;
+		if (len < msgLen) return false;	
+		if (encrypt && len < msgLen + 16) return false;
+		bool ret = true;
+#if LEGACY_OPENSSL
 		// generate one time poly key
 		uint8_t polyKey[64];
 		memset(polyKey, 0, sizeof(polyKey));
@@ -1106,9 +1113,34 @@ namespace crypto
 			uint32_t tag[8];
 			// calculate Poly1305 tag
 			Poly1305HMAC (tag, (uint32_t *)polyKey, polyMsg.data (), offset);
-			if (memcmp (tag, msg + msgLen, 16)) return false; // compare with provided
+			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}	
-		return true;
+#else
+		int outlen = 0;	
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		if (encrypt)
+		{
+			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
+			EVP_EncryptFinal_ex(ctx, buf, &outlen);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
+		}
+		else
+		{
+			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
+			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			ret = EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen) > 0;
+		}
+	
+		EVP_CIPHER_CTX_free (ctx);	
+#endif
+		return ret;
 	}
 
 // init and terminate
