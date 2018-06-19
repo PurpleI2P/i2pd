@@ -25,20 +25,25 @@ namespace transport
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 
 			void ClientLogin (); // Alice 
+			void ServerLogin (); // Bob
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) {}; // TODO
 
 		private:
 
 			void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
-			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived); // for SessionRequest
-			void KeyDerivationFunction2 (const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
+			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
+			void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
 
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
+			void SendSessionCreated ();
 			void SendSessionConfirmed ();
 
 			void HandleSessionRequestSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -49,8 +54,8 @@ namespace transport
 			boost::asio::ip::tcp::socket m_Socket;
 			bool m_IsEstablished, m_IsTerminated;
 
-			uint8_t m_ExpandedPrivateKey[64]; // x25519 ephemeral key
-			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32];
+			uint8_t m_EphemeralPrivateKey[32]; // x25519
+			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32] /* or X for Bob */;
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
 			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 	};

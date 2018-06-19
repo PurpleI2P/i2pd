@@ -8,6 +8,7 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
+#include "Crypto.h"
 #if LEGACY_OPENSSL
 #include "ChaCha20.h"
 #include "Poly1305.h"
@@ -16,7 +17,6 @@
 #endif
 #include "I2PEndian.h"
 #include "Log.h"
-#include "Crypto.h"
 
 namespace i2p
 {

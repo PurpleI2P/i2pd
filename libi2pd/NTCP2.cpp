@@ -66,7 +66,7 @@ namespace transport
 		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
 	}
 
-	void NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * pub, uint8_t * derived)
+	void NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived)
 	{
 		static const char protocolName[] = "Noise_XK_25519_ChaChaPoly_SHA256"; // 32 bytes
 		uint8_t h[64];
@@ -81,12 +81,12 @@ namespace transport
 		// x25519 between rs and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
-		i2p::crypto::GetEd25519 ()->ScalarMul (rs, m_ExpandedPrivateKey, inputKeyMaterial, ctx); // rs*priv
+		i2p::crypto::GetEd25519 ()->ScalarMul (rs, priv, inputKeyMaterial, ctx); // rs*priv
 		BN_CTX_free (ctx);
 		MixKey (inputKeyMaterial, derived);
 	}
 
-	void NTCP2Session::KeyDerivationFunction2 (const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived)
+	void NTCP2Session::KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived)
 	{
 		uint8_t h[64];
 		memcpy (h, m_H, 32);
@@ -106,7 +106,7 @@ namespace transport
 		// x25519 between remote pub and priv
 		uint8_t inputKeyMaterial[32];
 		BN_CTX * ctx = BN_CTX_new ();
-		i2p::crypto::GetEd25519 ()->ScalarMul (pub, m_ExpandedPrivateKey, inputKeyMaterial, ctx); 
+		i2p::crypto::GetEd25519 ()->ScalarMul (pub, priv, inputKeyMaterial, ctx); 
 		BN_CTX_free (ctx);
 		MixKey (inputKeyMaterial, derived);
 	}
@@ -122,11 +122,9 @@ namespace transport
 
 	void NTCP2Session::CreateEphemeralKey (uint8_t * pub)
 	{
-		uint8_t key[32];
-		RAND_bytes (key, 32);
-		i2p::crypto::Ed25519::ExpandPrivateKey (key, m_ExpandedPrivateKey);
+		RAND_bytes (m_EphemeralPrivateKey, 32);
 		BN_CTX * ctx = BN_CTX_new ();
-		i2p::crypto::GetEd25519 ()->ScalarMulB (m_ExpandedPrivateKey, pub, ctx);
+		i2p::crypto::GetEd25519 ()->ScalarMulB (m_EphemeralPrivateKey, pub, ctx);
 		BN_CTX_free (ctx);
 	}
 
@@ -148,7 +146,7 @@ namespace transport
 		encryption.GetIV (m_IV); // save IV for SessionCreated	
 		// encryption key for next block
 		uint8_t key[32];
-		KeyDerivationFunction1 (m_RemoteStaticKey, x, key);
+		KeyDerivationFunction1 (m_RemoteStaticKey, m_EphemeralPrivateKey, x, key);
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
@@ -184,6 +182,96 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::HandleSessionRequestReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		(void) bytes_transferred;
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest read error: ", ecode.message ());
+			Terminate ();
+		}
+		else
+		{
+			// decrypt X
+			i2p::crypto::CBCDecryption decryption;
+			decryption.SetKey (i2p::context.GetIdentHash ());
+			decryption.SetIV (i2p::context.GetNTCP2IV ());
+			decryption.Decrypt (m_SessionRequestBuffer, 32, m_Y);
+			decryption.GetIV (m_IV); // save IV for SessionCreated	
+			// decryption key for next block
+			uint8_t key[32];
+			KeyDerivationFunction1 (m_Y, i2p::context.GetNTCP2StaticPrivateKey (), m_Y, key);
+			// verify MAC and decrypt options block (32 bytes), use m_H as AD
+			uint8_t nonce[12], options[16];
+			memset (nonce, 0, 12); // set nonce to zero
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, key, nonce, options, 16, false)) // decrypt
+			{
+				uint16_t version = bufbe16toh (options);
+				if (version == 2)
+				{
+					uint16_t paddingLen = bufbe16toh (options + 2);
+					m_SessionRequestBufferLen = paddingLen + 64;
+					// TODO: check tsA
+					if (paddingLen > 0)
+						boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
+						std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					else
+						SendSessionCreated ();
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest version mismatch ", version);
+					Terminate ();
+				}
+			}
+			else
+			{
+				LogPrint (eLogWarning, "NTCP2: SessionRequest AEAD verification failed ");
+				Terminate ();
+			}	
+		}
+	}
+
+	void NTCP2Session::HandleSessionRequestPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest padding read error: ", ecode.message ());
+			Terminate ();
+		}
+		else
+			SendSessionCreated ();
+	}
+
+	void NTCP2Session::SendSessionCreated ()
+	{
+		m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
+		// generate key pair (y)
+		uint8_t y[32];
+		CreateEphemeralKey (y);
+		// encrypt Y
+		i2p::crypto::CBCEncryption encryption;
+		encryption.SetKey (i2p::context.GetIdentHash ());
+		encryption.SetIV (m_IV);
+		encryption.Encrypt (y, 32, m_SessionCreatedBuffer);
+		// encryption key for next block (m_K)
+		KeyDerivationFunction2 (m_EphemeralPrivateKey, m_Y, m_SessionRequestBuffer, m_SessionRequestBufferLen, m_K);	
+		auto paddingLen = rand () % (287 - 56);
+		uint8_t options[8];
+		memset (options, 0, 8);
+		htobe16buf (options, paddingLen); // padLen
+		htobe32buf (options + 4, i2p::util::GetSecondsSinceEpoch ()); // tsB
+		// sign and encrypt options, use m_H as AD			
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // set nonce to zero
+		i2p::crypto::AEADChaCha20Poly1305 (options, 8, m_H, 32, m_K, nonce, m_SessionCreatedBuffer + 32, 24, true); // encrypt
+		// fill padding
+		RAND_bytes (m_SessionCreatedBuffer + 56, paddingLen);
+		// send message		
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionCreatedBuffer, paddingLen + 56), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleSessionCreatedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));	
+	}
+
 	void NTCP2Session::HandleSessionCreatedReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -201,7 +289,7 @@ namespace transport
 			decryption.SetIV (m_IV);
 			decryption.Decrypt (m_SessionCreatedBuffer, 32, m_Y);
 			// decryption key for next block (m_K)
-			KeyDerivationFunction2 (m_Y, m_SessionRequestBuffer, m_SessionRequestBufferLen, m_K);
+			KeyDerivationFunction2 (m_EphemeralPrivateKey, m_Y, m_SessionRequestBuffer, m_SessionRequestBufferLen, m_K);
 			// decrypt and verify MAC
 			uint8_t payload[8];
 			uint8_t nonce[12];
@@ -239,6 +327,7 @@ namespace transport
 			SendSessionConfirmed ();
 		}
 	}
+
 
 	void NTCP2Session::SendSessionConfirmed ()
 	{
@@ -287,9 +376,23 @@ namespace transport
 		Terminate (); // TODO
 	}
 
+	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		LogPrint (eLogDebug, "NTCP2: SessionCreated sent");
+		Terminate (); // TODO
+	}
+
 	void NTCP2Session::ClientLogin ()
 	{
 		SendSessionRequest ();
+	}
+
+	void NTCP2Session::ServerLogin ()
+	{
+		m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
+		boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
+				std::placeholders::_1, std::placeholders::_2));
 	}
 
 	NTCP2Server::NTCP2Server ():
