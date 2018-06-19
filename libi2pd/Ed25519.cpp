@@ -419,13 +419,8 @@ namespace crypto
 		auto z2 = BN_CTX_get (ctx); BN_zero (z2);
 		auto x3 = BN_CTX_get (ctx); BN_copy (x3, u);
 		auto z3 = BN_CTX_get (ctx); BN_one (z3);
-		auto a24 = BN_CTX_get (ctx); BN_set_word (a24, 121665);
-		auto a = BN_CTX_get (ctx); auto aa = BN_CTX_get (ctx);
-		auto b = BN_CTX_get (ctx); auto bb = BN_CTX_get (ctx);
-		auto e = BN_CTX_get (ctx); auto c = BN_CTX_get (ctx);
-		auto d = BN_CTX_get (ctx);
-		auto da = BN_CTX_get (ctx); auto cb = BN_CTX_get (ctx);
-		auto tmp1 = BN_CTX_get (ctx); auto tmp2 = BN_CTX_get (ctx);
+		auto c121666 = BN_CTX_get (ctx); BN_set_word (c121666, 121666);
+		auto tmp0 = BN_CTX_get (ctx); auto tmp1 = BN_CTX_get (ctx);
 		unsigned int swap = 0;
 		auto bits = BN_num_bits (k);
 		while(bits)
@@ -439,49 +434,33 @@ namespace crypto
 				std::swap (z2, z3);
 			}
 			swap = k_t;
-			// a = x2 + z2
-			BN_mod_add(a, x2, z2, q, ctx);
-			// aa = a^2
-			BN_mod_sqr(aa, a, q, ctx);
-			// b = x2 - z2
-			BN_mod_sub(b, x2, z2, q, ctx);
-			// bb = b^2
-			BN_mod_sqr(bb, b, q, ctx);
-			// e = aa - bb
-			BN_mod_sub(e, aa, bb, q, ctx);
-			// c = x3 + z3
-			BN_mod_add(c, x3, z3, q, ctx);
-			// d = x3 - z3
-			BN_mod_sub(d, x3, z3, q, ctx);
-			// da = d * a
-			BN_mod_mul(da, d, a, q, ctx);
-			// cb = c * b
-			BN_mod_mul(cb, c, b, q, ctx);
-			// x3 = ( da + cb )^2
-			BN_mod_add(tmp1, da, cb, q, ctx);
-			BN_mod_sqr(x3, tmp1, q, ctx);
-			// z3 == x1 * (da - cb)^2
-			BN_mod_sub(tmp1, da, cb, q, ctx);
-			BN_mod_sqr(tmp2, tmp1, q, ctx);
-			BN_mod_mul(z3, x1, tmp2, q, ctx);
-			// x2 = aa * bb
-			BN_mod_mul(x2, aa, bb, q, ctx);
-			// z2 = e * (aa + a24 * e)
-			BN_mod_mul(tmp1, a24, e, q, ctx);
-			BN_mod_add(tmp2, aa, tmp1, q, ctx);
-			BN_mod_mul(z2, e, tmp2, q, ctx);
+			BN_mod_sub(tmp0, x3, z3, q, ctx);
+			BN_mod_sub(tmp1, x2, z2, q, ctx);
+			BN_mod_add(x2, x2, z2, q, ctx);
+			BN_mod_add(z2, x3, z3, q, ctx);
+			BN_mod_mul(z3, tmp0, x2, q, ctx);
+			BN_mod_mul(z2, z2, tmp1, q, ctx);
+			BN_mod_sqr(tmp0, tmp1, q, ctx);
+			BN_mod_sqr(tmp1, x2, q, ctx);
+			BN_mod_add(x3, z3, z2, q, ctx);
+			BN_mod_sub(z2, z3, z2, q, ctx);
+			BN_mod_mul(x2, tmp1, tmp0, q, ctx);
+			BN_mod_sub(tmp1, tmp1, tmp0, q, ctx);
+			BN_mod_sqr(z2, z2, q, ctx);
+			BN_mod_mul(z3, tmp1, c121666, q, ctx);
+			BN_mod_sqr(x3, x3, q, ctx);
+			BN_mod_add(tmp0, tmp0, z3, q, ctx);
+			BN_mod_mul(z3, x1, z2, q, ctx);
+			BN_mod_mul(z2, tmp1, tmp0, q, ctx);
 		}
 		if (swap) 
 		{
 			std::swap (x2, x3);
 			std::swap (z2, z3);
 		}
-		// x2 * (z2 ^ (q - 2))
-		BN_set_word(tmp1, 2);
-		BN_sub(tmp2, q, tmp1);
-		BN_mod_exp(tmp1, z2, tmp2, q, ctx);
+		BN_mod_inverse (z2, z2, q, ctx);
 		BIGNUM * res =  BN_new (); // not from ctx
-		BN_mod_mul(res, x2, tmp1, q, ctx);
+		BN_mod_mul(res, x2, z2, q, ctx);
 		BN_CTX_end (ctx);
 		return res;
 	}
