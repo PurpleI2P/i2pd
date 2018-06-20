@@ -34,6 +34,7 @@ namespace transport
 			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
 			void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
+			void KeyDerivationFunctionDataPhase (bool isAlice, uint8_t * derived);
 
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
