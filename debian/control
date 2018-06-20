@@ -13,7 +13,7 @@ Architecture: any
 Pre-Depends: adduser
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: tor, privoxy, apparmor
-Description: A full-featured C++ implementation of I2P client.
+Description: Full-featured C++ implementation of I2P client.
  I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
  communications over I2P are anonymous and end-to-end encrypted, participants
  don't reveal their real IP addresses.
