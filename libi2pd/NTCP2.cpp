@@ -7,6 +7,7 @@
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Ed25519.h"
+#include "Siphash.h"
 #include "RouterContext.h"
 #include "NTCP2.h"
 
@@ -127,16 +128,26 @@ namespace transport
 		MixKey (inputKeyMaterial, derived);
 	}
 
-	void NTCP2Session::KeyDerivationFunctionDataPhase (bool isAlice, uint8_t * derived)
+	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t tempKey[32]; unsigned int len;
-		HMAC(EVP_sha256(), m_CK, 32, nullptr, 0, tempKey, &len); // zerolen
+		HMAC(EVP_sha256(), m_CK, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(ck, zerolen)
 		static uint8_t one[1] =  { 1 };
-		uint8_t k_ab[33], k_ba[32];
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, k_ab, &len); 
-		k_ab[32] = 2;
-		HMAC(EVP_sha256(), k_ab, 33, one, 1, k_ba, &len); 
-		memcpy (derived, isAlice ? k_ab : k_ba, 32);
+		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Kab, &len);  // k_ab = HMAC-SHA256(temp_key, byte(0x01)).
+		m_Kab[32] = 2;
+		HMAC(EVP_sha256(), tempKey, 32, m_Kab, 33, m_Kba, &len);  // k_ba = HMAC-SHA256(temp_key, k_ab || byte(0x02)).
+
+		static uint8_t ask[4] = { 'a', 's', 'k', 1 }, master[32];
+		HMAC(EVP_sha256(), tempKey, 32, ask, 4, master, &len); // ask_master = HMAC-SHA256(temp_key, "ask" || byte(0x01))
+		uint8_t h[39];
+		memcpy (h, m_H, 32);
+		memcpy (h + 32, "siphash", 7);
+		HMAC(EVP_sha256(), master, 32, h, 39, tempKey, &len); // temp_key = HMAC-SHA256(ask_master, h || "siphash")
+		HMAC(EVP_sha256(), tempKey, 32, one, 1, master, &len); // sip_master = HMAC-SHA256(temp_key, byte(0x01))  
+		HMAC(EVP_sha256(), master, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(sip_master, zerolen)
+		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Siphashab, &len); // sipkeys_ab = HMAC-SHA256(temp_key, byte(0x01)).
+		m_Siphashab[32] = 2;
+		HMAC(EVP_sha256(), tempKey, 32, m_Siphashab, 33, m_Siphashba, &len); // sipkeys_ba = HMAC-SHA256(temp_key, sipkeys_ab || byte(0x02)) 
 	}
 
 	void NTCP2Session::CreateEphemeralKey (uint8_t * pub)
@@ -392,6 +403,7 @@ namespace transport
 	void NTCP2Session::HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
+		KeyDerivationFunctionDataPhase ();
 		Terminate (); // TODO
 	}
 

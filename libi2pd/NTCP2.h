@@ -34,7 +34,7 @@ namespace transport
 			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
 			void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
-			void KeyDerivationFunctionDataPhase (bool isAlice, uint8_t * derived);
+			void KeyDerivationFunctionDataPhase ();
 
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
@@ -59,6 +59,8 @@ namespace transport
 			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32] /* or X for Bob */;
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
 			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
+			// data phase
+			uint8_t m_Kab[33], m_Kba[32], m_Siphashab[33], m_Siphashba[32]; 
 	};
 
 	class NTCP2Server
