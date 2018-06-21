@@ -19,7 +19,8 @@ namespace transport
 		TransportSession (in_RemoteRouter, 30), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
-		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr)
+		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
+		m_NextReceivedBuffer (nullptr)
 	{
 		auto addr = in_RemoteRouter->GetNTCPAddress ();
 		if (addr->ntcp2)
@@ -36,6 +37,7 @@ namespace transport
 		delete[] m_SessionRequestBuffer; 
 		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
+		delete[] m_NextReceivedBuffer;
 	}
 
 	void NTCP2Session::Terminate ()
@@ -130,13 +132,13 @@ namespace transport
 
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
+		char buf[100];	
 		uint8_t tempKey[32]; unsigned int len;
 		HMAC(EVP_sha256(), m_CK, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(ck, zerolen)
 		static uint8_t one[1] =  { 1 };
 		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Kab, &len);  // k_ab = HMAC-SHA256(temp_key, byte(0x01)).
 		m_Kab[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_Kab, 33, m_Kba, &len);  // k_ba = HMAC-SHA256(temp_key, k_ab || byte(0x02)).
-
+		HMAC(EVP_sha256(), tempKey, 32, m_Kab, 33, m_Kba, &len);  // k_ba = HMAC-SHA256(temp_key, k_ab || byte(0x02))
 		static uint8_t ask[4] = { 'a', 's', 'k', 1 }, master[32];
 		HMAC(EVP_sha256(), tempKey, 32, ask, 4, master, &len); // ask_master = HMAC-SHA256(temp_key, "ask" || byte(0x01))
 		uint8_t h[39];
@@ -145,9 +147,9 @@ namespace transport
 		HMAC(EVP_sha256(), master, 32, h, 39, tempKey, &len); // temp_key = HMAC-SHA256(ask_master, h || "siphash")
 		HMAC(EVP_sha256(), tempKey, 32, one, 1, master, &len); // sip_master = HMAC-SHA256(temp_key, byte(0x01))  
 		HMAC(EVP_sha256(), master, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(sip_master, zerolen)
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Siphashab, &len); // sipkeys_ab = HMAC-SHA256(temp_key, byte(0x01)).
-		m_Siphashab[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_Siphashab, 33, m_Siphashba, &len); // sipkeys_ba = HMAC-SHA256(temp_key, sipkeys_ab || byte(0x02)) 
+		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Sipkeysab, &len); // sipkeys_ab = HMAC-SHA256(temp_key, byte(0x01)).
+		m_Sipkeysab[32] = 2;
+		HMAC(EVP_sha256(), tempKey, 32, m_Sipkeysab, 33, m_Sipkeysba, &len); // sipkeys_ba = HMAC-SHA256(temp_key, sipkeys_ab || byte(0x02)) 
 	}
 
 	void NTCP2Session::CreateEphemeralKey (uint8_t * pub)
@@ -394,6 +396,11 @@ namespace transport
 		KeyDerivationFunction3 (i2p::context.GetNTCP2StaticPrivateKey (), key); 
 		memset (nonce, 0, 12); // set nonce to 0 again
 		i2p::crypto::AEADChaCha20Poly1305 (buf.data (), m3p2Len - 16, m_H, 32, key, nonce, m_SessionConfirmedBuffer + 48, m3p2Len, true); // encrypt
+		uint8_t tmp[48];
+		memcpy (tmp, m_SessionConfirmedBuffer, 48);
+		memcpy (m_SessionConfirmedBuffer + 16, m_H, 32); // h || ciphertext
+		SHA256 (m_SessionConfirmedBuffer + 16, m3p2Len + 32, m_H); //h = SHA256(h || ciphertext);
+		memcpy (m_SessionConfirmedBuffer, tmp, 48);	
 
 		// send message
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionConfirmedBuffer, m3p2Len + 48), boost::asio::transfer_all (),
@@ -404,7 +411,8 @@ namespace transport
 	{
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
 		KeyDerivationFunctionDataPhase ();
-		Terminate (); // TODO
+		memcpy (m_IV, m_Sipkeysba + 16, 8); //Alice
+		ReceiveLength ();
 	}
 
 	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -424,6 +432,46 @@ namespace transport
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
+	}
+
+	void NTCP2Session::ReceiveLength ()
+	{
+		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+	}
+
+	void NTCP2Session::HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: receive length read error: ", ecode.message ());
+			Terminate ();
+		}
+		else
+		{
+			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_Kba); // assume Alice TODO:
+			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ buf16toh(m_ReceiveIV));
+			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
+			delete[] m_NextReceivedBuffer;
+			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+			Receive ();
+		}
+	}
+
+	void NTCP2Session::Receive ()
+	{
+		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+	}
+
+	void NTCP2Session::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: receive read error: ", ecode.message ());
+			Terminate ();
+		}
+		Terminate (); // TODO
 	}
 
 	NTCP2Server::NTCP2Server ():

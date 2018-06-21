@@ -36,6 +36,7 @@ namespace transport
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
 			void KeyDerivationFunctionDataPhase ();
 
+			// establish
 			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
 			void SendSessionCreated ();
@@ -49,6 +50,12 @@ namespace transport
 			void HandleSessionCreatedPaddingReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
+			// data
+			void ReceiveLength ();
+			void HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void Receive ();
+			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+
 		private:
 
 			NTCP2Server& m_Server;
@@ -60,7 +67,10 @@ namespace transport
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
 			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 			// data phase
-			uint8_t m_Kab[33], m_Kba[32], m_Siphashab[33], m_Siphashba[32]; 
+			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
+			uint16_t m_NextReceivedLen; 
+			uint8_t * m_NextReceivedBuffer;
+			uint8_t m_ReceiveIV[8];
 	};
 
 	class NTCP2Server
