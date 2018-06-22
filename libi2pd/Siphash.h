@@ -19,14 +19,14 @@ namespace crypto
         constexpr int crounds = 2;
         constexpr int drounds = 4;
 
-        uint64_t rotl(const uint64_t & x, int b)
+        inline uint64_t rotl(const uint64_t & x, int b)
         {
             uint64_t ret = x << b;
             ret |= x >> (64 - b);
             return ret;
         }
 
-        void u32to8le(const uint32_t & v, uint8_t * p)
+        inline void u32to8le(const uint32_t & v, uint8_t * p)
         {
             p[0] = (uint8_t) v;
             p[1] = (uint8_t) (v >> 8);
@@ -34,7 +34,7 @@ namespace crypto
             p[3] = (uint8_t) (v >> 24);
         }
 
-        void u64to8le(const uint64_t & v, uint8_t * p)
+        inline void u64to8le(const uint64_t & v, uint8_t * p)
         {
             p[0] = v & 0xff;
             p[1] = (v >> 8)  & 0xff;
@@ -46,7 +46,7 @@ namespace crypto
             p[7] = (v >> 56) & 0xff;
         }
 
-        uint64_t u8to64le(const uint8_t * p)
+        inline uint64_t u8to64le(const uint8_t * p)
         {
             uint64_t i = 0;
             int idx = 0;
@@ -58,7 +58,7 @@ namespace crypto
             return i;
         }
         
-        void round(uint64_t & _v0, uint64_t & _v1, uint64_t & _v2, uint64_t & _v3)
+        inline void round(uint64_t & _v0, uint64_t & _v1, uint64_t & _v2, uint64_t & _v3)
         {
             _v0 += _v1; 
             _v1 = rotl(_v1, 13); 
@@ -79,7 +79,7 @@ namespace crypto
    
     /** hashsz must be 8 or 16 */
     template<std::size_t hashsz>
-    void Siphash(uint8_t * h, const uint8_t * buf, std::size_t bufsz, const uint8_t * key)
+    inline void Siphash(uint8_t * h, const uint8_t * buf, std::size_t bufsz, const uint8_t * key)
     {
         uint64_t v0 = 0x736f6d6570736575ULL;
         uint64_t v1 = 0x646f72616e646f6dULL;

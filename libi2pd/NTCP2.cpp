@@ -132,7 +132,6 @@ namespace transport
 
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
-		char buf[100];	
 		uint8_t tempKey[32]; unsigned int len;
 		HMAC(EVP_sha256(), m_CK, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(ck, zerolen)
 		static uint8_t one[1] =  { 1 };
@@ -411,7 +410,7 @@ namespace transport
 	{
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
 		KeyDerivationFunctionDataPhase ();
-		memcpy (m_IV, m_Sipkeysba + 16, 8); //Alice
+		memcpy (m_ReceiveIV, m_Sipkeysba + 16, 8); //Alice
 		ReceiveLength ();
 	}
 
@@ -449,8 +448,8 @@ namespace transport
 		}
 		else
 		{
-			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_Kba); // assume Alice TODO:
-			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ buf16toh(m_ReceiveIV));
+			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_Sipkeysba); // assume Alice TODO:
+			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ bufbe16toh(m_ReceiveIV));
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
