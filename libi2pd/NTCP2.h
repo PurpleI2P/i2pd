@@ -55,6 +55,7 @@ namespace transport
 			void HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void ProcessNextFrame (const uint8_t * frame, size_t len);
 
 		private:
 
@@ -71,6 +72,7 @@ namespace transport
 			uint16_t m_NextReceivedLen; 
 			uint8_t * m_NextReceivedBuffer;
 			uint8_t m_ReceiveIV[8];
+			uint64_t m_ReceiveSequenceNumber;
 	};
 
 	class NTCP2Server

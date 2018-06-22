@@ -20,7 +20,7 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
-		m_NextReceivedBuffer (nullptr)
+		m_NextReceivedBuffer (nullptr), m_ReceiveSequenceNumber (0)
 	{
 		auto addr = in_RemoteRouter->GetNTCPAddress ();
 		if (addr->ntcp2)
@@ -470,7 +470,43 @@ namespace transport
 			LogPrint (eLogWarning, "NTCP2: receive read error: ", ecode.message ());
 			Terminate ();
 		}
-		Terminate (); // TODO
+		else
+		{
+			uint8_t nonce[12];
+			memset (nonce, 0, 4); htole64buf (nonce + 4, m_ReceiveSequenceNumber); m_ReceiveSequenceNumber++;
+			uint8_t * decrypted = new uint8_t[m_NextReceivedLen];
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_Kba, nonce, decrypted, m_NextReceivedLen, false)) // decrypt. assume Alice TODO:
+			{	
+				LogPrint (eLogInfo, "NTCP2: received message decrypted");
+				ProcessNextFrame (decrypted, m_NextReceivedLen-16);
+				ReceiveLength ();
+			}
+			else
+			{
+				LogPrint (eLogWarning, "NTCP2: Received MAC verification failed ");
+				Terminate ();
+			}	
+			delete[] decrypted;
+		}
+	}
+
+	void NTCP2Session::ProcessNextFrame (const uint8_t * frame, size_t len)
+	{
+		size_t offset = 0;
+		while (offset < len)
+		{
+			uint8_t blk = frame[offset];
+			offset++;
+			auto size = bufbe16toh (frame + offset);
+			offset += 2;
+			LogPrint (eLogDebug, "NTCP2: Block type ", (int)blk, " of size ", size);
+			if (size > len)
+			{
+				LogPrint (eLogError, "NTCP2: Unexpected block length ", size);
+				break;
+			}
+			offset += size;
+		}
 	}
 
 	NTCP2Server::NTCP2Server ():

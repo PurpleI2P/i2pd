@@ -1081,19 +1081,23 @@ namespace crypto
 		chacha20 (buf, msgLen, nonce, key, 1);
 		
 		// create Poly1305 message
+		if (!ad) adLen = 0;	
 		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
-		size_t offset = 0;	
+		size_t offset = 0;
 		uint8_t padding[16]; memset (padding, 0, 16);
-		memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
-		auto rem = adLen & 0x0F; // %16
-		if (rem) 
-		{
-			// padding1
-			rem = 16 - rem;
-			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+		if (ad)
+		{	
+			memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
+			auto rem = adLen & 0x0F; // %16
+			if (rem) 
+			{
+				// padding1
+				rem = 16 - rem;
+				memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+			}
 		}
 		memcpy (polyMsg.data () + offset, encrypt ? buf : msg, msgLen); offset += msgLen; // encrypted data
-		rem = msgLen & 0x0F; // %16
+		auto rem = msgLen & 0x0F; // %16
 		if (rem) 
 		{
 			// padding2
