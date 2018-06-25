@@ -20,7 +20,8 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
-		m_NextReceivedBuffer (nullptr), m_ReceiveSequenceNumber (0)
+		m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
+		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0)
 	{
 		auto addr = in_RemoteRouter->GetNTCPAddress ();
 		if (addr->ntcp2)
@@ -38,6 +39,7 @@ namespace transport
 		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
 		delete[] m_NextReceivedBuffer;
+		delete[] m_NextSendBuffer;
 	}
 
 	void NTCP2Session::Terminate ()
@@ -67,6 +69,12 @@ namespace transport
 		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
 		m_CK[32] = 2;
 		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
+	}
+
+	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4); 
+		htole64buf (nonce + 4, seqn); 
 	}
 
 	void NTCP2Session::KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived)
@@ -378,7 +386,7 @@ namespace transport
 		// part1 48 bytes 
 		m_SessionConfirmedBuffer = new uint8_t[2048]; // TODO: actual size
 		uint8_t nonce[12];
-		memset (nonce, 0, 4); htole64buf (nonce + 4, 1); // set nonce to 1
+		CreateNonce (1, nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, h, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 		// part 2
 		// update AD again
@@ -411,7 +419,16 @@ namespace transport
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
 		KeyDerivationFunctionDataPhase ();
 		memcpy (m_ReceiveIV, m_Sipkeysba + 16, 8); //Alice
+		memcpy (m_SendIV, m_Sipkeysab + 16, 8); //Alice
 		ReceiveLength ();
+
+		// TODO: remove
+		uint8_t pad[1024];	
+		auto paddingLength = rand () % 1000;
+		RAND_bytes (pad + 3, paddingLength);
+		pad[0] = 254;
+		htobe16buf (pad + 1, paddingLength);
+		SendNextFrame (pad, paddingLength + 3);
 	}
 
 	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -473,7 +490,7 @@ namespace transport
 		else
 		{
 			uint8_t nonce[12];
-			memset (nonce, 0, 4); htole64buf (nonce + 4, m_ReceiveSequenceNumber); m_ReceiveSequenceNumber++;
+			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
 			uint8_t * decrypted = new uint8_t[m_NextReceivedLen];
 			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_Kba, nonce, decrypted, m_NextReceivedLen, false)) // decrypt. assume Alice TODO:
 			{	
@@ -507,6 +524,27 @@ namespace transport
 			}
 			offset += size;
 		}
+	}
+
+	void NTCP2Session::SendNextFrame (const uint8_t * payload, size_t len)
+	{
+		uint8_t nonce[12];
+		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
+		m_NextSendBuffer = new uint8_t[len + 16 + 2];
+		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_Kab, nonce, m_NextSendBuffer + 2, len + 16, true); // encrypt. assume Alice TODO:	
+		i2p::crypto::Siphash<8> (m_SendIV, m_SendIV, 8, m_Sipkeysab); // assume Alice TODO:
+		htobuf16 (m_NextSendBuffer, bufbe16toh (m_SendIV) ^ htobe16(len + 16));
+		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
+
+		// send message
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, len + 16 + 2), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleNextFrameSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+	}
+
+	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
+		LogPrint (eLogDebug, "NTCP2: Next frame sent");
 	}
 
 	NTCP2Server::NTCP2Server ():

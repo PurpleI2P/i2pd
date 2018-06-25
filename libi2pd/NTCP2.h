@@ -31,6 +31,7 @@ namespace transport
 		private:
 
 			void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
+			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
 			void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
@@ -57,6 +58,9 @@ namespace transport
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void ProcessNextFrame (const uint8_t * frame, size_t len);
 
+			void SendNextFrame (const uint8_t * payload, size_t len); 
+			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+
 		private:
 
 			NTCP2Server& m_Server;
@@ -70,9 +74,9 @@ namespace transport
 			// data phase
 			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
 			uint16_t m_NextReceivedLen; 
-			uint8_t * m_NextReceivedBuffer;
-			uint8_t m_ReceiveIV[8];
-			uint64_t m_ReceiveSequenceNumber;
+			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
+			uint8_t m_ReceiveIV[8], m_SendIV[8];
+			uint64_t m_ReceiveSequenceNumber, m_SendSequenceNumber;
 	};
 
 	class NTCP2Server
