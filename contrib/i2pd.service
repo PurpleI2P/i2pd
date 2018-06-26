@@ -24,7 +24,7 @@ KillSignal=SIGQUIT
 #TimeoutStopSec=10m
 
 # If you have problems with hanging i2pd, you can try enable this
-#LimitNOFILE=4096
+LimitNOFILE=4096
 PrivateDevices=yes
 
 [Install]

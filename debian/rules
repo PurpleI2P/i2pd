@@ -12,10 +12,11 @@ DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow
 
 %:
 	dh $@ --parallel
-	#dh_apparmor --profile-name=usr.sbin.i2pd -pi2pd
+#	dh_apparmor --profile-name=usr.sbin.i2pd -pi2pd
 
 override_dh_strip:
 	dh_strip --dbg-package=i2pd-dbg
 
-override_dh_shlibdeps:
-	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+## uncoment this if you have "missing info" problem when building package
+#override_dh_shlibdeps:
+#	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
