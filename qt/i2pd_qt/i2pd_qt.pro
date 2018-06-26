@@ -66,6 +66,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
+    ../../libi2pd/Ed25519.cpp \
+    ../../libi2pd/Chacha20.cpp \
+    ../../libi2pd/Poly1305.cpp \    
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \

@@ -1,6 +1,7 @@
 #ifndef DAEMONQT_H
 #define DAEMONQT_H
 
+#include <memory>
 #include <QObject>
 #include <QThread>
 #include <QMutex>
