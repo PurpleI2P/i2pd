@@ -4,7 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11
+QMAKE_CXXFLAGS *= -std=c++11 -ggdb
 DEFINES += USE_UPNP
 
 # change to your own path, where you will store all needed libraries with 'git clone' commands below.
@@ -66,6 +66,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
+    ../../libi2pd/Ed25519.cpp \
+    ../../libi2pd/Chacha20.cpp \
+    ../../libi2pd/Poly1305.cpp \    
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \
@@ -93,7 +96,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     textbrowsertweaked1.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
-    widgetlockregistry.cpp
+    widgetlockregistry.cpp \
+    logviewermanager.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
@@ -177,7 +181,10 @@ HEADERS  += DaemonQT.h mainwindow.h \
     textbrowsertweaked1.h \
     pagewithbackbutton.h \
     widgetlock.h \
-    widgetlockregistry.h
+    widgetlockregistry.h \
+    i2pd.rc \
+    i2pd.rc \
+    logviewermanager.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
@@ -268,8 +275,36 @@ android {
 }
 
 linux:!android {
-	message("Using Linux settings")
-	LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+        message("Using Linux settings")
+        LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+}
+
+windows {
+        message("Using Windows settings")
+        RC_FILE = i2pd.rc
+        DEFINES += BOOST_USE_WINDOWS_H WINDOWS _WINDOWS WIN32_LEAN_AND_MEAN MINIUPNP_STATICLIB
+        DEFINES -= UNICODE _UNICODE
+        BOOST_SUFFIX = -mt
+        QMAKE_CXXFLAGS_RELEASE = -Os
+        QMAKE_LFLAGS = -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
+
+        #linker's -s means "strip"
+        QMAKE_LFLAGS_RELEASE += -s
+
+        LIBS = -lminiupnpc \
+        -lboost_system$$BOOST_SUFFIX \
+        -lboost_date_time$$BOOST_SUFFIX \
+        -lboost_filesystem$$BOOST_SUFFIX \
+        -lboost_program_options$$BOOST_SUFFIX \
+        -lssl \
+        -lcrypto \
+        -lz \
+        -lwsock32 \
+        -lws2_32 \
+        -lgdi32 \
+        -liphlpapi \
+        -lstdc++ \
+        -lpthread
 }
 
 !android:!symbian:!maemo5:!simulator {

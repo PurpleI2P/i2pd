@@ -138,11 +138,14 @@ namespace i2p
 					LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
 					return false;
 				}
+
+#ifndef ANDROID
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
 				{
 					LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
 					return false;
 				}
+#endif
 				char pid[10];
 				sprintf(pid, "%d\n", getpid());
 				ftruncate(pidFH, 0);

@@ -8,8 +8,15 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
-#include "Log.h"
 #include "Crypto.h"
+#if LEGACY_OPENSSL
+#include "ChaCha20.h"
+#include "Poly1305.h"
+#else
+#include <openssl/evp.h>
+#endif
+#include "I2PEndian.h"
+#include "Log.h"
 
 namespace i2p
 {
@@ -594,6 +601,13 @@ namespace crypto
 
 // AES
 #ifdef AESNI
+        #ifdef ARM64AES
+                void init_aesenc(void){
+			// TODO: Implementation
+		}
+		
+        #endif
+
 	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
 		"movaps	%%xmm1, %%xmm4 \n" \
@@ -1049,6 +1063,91 @@ namespace crypto
 			m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 		}
 	}
+
+// AEAD/ChaCha20/Poly1305
+
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt)
+	{
+		if (len < msgLen) return false;	
+		if (encrypt && len < msgLen + 16) return false;
+		bool ret = true;
+#if LEGACY_OPENSSL
+		// generate one time poly key
+		uint8_t polyKey[64];
+		memset(polyKey, 0, sizeof(polyKey));
+		chacha20 (polyKey, 64, nonce, key, 0);
+		// encrypt data		
+		memcpy (buf, msg, msgLen);
+		chacha20 (buf, msgLen, nonce, key, 1);
+		
+		// create Poly1305 message
+		if (!ad) adLen = 0;	
+		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
+		size_t offset = 0;
+		uint8_t padding[16]; memset (padding, 0, 16);
+		if (ad)
+		{	
+			memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
+			auto rem = adLen & 0x0F; // %16
+			if (rem) 
+			{
+				// padding1
+				rem = 16 - rem;
+				memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+			}
+		}
+		memcpy (polyMsg.data () + offset, encrypt ? buf : msg, msgLen); offset += msgLen; // encrypted data
+		auto rem = msgLen & 0x0F; // %16
+		if (rem) 
+		{
+			// padding2
+			rem = 16 - rem;
+			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;	
+		}
+		htole64buf (polyMsg.data () + offset, adLen); offset += 8;			
+		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
+
+		if (encrypt)
+		{
+			// calculate Poly1305 tag and write in after encrypted data		
+			Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
+		}
+		else
+		{
+			uint32_t tag[8];
+			// calculate Poly1305 tag
+			Poly1305HMAC (tag, (uint32_t *)polyKey, polyMsg.data (), offset);
+			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
+		}	
+#else
+		int outlen = 0;	
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		if (encrypt)
+		{
+			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
+			EVP_EncryptFinal_ex(ctx, buf, &outlen);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
+		}
+		else
+		{
+			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
+			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			ret = EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen) > 0;
+		}
+	
+		EVP_CIPHER_CTX_free (ctx);	
+#endif
+		return ret;
+	}
+
+// init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
 	static void OpensslLockingCallback(int mode, int type, const char * file, int line)

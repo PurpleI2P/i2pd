@@ -3,7 +3,7 @@
     package="org.purplei2p.i2pd"
     android:installLocation="auto"
     android:versionCode="1"
-    android:versionName="2.18.0">
+    android:versionName="2.19.0">
 
     <uses-sdk
         android:minSdkVersion="14"

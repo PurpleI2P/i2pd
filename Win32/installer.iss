@@ -1,5 +1,5 @@
 #define I2Pd_AppName "i2pd"
-#define I2Pd_ver "2.18.0"
+#define I2Pd_ver "2.19.0"
 #define I2Pd_Publisher "PurpleI2P"
 
 [Setup]

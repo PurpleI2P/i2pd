@@ -21,7 +21,7 @@ else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
 	NEEDED_CXXFLAGS += -std=c++0x
 else ifeq ($(shell expr match ${CXXVER} "[5-7]\.[0-9]"),3) # gcc >= 5.0
 	NEEDED_CXXFLAGS += -std=c++11
-else ifeq ($(shell expr match ${CXXVER} "7"),1) # gcc 7 ubuntu
+else ifeq ($(shell expr match ${CXXVER} "[7-8]"),1) # gcc 7 ubuntu or gcc 8 arch
 	NEEDED_CXXFLAGS += -std=c++11
 else # not supported
 $(error Compiler too old)
@@ -60,7 +60,12 @@ endif
 ifeq ($(USE_AESNI),yes)
 #check if AES-NI is supported by CPU
 ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	CPU_FLAGS += -maes -DAESNI
+	machine := $(shell uname -m)
+	ifeq ($(machine), aarch64)
+		CXXFLAGS += -DARM64AES
+	else
+		CPU_FLAGS += -maes -DAESNI
+	endif
 endif
 endif
 

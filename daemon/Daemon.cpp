@@ -60,8 +60,12 @@ namespace i2p
 			return service;
 		}
 
-		bool Daemon_Singleton::init(int argc, char* argv[])
-		{
+        bool Daemon_Singleton::init(int argc, char* argv[]) {
+            return init(argc, argv, nullptr);
+        }
+
+        bool Daemon_Singleton::init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream)
+        {
 			i2p::config::Init();
 			i2p::config::ParseCmdline(argc, argv);
 
@@ -104,7 +108,10 @@ namespace i2p
 				logs = "file";
 
 			i2p::log::Logger().SetLogLevel(loglevel);
-			if (logs == "file") {
+            if (logstream) {
+                LogPrint(eLogInfo, "Log: will send messages to std::ostream");
+                i2p::log::Logger().SendTo (logstream);
+            } else if (logs == "file") {
 				if (logfile == "")
 					logfile = i2p::fs::DataDirPath("i2pd.log");
 				LogPrint(eLogInfo, "Log: will send messages to ", logfile);

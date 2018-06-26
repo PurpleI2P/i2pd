@@ -37,32 +37,33 @@ namespace config {
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
-			("loglevel", value<std::string>()->default_value("info"),         "Set the minimal level of log messages (debug, info, warn, error)")
-			("logclftime", value<bool>()->default_value(false),               "Write full CLF-formatted date and time to log (default: write only time)")
+			("loglevel", value<std::string>()->default_value("info"),         "Set the minimal level of log messages (debug, info, warn, error, none)")
+			("logclftime", bool_switch()->default_value(false),               "Write full CLF-formatted date and time to log (default: disabled, write only time)")
 			("family", value<std::string>()->default_value(""),               "Specify a family, router belongs to")
 			("datadir", value<std::string>()->default_value(""),              "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
 			("host", value<std::string>()->default_value("0.0.0.0"),          "External IP")
 			("ifname", value<std::string>()->default_value(""),               "Network interface to bind to")
 			("ifname4", value<std::string>()->default_value(""),              "Network interface to bind to for ipv4")
 			("ifname6", value<std::string>()->default_value(""),              "Network interface to bind to for ipv6")
-			("nat", value<bool>()->default_value(true),                       "Should we assume we are behind NAT?")
+			("nat", value<bool>()->default_value(true),                       "Should we assume we are behind NAT? (default: enabled)")
 			("port", value<uint16_t>()->default_value(0),                     "Port to listen for incoming connections (default: auto)")
-			("ipv4", value<bool>()->default_value(true),                      "Enable communication through ipv4")
-			("ipv6", value<bool>()->zero_tokens()->default_value(false),      "Enable communication through ipv6")
+			("ipv4", value<bool>()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
+			("ipv6", bool_switch()->default_value(false),                     "Enable communication through ipv6 (default: disabled)")
 			("netid", value<int>()->default_value(I2PD_NET_ID),               "Specify NetID. Main I2P is 2")
-			("daemon", value<bool>()->zero_tokens()->default_value(false),    "Router will go to background after start")
-			("service", value<bool>()->zero_tokens()->default_value(false),   "Router will use system folders like '/var/lib/i2pd'")
-			("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
-			("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
+			("daemon", bool_switch()->default_value(false),                   "Router will go to background after start (default: disabled)")
+			("service", bool_switch()->default_value(false),                  "Router will use system folders like '/var/lib/i2pd' (default: disabled)")
+			("notransit", bool_switch()->default_value(false),                "Router will not accept transit tunnels at startup (default: disabled)")
+			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
-			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100")
-			("ntcp", value<bool>()->default_value(true),                      "Enable NTCP transport")
-			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport")
+			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
+			("ntcp", value<bool>()->default_value(true),                      "Enable NTCP transport (default: enabled)")
+			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
+			("ntcp2", value<bool>()->default_value(false),                    "Enable NTCP2 (experimental, default: disabled)")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
-			("insomnia", value<bool>()->zero_tokens()->default_value(false),  "Prevent system from sleeping")
-			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask") // TODO: add custom validator or something
+			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
+			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask")
 #endif
 		;
 
@@ -78,14 +79,14 @@ namespace config {
 
 		options_description httpserver("HTTP Server options");
 		httpserver.add_options()
-			("http.enabled", value<bool>()->default_value(true),               "Enable or disable webconsole")
-			("http.address", value<std::string>()->default_value("127.0.0.1"), "Webconsole listen address")
-			("http.port", value<uint16_t>()->default_value(7070),              "Webconsole listen port")
-			("http.auth", value<bool>()->default_value(false),                 "Enable Basic HTTP auth for webconsole")
-			("http.user", value<std::string>()->default_value("i2pd"),         "Username for basic auth")
-			("http.pass", value<std::string>()->default_value(""),             "Password for basic auth (default: random, see logs)")
-			("http.strictheaders", value<bool>()->default_value(true),         "Enable strict host checking on WebUI")
-			("http.hostname", value<std::string>()->default_value("localhost"),"Expected hostname for WebUI")
+			("http.enabled", value<bool>()->default_value(true),                "Enable or disable webconsole")
+			("http.address", value<std::string>()->default_value("127.0.0.1"),  "Webconsole listen address")
+			("http.port", value<uint16_t>()->default_value(7070),               "Webconsole listen port")
+			("http.auth", value<bool>()->default_value(false),                  "Enable Basic HTTP auth for webconsole")
+			("http.user", value<std::string>()->default_value("i2pd"),          "Username for basic auth")
+			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
+			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
+			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -191,7 +192,7 @@ namespace config {
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
 				"https://i2p-0.manas.ca:8443/,"
 				"https://download.xxlspeed.com/,"
-				"https://reseed-ru.lngserv.ru/,"
+				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.atomike.ninja/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
@@ -330,4 +331,3 @@ namespace config {
 
 } // namespace config
 } // namespace i2p
-

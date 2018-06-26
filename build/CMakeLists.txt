@@ -77,6 +77,10 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/api.cpp"
   "${LIBI2PD_SRC_DIR}/Event.cpp"
   "${LIBI2PD_SRC_DIR}/Gost.cpp"
+  "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"	
+  "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
+  "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
+  "${LIBI2PD_SRC_DIR}/NTCP2.cpp"		
 )
 
 if (WITH_WEBSOCKETS)
@@ -94,14 +98,17 @@ endif()
 
 add_library(libi2pd ${LIBI2PD_SRC})
 set_target_properties(libi2pd PROPERTIES PREFIX "")
-install(TARGETS libi2pd
-  EXPORT libi2pd
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  COMPONENT Libraries)
+
+if (WITH_LIBRARY)
+  install(TARGETS libi2pd
+    EXPORT libi2pd
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
 # install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 set (CLIENT_SRC
   "${LIBI2PD_CLIENT_SRC_DIR}/AddressBook.cpp"
@@ -120,13 +127,17 @@ set (CLIENT_SRC
 if(WITH_WEBSOCKETS)
   list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
 endif ()
+
 add_library(libi2pdclient ${CLIENT_SRC})
 set_target_properties(libi2pdclient PROPERTIES PREFIX "")
-install(TARGETS libi2pdclient
-  EXPORT libi2pdclient
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  COMPONENT Libraries)
+
+if (WITH_LIBRARY)
+  install(TARGETS libi2pdclient
+    EXPORT libi2pdclient
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    COMPONENT Libraries)
+endif()
 
 set(DAEMON_SRC_DIR ../daemon)
 

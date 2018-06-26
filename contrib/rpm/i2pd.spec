@@ -1,6 +1,6 @@
 Name:           i2pd
-Version:        2.18.0
-Release:        2%{?dist}
+Version:        2.19.0
+Release:        1%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd-git
 
@@ -96,6 +96,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Tue Jun 26 2018 orignal <i2porignal@yandex.ru> - 2.19.0
+- update to 2.19.0
+
 * Mon Feb 05 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-2
 - Fixed blocking system shutdown for 10 minutes (#1089)
 

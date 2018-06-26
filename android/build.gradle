@@ -19,13 +19,13 @@ repositories {
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion "25.0.3"
     defaultConfig {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 25
         minSdkVersion 14
         versionCode 1
-        versionName "2.18.0"
+        versionName "2.19.0"
         ndk {
             abiFilters 'armeabi-v7a'
             //abiFilters 'x86'
@@ -49,7 +49,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             signingConfig signingConfigs.orignal
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
         }

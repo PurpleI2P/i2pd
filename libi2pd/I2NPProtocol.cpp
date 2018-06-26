@@ -327,7 +327,7 @@ namespace i2p
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
 				BN_CTX * ctx = BN_CTX_new ();
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKeys ().GetPrivateKey () , record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
+				i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
 				BN_CTX_free (ctx);
 				// replace record to reply
 				if (i2p::context.AcceptsTunnels () &&

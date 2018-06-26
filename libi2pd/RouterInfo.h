@@ -48,7 +48,9 @@ namespace data
 				eNTCPV4 = 0x01,
 				eNTCPV6 = 0x02,
 				eSSUV4 = 0x04,
-				eSSUV6 = 0x08
+				eSSUV6 = 0x08,
+				eNTCP2V4 = 0x10,
+				eNTCP2V6 = 0x20
 			};
 
 			enum Caps
@@ -88,6 +90,12 @@ namespace data
 				std::vector<Introducer> introducers;
 			};
 
+			struct NTCP2Ext
+			{
+				Tag<32> staticKey;
+				Tag<16> iv;
+			};
+
 			struct Address
 			{
 				TransportStyle transportStyle;
@@ -97,6 +105,7 @@ namespace data
 				uint64_t date;
 				uint8_t cost;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
+				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
 				bool IsCompatible (const boost::asio::ip::address& other) const
 				{
@@ -113,6 +122,8 @@ namespace data
 				{
 					return !(*this == other);
 				}
+
+				bool IsNTCP2 () const { return (bool)ntcp2; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -134,6 +145,7 @@ namespace data
 
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv);
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
@@ -144,6 +156,7 @@ namespace data
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
+			bool IsNTCP2 (bool v4only = true) const;
 			bool IsV6 () const;
 			bool IsV4 () const;
 			void EnableV6 ();

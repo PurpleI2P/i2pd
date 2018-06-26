@@ -35,6 +35,8 @@ namespace transport
 		} encrypted;
 	};
 
+	struct NTCPWork;
+
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384;
 	const size_t NTCP_BUFFER_SIZE = 1028; // fits 1 tunnel data message
 	const int NTCP_CONNECT_TIMEOUT = 5; // 5 seconds
@@ -77,12 +79,12 @@ namespace transport
 			void SendPhase3 ();
 			void HandlePhase1Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred);
 			void HandlePhase2Received (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandlePhase2 ();
+			void HandlePhase2 (NTCPWork * work=nullptr);
 			void HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA);
 			void HandlePhase4Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA);
 
 			//server
-			void SendPhase2 ();
+			void SendPhase2 (NTCPWork * work=nullptr);
 			void SendPhase4 (uint32_t tsA, uint32_t tsB);
 			void HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB);

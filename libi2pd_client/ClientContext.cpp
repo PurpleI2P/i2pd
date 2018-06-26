@@ -362,8 +362,6 @@ namespace client
 	{
 		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
 		m_SharedLocalDestination->Acquire ();
-		m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
-		m_SharedLocalDestination->Start ();
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
@@ -488,8 +486,8 @@ namespace client
 						{
 							localDestination = m_SharedLocalDestination;
 						}
-						auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort);
-						if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second)
+						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort);
+						if(m_ClientForwards.insert(std::make_pair(end, clientTunnel)).second)
 						{
 							clientTunnel->Start();
 						}
@@ -498,31 +496,35 @@ namespace client
 
 					} else {
 						boost::asio::ip::tcp::endpoint clientEndpoint;
-						I2PService * clientTunnel = nullptr;
+						std::shared_ptr<I2PService> clientTunnel;
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(name, address, port, false, "", destinationPort, localDestination);
-							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
+							auto tun = std::make_shared<i2p::proxy::SOCKSProxy>(name, address, port, false, "", destinationPort, localDestination);
+							clientTunnel = tun;
+							clientEndpoint = tun->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
-							clientTunnel = new i2p::proxy::HTTPProxy(name, address, port, outproxy, localDestination);
-							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
+							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, outproxy, localDestination);
+							clientTunnel = tun;
+							clientEndpoint = tun->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
 						{
 							// websocks proxy
-							clientTunnel = new WebSocks(address, port, localDestination);;
-							clientEndpoint = ((WebSocks*)clientTunnel)->GetLocalEndpoint();
+							auto tun = std::make_shared<WebSocks>(address, port, localDestination);
+							clientTunnel = tun;
+							clientEndpoint = tun->GetLocalEndpoint();
 						}
 						else
 						{
 							// tcp client
-							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetLocalEndpoint ();
+							auto tun = std::make_shared<I2PClientTunnel> (name, dest, address, port, localDestination, destinationPort);
+							clientTunnel = tun;	
+							clientEndpoint = tun->GetLocalEndpoint ();
 						}
 						uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);
 						if(timeout)
@@ -531,7 +533,7 @@ namespace client
 							LogPrint(eLogInfo, "Clients: I2P Client tunnel connect timeout set to ", timeout);
 						}
 
-						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
+						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint, clientTunnel));
 						if (ins.second)
 						{
 							clientTunnel->Start ();
@@ -567,7 +569,7 @@ namespace client
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
-					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
@@ -588,7 +590,7 @@ namespace client
 						// TODO: hostnames
 						auto localAddress = boost::asio::ip::address::from_string(address);
 						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
-						I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, localAddress, endpoint, port);
+						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port);
 						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
@@ -599,7 +601,7 @@ namespace client
 							std::make_pair(
 								std::make_pair(
 									localDestination->GetIdentHash(), port),
-								std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second)
+								serverTunnel)).second)
 						{
 							serverTunnel->Start();
 							LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
@@ -610,16 +612,14 @@ namespace client
 						continue;
 					}
 
-					I2PServerTunnel * serverTunnel;
+					std::shared_ptr<I2PServerTunnel>  serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
-						serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
+						serverTunnel = std::make_shared<I2PServerTunnelHTTP> (name, host, port, localDestination, hostOverride, inPort, gzip);
 					else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
-						serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, webircpass, inPort, gzip);
+						serverTunnel = std::make_shared<I2PServerTunnelIRC> (name, host, port, localDestination, webircpass, inPort, gzip);
 					else // regular server tunnel by default
-						serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
+						serverTunnel = std::make_shared<I2PServerTunnel> (name, host, port, localDestination, inPort, gzip);
 
-					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
-					serverTunnel->SetMaxConnsPerMinute(maxConns);
 					if(!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
@@ -642,8 +642,8 @@ namespace client
 						serverTunnel->SetAccessList (idents);
 					}
 					auto ins = m_ServerTunnels.insert (std::make_pair (
-							std::make_pair (localDestination->GetIdentHash (), inPort),
-					        std::unique_ptr<I2PServerTunnel>(serverTunnel)));
+							std::make_pair (localDestination->GetIdentHash (), inPort), 
+							serverTunnel));
 					if (ins.second)
 					{
 						serverTunnel->Start ();

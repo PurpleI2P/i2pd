@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <ostream>
 
 namespace i2p
 {
@@ -12,8 +13,9 @@ namespace util
 	class Daemon_Singleton
 	{
 		public:
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
+            virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
+            virtual bool init(int argc, char* argv[]);
+            virtual bool start();
 			virtual bool stop();
 			virtual void run () {};
 
@@ -44,19 +46,6 @@ namespace util
 			}
 	};
 
-#elif defined(ANDROID)
-#define Daemon i2p::util::DaemonAndroid::Instance()
-	// dummy, invoked from android/jni/DaemonAndroid.*
-	class DaemonAndroid: public i2p::util::Daemon_Singleton
-	{
-		public:
-			static DaemonAndroid& Instance()
-			{
-				static DaemonAndroid instance;
-				return instance;
-			}
-	};
-
 #elif defined(_WIN32)
 #define Daemon i2p::util::DaemonWin32::Instance()
 	class DaemonWin32 : public Daemon_Singleton
@@ -77,7 +66,18 @@ namespace util
 
 			DaemonWin32 ():isGraceful(false) {}
 	};
-
+#elif (defined(ANDROID) && !defined(ANDROID_BINARY))
+#define Daemon i2p::util::DaemonAndroid::Instance()
+	// dummy, invoked from android/jni/DaemonAndroid.*
+	class DaemonAndroid: public i2p::util::Daemon_Singleton
+	{
+		public:
+			static DaemonAndroid& Instance()
+			{
+				static DaemonAndroid instance;
+				return instance;
+			}
+	};
 #else
 #define Daemon i2p::util::DaemonLinux::Instance()
 	class DaemonLinux : public Daemon_Singleton

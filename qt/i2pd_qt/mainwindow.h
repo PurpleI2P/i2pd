@@ -62,6 +62,8 @@
 #include "widgetlockregistry.h"
 #include "widgetlock.h"
 
+class LogViewerManager;
+
 template<typename ValueType>
 bool isType(boost::any& a) {
     return
@@ -215,7 +217,8 @@ public:
 };
 class LogDestinationComboBoxItem : public ComboBoxItem {
 public:
-    LogDestinationComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
+    LogDestinationComboBoxItem(ConfigOption option_, QComboBox* comboBox_) :
+        ComboBoxItem(option_, comboBox_) {}
     virtual ~LogDestinationComboBoxItem(){}
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
@@ -228,6 +231,8 @@ public:
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
+
+    Q_OBJECT
 };
 class LogLevelComboBoxItem : public ComboBoxItem {
 public:
@@ -370,9 +375,10 @@ class Controller;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
-
+private:
+    std::shared_ptr<std::iostream> logStream;
 public:
-    explicit MainWindow(QWidget *parent=0);
+    explicit MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent=nullptr);
     ~MainWindow();
 
     void setI2PController(i2p::qt::Controller* controller_);
@@ -419,6 +425,7 @@ public slots:
     void showStatus_i2p_tunnels_Page();
     void showStatus_sam_sessions_Page();
 
+    void showLogViewerPage();
     void showSettingsPage();
     void showTunnelsPage();
     void showRestartPage();
@@ -429,6 +436,8 @@ private:
     QTimer * statusPageUpdateTimer;
     bool wasSelectingAtStatusMainPage;
     bool showHiddenInfoStatusMainPage;
+
+    LogViewerManager *logViewerManagerPtr;
 
     void showStatusPage(StatusPage newStatusPage);
 #ifndef ANDROID
@@ -521,13 +530,6 @@ private:
 
     void appendTunnelForms(std::string tunnelNameToFocus);
     void deleteTunnelForms();
-
-
-    /*
-
-    TODO signaturetype
-
-    */
 
     template<typename Section, typename Type>
     std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
@@ -628,7 +630,6 @@ private:
         std::string webircpass = "";
         bool gzip = true;
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-        uint32_t maxConns = i2p::stream::DEFAULT_MAX_CONNS_PER_MIN;
         std::string address = "127.0.0.1";
         bool isUniqueLocal = true;
 
@@ -646,7 +647,6 @@ private:
                                                   webircpass,
                                                   gzip,
                                                   sigType,
-                                                  maxConns,
                                                   address,
                                                   isUniqueLocal);
 
@@ -734,7 +734,6 @@ private:
                     std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
                     bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-                    uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
                     std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
                     bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
@@ -769,7 +768,6 @@ private:
                                                               webircpass,
                                                               gzip,
                                                               sigType,
-                                                              maxConns,
                                                               address,
                                                               isUniqueLocal);
                 }
@@ -794,6 +792,8 @@ private:
     };
 
     TunnelsPageUpdateListenerMainWindowImpl tunnelsPageUpdateListener;
+
+    void onLoggingOptionsChange() {}
 };
 
 #endif // MAINWINDOW_H

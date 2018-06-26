@@ -19,7 +19,8 @@ ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
 endif
 
-APP_OPTIM  := debug
+# Forcing debug optimization. Use `ndk-build NDK_DEBUG=1` instead.
+#APP_OPTIM  := debug
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git

@@ -176,10 +176,14 @@ namespace data
 			auto address = std::make_shared<Address>();
 			s.read ((char *)&address->cost, sizeof (address->cost));
 			s.read ((char *)&address->date, sizeof (address->date));
-			char transportStyle[5];
-			ReadString (transportStyle, 5, s);
-			if (!strcmp (transportStyle, "NTCP"))
+			bool isNtcp2 = false;
+			char transportStyle[6]; 
+			auto transportStyleLen = ReadString (transportStyle, 6, s) - 1;
+			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
+			{
 				address->transportStyle = eTransportNTCP;
+				if (transportStyleLen > 4 || transportStyle[4] == '2') isNtcp2= true;
+			}
 			else if (!strcmp (transportStyle, "SSU"))
 			{
 				address->transportStyle = eTransportSSU;
@@ -244,6 +248,18 @@ namespace data
 				}
 				else if (!strcmp (key, "caps"))
 					ExtractCaps (value);
+				else if (!strcmp (key, "s")) // ntcp2 static key
+				{
+					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
+					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);	
+				}	
+				else if (!strcmp (key, "i")) // ntcp2 iv
+				{
+					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
+					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);	
+				}	
 				else if (key[0] == 'i')
 				{
 					// introducers
@@ -276,7 +292,7 @@ namespace data
 				if (!s) return;
 			}
 			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
-			if (supportedTransports)
+			if (supportedTransports && !isNtcp2) // we ignore NTCP2 addresses for now. TODO:
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
@@ -423,7 +439,7 @@ namespace data
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
 			if (address.transportStyle == eTransportNTCP)
-				WriteString ("NTCP", s);
+				WriteString (address.IsNTCP2 () ? "NTCP2" : "NTCP", s);
 			else if (address.transportStyle == eTransportSSU)
 			{
 				WriteString ("SSU", s);
@@ -439,10 +455,13 @@ namespace data
 			else
 				WriteString ("", s);
 
-			WriteString ("host", properties);
-			properties << '=';
-			WriteString (address.host.to_string (), properties);
-			properties << ';';
+			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			{
+				WriteString ("host", properties);
+				properties << '=';
+				WriteString (address.host.to_string (), properties);
+				properties << ';';
+			}
 			if (address.transportStyle == eTransportSSU)
 			{
 				// write introducers if any
@@ -517,10 +536,23 @@ namespace data
 					properties << ';';
 				}
 			}
-			WriteString ("port", properties);
-			properties << '=';
-			WriteString (boost::lexical_cast<std::string>(address.port), properties);
-			properties << ';';
+
+			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			{
+				WriteString ("port", properties);
+				properties << '=';
+				WriteString (boost::lexical_cast<std::string>(address.port), properties);
+				properties << ';';
+			}	
+			if (address.IsNTCP2 ())
+			{
+				// publish s and v for NTCP2
+				WriteString ("s", properties); properties << '=';
+				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
+				WriteString ("v", properties); properties << '=';
+				WriteString ("2", properties); properties << ';';
+				// TODO: publish "i"
+			}	
 
 			uint16_t size = htobe16 (properties.str ().size ());
 			s.write ((char *)&size, sizeof (size));
@@ -656,6 +688,21 @@ namespace data
 		m_Caps |= eSSUIntroducer;
 	}
 
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv)
+	{
+		for (const auto& it: *m_Addresses) // don't insert one more NTCP2
+			if (it->ntcp2) return;
+		auto addr = std::make_shared<Address>();
+		addr->port = 0;
+		addr->transportStyle = eTransportNTCP;
+		addr->cost = 14;
+		addr->date = 0;
+		addr->ntcp2.reset (new NTCP2Ext ());
+		memcpy (addr->ntcp2->staticKey, staticKey, 32);
+		memcpy (addr->ntcp2->iv, iv, 16);	
+		m_Addresses->push_back(std::move(addr));
+	}
+
 	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
 		for (auto& addr : *m_Addresses)
@@ -735,6 +782,14 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
+	bool RouterInfo::IsNTCP2 (bool v4only) const
+	{
+		if (v4only)
+			return m_SupportedTransports & eNTCP2V4;
+		else
+			return m_SupportedTransports & (eNTCP2V4 | eNTCP2V6);
+	}
+
 	bool RouterInfo::IsV6 () const
 	{
 		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
@@ -742,19 +797,19 @@ namespace data
 
 	bool RouterInfo::IsV4 () const
 	{
-		return m_SupportedTransports & (eNTCPV4 | eSSUV4);
+		return m_SupportedTransports & (eNTCPV4 | eSSUV4 | eNTCP2V4);
 	}
 
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
-			m_SupportedTransports |= eNTCPV6 | eSSUV6;
+			m_SupportedTransports |= eNTCPV6 | eSSUV6 | eNTCP2V6;
 	}
 
   void RouterInfo::EnableV4 ()
 	{
 		if (!IsV4 ())
-			m_SupportedTransports |= eNTCPV4 | eSSUV4;
+			m_SupportedTransports |= eNTCPV4 | eSSUV4 | eNTCP2V4;
 	}
 
 
@@ -762,7 +817,7 @@ namespace data
 	{
 		if (IsV6 ())
 		{
-			m_SupportedTransports &= ~(eNTCPV6 | eSSUV6);
+			m_SupportedTransports &= ~(eNTCPV6 | eSSUV6 | eNTCP2V6);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
@@ -778,7 +833,7 @@ namespace data
 	{
 		if (IsV4 ())
 		{
-			m_SupportedTransports &= ~(eNTCPV4 | eSSUV4);
+			m_SupportedTransports &= ~(eNTCPV4 | eSSUV4 | eNTCP2V4);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
@@ -840,7 +895,7 @@ namespace data
 	{
 		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx);
+			encryptor->Encrypt (data, encrypted, ctx, true);
 	}
 }
 }
