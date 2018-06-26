@@ -1,6 +1,31 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.19.0] - 2018-06-26
+### Added
+- ECIES support for RouterInfo
+- HTTP outproxy authorization
+- AVX/AESNI runtime detection
+- Initial implementation of NTCP2
+- I2CP session reconfigure
+- I2CP method ClientServicesInfo
+- Datagrams to websocks
+### Changed
+- RouterInfo uses EdDSA signature by default
+- Remove stream bans
+- Android build system changed to gradle
+- Multiple changes in QT GUI
+- Dockerfile
+### Fixed
+- zero tunnelID issue
+- tunnels reload
+- headers in webconsole
+- XSS in webconsole from SAM session name
+- build for gcc 8
+- cmake build scripts
+- systemd service files
+- some netbsd issues
+
 ## [2.18.0] - 2018-01-30
 ### Added
 - Show tunnel nicknames for I2CP destination in WebUI

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest package="org.purplei2p.i2pd" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.18.0" android:versionCode="2" android:installLocation="auto">
+<manifest package="org.purplei2p.i2pd" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.19.0" android:versionCode="2" android:installLocation="auto">
     <uses-sdk android:minSdkVersion="11" android:targetSdkVersion="23"/>
         <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
     <!-- <application android:hardwareAccelerated="true" -->
