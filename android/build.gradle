@@ -37,6 +37,7 @@ android {
             java.srcDirs = ['src']
             res.srcDirs = ['res']
             jniLibs.srcDirs = ['libs']
+            assets.srcDirs = ['assets']
         }
     }
     signingConfigs {
