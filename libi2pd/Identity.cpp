@@ -719,24 +719,29 @@ namespace data
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
 	{
 		XORMetric m;
-#if defined(__AVX__) // for AVX
-		__asm__
-		(
-			"vmovups %1, %%ymm0 \n"
-			"vmovups %2, %%ymm1 \n"
-			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, %0 \n"
-			: "=m"(*m.metric)
-			: "m"(*key1), "m"(*key2)
-			: "memory", "%xmm0", "%xmm1" // should be replaced by %ymm0/1 once supported by compiler
-		);
-#else
-		const uint64_t * hash1 = key1.GetLL (), * hash2 = key2.GetLL ();
-		m.metric_ll[0] = hash1[0] ^ hash2[0];
-		m.metric_ll[1] = hash1[1] ^ hash2[1];
-		m.metric_ll[2] = hash1[2] ^ hash2[2];
-		m.metric_ll[3] = hash1[3] ^ hash2[3];
+#ifdef __AVX__
+		if(i2p::cpu::avx)
+		{
+			__asm__
+			(
+				"vmovups %1, %%ymm0 \n"
+				"vmovups %2, %%ymm1 \n"
+				"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
+				"vmovups %%ymm1, %0 \n"
+				: "=m"(*m.metric)
+				: "m"(*key1), "m"(*key2)
+				: "memory", "%xmm0", "%xmm1" // should be replaced by %ymm0/1 once supported by compiler
+			);
+		}
+		else
 #endif
+		{
+			const uint64_t * hash1 = key1.GetLL (), * hash2 = key2.GetLL ();
+			m.metric_ll[0] = hash1[0] ^ hash2[0];
+			m.metric_ll[1] = hash1[1] ^ hash2[1];
+			m.metric_ll[2] = hash1[2] ^ hash2[2];
+			m.metric_ll[3] = hash1[3] ^ hash2[3];
+		}
 
 		return m;
 	}

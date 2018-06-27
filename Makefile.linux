@@ -64,7 +64,7 @@ ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
 	ifeq ($(machine), aarch64)
 		CXXFLAGS += -DARM64AES
 	else
-		CPU_FLAGS += -maes -DAESNI
+		CPU_FLAGS += -maes
 	endif
 endif
 endif
