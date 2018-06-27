@@ -37,7 +37,7 @@ endif
 
 # don't change following line to ifeq ($(USE_AESNI),yes) !!!
 ifeq ($(USE_AESNI),1)
-	CPU_FLAGS += -maes -DAESNI
+	CPU_FLAGS += -maes
 else
 	CPU_FLAGS += -msse
 endif

@@ -21,7 +21,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 ifeq ($(USE_AESNI),1)
-	CXXFLAGS += -maes -DAESNI
+	CXXFLAGS += -maes
 else
 	CXXFLAGS += -msse
 endif
