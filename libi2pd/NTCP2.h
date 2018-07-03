@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <memory>
 #include <thread>
+#include <openssl/bn.h>
 #include <boost/asio.hpp>
 #include "RouterInfo.h"
 #include "TransportSession.h"
@@ -12,6 +13,25 @@ namespace i2p
 {
 namespace transport
 {
+	struct NTCP2Establisher
+	{
+		NTCP2Establisher () { m_Ctx = BN_CTX_new (); };
+		~NTCP2Establisher () { BN_CTX_free (m_Ctx); };
+		
+		const uint8_t * GetCK () const { return m_CK; };
+		const uint8_t * GetH () const { return m_H; };
+
+		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
+		void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
+		void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
+		void CreateEphemeralKey (uint8_t * pub);
+
+		BN_CTX * m_Ctx;
+		uint8_t m_EphemeralPrivateKey[32]; // x25519
+		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32] /* or X for Bob */;
+
+	};		
+
 	class NTCP2Server;
 	class NTCP2Session: public TransportSession, public std::enable_shared_from_this<NTCP2Session>
 	{
@@ -30,15 +50,11 @@ namespace transport
 
 		private:
 
-			void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
-			void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
-			void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
 			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
 			void KeyDerivationFunctionDataPhase ();
 
 			// establish
-			void CreateEphemeralKey (uint8_t * pub);
 			void SendSessionRequest ();
 			void SendSessionCreated ();
 			void SendSessionConfirmed ();
@@ -67,8 +83,7 @@ namespace transport
 			boost::asio::ip::tcp::socket m_Socket;
 			bool m_IsEstablished, m_IsTerminated;
 
-			uint8_t m_EphemeralPrivateKey[32]; // x25519
-			uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32] /* or X for Bob */;
+			std::unique_ptr<NTCP2Establisher> m_Establisher;
 			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
 			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 			// data phase
