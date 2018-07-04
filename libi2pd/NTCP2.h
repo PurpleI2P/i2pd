@@ -15,20 +15,31 @@ namespace transport
 {
 	struct NTCP2Establisher
 	{
-		NTCP2Establisher () { m_Ctx = BN_CTX_new (); };
-		~NTCP2Establisher () { BN_CTX_free (m_Ctx); };
+		NTCP2Establisher ();
+		~NTCP2Establisher ();
 		
+		const uint8_t * GetPub () const { return m_EphemeralPublicKey; };
+		const uint8_t * GetPriv () const { return m_EphemeralPrivateKey; };
+		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
+		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
+
+		const uint8_t * GetK () const { return m_K; };
 		const uint8_t * GetCK () const { return m_CK; };
 		const uint8_t * GetH () const { return m_H; };
 
+		void KDF1Alice ();
+		void KDF1Bob ();
+
 		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
-		void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub, uint8_t * derived); // for SessionRequest
-		void KeyDerivationFunction2 (const uint8_t * priv, const uint8_t * pub, const uint8_t * sessionRequest, size_t sessionRequestLen, uint8_t * derived); // for SessionCreate
-		void CreateEphemeralKey (uint8_t * pub);
+		void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub); // for SessionRequest
+		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen); // for SessionCreate
+		void KeyDerivationFunction3 (const uint8_t * staticPrivKey); // for SessionConfirmed part 2
+		void CreateEphemeralKey ();
+
 
 		BN_CTX * m_Ctx;
-		uint8_t m_EphemeralPrivateKey[32]; // x25519
-		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /* derived after SessionCreated */, m_Y[32] /* or X for Bob */;
+		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
+		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
 
 	};		
 
@@ -51,7 +62,6 @@ namespace transport
 		private:
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
-			void KeyDerivationFunction3 (const uint8_t * staticPrivKey, uint8_t * derived); // for SessionConfirmed part 2
 			void KeyDerivationFunctionDataPhase ();
 
 			// establish
