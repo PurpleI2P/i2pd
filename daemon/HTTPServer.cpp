@@ -862,7 +862,7 @@ namespace http {
 			{
 				/* deny request as it's from a non whitelisted hostname */
 				res.code = 403;
-				content = "host missmatch";
+				content = "host mismatch";
 				SendReply(res, content);
 				return;
 			}

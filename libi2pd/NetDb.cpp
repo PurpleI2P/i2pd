@@ -734,7 +734,7 @@ namespace data
 					m_Requests.RequestComplete (ident, nullptr);
 			}
 			else
-				// no more requests for detination possible. delete it
+				// no more requests for destination possible. delete it
 				m_Requests.RequestComplete (ident, nullptr);
 		}
 		else if(!m_FloodfillBootstrap)

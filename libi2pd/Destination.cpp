@@ -64,7 +64,7 @@ namespace client
 				{
 					it = params->find (I2CP_PARAM_OUTBOUND_NICKNAME);
 					if (it != params->end ()) m_Nickname = it->second;
-					// otherwise we set deafult nickname in Start when we know local address
+					// otherwise we set default nickname in Start when we know local address
 				}
 			}
 		}

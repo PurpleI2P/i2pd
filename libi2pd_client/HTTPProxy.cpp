@@ -387,7 +387,7 @@ namespace proxy {
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
 		m_ClientRequestURL.schema = "";
 		m_ClientRequestURL.host   = "";
-		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to chage uri for?
+		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to change uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
 		m_ClientRequest.write(m_ClientRequestBuffer);

@@ -377,7 +377,7 @@ namespace client
 				}
 				numAddresses++;
 				auto it = m_Addresses.find (name);
-				if (it != m_Addresses.end ()) // aleady exists ?
+				if (it != m_Addresses.end ()) // already exists ?
 				{
 					if (it->second != ident->GetIdentHash ()) // address changed?
 					{

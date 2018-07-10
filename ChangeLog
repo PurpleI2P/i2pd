@@ -68,7 +68,7 @@
 - NTCP soft and hard descriptors limits
 - Support full timestamps in logs
 ### Changed
-- Faster implmentation of GOST R 34.11 hash
+- Faster implementation of GOST R 34.11 hash
 - Reject routers with RSA signtures
 - Reload config and shudown from Windows GUI
 - Update tunnels address(destination) without restart
@@ -168,7 +168,7 @@
 - Initial iOS support
 
 ### Changed
-- Reduced file descriptiors usage
+- Reduced file descriptors usage
 - Strict reseed checks enabled by default
 
 ## Fixed
