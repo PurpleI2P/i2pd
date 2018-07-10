@@ -84,8 +84,8 @@ namespace proxy
 				SOCKS5_HOST_UNREACH = 4, // Host unreachable
 				SOCKS5_CONN_REFUSED = 5, // Connection refused by the peer
 				SOCKS5_TTL_EXPIRED = 6, // TTL Expired
-				SOCKS5_CMD_UNSUP = 7, // Command unsuported
-				SOCKS5_ADDR_UNSUP = 8, // Address type unsuported
+				SOCKS5_CMD_UNSUP = 7, // Command unsupported
+				SOCKS5_ADDR_UNSUP = 8, // Address type unsupported
 				SOCKS4_OK = 90, // No error for SOCKS4
 				SOCKS4_FAIL = 91, // Failed establishing connecting or not allowed
 				SOCKS4_IDENTD_MISSING = 92, // Couldn't connect to the identd server

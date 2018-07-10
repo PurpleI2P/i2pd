@@ -511,7 +511,7 @@ namespace tunnel
 								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 							break;
 							default:
-								LogPrint (eLogWarning, "Tunnel: unexpected messsage type ", (int) typeID);
+								LogPrint (eLogWarning, "Tunnel: unexpected message type ", (int) typeID);
 						}
 
 						msg = m_Queue.Get ();

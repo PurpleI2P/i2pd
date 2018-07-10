@@ -17,6 +17,6 @@ DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow
 override_dh_strip:
 	dh_strip --dbg-package=i2pd-dbg
 
-## uncoment this if you have "missing info" problem when building package
+## uncomment this if you have "missing info" problem when building package
 #override_dh_shlibdeps:
 #	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info

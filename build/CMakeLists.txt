@@ -190,7 +190,7 @@ if (CXX11_SUPPORTED)
 elseif (CXX0X_SUPPORTED) # gcc 4.6
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
 elseif (NOT MSVC)
-  message(SEND_ERROR "C++11 standart not seems to be supported by compiler. Too old version?")
+  message(SEND_ERROR "C++11 standard not seems to be supported by compiler. Too old version?")
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -340,7 +340,7 @@ target_link_libraries(libi2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
-  message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
+  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
 endif()
 
 find_package ( OpenSSL REQUIRED )
