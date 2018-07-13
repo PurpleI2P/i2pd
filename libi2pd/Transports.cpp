@@ -117,7 +117,8 @@ namespace transport
 	Transports::Transports ():
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
-		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
+		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_NTCP2Server (nullptr),
+		m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -191,6 +192,13 @@ namespace transport
 				LogPrint(eLogError, "Transports: invalid NTCP proxy url ", ntcpproxy);
 			return;
 		}
+		// create NTCP2. TODO: move to acceptor	
+		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		if (ntcp2)
+		{
+			m_NTCP2Server = new NTCP2Server ();
+			m_NTCP2Server->Start ();
+		}	
 
 		// create acceptors
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
@@ -260,6 +268,13 @@ namespace transport
 			m_NTCPServer->Stop ();
 			delete m_NTCPServer;
 			m_NTCPServer = nullptr;
+		}
+
+		if (m_NTCP2Server)
+		{
+			m_NTCP2Server->Stop ();
+			delete m_NTCP2Server;
+			m_NTCP2Server = nullptr;
 		}
 
 		m_DHKeysPairSupplier.Stop ();
@@ -390,6 +405,13 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
+				if (address && address->IsNTCP2 () && m_NTCP2Server) // NTCP2 have priority over NTCP if enabled
+				{
+					auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+					m_NTCP2Server->Connect (address->host, address->port, s);
+					return true;
+				}
+
 				if (address && m_NTCPServer)
 				{
 #if BOOST_VERSION >= 104900

@@ -9,6 +9,7 @@
 #include "Ed25519.h"
 #include "Siphash.h"
 #include "RouterContext.h"
+#include "Transports.h"
 #include "NTCP2.h"
 
 namespace i2p
@@ -160,6 +161,13 @@ namespace transport
 	void NTCP2Session::Done ()
 	{
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+	}
+
+	void NTCP2Session::Established ()
+	{
+		m_IsEstablished = true;
+		m_Establisher.reset (nullptr);
+		transports.PeerConnected (shared_from_this ());
 	}
 
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
@@ -443,6 +451,7 @@ namespace transport
 		m_ReceiveSipKey = m_Sipkeysba;
 		memcpy (m_ReceiveIV, m_Sipkeysba + 16, 8);
 		memcpy (m_SendIV, m_Sipkeysab + 16, 8);
+		Established ();
 		ReceiveLength ();
 
 		// TODO: remove
@@ -520,6 +529,7 @@ namespace transport
 			m_ReceiveSipKey = m_Sipkeysab;
 			memcpy (m_ReceiveIV, m_Sipkeysab + 16, 8);
 			memcpy (m_SendIV, m_Sipkeysba + 16, 8);
+			Established ();
 			ReceiveLength ();			
 		}
 	}

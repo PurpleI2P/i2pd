@@ -62,6 +62,8 @@ namespace transport
 
 		private:
 
+			void Established ();
+
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void KeyDerivationFunctionDataPhase ();
 
