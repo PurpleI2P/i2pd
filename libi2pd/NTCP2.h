@@ -13,6 +13,16 @@ namespace i2p
 {
 namespace transport
 {
+	enum NTCP2BlockType
+	{
+		eNTCP2BlkDateTime = 0,
+		eNTCP2BlkOptions, // 1
+		eNTCP2BlkRouterInfo, // 2
+		eNTCP2BlkI2NPMessage, // 3
+		eNTCP2BlkTermination, // 4
+		eNTCP2BlkPadding = 254	
+	};	
+
 	struct NTCP2Establisher
 	{
 		NTCP2Establisher ();
@@ -107,6 +117,8 @@ namespace transport
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
 			uint8_t m_ReceiveIV[8], m_SendIV[8];
 			uint64_t m_ReceiveSequenceNumber, m_SendSequenceNumber;
+
+			i2p::I2NPMessagesHandler m_Handler;
 	};
 
 	class NTCP2Server

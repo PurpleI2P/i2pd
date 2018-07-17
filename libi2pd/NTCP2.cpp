@@ -167,7 +167,7 @@ namespace transport
 	{
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
-		transports.PeerConnected (shared_from_this ());
+	//	transports.PeerConnected (shared_from_this ());
 	}
 
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
@@ -619,8 +619,39 @@ namespace transport
 				LogPrint (eLogError, "NTCP2: Unexpected block length ", size);
 				break;
 			}
+			switch (blk)
+			{
+				case eNTCP2BlkDateTime:
+					LogPrint (eLogDebug, "NTCP2: datetime");
+				break;	
+				case eNTCP2BlkOptions:
+					LogPrint (eLogDebug, "NTCP2: options");
+				break;
+				case eNTCP2BlkRouterInfo:
+					LogPrint (eLogDebug, "NTCP2: RouterInfo");
+				break;
+				case eNTCP2BlkI2NPMessage:
+				{
+					LogPrint (eLogDebug, "NTCP2: I2NP");
+					auto nextMsg = NewI2NPMessage (size);
+					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
+					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
+					nextMsg->FromNTCP2 ();
+					m_Handler.PutNextMessage (nextMsg);	
+					break;
+				}
+				case eNTCP2BlkTermination:
+					LogPrint (eLogDebug, "NTCP2: termination");
+				break;
+				case eNTCP2BlkPadding:
+					LogPrint (eLogDebug, "NTCP2: padding");
+				break;
+				default:
+					LogPrint (eLogWarning, "NTCP2: Unknown block type ", (int)blk);
+			}
 			offset += size;
 		}
+		m_Handler.Flush ();
 	}
 
 	void NTCP2Session::SendNextFrame (const uint8_t * payload, size_t len)
