@@ -10,6 +10,7 @@
 #include "Siphash.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "NetDb.hpp"
 #include "NTCP2.h"
 
 namespace i2p
@@ -516,7 +517,21 @@ namespace transport
 			m_Establisher->KDF3Bob (); 
 			memset (nonce, 0, 12); // set nonce to 0 again
 			i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, buf.data (), m_Establisher->m3p2Len - 16, false); // decrypt
-			// TODO: process RI and options
+			// process RI
+			if (buf[0] == eNTCP2BlkRouterInfo)
+			{
+				auto size = bufbe16toh (buf.data () + 1);
+				if (size <= buf.size () - 3)
+				{
+					// TODO: check flag
+					i2p::data::netdb.AddRouterInfo (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
+					// TODO: process options
+				}
+				else
+					LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
+			}
+			else
+				LogPrint (eLogWarning, "NTCP2: unexpected block ", (int)buf[0], " in SessionConfirmed");		
 			// caclulate new h again for KDF data
 			memcpy (m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
 			SHA256 (m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
@@ -585,6 +600,8 @@ namespace transport
 		}
 		else
 		{
+			m_NumReceivedBytes += bytes_transferred + 2; // + length
+			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			uint8_t nonce[12];
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
 			uint8_t * decrypted = new uint8_t[m_NextReceivedLen];
@@ -627,8 +644,11 @@ namespace transport
 					LogPrint (eLogDebug, "NTCP2: options");
 				break;
 				case eNTCP2BlkRouterInfo:
-					LogPrint (eLogDebug, "NTCP2: RouterInfo");
-				break;
+				{
+					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", frame[offset]);
+					i2p::data::netdb.AddRouterInfo (frame + offset + 1, size - 1);
+					break;
+				}
 				case eNTCP2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "NTCP2: I2NP");
@@ -671,6 +691,8 @@ namespace transport
 
 	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		m_NumSentBytes += bytes_transferred;
+		i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
 		LogPrint (eLogDebug, "NTCP2: Next frame sent");
 		m_IsSending = false;
