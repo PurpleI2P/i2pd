@@ -94,6 +94,7 @@ namespace data
 			{
 				Tag<32> staticKey;
 				Tag<16> iv;
+				bool isPublished = false;
 			};
 
 			struct Address
@@ -124,6 +125,7 @@ namespace data
 				}
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
+				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 

@@ -259,6 +259,7 @@ namespace data
 					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
 					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
 					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);	
+					address->ntcp2->isPublished = true; // presence if "i" means "published"
 				}	
 				else if (key[0] == 'i')
 				{
@@ -292,7 +293,7 @@ namespace data
 				if (!s) return;
 			}
 			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
-			if (supportedTransports && !isNtcp2) // we ignore NTCP2 addresses for now. TODO:
+			if (supportedTransports && (!isNtcp2 || address->IsPublishedNTCP2 ())) // we ignore unpublished NTCP2 only addresses 
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;

@@ -405,7 +405,7 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
-				if (address && address->IsNTCP2 () && m_NTCP2Server) // NTCP2 have priority over NTCP if enabled
+				if (address && address->IsPublishedNTCP2 () && m_NTCP2Server) // NTCP2 have priority over NTCP if enabled
 				{
 					auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 					m_NTCP2Server->Connect (address->host, address->port, s);

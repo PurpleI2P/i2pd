@@ -590,7 +590,7 @@ namespace transport
 			uint8_t * decrypted = new uint8_t[m_NextReceivedLen];
 			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, decrypted, m_NextReceivedLen, false))
 			{	
-				LogPrint (eLogInfo, "NTCP2: received message decrypted");
+				LogPrint (eLogDebug, "NTCP2: received message decrypted");
 				ProcessNextFrame (decrypted, m_NextReceivedLen-16);
 				ReceiveLength ();
 			}
