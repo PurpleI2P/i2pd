@@ -199,6 +199,7 @@ namespace tunnel
 		}
 		// for NTCP2 only
 		uint8_t * GetNTCP2Header () { return GetPayload () - I2NP_NTCP2_HEADER_SIZE; };
+		size_t GetNTCP2Length () const { return GetPayloadLength () + I2NP_NTCP2_HEADER_SIZE; };
 		void FromNTCP2 ()
 		{
 			const uint8_t * ntcp2 = GetNTCP2Header ();

@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <memory>
 #include <thread>
+#include <list>
 #include <openssl/bn.h>
 #include <boost/asio.hpp>
 #include "RouterInfo.h"
@@ -13,6 +14,9 @@ namespace i2p
 {
 namespace transport
 {
+
+	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;	
+	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -68,7 +72,7 @@ namespace transport
 
 			void ClientLogin (); // Alice 
 			void ServerLogin (); // Bob
-			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) {}; // TODO
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 
 		private:
 
@@ -100,6 +104,7 @@ namespace transport
 
 			void SendNextFrame (const uint8_t * payload, size_t len); 
 			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void SendQueue ();
 
 		private:
 
@@ -119,6 +124,9 @@ namespace transport
 			uint64_t m_ReceiveSequenceNumber, m_SendSequenceNumber;
 
 			i2p::I2NPMessagesHandler m_Handler;
+
+			bool m_IsSending;
+			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 	};
 
 	class NTCP2Server

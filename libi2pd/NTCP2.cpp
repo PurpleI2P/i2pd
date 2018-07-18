@@ -125,7 +125,7 @@ namespace transport
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
 		m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0)
+		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
 		m_Establisher.reset (new NTCP2Establisher);
 		auto addr = in_RemoteRouter->GetNTCPAddress ();
@@ -167,7 +167,7 @@ namespace transport
 	{
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
-	//	transports.PeerConnected (shared_from_this ());
+		transports.PeerConnected (shared_from_this ());
 	}
 
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
@@ -455,12 +455,8 @@ namespace transport
 		ReceiveLength ();
 
 		// TODO: remove
-		uint8_t pad[1024];	
-		auto paddingLength = rand () % 1000;
-		RAND_bytes (pad + 3, paddingLength);
-		pad[0] = 254;
-		htobe16buf (pad + 1, paddingLength);
-		SendNextFrame (pad, paddingLength + 3);
+		//m_SendQueue.push_back (CreateDeliveryStatusMsg (1));
+		//SendQueue ();
 	}
 
 	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -665,6 +661,7 @@ namespace transport
 		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
 
 		// send message
+		m_IsSending = true;	
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, len + 16 + 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleNextFrameSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -673,6 +670,54 @@ namespace transport
 	{
 		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
 		LogPrint (eLogDebug, "NTCP2: Next frame sent");
+		m_IsSending = false;
+		SendQueue ();
+	}
+
+	void NTCP2Session::SendQueue ()
+	{
+		if (!m_SendQueue.empty ())
+		{
+			uint8_t * payload = new uint8_t[NTCP2_UNENCRYPTED_FRAME_MAX_SIZE];
+			size_t s = 0;
+			// add I2NP blocks
+			while (!m_SendQueue.empty ())
+			{
+				auto msg = m_SendQueue.front ();
+				size_t len = msg->GetNTCP2Length (); 
+				if (s + len + 3 <= NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) // 3 bytes block header
+				{
+					payload[s] = eNTCP2BlkI2NPMessage; // blk
+					htobe16buf (payload + s + 1, len); // size
+					s += 3;
+					msg->ToNTCP2 ();
+					memcpy (payload + s, msg->GetNTCP2Header (), len);
+					s += len;
+					m_SendQueue.pop_front ();
+				}
+				else
+					break;
+			}
+			// add padding block 
+			int paddingSize = (s*NTCP2_MAX_PADDING_RATIO)/100;
+			if (s + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - s -3;
+			if (paddingSize) paddingSize = rand () % paddingSize;
+			payload[s] = eNTCP2BlkPadding; // blk
+			htobe16buf (payload + s + 1, paddingSize); // size
+			s += 3;
+			RAND_bytes (payload + s, paddingSize);			
+			s += paddingSize;
+			// send
+			SendNextFrame (payload, s);
+			delete[] payload;
+		} 
+	}
+
+	void NTCP2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	{
+		for (auto it: msgs)
+			m_SendQueue.push_back (it);
+		if (!m_IsSending) SendQueue ();		
 	}
 
 	NTCP2Server::NTCP2Server ():
