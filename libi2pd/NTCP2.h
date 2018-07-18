@@ -5,6 +5,7 @@
 #include <memory>
 #include <thread>
 #include <list>
+#include <map>
 #include <openssl/bn.h>
 #include <boost/asio.hpp>
 #include "RouterInfo.h"
@@ -69,6 +70,9 @@ namespace transport
 			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+
+			bool IsEstablished () const { return m_IsEstablished; };
+			bool IsTerminated () const { return m_IsTerminated; };
 
 			void ClientLogin (); // Alice 
 			void ServerLogin (); // Bob
@@ -139,6 +143,10 @@ namespace transport
 			void Start ();
 			void Stop ();
 
+			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session);
+			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
+			std::shared_ptr<NTCP2Session> FindNTCP2Session (const i2p::data::IdentHash& ident);
+
 			boost::asio::io_service& GetService () { return m_Service; };
 		
 			void Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn);
@@ -154,6 +162,12 @@ namespace transport
 			std::thread * m_Thread;
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 
+
+		public:
+
+			// for HTTP/I2PControl
+			const decltype(m_NTCP2Sessions)& GetNTCP2Sessions () const { return m_NTCP2Sessions; };
 	};
 }
 }

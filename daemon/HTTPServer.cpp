@@ -259,6 +259,12 @@ namespace http {
 			s << "<b>Our external address:</b>" << "<br>\r\n" ;
 			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 			{
+				if (address->IsNTCP2 ())
+				{
+					// TODO: show actual address
+					s << "NTCP2&nbsp;&nbsp; supported <br>\r\n";
+					continue;
+				}
 				switch (address->transportStyle)
 				{
 					case i2p::data::RouterInfo::eTransportNTCP:
@@ -540,6 +546,46 @@ namespace http {
 		}
 	}
 
+	template<typename Sessions>
+	static void ShowNTCPTransports (std::stringstream& s, const Sessions& sessions, const std::string name)
+	{
+		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
+		for (const auto& it: sessions )
+		{
+			if (it.second && it.second->IsEstablished () && !it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
+			{
+				// incoming connection doesn't have remote RI
+				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
+				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				tmp_s << "<br>\r\n" << std::endl;
+				cnt++;
+			}
+			if (it.second && it.second->IsEstablished () && it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
+			{
+				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+					<< "[" << it.second->GetSocket ().remote_endpoint().address ().to_string () << "]";
+				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				tmp_s6 << "<br>\r\n" << std::endl;
+				cnt6++;
+			}
+		}
+		if (!tmp_s.str ().empty ())
+		{
+			s << "<div class='slide'><label for='slide_ntcp'><b>" << name << "</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
+			s << tmp_s.str () << "</p>\r\n</div>\r\n";
+		}
+		if (!tmp_s6.str ().empty ())
+		{
+			s << "<div class='slide'><label for='slide_ntcp6'><b>" << name << "6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
+			s << tmp_s6.str () << "</p>\r\n</div>\r\n";
+		}
+	}
+
 	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
@@ -548,43 +594,14 @@ namespace http {
 		{
 			auto sessions = ntcpServer->GetNTCPSessions ();
 			if (!sessions.empty ())
-			{
-				std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
-				for (const auto& it: sessions )
-				{
-					if (it.second && it.second->IsEstablished () && !it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
-					{
-						// incoming connection doesn't have remote RI
-						if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-						tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-							<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
-						if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-						tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-						tmp_s << "<br>\r\n" << std::endl;
-						cnt++;
-					}
-					if (it.second && it.second->IsEstablished () && it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
-					{
-						if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-						tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-							<< "[" << it.second->GetSocket ().remote_endpoint().address ().to_string () << "]";
-						if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-						tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-						tmp_s6 << "<br>\r\n" << std::endl;
-						cnt6++;
-					}
-				}
-				if (!tmp_s.str ().empty ())
-				{
-					s << "<div class='slide'><label for='slide_ntcp'><b>NTCP</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
-					s << tmp_s.str () << "</p>\r\n</div>\r\n";
-				}
-				if (!tmp_s6.str ().empty ())
-				{
-					s << "<div class='slide'><label for='slide_ntcp6'><b>NTCP6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
-					s << tmp_s6.str () << "</p>\r\n</div>\r\n";
-				}
-			}
+				ShowNTCPTransports (s, sessions, "NTCP");
+		}
+		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
+		if (ntcp2Server)
+		{
+			auto sessions = ntcp2Server->GetNTCP2Sessions ();
+			if (!sessions.empty ())
+				ShowNTCPTransports (s, sessions, "NTCP2");
 		}
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)

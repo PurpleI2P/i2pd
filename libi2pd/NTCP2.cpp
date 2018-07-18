@@ -154,6 +154,9 @@ namespace transport
 			m_IsTerminated = true;
 			m_IsEstablished = false;
 			m_Socket.close ();
+			transports.PeerDisconnected (shared_from_this ());
+			m_Server.RemoveNTCP2Session (shared_from_this ());
+			m_SendQueue.clear ();
 			LogPrint (eLogDebug, "NTCP2: session terminated");
 		}
 	}
@@ -741,6 +744,14 @@ namespace transport
 
 	void NTCP2Server::Stop ()
 	{
+		{
+			// we have to copy it because Terminate changes m_NTCP2Sessions
+			auto ntcpSessions = m_NTCP2Sessions;
+			for (auto& it: ntcpSessions)
+				it.second->Terminate ();
+		}
+		m_NTCP2Sessions.clear ();
+
 		if (m_IsRunning)
 		{
 			m_IsRunning = false;
@@ -769,12 +780,44 @@ namespace transport
 		}
 	}
 
+	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session)
+	{
+		if (!session || !session->GetRemoteIdentity ()) return false;
+		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
+		auto it = m_NTCP2Sessions.find (ident);
+		if (it != m_NTCP2Sessions.end ())
+		{
+			LogPrint (eLogWarning, "NTCP2: session to ", ident.ToBase64 (), " already exists");
+			session->Terminate();
+			return false;
+		}
+		m_NTCP2Sessions.insert (std::make_pair (ident, session));
+		return true;
+	}
+
+	void NTCP2Server::RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session)
+	{
+		if (session && session->GetRemoteIdentity ())
+			m_NTCP2Sessions.erase (session->GetRemoteIdentity ()->GetIdentHash ());
+	}
+
+	std::shared_ptr<NTCP2Session> NTCP2Server::FindNTCP2Session (const i2p::data::IdentHash& ident)
+	{
+		auto it = m_NTCP2Sessions.find (ident);
+		if (it != m_NTCP2Sessions.end ())
+			return it->second;
+		return nullptr;
+	}
+
 	void NTCP2Server::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn)
 	{
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", address ,":",  port);
 		m_Service.post([this, address, port, conn]() 
 			{
-				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn));
+				if (this->AddNTCP2Session (conn))
+				{
+					conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn));
+				}
 			});
 	}
 
