@@ -193,7 +193,7 @@ namespace transport
 			return;
 		}
 		// create NTCP2. TODO: move to acceptor	
-		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
 			m_NTCP2Server = new NTCP2Server ();

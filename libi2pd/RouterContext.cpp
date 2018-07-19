@@ -50,7 +50,7 @@ namespace i2p
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
-		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool nat;  i2p::config::GetOption("nat", nat);	
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
 		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
@@ -452,7 +452,7 @@ namespace i2p
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
 
 		// read NTCP2
-		bool ntcp2;  i2p::config::GetOption("ntcp2", ntcp2);
+		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
 			std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
