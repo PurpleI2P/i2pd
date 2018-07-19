@@ -54,14 +54,17 @@ namespace transport
 			0x61, 0x27, 0x03, 0x31, 0xba, 0x89, 0xb8, 0xfc, 0x33, 0x15, 0x93, 0x87, 0x57, 0xdd, 0x3d, 0x1e 
 		}; // SHA256 (protocolNameHash)
 		memcpy (m_CK, protocolNameHash, 32); 
-		// h = SHA256(h || rs)
-		uint8_t h[64];
-		memcpy (h, hh, 32);	
-		memcpy (h + 32, rs, 32); 
-		SHA256 (h, 64, h); 
+		// h = SHA256(hh || rs)
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, hh, 32);			
+		SHA256_Update (&ctx, rs, 32);			
+		SHA256_Final (m_H, &ctx);
 		// h = SHA256(h || pub)
-		memcpy (h + 32, pub, 32); 
-		SHA256 (h, 64, m_H); 
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, pub, 32);
+		SHA256_Final (m_H, &ctx);
 		// x25519 between rs and priv
 		uint8_t inputKeyMaterial[32];
 		i2p::crypto::GetEd25519 ()->ScalarMul (rs, priv, inputKeyMaterial, m_Ctx); // rs*priv
@@ -79,22 +82,25 @@ namespace transport
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen)
-	{
-		uint8_t h[64];
-		memcpy (h, m_H, 32);
-		memcpy (h + 32, sessionRequest + 32, 32); // encrypted payload
-		SHA256 (h, 64, h); 
+	{		
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, sessionRequest + 32, 32); // encrypted payload	
+		SHA256_Final (m_H, &ctx);
+
 		int paddingLength =  sessionRequestLen - 64;
 		if (paddingLength > 0)
 		{
-			SHA256_CTX ctx;
 			SHA256_Init (&ctx);
-			SHA256_Update (&ctx, h, 32);			
+			SHA256_Update (&ctx, m_H, 32);			
 			SHA256_Update (&ctx, sessionRequest + 64, paddingLength);			
-			SHA256_Final (h, &ctx);
+			SHA256_Final (m_H, &ctx);
 		}	
-		memcpy (h + 32, GetRemotePub (), 32);
-		SHA256 (h, 64, m_H);  
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, GetRemotePub (), 32); 
+		SHA256_Final (m_H, &ctx);
 
 		// x25519 between remote pub and priv
 		uint8_t inputKeyMaterial[32];
