@@ -748,9 +748,16 @@ namespace transport
 
 	void NTCP2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
+		m_Server.GetService ().post (std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this (), msgs));
+	}
+
+	void NTCP2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	{
+		if (m_IsTerminated) return;
 		for (auto it: msgs)
 			m_SendQueue.push_back (it);
-		if (!m_IsSending) SendQueue ();		
+		if (!m_IsSending) 
+			SendQueue ();		
 	}
 
 	NTCP2Server::NTCP2Server ():
