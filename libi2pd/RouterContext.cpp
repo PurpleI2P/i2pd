@@ -93,10 +93,11 @@ namespace i2p
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 
-		if (ntcp2)
+		if (ntcp2) // TODO: should update routerInfo, but we ignore upublished NTCP2 addresses for now
 		{ 
 			NewNTCP2Keys ();
 			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+			UpdateRouterInfo ();	
 		}
 	}
 
