@@ -456,7 +456,7 @@ namespace data
 			else
 				WriteString ("", s);
 
-			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
 			{
 				WriteString ("host", properties);
 				properties << '=';
@@ -538,7 +538,7 @@ namespace data
 				}
 			}
 
-			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
 			{
 				WriteString ("port", properties);
 				properties << '=';
@@ -552,7 +552,11 @@ namespace data
 				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
 				WriteString ("v", properties); properties << '=';
 				WriteString ("2", properties); properties << ';';
-				// TODO: publish "i"
+				if (address.IsPublishedNTCP2 ())
+				{
+					WriteString ("i", properties); properties << '=';
+					WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
+				}
 			}	
 
 			uint16_t size = htobe16 (properties.str ().size ());

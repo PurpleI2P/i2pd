@@ -146,7 +146,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->port != port)
+			if (!address->IsNTCP2 () && address->port != port)
 			{
 				address->port = port;
 				updated = true;
@@ -154,6 +154,22 @@ namespace i2p
 		}
 		if (updated)
 			UpdateRouterInfo ();
+	}
+
+	void RouterContext::PublishNTCP2Address (int port)
+	{
+		bool updated = false;
+		for (auto& address : m_RouterInfo.GetAddresses ())
+		{
+			if (address->IsNTCP2 () && address->port != port)
+			{
+				address->port = port;
+				address->ntcp2->isPublished = true;
+				updated = true;
+			}
+		}
+		if (updated)
+			UpdateRouterInfo ();	
 	}
 
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
