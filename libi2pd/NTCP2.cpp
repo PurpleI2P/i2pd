@@ -776,6 +776,48 @@ namespace transport
 		{
 			m_IsRunning = true;
 			m_Thread = new std::thread (std::bind (&NTCP2Server::Run, this));
+			auto& addresses = context.GetRouterInfo ().GetAddresses ();
+			for (const auto& address: addresses)
+			{
+				if (!address) continue;
+				if (address->IsPublishedNTCP2 ())
+				{
+					if (address->host.is_v4())
+					{
+						try
+						{
+							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
+						} 
+						catch ( std::exception & ex ) 
+						{
+							LogPrint(eLogError, "NTCP2: Failed to bind to ip4 port ",address->port, ex.what());
+							continue;
+						}
+
+						LogPrint (eLogInfo, "NTC2P: Start listening TCP port ", address->port);
+						auto conn = std::make_shared<NTCP2Session>(*this);
+						m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
+					}
+					else if (address->host.is_v6() && context.SupportsV6 ())
+					{
+						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service));
+						try
+						{
+							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
+							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
+							m_NTCP2V6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
+							m_NTCP2V6Acceptor->listen ();
+
+							LogPrint (eLogInfo, "NTCP2: Start listening V6 TCP port ", address->port);
+							auto conn = std::make_shared<NTCP2Session> (*this);
+							m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
+						} catch ( std::exception & ex ) {
+							LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+							continue;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -786,6 +828,8 @@ namespace transport
 			auto ntcpSessions = m_NTCP2Sessions;
 			for (auto& it: ntcpSessions)
 				it.second->Terminate ();
+			for (auto& it: m_PendingIncomingSessions)
+				it->Terminate ();
 		}
 		m_NTCP2Sessions.clear ();
 
@@ -869,6 +913,60 @@ namespace transport
 		{
 			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetSocket ().remote_endpoint ());
 			conn->ClientLogin ();
+		}
+	}
+
+	void NTCP2Server::HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
+	{
+		if (!error)
+		{
+			boost::system::error_code ec;
+			auto ep = conn->GetSocket ().remote_endpoint(ec);
+			if (!ec)
+			{
+				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
+				if (conn)
+				{
+					conn->ServerLogin ();
+				//	m_PendingIncomingSessions.push_back (conn);
+				}
+			}
+			else
+				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
+		}
+
+		if (error != boost::asio::error::operation_aborted)
+		{
+			conn = std::make_shared<NTCP2Session> (*this);
+			m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
+				conn, std::placeholders::_1));
+		}
+	}
+
+	void NTCP2Server::HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
+	{
+		if (!error)
+		{
+			boost::system::error_code ec;
+			auto ep = conn->GetSocket ().remote_endpoint(ec);
+			if (!ec)
+			{
+				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
+				if (conn)
+				{
+					conn->ServerLogin ();
+				//	m_PendingIncomingSessions.push_back (conn);
+				}
+			}
+			else
+				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
+		}
+
+		if (error != boost::asio::error::operation_aborted)
+		{
+			conn = std::make_shared<NTCP2Session> (*this);
+			m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
+				conn, std::placeholders::_1));
 		}
 	}
 }

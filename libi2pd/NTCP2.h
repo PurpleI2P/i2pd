@@ -155,6 +155,9 @@ namespace transport
 		private:
 
 			void Run ();
+			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
+			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
+
 			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn);		
 
 		private:
@@ -163,7 +166,9 @@ namespace transport
 			std::thread * m_Thread;
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 
+			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
 		public:
 
