@@ -233,7 +233,9 @@ namespace config {
 
 		options_description ntcp2("NTCP2 Options");
 		ntcp2.add_options()
-			("ntcp2.enabled", value<bool>()->default_value(false), "Enable NTCP2 (experimental, default: disabled)")
+			("ntcp2.enabled", value<bool>()->default_value(false), "Enable NTCP2 (default: disabled)")
+		    ("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")	
+			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 		;
 
 		m_OptionsDesc

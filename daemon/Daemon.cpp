@@ -152,6 +152,17 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
+			{
+				bool published; i2p::config::GetOption("ntcp2.published", published);
+				if (published)
+				{
+					uint16_t port; i2p::config::GetOption("ntcp2.port", port);
+					i2p::context.PublishNTCP2Address (port);
+				}
+			}
+
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetAcceptsTunnels (!transit);
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);

@@ -158,6 +158,8 @@ namespace i2p
 
 	void RouterContext::PublishNTCP2Address (int port)
 	{
+		if (!port)
+			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
