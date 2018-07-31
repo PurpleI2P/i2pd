@@ -478,7 +478,7 @@ namespace i2p
 			if (n2k) 
 			{
 				n2k.seekg (0, std::ios::end);
-				len = fk.tellg();
+				len = n2k.tellg();
 				n2k.seekg (0, std::ios::beg);
 				if (len == sizeof (NTCP2PrivateKeys))
 				{

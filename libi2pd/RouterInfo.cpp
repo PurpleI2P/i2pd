@@ -873,6 +873,7 @@ namespace data
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
+		// TODO: make it more gereric using comparator
 #if (BOOST_VERSION >= 105300)
 		auto addresses = boost::atomic_load (&m_Addresses);
 #else
@@ -883,6 +884,25 @@ namespace data
 			if (address->transportStyle == s)
 			{
 				if ((!v4only || address->host.is_v4 ()) && (!v6only || address->host.is_v6 ()))
+					return address;
+			}
+		}
+		return nullptr;
+	}
+
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool v4only) const
+	{
+		// TODO: implement through GetAddress
+#if (BOOST_VERSION >= 105300)
+		auto addresses = boost::atomic_load (&m_Addresses);
+#else
+		auto addresses = m_Addresses;
+#endif
+		for (const auto& address : *addresses)
+		{
+			if (address->IsPublishedNTCP2 ())
+			{
+				if (!v4only || address->host.is_v4 ())
 					return address;
 			}
 		}

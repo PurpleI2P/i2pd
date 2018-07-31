@@ -44,12 +44,14 @@ namespace transport
 
 		void KDF1Alice ();
 		void KDF1Bob ();
-
-		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
-		void KeyDerivationFunction1 (const uint8_t * rs, const uint8_t * priv, const uint8_t * pub); // for SessionRequest
-		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen); // for SessionCreate
+		void KDF2Alice (const uint8_t * sessionRequest, size_t sessionRequestLen);
+		void KDF2Bob (const uint8_t * sessionRequest, size_t sessionRequestLen);
 		void KDF3Alice (); // for SessionConfirmed part 2
 		void KDF3Bob ();
+
+		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
+		void KeyDerivationFunction1 (const uint8_t * pub, const uint8_t * priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
+		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
 
