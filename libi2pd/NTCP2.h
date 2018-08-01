@@ -28,6 +28,29 @@ namespace transport
 		eNTCP2BlkPadding = 254	
 	};	
 
+	enum NTCP2TerminationReason
+	{
+		eNTCP2NormalClose = 0,
+		eNTCP2TerminationReceived, // 1
+		eNTCP2IdleTimeout, // 2
+		eNTCP2RouterShutdown, // 3
+		eNTCP2DataPhaseAEADFailure, // 4
+		eNTCP2IncompatibleOptions, // 5
+		eNTCP2IncompatibleSignatureType, // 6
+		eNTCP2ClockSkew, // 7
+		eNTCP2PaddingViolation, // 8
+		eNTCP2AEADFraminError, // 9
+		eNTCP2PayloadFromatError, // 10
+		eNTCP2Message1Error, // 11
+		eNTCP2Message2Error, // 12
+		eNTCP2Message3Error, // 13
+		eNTCP2IntraFrameReadTimeout, // 14
+		eNTCP2RouterInfoSignatureVerificationFail, // 15
+		eNTCP2IncorrectSParameter, // 16
+		eNTCP2Banned, // 17
+	};		
+	
+
 	struct NTCP2Establisher
 	{
 		NTCP2Establisher ();

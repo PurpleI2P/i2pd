@@ -447,7 +447,7 @@ namespace transport
 		SHA256 (h, 80, m_Establisher->m_H); 			
 
 		std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
-		buf[0] = 2; // block
+		buf[0] = eNTCP2BlkRouterInfo; // block
 		htobe16buf (buf.data () + 1, i2p::context.GetRouterInfo ().GetBufferLen () + 1); // flag + RI
 		buf[3] = 0; // flag 	
 		memcpy (buf.data () + 4, i2p::context.GetRouterInfo ().GetBuffer (), i2p::context.GetRouterInfo ().GetBufferLen ());
@@ -695,7 +695,13 @@ namespace transport
 					break;
 				}
 				case eNTCP2BlkTermination:
-					LogPrint (eLogDebug, "NTCP2: termination");
+					if (size >= 9)			
+					{
+						LogPrint (eLogDebug, "NTCP2: termination. reason=", (int)(frame[offset + 9]));
+						Terminate ();
+					}
+					else
+						LogPrint (eLogWarning, "NTCP2: Unexpected temination block size ", size);
 				break;
 				case eNTCP2BlkPadding:
 					LogPrint (eLogDebug, "NTCP2: padding");
