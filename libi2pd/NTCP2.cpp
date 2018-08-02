@@ -150,7 +150,7 @@ namespace transport
 		if (in_RemoteRouter) // Alice
 		{
 			auto addr = in_RemoteRouter->GetNTCP2Address ();
-			if (addr->ntcp2)
+			if (addr)
 			{
 				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
 				memcpy (m_Establisher->m_IV, addr->ntcp2->iv, 16);
@@ -469,7 +469,7 @@ namespace transport
 	{
 		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
 		KeyDerivationFunctionDataPhase ();
-		// Alice
+		// Alice data phase keys
 		m_SendKey = m_Kab;
 		m_ReceiveKey = m_Kba; 
 		m_SendSipKey = m_Sipkeysab; 
@@ -540,35 +540,63 @@ namespace transport
 				memset (nonce, 0, 12); // set nonce to 0 again
 				if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, buf.data (), m_Establisher->m3p2Len - 16, false)) // decrypt
 				{
-					// process RI
-					if (buf[0] == eNTCP2BlkRouterInfo)
-					{
-						auto size = bufbe16toh (buf.data () + 1);
-						if (size <= buf.size () - 3)
-						{
-							// TODO: check flag
-							i2p::data::netdb.AddRouterInfo (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
-							// TODO: process options
-						}
-						else
-							LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
-					}
-					else
-						LogPrint (eLogWarning, "NTCP2: unexpected block ", (int)buf[0], " in SessionConfirmed");		
 					// caclulate new h again for KDF data
 					memcpy (m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
 					SHA256 (m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
 					KeyDerivationFunctionDataPhase ();
-					// Bob
+					// Bob data phase keys
 					m_SendKey = m_Kba;
 					m_ReceiveKey = m_Kab; 
 					m_SendSipKey = m_Sipkeysba; 
 					m_ReceiveSipKey = m_Sipkeysab;
 					memcpy (m_ReceiveIV, m_Sipkeysab + 16, 8);
 					memcpy (m_SendIV, m_Sipkeysba + 16, 8);
+
+					// process RI
+					if (buf[0] != eNTCP2BlkRouterInfo)
+					{
+						LogPrint (eLogWarning, "NTCP2: unexpected block ", (int)buf[0], " in SessionConfirmed");	
+						Terminate ();	
+						return;
+					}
+					auto size = bufbe16toh (buf.data () + 1);
+					if (size > buf.size () - 3)
+					{
+						LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
+						Terminate ();
+						return;
+					}
+					// TODO: check flag
+					i2p::data::RouterInfo ri (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
+					if (ri.IsUnreachable ())
+					{
+						LogPrint (eLogError, "NTCP2: Signature verification failed in SessionConfirmed");								
+						Terminate ();
+						return;
+					}
+					auto addr = ri.GetNTCP2Address ();
+					if (!addr)
+					{
+						LogPrint (eLogError, "NTCP2: No NTCP2 address found in SessionConfirmed");								
+						Terminate ();
+						return;
+					}
+					if (memcmp (addr->ntcp2->staticKey, m_Establisher->m_RemoteStaticKey, 32))
+					{
+						LogPrint (eLogError, "NTCP2: Static key mistmatch in SessionConfirmed");								
+						Terminate ();
+						return;
+					}
+
+					i2p::data::netdb.AddRouterInfo (buf.data () + 4, size - 1); // TODO: should insert ri and not parse it twice
+					// TODO: process options
+						
+					// ready to communicate	
+					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
+					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
 					Established ();
 					SendRouterInfo ();
-					ReceiveLength ();
+					ReceiveLength ();		
 				}	
 				else
 				{
