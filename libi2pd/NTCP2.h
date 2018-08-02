@@ -40,7 +40,7 @@ namespace transport
 		eNTCP2ClockSkew, // 7
 		eNTCP2PaddingViolation, // 8
 		eNTCP2AEADFraminError, // 9
-		eNTCP2PayloadFromatError, // 10
+		eNTCP2PayloadFormatError, // 10
 		eNTCP2Message1Error, // 11
 		eNTCP2Message2Error, // 12
 		eNTCP2Message3Error, // 13
@@ -135,6 +135,8 @@ namespace transport
 			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendQueue ();
 			void SendRouterInfo ();
+			void SendTermination (NTCP2TerminationReason reason);
+			void SendTerminationAndTerminate (NTCP2TerminationReason reason);
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 
 		private:

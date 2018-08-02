@@ -570,8 +570,8 @@ namespace transport
 					i2p::data::RouterInfo ri (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
 					if (ri.IsUnreachable ())
 					{
-						LogPrint (eLogError, "NTCP2: Signature verification failed in SessionConfirmed");								
-						Terminate ();
+						LogPrint (eLogError, "NTCP2: Signature verification failed in SessionConfirmed");	
+						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);							
 						return;
 					}
 					auto addr = ri.GetNTCP2Address ();
@@ -583,8 +583,8 @@ namespace transport
 					}
 					if (memcmp (addr->ntcp2->staticKey, m_Establisher->m_RemoteStaticKey, 32))
 					{
-						LogPrint (eLogError, "NTCP2: Static key mistmatch in SessionConfirmed");								
-						Terminate ();
+						LogPrint (eLogError, "NTCP2: Static key mistmatch in SessionConfirmed");				
+						SendTerminationAndTerminate (eNTCP2IncorrectSParameter);				
 						return;
 					}
 
@@ -728,7 +728,7 @@ namespace transport
 				case eNTCP2BlkTermination:
 					if (size >= 9)			
 					{
-						LogPrint (eLogDebug, "NTCP2: termination. reason=", (int)(frame[offset + 9]));
+						LogPrint (eLogDebug, "NTCP2: termination. reason=", (int)(frame[offset + 8]));
 						Terminate ();
 					}
 					else
@@ -826,6 +826,20 @@ namespace transport
 		RAND_bytes (payload + riLen + 7, paddingSize);
 		SendNextFrame (payload, payloadLen);
 		delete[] payload;
+	}
+
+	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
+	{
+		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
+		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
+		payload[11] = (uint8_t)reason;
+		SendNextFrame (payload, 12);
+	}
+
+	void NTCP2Session::SendTerminationAndTerminate (NTCP2TerminationReason reason)
+	{
+		SendTermination (reason);
+		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
 	}
 
 	void NTCP2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
