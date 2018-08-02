@@ -337,7 +337,9 @@ namespace transport
 
 	void NTCP2Session::SendSessionCreated ()
 	{
-		m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
+		auto paddingLen = rand () % (287 - 64);
+		m_SessionCreatedBufferLen = paddingLen + 64;
+		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen]; 
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (i2p::context.GetIdentHash ());
@@ -345,7 +347,6 @@ namespace transport
 		encryption.Encrypt (m_Establisher->GetPub (), 32, m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
 		m_Establisher->KDF2Bob (m_SessionRequestBuffer, m_SessionRequestBufferLen);	
-		auto paddingLen = rand () % (287 - 64);
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
@@ -357,7 +358,6 @@ namespace transport
 		// fill padding
 		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
 		// send message		
-		m_SessionCreatedBufferLen = paddingLen + 64;
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionCreatedBuffer, m_SessionCreatedBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionCreatedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));	
 	}
@@ -437,7 +437,7 @@ namespace transport
 			SHA256_Final (h, &ctx);
 		}	
 		// part1 48 bytes 
-		m_SessionConfirmedBuffer = new uint8_t[2048]; // TODO: actual size
+		m_SessionConfirmedBuffer = new uint8_t[m_Establisher->m3p2Len + 48]; 
 		uint8_t nonce[12];
 		CreateNonce (1, nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, h, 32, m_Establisher->GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
@@ -567,6 +567,7 @@ namespace transport
 					memcpy (m_ReceiveIV, m_Sipkeysab + 16, 8);
 					memcpy (m_SendIV, m_Sipkeysba + 16, 8);
 					Established ();
+					SendRouterInfo ();
 					ReceiveLength ();
 				}	
 				else
@@ -598,6 +599,7 @@ namespace transport
 
 	void NTCP2Session::ReceiveLength ()
 	{
+		if (IsTerminated ()) return;
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -622,6 +624,7 @@ namespace transport
 
 	void NTCP2Session::Receive ()
 	{
+		if (IsTerminated ()) return;
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -716,6 +719,7 @@ namespace transport
 
 	void NTCP2Session::SendNextFrame (const uint8_t * payload, size_t len)
 	{
+		if (IsTerminated ()) return;	
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		m_NextSendBuffer = new uint8_t[len + 16 + 2];
@@ -777,6 +781,23 @@ namespace transport
 			SendNextFrame (payload, s);
 			delete[] payload;
 		} 
+	}
+
+	void NTCP2Session::SendRouterInfo ()
+	{
+		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
+		int paddingSize = (riLen*NTCP2_MAX_PADDING_RATIO)/100;
+		size_t payloadLen = riLen + paddingSize + 7; // 7 = 2*3 bytes header + 1 byte RI flag 
+		uint8_t * payload = new uint8_t[payloadLen];
+		payload[0] = eNTCP2BlkRouterInfo;
+		htobe16buf (payload + 1, riLen + 1); // size
+		payload[3] = 0; // flag
+		memcpy (payload + 4, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
+		payload[riLen + 4] = eNTCP2BlkPadding;
+		htobe16buf (payload + riLen + 5, paddingSize);
+		RAND_bytes (payload + riLen + 7, paddingSize);
+		SendNextFrame (payload, payloadLen);
+		delete[] payload;
 	}
 
 	void NTCP2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)

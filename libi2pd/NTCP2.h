@@ -134,6 +134,7 @@ namespace transport
 			void SendNextFrame (const uint8_t * payload, size_t len); 
 			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendQueue ();
+			void SendRouterInfo ();
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 
 		private:
