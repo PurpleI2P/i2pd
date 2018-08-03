@@ -259,20 +259,21 @@ namespace http {
 			s << "<b>Our external address:</b>" << "<br>\r\n" ;
 			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 			{
-				if (address->IsNTCP2 ())
+				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 				{
-					// TODO: show actual address
 					s << "NTCP2&nbsp;&nbsp; supported <br>\r\n";
 					continue;
 				}
 				switch (address->transportStyle)
 				{
 					case i2p::data::RouterInfo::eTransportNTCP:
-						if (address->host.is_v6 ())
-							s << "NTCP6&nbsp;&nbsp;";
-						else
-							s << "NTCP&nbsp;&nbsp;";
-					break;
+					{
+						s << "NTCP";
+						if (address->IsPublishedNTCP2 ()) s << "2";
+						if (address->host.is_v6 ()) s << "6";
+						s << "&nbsp;&nbsp;";
+						break;
+					}
 					case i2p::data::RouterInfo::eTransportSSU:
 						if (address->host.is_v6 ())
 							s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
