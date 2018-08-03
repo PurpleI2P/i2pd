@@ -18,6 +18,12 @@ namespace transport
 
 	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;	
 	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
+
+	const int NTCP2_CONNECT_TIMEOUT = 5; // 5 seconds
+	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
+	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
+	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -39,7 +45,7 @@ namespace transport
 		eNTCP2IncompatibleSignatureType, // 6
 		eNTCP2ClockSkew, // 7
 		eNTCP2PaddingViolation, // 8
-		eNTCP2AEADFraminError, // 9
+		eNTCP2AEADFramingError, // 9
 		eNTCP2PayloadFormatError, // 10
 		eNTCP2Message1Error, // 11
 		eNTCP2Message2Error, // 12
@@ -92,6 +98,7 @@ namespace transport
 			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr); 
 			~NTCP2Session ();
 			void Terminate ();
+			void TerminateByTimeout ();
 			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
@@ -186,7 +193,11 @@ namespace transport
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 
-			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn);		
+			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);		
+
+			// timer
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
 
 		private:
 
@@ -194,6 +205,7 @@ namespace transport
 			std::thread * m_Thread;
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			boost::asio::deadline_timer m_TerminationTimer;
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;

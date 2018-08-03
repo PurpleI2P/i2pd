@@ -139,7 +139,7 @@ namespace transport
 	}
 
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
-		TransportSession (in_RemoteRouter, 30), 
+		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
@@ -183,6 +183,11 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::TerminateByTimeout ()
+	{
+		SendTerminationAndTerminate (eNTCP2IdleTimeout);
+	}
+
 	void NTCP2Session::Done ()
 	{
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
@@ -192,6 +197,7 @@ namespace transport
 	{
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
+		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
 	}
 
@@ -666,6 +672,7 @@ namespace transport
 		}
 		else
 		{
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			m_NumReceivedBytes += bytes_transferred + 2; // + length
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			uint8_t nonce[12];
@@ -679,8 +686,8 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "NTCP2: Received MAC verification failed ");
-				Terminate ();
+				LogPrint (eLogWarning, "NTCP2: Received AEAD verification failed ");
+				SendTerminationAndTerminate (eNTCP2DataPhaseAEADFailure);
 			}	
 			delete[] decrypted;
 		}
@@ -764,6 +771,7 @@ namespace transport
 
 	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumSentBytes += bytes_transferred;
 		i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
@@ -857,7 +865,8 @@ namespace transport
 	}
 
 	NTCP2Server::NTCP2Server ():
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service)	
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
+		m_TerminationTimer (m_Service)
 	{
 	}
 
@@ -914,6 +923,7 @@ namespace transport
 					}
 				}
 			}
+			ScheduleTermination ();
 		}
 	}
 
@@ -993,13 +1003,27 @@ namespace transport
 			{
 				if (this->AddNTCP2Session (conn))
 				{
-					conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn));
+					auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
+					auto timeout = NTCP2_CONNECT_TIMEOUT * 5;
+					conn->SetTerminationTimeout(timeout * 2);
+					timer->expires_from_now (boost::posix_time::seconds(timeout));
+					timer->async_wait ([conn, timeout](const boost::system::error_code& ecode) 
+					{
+						if (ecode != boost::asio::error::operation_aborted)
+						{
+							LogPrint (eLogInfo, "NTCP2: Not connected in ", timeout, " seconds");
+							//i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+							conn->Terminate ();
+						}
+					});
+					conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn, timer));
 				}
 			});
 	}
 
-	void NTCP2Server::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn)
+	void NTCP2Server::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer)
 	{
+		timer->cancel ();
 		if (ecode)
 		{
 			LogPrint (eLogInfo, "NTCP2: Connect error ", ecode.message ());
@@ -1024,7 +1048,7 @@ namespace transport
 				if (conn)
 				{
 					conn->ServerLogin ();
-				//	m_PendingIncomingSessions.push_back (conn);
+					m_PendingIncomingSessions.push_back (conn);
 				}
 			}
 			else
@@ -1051,7 +1075,7 @@ namespace transport
 				if (conn)
 				{
 					conn->ServerLogin ();
-				//	m_PendingIncomingSessions.push_back (conn);
+					m_PendingIncomingSessions.push_back (conn);
 				}
 			}
 			else
@@ -1063,6 +1087,44 @@ namespace transport
 			conn = std::make_shared<NTCP2Session> (*this);
 			m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
 				conn, std::placeholders::_1));
+		}
+	}
+
+	void NTCP2Server::ScheduleTermination ()
+	{
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(NTCP2_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimer.async_wait (std::bind (&NTCP2Server::HandleTerminationTimer,
+			this, std::placeholders::_1));
+	}
+
+	void NTCP2Server::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			// established
+			for (auto& it: m_NTCP2Sessions)
+				if (it.second->IsTerminationTimeoutExpired (ts))
+				{
+					auto session = it.second;
+					LogPrint (eLogDebug, "NTCP2: No activity for ", session->GetTerminationTimeout (), " seconds");
+					session->TerminateByTimeout (); // it doesn't change m_NTCP2Session right a way
+				}
+			// pending
+			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
+			{
+				if ((*it)->IsEstablished () || (*it)->IsTerminated ())
+					it = m_PendingIncomingSessions.erase (it); // established or terminated
+				else if ((*it)->IsTerminationTimeoutExpired (ts))
+				{
+					(*it)->Terminate ();
+					it = m_PendingIncomingSessions.erase (it); // expired
+				}
+				else
+					it++;
+			}
+
+			ScheduleTermination ();
 		}
 	}
 }
