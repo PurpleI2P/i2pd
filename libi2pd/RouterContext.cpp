@@ -96,8 +96,7 @@ namespace i2p
 		if (ntcp2) // TODO: should update routerInfo, but we ignore upublished NTCP2 addresses for now
 		{ 
 			NewNTCP2Keys ();
-			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
-			UpdateRouterInfo ();	
+			UpdateNTCP2Address (true);	
 		}
 	}
 
@@ -156,17 +155,17 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::PublishNTCP2Address (int port)
+	void RouterContext::PublishNTCP2Address (int port, bool publish)
 	{
 		if (!port)
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && address->port != port)
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish))
 			{
 				address->port = port;
-				address->ntcp2->isPublished = true;
+				address->ntcp2->isPublished = publish;
 				updated = true;
 			}
 		}
@@ -174,6 +173,32 @@ namespace i2p
 			UpdateRouterInfo ();	
 	}
 
+	void RouterContext::UpdateNTCP2Address (bool enable)
+	{
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		bool found = false, updated = false;
+		for (auto it = addresses.begin (); it != addresses.end (); ++it)
+		{
+			if ((*it)->IsNTCP2 ())
+			{
+				found = true;
+				if (!enable)
+				{ 
+					addresses.erase (it);
+					updated= true;
+				}
+				break;
+			}
+		}
+		if (enable && !found)
+		{	
+			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);	
+			updated = true;
+		}
+		if (updated)
+			UpdateRouterInfo ();
+	}
+	
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
 	{
 		bool updated = false;
@@ -310,7 +335,7 @@ namespace i2p
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end (); ++it)
 		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
 				(*it)->host.is_v4 ())
 			{
 				addresses.erase (it);
@@ -490,9 +515,11 @@ namespace i2p
 			if (!m_NTCP2Keys) 
 			{
 				NewNTCP2Keys ();
-				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+				UpdateNTCP2Address (true); // enable NTCP2
 			}
 		}
+		else
+			UpdateNTCP2Address (false);	 // disable NTCP2
 
 		return true;
 	}

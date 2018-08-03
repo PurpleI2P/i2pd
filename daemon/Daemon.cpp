@@ -159,8 +159,10 @@ namespace i2p
 				if (published)
 				{
 					uint16_t port; i2p::config::GetOption("ntcp2.port", port);
-					i2p::context.PublishNTCP2Address (port);
+					i2p::context.PublishNTCP2Address (port, true); // publish
 				}
+				else
+					i2p::context.PublishNTCP2Address (port, false); // unpublish
 			}
 
 			bool transit; i2p::config::GetOption("notransit", transit);

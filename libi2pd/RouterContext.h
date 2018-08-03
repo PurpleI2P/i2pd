@@ -78,7 +78,8 @@ namespace i2p
 
 			void UpdatePort (int port); // called from Daemon	
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
-			void PublishNTCP2Address (int port);
+			void PublishNTCP2Address (int port, bool publish = true);
+			void UpdateNTCP2Address (bool enable);
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const;
