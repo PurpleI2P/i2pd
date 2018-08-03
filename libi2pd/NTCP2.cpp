@@ -942,6 +942,7 @@ namespace transport
 		if (m_IsRunning)
 		{
 			m_IsRunning = false;
+			m_TerminationTimer.cancel ();
 			m_Service.stop ();
 			if (m_Thread)
 			{
