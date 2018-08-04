@@ -860,20 +860,33 @@ namespace data
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCPAddress (bool v4only) const
 	{
-		return GetAddress (eTransportNTCP, v4only);
+		return GetAddress (
+			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportNTCP) && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const
 	{
-		return GetAddress (eTransportSSU, v4only);
+		return GetAddress (
+			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU) && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUV6Address () const
 	{
-		return GetAddress (eTransportSSU, false, true);
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU) && address->host.is_v6 ();
+			});
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
+	template<typename Filter>	
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
 		// TODO: make it more gereric using comparator
 #if (BOOST_VERSION >= 105300)
@@ -882,33 +895,18 @@ namespace data
 		auto addresses = m_Addresses;
 #endif
 		for (const auto& address : *addresses)
-		{
-			if (address->transportStyle == s)
-			{
-				if ((!v4only || address->host.is_v4 ()) && (!v6only || address->host.is_v6 ()))
-					return address;
-			}
-		}
+			if (filter (address)) return address;
+		
 		return nullptr;
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool v4only) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool publishedOnly, bool v4only) const
 	{
-		// TODO: implement through GetAddress
-#if (BOOST_VERSION >= 105300)
-		auto addresses = boost::atomic_load (&m_Addresses);
-#else
-		auto addresses = m_Addresses;
-#endif
-		for (const auto& address : *addresses)
-		{
-			if (address->IsPublishedNTCP2 ())
+		return GetAddress (
+			[publishedOnly, v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				if (!v4only || address->host.is_v4 ())
-					return address;
-			}
-		}
-		return nullptr;
+				return address->IsNTCP2 () && (!publishedOnly || address->IsPublishedNTCP2 ()) && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const
