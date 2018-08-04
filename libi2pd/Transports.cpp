@@ -404,14 +404,19 @@ namespace transport
 			if (!peer.numAttempts) // NTCP
 			{
 				peer.numAttempts++;
-				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
-				if (address && address->IsPublishedNTCP2 () && m_NTCP2Server) // NTCP2 have priority over NTCP if enabled
+				if (m_NTCP2Server) // we support NTCP2
 				{
-					auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
-					m_NTCP2Server->Connect (address->host, address->port, s);
-					return true;
-				}
-
+					// NTCP2 have priority over NTCP
+					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+						m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}	
+				}	
+				// otherwise NTCP1
+				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
 #if BOOST_VERSION >= 104900
