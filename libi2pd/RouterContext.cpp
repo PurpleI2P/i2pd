@@ -95,7 +95,7 @@ namespace i2p
 
 		if (ntcp2) // TODO: should update routerInfo, but we ignore upublished NTCP2 addresses for now
 		{ 
-			NewNTCP2Keys ();
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true);	
 		}
 	}
@@ -473,7 +473,21 @@ namespace i2p
 			m_Keys.FromBuffer (buf, len);
 			delete[] buf;
 		}
-
+		// read NTCP2 keys if available
+		std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
+		if (n2k) 
+		{
+			n2k.seekg (0, std::ios::end);
+			len = n2k.tellg();
+			n2k.seekg (0, std::ios::beg);
+			if (len == sizeof (NTCP2PrivateKeys))
+			{
+				m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
+				n2k.read ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));				
+			}	
+			n2k.close ();
+		}
+		// read RouterInfo
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
 		if (!routerInfo.IsUnreachable ()) // router.info looks good
@@ -499,24 +513,8 @@ namespace i2p
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
-			std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
-			if (n2k) 
-			{
-				n2k.seekg (0, std::ios::end);
-				len = n2k.tellg();
-				n2k.seekg (0, std::ios::beg);
-				if (len == sizeof (NTCP2PrivateKeys))
-				{
-					m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
-					n2k.read ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));				
-				}	
-				n2k.close ();
-			}
-			if (!m_NTCP2Keys) 
-			{
-				NewNTCP2Keys ();
-				UpdateNTCP2Address (true); // enable NTCP2
-			}
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
+			UpdateNTCP2Address (true); // enable NTCP2
 		}
 		else
 			UpdateNTCP2Address (false);	 // disable NTCP2
