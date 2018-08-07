@@ -1081,7 +1081,8 @@ namespace crypto
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
 			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
 			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
-			ret = EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen) > 0;
+			EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen);
+			ret = EVP_DecryptFinal_ex(ctx, buf + outlen, &outlen) > 0;
 		}
 
 		EVP_CIPHER_CTX_free (ctx);
