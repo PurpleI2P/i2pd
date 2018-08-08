@@ -143,7 +143,7 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
-		m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
+		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
 		m_Establisher.reset (new NTCP2Establisher);
@@ -647,11 +647,15 @@ namespace transport
 		}
 		else
 		{
-			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_ReceiveSipKey); 
+			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_ReceiveSipKey);
+			uint16_t oldLen = m_NextReceivedLen; 
 			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ bufbe16toh(m_ReceiveIV));
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
-			delete[] m_NextReceivedBuffer;
-			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+			if (m_NextReceivedLen > oldLen)
+			{
+				delete[] m_NextReceivedBuffer;
+				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+			}
 			Receive ();
 		}
 	}
@@ -784,7 +788,8 @@ namespace transport
 	{
 		if (!m_SendQueue.empty ())
 		{
-			uint8_t * payload = new uint8_t[NTCP2_UNENCRYPTED_FRAME_MAX_SIZE];
+			auto buf = m_Server.NewNTCP2FrameBuffer ();
+			uint8_t * payload = buf->data ();
 			size_t s = 0;
 			// add I2NP blocks
 			while (!m_SendQueue.empty ())
@@ -815,7 +820,7 @@ namespace transport
 			s += paddingSize;
 			// send
 			SendNextFrame (payload, s);
-			delete[] payload;
+			m_Server.DeleteNTCP2FrameBuffer (buf);
 		} 
 	}
 
