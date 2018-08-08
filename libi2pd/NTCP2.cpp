@@ -648,14 +648,10 @@ namespace transport
 		else
 		{
 			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_ReceiveSipKey);
-			uint16_t oldLen = m_NextReceivedLen; 
 			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ bufbe16toh(m_ReceiveIV));
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
-			if (m_NextReceivedLen > oldLen)
-			{
-				delete[] m_NextReceivedBuffer;
-				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
-			}
+			delete[] m_NextReceivedBuffer;
+			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
 			Receive ();
 		}
 	}
