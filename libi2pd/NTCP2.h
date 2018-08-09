@@ -76,8 +76,8 @@ namespace transport
 
 		void KDF1Alice ();
 		void KDF1Bob ();
-		void KDF2Alice (const uint8_t * sessionRequest, size_t sessionRequestLen);
-		void KDF2Bob (const uint8_t * sessionRequest, size_t sessionRequestLen);
+		void KDF2Alice ();
+		void KDF2Bob ();
 		void KDF3Alice (); // for SessionConfirmed part 2
 		void KDF3Bob ();
 
@@ -86,11 +86,17 @@ namespace transport
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
+		void CreateSessionRequestBuffer (size_t paddingLength);
+		void CreateSessionCreatedBuffer (size_t paddingLength);
 
 		BN_CTX * m_Ctx;
 		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
 		uint16_t m3p2Len; 
+
+		uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
+		size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
+
 	};		
 
 	class NTCP2Server;
@@ -156,8 +162,6 @@ namespace transport
 			bool m_IsEstablished, m_IsTerminated;
 
 			std::unique_ptr<NTCP2Establisher> m_Establisher;
-			uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
-			size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 			// data phase
 			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
 			const uint8_t * m_SendKey, * m_ReceiveKey, * m_SendSipKey, * m_ReceiveSipKey;

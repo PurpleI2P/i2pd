@@ -17,7 +17,8 @@ namespace i2p
 {
 namespace transport
 {
-	NTCP2Establisher::NTCP2Establisher () 
+	NTCP2Establisher::NTCP2Establisher ():
+		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr) 
 	{ 
 		m_Ctx = BN_CTX_new (); 
 		CreateEphemeralKey ();
@@ -26,6 +27,9 @@ namespace transport
 	NTCP2Establisher::~NTCP2Establisher () 
 	{ 
 		BN_CTX_free (m_Ctx); 
+		delete[] m_SessionRequestBuffer; 
+		delete[] m_SessionCreatedBuffer;
+		delete[] m_SessionConfirmedBuffer;
 	}
 
 	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived)
@@ -108,14 +112,14 @@ namespace transport
 		MixKey (inputKeyMaterial, m_K);
 	}
 
-	void NTCP2Establisher::KDF2Alice (const uint8_t * sessionRequest, size_t sessionRequestLen)
+	void NTCP2Establisher::KDF2Alice ()
 	{
-		KeyDerivationFunction2 (sessionRequest, sessionRequestLen, GetRemotePub ());
+		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetRemotePub ());
 	}
 	
-	void NTCP2Establisher::KDF2Bob (const uint8_t * sessionRequest, size_t sessionRequestLen)
+	void NTCP2Establisher::KDF2Bob ()
 	{
-		 KeyDerivationFunction2 (sessionRequest, sessionRequestLen, GetPub ());
+		 KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
 	}
 
 	void NTCP2Establisher::KDF3Alice ()
@@ -138,11 +142,24 @@ namespace transport
 		i2p::crypto::GetEd25519 ()->ScalarMulB (m_EphemeralPrivateKey, m_EphemeralPublicKey, m_Ctx);
 	}
 
+	void NTCP2Establisher::CreateSessionRequestBuffer (size_t paddingLen)
+	{
+		m_SessionRequestBufferLen = paddingLen + 64;
+		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
+		RAND_bytes (m_SessionRequestBuffer + 64, paddingLen);
+	}
+
+	void NTCP2Establisher::CreateSessionCreatedBuffer (size_t paddingLen)
+	{
+		m_SessionCreatedBufferLen = paddingLen + 64;
+		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen]; 
+		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
+	}
+
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
-		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr),
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
@@ -162,9 +179,6 @@ namespace transport
 
 	NTCP2Session::~NTCP2Session ()
 	{
-		delete[] m_SessionRequestBuffer; 
-		delete[] m_SessionCreatedBuffer;
-		delete[] m_SessionConfirmedBuffer;
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
 	}
@@ -234,14 +248,12 @@ namespace transport
 	{
 		// create buffer and fill padding
 		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
-		m_SessionRequestBufferLen = paddingLength + 64;
-		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
-		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
+		m_Establisher->CreateSessionRequestBuffer (paddingLength);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
 		encryption.SetIV (m_Establisher->m_IV);
-		encryption.Encrypt (m_Establisher->GetPub (), 32, m_SessionRequestBuffer); // X
+		encryption.Encrypt (m_Establisher->GetPub (), 32, m_Establisher->m_SessionRequestBuffer); // X
 		encryption.GetIV (m_Establisher->m_IV); // save IV for SessionCreated	
 		// encryption key for next block
 		m_Establisher->KDF1Alice ();
@@ -258,9 +270,9 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_Establisher->m_SessionRequestBuffer + 32, 32, true); // encrypt
 		// send message
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionRequestBuffer, m_SessionRequestBufferLen), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionRequestBuffer, m_Establisher->m_SessionRequestBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));		
 	}	
 
@@ -274,9 +286,9 @@ namespace transport
 		}
 		else
 		{
-			m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
+			m_Establisher->m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
 			// we receive first 64 bytes (32 Y, and 32 ChaCha/Poly frame) first
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionCreatedBuffer, 64), boost::asio::transfer_all (),
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer, 64), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 		}
 	}
@@ -295,24 +307,34 @@ namespace transport
 			i2p::crypto::CBCDecryption decryption;
 			decryption.SetKey (i2p::context.GetIdentHash ());
 			decryption.SetIV (i2p::context.GetNTCP2IV ());
-			decryption.Decrypt (m_SessionRequestBuffer, 32, m_Establisher->GetRemotePub ());
+			decryption.Decrypt (m_Establisher->m_SessionRequestBuffer, 32, m_Establisher->GetRemotePub ());
 			decryption.GetIV (m_Establisher->m_IV); // save IV for SessionCreated	
 			// decryption key for next block
 			m_Establisher->KDF1Bob ();
 			// verify MAC and decrypt options block (32 bytes), use m_H as AD
 			uint8_t nonce[12], options[16];
 			memset (nonce, 0, 12); // set nonce to zero
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, options, 16, false)) // decrypt
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionRequestBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, options, 16, false)) // decrypt
 			{
 				if (options[1] == 2)
 				{
 					uint16_t paddingLen = bufbe16toh (options + 2);
-					m_SessionRequestBufferLen = paddingLen + 64;
+					m_Establisher->m_SessionRequestBufferLen = paddingLen + 64;
 					m_Establisher->m3p2Len = bufbe16toh (options + 4);
 					// TODO: check tsA
 					if (paddingLen > 0)
-						boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
-						std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					{
+						if (paddingLen <= 287 - 64) // session request is 287 bytes max
+						{
+							boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
+								std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+						}
+						else
+						{
+							LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen,  " is too long");
+							Terminate ();
+						}
+					}
 					else
 						SendSessionCreated ();
 				}
@@ -344,15 +366,14 @@ namespace transport
 	void NTCP2Session::SendSessionCreated ()
 	{
 		auto paddingLen = rand () % (287 - 64);
-		m_SessionCreatedBufferLen = paddingLen + 64;
-		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen]; 
+		m_Establisher->CreateSessionCreatedBuffer (paddingLen);
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
 		encryption.SetKey (i2p::context.GetIdentHash ());
 		encryption.SetIV (m_Establisher->m_IV);
-		encryption.Encrypt (m_Establisher->GetPub (), 32, m_SessionCreatedBuffer); // Y
+		encryption.Encrypt (m_Establisher->GetPub (), 32, m_Establisher->m_SessionCreatedBuffer); // Y
 		// encryption key for next block (m_K)
-		m_Establisher->KDF2Bob (m_SessionRequestBuffer, m_SessionRequestBufferLen);	
+		m_Establisher->KDF2Bob ();	
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
@@ -360,11 +381,9 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
-		// fill padding
-		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_Establisher->m_SessionCreatedBuffer + 32, 32, true); // encrypt
 		// send message		
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionCreatedBuffer, m_SessionCreatedBufferLen), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionCreatedBuffer, m_Establisher->m_SessionCreatedBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionCreatedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));	
 	}
 
@@ -378,26 +397,26 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: SessionCreated received ", bytes_transferred);
-			m_SessionCreatedBufferLen = 64;
+			m_Establisher->m_SessionCreatedBufferLen = 64;
 			// decrypt Y
 			i2p::crypto::CBCDecryption decryption;
 			decryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
 			decryption.SetIV (m_Establisher->m_IV);
-			decryption.Decrypt (m_SessionCreatedBuffer, 32, m_Establisher->GetRemotePub ());
+			decryption.Decrypt (m_Establisher->m_SessionCreatedBuffer, 32, m_Establisher->GetRemotePub ());
 			// decryption key for next block (m_K)
-			m_Establisher->KDF2Alice (m_SessionRequestBuffer, m_SessionRequestBufferLen);
+			m_Establisher->KDF2Alice ();
 			// decrypt and verify MAC
 			uint8_t payload[16];
 			uint8_t nonce[12];
 			memset (nonce, 0, 12); // set nonce to zero
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, payload, 16, false)) // decrypt
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionCreatedBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, payload, 16, false)) // decrypt
 			{		
 				uint16_t paddingLen = bufbe16toh(payload + 2);
 				LogPrint (eLogDebug, "NTCP2: padding length ", paddingLen);
 				// TODO: check tsB
 				if (paddingLen > 0)
 				{
-					boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
+					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
 						std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 				}
 				else
@@ -420,7 +439,7 @@ namespace transport
 		}
 		else
 		{
-			m_SessionCreatedBufferLen += bytes_transferred;
+			m_Establisher->m_SessionCreatedBufferLen += bytes_transferred;
 			SendSessionConfirmed ();
 		}
 	}
@@ -431,25 +450,25 @@ namespace transport
 		// update AD
 		uint8_t h[80];
 		memcpy (h, m_Establisher->GetH (), 32);
-		memcpy (h + 32, m_SessionCreatedBuffer + 32, 32); // encrypted payload
+		memcpy (h + 32, m_Establisher->m_SessionCreatedBuffer + 32, 32); // encrypted payload
 		SHA256 (h, 64, h); 
-		int paddingLength = m_SessionCreatedBufferLen - 64;
+		int paddingLength = m_Establisher->m_SessionCreatedBufferLen - 64;
 		if (paddingLength > 0)
 		{
 			SHA256_CTX ctx;
 			SHA256_Init (&ctx);
 			SHA256_Update (&ctx, h, 32);			
-			SHA256_Update (&ctx, m_SessionCreatedBuffer + 64, paddingLength);			
+			SHA256_Update (&ctx, m_Establisher->m_SessionCreatedBuffer + 64, paddingLength);			
 			SHA256_Final (h, &ctx);
 		}	
 		// part1 48 bytes 
-		m_SessionConfirmedBuffer = new uint8_t[m_Establisher->m3p2Len + 48]; 
+		m_Establisher->m_SessionConfirmedBuffer = new uint8_t[m_Establisher->m3p2Len + 48]; 
 		uint8_t nonce[12];
 		CreateNonce (1, nonce);
-		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, h, 32, m_Establisher->GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, h, 32, m_Establisher->GetK (), nonce, m_Establisher->m_SessionConfirmedBuffer, 48, true); // encrypt
 		// part 2
 		// update AD again
-		memcpy (h + 32, m_SessionConfirmedBuffer, 48);
+		memcpy (h + 32, m_Establisher->m_SessionConfirmedBuffer, 48);
 		SHA256 (h, 80, m_Establisher->m_H); 			
 
 		std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
@@ -459,15 +478,15 @@ namespace transport
 		memcpy (buf.data () + 4, i2p::context.GetRouterInfo ().GetBuffer (), i2p::context.GetRouterInfo ().GetBufferLen ());
 		m_Establisher->KDF3Alice (); 
 		memset (nonce, 0, 12); // set nonce to 0 again
-		i2p::crypto::AEADChaCha20Poly1305 (buf.data (), m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (buf.data (), m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, m_Establisher->m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len, true); // encrypt
 		uint8_t tmp[48];
-		memcpy (tmp, m_SessionConfirmedBuffer, 48);
-		memcpy (m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
-		SHA256 (m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
-		memcpy (m_SessionConfirmedBuffer, tmp, 48);	
+		memcpy (tmp, m_Establisher->m_SessionConfirmedBuffer, 48);
+		memcpy (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
+		SHA256 (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
+		memcpy (m_Establisher->m_SessionConfirmedBuffer, tmp, 48);	
 
 		// send message
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionConfirmedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
@@ -501,8 +520,8 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: SessionCreated sent");
-			m_SessionConfirmedBuffer = new uint8_t[m_Establisher->m3p2Len + 48]; 
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
+			m_Establisher->m_SessionConfirmedBuffer = new uint8_t[m_Establisher->m3p2Len + 48]; 
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionConfirmedBuffer, m_Establisher->m3p2Len + 48), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionConfirmedReceived , shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 		}
 	}
@@ -511,44 +530,44 @@ namespace transport
 	{
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 read error: ", ecode.message ());
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
 		{
-			LogPrint (eLogDebug, "NTCP2: SessionConfirmed Part1 received");
+			LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
 			// update AD
 			uint8_t h[80];
 			memcpy (h, m_Establisher->GetH (), 32);
-			memcpy (h + 32, m_SessionCreatedBuffer + 32, 32); // encrypted payload
+			memcpy (h + 32, m_Establisher->m_SessionCreatedBuffer + 32, 32); // encrypted payload
 			SHA256 (h, 64, h); 
-			int paddingLength = m_SessionCreatedBufferLen - 64;
+			int paddingLength = m_Establisher->m_SessionCreatedBufferLen - 64;
 			if (paddingLength > 0)
 			{
 				SHA256_CTX ctx;
 				SHA256_Init (&ctx);
 				SHA256_Update (&ctx, h, 32);			
-				SHA256_Update (&ctx, m_SessionCreatedBuffer + 64, paddingLength);			
+				SHA256_Update (&ctx, m_Establisher->m_SessionCreatedBuffer + 64, paddingLength);			
 				SHA256_Final (h, &ctx);
 			}	
 			// part 1
 			uint8_t nonce[12];
 			CreateNonce (1, nonce);
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, h, 32, m_Establisher->GetK (), nonce, m_Establisher->m_RemoteStaticKey, 32, false)) // decrypt S
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionConfirmedBuffer, 32, h, 32, m_Establisher->GetK (), nonce, m_Establisher->m_RemoteStaticKey, 32, false)) // decrypt S
 			{
 				// part 2
 				// update AD again
-				memcpy (h + 32, m_SessionConfirmedBuffer, 48);
+				memcpy (h + 32, m_Establisher->m_SessionConfirmedBuffer, 48);
 				SHA256 (h, 80, m_Establisher->m_H); 	
 
 				std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
 				m_Establisher->KDF3Bob (); 
 				memset (nonce, 0, 12); // set nonce to 0 again
-				if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, buf.data (), m_Establisher->m3p2Len - 16, false)) // decrypt
+				if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, buf.data (), m_Establisher->m3p2Len - 16, false)) // decrypt
 				{
 					// caclulate new h again for KDF data
-					memcpy (m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
-					SHA256 (m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
+					memcpy (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
+					SHA256 (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
 					KeyDerivationFunctionDataPhase ();
 					// Bob data phase keys
 					m_SendKey = m_Kba;
@@ -625,8 +644,8 @@ namespace transport
 
 	void NTCP2Session::ServerLogin ()
 	{
-		m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
-		boost::asio::async_read (m_Socket, boost::asio::buffer(m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
+		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
+		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 	}
@@ -650,7 +669,7 @@ namespace transport
 			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_ReceiveSipKey);
 			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ bufbe16toh(m_ReceiveIV));
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
-			delete[] m_NextReceivedBuffer;
+			if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
 			Receive ();
 		}
@@ -682,6 +701,7 @@ namespace transport
 			{	
 				LogPrint (eLogDebug, "NTCP2: received message decrypted");
 				ProcessNextFrame (decrypted, m_NextReceivedLen-16);
+				delete[] m_NextReceivedBuffer; m_NextReceivedBuffer = nullptr; // we don't need received buffer anymore
 				ReceiveLength ();
 			}
 			else
