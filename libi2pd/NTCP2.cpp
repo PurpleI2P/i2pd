@@ -619,6 +619,7 @@ namespace transport
 					// ready to communicate	
 					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
+					m_Server.AddNTCP2Session (shared_from_this ());
 					Established ();
 					SendRouterInfo ();
 					ReceiveLength ();		
