@@ -697,11 +697,10 @@ namespace transport
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			uint8_t nonce[12];
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
-			uint8_t * decrypted = new uint8_t[m_NextReceivedLen];
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, decrypted, m_NextReceivedLen, false))
+			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen, false))
 			{	
 				LogPrint (eLogDebug, "NTCP2: received message decrypted");
-				ProcessNextFrame (decrypted, m_NextReceivedLen-16);
+				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
 				delete[] m_NextReceivedBuffer; m_NextReceivedBuffer = nullptr; // we don't need received buffer anymore
 				ReceiveLength ();
 			}
@@ -710,7 +709,6 @@ namespace transport
 				LogPrint (eLogWarning, "NTCP2: Received AEAD verification failed ");
 				SendTerminationAndTerminate (eNTCP2DataPhaseAEADFailure);
 			}	
-			delete[] decrypted;
 		}
 	}
 

@@ -1018,9 +1018,6 @@ namespace crypto
 		uint8_t polyKey[64];
 		memset(polyKey, 0, sizeof(polyKey));
 		chacha20 (polyKey, 64, nonce, key, 0);
-		// encrypt data
-		memcpy (buf, msg, msgLen);
-		chacha20 (buf, msgLen, nonce, key, 1);
 
 		// create Poly1305 message
 		if (!ad) adLen = 0;
@@ -1038,7 +1035,20 @@ namespace crypto
 				memcpy (polyMsg.data () + offset, padding, rem); offset += rem;
 			}
 		}
-		memcpy (polyMsg.data () + offset, encrypt ? buf : msg, msgLen); offset += msgLen; // encrypted data
+		// encrypt/decrypt data and add to hash
+		memcpy (buf, msg, msgLen);
+		if (encrypt)
+		{
+			chacha20 (buf, msgLen, nonce, key, 1); // encrypt
+			memcpy (polyMsg.data () + offset, buf, msgLen); // after encryption
+		}
+		else
+		{
+			memcpy (polyMsg.data () + offset, buf, msgLen); // before decryption
+			chacha20 (buf, msgLen, nonce, key, 1); // decrypt
+		}	
+		offset += msgLen; // encrypted data
+
 		auto rem = msgLen & 0x0F; // %16
 		if (rem)
 		{
