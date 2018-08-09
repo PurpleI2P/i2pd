@@ -1036,7 +1036,8 @@ namespace crypto
 			}
 		}
 		// encrypt/decrypt data and add to hash
-		memcpy (buf, msg, msgLen);
+		if (buf != msg)
+			memcpy (buf, msg, msgLen);
 		if (encrypt)
 		{
 			chacha20 (buf, msgLen, nonce, key, 1); // encrypt
