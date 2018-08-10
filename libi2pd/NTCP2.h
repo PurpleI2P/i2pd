@@ -86,12 +86,15 @@ namespace transport
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
-		void CreateSessionRequestBuffer (size_t paddingLength);
-		void CreateSessionCreatedBuffer (size_t paddingLength);
+		void CreateSessionRequestMessage ();
+		void CreateSessionCreatedMessage ();
+		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
+		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
 		BN_CTX * m_Ctx;
 		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
+		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len; 
 
 		uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
