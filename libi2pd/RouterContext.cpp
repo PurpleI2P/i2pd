@@ -84,11 +84,6 @@ namespace i2p
 			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
 			routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
-		if (ntcp2)
-		{
-			if (!m_NTCP2Keys) NewNTCP2Keys ();	
-			routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);	
-		}
 
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
@@ -97,6 +92,13 @@ namespace i2p
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+
+		if (ntcp2) // we don't store iv in the address if non published so we must update it from keys
+		{ 
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
+			UpdateNTCP2Address (true);	
+		}
+
 	}
 
 	void RouterContext::UpdateRouterInfo ()
