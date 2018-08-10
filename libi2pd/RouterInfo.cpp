@@ -176,13 +176,13 @@ namespace data
 			auto address = std::make_shared<Address>();
 			s.read ((char *)&address->cost, sizeof (address->cost));
 			s.read ((char *)&address->date, sizeof (address->date));
-			bool isNtcp2 = false;
+			bool isNTCP2Only = false;
 			char transportStyle[6]; 
 			auto transportStyleLen = ReadString (transportStyle, 6, s) - 1;
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
 			{
 				address->transportStyle = eTransportNTCP;
-				if (transportStyleLen > 4 || transportStyle[4] == '2') isNtcp2= true;
+				if (transportStyleLen > 4 && transportStyle[4] == '2') isNTCP2Only= true;
 			}
 			else if (!strcmp (transportStyle, "SSU"))
 			{
@@ -293,7 +293,8 @@ namespace data
 				if (!s) return;
 			}
 			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
-			if (supportedTransports && (!isNtcp2 || address->IsPublishedNTCP2 ())) // we ignore unpublished NTCP2 only addresses 
+			if (isNTCP2Only && address->ntcp2) address->ntcp2->isNTCP2Only = true;
+			if (supportedTransports) 
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
@@ -705,6 +706,7 @@ namespace data
 		addr->cost = 14;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
+		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);	
 		m_Addresses->push_back(std::move(addr));
@@ -863,7 +865,7 @@ namespace data
 		return GetAddress (
 			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return (address->transportStyle == eTransportNTCP) && (!v4only || address->host.is_v4 ());
+				return (address->transportStyle == eTransportNTCP) && !address->IsNTCP2Only () && (!v4only || address->host.is_v4 ());
 			});
 	}
 
