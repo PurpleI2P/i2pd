@@ -289,9 +289,10 @@ namespace i2p
 			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 
 			i2p::transport::transports.Start(ntcp, ssu);
-			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2()) 
 				LogPrint(eLogInfo, "Daemon: Transports started");
-			} else {
+			else 
+			{
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
 				i2p::transport::transports.Stop();

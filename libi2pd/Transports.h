@@ -81,6 +81,7 @@ namespace transport
 
 			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
+			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
 			bool IsOnline() const { return m_IsOnline; };
 			void SetOnline (bool online) { m_IsOnline = online; };
