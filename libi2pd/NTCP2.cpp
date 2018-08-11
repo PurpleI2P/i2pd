@@ -465,8 +465,16 @@ namespace transport
 				// TODO: check tsB
 				if (paddingLen > 0)
 				{
-					boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
-						std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					if (paddingLen <= 287 - 64) // session created is 287 bytes max
+					{
+						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
+							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					}
+					else
+					{
+						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen,  " is too long");
+						Terminate ();
+					}
 				}
 				else
 					SendSessionConfirmed ();
@@ -677,7 +685,8 @@ namespace transport
 	{
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: receive length read error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+				LogPrint (eLogWarning, "NTCP2: receive length read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -702,7 +711,8 @@ namespace transport
 	{
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: receive read error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+				LogPrint (eLogWarning, "NTCP2: receive read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -805,13 +815,21 @@ namespace transport
 
 	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-		m_NumSentBytes += bytes_transferred;
-		i2p::transport::transports.UpdateSentBytes (bytes_transferred);
-		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
-		LogPrint (eLogDebug, "NTCP2: Next frame sent");
 		m_IsSending = false;
-		SendQueue ();
+		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
+		
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: Couldn't send frame ", ecode.message ());
+		}	
+		else
+		{	
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			m_NumSentBytes += bytes_transferred;
+			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
+			LogPrint (eLogDebug, "NTCP2: Next frame sent");
+			SendQueue ();
+		}	
 	}
 
 	void NTCP2Session::SendQueue ()
