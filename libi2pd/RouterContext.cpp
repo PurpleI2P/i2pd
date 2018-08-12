@@ -50,6 +50,8 @@ namespace i2p
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		bool ssu;    i2p::config::GetOption("ssu", ssu);
+		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool nat;  i2p::config::GetOption("nat", nat);	
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
@@ -67,8 +69,10 @@ namespace i2p
 			if(ifname4.size())
 				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
 
-			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
-			routerInfo.AddNTCPAddress (host.c_str(), port);
+			if (ssu)
+				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+			if (ntcp)
+				routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
 		if (ipv6)
 		{
@@ -81,8 +85,10 @@ namespace i2p
 			if(ifname6.size())
 				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
 
-			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
-			routerInfo.AddNTCPAddress (host.c_str(), port);
+			if (ssu)
+				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+			if (ntcp)
+				routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
 
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
@@ -363,16 +369,19 @@ namespace i2p
 			caps |= i2p::data::RouterInfo::eFloodfill;
 		m_RouterInfo.SetCaps (caps);
 
-		// insert NTCP back
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (const auto& addr : addresses)
-		{
-			if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-				addr->host.is_v4 ())
+		// insert NTCP back
+		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
+		if (ntcp) {
+			for (const auto& addr : addresses)
 			{
-				// insert NTCP address with host/port from SSU
-				m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-				break;
+				if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					addr->host.is_v4 ())
+				{
+					// insert NTCP address with host/port from SSU
+					m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
+					break;
+				}
 			}
 		}
 		// delete previous introducers
