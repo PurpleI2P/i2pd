@@ -522,14 +522,14 @@ namespace transport
 		m_ReceiveKey = m_Kba; 
 		m_SendSipKey = m_Sipkeysab; 
 		m_ReceiveSipKey = m_Sipkeysba;
-		memcpy (m_ReceiveIV, m_Sipkeysba + 16, 8);
-		memcpy (m_SendIV, m_Sipkeysab + 16, 8);
+		memcpy (m_ReceiveIV.buf, m_Sipkeysba + 16, 8);
+		memcpy (m_SendIV.buf, m_Sipkeysab + 16, 8);
 		Established ();
 		ReceiveLength ();
 
 		// TODO: remove
-		//m_SendQueue.push_back (CreateDeliveryStatusMsg (1));
-		//SendQueue ();
+		// m_SendQueue.push_back (CreateDeliveryStatusMsg (1));
+		// SendQueue ();
 	}
 
 	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -597,8 +597,8 @@ namespace transport
 					m_ReceiveKey = m_Kab; 
 					m_SendSipKey = m_Sipkeysba; 
 					m_ReceiveSipKey = m_Sipkeysab;
-					memcpy (m_ReceiveIV, m_Sipkeysab + 16, 8);
-					memcpy (m_SendIV, m_Sipkeysba + 16, 8);
+					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
+					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
 
 					// process RI
 					if (buf[0] != eNTCP2BlkRouterInfo)
@@ -691,8 +691,9 @@ namespace transport
 		}
 		else
 		{
-			i2p::crypto::Siphash<8> (m_ReceiveIV, m_ReceiveIV, 8, m_ReceiveSipKey);
-			m_NextReceivedLen = be16toh (m_NextReceivedLen ^ bufbe16toh(m_ReceiveIV));
+			i2p::crypto::Siphash<8> (m_ReceiveIV.buf, m_ReceiveIV.buf, 8, m_ReceiveSipKey);
+			// m_NextRecivedLen comes from the network in BigEndian
+			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ m_ReceiveIV.key;
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
@@ -803,8 +804,9 @@ namespace transport
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		m_NextSendBuffer = new uint8_t[len + 16 + 2];
 		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
-		i2p::crypto::Siphash<8> (m_SendIV, m_SendIV, 8, m_SendSipKey);
-		htobuf16 (m_NextSendBuffer, bufbe16toh (m_SendIV) ^ htobe16(len + 16));
+		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
+		// length must be in BigEndian
+		htobe16buf (m_NextSendBuffer, (len + 16) ^ m_SendIV.key);
 		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
 
 		// send message

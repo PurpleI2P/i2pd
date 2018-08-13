@@ -170,7 +170,11 @@ namespace transport
 			const uint8_t * m_SendKey, * m_ReceiveKey, * m_SendSipKey, * m_ReceiveSipKey;
 			uint16_t m_NextReceivedLen; 
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
-			uint8_t m_ReceiveIV[8], m_SendIV[8];
+			union
+			{
+				uint8_t buf[8];
+				uint16_t key;
+			} m_ReceiveIV, m_SendIV;
 			uint64_t m_ReceiveSequenceNumber, m_SendSequenceNumber;
 
 			i2p::I2NPMessagesHandler m_Handler;
