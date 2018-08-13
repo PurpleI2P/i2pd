@@ -578,7 +578,7 @@ namespace http {
 		}
 		if (!tmp_s.str ().empty ())
 		{
-			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name << "</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
+			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name << "</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_" << boost::algorithm::to_lower_copy(name) << "'/>\r\n<p class='content'>";
 			s << tmp_s.str () << "</p>\r\n</div>\r\n";
 		}
 		if (!tmp_s6.str ().empty ())
