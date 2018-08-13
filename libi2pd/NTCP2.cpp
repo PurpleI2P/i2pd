@@ -693,7 +693,7 @@ namespace transport
 		{
 			i2p::crypto::Siphash<8> (m_ReceiveIV.buf, m_ReceiveIV.buf, 8, m_ReceiveSipKey);
 			// m_NextRecivedLen comes from the network in BigEndian
-			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ m_ReceiveIV.key;
+			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ le16toh (m_ReceiveIV.key);
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
@@ -806,7 +806,7 @@ namespace transport
 		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 		// length must be in BigEndian
-		htobe16buf (m_NextSendBuffer, (len + 16) ^ m_SendIV.key);
+		htobe16buf (m_NextSendBuffer, (len + 16) ^ le16toh (m_SendIV.key));
 		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
 
 		// send message
