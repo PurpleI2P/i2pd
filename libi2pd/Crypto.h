@@ -69,9 +69,9 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
+#ifdef __AVX__
 			if (i2p::cpu::avx)
 			{
-#ifdef AVX
 				__asm__
 					(
 						"vmovups (%[buf]), %%xmm0 \n"
@@ -82,12 +82,9 @@ namespace crypto
 						: [buf]"r"(buf), [other]"r"(other.buf)
 						: "%xmm0", "%xmm1", "memory"
 						);
-#else
-				for (int i = 0; i < 16; i++)
-					buf[i] ^= other.buf[i];
-#endif
 			}
 			else
+#endif
 			{
 				// TODO: implement it better
 				for (int i = 0; i < 16; i++)
@@ -123,7 +120,7 @@ namespace crypto
 	};
 
 
-#ifdef AESNI
+#ifdef __AES__
 	#ifdef ARM64AES
 		void init_aesenc(void) __attribute__((constructor));
 	#endif
@@ -143,7 +140,7 @@ namespace crypto
 	};
 #endif
 
-#ifdef AESNI
+#ifdef __AES__
 	class ECBEncryption: public ECBCryptoAESNI
 #else
 	class ECBEncryption
@@ -152,14 +149,14 @@ namespace crypto
 		public:
 
 		void SetKey (const AESKey& key);
-		
+
 		void Encrypt(const ChipherBlock * in, ChipherBlock * out);
 
 	private:
 		AES_KEY m_Key;
 	};
 
-#ifdef AESNI
+#ifdef __AES__
 	class ECBDecryption: public ECBCryptoAESNI
 #else
 	class ECBDecryption
@@ -188,7 +185,7 @@ namespace crypto
 			void Encrypt (const uint8_t * in, uint8_t * out); // one block
 
 			ECBEncryption & ECB() { return m_ECBEncryption; }
-		
+
 		private:
 
 			AESAlignedBuffer<16> m_LastBlock;
@@ -211,7 +208,7 @@ namespace crypto
 			void Decrypt (const uint8_t * in, uint8_t * out); // one block
 
 			ECBDecryption & ECB() { return m_ECBDecryption; }
-		
+
 		private:
 
 			AESAlignedBuffer<16> m_IV;
@@ -255,8 +252,8 @@ namespace crypto
 	};
 
 // AEAD/ChaCha20/Poly1305
-	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag 
-   	
+	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
+
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
@@ -265,7 +262,12 @@ namespace crypto
 
 // take care about openssl version
 #include <openssl/opensslv.h>
-#define LEGACY_OPENSSL ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
+#if ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
+#   define LEGACY_OPENSSL 1
+#else
+#   define LEGACY_OPENSSL 0
+#endif
+
 #if LEGACY_OPENSSL
 // define getters and setters introduced in 1.1.0
 inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g)

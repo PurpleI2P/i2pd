@@ -819,7 +819,7 @@ namespace transport
 				for (const auto& address: addresses)
 				{
 					if (!address) continue;
-					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !address->IsNTCP2 ())
 					{
 						if (address->host.is_v4())
 						{

@@ -94,6 +94,8 @@ namespace data
 			{
 				Tag<32> staticKey;
 				Tag<16> iv;
+				bool isPublished = false;
+				bool isNTCP2Only = false;
 			};
 
 			struct Address
@@ -124,6 +126,8 @@ namespace data
 				}
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
+				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
+				bool IsNTCP2Only () const { return ntcp2 && ntcp2->isNTCP2Only; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -140,6 +144,7 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
+			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
 
@@ -213,7 +218,8 @@ namespace data
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
 			void ExtractCaps (const char * value);
-			std::shared_ptr<const Address> GetAddress (TransportStyle s, bool v4only, bool v6only = false) const;
+			template<typename Filter>
+			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			void UpdateCapsProperty ();
 
 		private:

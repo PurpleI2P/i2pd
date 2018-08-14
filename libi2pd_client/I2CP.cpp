@@ -250,7 +250,7 @@ namespace client
 		if (handler)
 			(this->*handler)(m_Payload, m_PayloadLen);
 		else
-			LogPrint (eLogError, "I2CP: Unknown I2CP messsage ", (int)m_Header[I2CP_HEADER_TYPE_OFFSET]);
+			LogPrint (eLogError, "I2CP: Unknown I2CP message ", (int)m_Header[I2CP_HEADER_TYPE_OFFSET]);
 	}
 
 	void I2CPSession::Terminate ()
@@ -398,7 +398,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError, "I2CP: create session signature verification falied");
+			LogPrint (eLogError, "I2CP: create session signature verification failed");
 			SendSessionStatusMessage (3); // invalid
 		}
 	}
@@ -455,16 +455,16 @@ namespace client
 								LogPrint(eLogError, "I2CP: invalid reconfigure message signature");
 						}
 						else
-							LogPrint(eLogError, "I2CP: mapping size missmatch");
+							LogPrint(eLogError, "I2CP: mapping size mismatch");
 					}
 					else
-						LogPrint(eLogError, "I2CP: destination missmatch");
+						LogPrint(eLogError, "I2CP: destination mismatch");
 				}
 				else
 					LogPrint(eLogError, "I2CP: malfromed destination");
 			}
 			else
-				LogPrint(eLogError, "I2CP: session missmatch");
+				LogPrint(eLogError, "I2CP: session mismatch");
 		}
 		else
 			LogPrint(eLogError, "I2CP: short message");

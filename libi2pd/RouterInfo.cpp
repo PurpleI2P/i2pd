@@ -176,13 +176,13 @@ namespace data
 			auto address = std::make_shared<Address>();
 			s.read ((char *)&address->cost, sizeof (address->cost));
 			s.read ((char *)&address->date, sizeof (address->date));
-			bool isNtcp2 = false;
+			bool isNTCP2Only = false;
 			char transportStyle[6]; 
 			auto transportStyleLen = ReadString (transportStyle, 6, s) - 1;
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
 			{
 				address->transportStyle = eTransportNTCP;
-				if (transportStyleLen > 4 || transportStyle[4] == '2') isNtcp2= true;
+				if (transportStyleLen > 4 && transportStyle[4] == '2') isNTCP2Only= true;
 			}
 			else if (!strcmp (transportStyle, "SSU"))
 			{
@@ -259,6 +259,7 @@ namespace data
 					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
 					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
 					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);	
+					address->ntcp2->isPublished = true; // presence if "i" means "published"
 				}	
 				else if (key[0] == 'i')
 				{
@@ -292,7 +293,8 @@ namespace data
 				if (!s) return;
 			}
 			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
-			if (supportedTransports && !isNtcp2) // we ignore NTCP2 addresses for now. TODO:
+			if (isNTCP2Only && address->ntcp2) address->ntcp2->isNTCP2Only = true;
+			if (supportedTransports) 
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
@@ -455,7 +457,7 @@ namespace data
 			else
 				WriteString ("", s);
 
-			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
 			{
 				WriteString ("host", properties);
 				properties << '=';
@@ -537,7 +539,14 @@ namespace data
 				}
 			}
 
-			if (!address.IsNTCP2 ()) // we don't publish NTCP2 address fow now. TODO: implement
+			if (address.IsPublishedNTCP2 ())
+			{
+				// publish i for NTCP2
+				WriteString ("i", properties); properties << '=';
+				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
+			}
+
+			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
 			{
 				WriteString ("port", properties);
 				properties << '=';
@@ -551,7 +560,6 @@ namespace data
 				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
 				WriteString ("v", properties); properties << '=';
 				WriteString ("2", properties); properties << ';';
-				// TODO: publish "i"
 			}	
 
 			uint16_t size = htobe16 (properties.str ().size ());
@@ -665,7 +673,7 @@ namespace data
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
-		m_Addresses->push_back(std::move(addr));
+		m_Addresses->push_front(std::move(addr)); // always make NTCP first
 	}
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
@@ -698,6 +706,7 @@ namespace data
 		addr->cost = 14;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
+		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);	
 		m_Addresses->push_back(std::move(addr));
@@ -853,35 +862,53 @@ namespace data
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCPAddress (bool v4only) const
 	{
-		return GetAddress (eTransportNTCP, v4only);
+		return GetAddress (
+			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportNTCP) && !address->IsNTCP2Only () && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const
 	{
-		return GetAddress (eTransportSSU, v4only);
+		return GetAddress (
+			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU) && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUV6Address () const
 	{
-		return GetAddress (eTransportSSU, false, true);
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU) && address->host.is_v6 ();
+			});
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
+	template<typename Filter>	
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
+		// TODO: make it more gereric using comparator
 #if (BOOST_VERSION >= 105300)
 		auto addresses = boost::atomic_load (&m_Addresses);
 #else
 		auto addresses = m_Addresses;
 #endif
 		for (const auto& address : *addresses)
-		{
-			if (address->transportStyle == s)
-			{
-				if ((!v4only || address->host.is_v4 ()) && (!v6only || address->host.is_v6 ()))
-					return address;
-			}
-		}
+			if (filter (address)) return address;
+		
 		return nullptr;
+	}
+
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool publishedOnly, bool v4only) const
+	{
+		return GetAddress (
+			[publishedOnly, v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return address->IsNTCP2 () && (!publishedOnly || address->IsPublishedNTCP2 ()) && (!v4only || address->host.is_v4 ());
+			});
 	}
 
 	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const

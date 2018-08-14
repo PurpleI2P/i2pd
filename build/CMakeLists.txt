@@ -39,7 +39,7 @@ include_directories(${LIBI2PD_CLIENT_SRC_DIR})
 set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
   "${LIBI2PD_SRC_DIR}/Config.cpp"
-  "${LIBI2PD_SRC_DIR}/CPU.cpp"  
+  "${LIBI2PD_SRC_DIR}/CPU.cpp"
   "${LIBI2PD_SRC_DIR}/Crypto.cpp"
   "${LIBI2PD_SRC_DIR}/CryptoKey.cpp"
   "${LIBI2PD_SRC_DIR}/Garlic.cpp"
@@ -77,10 +77,10 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/api.cpp"
   "${LIBI2PD_SRC_DIR}/Event.cpp"
   "${LIBI2PD_SRC_DIR}/Gost.cpp"
-  "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"	
+  "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"
   "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
   "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
-  "${LIBI2PD_SRC_DIR}/NTCP2.cpp"		
+  "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
 )
 
 if (WITH_WEBSOCKETS)
@@ -190,7 +190,7 @@ if (CXX11_SUPPORTED)
 elseif (CXX0X_SUPPORTED) # gcc 4.6
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
 elseif (NOT MSVC)
-  message(SEND_ERROR "C++11 standart not seems to be supported by compiler. Too old version?")
+  message(SEND_ERROR "C++11 standard not seems to be supported by compiler. Too old version?")
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -202,9 +202,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif ()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
-  if (NOT (MSVC OR MSYS OR APPLE))
+  if (LINUX)
     set (CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -stdlib=libstdc++" ) # required for <atomic>
     list(APPEND CMAKE_REQUIRED_LIBRARIES "stdc++") # required to link with -stdlib=libstdc++
+  endif()
+  if (NOT (MSVC OR MSYS OR APPLE))
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-overloaded-virtual -Wno-c99-extensions" )
   endif()
 endif ()
@@ -234,7 +236,6 @@ endif ()
 
 if (WITH_AESNI)
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes" )
-  add_definitions ( -DAESNI )
 endif()
 
 if (WITH_AVX)
@@ -339,7 +340,7 @@ target_link_libraries(libi2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
-  message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
+  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
 endif()
 
 find_package ( OpenSSL REQUIRED )

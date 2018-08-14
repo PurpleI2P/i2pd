@@ -1,13 +1,13 @@
 # set defaults instead redefine
-CXXFLAGS ?= -g -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
-INCFLAGS ?=
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
+LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build
 ## (e.g. -fstack-protector-strong -Wformat -Werror=format-security), we do not want to remove
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
-## custom FLAGS to work at build-time.
+## custom FDLAGS to work at build-time.
 
 # detect proper flag for c++11 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
@@ -64,7 +64,7 @@ ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
 	ifeq ($(machine), aarch64)
 		CXXFLAGS += -DARM64AES
 	else
-		CPU_FLAGS += -maes -DAESNI
+		CPU_FLAGS += -maes
 	endif
 endif
 endif

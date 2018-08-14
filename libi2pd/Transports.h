@@ -15,6 +15,7 @@
 #include "TransportSession.h"
 #include "NTCPSession.h"
 #include "SSU.h"
+#include "NTCP2.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
@@ -80,6 +81,7 @@ namespace transport
 
 			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
+			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
 			bool IsOnline() const { return m_IsOnline; };
 			void SetOnline (bool online) { m_IsOnline = online; };
@@ -154,6 +156,7 @@ namespace transport
 
 			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
+			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
 			std::map<i2p::data::IdentHash, Peer> m_Peers;
 
@@ -179,6 +182,7 @@ namespace transport
 			// for HTTP only
 			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
+			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; };
 			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
 	};
 

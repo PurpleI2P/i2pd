@@ -152,6 +152,19 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
+			{
+				bool published; i2p::config::GetOption("ntcp2.published", published);
+				if (published)
+				{
+					uint16_t port; i2p::config::GetOption("ntcp2.port", port);
+					i2p::context.PublishNTCP2Address (port, true); // publish
+				}
+				else
+					i2p::context.PublishNTCP2Address (port, false); // unpublish
+			}
+
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetAcceptsTunnels (!transit);
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
@@ -276,9 +289,10 @@ namespace i2p
 			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 
 			i2p::transport::transports.Start(ntcp, ssu);
-			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2()) 
 				LogPrint(eLogInfo, "Daemon: Transports started");
-			} else {
+			else 
+			{
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
 				i2p::transport::transports.Stop();

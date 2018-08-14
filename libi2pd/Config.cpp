@@ -59,7 +59,6 @@ namespace config {
 			("ntcp", value<bool>()->default_value(true),                      "Enable NTCP transport (default: enabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
-			("ntcp2", value<bool>()->default_value(false),                    "Enable NTCP2 (experimental, default: disabled)")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -232,6 +231,13 @@ namespace config {
 			("exploratory.outbound.quantity", value<int>()->default_value(3), "Exploratory outbound tunnels quantity")
 		;
 
+		options_description ntcp2("NTCP2 Options");
+		ntcp2.add_options()
+			("ntcp2.enabled", value<bool>()->default_value(false), "Enable NTCP2 (default: disabled)")
+		    ("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")	
+			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
+		;
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -249,6 +255,7 @@ namespace config {
 			.add(trust)
 			.add(websocket)
 			.add(exploratory)
+			.add(ntcp2)
 		;
 	}
 

@@ -133,9 +133,14 @@ namespace crypto
 
 	struct Poly1305
 	{
-
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ < 8) // older than gcc 4.8
+		Poly1305(const uint8_t * key) : m_Leftover(0), m_Final(0)
+		{
+			memset (&m_H, 0, sizeof (m_H));
+#else 
 		Poly1305(const uint8_t * key) : m_Leftover(0), m_H{0}, m_Final(0)
 		{
+#endif
 			m_R.PutKey(key);
 			m_Pad.Put(key + 16);
 		}

@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS ?= -g -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
 ## NOTE: NEEDED_CXXFLAGS is here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build
@@ -8,5 +8,5 @@ CXXFLAGS ?= -g -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-ind
 ## custom FLAGS to work at build-time.
 NEEDED_CXXFLAGS = -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
+LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
