@@ -91,6 +91,11 @@ namespace transport
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
+		bool ProcessSessionRequestMessage (uint16_t& paddingLen);
+		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
+		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
+		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
+
 		BN_CTX * m_Ctx;
 		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
