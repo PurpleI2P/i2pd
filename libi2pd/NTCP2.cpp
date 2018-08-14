@@ -644,7 +644,6 @@ namespace transport
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
 					m_Server.AddNTCP2Session (shared_from_this ());
 					Established ();
-					SendRouterInfo ();
 					ReceiveLength ();		
 				}	
 				else
@@ -917,6 +916,12 @@ namespace transport
 			m_SendQueue.push_back (it);
 		if (!m_IsSending) 
 			SendQueue ();		
+	}
+
+	void NTCP2Session::SendLocalRouterInfo ()
+	{
+		if (!IsOutgoing ()) // we send it in SessionConfirmed
+			SendRouterInfo ();
 	}
 
 	NTCP2Server::NTCP2Server ():

@@ -401,7 +401,7 @@ namespace transport
 	{
 		if (peer.router) // we have RI already
 		{
-			if (!peer.numAttempts) // NTCP
+			if (!peer.numAttempts) // NTCP2 
 			{
 				peer.numAttempts++;
 				if (m_NTCP2Server) // we support NTCP2
@@ -415,7 +415,10 @@ namespace transport
 						return true;
 					}	
 				}	
-				// otherwise NTCP1
+			}
+			if (peer.numAttempts == 1) // NTCP1
+			{
+				peer.numAttempts++;	
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
@@ -473,7 +476,7 @@ namespace transport
 				else
 					LogPrint (eLogDebug, "Transports: NTCP address is not present for ", i2p::data::GetIdentHashAbbreviation (ident), ", trying SSU");
 			}
-			if (peer.numAttempts == 1)// SSU
+			if (peer.numAttempts == 2)// SSU
 			{
 				peer.numAttempts++;
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
@@ -736,7 +739,7 @@ namespace transport
 						sendDatabaseStore = false; // we have it in the list already
 				}
 				if (sendDatabaseStore)
-					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () });
+					session->SendLocalRouterInfo ();
 				else
 					session->SetTerminationTimeout (10); // most likely it's publishing, no follow-up messages expected, set timeout to 10 seconds
 				it->second.sessions.push_back (session);
