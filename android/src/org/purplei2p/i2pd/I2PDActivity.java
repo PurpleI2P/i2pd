@@ -28,17 +28,16 @@ import android.widget.Toast;
 public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pdActvt";
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
-	
+
 	private TextView textView;
 	private boolean assetsCopied;
-	
+
 	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
-	
+
 	private final DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
 	new DaemonSingleton.StateUpdateListener() {
-		
 		@Override
-		public void daemonStateUpdate() 
+		public void daemonStateUpdate()
 		{
 			try
 			{
@@ -48,17 +47,17 @@ public class I2PDActivity extends Activity {
 					assetsCopied = true;
 					copyAsset("certificates");
 					copyAsset("i2pd.conf");
-					copyAsset("subsciptions.txt");
+					copyAsset("subscriptions.txt");
 					copyAsset("tunnels.conf");
 				}
 			}
-			catch (Throwable tr) 
+			catch (Throwable tr)
 			{
 				Log.e(TAG,"copy assets",tr);
 			};
 
 			runOnUiThread(new Runnable(){
-				
+
 				@Override
 				public void run() {
 					try {
@@ -74,7 +73,7 @@ public class I2PDActivity extends Activity {
 						(DaemonSingleton.State.startFailed.equals(state)?": "+daemon.getDaemonStartResult():"")+
 						(DaemonSingleton.State.gracefulShutdownInProgress.equals(state)?":  "+formatGraceTimeRemaining()+" "+getText(R.string.remaining):"")
 						);
-						} catch (Throwable tr) {
+					} catch (Throwable tr) {
 						Log.e(TAG,"error ignored",tr);
 					}
 				}
@@ -83,7 +82,7 @@ public class I2PDActivity extends Activity {
 	};
 	private static volatile long graceStartedMillis;
 	private static final Object graceStartedMillis_LOCK=new Object();
-	
+
 	private static String formatGraceTimeRemaining() {
 		long remainingSeconds;
 		synchronized (graceStartedMillis_LOCK){
@@ -93,19 +92,19 @@ public class I2PDActivity extends Activity {
 		long remSec=remainingSeconds-remainingMinutes*60;
 		return remainingMinutes+":"+(remSec/10)+remSec%10;
 	}
-	
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+
 		textView = new TextView(this);
 		setContentView(textView);
 		daemon.addStateChangeListener(daemonStateUpdatedListener);
 		daemonStateUpdatedListener.daemonStateUpdate();
-		
+
 		// set the app be foreground
 		doBindService();
-		
+
 		final Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null){
 			long gracefulStopAtMillis;
@@ -115,7 +114,7 @@ public class I2PDActivity extends Activity {
 			rescheduleGraceStop(gracefulQuitTimer, gracefulStopAtMillis);
 		}
 	}
-	
+
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
@@ -128,7 +127,7 @@ public class I2PDActivity extends Activity {
 			Log.e(TAG, "", tr);
 		}
 	}
-	
+
 	private static void cancelGracefulStop() {
 		Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null) {
@@ -136,7 +135,7 @@ public class I2PDActivity extends Activity {
 			setGracefulQuitTimer(null);
 		}
 	}
-	
+
 	private CharSequence throwableToString(Throwable tr) {
 		StringWriter sw = new StringWriter(8192);
 		PrintWriter pw = new PrintWriter(sw);
@@ -144,9 +143,9 @@ public class I2PDActivity extends Activity {
 		pw.close();
 		return sw.toString();
 	}
-	
+
 	// private LocalService mBoundService;
-	
+
 	private ServiceConnection mConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service) {
 			// This is called when the connection with the service has been
@@ -155,12 +154,12 @@ public class I2PDActivity extends Activity {
 			// service that we know is running in our own process, we can
 			// cast its IBinder to a concrete class and directly access it.
 			//		mBoundService = ((LocalService.LocalBinder)service).getService();
-			
+
 			// Tell the user about this for our demo.
 			//		Toast.makeText(Binding.this, R.string.local_service_connected,
 			//		Toast.LENGTH_SHORT).show();
 		}
-		
+
 		public void onServiceDisconnected(ComponentName className) {
 			// This is called when the connection with the service has been
 			// unexpectedly disconnected -- that is, its process crashed.
@@ -171,10 +170,9 @@ public class I2PDActivity extends Activity {
 			//		Toast.LENGTH_SHORT).show();
 		}
 	};
-	
-	
+
 	private static volatile boolean mIsBound;
-	
+
 	private void doBindService() {
 		synchronized (I2PDActivity.class) {
 			if (mIsBound) return;
@@ -186,7 +184,7 @@ public class I2PDActivity extends Activity {
 			mIsBound = true;
 		}
 	}
-	
+
 	private void doUnbindService() {
 		synchronized (I2PDActivity.class) {
 			if (mIsBound) {
@@ -196,21 +194,21 @@ public class I2PDActivity extends Activity {
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.options_main, menu);
 		return true;
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
-		
+
 		switch(id){
 			case R.id.action_stop:
 			i2pdStop();
@@ -219,14 +217,14 @@ public class I2PDActivity extends Activity {
 			i2pdGracefulStop();
 			return true;
 		}
-		
+
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	private void i2pdStop() {
 		cancelGracefulStop();
 		new Thread(new Runnable(){
-			
+
 			@Override
 			public void run() {
 				Log.d(TAG, "stopping");
@@ -236,12 +234,12 @@ public class I2PDActivity extends Activity {
 					Log.e(TAG, "", tr);
 				}
 			}
-			
+
 		},"stop").start();
 	}
-	
+
 	private static volatile Timer gracefulQuitTimer;
-	
+
 	private void i2pdGracefulStop() {
 		if(daemon.getState()==DaemonSingleton.State.stopped){
 			Toast.makeText(this, R.string.already_stopped,
@@ -256,7 +254,7 @@ public class I2PDActivity extends Activity {
 		Toast.makeText(this, R.string.graceful_stop_is_in_progress,
 		Toast.LENGTH_SHORT).show();
 		new Thread(new Runnable(){
-			
+
 			@Override
 			public void run() {
 				try{
@@ -276,21 +274,21 @@ public class I2PDActivity extends Activity {
 					Log.e(TAG,"",tr);
 				}
 			}
-			
+
 		},"gracInit").start();
 	}
-	
+
 	private void rescheduleGraceStop(Timer gracefulQuitTimerOld, long gracefulStopAtMillis) {
 		if(gracefulQuitTimerOld!=null)gracefulQuitTimerOld.cancel();
 		final Timer gracefulQuitTimer = new Timer(true);
 		setGracefulQuitTimer(gracefulQuitTimer);
 		gracefulQuitTimer.schedule(new TimerTask(){
-			
+
 			@Override
 			public void run() {
 				i2pdStop();
 			}
-			
+
 		}, Math.max(0,gracefulStopAtMillis-System.currentTimeMillis()));
 		final TimerTask tickerTask = new TimerTask() {
 			@Override
@@ -300,30 +298,30 @@ public class I2PDActivity extends Activity {
 		};
 		gracefulQuitTimer.scheduleAtFixedRate(tickerTask,0/*start delay*/,1000/*millis period*/);
 	}
-	
+
 	private static Timer getGracefulQuitTimer() {
 		return gracefulQuitTimer;
 	}
-	
+
 	private static void setGracefulQuitTimer(Timer gracefulQuitTimer) {
 		I2PDActivity.gracefulQuitTimer = gracefulQuitTimer;
 	}
-	
+
 	/**
 		* Copy the asset at the specified path to this app's data directory. If the
 		* asset is a directory, its contents are also copied.
-		* 
+		*
 		* @param path
 		* Path to asset, relative to app's assets directory.
 	*/
 	private void copyAsset(String path) {
 		AssetManager manager = getAssets();
-		
+
 		// If we have a directory, we make it and recurse. If a file, we copy its
 		// contents.
 		try {
 			String[] contents = manager.list(path);
-			
+
 			// The documentation suggests that list throws an IOException, but doesn't
 			// say under what conditions. It'd be nice if it did so when the path was
 			// to a file. That doesn't appear to be the case. If the returned array is
@@ -331,30 +329,30 @@ public class I2PDActivity extends Activity {
 			// directories will get turned into files.
 			if (contents == null || contents.length == 0)
 			throw new IOException();
-			
+
 			// Make the directory.
 			File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", path);
 			dir.mkdirs();
-			
+
 			// Recurse on the contents.
 			for (String entry : contents) {
 				copyAsset(path + "/" + entry);
 			}
-			} catch (IOException e) {
+		} catch (IOException e) {
 			copyFileAsset(path);
 		}
 	}
-	
+
 	/**
 		* Copy the asset file specified by path to app's data directory. Assumes
 		* parent directories have already been created.
-		* 
+		*
 		* @param path
 		* Path to asset, relative to app's assets directory.
 	*/
 	private void copyFileAsset(String path) {
 		File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", path);
-		try {
+		if(!file.exists()) try {
 			InputStream in = getAssets().open(path);
 			OutputStream out = new FileOutputStream(file);
 			byte[] buffer = new byte[1024];
@@ -365,7 +363,7 @@ public class I2PDActivity extends Activity {
 			}
 			out.close();
 			in.close();
-			} catch (IOException e) {
+		} catch (IOException e) {
 			Log.e(TAG, "", e);
 		}
 	}
