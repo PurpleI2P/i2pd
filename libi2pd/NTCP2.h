@@ -26,6 +26,8 @@ namespace transport
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 
+	const int NTCP2_CLOCK_SKEW = 60; // in seconds	
+
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,

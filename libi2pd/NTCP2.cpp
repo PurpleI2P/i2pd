@@ -259,12 +259,20 @@ namespace transport
 		memset (nonce, 0, 12); // set nonce to zero
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, m_K, nonce, options, 16, false)) // decrypt
 		{
-			if (options[1] == 2)
+			// options
+			if (options[1] == 2) // ver is always 2 
 			{
 				paddingLen = bufbe16toh (options + 2);
 				m_SessionRequestBufferLen = paddingLen + 64;
 				m3p2Len = bufbe16toh (options + 4);
-				// TODO: check tsA
+				// check timestamp
+				auto ts = i2p::util::GetSecondsSinceEpoch ();
+				uint32_t tsA = bufbe32toh (options + 8); 	
+				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", ts - tsA, " exceeds clock skew");
+					return false;
+				}
 			}
 			else
 			{
@@ -295,9 +303,17 @@ namespace transport
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, m_H, 32, m_K, nonce, payload, 16, false)) // decrypt
-		{		
+		{
+			// options		
 			paddingLen = bufbe16toh(payload + 2);
-			// TODO: check tsB
+			// check timestamp
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t tsB = bufbe32toh (payload + 8); 	
+			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
+			{
+				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", ts - tsB, " exceeds clock skew");
+				return false;
+			}
 		}
 		else
 		{	
@@ -414,7 +430,7 @@ namespace transport
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
 		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
-		transports.PeerConnected (shared_from_this ());
+	//	transports.PeerConnected (shared_from_this ());
 	}
 
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
