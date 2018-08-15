@@ -430,7 +430,7 @@ namespace transport
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
 		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
-	//	transports.PeerConnected (shared_from_this ());
+		transports.PeerConnected (shared_from_this ());
 	}
 
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
