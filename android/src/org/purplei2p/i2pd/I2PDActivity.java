@@ -30,6 +30,7 @@ public class I2PDActivity extends Activity {
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
 	
 	private TextView textView;
+	private boolean assetsCopied;
 	
 	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 	
@@ -37,7 +38,25 @@ public class I2PDActivity extends Activity {
 	new DaemonSingleton.StateUpdateListener() {
 		
 		@Override
-		public void daemonStateUpdate() {
+		public void daemonStateUpdate() 
+		{
+			try
+			{
+				// copy assets
+				if (!assetsCopied)
+				{
+					assetsCopied = true;
+					copyAsset("certificates");
+					copyAsset("i2pd.conf");
+					copyAsset("subsciptions.txt");
+					copyAsset("tunnels.conf");
+				}
+			}
+			catch (Throwable tr) 
+			{
+				Log.e(TAG,"copy assets",tr);
+			};
+
 			runOnUiThread(new Runnable(){
 				
 				@Override
@@ -78,12 +97,6 @@ public class I2PDActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		// copy assets
-		copyAsset("certificates");
-		copyAsset("i2pd.conf");
-		copyAsset("subsciptions.txt");
-		copyAsset("tunnels.conf");
 		
 		textView = new TextView(this);
 		setContentView(textView);
