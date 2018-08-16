@@ -1,6 +1,7 @@
 package org.purplei2p.i2pd;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +26,9 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+// For future package update checking
+import org.purplei2p.i2pd.BuildConfig;
+
 public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pdActvt";
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
@@ -44,11 +48,19 @@ public class I2PDActivity extends Activity {
 				// copy assets
 				if (!assetsCopied)
 				{
-					assetsCopied = true;
 					copyAsset("certificates");
 					copyAsset("i2pd.conf");
 					copyAsset("subscriptions.txt");
 					copyAsset("tunnels.conf");
+					assetsCopied = true;
+
+					// create holder file about successful copying
+					File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", "assets.ready");
+					FileWriter writer = new FileWriter(file);
+					String versionName = BuildConfig.VERSION_NAME; // here will be 2.XX.0
+					writer.append(versionName);
+					writer.flush();
+					writer.close();
 				}
 			}
 			catch (Throwable tr)
