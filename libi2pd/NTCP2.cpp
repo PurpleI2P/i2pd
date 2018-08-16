@@ -1,3 +1,14 @@
+/*
+* Copyright (c) 2013-2018, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*
+* Kovri go write your own code
+*
+*/
+
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
