@@ -270,7 +270,7 @@ namespace transport
 				uint32_t tsA = bufbe32toh (options + 8); 	
 				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
 				{
-					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", ts - tsA, " exceeds clock skew");
+					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)(ts - tsA), " exceeds clock skew");
 					return false;
 				}
 			}
@@ -311,7 +311,7 @@ namespace transport
 			uint32_t tsB = bufbe32toh (payload + 8); 	
 			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
 			{
-				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", ts - tsB, " exceeds clock skew");
+				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", (int)(ts - tsB), " exceeds clock skew");
 				return false;
 			}
 		}
