@@ -1,7 +1,9 @@
 package org.purplei2p.i2pd;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,6 +37,7 @@ public class I2PDActivity extends Activity {
 
 	private TextView textView;
 	private boolean assetsCopied;
+	private String i2pdpath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/";
 
 	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 
@@ -43,31 +46,7 @@ public class I2PDActivity extends Activity {
 		@Override
 		public void daemonStateUpdate()
 		{
-			try
-			{
-				// copy assets
-				if (!assetsCopied)
-				{
-					copyAsset("certificates");
-					copyAsset("i2pd.conf");
-					copyAsset("subscriptions.txt");
-					copyAsset("tunnels.conf");
-					assetsCopied = true;
-
-					// create holder file about successful copying
-					File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", "assets.ready");
-					FileWriter writer = new FileWriter(file);
-					String versionName = BuildConfig.VERSION_NAME; // here will be 2.XX.0
-					writer.append(versionName);
-					writer.flush();
-					writer.close();
-				}
-			}
-			catch (Throwable tr)
-			{
-				Log.e(TAG,"copy assets",tr);
-			};
-
+			processAssets();
 			runOnUiThread(new Runnable(){
 
 				@Override
@@ -343,7 +322,7 @@ public class I2PDActivity extends Activity {
 			throw new IOException();
 
 			// Make the directory.
-			File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", path);
+			File dir = new File(i2pdpath, path);
 			dir.mkdirs();
 
 			// Recurse on the contents.
@@ -363,7 +342,7 @@ public class I2PDActivity extends Activity {
 		* Path to asset, relative to app's assets directory.
 	*/
 	private void copyFileAsset(String path) {
-		File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/", path);
+		File file = new File(i2pdpath, path);
 		if(!file.exists()) try {
 			InputStream in = getAssets().open(path);
 			OutputStream out = new FileOutputStream(file);
@@ -377,6 +356,64 @@ public class I2PDActivity extends Activity {
 			in.close();
 		} catch (IOException e) {
 			Log.e(TAG, "", e);
+		}
+	}
+
+	private void deleteRecursive(File fileOrDirectory) {
+		if (fileOrDirectory.isDirectory()) {
+			for (File child : fileOrDirectory.listFiles()) {
+				deleteRecursive(child);
+			}
+		}
+		fileOrDirectory.delete();
+	}
+
+	private void processAssets() {
+		if (!assetsCopied) try {
+			assetsCopied = true; // prevent from running on every state update
+
+			File holderfile = new File(i2pdpath, "assets.ready");
+			String versionName = BuildConfig.VERSION_NAME; // here will be app version, like 2.XX.XX
+			StringBuilder text = new StringBuilder();
+
+			if (holderfile.exists()) try { // if holder file exists, read assets version string
+				BufferedReader br = new BufferedReader(new FileReader(holderfile));
+				String line;
+
+				while ((line = br.readLine()) != null) {
+					text.append(line);
+				}
+				br.close();
+			}
+			catch (IOException e) {
+				Log.e(TAG, "", e);
+			}
+
+			// if version differs from current app version or null, try to delete certificates folder
+			if (!text.toString().contains(versionName)) try {
+				holderfile.delete();
+				File certpath = new File(i2pdpath, "certificates");
+				deleteRecursive(certpath);
+			}
+			catch (Throwable tr) {
+				Log.e(TAG, "", tr);
+			}
+
+			// copy assets. If processed file exists, it won't be overwrited
+			copyAsset("certificates");
+			copyAsset("i2pd.conf");
+			copyAsset("subscriptions.txt");
+			copyAsset("tunnels.conf");
+
+			// update holder file about successful copying
+			FileWriter writer = new FileWriter(holderfile);
+			writer.append(versionName);
+			writer.flush();
+			writer.close();
+		}
+		catch (Throwable tr)
+		{
+			Log.e(TAG,"copy assets",tr);
 		}
 	}
 }
