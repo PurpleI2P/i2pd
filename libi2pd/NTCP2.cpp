@@ -276,6 +276,11 @@ namespace transport
 				paddingLen = bufbe16toh (options + 2);
 				m_SessionRequestBufferLen = paddingLen + 64;
 				m3p2Len = bufbe16toh (options + 4);
+				if (m3p2Len < 16)
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest m3p2len=", m3p2Len, " is too short");
+					return false;	
+				}	
 				// check timestamp
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				uint32_t tsA = bufbe32toh (options + 8); 	
@@ -944,7 +949,7 @@ namespace transport
 			payload[s] = eNTCP2BlkPadding; // blk
 			htobe16buf (payload + s + 1, paddingSize); // size
 			s += 3;
-			RAND_bytes (payload + s, paddingSize);			
+			memset (payload + s, 0, paddingSize);			
 			s += paddingSize;
 			// send
 			SendNextFrame (payload, s);
