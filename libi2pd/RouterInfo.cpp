@@ -668,7 +668,7 @@ namespace data
 		addr->host = boost::asio::ip::address::from_string (host);
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP;
-		addr->cost = 2;
+		addr->cost = 6;
 		addr->date = 0;
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
@@ -703,7 +703,7 @@ namespace data
 		auto addr = std::make_shared<Address>();
 		addr->port = 0;
 		addr->transportStyle = eTransportNTCP;
-		addr->cost = 14;
+		addr->cost = 3;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
