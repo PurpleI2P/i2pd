@@ -69,6 +69,6 @@ include $(PREBUILT_STATIC_LIBRARY)
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := miniupnpc
-LOCAL_SRC_FILES := $(MINIUPNP_PATH)/miniupnp-2.0/$(TARGET_ARCH_ABI)/lib/libminiupnpc.a
-LOCAL_EXPORT_C_INCLUDES := $(MINIUPNP_PATH)/miniupnp-2.0/include
+LOCAL_SRC_FILES := $(MINIUPNP_PATH)/miniupnpc-2.1/$(TARGET_ARCH_ABI)/lib/libminiupnpc.a
+LOCAL_EXPORT_C_INCLUDES := $(MINIUPNP_PATH)/miniupnpc-2.1/include
 include $(PREBUILT_STATIC_LIBRARY)
