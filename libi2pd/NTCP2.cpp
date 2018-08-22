@@ -1005,7 +1005,7 @@ namespace transport
 	void NTCP2Session::SendLocalRouterInfo ()
 	{
 		if (!IsOutgoing ()) // we send it in SessionConfirmed
-			SendRouterInfo ();
+			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
 	NTCP2Server::NTCP2Server ():
