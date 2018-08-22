@@ -2,7 +2,7 @@ FROM alpine:latest
 LABEL authors "Mikal Villa <mikal@sigterm.no>, Darknet Villain <supervillain@riseup.net>"
 
 # Expose git branch, tag and URL variables as arguments
-ARG GIT_BRANCH="master"
+ARG GIT_BRANCH="openssl"
 ENV GIT_BRANCH=${GIT_BRANCH}
 ARG GIT_TAG=""
 ENV GIT_TAG=${GIT_TAG}
