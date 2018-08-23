@@ -959,6 +959,7 @@ namespace transport
 
 	void NTCP2Session::SendRouterInfo ()
 	{
+		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
 		int paddingSize = (riLen*NTCP2_MAX_PADDING_RATIO)/100;
 		size_t payloadLen = riLen + paddingSize + 7; // 7 = 2*3 bytes header + 1 byte RI flag 
@@ -976,6 +977,7 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
+		if (!IsEstablished ()) return;
 		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
 		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
 		payload[11] = (uint8_t)reason;
