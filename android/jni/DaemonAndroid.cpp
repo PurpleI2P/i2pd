@@ -1,10 +1,13 @@
-#include "DaemonAndroid.h"
-#include "Daemon.h"
 #include <iostream>
+#include <chrono>
+#include <thread>
+#include <exception>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception_ptr.hpp>
-#include <exception>
 //#include "mainwindow.h"
+#include "FS.h"
+#include "DaemonAndroid.h"
+#include "Daemon.h"
 
 namespace i2p
 {
@@ -80,6 +83,17 @@ namespace android
 		//mutex=new QMutex(QMutex::Recursive);
 		//setRunningCallback(0);
         //m_IsRunning=false;
+		
+		// make sure assets are ready before proceed	
+		i2p::fs::DetectDataDir("", false);
+		int numAttempts = 0;
+		do
+		{
+			if (i2p::fs::Exists (i2p::fs::DataDirPath("assets.ready"))) break; // assets ready
+			numAttempts++;
+			std::this_thread::sleep_for (std::chrono::seconds(1)); // otherwise wait for 1 more second
+		}
+		while (numAttempts <= 10); // 10 seconds max	
 		return Daemon.init(argc,argv);
 	}
 

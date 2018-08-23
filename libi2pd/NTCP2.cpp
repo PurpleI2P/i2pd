@@ -1,3 +1,14 @@
+/*
+* Copyright (c) 2013-2018, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*
+* Kovri go write your own code
+*
+*/
+
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
@@ -244,6 +255,140 @@ namespace transport
 		SHA256_Final (m_H, &ctx); //h = SHA256(h || ciphertext)
 	}	
 
+	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen)
+	{
+		// decrypt X
+		i2p::crypto::CBCDecryption decryption;
+		decryption.SetKey (i2p::context.GetIdentHash ());
+		decryption.SetIV (i2p::context.GetNTCP2IV ());
+		decryption.Decrypt (m_SessionRequestBuffer, 32, GetRemotePub ());
+		decryption.GetIV (m_IV); // save IV for SessionCreated	
+		// decryption key for next block
+		KDF1Bob ();
+		// verify MAC and decrypt options block (32 bytes), use m_H as AD
+		uint8_t nonce[12], options[16];
+		memset (nonce, 0, 12); // set nonce to zero
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, m_K, nonce, options, 16, false)) // decrypt
+		{
+			// options
+			if (options[1] == 2) // ver is always 2 
+			{
+				paddingLen = bufbe16toh (options + 2);
+				m_SessionRequestBufferLen = paddingLen + 64;
+				m3p2Len = bufbe16toh (options + 4);
+				if (m3p2Len < 16)
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest m3p2len=", m3p2Len, " is too short");
+					return false;	
+				}	
+				// check timestamp
+				auto ts = i2p::util::GetSecondsSinceEpoch ();
+				uint32_t tsA = bufbe32toh (options + 8); 	
+				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
+				{
+					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)(ts - tsA), " exceeds clock skew");
+					return false;
+				}
+			}
+			else
+			{
+				LogPrint (eLogWarning, "NTCP2: SessionRequest version mismatch ", (int)options[1]);
+				return false;
+			}
+		}
+		else
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionRequest AEAD verification failed ");
+			return false;
+		}	
+		return true;	
+	}
+
+	bool NTCP2Establisher::ProcessSessionCreatedMessage (uint16_t& paddingLen)
+	{
+		m_SessionCreatedBufferLen = 64;
+		// decrypt Y
+		i2p::crypto::CBCDecryption decryption;
+		decryption.SetKey (m_RemoteIdentHash);
+		decryption.SetIV (m_IV);
+		decryption.Decrypt (m_SessionCreatedBuffer, 32, GetRemotePub ());
+		// decryption key for next block (m_K)
+		KDF2Alice ();
+		// decrypt and verify MAC
+		uint8_t payload[16];
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // set nonce to zero
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, m_H, 32, m_K, nonce, payload, 16, false)) // decrypt
+		{
+			// options		
+			paddingLen = bufbe16toh(payload + 2);
+			// check timestamp
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t tsB = bufbe32toh (payload + 8); 	
+			if (tsB < ts - NTCP2_CLOCK_SKEW || tsB > ts + NTCP2_CLOCK_SKEW)
+			{
+				LogPrint (eLogWarning, "NTCP2: SessionCreated time difference ", (int)(ts - tsB), " exceeds clock skew");
+				return false;
+			}
+		}
+		else
+		{	
+			LogPrint (eLogWarning, "NTCP2: SessionCreated AEAD verification failed ");
+			return false;
+		}	
+		return true;
+	}
+
+	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce)
+	{
+		// update AD
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, m_SessionCreatedBuffer + 32, 32);	// encrypted payload
+		SHA256_Final (m_H, &ctx);
+
+		int paddingLength = m_SessionCreatedBufferLen - 64;
+		if (paddingLength > 0)
+		{
+			SHA256_CTX ctx1;
+			SHA256_Init (&ctx1);
+			SHA256_Update (&ctx1, m_H, 32);			
+			SHA256_Update (&ctx1, m_SessionCreatedBuffer + 64, paddingLength);			
+			SHA256_Final (m_H, &ctx1);
+		}	
+		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, m_H, 32, m_K, nonce, m_RemoteStaticKey, 32, false)) // decrypt S
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
+			return false;
+		}
+		return true;
+	}
+
+	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf)
+	{
+		// update AD again
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);			
+		SHA256_Update (&ctx, m_SessionConfirmedBuffer, 48);			
+		SHA256_Final (m_H, &ctx);		
+
+		KDF3Bob (); 
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
+		{
+			// caclulate new h again for KDF data
+			memcpy (m_SessionConfirmedBuffer + 16, m_H, 32); // h || ciphertext
+			SHA256 (m_SessionConfirmedBuffer + 16, m3p2Len + 32, m_H); //h = SHA256(h || ciphertext);
+		}
+		else
+		{
+			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 AEAD verification failed ");
+			return false;
+		}
+		return true;
+	}
+
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
@@ -368,52 +513,28 @@ namespace transport
 		}
 		else
 		{
-			// decrypt X
-			i2p::crypto::CBCDecryption decryption;
-			decryption.SetKey (i2p::context.GetIdentHash ());
-			decryption.SetIV (i2p::context.GetNTCP2IV ());
-			decryption.Decrypt (m_Establisher->m_SessionRequestBuffer, 32, m_Establisher->GetRemotePub ());
-			decryption.GetIV (m_Establisher->m_IV); // save IV for SessionCreated	
-			// decryption key for next block
-			m_Establisher->KDF1Bob ();
-			// verify MAC and decrypt options block (32 bytes), use m_H as AD
-			uint8_t nonce[12], options[16];
-			memset (nonce, 0, 12); // set nonce to zero
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionRequestBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, options, 16, false)) // decrypt
+			LogPrint (eLogDebug, "NTCP2: SessionRequest received ", bytes_transferred);
+			uint16_t paddingLen = 0;
+			if (m_Establisher->ProcessSessionRequestMessage (paddingLen))
 			{
-				if (options[1] == 2)
+				if (paddingLen > 0)
 				{
-					uint16_t paddingLen = bufbe16toh (options + 2);
-					m_Establisher->m_SessionRequestBufferLen = paddingLen + 64;
-					m_Establisher->m3p2Len = bufbe16toh (options + 4);
-					// TODO: check tsA
-					if (paddingLen > 0)
+					if (paddingLen <= 287 - 64) // session request is 287 bytes max
 					{
-						if (paddingLen <= 287 - 64) // session request is 287 bytes max
-						{
-							boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
-								std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-						}
-						else
-						{
-							LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen,  " is too long");
-							Terminate ();
-						}
+						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
+							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 					}
 					else
-						SendSessionCreated ();
+					{
+						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen,  " is too long");
+						Terminate ();
+					}
 				}
 				else
-				{
-					LogPrint (eLogWarning, "NTCP2: SessionRequest version mismatch ", (int)options[1]);
-					Terminate ();
-				}
-			}
-			else
-			{
-				LogPrint (eLogWarning, "NTCP2: SessionRequest AEAD verification failed ");
-				Terminate ();
+					SendSessionCreated ();
 			}	
+			else
+				Terminate ();
 		}
 	}
 
@@ -446,23 +567,9 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: SessionCreated received ", bytes_transferred);
-			m_Establisher->m_SessionCreatedBufferLen = 64;
-			// decrypt Y
-			i2p::crypto::CBCDecryption decryption;
-			decryption.SetKey (GetRemoteIdentity ()->GetIdentHash ());
-			decryption.SetIV (m_Establisher->m_IV);
-			decryption.Decrypt (m_Establisher->m_SessionCreatedBuffer, 32, m_Establisher->GetRemotePub ());
-			// decryption key for next block (m_K)
-			m_Establisher->KDF2Alice ();
-			// decrypt and verify MAC
-			uint8_t payload[16];
-			uint8_t nonce[12];
-			memset (nonce, 0, 12); // set nonce to zero
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionCreatedBuffer + 32, 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, payload, 16, false)) // decrypt
-			{		
-				uint16_t paddingLen = bufbe16toh(payload + 2);
-				LogPrint (eLogDebug, "NTCP2: padding length ", paddingLen);
-				// TODO: check tsB
+			uint16_t paddingLen = 0;
+			if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
+			{
 				if (paddingLen > 0)
 				{
 					if (paddingLen <= 287 - 64) // session created is 287 bytes max
@@ -480,10 +587,7 @@ namespace transport
 					SendSessionConfirmed ();
 			}
 			else
-			{	
-				LogPrint (eLogWarning, "NTCP2: SessionCreated AEAD verification failed ");
 				Terminate ();
-			}	
 		}
 	}
 
@@ -559,38 +663,16 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
-			// update AD
-			uint8_t h[80];
-			memcpy (h, m_Establisher->GetH (), 32);
-			memcpy (h + 32, m_Establisher->m_SessionCreatedBuffer + 32, 32); // encrypted payload
-			SHA256 (h, 64, h); 
-			int paddingLength = m_Establisher->m_SessionCreatedBufferLen - 64;
-			if (paddingLength > 0)
-			{
-				SHA256_CTX ctx;
-				SHA256_Init (&ctx);
-				SHA256_Update (&ctx, h, 32);			
-				SHA256_Update (&ctx, m_Establisher->m_SessionCreatedBuffer + 64, paddingLength);			
-				SHA256_Final (h, &ctx);
-			}	
 			// part 1
 			uint8_t nonce[12];
 			CreateNonce (1, nonce);
-			if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionConfirmedBuffer, 32, h, 32, m_Establisher->GetK (), nonce, m_Establisher->m_RemoteStaticKey, 32, false)) // decrypt S
+			if (m_Establisher->ProcessSessionConfirmedMessagePart1 (nonce))
 			{
 				// part 2
-				// update AD again
-				memcpy (h + 32, m_Establisher->m_SessionConfirmedBuffer, 48);
-				SHA256 (h, 80, m_Establisher->m_H); 	
-
 				std::vector<uint8_t> buf(m_Establisher->m3p2Len - 16); // -MAC
-				m_Establisher->KDF3Bob (); 
 				memset (nonce, 0, 12); // set nonce to 0 again
-				if (i2p::crypto::AEADChaCha20Poly1305 (m_Establisher->m_SessionConfirmedBuffer + 48, m_Establisher->m3p2Len - 16, m_Establisher->GetH (), 32, m_Establisher->GetK (), nonce, buf.data (), m_Establisher->m3p2Len - 16, false)) // decrypt
+				if (m_Establisher->ProcessSessionConfirmedMessagePart2 (nonce, buf.data ()))
 				{
-					// caclulate new h again for KDF data
-					memcpy (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->GetH (), 32); // h || ciphertext
-					SHA256 (m_Establisher->m_SessionConfirmedBuffer + 16, m_Establisher->m3p2Len + 32, m_Establisher->m_H); //h = SHA256(h || ciphertext);
 					KeyDerivationFunctionDataPhase ();
 					// Bob data phase keys
 					m_SendKey = m_Kba;
@@ -599,7 +681,7 @@ namespace transport
 					m_ReceiveSipKey = m_Sipkeysab;
 					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
 					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
-
+					// payload
 					// process RI
 					if (buf[0] != eNTCP2BlkRouterInfo)
 					{
@@ -644,19 +726,13 @@ namespace transport
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
 					m_Server.AddNTCP2Session (shared_from_this ());
 					Established ();
-					ReceiveLength ();		
-				}	
+					ReceiveLength ();
+				}
 				else
-				{
-					LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 AEAD verification failed ");
 					Terminate ();
-				}		
 			}
 			else
-			{	
-				LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
 				Terminate ();
-			}	
 		}
 	}
 
@@ -691,12 +767,20 @@ namespace transport
 		else
 		{
 			i2p::crypto::Siphash<8> (m_ReceiveIV.buf, m_ReceiveIV.buf, 8, m_ReceiveSipKey);
-			// m_NextRecivedLen comes from the network in BigEndian
+			// m_NextReceivedLen comes from the network in BigEndian
 			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ le16toh (m_ReceiveIV.key);
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
-			if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
-			m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
-			Receive ();
+			if (m_NextReceivedLen >= 16)
+			{	
+				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
+				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+				Receive ();
+			}
+			else
+			{
+				LogPrint (eLogError, "NTCP2: received length ", m_NextReceivedLen, " is too short");
+				Terminate ();
+			}	
 		}
 	}
 
@@ -865,7 +949,7 @@ namespace transport
 			payload[s] = eNTCP2BlkPadding; // blk
 			htobe16buf (payload + s + 1, paddingSize); // size
 			s += 3;
-			RAND_bytes (payload + s, paddingSize);			
+			memset (payload + s, 0, paddingSize);			
 			s += paddingSize;
 			// send
 			SendNextFrame (payload, s);
@@ -875,6 +959,7 @@ namespace transport
 
 	void NTCP2Session::SendRouterInfo ()
 	{
+		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
 		int paddingSize = (riLen*NTCP2_MAX_PADDING_RATIO)/100;
 		size_t payloadLen = riLen + paddingSize + 7; // 7 = 2*3 bytes header + 1 byte RI flag 
@@ -892,6 +977,7 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
+		if (!IsEstablished ()) return;
 		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
 		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
 		payload[11] = (uint8_t)reason;
@@ -921,7 +1007,7 @@ namespace transport
 	void NTCP2Session::SendLocalRouterInfo ()
 	{
 		if (!IsOutgoing ()) // we send it in SessionConfirmed
-			SendRouterInfo ();
+			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
 	NTCP2Server::NTCP2Server ():

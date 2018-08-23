@@ -92,6 +92,8 @@ namespace http {
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
+	static std::string ConvertTime (uint64_t time);
+
 	static void ShowUptime (std::stringstream& s, int seconds)
 	{
 		int num;
@@ -262,7 +264,9 @@ namespace http {
 			{
 				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 				{
-					s << "NTCP2&nbsp;&nbsp; supported <br>\r\n";
+					s << "NTCP2";
+					if (address->host.is_v6 ()) s << "v6";
+					s << "&nbsp;&nbsp; supported <br>\r\n";
 					continue;
 				}
 				switch (address->transportStyle)
@@ -271,13 +275,13 @@ namespace http {
 					{
 						s << "NTCP";
 						if (address->IsPublishedNTCP2 ()) s << "2";
-						if (address->host.is_v6 ()) s << "6";
+						if (address->host.is_v6 ()) s << "v6";
 						s << "&nbsp;&nbsp;";
 						break;
 					}
 					case i2p::data::RouterInfo::eTransportSSU:
 						if (address->host.is_v6 ())
-							s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+							s << "SSUv6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 						else
 							s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 					break;
@@ -462,14 +466,14 @@ namespace http {
 					s << "<div class='invalid'>!! Invalid !! </div>\r\n";
 				s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
 				s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<p class='content'>\r\n";
-				s << "<b>Expires:</b> " << ls.GetExpirationTime() << "<br>\r\n";
+				s << "<b>Expires:</b> " << ConvertTime(ls.GetExpirationTime()) << "<br>\r\n";
 				auto leases = ls.GetNonExpiredLeases();
 				s << "<b>Non Expired Leases: " << leases.size() << "</b><br>\r\n";
 				for ( auto & l : leases )
 				{
 					s << "<b>Gateway:</b> " << l->tunnelGateway.ToBase64() << "<br>\r\n";
 					s << "<b>TunnelID:</b> " << l->tunnelID << "<br>\r\n";
-					s << "<b>EndDate:</b> " << l->endDate << "<br>\r\n";
+					s << "<b>EndDate:</b> " << ConvertTime(l->endDate) << "<br>\r\n";
 				}
 				s << "</p>\r\n</div>\r\n</div>\r\n";
 			}
@@ -583,7 +587,7 @@ namespace http {
 		}
 		if (!tmp_s6.str ().empty ())
 		{
-			s << "<div class='slide'><label for='slide_ntcp6'><b>" << name << "6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
+			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name << "v6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_" << boost::algorithm::to_lower_copy(name) << "v6'/>\r\n<p class='content'>";
 			s << tmp_s6.str () << "</p>\r\n</div>\r\n";
 		}
 	}
@@ -628,7 +632,7 @@ namespace http {
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssu6'><b>SSU6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu6'/>\r\n<p class='content'>";
+				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssuv6'/>\r\n<p class='content'>";
 				for (const auto& it: sessions6)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -761,6 +765,16 @@ namespace http {
 				s << "<br>\r\n"<< std::endl;
 			}
 		}
+	}
+
+	std::string ConvertTime (uint64_t time)
+	{
+		ldiv_t divTime = ldiv(time,1000);
+		time_t t = divTime.quot;
+		struct tm *tm = localtime(&t);
+		char date[128];
+		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03ld", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
+		return date;
 	}
 
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):

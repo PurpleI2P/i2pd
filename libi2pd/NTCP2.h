@@ -1,3 +1,13 @@
+/*
+* Copyright (c) 2013-2018, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*
+* Kovri go write your own code
+*
+*/
 #ifndef NTCP2_H__
 #define NTCP2_H__
 
@@ -25,6 +35,8 @@ namespace transport
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+
+	const int NTCP2_CLOCK_SKEW = 60; // in seconds	
 
 	enum NTCP2BlockType
 	{
@@ -90,6 +102,11 @@ namespace transport
 		void CreateSessionCreatedMessage ();
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
+
+		bool ProcessSessionRequestMessage (uint16_t& paddingLen);
+		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
+		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
+		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
 
 		BN_CTX * m_Ctx;
 		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519

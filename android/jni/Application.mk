@@ -1,8 +1,8 @@
 #APP_ABI := all
-#APP_ABI := armeabi-v7a x86
+APP_ABI := armeabi-v7a x86
 #APP_ABI := x86
 #APP_ABI := x86_64
-APP_ABI := armeabi-v7a
+#APP_ABI := armeabi-v7a
 #can be android-3 but will fail for x86 since arch-x86 is not present at ndkroot/platforms/android-3/ . libz is taken from there.
 APP_PLATFORM := android-14
 
