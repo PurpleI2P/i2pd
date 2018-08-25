@@ -502,7 +502,8 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(name, address, port, false, "", destinationPort, localDestination);
+							std::string outproxy = section.second.get("outproxy", "");
+							clientTunnel = new i2p::proxy::SOCKSProxy(name, address, port, !outproxy.emtpy(), outproxy, destinationPort, localDestination);
 							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
