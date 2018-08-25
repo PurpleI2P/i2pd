@@ -1,8 +1,8 @@
 #APP_ABI := all
-#APP_ABI := armeabi-v7a x86
+APP_ABI := armeabi-v7a x86
 #APP_ABI := x86
 #APP_ABI := x86_64
-APP_ABI := armeabi-v7a
+#APP_ABI := armeabi-v7a
 #can be android-3 but will fail for x86 since arch-x86 is not present at ndkroot/platforms/android-3/ . libz is taken from there.
 APP_PLATFORM := android-14
 
@@ -19,7 +19,8 @@ ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
 endif
 
-APP_OPTIM  := debug
+# Forcing debug optimization. Use `ndk-build NDK_DEBUG=1` instead.
+#APP_OPTIM  := debug
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git

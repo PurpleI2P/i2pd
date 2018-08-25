@@ -1,6 +1,42 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.20.0] - 2018-08-23
+### Added
+- Full implementation of NTCP2
+- Assets for android
+### Changed
+- armeabi-v7a and x86 in one apk for android
+- NTCP2 is enabled by default
+- Show lease's expiration time in readable format in the web console
+### Fixed
+- Correct names for transports in the web console 
+
+## [2.19.0] - 2018-06-26
+### Added
+- ECIES support for RouterInfo
+- HTTP outproxy authorization
+- AVX/AESNI runtime detection
+- Initial implementation of NTCP2
+- I2CP session reconfigure
+- I2CP method ClientServicesInfo
+- Datagrams to websocks
+### Changed
+- RouterInfo uses EdDSA signature by default
+- Remove stream bans
+- Android build system changed to gradle
+- Multiple changes in QT GUI
+- Dockerfile
+### Fixed
+- zero tunnelID issue
+- tunnels reload
+- headers in webconsole
+- XSS in webconsole from SAM session name
+- build for gcc 8
+- cmake build scripts
+- systemd service files
+- some netbsd issues
+
 ## [2.18.0] - 2018-01-30
 ### Added
 - Show tunnel nicknames for I2CP destination in WebUI
@@ -43,7 +79,7 @@
 - NTCP soft and hard descriptors limits
 - Support full timestamps in logs
 ### Changed
-- Faster implmentation of GOST R 34.11 hash
+- Faster implementation of GOST R 34.11 hash
 - Reject routers with RSA signtures
 - Reload config and shudown from Windows GUI
 - Update tunnels address(destination) without restart
@@ -143,7 +179,7 @@
 - Initial iOS support
 
 ### Changed
-- Reduced file descriptiors usage
+- Reduced file descriptors usage
 - Strict reseed checks enabled by default
 
 ## Fixed

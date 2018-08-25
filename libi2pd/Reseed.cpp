@@ -300,7 +300,7 @@ namespace data
 				s.read (localFileName, fileNameLength);
 				localFileName[fileNameLength] = 0;
 				s.seekg (extraFieldLength, std::ios::cur);
-				// take care about data desriptor if presented
+				// take care about data descriptor if presented
 				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
 				{
 					size_t pos = s.tellg ();

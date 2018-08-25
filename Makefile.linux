@@ -1,13 +1,13 @@
 # set defaults instead redefine
-CXXFLAGS ?= -g -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
-INCFLAGS ?=
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
+LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build
 ## (e.g. -fstack-protector-strong -Wformat -Werror=format-security), we do not want to remove
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
-## custom FLAGS to work at build-time.
+## custom FDLAGS to work at build-time.
 
 # detect proper flag for c++11 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
@@ -21,7 +21,7 @@ else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
 	NEEDED_CXXFLAGS += -std=c++0x
 else ifeq ($(shell expr match ${CXXVER} "[5-7]\.[0-9]"),3) # gcc >= 5.0
 	NEEDED_CXXFLAGS += -std=c++11
-else ifeq ($(shell expr match ${CXXVER} "7"),1) # gcc 7 ubuntu
+else ifeq ($(shell expr match ${CXXVER} "[7-8]"),1) # gcc 7 ubuntu or gcc 8 arch
 	NEEDED_CXXFLAGS += -std=c++11
 else # not supported
 $(error Compiler too old)
@@ -60,7 +60,12 @@ endif
 ifeq ($(USE_AESNI),yes)
 #check if AES-NI is supported by CPU
 ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	CPU_FLAGS += -maes -DAESNI
+	machine := $(shell uname -m)
+	ifeq ($(machine), aarch64)
+		CXXFLAGS += -DARM64AES
+	else
+		CPU_FLAGS += -maes
+	endif
 endif
 endif
 

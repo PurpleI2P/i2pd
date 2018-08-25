@@ -60,8 +60,12 @@ namespace i2p
 			return service;
 		}
 
-		bool Daemon_Singleton::init(int argc, char* argv[])
-		{
+        bool Daemon_Singleton::init(int argc, char* argv[]) {
+            return init(argc, argv, nullptr);
+        }
+
+        bool Daemon_Singleton::init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream)
+        {
 			i2p::config::Init();
 			i2p::config::ParseCmdline(argc, argv);
 
@@ -104,7 +108,10 @@ namespace i2p
 				logs = "file";
 
 			i2p::log::Logger().SetLogLevel(loglevel);
-			if (logs == "file") {
+            if (logstream) {
+                LogPrint(eLogInfo, "Log: will send messages to std::ostream");
+                i2p::log::Logger().SendTo (logstream);
+            } else if (logs == "file") {
 				if (logfile == "")
 					logfile = i2p::fs::DataDirPath("i2pd.log");
 				LogPrint(eLogInfo, "Log: will send messages to ", logfile);
@@ -144,6 +151,19 @@ namespace i2p
 			}
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
+
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
+			{
+				bool published; i2p::config::GetOption("ntcp2.published", published);
+				if (published)
+				{
+					uint16_t port; i2p::config::GetOption("ntcp2.port", port);
+					i2p::context.PublishNTCP2Address (port, true); // publish
+				}
+				else
+					i2p::context.PublishNTCP2Address (port, false); // unpublish
+			}
 
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetAcceptsTunnels (!transit);
@@ -269,9 +289,10 @@ namespace i2p
 			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 
 			i2p::transport::transports.Start(ntcp, ssu);
-			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2()) 
 				LogPrint(eLogInfo, "Daemon: Transports started");
-			} else {
+			else 
+			{
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
 				i2p::transport::transports.Stop();

@@ -1,11 +1,11 @@
 USE_WIN32_APP=yes
 CXX = g++
 WINDRES = windres
-CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
+CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
 INCFLAGS = -Idaemon -I.
-LDFLAGS = -s -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++
+LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
@@ -37,7 +37,7 @@ endif
 
 # don't change following line to ifeq ($(USE_AESNI),yes) !!!
 ifeq ($(USE_AESNI),1)
-	CPU_FLAGS += -maes -DAESNI
+	CPU_FLAGS += -maes
 else
 	CPU_FLAGS += -msse
 endif

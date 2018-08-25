@@ -14,6 +14,7 @@ namespace client
 		m_LocalDestination (localDestination ? localDestination :
 			i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE)),
 			m_ReadyTimer(m_LocalDestination->GetService()),
+			m_ReadyTimerTriggered(false),
 			m_ConnectTimeout(0),
 			isUpdated (true)
 	{
@@ -47,29 +48,25 @@ namespace client
 
 	void I2PService::SetConnectTimeout(uint32_t timeout)
 	{
-		if(timeout && !m_ConnectTimeout)
-		{
-			TriggerReadyCheckTimer();
-		}
-		else if (m_ConnectTimeout && !timeout)
-		{
-			m_ReadyTimer.cancel();
-		}
 		m_ConnectTimeout = timeout;
 	}
 
 	void I2PService::AddReadyCallback(ReadyCallback cb)
 	{
 		uint32_t now = i2p::util::GetSecondsSinceEpoch();
-		uint32_t tm = now + m_ConnectTimeout;
+		uint32_t tm = (m_ConnectTimeout) ? now + m_ConnectTimeout : NEVER_TIMES_OUT;
+
 		LogPrint(eLogDebug, "I2PService::AddReadyCallback() ", tm, " ", now);
 		m_ReadyCallbacks.push_back({cb, tm});
+		if (!m_ReadyTimerTriggered) TriggerReadyCheckTimer();
 	}
 
 	void I2PService::TriggerReadyCheckTimer()
 	{
 		m_ReadyTimer.expires_from_now(boost::posix_time::seconds (1));
 		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, this, std::placeholders::_1));
+		m_ReadyTimerTriggered = true;
+
 	}
 
 	void I2PService::HandleReadyCheckTimer(const boost::system::error_code &ec)
@@ -87,7 +84,7 @@ namespace client
 			auto itr = m_ReadyCallbacks.begin();
 			while(itr != m_ReadyCallbacks.end())
 			{
-				if(itr->second >= now)
+			    if(itr->second != NEVER_TIMES_OUT && now >= itr->second)
 				{
 					itr->first(boost::asio::error::timed_out);
 					itr = m_ReadyCallbacks.erase(itr);
@@ -96,8 +93,10 @@ namespace client
 					++itr;
 			}
 		}
-		if(!ec)
-			TriggerReadyCheckTimer();
+		if(!ec && m_ReadyCallbacks.size())
+		    TriggerReadyCheckTimer();
+		else
+		    m_ReadyTimerTriggered = false;
 	}
 
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {

@@ -377,7 +377,7 @@ namespace client
 				}
 				numAddresses++;
 				auto it = m_Addresses.find (name);
-				if (it != m_Addresses.end ()) // aleady exists ?
+				if (it != m_Addresses.end ()) // already exists ?
 				{
 					if (it->second != ident->GetIdentHash ()) // address changed?
 					{
@@ -755,7 +755,8 @@ namespace client
 				},
 				SUBSCRIPTION_REQUEST_TIMEOUT);
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+			// wait 1 more second
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT + 1)) == std::cv_status::timeout)
 			{
 				LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
 				numAttempts++;

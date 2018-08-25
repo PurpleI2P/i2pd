@@ -16,7 +16,8 @@ REM Note: if you installed MSYS64 to different path, edit WD variable (only C:\m
 set "WD=C:\msys64\usr\bin\"
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=enabled_from_arguments
-set MSYSTEM=MSYS
+REM set MSYSTEM=MSYS
+set MSYSTEM=MINGW32
 
 set "xSH=%WD%bash -lc"
 
@@ -61,12 +62,12 @@ exit /b 0
 %xSH% "make clean" >> nul
 echo Building i2pd %tag% for win%bitness%:
 echo Build AVX+AESNI...
-%xSH% "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
 echo Build AVX...
-%xSH% "make USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
 echo Build AESNI...
-%xSH% "make USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
 echo Build without extensions...
-%xSH% "make USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
 
 :EOF

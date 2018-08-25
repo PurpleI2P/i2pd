@@ -131,8 +131,8 @@ namespace transport
 		const auto& a = context.GetRouterInfo().GetAddresses();
 		for (const auto& address : a)
 		{
-			if (!address->host.is_v6 ())
-			TryPortMapping (address);
+			if (!address->host.is_v6 () && address->port)
+				TryPortMapping (address);
 		}
 		m_Timer.expires_from_now (boost::posix_time::minutes(20));	// every 20 minutes
 		m_Timer.async_wait ([this](const boost::system::error_code& ecode)
@@ -148,7 +148,7 @@ namespace transport
 		const auto& a = context.GetRouterInfo().GetAddresses();
 		for (const auto& address : a)
 		{
-			if (!address->host.is_v6 ())
+			if (!address->host.is_v6 () && address->port)
 			CloseMapping (address);
 		}
 	}

@@ -219,7 +219,7 @@ namespace proxy {
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 		/* add headers */
-		req.AddHeader("Connection", "close"); /* keep-alive conns not supported yet */
+		req.UpdateHeader("Connection", "close"); /* keep-alive conns not supported yet */
 	}
 
 	/**
@@ -387,18 +387,12 @@ namespace proxy {
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
 		m_ClientRequestURL.schema = "";
 		m_ClientRequestURL.host   = "";
+		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to change uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
-
-		if (m_ProxyURL.schema == "http" && (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ()))
-		{
-			// http proxy authorization
-			std::string s = "basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
-			m_ClientRequest.AddHeader("Proxy-Authorization", s);
-		}
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
-
+		
 		// assume http if empty schema
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http") 
 		{
@@ -406,7 +400,18 @@ namespace proxy {
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
-				m_send_buf = m_recv_buf;
+				m_ClientRequest.uri = origURI;
+				if (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ())
+				{
+					// remove existing authorization if any
+					m_ClientRequest.RemoveHeader("Proxy-");
+					// add own http proxy authorization
+					std::string s = "Basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
+					m_ClientRequest.AddHeader("Proxy-Authorization", s);
+				}
+				m_send_buf = m_ClientRequest.to_string();
+				m_recv_buf.erase(0, m_req_len);
+				m_send_buf.append(m_recv_buf);
 				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
 					shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
 			}

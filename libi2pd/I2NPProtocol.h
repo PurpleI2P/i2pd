@@ -26,6 +26,9 @@ namespace i2p
 	const size_t I2NP_SHORT_HEADER_EXPIRATION_OFFSET = I2NP_SHORT_HEADER_TYPEID_OFFSET + 1;
 	const size_t I2NP_SHORT_HEADER_SIZE = I2NP_SHORT_HEADER_EXPIRATION_OFFSET + 4;
 
+	// I2NP NTCP2 header
+	const size_t I2NP_NTCP2_HEADER_SIZE = I2NP_HEADER_EXPIRATION_OFFSET + 4;		
+
 	// Tunnel Gateway header
 	const size_t TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET = 0;
 	const size_t TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET = TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET + 4;
@@ -193,6 +196,24 @@ namespace tunnel
 			htobe32buf (ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET, bufbe64toh (header + I2NP_HEADER_EXPIRATION_OFFSET)/1000LL);
 			len = offset + I2NP_SHORT_HEADER_SIZE + bufbe16toh (header + I2NP_HEADER_SIZE_OFFSET);
 			return bufbe32toh (header + I2NP_HEADER_MSGID_OFFSET);
+		}
+		// for NTCP2 only
+		uint8_t * GetNTCP2Header () { return GetPayload () - I2NP_NTCP2_HEADER_SIZE; };
+		size_t GetNTCP2Length () const { return GetPayloadLength () + I2NP_NTCP2_HEADER_SIZE; };
+		void FromNTCP2 ()
+		{
+			const uint8_t * ntcp2 = GetNTCP2Header ();
+			memcpy (GetHeader () + I2NP_HEADER_TYPEID_OFFSET, ntcp2 + I2NP_HEADER_TYPEID_OFFSET, 5); // typeid + msgid
+			SetExpiration (bufbe32toh (ntcp2 + I2NP_HEADER_EXPIRATION_OFFSET)*1000LL);
+			SetSize (len - offset - I2NP_HEADER_SIZE);
+			SetChks (0);
+		}	
+
+		void ToNTCP2 ()
+		{
+			uint8_t * ntcp2 = GetNTCP2Header ();
+			htobe32buf (ntcp2 + I2NP_HEADER_EXPIRATION_OFFSET, bufbe64toh (GetHeader () + I2NP_HEADER_EXPIRATION_OFFSET)/1000LL);
+			memcpy (ntcp2 + I2NP_HEADER_TYPEID_OFFSET, GetHeader () + I2NP_HEADER_TYPEID_OFFSET, 5); // typeid + msgid
 		}
 
 		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);

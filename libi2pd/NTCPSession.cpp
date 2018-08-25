@@ -402,7 +402,7 @@ namespace transport
 		uint32_t tsA1 = be32toh (tsA);
 		if (tsA1 < ts - NTCP_CLOCK_SKEW || tsA1 > ts + NTCP_CLOCK_SKEW)
 		{
-			LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew");
+			LogPrint (eLogError, "NTCP: Phase3 time difference ", (int)(ts - tsA1), " exceeds clock skew");
 			Terminate ();
 			return;
 		}
@@ -485,7 +485,7 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			if (tsB < ts - NTCP_CLOCK_SKEW || tsB > ts + NTCP_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew");
+				LogPrint (eLogError, "NTCP: Phase4 time difference ", (int)(ts - tsB), " exceeds clock skew");
 				Terminate ();
 				return;
 			}
@@ -819,7 +819,7 @@ namespace transport
 				for (const auto& address: addresses)
 				{
 					if (!address) continue;
-					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !address->IsNTCP2 ())
 					{
 						if (address->host.is_v4())
 						{

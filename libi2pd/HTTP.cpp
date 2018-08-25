@@ -96,7 +96,7 @@ namespace http {
       pos_c = url.find('@', pos_p); /* find end of 'user' or 'user:pass' part */
       if (pos_c != std::string::npos && (pos_s == std::string::npos || pos_s > pos_c)) {
         std::size_t delim = url.find(':', pos_p);
-        if (delim != std::string::npos && delim < pos_c) {
+        if (delim && delim != std::string::npos && delim < pos_c) {
           user = url.substr(pos_p, delim - pos_p);
           delim += 1;
           pass = url.substr(delim, pos_c - delim);

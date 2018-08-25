@@ -18,17 +18,22 @@ repositories {
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.1"
     defaultConfig {
         applicationId "org.purplei2p.i2pd"
-        targetSdkVersion 25
+        targetSdkVersion 28
         minSdkVersion 14
         versionCode 1
-        versionName "2.18.0"
+        versionName "2.20.0"
         ndk {
             abiFilters 'armeabi-v7a'
-            //abiFilters 'x86'
+            abiFilters 'x86'
+        }
+        externalNativeBuild {
+            ndkBuild {
+                arguments "-j4"
+            }
         }
     }
     sourceSets {
@@ -37,6 +42,7 @@ android {
             java.srcDirs = ['src']
             res.srcDirs = ['res']
             jniLibs.srcDirs = ['libs']
+            assets.srcDirs = ['assets']
         }
     }
     signingConfigs {
@@ -49,7 +55,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             signingConfig signingConfigs.orignal
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
         }
