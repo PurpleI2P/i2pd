@@ -117,7 +117,8 @@ namespace data
 
 				bool operator==(const Address& other) const
 				{
-					return transportStyle == other.transportStyle && host == other.host && port == other.port;
+					return transportStyle == other.transportStyle && IsNTCP2 () == other.IsNTCP2 () &&
+						host == other.host && port == other.port;
 				}
 
 				bool operator!=(const Address& other) const
