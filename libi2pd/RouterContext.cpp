@@ -476,15 +476,12 @@ namespace i2p
 			}
 		}
 
-		if (!updated) 
+		if (!updated && port) // we have found NTCP2 v4 but not v6
 		{
-			if (port) // we have found NTCP2 v4 but not v6
-			{
-				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);	
-				PublishNTCP2Address (port, true);
-			}
+			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);	
+			updated = true;
 		}
-		else
+		if (updated)
 			UpdateRouterInfo ();	
 	}
 

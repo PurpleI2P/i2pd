@@ -696,12 +696,11 @@ namespace data
 		m_Caps |= eSSUIntroducer;
 	}
 
-	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv)
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host, int port)
 	{
-		for (const auto& it: *m_Addresses) // don't insert one more NTCP2
-			if (it->ntcp2) return;
 		auto addr = std::make_shared<Address>();
-		addr->port = 0;
+		addr->host = host;
+		addr->port = port;
 		addr->transportStyle = eTransportNTCP;
 		addr->cost = 3;
 		addr->date = 0;
