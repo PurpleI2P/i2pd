@@ -1179,6 +1179,8 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetSocket ().remote_endpoint ());
+			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
+				context.UpdateNTCP2V6Address (conn->GetSocket ().local_endpoint ().address ());
 			conn->ClientLogin ();
 		}
 	}

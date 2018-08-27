@@ -453,6 +453,41 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
+	{
+		bool updated = false;
+		int port = 0;
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto& addr: addresses)
+		{
+			if (addr->IsPublishedNTCP2 ())
+			{
+				if (addr->host.is_v6 ())
+				{
+					if (addr->host != host)
+					{
+						addr->host = host;
+						updated = true;
+						break;
+					}
+				}
+				else
+					port = addr->port; // NTCP2 v4
+			}
+		}
+
+		if (!updated) 
+		{
+			if (port) // we have found NTCP2 v4 but not v6
+			{
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);	
+				PublishNTCP2Address (port, true);
+			}
+		}
+		else
+			UpdateRouterInfo ();	
+	}
+
 	void RouterContext::UpdateStats ()
 	{
 		if (m_IsFloodfill)
