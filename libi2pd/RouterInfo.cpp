@@ -706,6 +706,7 @@ namespace data
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
+		if (port) addr->ntcp2->isPublished = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);	
 		m_Addresses->push_back(std::move(addr));
