@@ -41,7 +41,7 @@ ifeq ($(USE_AVX),1)
 	CXXFLAGS += -mavx
 endif
 
-install:
+install: all
 	install -d ${PREFIX}/bin ${PREFIX}/etc/i2pd ${PREFIX}/share/doc/i2pd ${PREFIX}/share/i2pd ${PREFIX}/share/man/man1 ${PREFIX}/var/lib/i2pd
 	install -m 755 ${I2PD} ${PREFIX}/bin/
 	install -m 644 contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/etc/i2pd
