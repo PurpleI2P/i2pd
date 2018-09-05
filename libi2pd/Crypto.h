@@ -267,7 +267,7 @@ namespace crypto
 #else
 #   define LEGACY_OPENSSL 0
 #   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
-#	   define OPENSSL_EDDSA
+#	   define OPENSSL_EDDSA 1
 #   endif
 #endif
 

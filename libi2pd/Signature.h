@@ -394,7 +394,9 @@ namespace crypto
 			~EDDSA25519Signer ();
 			
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; };
+#if !OPENSSL_EDDSA
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+#endif
 
 		private:
 #if OPENSSL_EDDSA
