@@ -18,6 +18,7 @@
 #include <map>
 #include <array>
 #include <openssl/bn.h>
+#include <openssl/evp.h>
 #include <boost/asio.hpp>
 #include "util.h"
 #include "RouterInfo.h"
@@ -110,6 +111,9 @@ namespace transport
 
 		BN_CTX * m_Ctx;
 		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
+#if OPENSSL_X25519
+		EVP_PKEY * m_EphemeralPkey;
+#endif
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len; 
