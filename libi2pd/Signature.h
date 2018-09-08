@@ -367,6 +367,8 @@ namespace crypto
 		public:
 
 			EDDSA25519Verifier (const uint8_t * signingKey);
+			~EDDSA25519Verifier ();
+			
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
 			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
@@ -374,8 +376,13 @@ namespace crypto
 
 		private:
 
+#if OPENSSL_EDDSA
+			EVP_PKEY * m_Pkey;
+			EVP_MD_CTX * m_MDCtx;
+#else			
 			EDDSAPoint m_PublicKey;
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
+#endif			
 	};
 
 	class EDDSA25519Signer: public Signer
@@ -384,20 +391,41 @@ namespace crypto
 
 			EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr);
 			// we pass signingPublicKey to check if it matches private key
+			~EDDSA25519Signer ();
+			
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; };
+#if !OPENSSL_EDDSA
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+#endif
 
 		private:
-
+#if OPENSSL_EDDSA
+			EVP_PKEY * m_Pkey;
+			EVP_MD_CTX * m_MDCtx;
+#else			
 			uint8_t m_ExpandedPrivateKey[64];
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
+#endif			
 	};
 
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
+#if OPENSSL_EDDSA	
+		EVP_PKEY *pkey = NULL;
+		EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_ED25519, NULL);
+		EVP_PKEY_keygen_init (pctx);
+		EVP_PKEY_keygen (pctx, &pkey);
+		EVP_PKEY_CTX_free (pctx);
+		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
+		EVP_PKEY_get_raw_public_key (pkey, signingPublicKey, &len);
+		len = EDDSA25519_PRIVATE_KEY_LENGTH;
+		EVP_PKEY_get_raw_private_key (pkey, signingPrivateKey, &len);
+		EVP_PKEY_free (pkey);	
+#else		
 		RAND_bytes (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
 		EDDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
+#endif		
 	}
 
 

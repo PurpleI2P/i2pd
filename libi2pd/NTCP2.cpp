@@ -41,6 +41,9 @@ namespace transport
 		delete[] m_SessionRequestBuffer; 
 		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
+#if OPENSSL_X25519
+		EVP_PKEY_free (m_EphemeralPkey);
+#endif
 	}
 
 	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived)
@@ -119,7 +122,18 @@ namespace transport
 
 		// x25519 between remote pub and priv
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (GetRemotePub (), GetPriv (), inputKeyMaterial, m_Ctx); 
+#if OPENSSL_X25519
+		auto pctx = EVP_PKEY_CTX_new (m_EphemeralPkey, NULL);	
+		EVP_PKEY_derive_init (pctx);
+		auto pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_X25519, NULL, GetRemotePub (), 32);
+		EVP_PKEY_derive_set_peer (pctx, pkey);
+		size_t len = 32;
+		EVP_PKEY_derive (pctx, inputKeyMaterial, &len); 	
+		EVP_PKEY_free (pkey);
+		EVP_PKEY_CTX_free (pctx);
+#else
+		i2p::crypto::GetEd25519 ()->ScalarMul (GetRemotePub (), GetPriv (), inputKeyMaterial, m_Ctx);
+#endif 
 		MixKey (inputKeyMaterial, m_K);
 	}
 
@@ -149,8 +163,21 @@ namespace transport
 
 	void NTCP2Establisher::CreateEphemeralKey ()
 	{
+#if OPENSSL_X25519
+		m_EphemeralPkey = nullptr;
+		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (NID_X25519, NULL);
+		EVP_PKEY_keygen_init (pctx);
+		EVP_PKEY_keygen (pctx, &m_EphemeralPkey);
+		EVP_PKEY_CTX_free (pctx);
+		// TODO: remove, after switch to m_EphemeralPkey 
+		size_t len = 32;
+		EVP_PKEY_get_raw_public_key (m_EphemeralPkey, m_EphemeralPublicKey, &len);
+		len = 32;
+		EVP_PKEY_get_raw_private_key (m_EphemeralPkey, m_EphemeralPrivateKey, &len);
+#else
 		RAND_bytes (m_EphemeralPrivateKey, 32);
 		i2p::crypto::GetEd25519 ()->ScalarMulB (m_EphemeralPrivateKey, m_EphemeralPublicKey, m_Ctx);
+#endif
 	}
 
 	void NTCP2Establisher::CreateSessionRequestMessage ()
@@ -1179,6 +1206,8 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetSocket ().remote_endpoint ());
+			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
+				context.UpdateNTCP2V6Address (conn->GetSocket ().local_endpoint ().address ());
 			conn->ClientLogin ();
 		}
 	}

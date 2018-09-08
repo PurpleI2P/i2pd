@@ -500,7 +500,8 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							auto tun = std::make_shared<i2p::proxy::SOCKSProxy>(name, address, port, false, "", destinationPort, localDestination);
+							std::string outproxy = section.second.get("outproxy", "");
+							auto tun = std::make_shared<i2p::proxy::SOCKSProxy>(name, address, port, !outproxy.empty(), outproxy, destinationPort, localDestination);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}

@@ -741,7 +741,7 @@ namespace client
 		std::string response;
 		uint8_t recv_buf[4096];
 		bool end = false;
-		int numAttempts = 5;
+		int numAttempts = 0;
 		while (!end)
 		{
 			stream->AsyncReceive (boost::asio::buffer (recv_buf, 4096),
@@ -755,7 +755,8 @@ namespace client
 				},
 				SUBSCRIPTION_REQUEST_TIMEOUT);
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+			// wait 1 more second
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT + 1)) == std::cv_status::timeout)
 			{
 				LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
 				numAttempts++;

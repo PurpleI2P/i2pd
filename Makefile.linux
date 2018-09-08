@@ -21,8 +21,10 @@ else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
 	NEEDED_CXXFLAGS += -std=c++0x
 else ifeq ($(shell expr match ${CXXVER} "[5-7]\.[0-9]"),3) # gcc >= 5.0
 	NEEDED_CXXFLAGS += -std=c++11
+	LDLIBS = -latomic
 else ifeq ($(shell expr match ${CXXVER} "[7-8]"),1) # gcc 7 ubuntu or gcc 8 arch
 	NEEDED_CXXFLAGS += -std=c++11
+	LDLIBS = -latomic
 else # not supported
 $(error Compiler too old)
 endif
@@ -34,7 +36,7 @@ ifeq ($(USE_STATIC),yes)
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
 	LIBDIR := /usr/lib
-	LDLIBS  = $(LIBDIR)/libboost_system.a
+	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
 	LDLIBS += $(LIBDIR)/libboost_program_options.a
@@ -44,7 +46,7 @@ ifeq ($(USE_STATIC),yes)
 	LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt -ldl
 	USE_AESNI := no
 else
-	LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 endif
 
 # UPNP Support (miniupnpc 1.5 and higher)

@@ -100,6 +100,7 @@ namespace i2p
 			void SetSupportsV4 (bool supportsV4);
 
 			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session
+			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from NTCP2 session
 			void UpdateStats ();
 			void CleanupDestination ();	// garlic destination
 
