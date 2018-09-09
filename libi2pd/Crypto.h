@@ -66,6 +66,7 @@ namespace crypto
 		public:
 
 			X25519Keys ();
+			X25519Keys (const uint8_t * priv, const uint8_t * pub); // for RouterContext
 			~X25519Keys ();
 
 			void GenerateKeys ();

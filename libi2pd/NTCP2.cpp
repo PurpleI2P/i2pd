@@ -31,19 +31,14 @@ namespace transport
 	NTCP2Establisher::NTCP2Establisher ():
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr) 
 	{ 
-		m_Ctx = BN_CTX_new (); 
 		CreateEphemeralKey ();
 	}
 
 	NTCP2Establisher::~NTCP2Establisher () 
 	{ 
-		BN_CTX_free (m_Ctx); 
 		delete[] m_SessionRequestBuffer; 
 		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
-#if OPENSSL_X25519
-		EVP_PKEY_free (m_EphemeralPkey);
-#endif
 	}
 
 	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived)
@@ -59,7 +54,7 @@ namespace transport
 		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, const uint8_t * priv, const uint8_t * rs, const uint8_t * epub)
+	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
 		static const uint8_t protocolNameHash[] = 
 		{ 
@@ -83,20 +78,20 @@ namespace transport
 		SHA256_Update (&ctx, m_H, 32);
 		SHA256_Update (&ctx, epub, 32);
 		SHA256_Final (m_H, &ctx);
-		// x25519 between rs and priv
+		// x25519 between pub and priv
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (pub, priv, inputKeyMaterial, m_Ctx); // rs*priv
+		priv.Agree (pub, inputKeyMaterial);
 		MixKey (inputKeyMaterial, m_K);
 	}
 
 	void NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, GetPriv (), m_RemoteStaticKey, GetPub ());
+		KeyDerivationFunction1 (m_RemoteStaticKey, m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 	
 	void NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticPrivateKey (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ()); 
+		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetStaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ()); 
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
@@ -140,14 +135,14 @@ namespace transport
 	void NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (GetRemotePub (), i2p::context.GetNTCP2StaticPrivateKey (), inputKeyMaterial, m_Ctx); 
+		i2p::context.GetStaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);		 
 		MixKey (inputKeyMaterial, m_K);
 	}
 
 	void NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (m_RemoteStaticKey, GetPriv (), inputKeyMaterial, m_Ctx); 
+		m_EphemeralKeys.Agree (m_RemoteStaticKey, inputKeyMaterial); 
 		MixKey (inputKeyMaterial, m_K);
 	}
 

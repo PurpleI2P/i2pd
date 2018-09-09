@@ -62,6 +62,7 @@ namespace i2p
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
+			i2p::crypto::X25519Keys& GetStaticKeys (); 
 
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
@@ -143,6 +144,7 @@ namespace i2p
 			int m_NetID;
 			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
+			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
 	};
 
 	extern RouterContext context;

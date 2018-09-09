@@ -620,4 +620,14 @@ namespace i2p
 	{
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, false) : false;
 	}
+
+	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
+	{
+		if (!m_StaticKeys)
+		{	
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
+			m_StaticKeys.reset (new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey));
+		}
+		return *m_StaticKeys;		
+	}	
 }

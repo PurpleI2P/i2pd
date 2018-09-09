@@ -286,6 +286,19 @@ namespace crypto
 		m_Ctx = BN_CTX_new ();
 #endif		
 	}	
+
+	X25519Keys::X25519Keys (const uint8_t * priv, const uint8_t * pub)
+	{
+#if OPENSSL_X25519		
+		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
+		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
+		memcpy (m_PublicKey, pub, 32); // TODO: verify against m_Pkey
+#else
+		memcpy (m_PrivateKey, priv, 32);
+		memcpy (m_PublicKey, pub, 32);
+		m_Ctx = BN_CTX_new ();
+#endif		
+	}	
 	
 	X25519Keys::~X25519Keys ()
 	{
@@ -304,11 +317,13 @@ namespace crypto
 		m_Pkey = nullptr;
 		EVP_PKEY_keygen_init (m_Ctx);
 		EVP_PKEY_keygen (m_Ctx, &m_Pkey);
+		EVP_PKEY_CTX_free (m_Ctx);
+		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL); // TODO: do we really need to re-create m_Ctx?
 		size_t len = 32;
 		EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
 		// TODO: remove 
 		len = 32;
-		EVP_PKEY_get_raw_private_key (m_EphemeralPkey, m_PrivateKey, &len);
+		EVP_PKEY_get_raw_private_key (m_Pkey, m_PrivateKey, &len);
 #else		
 		RAND_bytes (m_PrivateKey, 32);
 		GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
