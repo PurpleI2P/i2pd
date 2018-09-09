@@ -626,7 +626,11 @@ namespace i2p
 		if (!m_StaticKeys)
 		{	
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
-			m_StaticKeys.reset (new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey));
+			auto x = new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey);
+			if (!m_StaticKeys)
+				m_StaticKeys.reset (x);
+			else
+				delete x;
 		}
 		return *m_StaticKeys;		
 	}	

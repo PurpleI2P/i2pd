@@ -71,18 +71,17 @@ namespace crypto
 
 			void GenerateKeys ();
 			const uint8_t * GetPublicKey () const { return m_PublicKey; };
-			const uint8_t * GetPrivateKey () const { return m_PrivateKey; }; // TODO: remove
 			void Agree (const uint8_t * pub, uint8_t * shared);			
 
 		private:
 
-			uint8_t m_PublicKey[32];	
-			uint8_t m_PrivateKey[32]; // TODO: move to #else
+			uint8_t m_PublicKey[32];		
 #if OPENSSL_X25519
 			EVP_PKEY_CTX * m_Ctx;
 			EVP_PKEY * m_Pkey;
 #else			
 			BN_CTX * m_Ctx;
+			uint8_t m_PrivateKey[32];
 #endif			
 	};
 	

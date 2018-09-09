@@ -17,7 +17,6 @@
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Crypto.h"
-#include "Ed25519.h"
 #include "Siphash.h"
 #include "RouterContext.h"
 #include "Transports.h"

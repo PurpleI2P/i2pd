@@ -18,7 +18,6 @@
 #include <map>
 #include <array>
 #include <openssl/bn.h>
-#include <openssl/evp.h>
 #include <boost/asio.hpp>
 #include "Crypto.h"
 #include "util.h"
