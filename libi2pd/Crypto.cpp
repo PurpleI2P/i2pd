@@ -321,9 +321,6 @@ namespace crypto
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL); // TODO: do we really need to re-create m_Ctx?
 		size_t len = 32;
 		EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
-		// TODO: remove 
-		len = 32;
-		EVP_PKEY_get_raw_private_key (m_Pkey, m_PrivateKey, &len);
 #else		
 		RAND_bytes (m_PrivateKey, 32);
 		GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
