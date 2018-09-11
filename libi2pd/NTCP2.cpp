@@ -390,6 +390,10 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
+		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
+#if OPENSSL_SIPHASH
+		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
+#endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
@@ -412,6 +416,12 @@ namespace transport
 	{
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
+#if OPENSSL_SIPHASH
+		if (m_SendSipKey) EVP_PKEY_free (m_SendSipKey);
+		if (m_ReceiveSipKey) EVP_PKEY_free (m_ReceiveSipKey);
+		if (m_SendMDCtx) EVP_MD_CTX_destroy (m_SendMDCtx);
+		if (m_ReceiveMDCtx) EVP_MD_CTX_destroy (m_ReceiveMDCtx);
+#endif
 	}
 
 	void NTCP2Session::Terminate ()
@@ -621,8 +631,7 @@ namespace transport
 		// Alice data phase keys
 		m_SendKey = m_Kab;
 		m_ReceiveKey = m_Kba; 
-		m_SendSipKey = m_Sipkeysab; 
-		m_ReceiveSipKey = m_Sipkeysba;
+		SetSipKeys (m_Sipkeysab, m_Sipkeysba);
 		memcpy (m_ReceiveIV.buf, m_Sipkeysba + 16, 8);
 		memcpy (m_SendIV.buf, m_Sipkeysab + 16, 8);
 		Established ();
@@ -674,8 +683,7 @@ namespace transport
 					// Bob data phase keys
 					m_SendKey = m_Kba;
 					m_ReceiveKey = m_Kab; 
-					m_SendSipKey = m_Sipkeysba; 
-					m_ReceiveSipKey = m_Sipkeysab;
+					SetSipKeys (m_Sipkeysba, m_Sipkeysab);
 					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
 					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
 					// payload
@@ -733,6 +741,26 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
+	{
+#if OPENSSL_SIPHASH
+		m_SendSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
+		m_SendMDCtx = EVP_MD_CTX_create ();	
+		EVP_PKEY_CTX *ctx = nullptr;
+		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, m_SendSipKey);
+		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);	
+
+		m_ReceiveSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
+		m_ReceiveMDCtx = EVP_MD_CTX_create ();	
+		ctx = nullptr;
+		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, m_ReceiveSipKey);
+		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+#else
+		m_SendSipKey = sendSipKey;
+		m_ReceiveSipKey = receiveSipKey;
+#endif
+	}
+
 	void NTCP2Session::ClientLogin ()
 	{
 		SendSessionRequest ();
@@ -763,7 +791,14 @@ namespace transport
 		}
 		else
 		{
+#if OPENSSL_SIPHASH
+			EVP_DigestSignInit (m_ReceiveMDCtx, nullptr, nullptr, nullptr, nullptr);
+			EVP_DigestSignUpdate (m_ReceiveMDCtx, m_ReceiveIV.buf, 8); 
+			size_t l = 8;    
+			EVP_DigestSignFinal (m_ReceiveMDCtx, m_ReceiveIV.buf, &l);   
+#else
 			i2p::crypto::Siphash<8> (m_ReceiveIV.buf, m_ReceiveIV.buf, 8, m_ReceiveSipKey);
+#endif
 			// m_NextReceivedLen comes from the network in BigEndian
 			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ le16toh (m_ReceiveIV.key);
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
@@ -884,7 +919,14 @@ namespace transport
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		m_NextSendBuffer = new uint8_t[len + 16 + 2];
 		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
+#if OPENSSL_SIPHASH
+		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
+		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8); 
+		size_t l = 8;    
+		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);   
+#else
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
+#endif
 		// length must be in BigEndian
 		htobe16buf (m_NextSendBuffer, (len + 16) ^ le16toh (m_SendIV.key));
 		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);

@@ -18,6 +18,7 @@
 #include <map>
 #include <array>
 #include <openssl/bn.h>
+#include <openssl/evp.h>
 #include <boost/asio.hpp>
 #include "Crypto.h"
 #include "util.h"
@@ -147,6 +148,7 @@ namespace transport
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void KeyDerivationFunctionDataPhase ();
+			void SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey);
 
 			// establish
 			void SendSessionRequest ();
@@ -186,7 +188,13 @@ namespace transport
 			std::unique_ptr<NTCP2Establisher> m_Establisher;
 			// data phase
 			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
-			const uint8_t * m_SendKey, * m_ReceiveKey, * m_SendSipKey, * m_ReceiveSipKey;
+			const uint8_t * m_SendKey, * m_ReceiveKey;
+#if OPENSSL_SIPHASH 
+			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
+			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
+#else
+			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;
+#endif
 			uint16_t m_NextReceivedLen; 
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
 			union
