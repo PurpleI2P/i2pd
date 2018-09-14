@@ -70,6 +70,7 @@ namespace crypto
 	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		size_t l = 64;	
+		EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, NULL);
 		EVP_DigestSign (m_MDCtx, signature, &l, buf, len); 
 	}	
 	
