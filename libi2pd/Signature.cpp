@@ -88,18 +88,18 @@ namespace crypto
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_ED25519, NULL, signingPrivateKey, 32);
 		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];	
 		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
-		EVP_PKEY_get_raw_public_key (pkey, publicKey, &len);
-		if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
+		EVP_PKEY_get_raw_public_key (m_Pkey, publicKey, &len);
+		//if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
 		{
 			LogPrint (eLogWarning, "EdDSA public key mismatch. Fallback");
 			EVP_PKEY_free (m_Pkey);
 			m_Fallback = new EDDSA25519SignerCompat (signingPrivateKey, signingPublicKey);
 		}
-		else
+		/*else
 		{		
 			m_MDCtx = EVP_MD_CTX_create ();	
 			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
-		}	
+		}*/	
 	}
 
 	EDDSA25519Signer::~EDDSA25519Signer ()
