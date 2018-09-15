@@ -385,6 +385,24 @@ namespace crypto
 #endif			
 	};
 
+	class EDDSA25519SignerCompat: public Signer
+	{
+		public:
+
+			EDDSA25519SignerCompat (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr);
+			// we pass signingPublicKey to check if it matches private key
+			~EDDSA25519SignerCompat ();
+			
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+
+		private:
+		
+			uint8_t m_ExpandedPrivateKey[64];
+			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
+	};
+
+#if OPENSSL_EDDSA	
 	class EDDSA25519Signer: public Signer
 	{
 		public:
@@ -394,20 +412,18 @@ namespace crypto
 			~EDDSA25519Signer ();
 			
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-#if !OPENSSL_EDDSA
-			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
-#endif
 
 		private:
-#if OPENSSL_EDDSA
 			EVP_PKEY * m_Pkey;
-			EVP_MD_CTX * m_MDCtx;
-#else			
-			uint8_t m_ExpandedPrivateKey[64];
-			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
-#endif			
+			EVP_MD_CTX * m_MDCtx;	
+			EDDSA25519SignerCompat * m_Fallback;
 	};
+#else
 
+	typedef EDDSA25519SignerCompat EDDSA25519Signer;
+	
+#endif	
+	
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 #if OPENSSL_EDDSA	
