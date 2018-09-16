@@ -89,17 +89,17 @@ namespace crypto
 		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];	
 		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
 		EVP_PKEY_get_raw_public_key (m_Pkey, publicKey, &len);
-		//if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
+		if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
 		{
 			LogPrint (eLogWarning, "EdDSA public key mismatch. Fallback");
 			EVP_PKEY_free (m_Pkey);
 			m_Fallback = new EDDSA25519SignerCompat (signingPrivateKey, signingPublicKey);
 		}
-		/*else
+		else
 		{		
 			m_MDCtx = EVP_MD_CTX_create ();	
 			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
-		}*/	
+		}	
 	}
 
 	EDDSA25519Signer::~EDDSA25519Signer ()
@@ -118,8 +118,9 @@ namespace crypto
 		else
 		{	
 			size_t l = 64;	
-			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, NULL);
-			EVP_DigestSign (m_MDCtx, signature, &l, buf, len); 
+			uint8_t sig[64];  // temporary buffer for signature. openssl issue #7232
+			EVP_DigestSign (m_MDCtx, sig, &l, buf, len); 
+			memcpy (signature, sig, 64);
 		}	
 	}		
 #endif	
