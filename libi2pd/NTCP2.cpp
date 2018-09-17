@@ -806,7 +806,16 @@ namespace transport
 			{	
 				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
 				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
-				Receive ();
+				boost::system::error_code ec;
+				size_t moreBytes = m_Socket.available(ec);
+				if (!ec && moreBytes >= m_NextReceivedLen)
+				{
+					// read and process messsage immediately if avaliable
+					moreBytes = boost::asio::read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (), ec);
+					HandleReceived (ec, moreBytes);
+				}
+				else
+					Receive ();
 			}
 			else
 			{
