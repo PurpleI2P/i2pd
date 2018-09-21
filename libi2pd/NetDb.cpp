@@ -130,18 +130,17 @@ namespace data
 					lastDestinationCleanup = ts;
 				}
 
-				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL && !m_HiddenMode) // publish
+				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // update timestamp and publish 
 				{
-					Publish ();
+					i2p::context.UpdateTimestamp (ts);
+					if (!m_HiddenMode) Publish ();
 					lastPublish = ts;
 				}
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
-					if (numRouters == 0)
-					{
-                                                throw std::runtime_error("No known routers, reseed seems to be totally failed");
-					}
+					if (!numRouters)
+                    	throw std::runtime_error("No known routers, reseed seems to be totally failed");
 					else // we have peers now
 						m_FloodfillBootstrap = nullptr;
 					if (numRouters < 2500 || ts - lastExploratory >= 90)

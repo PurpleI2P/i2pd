@@ -103,6 +103,7 @@ namespace i2p
 			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from NTCP2 session
 			void UpdateStats ();
+			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
 			void CleanupDestination ();	// garlic destination
 
 			// implements LocalDestination
@@ -134,7 +135,7 @@ namespace i2p
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
-			uint64_t m_LastUpdateTime;
+			uint64_t m_LastUpdateTime; // in seconds
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch
 			uint64_t m_BandwidthLimit; // allowed bandwidth

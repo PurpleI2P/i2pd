@@ -497,6 +497,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::UpdateTimestamp (uint64_t ts)
+	{
+		if (ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+			UpdateRouterInfo ();
+	}
+
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
