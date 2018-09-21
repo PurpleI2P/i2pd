@@ -709,6 +709,12 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);							
 						return;
 					}
+					if (i2p::util::GetMillisecondsSinceEpoch () > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+					{
+						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed");	
+						SendTerminationAndTerminate (eNTCP2Message3Error);							
+						return;
+					}
 					auto addr = ri.GetNTCP2Address (false); // any NTCP2 address
 					if (!addr)
 					{
