@@ -6,7 +6,6 @@
 #include <openssl/dsa.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
-#include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include "Crypto.h"
 #include "Ed25519.h"
@@ -149,6 +148,7 @@ namespace crypto
 		enum { hashLen = 64 };
 	};
 
+	// EcDSA
 	template<typename Hash, int curve, size_t keyLen>
 	class ECDSAVerifier: public Verifier
 	{
@@ -269,97 +269,6 @@ namespace crypto
 		CreateECDSARandomKeys (NID_secp521r1, ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
 	}
 
-// RSA
-	template<typename Hash, int type, size_t keyLen>
-	class RSAVerifier: public Verifier
-	{
-		public:
-
-			RSAVerifier (const uint8_t * signingKey)
-			{
-				m_PublicKey = RSA_new ();
-				RSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, keyLen, NULL) /* n */ , BN_dup (GetRSAE ()) /* d */, NULL);
-			}
-
-			~RSAVerifier ()
-			{
-				RSA_free (m_PublicKey);
-			}
-
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
-			{
-				uint8_t digest[Hash::hashLen];
-				Hash::CalculateHash (buf, len, digest);
-				return RSA_verify (type, digest, Hash::hashLen, signature, GetSignatureLen (), m_PublicKey);
-			}
-			size_t GetPublicKeyLen () const { return keyLen; }
-			size_t GetSignatureLen () const { return keyLen; }
-			size_t GetPrivateKeyLen () const { return GetSignatureLen ()*2; };
-
-		private:
-
-			RSA * m_PublicKey;
-	};
-
-
-	template<typename Hash, int type, size_t keyLen>
-	class RSASigner: public Signer
-	{
-		public:
-
-			RSASigner (const uint8_t * signingPrivateKey)
-			{
-				m_PrivateKey = RSA_new ();
-				RSA_set0_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen, NULL), /* n */
-					BN_dup (GetRSAE ()) /* e */, BN_bin2bn (signingPrivateKey + keyLen, keyLen, NULL) /* d */);
-			}
-
-			~RSASigner ()
-			{
-				RSA_free (m_PrivateKey);
-			}
-
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
-			{
-				uint8_t digest[Hash::hashLen];
-				Hash::CalculateHash (buf, len, digest);
-				unsigned int signatureLen = keyLen;
-				RSA_sign (type, digest, Hash::hashLen, signature, &signatureLen, m_PrivateKey);
-			}
-
-		private:
-
-			RSA * m_PrivateKey;
-	};
-
-	inline void CreateRSARandomKeys (size_t publicKeyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
-	{
-		RSA * rsa = RSA_new ();
-		BIGNUM * e = BN_dup (GetRSAE ()); // make it non-const
-		RSA_generate_key_ex (rsa, publicKeyLen*8, e, NULL);
-		const BIGNUM * n, * d, * e1;
-		RSA_get0_key (rsa, &n, &e1, &d);
-		bn2buf (n, signingPrivateKey, publicKeyLen);
-		bn2buf (d, signingPrivateKey + publicKeyLen, publicKeyLen);
-		bn2buf (n, signingPublicKey, publicKeyLen);
-		BN_free (e); // this e is not assigned to rsa->e
-		RSA_free (rsa);
-	}
-
-//  RSA_SHA256_2048
-	const size_t RSASHA2562048_KEY_LENGTH = 256;
-	typedef RSAVerifier<SHA256Hash, NID_sha256, RSASHA2562048_KEY_LENGTH> RSASHA2562048Verifier;
-	typedef RSASigner<SHA256Hash, NID_sha256, RSASHA2562048_KEY_LENGTH> RSASHA2562048Signer;
-
-//  RSA_SHA384_3072
-	const size_t RSASHA3843072_KEY_LENGTH = 384;
-	typedef RSAVerifier<SHA384Hash, NID_sha384, RSASHA3843072_KEY_LENGTH> RSASHA3843072Verifier;
-	typedef RSASigner<SHA384Hash, NID_sha384, RSASHA3843072_KEY_LENGTH> RSASHA3843072Signer;
-
-//  RSA_SHA512_4096
-	const size_t RSASHA5124096_KEY_LENGTH = 512;
-	typedef RSAVerifier<SHA512Hash, NID_sha512, RSASHA5124096_KEY_LENGTH> RSASHA5124096Verifier;
-	typedef RSASigner<SHA512Hash, NID_sha512, RSASHA5124096_KEY_LENGTH> RSASHA5124096Signer;
 
 	// EdDSA
 	class EDDSA25519Verifier: public Verifier
