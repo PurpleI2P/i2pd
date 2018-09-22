@@ -375,7 +375,7 @@ namespace data
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
 				case CAPS_FLAG_EXTRA_BANDWIDTH2:
-					m_Caps |= Caps::eExtraBandwidth;
+					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
 				break;
 				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
