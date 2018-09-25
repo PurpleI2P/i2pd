@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- normal perm -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- required in API 26+ -->
     <application
         android:allowBackup="true"
         android:icon="@drawable/icon"
