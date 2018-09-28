@@ -39,6 +39,7 @@ namespace transport
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds	
+	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
 
 	enum NTCP2BlockType
 	{
