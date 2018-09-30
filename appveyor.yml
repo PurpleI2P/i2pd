@@ -18,9 +18,9 @@ environment:
 
 install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc"
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu "
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
 
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
 
 - if "%MSYSTEM%" == "MINGW64" (
     c:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
