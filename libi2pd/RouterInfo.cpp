@@ -406,16 +406,14 @@ namespace data
 			if (m_Caps & eExtraBandwidth) caps += (m_Caps & eHighBandwidth) ?
 				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
 				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+			else
+				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill
 		}
 		else
 		{
 			if (m_Caps & eExtraBandwidth)
-			{
 				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-			}
 			else
 				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
 		}
