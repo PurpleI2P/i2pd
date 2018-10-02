@@ -31,16 +31,15 @@ void ClientTunnelConfig::saveToStringStream(std::stringstream& out) {
     out << "address=" << address << "\n"
         << "port=" << port << "\n"
         << "destination=" << dest << "\n"
-        << "keys=" << keys << "\n"
         << "destinationport=" << destinationPort << "\n"
         << "signaturetype=" << sigType << "\n";
+    if(!keys.empty()) out << "keys=" << keys << "\n";
 }
 
 
 void ServerTunnelConfig::saveToStringStream(std::stringstream& out) {
     out << "host=" << host << "\n"
         << "port=" << port << "\n"
-        << "keys=" << keys << "\n"
         << "signaturetype=" << sigType << "\n"
         << "inport=" << inPort << "\n"
         << "accesslist=" << accessList << "\n"
@@ -49,5 +48,6 @@ void ServerTunnelConfig::saveToStringStream(std::stringstream& out) {
         << "address=" << address << "\n"
         << "hostoverride=" << hostOverride << "\n"
         << "webircpassword=" << webircpass << "\n";
+    if(!keys.empty()) out << "keys=" << keys << "\n";
 }
 
