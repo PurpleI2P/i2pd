@@ -96,6 +96,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Thu Oct 4 2018 orignal <i2porignal@yandex.ru> - 2.21.0
+- update to 2.21.0
+
 * Thu Aug 23 2018 orignal <i2porignal@yandex.ru> - 2.20.0
 - update to 2.20.0
 
