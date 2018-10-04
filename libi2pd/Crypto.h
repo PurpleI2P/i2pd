@@ -13,10 +13,23 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/engine.h>
+#include <openssl/opensslv.h>
 
 #include "Base.h"
 #include "Tag.h"
 #include "CPU.h"
+
+// recognize openssl version and features
+#if ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
+#   define LEGACY_OPENSSL 1
+#else
+#   define LEGACY_OPENSSL 0
+#   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
+#	   define OPENSSL_EDDSA 1
+#	   define OPENSSL_X25519 1
+#	   define OPENSSL_SIPHASH 1
+#   endif
+#endif
 
 namespace i2p
 {
@@ -48,6 +61,31 @@ namespace crypto
 			uint8_t m_PublicKey[256];
 	};
 
+	// x25519
+	class X25519Keys
+	{
+		public:
+
+			X25519Keys ();
+			X25519Keys (const uint8_t * priv, const uint8_t * pub); // for RouterContext
+			~X25519Keys ();
+
+			void GenerateKeys ();
+			const uint8_t * GetPublicKey () const { return m_PublicKey; };
+			void Agree (const uint8_t * pub, uint8_t * shared);			
+
+		private:
+
+			uint8_t m_PublicKey[32];		
+#if OPENSSL_X25519
+			EVP_PKEY_CTX * m_Ctx;
+			EVP_PKEY * m_Pkey;
+#else			
+			BN_CTX * m_Ctx;
+			uint8_t m_PrivateKey[32];
+#endif			
+	};
+	
 	// ElGamal
 	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding = false);
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding = false);
@@ -260,18 +298,7 @@ namespace crypto
 }
 }
 
-// take care about openssl version
-#include <openssl/opensslv.h>
-#if ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
-#   define LEGACY_OPENSSL 1
-#else
-#   define LEGACY_OPENSSL 0
-#   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
-#	   define OPENSSL_EDDSA 1
-#	   define OPENSSL_X25519 1
-#   endif
-#endif
-
+// take care about openssl below 1.1.0
 #if LEGACY_OPENSSL
 // define getters and setters introduced in 1.1.0
 inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g)

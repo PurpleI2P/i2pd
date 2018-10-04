@@ -726,8 +726,8 @@ private:
                     // mandatory params
                     std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
                     int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
-                    std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
                     // optional params
+                    std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS, "");
                     int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
                     std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
                     std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");

@@ -497,6 +497,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::UpdateTimestamp (uint64_t ts)
+	{
+		if (ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+			UpdateRouterInfo ();
+	}
+
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
@@ -620,4 +626,18 @@ namespace i2p
 	{
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, false) : false;
 	}
+
+	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
+	{
+		if (!m_StaticKeys)
+		{	
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
+			auto x = new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey);
+			if (!m_StaticKeys)
+				m_StaticKeys.reset (x);
+			else
+				delete x;
+		}
+		return *m_StaticKeys;		
+	}	
 }

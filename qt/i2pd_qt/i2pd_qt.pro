@@ -97,7 +97,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
-    logviewermanager.cpp
+    logviewermanager.cpp \
+    ../../libi2pd/NTCP2.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)

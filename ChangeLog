@@ -1,6 +1,20 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.21.0] - 2018-10-04
+### Added
+- EdDSA, x25519 and SipHash from openssl 1.1.1
+- NTCP2 ipv6 incoming connections
+- Show total number of destination's outgoing tags in the web console
+### Changed
+- Android build with openssl 1.1.1/boost 1.64
+- Bandwidth classes 'P' and 'X' don't add 'O' anymore
+### Fixed
+- Update own RouterInfo if no SSU
+- Recognize 'P' and 'X' routers as high bandwidth without 'O'
+- NTCP address doesn't disappear if NTCP2 enabled
+- Android with api 26+
+
 ## [2.20.0] - 2018-08-23
 ### Added
 - Full implementation of NTCP2

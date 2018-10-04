@@ -17,6 +17,10 @@ repositories {
     }
 }
 
+dependencies {
+    compile 'com.android.support:support-compat:28.0.0'
+}
+
 android {
     compileSdkVersion 28
     buildToolsVersion "28.0.1"
@@ -25,7 +29,7 @@ android {
         targetSdkVersion 28
         minSdkVersion 14
         versionCode 1
-        versionName "2.20.0"
+        versionName "2.21.0"
         ndk {
             abiFilters 'armeabi-v7a'
             abiFilters 'x86'

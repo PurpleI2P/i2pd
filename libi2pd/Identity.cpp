@@ -72,29 +72,10 @@ namespace data
 					break;
 				}
 				case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-				{
-					memcpy (m_StandardIdentity.signingKey, signingKey, 128);
-					excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128; // 128 = 256 - 128
-					excessBuf = new uint8_t[excessLen];
-					memcpy (excessBuf, signingKey + 128, excessLen);
-					break;
-				}
 				case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-				{
-					memcpy (m_StandardIdentity.signingKey, signingKey, 128);
-					excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128; // 256 = 384 - 128
-					excessBuf = new uint8_t[excessLen];
-					memcpy (excessBuf, signingKey + 128, excessLen);
-					break;
-				}
 				case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-				{
-					memcpy (m_StandardIdentity.signingKey, signingKey, 128);
-					excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128; // 384 = 512 - 128
-					excessBuf = new uint8_t[excessLen];
-					memcpy (excessBuf, signingKey + 128, excessLen);
-					break;
-				}
+					LogPrint (eLogError, "Identity: RSA signing key type ", (int)type, " is not supported");
+				break;
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				{
 					size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
@@ -368,32 +349,10 @@ namespace data
 				break;
 			}
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-			{
-				uint8_t signingKey[i2p::crypto::RSASHA2562048_KEY_LENGTH];
-				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128; // 128 = 256- 128
-				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				UpdateVerifier (new i2p::crypto:: RSASHA2562048Verifier (signingKey));
-				break;
-			}
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-			{
-				uint8_t signingKey[i2p::crypto::RSASHA3843072_KEY_LENGTH];
-				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128; // 256 = 384- 128
-				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				UpdateVerifier (new i2p::crypto:: RSASHA3843072Verifier (signingKey));
-				break;
-			}
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-			{
-				uint8_t signingKey[i2p::crypto::RSASHA5124096_KEY_LENGTH];
-				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128; // 384 = 512- 128
-				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				UpdateVerifier (new i2p::crypto:: RSASHA5124096Verifier (signingKey));
-				break;
-			}
+				LogPrint (eLogError, "Identity: RSA signing key type ", (int)keyType, " is not supported");
+			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 			{
 				size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
@@ -564,13 +523,9 @@ namespace data
 				m_Signer.reset (new i2p::crypto::ECDSAP521Signer (m_SigningPrivateKey));
 			break;
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-				m_Signer.reset (new i2p::crypto::RSASHA2562048Signer (m_SigningPrivateKey));
-			break;
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-				m_Signer.reset (new i2p::crypto::RSASHA3843072Signer (m_SigningPrivateKey));
-			break;
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-				m_Signer.reset (new i2p::crypto::RSASHA5124096Signer (m_SigningPrivateKey));
+				LogPrint (eLogError, "Identity: RSA signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
@@ -642,7 +597,7 @@ namespace data
 				case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 				case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 				case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-					LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Create EdDSA");
+					LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
 				// no break here
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);

@@ -1,12 +1,17 @@
 package org.purplei2p.i2pd;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -104,22 +109,41 @@ public class ForegroundService extends Service {
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, I2PDActivity.class), 0);
 
+        // If earlier version channel ID is not used
+        // https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
+        String channelId = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? createNotificationChannel() : "";
+
         // Set the info for the views that show in the notification panel.
-        Notification notification = new Notification.Builder(this)
-                .setSmallIcon(R.drawable.itoopie_notification_icon)  // the status icon
-                .setTicker(text)  // the status text
-                .setWhen(System.currentTimeMillis())  // the time stamp
-                .setContentTitle(getText(R.string.app_name))  // the label of the entry
-                .setContentText(text)  // the contents of the entry
-                .setContentIntent(contentIntent)  // The intent to send when the entry is clicked
+        Notification notification = new NotificationCompat.Builder(this, channelId)
+                .setOngoing(true)
+                .setSmallIcon(R.drawable.itoopie_notification_icon) // the status icon
+                .setPriority(Notification.PRIORITY_DEFAULT)
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .setTicker(text) // the status text
+                .setWhen(System.currentTimeMillis()) // the time stamp
+                .setContentTitle(getText(R.string.app_name)) // the label of the entry
+                .setContentText(text) // the contents of the entry
+                .setContentIntent(contentIntent) // The intent to send when the entry is clicked
                 .build();
 
         // Send the notification.
         //mNM.notify(NOTIFICATION, notification);
         startForeground(NOTIFICATION, notification);
-        shown=true;
+        shown = true;
     }
 
-	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
+    @RequiresApi(Build.VERSION_CODES.O)
+    private synchronized String createNotificationChannel() {
+        String channelId = getString(R.string.app_name);
+        CharSequence channelName = "I2Pd service";
+        NotificationChannel chan = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
+        //chan.setLightColor(Color.PURPLE);
+        chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+        NotificationManager service = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        service.createNotificationChannel(chan);
+        return channelId;
+    }
+
+    private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }
 
