@@ -13,6 +13,7 @@
 - Update own RouterInfo if no SSU
 - Recognize 'P' and 'X' routers as high bandwidth without 'O'
 - NTCP address doesn't disappear if NTCP2 enabled
+- Android with api 26+
 
 ## [2.20.0] - 2018-08-23
 ### Added
