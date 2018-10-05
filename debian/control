@@ -1,7 +1,7 @@
 Source: i2pd
 Section: net
 Priority: optional
-Maintainer: R4SAS <r4sas@i2pmail.org>
+Maintainer: r4sas <r4sas@i2pmail.org>
 Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.17.2~), gcc (>= 4.7) | clang (>= 3.3), libboost-system-dev (>= 1.46), libboost-date-time-dev (>= 1.46), libboost-filesystem-dev (>= 1.46), libboost-program-options-dev (>= 1.46), libminiupnpc-dev, libssl-dev, zlib1g-dev
 Standards-Version: 3.9.6
 Homepage: http://i2pd.website/
