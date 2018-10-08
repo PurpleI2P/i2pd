@@ -1027,11 +1027,29 @@ namespace client
 			{
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
 				if (it != params->end ())
+				{	
 					// TODO: extract string values
-					signatureType = std::stoi(it->second);
+					try
+					{	
+						signatureType = std::stoi(it->second);
+					}
+					catch (const std::exception& ex) 
+					{
+						LogPrint (eLogWarning, "SAM: ", SAM_PARAM_SIGNATURE_TYPE, "error: ", ex.what ());	
+					}		
+				}	
 				it = params->find (SAM_PARAM_CRYPTO_TYPE);
 				if (it != params->end ())
-					cryptoType = std::stoi(it->second);
+				{	
+					try
+					{	
+						cryptoType = std::stoi(it->second);
+					}
+					catch (const std::exception& ex) 
+					{
+						LogPrint (eLogWarning, "SAM: ", SAM_PARAM_CRYPTO_TYPE, "error: ", ex.what ());	
+					}	
+				}	
 			}
 			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
 		}
