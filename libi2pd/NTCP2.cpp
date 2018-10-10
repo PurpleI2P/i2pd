@@ -900,6 +900,11 @@ namespace transport
 				case eNTCP2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "NTCP2: I2NP");
+					if (size > I2NP_MAX_MESSAGE_SIZE)
+					{
+						LogPrint (eLogError, "NTCP2: I2NP block is too long ", size);
+						break;
+					}
 					auto nextMsg = NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
@@ -991,6 +996,11 @@ namespace transport
 					msg->ToNTCP2 ();
 					memcpy (payload + s, msg->GetNTCP2Header (), len);
 					s += len;
+					m_SendQueue.pop_front ();
+				}
+				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
+				{
+					LogPrint (eLogError, "NTCP2: I2NP message of size ", len, " can't be sent. Dropped");
 					m_SendQueue.pop_front ();
 				}
 				else
@@ -1122,7 +1132,7 @@ namespace transport
 							auto conn = std::make_shared<NTCP2Session> (*this);
 							m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
 						} catch ( std::exception & ex ) {
-							LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+							LogPrint(eLogError, "NTCP2: failed to bind to ip6 port ", address->port);
 							continue;
 						}
 					}
