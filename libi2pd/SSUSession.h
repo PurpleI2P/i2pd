@@ -28,6 +28,7 @@ namespace transport
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU_CLOCK_SKEW = 60; // in seconds
+	const size_t SSU_MAX_I2NP_MESSAGE_SIZE = 32768;	
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;

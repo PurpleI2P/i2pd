@@ -929,7 +929,13 @@ namespace transport
 		if (m_State == eSessionStateEstablished)
 		{
 			for (const auto& it: msgs)
-				if (it) m_Data.Send (it);
+				if (it)
+				{
+					if (it->GetLength () <= SSU_MAX_I2NP_MESSAGE_SIZE) 
+						m_Data.Send (it);
+					else
+						LogPrint (eLogError, "SSU: I2NP message of size ", it->GetLength (), " can't be sent. Dropped");
+				}
 		}
 	}
 

@@ -320,7 +320,7 @@ namespace transport
 		uint8_t * msgBuf = msg->GetSSUHeader ();
 
 		uint32_t fragmentNum = 0;
-		while (len > 0)
+		while (len > 0 && fragmentNum <= 127)
 		{
 			Fragment * fragment = new Fragment;
 			fragment->fragmentNum = fragmentNum;
@@ -332,7 +332,7 @@ namespace transport
 			payload++;
 			htobe32buf (payload, msgID);
 			payload += 4;
-			bool isLast = (len <= payloadSize);
+			bool isLast = (len <= payloadSize) || fragmentNum == 127; // 127 fragments max
 			size_t size = isLast ? len : payloadSize;
 			uint32_t fragmentInfo = (fragmentNum << 17);
 			if (isLast)
