@@ -173,6 +173,7 @@ namespace i2p
 			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish))
 			{
 				address->port = port;
+				address->cost = publish ? 3 : 14;
 				address->ntcp2->isPublished = publish;
 				address->ntcp2->iv = m_NTCP2Keys->iv;
 				updated = true;

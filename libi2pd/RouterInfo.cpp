@@ -700,7 +700,7 @@ namespace data
 		addr->host = host;
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP;
-		addr->cost = 3;
+		addr->cost = port ? 3 : 14; // override from RouterContext::PublishNTCP2Address
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address

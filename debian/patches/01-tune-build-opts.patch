@@ -13,5 +13,5 @@ index bdadfe0..2f71eec 100644
  USE_STATIC	:= no
  USE_MESHNET	:= no
  USE_UPNP	:= no
-
- ifeq ($(WEBSOCKETS),1)
+ DEBUG		:= yes
+ 
