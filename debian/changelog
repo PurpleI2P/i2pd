@@ -1,3 +1,9 @@
+i2pd (2.21.1-1) unstable; urgency=medium
+
+  * updated to version 2.21.1
+
+ -- orignal <orignal@i2pmail.org>  Thu, 22 Oct 2018 16:00:00 +0000
+
 i2pd (2.21.0-1) unstable; urgency=medium
 
   * updated to version 2.21.0/0.9.37
