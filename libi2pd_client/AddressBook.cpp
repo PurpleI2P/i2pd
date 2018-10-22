@@ -741,7 +741,7 @@ namespace client
 		std::string response;
 		uint8_t recv_buf[4096];
 		bool end = false;
-		int numAttempts = 5;
+		int numAttempts = 0;
 		while (!end)
 		{
 			stream->AsyncReceive (boost::asio::buffer (recv_buf, 4096),

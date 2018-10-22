@@ -173,6 +173,7 @@ namespace i2p
 			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish))
 			{
 				address->port = port;
+				address->cost = publish ? 3 : 14;
 				address->ntcp2->isPublished = publish;
 				address->ntcp2->iv = m_NTCP2Keys->iv;
 				updated = true;
@@ -453,6 +454,39 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
+	{
+		bool updated = false, found = false;
+		int port = 0;
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto& addr: addresses)
+		{
+			if (addr->IsPublishedNTCP2 ())
+			{
+				if (addr->host.is_v6 ())
+				{
+					if (addr->host != host)
+					{
+						addr->host = host;
+						updated = true;
+					}
+					found = true;
+					break;
+				}
+				else
+					port = addr->port; // NTCP2 v4
+			}
+		}
+
+		if (!found && port) // we have found NTCP2 v4 but not v6
+		{
+			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);	
+			updated = true;
+		}
+		if (updated)
+			UpdateRouterInfo ();	
+	}
+
 	void RouterContext::UpdateStats ()
 	{
 		if (m_IsFloodfill)
@@ -462,6 +496,12 @@ namespace i2p
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS,   std::to_string(i2p::data::netdb.GetNumRouters ()));
 			UpdateRouterInfo ();
 		}
+	}
+
+	void RouterContext::UpdateTimestamp (uint64_t ts)
+	{
+		if (ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+			UpdateRouterInfo ();
 	}
 
 	bool RouterContext::Load ()
@@ -587,4 +627,18 @@ namespace i2p
 	{
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, false) : false;
 	}
+
+	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
+	{
+		if (!m_StaticKeys)
+		{	
+			if (!m_NTCP2Keys) NewNTCP2Keys ();
+			auto x = new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey);
+			if (!m_StaticKeys)
+				m_StaticKeys.reset (x);
+			else
+				delete x;
+		}
+		return *m_StaticKeys;		
+	}	
 }

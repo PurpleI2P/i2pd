@@ -36,7 +36,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)
 	{
-		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE/2) ? NewI2NPShortMessage () : NewI2NPMessage ();
+		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE - I2NP_HEADER_SIZE - 2) ? NewI2NPShortMessage () : NewI2NPMessage ();
 	}
 
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID)

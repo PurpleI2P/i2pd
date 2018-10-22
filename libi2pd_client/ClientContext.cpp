@@ -410,18 +410,44 @@ namespace client
 
 	void ClientContext::ReadTunnels ()
 	{
-		boost::property_tree::ptree pt;
+		int numClientTunnels = 0, numServerTunnels = 0;
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
-		if (tunConf == "") {
+		if (tunConf.empty ()) 
+		{
 			// TODO: cleanup this in 2.8.0
 			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
-			if (i2p::fs::Exists(tunConf)) {
-				LogPrint(eLogWarning, "FS: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
-			} else {
+			if (i2p::fs::Exists(tunConf))
+				LogPrint(eLogWarning, "Clients: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
+			else 
 				tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+		}
+		LogPrint(eLogDebug, "Clients: tunnels config file: ", tunConf);
+		ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
+		
+		std::string tunDir; i2p::config::GetOption("tunnelsdir", tunDir);
+		if (tunDir.empty ())
+			tunDir = i2p::fs::DataDirPath ("tunnels.d");		
+		if (i2p::fs::Exists (tunDir))
+		{
+			std::vector<std::string> files;
+			if (i2p::fs::ReadDir (tunDir, files))
+			{
+				for (auto& it: files)
+				{
+					LogPrint(eLogDebug, "Clients: tunnels extra config file: ", it);
+					ReadTunnels (it, numClientTunnels, numServerTunnels);
+				}
 			}
 		}
-		LogPrint(eLogDebug, "FS: tunnels config file: ", tunConf);
+
+		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
+		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
+	}
+
+	
+	void ClientContext::ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels)
+	{
+		boost::property_tree::ptree pt;
 		try
 		{
 			boost::property_tree::read_ini (tunConf, pt);
@@ -432,7 +458,6 @@ namespace client
 			return;
 		}
 
-		int numClientTunnels = 0, numServerTunnels = 0;
 		for (auto& section: pt)
 		{
 			std::string name = section.first;
@@ -672,8 +697,6 @@ namespace client
 				LogPrint (eLogError, "Clients: Can't read tunnel ", name, " params: ", ex.what ());
 			}
 		}
-		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
-		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
 
 	void ClientContext::ReadHttpProxy ()

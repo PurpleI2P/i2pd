@@ -87,6 +87,7 @@ namespace client
 		private:
 
 			void ReadTunnels ();
+			void ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels);
 			void ReadHttpProxy ();
 			void ReadSocksProxy ();
 			template<typename Section, typename Type>

@@ -18,7 +18,9 @@
 #include <map>
 #include <array>
 #include <openssl/bn.h>
+#include <openssl/evp.h>
 #include <boost/asio.hpp>
+#include "Crypto.h"
 #include "util.h"
 #include "RouterInfo.h"
 #include "TransportSession.h"
@@ -37,6 +39,7 @@ namespace transport
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds	
+	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
 
 	enum NTCP2BlockType
 	{
@@ -77,8 +80,7 @@ namespace transport
 		NTCP2Establisher ();
 		~NTCP2Establisher ();
 		
-		const uint8_t * GetPub () const { return m_EphemeralPublicKey; };
-		const uint8_t * GetPriv () const { return m_EphemeralPrivateKey; };
+		const uint8_t * GetPub () const { return m_EphemeralKeys.GetPublicKey (); };
 		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
 		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
 
@@ -94,7 +96,7 @@ namespace transport
 		void KDF3Bob ();
 
 		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
-		void KeyDerivationFunction1 (const uint8_t * pub, const uint8_t * priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
+		void KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
@@ -108,8 +110,8 @@ namespace transport
 		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
 
-		BN_CTX * m_Ctx;
-		uint8_t m_EphemeralPrivateKey[32], m_EphemeralPublicKey[32], m_RemoteEphemeralPublicKey[32]; // x25519
+		i2p::crypto::X25519Keys m_EphemeralKeys;
+		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len; 
@@ -147,6 +149,7 @@ namespace transport
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			void KeyDerivationFunctionDataPhase ();
+			void SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey);
 
 			// establish
 			void SendSessionRequest ();
@@ -186,7 +189,13 @@ namespace transport
 			std::unique_ptr<NTCP2Establisher> m_Establisher;
 			// data phase
 			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
-			const uint8_t * m_SendKey, * m_ReceiveKey, * m_SendSipKey, * m_ReceiveSipKey;
+			const uint8_t * m_SendKey, * m_ReceiveKey;
+#if OPENSSL_SIPHASH 
+			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
+			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
+#else
+			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;
+#endif
 			uint16_t m_NextReceivedLen; 
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
 			union

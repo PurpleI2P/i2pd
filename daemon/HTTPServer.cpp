@@ -381,10 +381,12 @@ namespace http {
 		s << "<br>\r\n";
 		s << "<b>Tags</b><br>Incoming: <i>" << dest->GetNumIncomingTags () << "</i><br>";
 		if (!dest->GetSessions ().empty ()) {
-			s << "<div class='slide'><label for='slide-tags'>Outgoing:</label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n";
-			for (const auto& it: dest->GetSessions ())
-				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
-			s << "</p>\r\n</div>\r\n";
+			std::stringstream tmp_s; uint32_t out_tags = 0;
+			for (const auto& it: dest->GetSessions ()) {
+				tmp_s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
+				out_tags = out_tags + it.second->GetNumOutgoingTags ();
+			}
+			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n" << tmp_s.str () << "</p>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
 		s << "<br>\r\n";

@@ -17,7 +17,6 @@
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Crypto.h"
-#include "Ed25519.h"
 #include "Siphash.h"
 #include "RouterContext.h"
 #include "Transports.h"
@@ -31,13 +30,11 @@ namespace transport
 	NTCP2Establisher::NTCP2Establisher ():
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr) 
 	{ 
-		m_Ctx = BN_CTX_new (); 
 		CreateEphemeralKey ();
 	}
 
 	NTCP2Establisher::~NTCP2Establisher () 
 	{ 
-		BN_CTX_free (m_Ctx); 
 		delete[] m_SessionRequestBuffer; 
 		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
@@ -56,7 +53,7 @@ namespace transport
 		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
 	}
 
-	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, const uint8_t * priv, const uint8_t * rs, const uint8_t * epub)
+	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
 		static const uint8_t protocolNameHash[] = 
 		{ 
@@ -80,20 +77,20 @@ namespace transport
 		SHA256_Update (&ctx, m_H, 32);
 		SHA256_Update (&ctx, epub, 32);
 		SHA256_Final (m_H, &ctx);
-		// x25519 between rs and priv
+		// x25519 between pub and priv
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (pub, priv, inputKeyMaterial, m_Ctx); // rs*priv
+		priv.Agree (pub, inputKeyMaterial);
 		MixKey (inputKeyMaterial, m_K);
 	}
 
 	void NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, GetPriv (), m_RemoteStaticKey, GetPub ());
+		KeyDerivationFunction1 (m_RemoteStaticKey, m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 	
 	void NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticPrivateKey (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ()); 
+		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetStaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ()); 
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
@@ -117,9 +114,10 @@ namespace transport
 		SHA256_Update (&ctx, epub, 32); 
 		SHA256_Final (m_H, &ctx);
 
-		// x25519 between remote pub and priv
+		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (GetRemotePub (), GetPriv (), inputKeyMaterial, m_Ctx); 
+		m_EphemeralKeys.Agree (GetRemotePub (), inputKeyMaterial);
+		
 		MixKey (inputKeyMaterial, m_K);
 	}
 
@@ -136,21 +134,20 @@ namespace transport
 	void NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (GetRemotePub (), i2p::context.GetNTCP2StaticPrivateKey (), inputKeyMaterial, m_Ctx); 
+		i2p::context.GetStaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);		 
 		MixKey (inputKeyMaterial, m_K);
 	}
 
 	void NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::crypto::GetEd25519 ()->ScalarMul (m_RemoteStaticKey, m_EphemeralPrivateKey, inputKeyMaterial, m_Ctx); 
+		m_EphemeralKeys.Agree (m_RemoteStaticKey, inputKeyMaterial); 
 		MixKey (inputKeyMaterial, m_K);
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
 	{
-		RAND_bytes (m_EphemeralPrivateKey, 32);
-		i2p::crypto::GetEd25519 ()->ScalarMulB (m_EphemeralPrivateKey, m_EphemeralPublicKey, m_Ctx);
+		m_EphemeralKeys.GenerateKeys ();
 	}
 
 	void NTCP2Establisher::CreateSessionRequestMessage ()
@@ -393,6 +390,10 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
+		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
+#if OPENSSL_SIPHASH
+		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
+#endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
@@ -415,6 +416,12 @@ namespace transport
 	{
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
+#if OPENSSL_SIPHASH
+		if (m_SendSipKey) EVP_PKEY_free (m_SendSipKey);
+		if (m_ReceiveSipKey) EVP_PKEY_free (m_ReceiveSipKey);
+		if (m_SendMDCtx) EVP_MD_CTX_destroy (m_SendMDCtx);
+		if (m_ReceiveMDCtx) EVP_MD_CTX_destroy (m_ReceiveMDCtx);
+#endif
 	}
 
 	void NTCP2Session::Terminate ()
@@ -624,8 +631,7 @@ namespace transport
 		// Alice data phase keys
 		m_SendKey = m_Kab;
 		m_ReceiveKey = m_Kba; 
-		m_SendSipKey = m_Sipkeysab; 
-		m_ReceiveSipKey = m_Sipkeysba;
+		SetSipKeys (m_Sipkeysab, m_Sipkeysba);
 		memcpy (m_ReceiveIV.buf, m_Sipkeysba + 16, 8);
 		memcpy (m_SendIV.buf, m_Sipkeysab + 16, 8);
 		Established ();
@@ -677,8 +683,7 @@ namespace transport
 					// Bob data phase keys
 					m_SendKey = m_Kba;
 					m_ReceiveKey = m_Kab; 
-					m_SendSipKey = m_Sipkeysba; 
-					m_ReceiveSipKey = m_Sipkeysab;
+					SetSipKeys (m_Sipkeysba, m_Sipkeysab);
 					memcpy (m_ReceiveIV.buf, m_Sipkeysab + 16, 8);
 					memcpy (m_SendIV.buf, m_Sipkeysba + 16, 8);
 					// payload
@@ -702,6 +707,12 @@ namespace transport
 					{
 						LogPrint (eLogError, "NTCP2: Signature verification failed in SessionConfirmed");	
 						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);							
+						return;
+					}
+					if (i2p::util::GetMillisecondsSinceEpoch () > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+					{
+						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed");	
+						SendTerminationAndTerminate (eNTCP2Message3Error);							
 						return;
 					}
 					auto addr = ri.GetNTCP2Address (false); // any NTCP2 address
@@ -736,6 +747,26 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
+	{
+#if OPENSSL_SIPHASH
+		m_SendSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
+		m_SendMDCtx = EVP_MD_CTX_create ();	
+		EVP_PKEY_CTX *ctx = nullptr;
+		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, m_SendSipKey);
+		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);	
+
+		m_ReceiveSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
+		m_ReceiveMDCtx = EVP_MD_CTX_create ();	
+		ctx = nullptr;
+		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, m_ReceiveSipKey);
+		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+#else
+		m_SendSipKey = sendSipKey;
+		m_ReceiveSipKey = receiveSipKey;
+#endif
+	}
+
 	void NTCP2Session::ClientLogin ()
 	{
 		SendSessionRequest ();
@@ -766,7 +797,14 @@ namespace transport
 		}
 		else
 		{
+#if OPENSSL_SIPHASH
+			EVP_DigestSignInit (m_ReceiveMDCtx, nullptr, nullptr, nullptr, nullptr);
+			EVP_DigestSignUpdate (m_ReceiveMDCtx, m_ReceiveIV.buf, 8); 
+			size_t l = 8;    
+			EVP_DigestSignFinal (m_ReceiveMDCtx, m_ReceiveIV.buf, &l);   
+#else
 			i2p::crypto::Siphash<8> (m_ReceiveIV.buf, m_ReceiveIV.buf, 8, m_ReceiveSipKey);
+#endif
 			// m_NextReceivedLen comes from the network in BigEndian
 			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ le16toh (m_ReceiveIV.key);
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
@@ -774,7 +812,16 @@ namespace transport
 			{	
 				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
 				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
-				Receive ();
+				boost::system::error_code ec;
+				size_t moreBytes = m_Socket.available(ec);
+				if (!ec && moreBytes >= m_NextReceivedLen)
+				{
+					// read and process messsage immediately if avaliable
+					moreBytes = boost::asio::read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (), ec);
+					HandleReceived (ec, moreBytes);
+				}
+				else
+					Receive ();
 			}
 			else
 			{
@@ -853,6 +900,11 @@ namespace transport
 				case eNTCP2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "NTCP2: I2NP");
+					if (size > I2NP_MAX_MESSAGE_SIZE)
+					{
+						LogPrint (eLogError, "NTCP2: I2NP block is too long ", size);
+						break;
+					}
 					auto nextMsg = NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
@@ -887,7 +939,14 @@ namespace transport
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		m_NextSendBuffer = new uint8_t[len + 16 + 2];
 		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
+#if OPENSSL_SIPHASH
+		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
+		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8); 
+		size_t l = 8;    
+		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);   
+#else
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
+#endif
 		// length must be in BigEndian
 		htobe16buf (m_NextSendBuffer, (len + 16) ^ le16toh (m_SendIV.key));
 		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
@@ -937,6 +996,11 @@ namespace transport
 					msg->ToNTCP2 ();
 					memcpy (payload + s, msg->GetNTCP2Header (), len);
 					s += len;
+					m_SendQueue.pop_front ();
+				}
+				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
+				{
+					LogPrint (eLogError, "NTCP2: I2NP message of size ", len, " can't be sent. Dropped");
 					m_SendQueue.pop_front ();
 				}
 				else
@@ -1001,7 +1065,12 @@ namespace transport
 		for (auto it: msgs)
 			m_SendQueue.push_back (it);
 		if (!m_IsSending) 
-			SendQueue ();		
+			SendQueue ();	
+		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
+		{
+			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
+			Terminate ();
+		}	
 	}
 
 	void NTCP2Session::SendLocalRouterInfo ()
@@ -1063,7 +1132,7 @@ namespace transport
 							auto conn = std::make_shared<NTCP2Session> (*this);
 							m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
 						} catch ( std::exception & ex ) {
-							LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+							LogPrint(eLogError, "NTCP2: failed to bind to ip6 port ", address->port);
 							continue;
 						}
 					}
@@ -1179,6 +1248,8 @@ namespace transport
 		else
 		{
 			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetSocket ().remote_endpoint ());
+			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
+				context.UpdateNTCP2V6Address (conn->GetSocket ().local_endpoint ().address ());
 			conn->ClientLogin ();
 		}
 	}

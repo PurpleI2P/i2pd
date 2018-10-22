@@ -375,7 +375,7 @@ namespace data
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
 				case CAPS_FLAG_EXTRA_BANDWIDTH2:
-					m_Caps |= Caps::eExtraBandwidth;
+					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
 				break;
 				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
@@ -406,16 +406,14 @@ namespace data
 			if (m_Caps & eExtraBandwidth) caps += (m_Caps & eHighBandwidth) ?
 				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
 				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+			else
+				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill
 		}
 		else
 		{
 			if (m_Caps & eExtraBandwidth)
-			{
 				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-			}
 			else
 				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
 		}
@@ -696,17 +694,17 @@ namespace data
 		m_Caps |= eSSUIntroducer;
 	}
 
-	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv)
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host, int port)
 	{
-		for (const auto& it: *m_Addresses) // don't insert one more NTCP2
-			if (it->ntcp2) return;
 		auto addr = std::make_shared<Address>();
-		addr->port = 0;
+		addr->host = host;
+		addr->port = port;
 		addr->transportStyle = eTransportNTCP;
-		addr->cost = 3;
+		addr->cost = port ? 3 : 14; // override from RouterContext::PublishNTCP2Address
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
+		if (port) addr->ntcp2->isPublished = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);	
 		m_Addresses->push_back(std::move(addr));

@@ -6,6 +6,26 @@ namespace i2p
 {
 namespace crypto
 {
+#if OPENSSL_EDDSA	
+	EDDSA25519Verifier::EDDSA25519Verifier (const uint8_t * signingKey)
+	{
+		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ED25519, NULL, signingKey, 32);
+		m_MDCtx = EVP_MD_CTX_create ();	
+		EVP_DigestVerifyInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
+	}
+
+	EDDSA25519Verifier::~EDDSA25519Verifier ()
+	{
+		EVP_MD_CTX_destroy (m_MDCtx);
+		EVP_PKEY_free (m_Pkey);
+	}
+
+	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		return EVP_DigestVerify (m_MDCtx, signature, 64, buf, len);
+	}
+	
+#else	
 	EDDSA25519Verifier::EDDSA25519Verifier (const uint8_t * signingKey)
 	{
 		memcpy (m_PublicKeyEncoded, signingKey, EDDSA25519_PUBLIC_KEY_LENGTH);
@@ -14,6 +34,10 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
+	EDDSA25519Verifier::~EDDSA25519Verifier ()
+	{
+	}	
+	
 	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
 		uint8_t digest[64];
@@ -26,8 +50,9 @@ namespace crypto
 
 		return GetEd25519 ()->Verify (m_PublicKey, digest, signature);
 	}
+#endif
 
-	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
+	EDDSA25519SignerCompat::EDDSA25519SignerCompat (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
 	{
 		// expand key
 		Ed25519::ExpandPrivateKey (signingPrivateKey, m_ExpandedPrivateKey);
@@ -47,10 +72,58 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
-	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	EDDSA25519SignerCompat::~EDDSA25519SignerCompat ()
+	{
+	}	
+	
+	void EDDSA25519SignerCompat::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		GetEd25519 ()->Sign (m_ExpandedPrivateKey, m_PublicKeyEncoded, buf, len, signature);
 	}
+	
+#if OPENSSL_EDDSA	
+	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey):
+		m_Fallback (nullptr)
+	{		
+		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_ED25519, NULL, signingPrivateKey, 32);
+		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];	
+		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
+		EVP_PKEY_get_raw_public_key (m_Pkey, publicKey, &len);
+		if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
+		{
+			LogPrint (eLogWarning, "EdDSA public key mismatch. Fallback");
+			EVP_PKEY_free (m_Pkey);
+			m_Fallback = new EDDSA25519SignerCompat (signingPrivateKey, signingPublicKey);
+		}
+		else
+		{		
+			m_MDCtx = EVP_MD_CTX_create ();	
+			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
+		}	
+	}
+
+	EDDSA25519Signer::~EDDSA25519Signer ()
+	{
+		if (m_Fallback) delete m_Fallback;
+		else
+		{
+			EVP_MD_CTX_destroy (m_MDCtx);
+			EVP_PKEY_free (m_Pkey);
+		}		
+	}
+
+	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		if (m_Fallback) return m_Fallback->Sign (buf, len, signature);
+		else
+		{	
+			size_t l = 64;	
+			uint8_t sig[64];  // temporary buffer for signature. openssl issue #7232
+			EVP_DigestSign (m_MDCtx, sig, &l, buf, len); 
+			memcpy (signature, sig, 64);
+		}	
+	}		
+#endif	
 }
 }
 

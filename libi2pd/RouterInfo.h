@@ -117,7 +117,8 @@ namespace data
 
 				bool operator==(const Address& other) const
 				{
-					return transportStyle == other.transportStyle && host == other.host && port == other.port;
+					return transportStyle == other.transportStyle && IsNTCP2 () == other.IsNTCP2 () &&
+						host == other.host && port == other.port;
 				}
 
 				bool operator!=(const Address& other) const
@@ -150,7 +151,7 @@ namespace data
 
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
-			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv);
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0);
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only

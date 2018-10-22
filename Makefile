@@ -130,6 +130,8 @@ doxygen:
 .PHONY: deps
 .PHONY: doxygen
 .PHONY: dist
+.PHONY: last-dist
 .PHONY: api
 .PHONY: api_client
 .PHONY: mk_obj_dir
+.PHONY: install
