@@ -1,6 +1,12 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.21.1] - 2018-10-22
+### Changed
+- cost=13 for unpublished NTCP2 address
+### Fixed
+- Handle I2NP messages longer than 32K
+
 ## [2.21.0] - 2018-10-04
 ### Added
 - EdDSA, x25519 and SipHash from openssl 1.1.1
