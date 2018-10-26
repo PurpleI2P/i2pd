@@ -170,8 +170,17 @@ namespace transport
 		memset (options, 0, 16);
 		options[1] = 2; // ver	
 		htobe16buf (options + 2, paddingLength); // padLen
-		m3p2Len = i2p::context.GetRouterInfo ().GetBufferLen () + 20; // (RI header + RI + MAC for now) TODO: implement options
+		// m3p2Len	
+		auto bufLen = i2p::context.GetRouterInfo ().GetBufferLen ();
+		m3p2Len = bufLen + 4 + 16; // (RI header + RI + MAC for now) TODO: implement options	
 		htobe16buf (options + 4,  m3p2Len);
+		// fill m3p2 payload (RouterInfo block)	
+		m_SessionConfirmedBuffer = new uint8_t[m3p2Len + 48]; // m3p1 is 48 bytes
+		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
+		m3p2[0] = eNTCP2BlkRouterInfo; // block
+		htobe16buf (m3p2 + 1, bufLen + 1); // flag + RI
+		m3p2[3] = 0; // flag 	
+		memcpy (m3p2 + 4, i2p::context.GetRouterInfo ().GetBuffer (), bufLen); // TODO: own RI should be protected by mutex
 		// 2 bytes reserved
 		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
 		// 4 bytes reserved
@@ -223,8 +232,7 @@ namespace transport
 			SHA256_Update (&ctx1, m_SessionCreatedBuffer + 64, paddingLength);			
 			SHA256_Final (m_H, &ctx1);
 		}	
-		// part1 48 bytes 
-		m_SessionConfirmedBuffer = new uint8_t[m3p2Len + 48]; 
+		// part1 48 bytes  
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, m_H, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
 
@@ -237,18 +245,14 @@ namespace transport
 		SHA256_Update (&ctx, m_H, 32);			
 		SHA256_Update (&ctx, m_SessionConfirmedBuffer, 48);			
 		SHA256_Final (m_H, &ctx);		
-		// fill and encrypt
-		uint8_t * buf = m_SessionConfirmedBuffer + 48;
-		buf[0] = eNTCP2BlkRouterInfo; // block
-		htobe16buf (buf + 1, i2p::context.GetRouterInfo ().GetBufferLen () + 1); // flag + RI
-		buf[3] = 0; // flag 	
-		memcpy (buf + 4, i2p::context.GetRouterInfo ().GetBuffer (), i2p::context.GetRouterInfo ().GetBufferLen ());
+		// encrypt m3p2, it must be filled in SessionRequest
 		KDF3Alice (); 
-		i2p::crypto::AEADChaCha20Poly1305 (buf, m3p2Len - 16, m_H, 32, m_K, nonce, buf, m3p2Len, true); // encrypt 
+		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
+		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2, m3p2Len, true); // encrypt 
 		// update h again
 		SHA256_Init (&ctx);
 		SHA256_Update (&ctx, m_H, 32);			
-		SHA256_Update (&ctx, buf, m3p2Len);			
+		SHA256_Update (&ctx, m3p2, m3p2Len);			
 		SHA256_Final (m_H, &ctx); //h = SHA256(h || ciphertext)
 	}	
 
