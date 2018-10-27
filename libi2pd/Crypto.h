@@ -124,9 +124,17 @@ namespace crypto
 			else
 #endif
 			{
-				// TODO: implement it better
-				for (int i = 0; i < 16; i++)
-					buf[i] ^= other.buf[i];
+				if (((size_t)buf | (size_t)other.buf) & 0x03) // multiple of 4 ?
+				{
+					// we are good to cast to uint32_t *
+					for (int i = 0; i < 4; i++)
+						((uint32_t *)buf)[i] ^= ((uint32_t *)other.buf)[i];	
+				}	
+				else
+				{	
+					for (int i = 0; i < 16; i++)
+						buf[i] ^= other.buf[i];
+				}	
 			}
 		}
 	};
