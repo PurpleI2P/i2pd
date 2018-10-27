@@ -124,7 +124,7 @@ namespace crypto
 			else
 #endif
 			{
-				if (((size_t)buf | (size_t)other.buf) & 0x03) // multiple of 4 ?
+				if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
 				{
 					// we are good to cast to uint32_t *
 					for (int i = 0; i < 4; i++)
