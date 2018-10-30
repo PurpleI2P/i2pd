@@ -35,4 +35,10 @@
   <url type="help">https://i2pd.readthedocs.io/en/latest/</url>
   <update_contact>supervillain@riseup.net</update_contact>
   <developer_name>PurpleI2P Team</developer_name>
+
+  <releases>
+      <release version="2.21.1" date="2018-10-22" />
+      <release version="2.21.0" date="2018-10-04" />
+  </releases>
+  <content_rating type="oars-1.1" />
 </component>
