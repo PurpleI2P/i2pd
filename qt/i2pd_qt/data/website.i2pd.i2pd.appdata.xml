@@ -4,7 +4,7 @@
   <id>website.i2pd.i2pd</id>
   <launchable type="desktop-id">website.i2pd.i2pd.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>BSD 3-Clause</project_license>
+  <project_license>BSD-3-Clause</project_license>
   <name>i2pd</name>
   <summary>Invisible Internet</summary>
   <description>
@@ -12,13 +12,9 @@
         <p>I2P (Invisible Internet Protocol) is a universal anonymous network layer. 
         All communications over I2P are anonymous and end-to-end encrypted, participants
         don't reveal their real IP addresses. </p>
-        <p>I2P client is a software used for building and using anonymous I2P 
-        networks. Such networks are commonly used for anonymous peer-to-peer 
-        applications (filesharing, cryptocurrencies) and anonymous client-server 
-        applications (websites, instant messengers, chat-servers).</p>
         <p>I2P allows people from all around the world to communicate and share information
         without restrictions.</p>
-        <h2>Features</h2>
+        <p>Features:</p>
         <ul>
             <li>Distributed anonymous networking framework</li>
             <li>End-to-end encrypted communications</li>
@@ -36,6 +32,7 @@
   <url type="help">https://i2pd.readthedocs.io/en/latest/</url>
   <update_contact>supervillain@riseup.net</update_contact>
   <developer_name>PurpleI2P Team</developer_name>
+  <translation type="qt" />
 
   <releases>
       <release version="2.21.1" date="2018-10-22" />
