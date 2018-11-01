@@ -40,7 +40,7 @@ namespace transport
 		delete[] m_SessionConfirmedBuffer;
 	}
 
-	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived)
+	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial)
 	{
 		// temp_key = HMAC-SHA256(ck, input_key_material)
 		uint8_t tempKey[32]; unsigned int len;
@@ -50,7 +50,16 @@ namespace transport
 		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_CK, &len); 	
 		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
 		m_CK[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, derived, &len); 	
+		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, m_K, &len); 	
+	}
+
+	void NTCP2Establisher::MixHash (const uint8_t * buf, size_t len)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, buf, len);
+		SHA256_Final (m_H, &ctx);
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
@@ -73,14 +82,11 @@ namespace transport
 		SHA256_Update (&ctx, rs, 32);			
 		SHA256_Final (m_H, &ctx);
 		// h = SHA256(h || epub)
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, epub, 32);
-		SHA256_Final (m_H, &ctx);
+		MixHash (epub, 32);
 		// x25519 between pub and priv
 		uint8_t inputKeyMaterial[32];
 		priv.Agree (pub, inputKeyMaterial);
-		MixKey (inputKeyMaterial, m_K);
+		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::KDF1Alice ()
@@ -95,30 +101,18 @@ namespace transport
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
 	{		
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, sessionRequest + 32, 32); // encrypted payload	
-		SHA256_Final (m_H, &ctx);
+		MixHash (sessionRequest + 32, 32); // encrypted payload	
 
 		int paddingLength =  sessionRequestLen - 64;
 		if (paddingLength > 0)
-		{
-			SHA256_Init (&ctx);
-			SHA256_Update (&ctx, m_H, 32);			
-			SHA256_Update (&ctx, sessionRequest + 64, paddingLength);			
-			SHA256_Final (m_H, &ctx);
-		}	
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, epub, 32); 
-		SHA256_Final (m_H, &ctx);
+			MixHash (sessionRequest + 64, paddingLength);
+		MixHash (epub, 32); 
 
 		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
 		m_EphemeralKeys.Agree (GetRemotePub (), inputKeyMaterial);
 		
-		MixKey (inputKeyMaterial, m_K);
+		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::KDF2Alice ()
@@ -135,14 +129,14 @@ namespace transport
 	{
 		uint8_t inputKeyMaterial[32];
 		i2p::context.GetStaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);		 
-		MixKey (inputKeyMaterial, m_K);
+		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
 		m_EphemeralKeys.Agree (m_RemoteStaticKey, inputKeyMaterial); 
-		MixKey (inputKeyMaterial, m_K);
+		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
@@ -217,21 +211,11 @@ namespace transport
 	void NTCP2Establisher::CreateSessionConfirmedMessagePart1 (const uint8_t * nonce)
 	{
 		// update AD
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, m_SessionCreatedBuffer + 32, 32);	// encrypted payload
-		SHA256_Final (m_H, &ctx);
-
+		MixHash (m_SessionCreatedBuffer + 32, 32);	// encrypted payload
 		int paddingLength = m_SessionCreatedBufferLen - 64;
 		if (paddingLength > 0)
-		{
-			SHA256_CTX ctx1;
-			SHA256_Init (&ctx1);
-			SHA256_Update (&ctx1, m_H, 32);			
-			SHA256_Update (&ctx1, m_SessionCreatedBuffer + 64, paddingLength);			
-			SHA256_Final (m_H, &ctx1);
-		}	
+			MixHash (m_SessionCreatedBuffer + 64, paddingLength);	
+
 		// part1 48 bytes  
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, m_H, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
@@ -240,20 +224,13 @@ namespace transport
 	{
 		// part 2
 		// update AD again
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);			
-		SHA256_Update (&ctx, m_SessionConfirmedBuffer, 48);			
-		SHA256_Final (m_H, &ctx);		
+		MixHash (m_SessionConfirmedBuffer, 48);			
 		// encrypt m3p2, it must be filled in SessionRequest
 		KDF3Alice (); 
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
 		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2, m3p2Len, true); // encrypt 
 		// update h again
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);			
-		SHA256_Update (&ctx, m3p2, m3p2Len);			
-		SHA256_Final (m_H, &ctx); //h = SHA256(h || ciphertext)
+		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
 	}	
 
 	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen)
@@ -343,21 +320,11 @@ namespace transport
 	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce)
 	{
 		// update AD
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, m_SessionCreatedBuffer + 32, 32);	// encrypted payload
-		SHA256_Final (m_H, &ctx);
-
+		MixHash (m_SessionCreatedBuffer + 32, 32);	// encrypted payload
 		int paddingLength = m_SessionCreatedBufferLen - 64;
 		if (paddingLength > 0)
-		{
-			SHA256_CTX ctx1;
-			SHA256_Init (&ctx1);
-			SHA256_Update (&ctx1, m_H, 32);			
-			SHA256_Update (&ctx1, m_SessionCreatedBuffer + 64, paddingLength);			
-			SHA256_Final (m_H, &ctx1);
-		}	
+			MixHash (m_SessionCreatedBuffer + 64, paddingLength);
+		
 		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, m_H, 32, m_K, nonce, m_RemoteStaticKey, 32, false)) // decrypt S
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
@@ -369,11 +336,7 @@ namespace transport
 	bool NTCP2Establisher::ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf)
 	{
 		// update AD again
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);			
-		SHA256_Update (&ctx, m_SessionConfirmedBuffer, 48);			
-		SHA256_Final (m_H, &ctx);		
+		MixHash (m_SessionConfirmedBuffer, 48);		
 
 		KDF3Bob (); 
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
