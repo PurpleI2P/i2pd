@@ -116,12 +116,12 @@ namespace i2p
 
 	void RouterContext::NewNTCP2Keys ()
 	{
+		m_StaticKeys.reset (new i2p::crypto::X25519Keys ());
+		m_StaticKeys->GenerateKeys ();			
 		m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
-		RAND_bytes (m_NTCP2Keys->staticPrivateKey, 32);
+		m_StaticKeys->GetPrivateKey (m_NTCP2Keys->staticPrivateKey);
+		memcpy (m_NTCP2Keys->staticPublicKey, m_StaticKeys->GetPublicKey (), 32);
 		RAND_bytes (m_NTCP2Keys->iv, 16);
-		BN_CTX * ctx = BN_CTX_new ();
-		i2p::crypto::GetEd25519 ()->ScalarMulB (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey, ctx); 
-		BN_CTX_free (ctx);
 		// save
 		std::ofstream fk (i2p::fs::DataDirPath (NTCP2_KEYS), std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys)); 

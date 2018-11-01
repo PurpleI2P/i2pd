@@ -72,6 +72,7 @@ namespace crypto
 
 			void GenerateKeys ();
 			const uint8_t * GetPublicKey () const { return m_PublicKey; };
+			void GetPrivateKey (uint8_t * priv) const;
 			void Agree (const uint8_t * pub, uint8_t * shared);			
 
 		private:
