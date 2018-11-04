@@ -1008,7 +1008,6 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
-		if (!IsEstablished ()) return;
 		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
 		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
 		payload[11] = (uint8_t)reason;
