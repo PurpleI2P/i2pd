@@ -21,6 +21,8 @@ set MSYSTEM=MINGW32
 
 set "xSH=%WD%bash -lc"
 
+set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d"
+
 REM detecting number of processors and subtract 1.
 set /a threads=%NUMBER_OF_PROCESSORS%-1
 
@@ -62,12 +64,12 @@ exit /b 0
 %xSH% "make clean" >> nul
 echo Building i2pd %tag% for win%bitness%:
 echo Build AVX+AESNI...
-%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip %FILELIST% && make clean" > build/build_win%bitness%_avx_aesni_%tag%.log 2>&1
 echo Build AVX...
-%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip %FILELIST% && make clean" > build/build_win%bitness%_avx_%tag%.log 2>&1
 echo Build AESNI...
-%xSH% "make DEBUG=no USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip %FILELIST% && make clean" > build/build_win%bitness%_aesni_%tag%.log 2>&1
 echo Build without extensions...
-%xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip %FILELIST% && make clean" > build/build_win%bitness%_%tag%.log 2>&1
 
 :EOF

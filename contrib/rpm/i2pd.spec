@@ -58,11 +58,14 @@ install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
 install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
 install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
 install -d -m 755 %{buildroot}%{_datadir}/i2pd
+install -d -m 755 %{buildroot}%{_datadir}/i2pd/tunnels.conf.d
 %{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/tunnels.d/ %{buildroot}%{_datadir}/i2pd/tunnels.conf.d
 install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
 install -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 install -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
+ln -s %{_sysconfdir}/i2pd/tunnels.conf.d %{buildroot}%{_datadir}/i2pd/tunnels.conf.d
 
 
 %pre
@@ -88,6 +91,7 @@ getent passwd i2pd >/dev/null || \
 %doc LICENSE README.md
 %{_sbindir}/i2pd
 %{_datadir}/i2pd/certificates
+%{_datadir}/i2pd/tunnels.conf.d
 %config(noreplace) %{_sysconfdir}/i2pd/*
 /%{_unitdir}/i2pd.service
 %dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
