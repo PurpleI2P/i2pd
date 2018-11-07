@@ -86,6 +86,7 @@ namespace config {
 			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
+			("http.webroot", value<std::string>()->default_value("/"),            "WebUI root path (default: / )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");

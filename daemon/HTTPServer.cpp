@@ -155,6 +155,8 @@ namespace http {
 
 	static void ShowPageHead (std::stringstream& s)
 	{
+		std::string webroot;
+		i2p::config::GetOption("http.webroot", webroot);
 		s <<
 			"<!DOCTYPE html>\r\n"
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
@@ -173,16 +175,16 @@ namespace http {
 			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
 			"<div class=wrapper>\r\n"
 			"<div class=left>\r\n"
-			"  <a href=\"/\">Main page</a><br>\r\n<br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_LEASESETS << "\">LeaseSets</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n";
+			"  <a href=\"" << webroot << "\">Main page</a><br>\r\n<br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">LeaseSets</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
-			s << "  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n";
 		s <<
 			"</div>\r\n"
 			"<div class=right>";
@@ -321,11 +323,12 @@ namespace http {
 
 	void ShowLocalDestinations (std::stringstream& s)
 	{
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 
@@ -340,7 +343,7 @@ namespace http {
 				{
 					auto ident = dest->GetIdentHash ();
 					auto& name = dest->GetNickname ();
-					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
+					s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
 					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"<br>\r\n" << std::endl;
 				}
 			}
@@ -510,33 +513,34 @@ namespace http {
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n<br>\r\n";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
 		else
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (Daemon.gracefulShutdownInterval)
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
 		else
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
 #elif defined(WIN32_APP)
 		if (i2p::util::DaemonWin32::Instance().isGraceful)
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
 		else
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
 #endif
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
 
 		s << "<br>\r\n<b>Logging level</b><br>\r\n";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">[none]</a> ";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">[error]</a> ";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">[warn]</a> ";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">[info]</a> ";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">[debug]</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">[none]</a> ";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">[error]</a> ";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">[warn]</a> ";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">[info]</a> ";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">[debug]</a><br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -653,6 +657,7 @@ namespace http {
 
 	void ShowSAMSessions (std::stringstream& s)
 	{
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
 			ShowError(s, "SAM disabled");
@@ -662,13 +667,14 @@ namespace http {
 		for (auto& it: sam->GetSessions ())
 		{
 			auto& name = it.second->localDestination->GetNickname ();
-			s << "<a href=\"/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
 			s << name << " (" << it.first << ")</a><br>\r\n" << std::endl;
 		}
 	}
 
 	static void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -681,7 +687,7 @@ namespace http {
 			return;
 		}
 		auto& ident = session->localDestination->GetIdentHash();
-		s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+		s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
 		s << "<br>\r\n";
 		s << "<b>Streams:</b><br>\r\n";
@@ -701,11 +707,12 @@ namespace http {
 
 	void ShowI2PTunnels (std::stringstream& s)
 	{
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << it.second->GetName () << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -714,7 +721,7 @@ namespace http {
 		if (httpProxy)
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "HTTP Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -723,7 +730,7 @@ namespace http {
 		if (socksProxy)
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "SOCKS Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -734,7 +741,7 @@ namespace http {
 			for (auto& it: serverTunnels)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8658; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
@@ -748,7 +755,7 @@ namespace http {
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
@@ -761,7 +768,7 @@ namespace http {
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
@@ -1026,9 +1033,9 @@ namespace http {
 			return;
 		}
 		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
-		s << "<a href=\"/?page=commands\">Back to commands list</a><br>\r\n";
-		s << "<p>You will be redirected in 5 seconds</b>";
-		res.add_header("Refresh", "5; url=/?page=commands");
+		s << "<a href=\"" << url.path << "?page=commands\">Back to commands list</a><br>\r\n";
+		// s << "<p>You will be redirected in 5 seconds</b>";
+		// res.add_header("Refresh", "5; url=/?page=commands");
 	}
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
