@@ -1,4 +1,5 @@
 etc/i2pd/i2pd.conf    var/lib/i2pd/i2pd.conf
 etc/i2pd/tunnels.conf var/lib/i2pd/tunnels.conf
 etc/i2pd/subscriptions.txt var/lib/i2pd/subscriptions.txt
+etc/i2pd/tunnels.conf.d var/lib/i2pd/tunnels.conf.d
 usr/share/i2pd/certificates var/lib/i2pd/certificates

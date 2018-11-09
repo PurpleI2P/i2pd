@@ -18,6 +18,7 @@ DAEMON_OPTS=""            # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME/$NAME.pid
 I2PCONF=/etc/$NAME/i2pd.conf
 TUNCONF=/etc/$NAME/tunnels.conf
+TUNDIR=/etc/$NAME/tunnels.conf.d
 LOGFILE=/var/log/$NAME/$NAME.log
 USER="i2pd"
 
@@ -53,7 +54,7 @@ do_start()
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
     --service --daemon --log=file --logfile=$LOGFILE --conf=$I2PCONF --tunconf=$TUNCONF \
-    --pidfile=$PIDFILE $DAEMON_OPTS > /dev/null 2>&1 \
+    --tunnelsdir=$TUNDIR --pidfile=$PIDFILE $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?
 }
