@@ -1,5 +1,5 @@
 #define I2Pd_AppName "i2pd"
-#define I2Pd_ver "2.21.0"
+#define I2Pd_ver "2.22.0"
 #define I2Pd_Publisher "PurpleI2P"
 
 [Setup]
@@ -32,6 +32,7 @@ Source: ..\contrib\i2pd.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntex
 Source: ..\contrib\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\tunnels.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\certificates\*; DestDir: {userappdata}\i2pd\certificates; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
+Source: ..\contrib\tunnels.d\*; DestDir: {userappdata}\i2pd\tunnels.d; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 
 [Icons]
 Name: {group}\I2Pd; Filename: {app}\i2pd.exe

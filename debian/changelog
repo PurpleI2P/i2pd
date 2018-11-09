@@ -1,3 +1,18 @@
+i2pd (2.22.0-1) unstable; urgency=medium
+
+  * updated to version 2.22.0/0.9.37
+  * update manpage (1)
+  * update links, install files to support tunnelsdir option
+  * renamed and updated patch (#1210)
+
+ -- r4sas <r4sas@i2pmail.org>  Fri, 09 Nov 2018 02:00:00 +0000
+
+i2pd (2.21.1-1) unstable; urgency=medium
+
+  * updated to version 2.21.1
+
+ -- orignal <orignal@i2pmail.org>  Thu, 22 Oct 2018 16:00:00 +0000
+
 i2pd (2.21.0-1) unstable; urgency=medium
 
   * updated to version 2.21.0/0.9.37

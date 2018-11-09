@@ -32,8 +32,10 @@ namespace config {
 		options_description general("General options");
 		general.add_options()
 			("help",                                                          "Show this message")
+			("version",                                                       "Show i2pd version")
 			("conf", value<std::string>()->default_value(""),                 "Path to main i2pd config file (default: try ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)")
 			("tunconf", value<std::string>()->default_value(""),              "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)")
+			("tunnelsdir", value<std::string>()->default_value(""),   "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
@@ -282,6 +284,23 @@ namespace config {
 		{
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
 			std::cout << m_OptionsDesc;
+			exit(EXIT_SUCCESS);
+		} 
+		else if (m_Options.count("version"))
+		{
+			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
+			std::cout << "Boost version "     
+					  << BOOST_VERSION / 100000     << "."  // maj. version
+					  << BOOST_VERSION / 100 % 1000 << "."  // min. version
+					  << BOOST_VERSION % 100                // patch version
+					  << std::endl;
+#if defined(OPENSSL_VERSION_TEXT) 
+			std::cout << OPENSSL_VERSION_TEXT << std::endl;
+#endif
+#if defined(LIBRESSL_VERSION_TEXT)
+			std::cout << LIBRESSL_VERSION_TEXT << std::endl;
+#endif
+
 			exit(EXIT_SUCCESS);
 		}
 	}
