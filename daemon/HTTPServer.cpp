@@ -1034,8 +1034,8 @@ namespace http {
 		}
 		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
 		s << "<a href=\"" << url.path << "?page=commands\">Back to commands list</a><br>\r\n";
-		// s << "<p>You will be redirected in 5 seconds</b>";
-		// res.add_header("Refresh", "5; url=/?page=commands");
+		s << "<p>You will be redirected in 5 seconds</b>";
+		res.add_header("Refresh", std::string("5; url=" + url.path + "?page=commands").c_str());
 	}
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
