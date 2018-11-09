@@ -1032,10 +1032,12 @@ namespace http {
 			ShowError(s, "Unknown command: " + cmd);
 			return;
 		}
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string redirect = "5; url=" + webroot + "?page=commands";
 		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
-		s << "<a href=\"" << url.path << "?page=commands\">Back to commands list</a><br>\r\n";
+		s << "<a href=\"" << webroot << "?page=commands\">Back to commands list</a><br>\r\n";
 		s << "<p>You will be redirected in 5 seconds</b>";
-		res.add_header("Refresh", std::string("5; url=" + url.path + "?page=commands").c_str());
+		res.add_header("Refresh", redirect.c_str());
 	}
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
