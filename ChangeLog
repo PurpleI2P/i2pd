@@ -1,6 +1,15 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.22.0] - 2018-11-09
+### Added
+- Multiple tunnel config files from tunnels.d folder
+### Changed
+- Fetch own RouterInfo upon SessionRequest for NTCP2
+- Faster XOR between AES blocks for non AVX capable CPUs
+### Fixed
+- Fixed NTCP2 termination send
+
 ## [2.21.1] - 2018-10-22
 ### Changed
 - cost=13 for unpublished NTCP2 address

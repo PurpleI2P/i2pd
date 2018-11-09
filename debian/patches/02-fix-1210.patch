@@ -6,8 +6,8 @@ Bug: https://github.com/PurpleI2P/i2pd/issues/1210
 Reviewed-By: r4sas <r4sas@i2pmail.org>
 Last-Update: 2018-08-25
 
---- i2pd-2.20.0.orig/contrib/i2pd.service
-+++ i2pd-2.20.0/contrib/i2pd.service
+--- a/contrib/i2pd.service
++++ b/contrib/i2pd.service
 @@ -6,10 +6,10 @@ After=network.target
  [Service]
  User=i2pd
@@ -21,5 +21,5 @@ Last-Update: 2018-08-25
 +#LogsDirectory=i2pd
 +#LogsDirectoryMode=0700
  Type=forking
- ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --pidfile=/var/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
+ ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/var/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
  ExecReload=/bin/kill -HUP $MAINPID
