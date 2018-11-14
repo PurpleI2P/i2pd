@@ -245,10 +245,10 @@ namespace config {
 		nettime.add_options()
 			("nettime.enabled", value<bool>()->default_value(false), "Disable time sync (default: disabled)")
 			("nettime.ntpservers", value<std::string>()->default_value(
-				"0.ntp.pool.org,"
-				"1.ntp.pool.org,"
-				"2.ntp.pool.org,"
-				"3.ntp.pool.org"
+				"0.pool.ntp.org,"
+				"1.pool.ntp.org,"
+				"2.pool.ntp.org,"
+				"3.pool.ntp.org"
 			),  "Comma separated list of NTCP servers")	
 			("nettime.ntpsyncinterval", value<int>()->default_value(72),  "NTP sync interval in hours (default: 72)")
 		;
