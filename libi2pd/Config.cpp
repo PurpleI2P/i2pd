@@ -241,6 +241,18 @@ namespace config {
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 		;
 
+		options_description nettime("Time sync options");
+		nettime.add_options()
+			("nettime.enabled", value<bool>()->default_value(false), "Disable time sync (default: disabled)")
+			("nettime.ntpservers", value<std::string>()->default_value(
+				"0.ntp.pool.org,"
+				"1.ntp.pool.org,"
+				"2.ntp.pool.org,"
+				"3.ntp.pool.org"
+			),  "Comma separated list of NTCP servers")	
+			("nettime.ntpsyncinterval", value<int>()->default_value(72),  "NTP sync interval in hours (default: 72)")
+		;
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -259,6 +271,7 @@ namespace config {
 			.add(websocket)
 			.add(exploratory)
 			.add(ntcp2)
+			.add(nettime)
 		;
 	}
 

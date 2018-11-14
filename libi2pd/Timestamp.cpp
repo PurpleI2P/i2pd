@@ -1,6 +1,12 @@
 #include <inttypes.h>
 #include <string.h>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <future>
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
+#include "Config.h"
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
@@ -15,10 +21,30 @@ namespace i2p
 {
 namespace util
 {
+	static uint64_t GetLocalMillisecondsSinceEpoch ()
+	{
+		return std::chrono::duration_cast<std::chrono::milliseconds>(
+				 std::chrono::system_clock::now().time_since_epoch()).count ();
+	}
+
+	static uint32_t GetLocalHoursSinceEpoch ()
+	{
+		return std::chrono::duration_cast<std::chrono::hours>(
+				 std::chrono::system_clock::now().time_since_epoch()).count ();
+	}
+
+	static uint64_t GetLocalSecondsSinceEpoch ()
+	{
+		return std::chrono::duration_cast<std::chrono::seconds>(
+				 std::chrono::system_clock::now().time_since_epoch()).count ();
+	}
+
+
 	static int64_t g_TimeOffset = 0; // in seconds
 
-	void SyncTimeWithNTP (const std::string& address)
+	static void SyncTimeWithNTP (const std::string& address)
 	{
+		LogPrint (eLogInfo,  "Timestamp: NTP request to ", address);
 		boost::asio::io_service service;
 		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
@@ -48,18 +74,45 @@ namespace util
 				}
 				catch (std::exception& e)
 				{
-					LogPrint (eLogError, "NTP error: ", e.what ());
+					LogPrint (eLogError, "Timestamp: NTP error: ", e.what ());
 				}
 				if (len >= 8)
 				{
-					auto ourTs = GetSecondsSinceEpoch ();
+					auto ourTs = GetLocalSecondsSinceEpoch ();
 					uint32_t ts = bufbe32toh (buf + 32);
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
 					g_TimeOffset = ts - ourTs;
-					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset, " seconds");
+					LogPrint (eLogInfo,  address, "Timestamp: time offset from system time is ", g_TimeOffset, " seconds");
 				}
 			}
 		}
+	}
+
+	void RequestNTPTimeSync ()
+	{
+		std::string ntpservers; i2p::config::GetOption("nettime.ntpservers", ntpservers);
+		if (ntpservers.length () > 0)
+		{
+			std::vector<std::string> ntpList;
+			boost::split (ntpList, ntpservers, boost::is_any_of(","), boost::token_compress_on);
+			if (ntpList.size () > 0)
+				std::async (std::launch::async, SyncTimeWithNTP, ntpList[rand () % ntpList.size ()]);
+		}
+	}
+
+	uint64_t GetMillisecondsSinceEpoch ()
+	{
+		return GetLocalMillisecondsSinceEpoch () + g_TimeOffset*1000;
+	}
+
+	uint32_t GetHoursSinceEpoch ()
+	{
+		return GetLocalHoursSinceEpoch () + g_TimeOffset/3600;
+	}
+
+	uint64_t GetSecondsSinceEpoch ()
+	{
+		return GetLocalSecondsSinceEpoch () + g_TimeOffset;
 	}
 }
 }

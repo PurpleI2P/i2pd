@@ -23,6 +23,7 @@
 #include "ClientContext.h"
 #include "Crypto.h"
 #include "UPnP.h"
+#include "Timestamp.h"
 #include "util.h"
 
 #include "Event.h"
@@ -281,6 +282,9 @@ namespace i2p
 				d.UPnP = std::unique_ptr<i2p::transport::UPnP>(new i2p::transport::UPnP);
 				d.UPnP->Start ();
 			}
+
+			bool nettime; i2p::config::GetOption("nettime.enabled", nettime);
+			if (nettime) i2p::util::RequestNTPTimeSync ();
 
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
