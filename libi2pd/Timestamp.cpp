@@ -82,10 +82,14 @@ namespace util
 					uint32_t ts = bufbe32toh (buf + 32);
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
 					g_TimeOffset = ts - ourTs;
-					LogPrint (eLogInfo,  address, "Timestamp: time offset from system time is ", g_TimeOffset, " seconds");
+					LogPrint (eLogInfo, "Timestamp: ", address, " time offset from system time is ", g_TimeOffset, " seconds");
 				}
 			}
+			else
+				LogPrint (eLogError, "Timestamp: Couldn't open UDP socket");
 		}
+		else
+			LogPrint (eLogError, "Timestamp: Couldn't resove address ", address);
 	}
 
 	void RequestNTPTimeSync ()
