@@ -98,6 +98,10 @@ namespace data
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
 							break;
+							case eI2NPDummyMsg:
+								// plain RouterInfo from NTCP2 for now
+								AddRouterInfo (msg->GetPayload (), msg->GetPayloadLength ());
+							break;	
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
