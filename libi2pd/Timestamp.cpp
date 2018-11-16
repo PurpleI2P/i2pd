@@ -1,7 +1,5 @@
 #include <inttypes.h>
 #include <string.h>
-#include <string>
-#include <vector>
 #include <chrono>
 #include <future>
 #include <boost/asio.hpp>
@@ -92,15 +90,77 @@ namespace util
 			LogPrint (eLogError, "Timestamp: Couldn't resove address ", address);
 	}
 
-	void RequestNTPTimeSync ()
+	NTPTimeSync::NTPTimeSync (): m_IsRunning (false), m_Timer (m_Service)
 	{
+		i2p::config::GetOption("nettime.ntpsyncinterval", m_SyncInterval);
 		std::string ntpservers; i2p::config::GetOption("nettime.ntpservers", ntpservers);
-		if (ntpservers.length () > 0)
+		boost::split (m_NTPServersList, ntpservers, boost::is_any_of(","), boost::token_compress_on);
+	}
+
+	NTPTimeSync::~NTPTimeSync ()
+	{
+		Stop ();
+	}
+
+	void NTPTimeSync::Start()
+	{
+		if (m_NTPServersList.size () > 0)
 		{
-			std::vector<std::string> ntpList;
-			boost::split (ntpList, ntpservers, boost::is_any_of(","), boost::token_compress_on);
-			if (ntpList.size () > 0)
-				std::async (std::launch::async, SyncTimeWithNTP, ntpList[rand () % ntpList.size ()]);
+			m_IsRunning = true;
+			LogPrint(eLogInfo, "Timestamp: NTP time sync starting");
+			m_Service.post (std::bind (&NTPTimeSync::Sync, this));
+			m_Thread.reset (new std::thread (std::bind (&NTPTimeSync::Run, this)));
+		}
+		else
+			LogPrint (eLogWarning, "Timestamp: No NTP server found");
+	}
+
+	void NTPTimeSync::Stop ()
+	{
+		if (m_IsRunning)
+		{
+			LogPrint(eLogInfo, "Timestamp: NTP time sync stopping");
+			m_IsRunning = false;
+			m_Timer.cancel ();
+			m_Service.stop ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				m_Thread.reset (nullptr);
+			}
+		}
+	}
+
+	void NTPTimeSync::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Timestamp: NTP time sync exception: ", ex.what ());
+			}
+		}
+	}
+
+	void NTPTimeSync::Sync ()
+	{	
+		if (m_NTPServersList.size () > 0)
+			SyncTimeWithNTP (m_NTPServersList[rand () % m_NTPServersList.size ()]);
+		else
+			m_IsRunning = false;	
+
+		if (m_IsRunning)
+		{
+			m_Timer.expires_from_now (boost::posix_time::hours (m_SyncInterval));
+			m_Timer.async_wait ([this](const boost::system::error_code& ecode)
+			{
+				if (ecode != boost::asio::error::operation_aborted)
+					Sync ();
+			});
 		}
 	}
 
