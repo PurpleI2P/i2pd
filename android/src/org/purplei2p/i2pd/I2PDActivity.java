@@ -13,13 +13,16 @@ import java.io.StringWriter;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.AssetManager;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
@@ -27,12 +30,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 
 // For future package update checking
 import org.purplei2p.i2pd.BuildConfig;
 
 public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pdActvt";
+	private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
 
 	private TextView textView;
@@ -93,6 +99,17 @@ public class I2PDActivity extends Activity {
 		daemon.addStateChangeListener(daemonStateUpdatedListener);
 		daemonStateUpdatedListener.daemonStateUpdate();
 
+		 // request permissions
+        if (Build.VERSION.SDK_INT >= 23) 
+		{
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) 
+			{
+                ActivityCompat.requestPermissions(this,
+                	new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
+            }
+		}
+
 		// set the app be foreground
 		doBindService();
 
@@ -117,6 +134,28 @@ public class I2PDActivity extends Activity {
 			}catch(Throwable tr){
 			Log.e(TAG, "", tr);
 		}
+	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) 
+	{
+    	switch (requestCode) 
+		{
+        	case MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE:
+			{
+		        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) 
+				{
+		            Log.e(TAG, "Memory permission granted");
+		        } 
+				else 
+				{
+		            Log.e(TAG, "Memory permission declined");
+					// TODO: terminate
+		        }
+		        return;
+			}
+			default: ;	
+    	}
 	}
 
 	private static void cancelGracefulStop() {
