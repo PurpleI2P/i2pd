@@ -58,6 +58,11 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopAcceptingTunnels
 	i2p::context.SetAcceptsTunnels (false);
 }
 
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startAcceptingTunnels
+  (JNIEnv * env, jclass clazz) {
+	i2p::context.SetAcceptsTunnels (true);
+}
+
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
   (JNIEnv * env, jclass clazz, jboolean isConnected)
 {

@@ -144,14 +144,10 @@ public class I2PDActivity extends Activity {
         	case MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE:
 			{
 		        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) 
-				{
 		            Log.e(TAG, "Memory permission granted");
-		        } 
 				else 
-				{
 		            Log.e(TAG, "Memory permission declined");
 					// TODO: terminate
-		        }
 		        return;
 			}
 			default: ;	
@@ -244,7 +240,16 @@ public class I2PDActivity extends Activity {
 			i2pdStop();
 			return true;
 			case R.id.action_graceful_stop:
-			i2pdGracefulStop();
+				if (getGracefulQuitTimer()!= null)
+				{
+					item.setTitle(R.string.action_graceful_stop);
+					i2pdCancelGracefulStop ();
+				}
+				else
+				{
+					item.setTitle(R.string.action_cancel_graceful_stop);	
+					i2pdGracefulStop();
+				}	
 			return true;
 		}
 
@@ -306,6 +311,32 @@ public class I2PDActivity extends Activity {
 			}
 
 		},"gracInit").start();
+	}
+	
+	private void i2pdCancelGracefulStop() 
+	{
+		cancelGracefulStop();
+		Toast.makeText(this, R.string.startedOkay, Toast.LENGTH_SHORT).show();
+		new Thread(new Runnable()
+		{
+			@Override
+			public void run() 
+			{
+				try
+				{
+					Log.d(TAG, "grac stopping cancel");
+					if(daemon.isStartedOkay()) 
+						daemon.startAcceptingTunnels();
+					else
+						i2pdStop();
+				} 
+				catch(Throwable tr)
+				{
+					Log.e(TAG,"",tr);
+				}
+			}
+
+		},"gracCancel").start();
 	}
 
 	private void rescheduleGraceStop(Timer gracefulQuitTimerOld, long gracefulStopAtMillis) {

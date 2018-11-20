@@ -33,6 +33,13 @@ public class DaemonSingleton {
 		}
 	}
 
+	public synchronized void startAcceptingTunnels() {
+		if(isStartedOkay()){
+			setState(State.startedOkay);
+			I2PD_JNI.startAcceptingTunnels();
+		}
+	}
+
 	private volatile boolean startedOkay;
 
 	public enum State {
