@@ -144,6 +144,8 @@ namespace data
 			friend class NetDbRequests;
 			NetDbRequests m_Requests;
 
+			bool m_PersistProfiles;
+
 		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 		std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
 

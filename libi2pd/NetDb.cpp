@@ -44,9 +44,11 @@ namespace data
 		m_Families.LoadCertificates ();
 		Load ();
 
-                uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
+		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
 		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
 			Reseed ();
+
+		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
@@ -56,8 +58,9 @@ namespace data
 	{
 		if (m_IsRunning)
 		{
-			for (auto& it: m_RouterInfos)
-				it.second->SaveProfile ();
+			if (m_PersistProfiles)
+				for (auto& it: m_RouterInfos)
+					it.second->SaveProfile ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
 			m_Floodfills.clear ();
@@ -539,7 +542,7 @@ namespace data
 				{
 					if (it->second->IsUnreachable ())
 					{
-						it->second->SaveProfile ();
+						if (m_PersistProfiles) it->second->SaveProfile ();
 						it = m_RouterInfos.erase (it);
 						continue;
 					}
