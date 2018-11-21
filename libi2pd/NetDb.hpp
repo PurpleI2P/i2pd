@@ -111,13 +111,16 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
+			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
-		void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
+			void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
 
-    	template<typename Filter>
-        std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const uint8_t * buf, int len, bool& updated);
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated);
+    		template<typename Filter>
+        	std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
 
 		private:
 

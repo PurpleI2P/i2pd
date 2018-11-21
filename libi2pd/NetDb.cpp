@@ -100,7 +100,7 @@ namespace data
 								HandleDatabaseLookupMsg (msg);
 							break;
 							case eI2NPDummyMsg:
-								// plain RouterInfo from NTCP2 with flag for now
+								// plain RouterInfo from NTCP2 with flags for now
 								HandleNTCP2RouterInfoMsg (msg);
 							break;	
 							default: // WTF?
@@ -167,22 +167,38 @@ namespace data
 		}
 	}
 
+	void NetDb::SetHidden(bool hide) 
+	{
+    	// TODO: remove reachable addresses from router info
+    	m_HiddenMode = hide;
+  	}
+
 	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
+	{
+		bool updated;
+		AddRouterInfo (buf, len, updated);
+		return updated;	
+	}
+
+	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len, bool& updated)
 	{
 		IdentityEx identity;
 		if (identity.FromBuffer (buf, len))
-			return AddRouterInfo (identity.GetIdentHash (), buf, len);
-		return false;
+			return AddRouterInfo (identity.GetIdentHash (), buf, len, updated);
+		updated = false;
+		return nullptr;
 	}
-
-  void NetDb::SetHidden(bool hide) {
-    // TODO: remove reachable addresses from router info
-    m_HiddenMode = hide;
-  }
 
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{
-		bool updated = true;
+		bool updated;
+		AddRouterInfo (ident, buf, len, updated);
+		return updated;	
+	}
+
+	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated)
+	{
+		updated = true;
 		auto r = FindRouter (ident);
 		if (r)
 		{
@@ -228,7 +244,7 @@ namespace data
 		}
 		// take care about requested destination
 		m_Requests.RequestComplete (ident, r);
-		return updated;
+		return r;
 	}
 
 	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
@@ -578,11 +594,12 @@ namespace data
 	void NetDb::HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m)
 	{
 		uint8_t flood = m->GetPayload ()[0] & NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD;
-		bool updated = AddRouterInfo (m->GetPayload () + 1, m->GetPayloadLength () - 1); // without flag
-		if (flood && updated && context.IsFloodfill ())
+		bool updated;
+		auto ri = AddRouterInfo (m->GetPayload () + 1, m->GetPayloadLength () - 1, updated); // without flags
+		if (flood && updated && context.IsFloodfill () && ri)
 		{
-			// TODO: flood
-			LogPrint (eLogInfo, "NetDb: NTCP RouterInfo flood is not implemented");
+			auto floodMsg = CreateDatabaseStoreMsg (ri, 0); // replyToken = 0
+			Flood (ri->GetIdentHash (), floodMsg);
 		}
 	}
 
@@ -664,22 +681,7 @@ namespace data
 			{
 				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + payloadOffset, msgLen);
 				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore);
-				std::set<IdentHash> excluded;
-				excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
-				excluded.insert (ident); // don't flood back
-				for (int i = 0; i < 3; i++)
-				{
-					auto floodfill = GetClosestFloodfill (ident, excluded);
-					if (floodfill)
-					{
-						auto h = floodfill->GetIdentHash();
-						LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase64());
-						transports.SendMessage (h, CopyI2NPMessage(floodMsg));
-						excluded.insert (h);
-					}
-					else
-						break;
-				}
+				Flood (ident, floodMsg);
 			}
 			else
 				LogPrint (eLogError, "NetDb: Database store message is too long ", floodMsg->len);
@@ -977,6 +979,26 @@ namespace data
 				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
 				excluded.insert (floodfill->GetIdentHash ());
 			}
+		}
+	}
+
+	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)
+	{
+		std::set<IdentHash> excluded;
+		excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
+		excluded.insert (ident); // don't flood back
+		for (int i = 0; i < 3; i++)
+		{
+			auto floodfill = GetClosestFloodfill (ident, excluded);
+			if (floodfill)
+			{
+				auto h = floodfill->GetIdentHash();
+				LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase64());
+				transports.SendMessage (h, CopyI2NPMessage(floodMsg));
+				excluded.insert (h);
+			}
+			else
+				break;
 		}
 	}
 
