@@ -65,7 +65,8 @@ namespace data
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
-
+			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
+		
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;

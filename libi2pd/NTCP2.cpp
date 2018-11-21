@@ -695,7 +695,7 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2IncorrectSParameter);				
 						return;
 					}
-					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 4, size - 1)); // TODO: should insert ri and not parse it twice
+					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
 					// TODO: process options
 						
 					// ready to communicate	
@@ -860,7 +860,7 @@ namespace transport
 				case eNTCP2BlkRouterInfo:
 				{
 					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);
-					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, frame + offset + 1, size - 1));
+					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, frame + offset, size));
 					break;
 				}
 				case eNTCP2BlkI2NPMessage:

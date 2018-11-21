@@ -12,6 +12,7 @@
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
 #include "Transports.h"
+#include "NTCP2.h"
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.hpp"
@@ -99,8 +100,8 @@ namespace data
 								HandleDatabaseLookupMsg (msg);
 							break;
 							case eI2NPDummyMsg:
-								// plain RouterInfo from NTCP2 for now
-								AddRouterInfo (msg->GetPayload (), msg->GetPayloadLength ());
+								// plain RouterInfo from NTCP2 with flag for now
+								HandleNTCP2RouterInfoMsg (msg);
 							break;	
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", (int) msg->GetTypeID ());
@@ -574,6 +575,16 @@ namespace data
 		transports.SendMessage (from, dest->CreateRequestMessage (nullptr, nullptr));
 	}
 
+	void NetDb::HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m)
+	{
+		uint8_t flood = m->GetPayload ()[0] & NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD;
+		bool updated = AddRouterInfo (m->GetPayload () + 1, m->GetPayloadLength () - 1); // without flag
+		if (flood && updated && context.IsFloodfill ())
+		{
+			// TODO: flood
+			LogPrint (eLogInfo, "NetDb: NTCP RouterInfo flood is not implemented");
+		}
+	}
 
 	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> m)
 	{
