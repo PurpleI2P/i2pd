@@ -9,7 +9,9 @@
 #define LIBI2PD_POLY1305_H
 #include <cstdint>
 #include <cstring>
+#include "Crypto.h"
 
+#if LEGACY_OPENSSL
 namespace i2p
 {
 namespace crypto
@@ -24,5 +26,6 @@ namespace crypto
   
 }
 }
+#endif
 
 #endif

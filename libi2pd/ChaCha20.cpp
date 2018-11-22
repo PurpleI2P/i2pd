@@ -7,6 +7,8 @@
    Kovri go write your own code
 
  */
+
+#if LEGACY_OPENSSL
 namespace i2p
 {
 namespace crypto
@@ -145,3 +147,5 @@ void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * k
 
 }
 }
+#endif
+

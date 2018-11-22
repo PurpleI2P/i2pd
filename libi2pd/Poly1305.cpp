@@ -6,6 +6,8 @@
    Kovri go write your own code
 
  */
+
+#if LEGACY_OPENSSL
 namespace i2p
 {
 namespace crypto
@@ -249,3 +251,5 @@ namespace crypto
   	}
 }
 }
+#endif
+
