@@ -1091,21 +1091,20 @@ namespace crypto
 		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
 		chacha20 ((uint8_t *)polyKey, 64, nonce, key, 0);
-
-		// create Poly1305 message
+		
+		// create Poly1305 hash
+		Poly1305 polyHash (polyKey);
 		if (!ad) adLen = 0;
-		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
-		size_t offset = 0;
 		uint8_t padding[16]; memset (padding, 0, 16);
 		if (ad)
 		{
-			memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
+			polyHash.Update (ad, adLen);// additional authenticated data
 			auto rem = adLen & 0x0F; // %16
 			if (rem)
 			{
 				// padding1
 				rem = 16 - rem;
-				memcpy (polyMsg.data () + offset, padding, rem); offset += rem;
+				polyHash.Update (padding, rem);	
 			}
 		}
 		// encrypt/decrypt data and add to hash
@@ -1114,35 +1113,35 @@ namespace crypto
 		if (encrypt)
 		{
 			chacha20 (buf, msgLen, nonce, key, 1); // encrypt
-			memcpy (polyMsg.data () + offset, buf, msgLen); // after encryption
+			polyHash.Update (buf, msgLen); // after encryption
 		}
 		else
 		{
-			memcpy (polyMsg.data () + offset, buf, msgLen); // before decryption
+			polyHash.Update (buf, msgLen); // before decryption
 			chacha20 (buf, msgLen, nonce, key, 1); // decrypt
 		}	
-		offset += msgLen; // encrypted data
 
 		auto rem = msgLen & 0x0F; // %16
 		if (rem)
 		{
 			// padding2
 			rem = 16 - rem;
-			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;
+			polyHash.Update (padding, rem);		
 		}
-		htole64buf (polyMsg.data () + offset, adLen); offset += 8;
-		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
-
+		// adLen and msgLen
+		htole64buf (padding, adLen);
+		polyHash.Update (padding, 8);	
+		htole64buf (padding, msgLen);
+		polyHash.Update (padding, 8);
+		
 		if (encrypt)
-		{
 			// calculate Poly1305 tag and write in after encrypted data
-			Poly1305HMAC ((uint64_t *)(buf + msgLen), (uint64_t *)polyKey, polyMsg.data (), offset);
-		}
+			polyHash.Finish ((uint64_t *)(buf + msgLen));
 		else
 		{
 			uint64_t tag[4];
 			// calculate Poly1305 tag
-			Poly1305HMAC (tag, polyKey, polyMsg.data (), offset);
+			polyHash.Finish (tag);	
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
 #else
