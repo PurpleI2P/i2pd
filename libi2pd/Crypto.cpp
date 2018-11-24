@@ -1136,13 +1136,13 @@ namespace crypto
 		if (encrypt)
 		{
 			// calculate Poly1305 tag and write in after encrypted data
-			Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
+			Poly1305HMAC ((uint64_t *)(buf + msgLen), (uint64_t *)polyKey, polyMsg.data (), offset);
 		}
 		else
 		{
-			uint32_t tag[8];
+			uint64_t tag[4];
 			// calculate Poly1305 tag
-			Poly1305HMAC (tag, (uint32_t *)polyKey, polyMsg.data (), offset);
+			Poly1305HMAC (tag, (uint64_t *)polyKey, polyMsg.data (), offset);
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
 #else
