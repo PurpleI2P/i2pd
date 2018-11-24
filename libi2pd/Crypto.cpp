@@ -1088,9 +1088,9 @@ namespace crypto
 		bool ret = true;
 #if LEGACY_OPENSSL
 		// generate one time poly key
-		uint8_t polyKey[64];
+		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
-		chacha20 (polyKey, 64, nonce, key, 0);
+		chacha20 ((uint8_t *)polyKey, 64, nonce, key, 0);
 
 		// create Poly1305 message
 		if (!ad) adLen = 0;
@@ -1142,7 +1142,7 @@ namespace crypto
 		{
 			uint64_t tag[4];
 			// calculate Poly1305 tag
-			Poly1305HMAC (tag, (uint64_t *)polyKey, polyMsg.data (), offset);
+			Poly1305HMAC (tag, polyKey, polyMsg.data (), offset);
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
 #else
