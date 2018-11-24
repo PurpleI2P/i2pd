@@ -73,6 +73,8 @@ namespace transport
 		eNTCP2Banned, // 17
 	};		
 	
+	// RouterInfo flags
+	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;	
 
 	typedef std::array<uint8_t, NTCP2_UNENCRYPTED_FRAME_MAX_SIZE> NTCP2FrameBuffer;
 	struct NTCP2Establisher
@@ -95,7 +97,8 @@ namespace transport
 		void KDF3Alice (); // for SessionConfirmed part 2
 		void KDF3Bob ();
 
-		void MixKey (const uint8_t * inputKeyMaterial, uint8_t * derived);
+		void MixKey (const uint8_t * inputKeyMaterial);
+		void MixHash (const uint8_t * buf, size_t len);
 		void KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();

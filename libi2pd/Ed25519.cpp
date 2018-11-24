@@ -411,6 +411,7 @@ namespace crypto
 		}
 	}
 
+#if !OPENSSL_X25519
 	BIGNUM * Ed25519::ScalarMul (const BIGNUM * u, const BIGNUM * k, BN_CTX * ctx) const
 	{
 		BN_CTX_start (ctx);
@@ -488,6 +489,7 @@ namespace crypto
 		EncodeBN (q1, buf, 32);
 		BN_free (p1); BN_free (n); BN_free (q1);
 	}
+#endif
 
 	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
 	{

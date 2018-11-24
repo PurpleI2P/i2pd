@@ -35,8 +35,11 @@ namespace transport
 
 	void DHKeysPairSupplier::Stop ()
 	{
-		m_IsRunning = false;
-		m_Acquired.notify_one ();
+		{
+			std::unique_lock<std::mutex> l(m_AcquiredMutex);
+			m_IsRunning = false;
+			m_Acquired.notify_one ();
+		}
 		if (m_Thread)
 		{
 			m_Thread->join ();
@@ -50,19 +53,20 @@ namespace transport
 		while (m_IsRunning)
 		{
 			int num, total = 0;
-			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 20)
+			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 10)
 			{
 				CreateDHKeysPairs (num);
 				total += num;
 			}
-			if (total >= 20)
+			if (total >= 10)
 			{
 				LogPrint (eLogWarning, "Transports: ", total, " DH keys generated at the time");
 				std::this_thread::sleep_for (std::chrono::seconds(1)); // take a break
 			}
 			else
 			{
-				std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+				std::unique_lock<std::mutex> l(m_AcquiredMutex);
+				if (!m_IsRunning) break;
 				m_Acquired.wait (l); // wait for element gets acquired
 			}
 		}
@@ -813,7 +817,6 @@ namespace transport
 					if (profile)
 					{
 						profile->TunnelNonReplied();
-						profile->Save(it->first);
 					}
 					std::unique_lock<std::mutex>	l(m_PeersMutex);
 					it = m_Peers.erase (it);

@@ -341,6 +341,16 @@ namespace crypto
 #endif		
 	}		
 	
+	void X25519Keys::GetPrivateKey (uint8_t * priv) const
+	{
+#if OPENSSL_X25519
+		size_t len = 32;
+		EVP_PKEY_get_raw_private_key (m_Pkey, priv, &len);
+#else
+		memcpy (priv, m_PrivateKey, 32);
+#endif
+	}
+
 // ElGamal
 	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{

@@ -1,7 +1,7 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:           i2pd-git
-Version:        2.21.0
+Version:        2.22.0
 Release:        git%{git_hash}%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd
@@ -55,15 +55,21 @@ make %{?_smp_mflags}
 
 %install
 cd build
+%if 0%{?mageia}
+cd build
+%endif
 chrpath -d i2pd
-install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
-install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
-install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
-install -d -m 755 %{buildroot}%{_datadir}/i2pd
-%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
-install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
-install -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
-install -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
+%{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
+%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
+%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
+%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.d/README %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d/README
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
+%{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
+%{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
+%{__install} -d -m 755 %{buildroot}%{_datadir}/%{name}
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/%{name}/certificates
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
@@ -87,16 +93,20 @@ getent passwd i2pd >/dev/null || \
 
 
 %files
-%doc LICENSE README.md
+%doc LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf contrib/tunnels.d
 %{_sbindir}/i2pd
-%{_datadir}/i2pd/certificates
 %config(noreplace) %{_sysconfdir}/i2pd/*
-/%{_unitdir}/i2pd.service
-%dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
+%{_unitdir}/i2pd.service
+%{_mandir}/man1/i2pd.1*
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
+%dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
+%{_datadir}/%{name}/certificates
 %{_sharedstatedir}/i2pd/certificates
 
 
 %changelog
+* Fri Nov 09 2018 r4sas <r4sas@i2pmail.org> - 2.22.0
+- add support of tunnelsdir option
+
 * Thu Feb 01 2018 r4sas <r4sas@i2pmail.org> - 2.18.0
 - Initial i2pd-git based on i2pd 2.18.0-1 spec

@@ -32,6 +32,7 @@ namespace config {
 		options_description general("General options");
 		general.add_options()
 			("help",                                                          "Show this message")
+			("version",                                                       "Show i2pd version")
 			("conf", value<std::string>()->default_value(""),                 "Path to main i2pd config file (default: try ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)")
 			("tunconf", value<std::string>()->default_value(""),              "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)")
 			("tunnelsdir", value<std::string>()->default_value(""),   "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
@@ -87,6 +88,7 @@ namespace config {
 			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
+			("http.webroot", value<std::string>()->default_value("/"),            "WebUI root path (default: / )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -235,8 +237,25 @@ namespace config {
 		options_description ntcp2("NTCP2 Options");
 		ntcp2.add_options()
 			("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
-		    ("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")	
+			("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
+		;
+
+		options_description nettime("Time sync options");
+		nettime.add_options()
+			("nettime.enabled", value<bool>()->default_value(false), "Disable time sync (default: disabled)")
+			("nettime.ntpservers", value<std::string>()->default_value(
+				"0.pool.ntp.org,"
+				"1.pool.ntp.org,"
+				"2.pool.ntp.org,"
+				"3.pool.ntp.org"
+			),  "Comma separated list of NTCP servers")
+			("nettime.ntpsyncinterval", value<int>()->default_value(72),  "NTP sync interval in hours (default: 72)")
+		;
+
+		options_description persist("Network information persisting options");
+		persist.add_options()
+			("persist.profiles", value<bool>()->default_value(true), "Persist peer profiles (default: true)")
 		;
 
 		m_OptionsDesc
@@ -257,6 +276,8 @@ namespace config {
 			.add(websocket)
 			.add(exploratory)
 			.add(ntcp2)
+			.add(nettime)
+			.add(persist)
 		;
 	}
 
@@ -282,6 +303,23 @@ namespace config {
 		{
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
 			std::cout << m_OptionsDesc;
+			exit(EXIT_SUCCESS);
+		} 
+		else if (m_Options.count("version"))
+		{
+			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
+			std::cout << "Boost version "     
+					  << BOOST_VERSION / 100000     << "."  // maj. version
+					  << BOOST_VERSION / 100 % 1000 << "."  // min. version
+					  << BOOST_VERSION % 100                // patch version
+					  << std::endl;
+#if defined(OPENSSL_VERSION_TEXT) 
+			std::cout << OPENSSL_VERSION_TEXT << std::endl;
+#endif
+#if defined(LIBRESSL_VERSION_TEXT)
+			std::cout << LIBRESSL_VERSION_TEXT << std::endl;
+#endif
+
 			exit(EXIT_SUCCESS);
 		}
 	}
