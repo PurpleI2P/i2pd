@@ -123,8 +123,20 @@ namespace crypto
 						);
 			}
 			else
-#endif
+#endif			
 			{
+#if defined(__SSE__) // SSE
+				__asm__
+				(
+					"movups	(%[buf]), %%xmm0 \n"
+					"movups	(%[other]), %%xmm1 \n"
+					"pxor %%xmm1, %%xmm0 \n"
+					"movups	%%xmm0, (%[buf]) \n"
+					:
+					: [buf]"r"(buf), [other]"r"(other.buf)
+					: "%xmm0", "%xmm1", "memory"
+				);
+#else					
 				if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
 				{
 					// we are good to cast to uint32_t *
@@ -136,6 +148,7 @@ namespace crypto
 					for (int i = 0; i < 16; i++)
 						buf[i] ^= other.buf[i];
 				}	
+#endif				
 			}
 		}
 	};
