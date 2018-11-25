@@ -140,17 +140,11 @@ namespace crypto
 						: "%xmm0", "%xmm1", "memory"
 					);	
 #else			
-					// if not we always can cast to uint64_t *
-					((uint64_t *)buf)[0] ^= ((uint64_t *)other.buf)[0];
-					((uint64_t *)buf)[1] ^= ((uint64_t *)other.buf)[1];	
+					// if not we always can cast to uint32_t *
+					for (int i = 0; i < 4; i++)
+						reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<uint32_t *>(buf)[i];	
 #endif
 				}	
-			}	
-			else if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
-			{
-				// we are good to cast to uint32_t *
-				for (int i = 0; i < 4; i++)
-					((uint32_t *)buf)[i] ^= ((uint32_t *)other.buf)[i];	
 			}	
 			else
 			{	
