@@ -108,48 +108,55 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
+			if (!(((size_t)buf | (size_t)other.buf) & 0x0F)) // multiple of 16 ?
+			{	
+				// try 128 bits if applicable
 #ifdef __AVX__
-			if (i2p::cpu::avx)
-			{
-				__asm__
+				if (i2p::cpu::avx)
+				{
+					__asm__
+						(
+							"vmovaps (%[buf]), %%xmm0 \n"
+							"vmovaps (%[other]), %%xmm1 \n"
+							"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
+							"vmovaps %%xmm0, (%[buf]) \n"
+							:
+							: [buf]"r"(buf), [other]"r"(other.buf)
+							: "%xmm0", "%xmm1", "memory"
+							);
+				}
+				else
+#endif			
+				{
+#if defined(__SSE__) // SSE
+					__asm__
 					(
-						"vmovups (%[buf]), %%xmm0 \n"
-						"vmovups (%[other]), %%xmm1 \n"
-						"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
-						"vmovups %%xmm0, (%[buf]) \n"
+						"movaps	(%[buf]), %%xmm0 \n"
+						"movaps	(%[other]), %%xmm1 \n"
+						"pxor %%xmm1, %%xmm0 \n"
+						"movaps	%%xmm0, (%[buf]) \n"
 						:
 						: [buf]"r"(buf), [other]"r"(other.buf)
 						: "%xmm0", "%xmm1", "memory"
-						);
-			}
-			else
-#endif			
+					);	
+#else			
+					// if not we always can cast to uint64_t *
+					((uint64_t *)buf)[0] ^= ((uint64_t *)other.buf)[0];
+					((uint64_t *)buf)[1] ^= ((uint64_t *)other.buf)[1];	
+#endif
+				}	
+			}	
+			else if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
 			{
-#if defined(__SSE__) // SSE
-				__asm__
-				(
-					"movups	(%[buf]), %%xmm0 \n"
-					"movups	(%[other]), %%xmm1 \n"
-					"pxor %%xmm1, %%xmm0 \n"
-					"movups	%%xmm0, (%[buf]) \n"
-					:
-					: [buf]"r"(buf), [other]"r"(other.buf)
-					: "%xmm0", "%xmm1", "memory"
-				);
-#else					
-				if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
-				{
-					// we are good to cast to uint32_t *
-					for (int i = 0; i < 4; i++)
-						((uint32_t *)buf)[i] ^= ((uint32_t *)other.buf)[i];	
-				}	
-				else
-				{	
-					for (int i = 0; i < 16; i++)
-						buf[i] ^= other.buf[i];
-				}	
-#endif				
-			}
+				// we are good to cast to uint32_t *
+				for (int i = 0; i < 4; i++)
+					((uint32_t *)buf)[i] ^= ((uint32_t *)other.buf)[i];	
+			}	
+			else
+			{	
+				for (int i = 0; i < 16; i++)
+					buf[i] ^= other.buf[i];
+			}					
 		}
 	};
 

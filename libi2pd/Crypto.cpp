@@ -1130,9 +1130,8 @@ namespace crypto
 		}
 		// adLen and msgLen
 		htole64buf (padding, adLen);
-		polyHash.Update (padding, 8);	
-		htole64buf (padding, msgLen);
-		polyHash.Update (padding, 8);
+		htole64buf (padding + 8, msgLen);
+		polyHash.Update (padding, 16);	
 		
 		if (encrypt)
 			// calculate Poly1305 tag and write in after encrypted data
