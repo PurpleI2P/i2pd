@@ -142,7 +142,7 @@ namespace crypto
 #else			
 					// if not we always can cast to uint32_t *
 					for (int i = 0; i < 4; i++)
-						reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<uint32_t *>(buf)[i];	
+						reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];	
 #endif
 				}	
 			}	
