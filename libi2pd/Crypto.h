@@ -108,43 +108,10 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-			if (!(((size_t)buf | (size_t)other.buf) & 0x0F)) // multiple of 16 ?
+			if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
 			{	
-				// try 128 bits if applicable
-#ifdef __AVX__
-				if (i2p::cpu::avx)
-				{
-					__asm__
-						(
-							"vmovaps (%[buf]), %%xmm0 \n"
-							"vmovaps (%[other]), %%xmm1 \n"
-							"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
-							"vmovaps %%xmm0, (%[buf]) \n"
-							:
-							: [buf]"r"(buf), [other]"r"(other.buf)
-							: "%xmm0", "%xmm1", "memory"
-							);
-				}
-				else
-#endif			
-				{
-#if defined(__SSE__) // SSE
-					__asm__
-					(
-						"movaps	(%[buf]), %%xmm0 \n"
-						"movaps	(%[other]), %%xmm1 \n"
-						"pxor %%xmm1, %%xmm0 \n"
-						"movaps	%%xmm0, (%[buf]) \n"
-						:
-						: [buf]"r"(buf), [other]"r"(other.buf)
-						: "%xmm0", "%xmm1", "memory"
-					);	
-#else			
-					// if not we always can cast to uint32_t *
-					for (int i = 0; i < 4; i++)
-						reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];	
-#endif
-				}	
+				for (int i = 0; i < 4; i++)
+					reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];
 			}	
 			else
 			{	
