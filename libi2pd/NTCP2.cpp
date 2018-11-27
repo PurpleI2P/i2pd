@@ -872,6 +872,7 @@ namespace transport
 						break;
 					}
 					auto nextMsg = NewI2NPMessage (size);
+					nextMsg->Align (12); // for possible tunnel msg
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
 					nextMsg->FromNTCP2 ();
