@@ -1182,12 +1182,12 @@ namespace crypto
 		chacha20 ((uint8_t *)polyKey, 64, nonce, key, 0);
 		Poly1305 polyHash (polyKey);
 		// encrypt buffers	
-		Chacha20State state;
-		Chacha20Init (state, nonce, key, 1);	
+		chacha::Chacha20State state;
+		chacha::Chacha20Init (state, nonce, key, 1);	
 		size_t size = 0;
 		for (auto& it: bufs)
 		{
-			Chacha20Encrypt (state, (uint8_t *)it.first, it.second);
+			chacha::Chacha20Encrypt (state, (uint8_t *)it.first, it.second);
 			polyHash.Update ((uint8_t *)it.first, it.second); // after encryption
 			size += it.second;
 		}
