@@ -9,6 +9,8 @@
 #define LIBI2PD_CHACHA20_H
 #include <cstdint>
 #include <cstring>
+#include <inttypes.h>
+#include <string.h>
 #include "Crypto.h"
 
 #if LEGACY_OPENSSL
@@ -19,10 +21,32 @@ namespace crypto
   const std::size_t CHACHA20_KEY_BYTES = 32;
   const std::size_t CHACHA20_NOUNCE_BYTES = 12;
 
+	struct Chacha20State
+	{
+		Chacha20State () {};
+		Chacha20State (Chacha20State &&) = delete;
+
+		Chacha20State & operator += (const Chacha20State & other)
+		{
+			for(int i = 0; i < 16; i++)
+				data[i] += other.data[i];
+			return *this;
+		}
+
+		void Copy(const Chacha20State & other)
+		{
+		   memcpy(data, other.data, sizeof(uint32_t) * 16);
+		}
+		uint32_t data[16];
+	};	
+
+	void Chacha20Init (Chacha20State& state, const uint8_t * nonce, const uint8_t * key, uint32_t counter);
+	void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz);
+
   /** encrypt buf in place with chacha20 */
   void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * key, uint32_t counter=1);
 
-}
+} 
 }
 #endif
 

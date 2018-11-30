@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <vector>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/aes.h>
@@ -281,6 +282,8 @@ namespace crypto
 
 // AEAD/ChaCha20/Poly1305
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
+
+	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
 
 // init and terminate
 	void InitCrypto (bool precomputation);

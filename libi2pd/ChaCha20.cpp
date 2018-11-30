@@ -50,44 +50,26 @@ void quarterround(uint32_t *x, int a, int b, int c, int d)
     x[c] += x[d]; x[b] = rotl32(x[b] ^ x[c],  7);
 }
 
-    struct State_t
-    {
-      State_t() {};
-      State_t(State_t &&) = delete;
-      
-      State_t & operator += (const State_t & other)
-      {
-        for(int i = 0; i < 16; i++)
-            data[i] += other.data[i];
-        return *this;
-      }
 
-      void Copy(const State_t & other)
-      {
-           memcpy(data, other.data, sizeof(uint32_t) * 16);
-      }
-      uint32_t data[16];
-    };
+struct Block_t
+{
+  Block_t() {};
+  Block_t(Block_t &&) = delete;
 
-    struct Block_t
-    {
-      Block_t() {};
-      Block_t(Block_t &&) = delete;
+  uint8_t data[blocksize];
 
-      uint8_t data[blocksize];
+  void operator << (const Chacha20State & st)
+  {
+    int i;
+    for (i = 0; i < 16; i++) 
+        u32t8le(st.data[i], data + (i << 2));
+  }
+};
 
-      void operator << (const State_t & st)
-      {
-        int i;
-        for (i = 0; i < 16; i++) 
-            u32t8le(st.data[i], data + (i << 2));
-      }
-    };
-
-void block(const State_t &input, Block_t & block, int rounds)
+void block(const Chacha20State &input, Block_t & block, int rounds)
 {
     int i;
-    State_t x;
+    Chacha20State x;
     x.Copy(input);
 
     for (i = rounds; i > 0; i -= 2) 
@@ -107,44 +89,41 @@ void block(const State_t &input, Block_t & block, int rounds)
 }
 } // namespace chacha
 
+	void Chacha20Init (Chacha20State& state, const uint8_t * nonce, const uint8_t * key, uint32_t counter)
+	{
+		state.data[0] = 0x61707865;
+		state.data[1] = 0x3320646e;
+		state.data[2] = 0x79622d32;
+		state.data[3] = 0x6b206574;
+		for (size_t i = 0; i < 8; i++) 
+		    state.data[4 + i] = chacha::u8t32le(key + i * 4);
+		
+		state.data[12] = counter;
+		for (size_t i = 0; i < 3; i++) 
+		    state.data[13 + i] = chacha::u8t32le(nonce + i * 4);
+	}
 
+	void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz)
+	{
+		chacha::Block_t block;
+		for (size_t i = 0; i < sz; i += chacha::blocksize) 
+		{
+		    chacha::block(state, block, chacha::rounds);
+		    state.data[12]++;
+		    for (size_t j = i; j < i + chacha::blocksize; j++) 
+		    {
+		        if (j >= sz) break;
+		        buf[j] ^= block.data[j - i];
+		    }
+		}
+	}
 
-
-
-void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * key, uint32_t counter)
-{
-    chacha::State_t state;
-    chacha::Block_t block;
-    size_t i, j;
-
-    state.data[0] = 0x61707865;
-    state.data[1] = 0x3320646e;
-    state.data[2] = 0x79622d32;
-    state.data[3] = 0x6b206574;
-
-    for (i = 0; i < 8; i++) 
-        state.data[4 + i] = chacha::u8t32le(key + i * 4);
-    
-
-    state.data[12] = counter;
-
-    for (i = 0; i < 3; i++) 
-        state.data[13 + i] = chacha::u8t32le(nonce + i * 4);
-
-    
-    for (i = 0; i < sz; i += chacha::blocksize) 
-    {
-        chacha::block(state, block, chacha::rounds);
-        state.data[12]++;
-        for (j = i; j < i + chacha::blocksize; j++) 
-        {
-            if (j >= sz) break;
-            buf[j] ^= block.data[j - i];
-        }
-    }
-
-}
-
+	void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * key, uint32_t counter)
+	{
+		Chacha20State state;
+		Chacha20Init (state, nonce, key, counter);
+		Chacha20Encrypt (state, buf, sz);		
+	}
 }
 }
 #endif
