@@ -1087,11 +1087,12 @@ namespace crypto
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
 #if LEGACY_OPENSSL
+		chacha::Chacha20State state;
 		// generate one time poly key
+		chacha::Chacha20Init (state, nonce, key, 0);	
 		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
-		chacha20 ((uint8_t *)polyKey, 64, nonce, key, 0);
-		
+		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
 		// create Poly1305 hash
 		Poly1305 polyHash (polyKey);
 		if (!ad) adLen = 0;
@@ -1108,17 +1109,18 @@ namespace crypto
 			}
 		}
 		// encrypt/decrypt data and add to hash
+		Chacha20SetCounter (state, 1);
 		if (buf != msg)
 			memcpy (buf, msg, msgLen);
 		if (encrypt)
 		{
-			chacha20 (buf, msgLen, nonce, key, 1); // encrypt
+			chacha::Chacha20Encrypt (state, buf, msgLen); // encrypt
 			polyHash.Update (buf, msgLen); // after encryption
 		}
 		else
 		{
 			polyHash.Update (buf, msgLen); // before decryption
-			chacha20 (buf, msgLen, nonce, key, 1); // decrypt
+			chacha::Chacha20Encrypt (state, buf, msgLen); // decrypt
 		}	
 
 		auto rem = msgLen & 0x0F; // %16
@@ -1176,14 +1178,15 @@ namespace crypto
 	{
 		if (bufs.empty ()) return;
 #if LEGACY_OPENSSL
+		chacha::Chacha20State state;
 		// generate one time poly key
+		chacha::Chacha20Init (state, nonce, key, 0);	
 		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
-		chacha20 ((uint8_t *)polyKey, 64, nonce, key, 0);
+		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
 		Poly1305 polyHash (polyKey);
 		// encrypt buffers	
-		chacha::Chacha20State state;
-		chacha::Chacha20Init (state, nonce, key, 1);	
+		Chacha20SetCounter (state, 1);
 		size_t size = 0;
 		for (auto& it: bufs)
 		{

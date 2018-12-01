@@ -1,10 +1,13 @@
-/**
-   This code is licensed under the MCGSI Public License
-   Copyright 2018 Jeff Becker
-
-   Kovri go write your own code
-
- */
+/*
+* Copyright (c) 2013-2018, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*
+* Kovri go write your own code
+*
+*/
 #ifndef LIBI2PD_CHACHA20_H
 #define LIBI2PD_CHACHA20_H
 #include <cstdint>
@@ -59,12 +62,9 @@ namespace chacha
 	};
 
 	void Chacha20Init (Chacha20State& state, const uint8_t * nonce, const uint8_t * key, uint32_t counter);
-	void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz);		
+	void Chacha20SetCounter (Chacha20State& state, uint32_t counter);
+	void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz); // encrypt buf in place	
 }
-
-  /** encrypt buf in place with chacha20 */
-  void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * key, uint32_t counter=1);
-
 } 
 }
 #endif

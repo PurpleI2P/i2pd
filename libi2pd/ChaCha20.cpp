@@ -1,12 +1,15 @@
+/*
+* Copyright (c) 2013-2018, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*
+* Kovri go write your own code
+*
+*/
+
 #include "ChaCha20.h"
-
-/**
-   This code is licensed under the MCGSI Public License
-   Copyright 2018 Jeff Becker
-
-   Kovri go write your own code
-
- */
 
 #if LEGACY_OPENSSL
 namespace i2p
@@ -91,6 +94,12 @@ void Chacha20Init (Chacha20State& state, const uint8_t * nonce, const uint8_t * 
 	    state.data[13 + i] = chacha::u8t32le(nonce + i * 4);
 }
 
+void Chacha20SetCounter (Chacha20State& state, uint32_t counter)
+{
+	state.data[12] = counter;
+	state.offset = 0;
+}	
+
 void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz)
 {	
 	if (state.offset > 0)
@@ -121,13 +130,6 @@ void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz)
 }
 } // namespace chacha
 
-
-	void chacha20(uint8_t * buf, size_t sz, const uint8_t * nonce, const uint8_t * key, uint32_t counter)
-	{
-		chacha::Chacha20State state;
-		chacha::Chacha20Init (state, nonce, key, counter);
-		chacha::Chacha20Encrypt (state, buf, sz);		
-	}
 }
 }
 #endif
