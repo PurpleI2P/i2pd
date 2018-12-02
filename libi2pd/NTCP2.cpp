@@ -955,11 +955,18 @@ namespace transport
 		size_t totalLen = 0;
 		std::vector<std::pair<uint8_t *, size_t> > encryptBufs;
 		std::vector<boost::asio::const_buffer> bufs; 
-		std::shared_ptr<I2NPMessage> first, last;
+		std::shared_ptr<I2NPMessage> first;
+		uint8_t * macBuf = nullptr;
 		for (auto& it: msgs) 
 		{	
+			it->ToNTCP2 ();
 			auto buf = it->GetNTCP2Header ();
 			auto len = it->GetNTCP2Length ();
+			// block header
+			buf -= 3; 
+			buf[0] = eNTCP2BlkI2NPMessage; // blk
+			htobe16buf (buf + 1, len); // size
+			len += 3; 			
 			encryptBufs.push_back (std::make_pair (buf, len));
 			if (it == *msgs.begin ()) // first message
 			{
@@ -972,35 +979,33 @@ namespace transport
 				// if it's long enough we add padding and MAC to it
 				// allocate 16 bytes for MAC
 				len += 16;
-				last = it;
 				// create padding block
 				auto paddingLen = CreatePaddingBlock (totalLen + len, buf + len, it->maxLen - len);
 				len += paddingLen;
 				totalLen += paddingLen;
-				it->len += paddingLen;	
+				macBuf = buf + len;
 			}	
 				
 			bufs.push_back (boost::asio::buffer (buf, len));
 			totalLen += len;
 		}
 
-		uint8_t nonce[12];
-		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		if (last) 
-			i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, last->GetNTCP2Header () + last->GetNTCP2Length ());
-		else // last block was not enough for MAC
+		if (!macBuf) // last block was not enough for MAC
 		{
 			// allocate send buffer
 			m_NextSendBuffer = new uint8_t[287]; // can be any size > 16, we just allocate 287 frequently
 			// crate padding block
 			auto paddingLen = CreatePaddingBlock (totalLen, m_NextSendBuffer, 287 - 16);
 			// and padding block to encrypt and send
-			encryptBufs.push_back (std::make_pair (m_NextSendBuffer, paddingLen));
-			i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, m_NextSendBuffer + paddingLen);
+			encryptBufs.push_back (std::make_pair (m_NextSendBuffer, paddingLen));			
 			bufs.push_back (boost::asio::buffer (m_NextSendBuffer, paddingLen + 16));
+			macBuf = m_NextSendBuffer + paddingLen;
 			totalLen += paddingLen;		
-		}	
-		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 2); // right before first block
+		}
+		uint8_t nonce[12];
+		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
+		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
+		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 2); // frame length right before first block
 			
 		// send buffers
 		m_IsSending = true;	
