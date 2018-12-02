@@ -1174,7 +1174,7 @@ namespace crypto
 		return ret;
 	}
 
-	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
 #if LEGACY_OPENSSL
@@ -1190,8 +1190,8 @@ namespace crypto
 		size_t size = 0;
 		for (auto& it: bufs)
 		{
-			chacha::Chacha20Encrypt (state, (uint8_t *)it.first, it.second);
-			polyHash.Update ((uint8_t *)it.first, it.second); // after encryption
+			chacha::Chacha20Encrypt (state, it.first, it.second);
+			polyHash.Update (it.first, it.second); // after encryption
 			size += it.second;
 		}
 		// padding
@@ -1217,7 +1217,7 @@ namespace crypto
 		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
 		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
 		for (auto& it: bufs)	
-			EVP_EncryptUpdate(ctx, (uint8_t *)it.first, &outlen, (uint8_t *)it.first, it.second);
+			EVP_EncryptUpdate(ctx, it.first, &outlen, it.first, it.second);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
 		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
 		EVP_CIPHER_CTX_free (ctx);

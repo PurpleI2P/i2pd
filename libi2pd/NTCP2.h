@@ -175,8 +175,12 @@ namespace transport
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void ProcessNextFrame (const uint8_t * frame, size_t len);
 
+			void SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf);
 			void SendNextFrame (const uint8_t * payload, size_t len); 
 			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void SendI2NPMsgs (std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+			void HandleI2NPMsgsSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
+			size_t CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len);
 			void SendQueue ();
 			void SendRouterInfo ();
 			void SendTermination (NTCP2TerminationReason reason);
