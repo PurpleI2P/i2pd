@@ -75,6 +75,7 @@ namespace i2p
 
 	enum I2NPMessageType
 	{
+		eI2NPDummyMsg = 0,	
 		eI2NPDatabaseStore = 1,
 		eI2NPDatabaseLookup = 2,
 		eI2NPDatabaseSearchReply = 3,

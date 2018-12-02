@@ -21,9 +21,9 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
+/* // No more needed. Exists in MinGW.
 int inet_pton(int af, const char *src, void *dst)
-{ /* This function was written by Petar Korponai?. See
-http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
+{ // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 	struct sockaddr_storage ss;
 	int size = sizeof (ss);
 	char src_copy[INET6_ADDRSTRLEN + 1];
@@ -45,7 +45,7 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 		}
 	}
 	return 0;
-}
+}*/
 #else /* !WIN32 => UNIX */
 #include <sys/types.h>
 #include <ifaddrs.h>

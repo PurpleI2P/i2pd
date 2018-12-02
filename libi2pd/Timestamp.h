@@ -2,29 +2,43 @@
 #define TIMESTAMP_H__
 
 #include <inttypes.h>
-#include <chrono>
+#include <thread>
+#include <vector>
+#include <string>
+#include <boost/asio.hpp>
 
 namespace i2p
 {
 namespace util
 {
-	inline uint64_t GetMillisecondsSinceEpoch ()
-	{
-		return std::chrono::duration_cast<std::chrono::milliseconds>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
-	}
+	uint64_t GetMillisecondsSinceEpoch ();
+	uint32_t GetHoursSinceEpoch ();
+	uint64_t GetSecondsSinceEpoch ();
 
-	inline uint32_t GetHoursSinceEpoch ()
+	class NTPTimeSync
 	{
-		return std::chrono::duration_cast<std::chrono::hours>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
-	}
+		public:
 
-	inline uint64_t GetSecondsSinceEpoch ()
-	{
-		return std::chrono::duration_cast<std::chrono::seconds>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
-	}
+			NTPTimeSync ();
+			~NTPTimeSync ();
+
+			void Start ();
+        	void Stop ();
+
+		private:
+			
+			void Run ();
+			void Sync ();		
+
+		private:
+
+			bool m_IsRunning;
+       		std::unique_ptr<std::thread> m_Thread;
+			boost::asio::io_service m_Service;
+			boost::asio::deadline_timer m_Timer;
+			int m_SyncInterval;
+			std::vector<std::string> m_NTPServersList;
+	};
 }
 }
 

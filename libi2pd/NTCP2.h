@@ -73,6 +73,8 @@ namespace transport
 		eNTCP2Banned, // 17
 	};		
 	
+	// RouterInfo flags
+	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;	
 
 	typedef std::array<uint8_t, NTCP2_UNENCRYPTED_FRAME_MAX_SIZE> NTCP2FrameBuffer;
 	struct NTCP2Establisher

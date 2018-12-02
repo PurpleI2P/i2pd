@@ -3,6 +3,7 @@
     <string name="app_name">i2pd</string>
     <string name="action_stop">Stop</string>
     <string name="action_graceful_stop">Graceful Stop</string>
+	<string name="action_cancel_graceful_stop">Cancel Graceful Stop</string>
     <string name="graceful_stop_is_already_in_progress">Graceful stop is already in progress</string>
     <string name="graceful_stop_is_in_progress">Graceful stop is in progress</string>
     <string name="already_stopped">Already stopped</string>

@@ -23,6 +23,7 @@
 #include "ClientContext.h"
 #include "Crypto.h"
 #include "UPnP.h"
+#include "Timestamp.h"
 #include "util.h"
 
 #include "Event.h"
@@ -41,6 +42,7 @@ namespace i2p
 			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 			std::unique_ptr<i2p::transport::UPnP> UPnP;
+			std::unique_ptr<i2p::util::NTPTimeSync> m_NTPSync;
 #ifdef WITH_EVENTS
 			std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
 #endif
@@ -282,6 +284,13 @@ namespace i2p
 				d.UPnP->Start ();
 			}
 
+			bool nettime; i2p::config::GetOption("nettime.enabled", nettime);
+			if (nettime)
+			{
+				d.m_NTPSync = std::unique_ptr<i2p::util::NTPTimeSync>(new i2p::util::NTPTimeSync);
+				d.m_NTPSync->Start ();
+			}
+
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
@@ -351,9 +360,16 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: stopping Tunnels");
 			i2p::tunnel::tunnels.Stop();
 
-			if (d.UPnP) {
+			if (d.UPnP) 
+			{
 				d.UPnP->Stop ();
 				d.UPnP = nullptr;
+			}
+
+			if (d.m_NTPSync)
+			{
+				d.m_NTPSync->Stop ();
+				d.m_NTPSync = nullptr;
 			}
 
 			LogPrint(eLogInfo, "Daemon: stopping Transports");

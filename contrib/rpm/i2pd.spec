@@ -53,6 +53,9 @@ make %{?_smp_mflags}
 
 %install
 cd build
+%if 0%{?mageia}
+cd build
+%endif
 chrpath -d i2pd
 install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
 install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf

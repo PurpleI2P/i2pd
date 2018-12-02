@@ -1087,62 +1087,62 @@ namespace crypto
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
 #if LEGACY_OPENSSL
+		chacha::Chacha20State state;
 		// generate one time poly key
-		uint8_t polyKey[64];
+		chacha::Chacha20Init (state, nonce, key, 0);	
+		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
-		chacha20 (polyKey, 64, nonce, key, 0);
-
-		// create Poly1305 message
+		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
+		// create Poly1305 hash
+		Poly1305 polyHash (polyKey);
 		if (!ad) adLen = 0;
-		std::vector<uint8_t> polyMsg(adLen + msgLen + 3*16);
-		size_t offset = 0;
 		uint8_t padding[16]; memset (padding, 0, 16);
 		if (ad)
 		{
-			memcpy (polyMsg.data (), ad, adLen); offset += adLen; // additional authenticated data
+			polyHash.Update (ad, adLen);// additional authenticated data
 			auto rem = adLen & 0x0F; // %16
 			if (rem)
 			{
 				// padding1
 				rem = 16 - rem;
-				memcpy (polyMsg.data () + offset, padding, rem); offset += rem;
+				polyHash.Update (padding, rem);	
 			}
 		}
 		// encrypt/decrypt data and add to hash
+		Chacha20SetCounter (state, 1);
 		if (buf != msg)
 			memcpy (buf, msg, msgLen);
 		if (encrypt)
 		{
-			chacha20 (buf, msgLen, nonce, key, 1); // encrypt
-			memcpy (polyMsg.data () + offset, buf, msgLen); // after encryption
+			chacha::Chacha20Encrypt (state, buf, msgLen); // encrypt
+			polyHash.Update (buf, msgLen); // after encryption
 		}
 		else
 		{
-			memcpy (polyMsg.data () + offset, buf, msgLen); // before decryption
-			chacha20 (buf, msgLen, nonce, key, 1); // decrypt
+			polyHash.Update (buf, msgLen); // before decryption
+			chacha::Chacha20Encrypt (state, buf, msgLen); // decrypt
 		}	
-		offset += msgLen; // encrypted data
 
 		auto rem = msgLen & 0x0F; // %16
 		if (rem)
 		{
 			// padding2
 			rem = 16 - rem;
-			memcpy (polyMsg.data () + offset, padding, rem); offset += rem;
+			polyHash.Update (padding, rem);		
 		}
-		htole64buf (polyMsg.data () + offset, adLen); offset += 8;
-		htole64buf (polyMsg.data () + offset, msgLen); offset += 8;
-
+		// adLen and msgLen
+		htole64buf (padding, adLen);
+		htole64buf (padding + 8, msgLen);
+		polyHash.Update (padding, 16);	
+		
 		if (encrypt)
-		{
 			// calculate Poly1305 tag and write in after encrypted data
-			Poly1305HMAC ((uint32_t *)(buf + msgLen), (uint32_t *)polyKey, polyMsg.data (), offset);
-		}
+			polyHash.Finish ((uint64_t *)(buf + msgLen));
 		else
 		{
-			uint32_t tag[8];
+			uint64_t tag[4];
 			// calculate Poly1305 tag
-			Poly1305HMAC (tag, (uint32_t *)polyKey, polyMsg.data (), offset);
+			polyHash.Finish (tag);	
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
 #else
@@ -1172,6 +1172,56 @@ namespace crypto
 		EVP_CIPHER_CTX_free (ctx);
 #endif
 		return ret;
+	}
+
+	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	{
+		if (bufs.empty ()) return;
+#if LEGACY_OPENSSL
+		chacha::Chacha20State state;
+		// generate one time poly key
+		chacha::Chacha20Init (state, nonce, key, 0);	
+		uint64_t polyKey[8];
+		memset(polyKey, 0, sizeof(polyKey));
+		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
+		Poly1305 polyHash (polyKey);
+		// encrypt buffers	
+		Chacha20SetCounter (state, 1);
+		size_t size = 0;
+		for (auto& it: bufs)
+		{
+			chacha::Chacha20Encrypt (state, (uint8_t *)it.first, it.second);
+			polyHash.Update ((uint8_t *)it.first, it.second); // after encryption
+			size += it.second;
+		}
+		// padding
+		uint8_t padding[16]; 
+		memset (padding, 0, 16);
+		auto rem = size & 0x0F; // %16
+		if (rem)
+		{
+			// padding2
+			rem = 16 - rem;
+			polyHash.Update (padding, rem);		
+		}
+		// adLen and msgLen
+		// adLen is always zero
+		htole64buf (padding + 8, size);
+		polyHash.Update (padding, 16);	
+		// MAC
+		polyHash.Finish ((uint64_t *)mac);
+#else
+		int outlen = 0;
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+		for (auto& it: bufs)	
+			EVP_EncryptUpdate(ctx, (uint8_t *)it.first, &outlen, (uint8_t *)it.first, it.second);
+		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
+		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
+		EVP_CIPHER_CTX_free (ctx);
+#endif		
 	}
 
 // init and terminate

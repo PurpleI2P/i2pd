@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <vector>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/aes.h>
@@ -108,35 +109,16 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-#ifdef __AVX__
-			if (i2p::cpu::avx)
-			{
-				__asm__
-					(
-						"vmovups (%[buf]), %%xmm0 \n"
-						"vmovups (%[other]), %%xmm1 \n"
-						"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
-						"vmovups %%xmm0, (%[buf]) \n"
-						:
-						: [buf]"r"(buf), [other]"r"(other.buf)
-						: "%xmm0", "%xmm1", "memory"
-						);
-			}
+			if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
+			{	
+				for (int i = 0; i < 4; i++)
+					reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];
+			}	
 			else
-#endif
-			{
-				if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
-				{
-					// we are good to cast to uint32_t *
-					for (int i = 0; i < 4; i++)
-						((uint32_t *)buf)[i] ^= ((uint32_t *)other.buf)[i];	
-				}	
-				else
-				{	
-					for (int i = 0; i < 16; i++)
-						buf[i] ^= other.buf[i];
-				}	
-			}
+			{	
+				for (int i = 0; i < 16; i++)
+					buf[i] ^= other.buf[i];
+			}					
 		}
 	};
 
@@ -300,6 +282,8 @@ namespace crypto
 
 // AEAD/ChaCha20/Poly1305
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
+
+	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
 
 // init and terminate
 	void InitCrypto (bool precomputation);

@@ -9,7 +9,9 @@
 #define SIPHASH_H
 
 #include <cstdint>
+#include "Crypto.h"
 
+#if !OPENSSL_SIPHASH
 namespace i2p
 {
 namespace crypto 
@@ -148,5 +150,6 @@ namespace crypto
     }
 }
 }
+#endif
 
 #endif

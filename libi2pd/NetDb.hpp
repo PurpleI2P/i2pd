@@ -65,7 +65,8 @@ namespace data
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
-
+			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
+		
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
@@ -110,13 +111,16 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
+			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
-		void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
+			void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
 
-    	template<typename Filter>
-        std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const uint8_t * buf, int len, bool& updated);
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated);
+    		template<typename Filter>
+        	std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
 
 		private:
 
@@ -139,6 +143,8 @@ namespace data
 
 			friend class NetDbRequests;
 			NetDbRequests m_Requests;
+
+			bool m_PersistProfiles;
 
 		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 		std::shared_ptr<RouterInfo> m_FloodfillBootstrap;

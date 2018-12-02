@@ -88,6 +88,7 @@ namespace config {
 			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
+			("http.webroot", value<std::string>()->default_value("/"),            "WebUI root path (default: / )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -236,8 +237,25 @@ namespace config {
 		options_description ntcp2("NTCP2 Options");
 		ntcp2.add_options()
 			("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
-		    ("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")	
+			("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
+		;
+
+		options_description nettime("Time sync options");
+		nettime.add_options()
+			("nettime.enabled", value<bool>()->default_value(false), "Disable time sync (default: disabled)")
+			("nettime.ntpservers", value<std::string>()->default_value(
+				"0.pool.ntp.org,"
+				"1.pool.ntp.org,"
+				"2.pool.ntp.org,"
+				"3.pool.ntp.org"
+			),  "Comma separated list of NTCP servers")
+			("nettime.ntpsyncinterval", value<int>()->default_value(72),  "NTP sync interval in hours (default: 72)")
+		;
+
+		options_description persist("Network information persisting options");
+		persist.add_options()
+			("persist.profiles", value<bool>()->default_value(true), "Persist peer profiles (default: true)")
 		;
 
 		m_OptionsDesc
@@ -258,6 +276,8 @@ namespace config {
 			.add(websocket)
 			.add(exploratory)
 			.add(ntcp2)
+			.add(nettime)
+			.add(persist)
 		;
 	}
 
