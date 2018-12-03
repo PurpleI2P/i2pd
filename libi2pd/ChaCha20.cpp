@@ -111,7 +111,8 @@ void Chacha20Encrypt (Chacha20State& state, uint8_t * buf, size_t sz)
 			buf[i] ^= state.block.data[state.offset + i];
 		buf += s;
 		sz -= s;
-		state.offset = 0;
+		state.offset += s;
+		if (state.offset >= chacha::blocksize) state.offset = 0;	
 	}
 	for (size_t i = 0; i < sz; i += chacha::blocksize) 
 	{
