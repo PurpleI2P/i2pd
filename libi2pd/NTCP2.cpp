@@ -979,7 +979,7 @@ namespace transport
 			{	
 				// if it's long enough we add padding and MAC to it
 				// create padding block
-				auto paddingLen = CreatePaddingBlock (totalLen, buf + len, it->maxLen - len - 16);
+				auto paddingLen = CreatePaddingBlock (totalLen, buf + len, it->maxLen - it->len - 16);
 				encryptBufs.push_back (std::make_pair (buf + len, paddingLen));
 				len += paddingLen;
 				totalLen += paddingLen;
