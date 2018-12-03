@@ -76,7 +76,6 @@ namespace transport
 	// RouterInfo flags
 	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;	
 
-	typedef std::array<uint8_t, NTCP2_UNENCRYPTED_FRAME_MAX_SIZE> NTCP2FrameBuffer;
 	struct NTCP2Establisher
 	{
 		NTCP2Establisher ();
@@ -236,9 +235,6 @@ namespace transport
 		
 			void Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn);
 
-			NTCP2FrameBuffer * NewNTCP2FrameBuffer () { return m_NTCP2FrameBuffersPool.Acquire(); }
-			void DeleteNTCP2FrameBuffer (NTCP2FrameBuffer * buf) { return m_NTCP2FrameBuffersPool.Release(buf); }
-
 		private:
 
 			void Run ();
@@ -261,8 +257,6 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
-
-			i2p::util::MemoryPool<NTCP2FrameBuffer> m_NTCP2FrameBuffersPool;
 
 		public:
 

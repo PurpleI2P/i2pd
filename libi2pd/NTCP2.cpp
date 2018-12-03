@@ -1024,22 +1024,16 @@ namespace transport
 	{
 		if (!m_SendQueue.empty ())
 		{
-			auto buf = m_Server.NewNTCP2FrameBuffer ();
-			uint8_t * payload = buf->data ();
+			std::vector<std::shared_ptr<I2NPMessage> > msgs;
 			size_t s = 0;
-			// add I2NP blocks
 			while (!m_SendQueue.empty ())
 			{
 				auto msg = m_SendQueue.front ();
 				size_t len = msg->GetNTCP2Length (); 
 				if (s + len + 3 <= NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) // 3 bytes block header
 				{
-					payload[s] = eNTCP2BlkI2NPMessage; // blk
-					htobe16buf (payload + s + 1, len); // size
-					s += 3;
-					msg->ToNTCP2 ();
-					memcpy (payload + s, msg->GetNTCP2Header (), len);
-					s += len;
+					msgs.push_back (msg);
+					s += (len + 3);
 					m_SendQueue.pop_front ();
 				}
 				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
@@ -1050,11 +1044,7 @@ namespace transport
 				else
 					break;
 			}
-			// add padding block 
-			s += CreatePaddingBlock (s, payload + s, NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - s);
-			// send
-			SendNextFrame (payload, s);
-			m_Server.DeleteNTCP2FrameBuffer (buf);
+			SendI2NPMsgs (msgs);
 		} 
 	}
 
