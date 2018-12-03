@@ -966,7 +966,8 @@ namespace transport
 			buf -= 3; 
 			buf[0] = eNTCP2BlkI2NPMessage; // blk
 			htobe16buf (buf + 1, len); // size
-			len += 3; 			
+			len += 3; 	
+			totalLen += len;		
 			encryptBufs.push_back (std::make_pair (buf, len));
 			if (it == *msgs.begin ()) // first message
 			{
@@ -977,17 +978,17 @@ namespace transport
 			if (it == *msgs.rbegin () && it->len + 16 < it->maxLen) // last message
 			{	
 				// if it's long enough we add padding and MAC to it
-				// allocate 16 bytes for MAC
-				len += 16;
 				// create padding block
-				auto paddingLen = CreatePaddingBlock (totalLen + len, buf + len, it->maxLen - len);
+				auto paddingLen = CreatePaddingBlock (totalLen, buf + len, it->maxLen - len - 16);
+				encryptBufs.push_back (std::make_pair (buf + len, paddingLen));
 				len += paddingLen;
 				totalLen += paddingLen;
 				macBuf = buf + len;
+				// allocate 16 bytes for MAC
+				len += 16;
 			}	
 				
 			bufs.push_back (boost::asio::buffer (buf, len));
-			totalLen += len;
 		}
 
 		if (!macBuf) // last block was not enough for MAC
@@ -1005,7 +1006,7 @@ namespace transport
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
-		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 2); // frame length right before first block
+		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 5); // frame length right before first block
 			
 		// send buffers
 		m_IsSending = true;	
