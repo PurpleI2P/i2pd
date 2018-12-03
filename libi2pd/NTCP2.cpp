@@ -1024,6 +1024,41 @@ namespace transport
 	{
 		if (!m_SendQueue.empty ())
 		{
+			auto buf = m_Server.NewNTCP2FrameBuffer ();
+			uint8_t * payload = buf->data ();
+			size_t s = 0;
+			// add I2NP blocks
+			while (!m_SendQueue.empty ())
+			{
+				auto msg = m_SendQueue.front ();
+				size_t len = msg->GetNTCP2Length (); 
+				if (s + len + 3 <= NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) // 3 bytes block header
+				{
+					payload[s] = eNTCP2BlkI2NPMessage; // blk
+					htobe16buf (payload + s + 1, len); // size
+					s += 3;
+					msg->ToNTCP2 ();
+					memcpy (payload + s, msg->GetNTCP2Header (), len);
+					s += len;
+					m_SendQueue.pop_front ();
+				}
+				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
+				{
+					LogPrint (eLogError, "NTCP2: I2NP message of size ", len, " can't be sent. Dropped");
+					m_SendQueue.pop_front ();
+				}
+				else
+					break;
+			}
+			// add padding block 
+			s += CreatePaddingBlock (s, payload + s, NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - s);
+			// send
+			SendNextFrame (payload, s);
+			m_Server.DeleteNTCP2FrameBuffer (buf);
+		} 
+
+/*		if (!m_SendQueue.empty ())
+		{
 			std::vector<std::shared_ptr<I2NPMessage> > msgs;
 			size_t s = 0;
 			while (!m_SendQueue.empty ())
@@ -1045,7 +1080,7 @@ namespace transport
 					break;
 			}
 			SendI2NPMsgs (msgs);
-		} 
+		} */
 	}
 
 	size_t NTCP2Session::CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len)
