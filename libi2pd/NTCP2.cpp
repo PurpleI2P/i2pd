@@ -1056,6 +1056,7 @@ namespace transport
 	{
 		if (len < 3) return 0; 
 		len -= 3;
+		if (msgLen < 256) msgLen = 256; // for short message padding should not be always zero
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
