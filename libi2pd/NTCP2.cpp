@@ -992,6 +992,11 @@ namespace transport
 	
 	void NTCP2Session::EncryptAndSendNextBuffer (size_t payloadLen)
 	{
+		if (IsTerminated ()) 
+		{
+			delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
+			return; 
+		}
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
