@@ -913,40 +913,6 @@ namespace transport
 		htobe16buf (lengthBuf, frameLen ^ le16toh (m_SendIV.key));
 		LogPrint (eLogDebug, "NTCP2: sent length ", frameLen);
 	}	
-		
-	void NTCP2Session::SendNextFrame (const uint8_t * payload, size_t len)
-	{
-		if (IsTerminated ()) return;	
-		uint8_t nonce[12];
-		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		m_NextSendBuffer = new uint8_t[len + 16 + 2];
-		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
-		SetNextSentFrameLength (len + 16, m_NextSendBuffer);
-		
-		// send message
-		m_IsSending = true;	
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, len + 16 + 2), boost::asio::transfer_all (),
-			std::bind(&NTCP2Session::HandleNextFrameSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-	}
-
-	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-	{
-		m_IsSending = false;
-		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
-		
-		if (ecode)
-		{
-			LogPrint (eLogWarning, "NTCP2: Couldn't send frame ", ecode.message ());
-		}	
-		else
-		{	
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-			m_NumSentBytes += bytes_transferred;
-			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
-			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
-			SendQueue ();
-		}	
-	}
 
 	void NTCP2Session::SendI2NPMsgs (std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
@@ -1023,7 +989,26 @@ namespace transport
 		HandleNextFrameSent (ecode, bytes_transferred);
 		// msgs get destroyed here
 	}
+	
+	void NTCP2Session::HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		m_IsSending = false;
+		delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
 		
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: Couldn't send frame ", ecode.message ());
+		}	
+		else
+		{	
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			m_NumSentBytes += bytes_transferred;
+			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
+			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
+			SendQueue ();
+		}	
+	}
+	
 	void NTCP2Session::SendQueue ()
 	{
 		if (!m_SendQueue.empty ())
@@ -1096,10 +1081,23 @@ namespace transport
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
 		if (!m_SendKey || !m_SendSipKey) return;
-		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
-		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
-		payload[11] = (uint8_t)reason;
-		SendNextFrame (payload, 12);
+		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block 		
+		// termination block
+		m_NextSendBuffer[2] = eNTCP2BlkTermination;
+		m_NextSendBuffer[3] = 0; m_NextSendBuffer[4] = 9; // 9 bytes block size
+		htobe64buf (m_NextSendBuffer + 5, m_ReceiveSequenceNumber);	
+		m_NextSendBuffer[13] = (uint8_t)reason;
+		// padding block
+		auto paddingSize = CreatePaddingBlock (12, m_NextSendBuffer + 14, 19);
+		// encrypt
+		uint8_t nonce[12];
+		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
+		i2p::crypto::AEADChaCha20Poly1305Encrypt ({std::make_pair (m_NextSendBuffer + 2, paddingSize + 12)}, m_SendKey, nonce, m_NextSendBuffer + paddingSize + 14);
+		SetNextSentFrameLength (paddingSize + 12 + 16, m_NextSendBuffer);
+		// send
+		m_IsSending = true;	
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, paddingSize + 14 + 16), boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleNextFrameSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void NTCP2Session::SendTerminationAndTerminate (NTCP2TerminationReason reason)
