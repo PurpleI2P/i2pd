@@ -177,6 +177,7 @@ namespace transport
 			void SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf);
 			void SendI2NPMsgs (std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void HandleI2NPMsgsSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
+			void EncryptAndSendNextBuffer (size_t payloadLen);
 			void HandleNextFrameSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			size_t CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len);
 			void SendQueue ();
