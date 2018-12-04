@@ -10,6 +10,7 @@
 #include <openssl/ssl.h>
 #include "Crypto.h"
 #if LEGACY_OPENSSL
+#include <openssl/conf.h>
 #include "ChaCha20.h"
 #include "Poly1305.h"
 #endif
@@ -1242,6 +1243,11 @@ namespace crypto
 	void InitCrypto (bool precomputation)
 	{
 		i2p::cpu::Detect ();
+#if LEGACY_OPENSSL
+		OPENSSL_no_config ();
+#else
+		OPENSSL_init_crypto (OPENSSL_INIT_NO_LOAD_CONFIG, NULL);
+#endif		
 		SSL_library_init ();
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
