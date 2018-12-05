@@ -1279,6 +1279,7 @@ namespace crypto
 }
 }
 
+#ifndef ANDROID
 // TODO: move to InitCrypto if boost::asio::ssl is not used anymore
 // no_config must be called before SSL_library_init ()
 class DummyOpenSSLInitializer
@@ -1297,3 +1298,5 @@ class DummyOpenSSLInitializer
 static DummyOpenSSLInitializer g_OpenSSLInitializer; // must be called before 
 // boost::asio::ssl containing static openssl_init instance_;
 #include <boost/asio/ssl.hpp>
+#endif
+
