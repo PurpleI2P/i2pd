@@ -8,7 +8,7 @@ namespace i2p
 {
 namespace client
 {
-	static const i2p::data::SigningKeyType I2P_SERVICE_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+	static const i2p::data::SigningKeyType I2P_SERVICE_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 
 	I2PService::I2PService (std::shared_ptr<ClientDestination> localDestination):
 		m_LocalDestination (localDestination ? localDestination :
