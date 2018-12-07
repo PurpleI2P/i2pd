@@ -64,7 +64,7 @@ namespace client
 	void I2PService::TriggerReadyCheckTimer()
 	{
 		m_ReadyTimer.expires_from_now(boost::posix_time::seconds (1));
-		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, this, std::placeholders::_1));
+		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, shared_from_this (), std::placeholders::_1));
 		m_ReadyTimerTriggered = true;
 
 	}
