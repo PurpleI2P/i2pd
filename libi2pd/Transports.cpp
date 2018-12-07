@@ -459,23 +459,6 @@ namespace transport
 							}
 						}
 					}
-					else // we don't have address
-					{
-						if (address->addressString.length () > 0) // trying to resolve
-						{
-							if(m_NTCPServer->UsingProxy())
-							{
-								auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-								m_NTCPServer->ConnectWithProxy(address->addressString, address->port, NTCPServer::eHostname, s);
-							}
-							else
-							{
-								LogPrint (eLogDebug, "Transports: Resolving NTCP ", address->addressString);
-								NTCPResolve (address->addressString, ident);
-							}
-							return true;
-						}
-					}
 				}
 				else
 					LogPrint (eLogDebug, "Transports: NTCP address is not present for ", i2p::data::GetIdentHashAbbreviation (ident), ", trying SSU");
@@ -496,15 +479,6 @@ namespace transport
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
-					}
-					else // we don't have address
-					{
-						if (address->addressString.length () > 0) // trying to resolve
-						{
-							LogPrint (eLogDebug, "Transports: Resolving SSU ", address->addressString);
-							SSUResolve (address->addressString, ident);
-							return true;
-						}
 					}
 				}
 			}
@@ -547,92 +521,7 @@ namespace transport
 			}
 		}
 	}
-
-	void Transports::NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident)
-	{
-		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(*m_Service);
-		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""),
-			std::bind (&Transports::HandleNTCPResolve, this,
-				std::placeholders::_1, std::placeholders::_2, ident, resolver));
-	}
-
-	void Transports::HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
-		i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
-	{
-		auto it1 = m_Peers.find (ident);
-		if (it1 != m_Peers.end ())
-		{
-			auto& peer = it1->second;
-			if (!ecode && peer.router)
-			{
-				while (it != boost::asio::ip::tcp::resolver::iterator())
-				{
-					auto address = (*it).endpoint ().address ();
-					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-					if (address.is_v4 () || context.SupportsV6 ())
-					{
-						auto addr = peer.router->GetNTCPAddress (); // TODO: take one we requested
-						if (addr)
-						{
-							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-							m_NTCPServer->Connect (address, addr->port, s);
-							return;
-						}
-						break;
-					}
-					else
-						LogPrint (eLogInfo, "Transports: NTCP ", address, " is not supported");
-					it++;
-				}
-			}
-			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
-			std::unique_lock<std::mutex> l(m_PeersMutex);
-			m_Peers.erase (it1);
-		}
-	}
-
-	void Transports::SSUResolve (const std::string& addr, const i2p::data::IdentHash& ident)
-	{
-		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(*m_Service);
-		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""),
-			std::bind (&Transports::HandleSSUResolve, this,
-				std::placeholders::_1, std::placeholders::_2, ident, resolver));
-	}
-
-	void Transports::HandleSSUResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
-		i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
-	{
-		auto it1 = m_Peers.find (ident);
-		if (it1 != m_Peers.end ())
-		{
-			auto& peer = it1->second;
-			if (!ecode && peer.router)
-			{
-				while (it != boost::asio::ip::tcp::resolver::iterator())
-				{
-					auto address = (*it).endpoint ().address ();
-					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-					if (address.is_v4 () || context.SupportsV6 ())
-					{
-						auto addr = peer.router->GetSSUAddress (); // TODO: take one we requested
-						if (addr)
-						{
-							m_SSUServer->CreateSession (peer.router, address, addr->port);
-							return;
-						}
-						break;
-					}
-					else
-						LogPrint (eLogInfo, "Transports: SSU ", address, " is not supported");
-					it++;
-				}
-			}
-			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());
-			std::unique_lock<std::mutex> l(m_PeersMutex);
-			m_Peers.erase (it1);
-		}
-	}
-
+	
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		if (!router) return;
