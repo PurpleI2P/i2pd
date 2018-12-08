@@ -30,7 +30,6 @@ namespace transport
 	NTCP2Establisher::NTCP2Establisher ():
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr) 
 	{ 
-		CreateEphemeralKey ();
 	}
 
 	NTCP2Establisher::~NTCP2Establisher () 
@@ -357,6 +356,7 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
+		m_Establisher (new NTCP2Establisher),
 		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
@@ -364,7 +364,6 @@ namespace transport
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
-		m_Establisher.reset (new NTCP2Establisher);
 		if (in_RemoteRouter) // Alice
 		{
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
@@ -735,11 +734,13 @@ namespace transport
 
 	void NTCP2Session::ClientLogin ()
 	{
+		m_Establisher->CreateEphemeralKey ();
 		SendSessionRequest ();
 	}
 
 	void NTCP2Session::ServerLogin ()
 	{
+		m_Establisher->CreateEphemeralKey ();
 		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
