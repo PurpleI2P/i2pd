@@ -283,6 +283,7 @@ namespace crypto
 	{
 #if OPENSSL_X25519
 		m_Ctx = EVP_PKEY_CTX_new_id (NID_X25519, NULL);
+		m_Pkey = nullptr;
 #else		
 		m_Ctx = BN_CTX_new ();
 #endif		
@@ -305,8 +306,7 @@ namespace crypto
 	{
 #if OPENSSL_X25519
 		EVP_PKEY_CTX_free (m_Ctx);
-		if (m_Pkey)
-			EVP_PKEY_free (m_Pkey);	
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);	
 #else				
 		BN_CTX_free (m_Ctx);
 #endif		
@@ -315,7 +315,11 @@ namespace crypto
 	void X25519Keys::GenerateKeys ()
 	{
 #if OPENSSL_X25519
-		m_Pkey = nullptr;
+		if (m_Pkey)
+		{ 
+			EVP_PKEY_free (m_Pkey);	
+			m_Pkey = nullptr;
+		}
 		EVP_PKEY_keygen_init (m_Ctx);
 		EVP_PKEY_keygen (m_Ctx, &m_Pkey);
 		EVP_PKEY_CTX_free (m_Ctx);
