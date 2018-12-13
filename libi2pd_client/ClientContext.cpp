@@ -345,11 +345,8 @@ namespace client
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
 			if (!it->second->IsRunning ())
-			{
 				it->second->Start ();
-				return it->second;
-			}
-			return nullptr;
+			return it->second;
 		}
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -719,7 +716,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
+					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
@@ -758,7 +755,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
+					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
