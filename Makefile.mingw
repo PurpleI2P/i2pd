@@ -8,16 +8,6 @@ LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
 
 # Boost libraries suffix
 BOOST_SUFFIX = -mt
-BOOST_ARCHSUFFIX = ${BOOST_SUFFIX}
-
-# Since Boost 1.69.0, libraries in mingw use suffix with architecture in x32/x64 view
-ifneq (, $(findstring x86_64, $(SYS))$(findstring 1.69.0, $(shell pacman -Q mingw-w64-x86_64-boost)))
-	BOOST_ARCHSUFFIX = ${BOOST_SUFFIX}-x64
-else ifneq (, $(findstring i686, $(SYS))$(findstring 1.69.0, $(shell pacman -Q mingw-w64-i686-boost)))
-	BOOST_ARCHSUFFIX = ${BOOST_SUFFIX}-x32
-else
-	$(error Not supported platform)
-endif
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
@@ -26,10 +16,10 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 LDLIBS += \
-	-lboost_system$(BOOST_ARCHSUFFIX) \
-	-lboost_date_time$(BOOST_ARCHSUFFIX) \
-	-lboost_filesystem$(BOOST_ARCHSUFFIX) \
-	-lboost_program_options$(BOOST_ARCHSUFFIX) \
+	-lboost_system$(BOOST_SUFFIX) \
+	-lboost_date_time$(BOOST_SUFFIX) \
+	-lboost_filesystem$(BOOST_SUFFIX) \
+	-lboost_program_options$(BOOST_SUFFIX) \
 	-lssl \
 	-lcrypto \
 	-lz \
