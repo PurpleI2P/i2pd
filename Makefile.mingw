@@ -3,9 +3,20 @@ CXX = g++
 WINDRES = windres
 CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
-BOOST_SUFFIX = -mt
 INCFLAGS = -Idaemon -I.
 LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
+
+# Boost libraries suffix
+BOOST_SUFFIX = -mt
+
+# Since Boost 1.69.0, libraries in mingw use suffix with architecture in x32/x64 view
+ifneq (, $(findstring x86_64, $(SYS)))
+	BOOST_ARCHSUFFIX = ${BOOST_SUFFIX}-x64
+else ifneq (, $(findstring i686, $(SYS)))
+	BOOST_ARCHSUFFIX = ${BOOST_SUFFIX}-x32
+else
+	$(error Not supported platform)
+endif
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
@@ -14,10 +25,10 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 LDLIBS += \
-	-lboost_system$(BOOST_SUFFIX) \
-	-lboost_date_time$(BOOST_SUFFIX) \
-	-lboost_filesystem$(BOOST_SUFFIX) \
-	-lboost_program_options$(BOOST_SUFFIX) \
+	-lboost_system$(BOOST_ARCHSUFFIX) \
+	-lboost_date_time$(BOOST_ARCHSUFFIX) \
+	-lboost_filesystem$(BOOST_ARCHSUFFIX) \
+	-lboost_program_options$(BOOST_ARCHSUFFIX) \
 	-lssl \
 	-lcrypto \
 	-lz \
