@@ -364,8 +364,8 @@ if (NOT ZLIB_FOUND )
     set( ZLIB_EXTRA -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh" )
   endif()
   ExternalProject_Add(zlib-project
-    URL http://zlib.net/zlib-1.2.8.tar.gz
-    URL_MD5 44d667c142d7cda120332623eab69f40
+    URL https://zlib.net/zlib-1.2.11.tar.gz
+    URL_HASH SHA256=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
     PATCH_COMMAND "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
       && "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-amd64.patch
