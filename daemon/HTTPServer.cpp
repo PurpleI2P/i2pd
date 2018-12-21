@@ -851,22 +851,8 @@ namespace http {
 		auto provided = req.GetHeader ("Authorization");
 		if (provided.length () > 0)
 		{
-			bool result = false;
-
-			std::string expected = user + ":" + pass;
-			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length()) + 1;
-			char * b64_creds = new char[b64_sz];
-			std::size_t len = 0;
-			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, b64_sz);
-			/* if we decoded properly then check credentials */
-			if(len) {
-				b64_creds[len] = '\0';
-				expected = "Basic ";
-				expected += b64_creds;
-				result = expected == provided;
-			}
-			delete [] b64_creds;
-			return result;
+			std::string expected = "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+			if (expected == provided) return true;
 		}
 
 		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
