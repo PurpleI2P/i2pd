@@ -291,6 +291,19 @@ namespace data
 		return updated;
 	}
 
+	bool NetDb::AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType)
+	{
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		auto it = m_LeaseSets.find(ident);
+		if (it == m_LeaseSets.end ())
+		{
+			auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len);
+			m_LeaseSets[ident] = leaseSet;
+			return true; 
+		}
+		return false;
+	}
+
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
 	{
 		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
@@ -645,12 +658,23 @@ namespace data
 		size_t payloadOffset = offset;
 
 		bool updated = false;
-		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
+		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];	
+		if (storeType) // LeaseSet or LeaseSet2
 		{
-			LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
-			updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
+			if (storeType == 1)
+			{
+				// 1 - LeaseSet
+				LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
+				updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
+			}
+			else
+			{
+				// 3- LeaseSet2
+				LogPrint (eLogDebug, "NetDb: store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
+				updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
+			}
 		}
-		else
+		else // RouterInfo
 		{
 			LogPrint (eLogDebug, "NetDb: store request: RouterInfo");
 			size_t size = bufbe16toh (buf + offset);

@@ -12,6 +12,11 @@ namespace i2p
 namespace data
 {
 
+	LeaseSet::LeaseSet ():
+		m_IsValid (false), m_StoreLeases (false), m_ExpirationTime (0), m_Buffer (nullptr), m_BufferLen (0)
+	{
+	}
+
 	LeaseSet::LeaseSet (const uint8_t * buf, size_t len, bool storeLeases):
 		m_IsValid (true), m_StoreLeases (storeLeases), m_ExpirationTime (0)
 	{
@@ -213,6 +218,31 @@ namespace data
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted, ctx, true);
+	}
+
+	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
+	{
+		if (m_Buffer) delete[] m_Buffer;
+		m_Buffer = new uint8_t[len];
+		m_BufferLen = len;
+		memcpy (m_Buffer, buf, len);
+	}
+
+	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len)
+	{
+		SetBuffer (buf, len);
+		ReadFromBuffer (storeType, buf, len);
+	}
+
+	void LeaseSet2::ReadFromBuffer (uint8_t storeType, const uint8_t * buf, size_t len)
+	{
+		auto identity = std::make_shared<IdentityEx>(buf, len);
+		SetIdentity (identity);
+		size_t offset = identity->GetFullLen ();
+		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
+		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
+		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
+		SetIsValid (true);	// TODO:: verify signature
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):

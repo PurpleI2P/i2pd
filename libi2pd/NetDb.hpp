@@ -55,6 +55,7 @@ namespace data
 			bool AddRouterInfo (const uint8_t * buf, int len);
 			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+			bool AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType);
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
