@@ -56,7 +56,7 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
-			~LeaseSet () { delete[] m_Buffer; };
+			virtual ~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
@@ -73,7 +73,8 @@ namespace data
 			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
-
+			virtual uint8_t GetStoreType () const { return 1; };
+		  
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
@@ -115,10 +116,15 @@ namespace data
 		public:
 
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len);
+			uint8_t GetStoreType () const { return m_StoreType; };
 
 		private:
 
-			void ReadFromBuffer (uint8_t storeType, const uint8_t * buf, size_t len);
+			void ReadFromBuffer (const uint8_t * buf, size_t len);
+
+		private:
+
+			uint8_t m_StoreType;
 	};
 
 	class LocalLeaseSet

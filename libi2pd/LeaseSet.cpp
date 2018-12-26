@@ -228,21 +228,51 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len)
-	{
+	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len):
+		m_StoreType (storeType)
+	{	
 		SetBuffer (buf, len);
-		ReadFromBuffer (storeType, buf, len);
+		ReadFromBuffer (buf, len);
 	}
 
-	void LeaseSet2::ReadFromBuffer (uint8_t storeType, const uint8_t * buf, size_t len)
+	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
 	{
 		auto identity = std::make_shared<IdentityEx>(buf, len);
 		SetIdentity (identity);
 		size_t offset = identity->GetFullLen ();
+		if (offset + 10 >= len) return;
 		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
-		SetIsValid (true);	// TODO:: verify signature
+		offset += 2; // flags
+		// properties
+		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
+		offset += propertiesLen; // skip for now. TODO: implement properties
+		if (offset + 1 >= len) return;
+		// key sections
+		int numKeySections = buf[offset]; offset++;
+		for (int i = 0; i < numKeySections; i++)
+		{
+			// skip key for now. TODO: implement encryption key
+			offset += 2; // encryption key type
+			if (offset + 2 >= len) return;
+			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
+			offset += encryptionKeyLen; 
+			if (offset >= len) return;
+		}	
+		// leases
+		int numLeases = buf[offset]; offset++;
+		offset += numLeases*40; // 40 bytes each
+		// verify signature
+		if (offset + identity->GetSignatureLen () > len) return;
+		uint8_t * buf1 = new uint8_t[offset + 1];
+		buf1[0] = m_StoreType;
+		memcpy (buf1 + 1, buf, offset); // TODO: implement it better
+		bool verified = identity->Verify (buf1, offset + 1, buf + offset); // assume online keys
+		delete[] buf1;
+		if (!verified)
+			LogPrint (eLogWarning, "LeaseSet2: verification failed");
+		SetIsValid (verified);	
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):

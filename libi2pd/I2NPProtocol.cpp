@@ -264,7 +264,7 @@ namespace i2p
 		auto m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
-		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
+		payload[DATABASE_STORE_TYPE_OFFSET] = leaseSet->GetStoreType (); //  1 for LeaseSet
 		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
 		size_t size = DATABASE_STORE_HEADER_SIZE;
 		memcpy (payload + size, leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
