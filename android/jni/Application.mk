@@ -1,26 +1,20 @@
-#APP_ABI := all
 APP_ABI := armeabi-v7a x86
-#APP_ABI := x86
-#APP_ABI := x86_64
-#APP_ABI := armeabi-v7a
-#can be android-3 but will fail for x86 since arch-x86 is not present at ndkroot/platforms/android-3/ . libz is taken from there.
 APP_PLATFORM := android-14
 
-# http://stackoverflow.com/a/21386866/529442 http://stackoverflow.com/a/15616255/529442 to enable c++11 support in Eclipse
-NDK_TOOLCHAIN_VERSION := 4.9
-# APP_STL := stlport_shared  --> does not seem to contain C++11 features
-APP_STL := gnustl_shared
+# ABI arm64-v8a and x86_64 supported only from platform-21
+#APP_ABI := arm64-v8a x86_64
+#APP_PLATFORM := android-21
+
+NDK_TOOLCHAIN_VERSION := clang
+APP_STL := c++_shared
 
 # Enable c++11 extensions in source code
-APP_CPPFLAGS += -std=c++11
+APP_CPPFLAGS += -std=c++11 -fexceptions -frtti
 
 APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
 endif
-
-# Forcing debug optimization. Use `ndk-build NDK_DEBUG=1` instead.
-#APP_OPTIM  := debug
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git

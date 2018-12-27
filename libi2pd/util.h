@@ -9,20 +9,22 @@
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
+#ifndef __clang__
 #include <boost/lexical_cast.hpp>
 namespace std
 {
-template <typename T>
-std::string to_string(T value)
-{
-	return boost::lexical_cast<std::string>(value);
-}
+	template <typename T>
+	std::string to_string(T value)
+	{
+		return boost::lexical_cast<std::string>(value);
+	}
 
-inline int stoi(const std::string& str)
-{
-	return boost::lexical_cast<int>(str);
+	inline int stoi(const std::string& str)
+	{
+		return boost::lexical_cast<int>(str);
+	}
 }
-}
+#endif
 #endif
 
 namespace i2p
