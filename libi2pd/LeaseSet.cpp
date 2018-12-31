@@ -244,14 +244,15 @@ namespace data
 		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
-		offset += 2; // flags
+		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
+		if (flags) return; // offline keys not supported
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		if (offset + 1 >= len) return;
 		// key sections
-		int numKeySections = buf[offset]; offset++;
-		for (int i = 0; i < numKeySections; i++)
+		//int numKeySections = buf[offset]; offset++;
+		//for (int i = 0; i < numKeySections; i++)
 		{
 			// skip key for now. TODO: implement encryption key
 			offset += 2; // encryption key type
