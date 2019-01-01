@@ -245,14 +245,34 @@ namespace data
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
-		if (flags) return; // offline keys not supported
+		std::unique_ptr<i2p::crypto::Verifier> offlineVerifier;
+		if (flags & 0x0001)
+		{
+			// offline key
+			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
+			offlineVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
+			if (!offlineVerifier) return;
+			auto keyLen = offlineVerifier->GetPublicKeyLen ();
+			if (offset + keyLen >= len) return;
+			offlineVerifier->SetPublicKey (buf + offset); offset += keyLen;
+			if (offset + offlineVerifier->GetSignatureLen () >= len) return;
+			uint8_t * signedData = new uint8_t[keyLen + 6];
+			htobe32buf (signedData, timestamp + expires);
+			htobe16buf (signedData + 4, keyType);
+			memcpy (signedData + 6, buf + offset - keyLen, keyLen);
+			bool verified = identity->Verify (signedData, keyLen + 6, buf + offset);
+			delete[] signedData;
+			if (!verified) return;
+			offset += offlineVerifier->GetSignatureLen ();
+		}
+		
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		if (offset + 1 >= len) return;
 		// key sections
-		//int numKeySections = buf[offset]; offset++;
-		//for (int i = 0; i < numKeySections; i++)
+		int numKeySections = buf[offset]; offset++;
+		for (int i = 0; i < numKeySections; i++)
 		{
 			// skip key for now. TODO: implement encryption key
 			offset += 2; // encryption key type
@@ -269,7 +289,7 @@ namespace data
 		uint8_t * buf1 = new uint8_t[offset + 1];
 		buf1[0] = m_StoreType;
 		memcpy (buf1 + 1, buf, offset); // TODO: implement it better
-		bool verified = identity->Verify (buf1, offset + 1, buf + offset); // assume online keys
+		bool verified = offlineVerifier ? offlineVerifier->Verify (buf1, offset + 1, buf + offset) : identity->Verify (buf1, offset + 1, buf + offset); 
 		delete[] buf1;
 		if (!verified)
 			LogPrint (eLogWarning, "LeaseSet2: verification failed");

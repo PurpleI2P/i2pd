@@ -318,62 +318,56 @@ namespace data
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
-	void IdentityEx::CreateVerifier () const
+	i2p::crypto::Verifier * IdentityEx::CreateVerifier (uint16_t keyType)
 	{
-		if (m_Verifier) return; // don't create again
-		auto keyType = GetSigningKeyType ();
 		switch (keyType)
 		{
 			case SIGNING_KEY_TYPE_DSA_SHA1:
-				UpdateVerifier (new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey));
-			break;
+				return new i2p::crypto::DSAVerifier ();
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-			{
-				size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + padding));
-				break;
-			}
+				return new i2p::crypto::ECDSAP256Verifier ();
 			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-			{
-				size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH; // 32 = 128 - 96
-				UpdateVerifier (new i2p::crypto::ECDSAP384Verifier (m_StandardIdentity.signingKey + padding));
-				break;
-			}
+				return new i2p::crypto::ECDSAP384Verifier ();
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-			{
-				uint8_t signingKey[i2p::crypto::ECDSAP521_KEY_LENGTH];
-				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132- 128
-				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				UpdateVerifier (new i2p::crypto::ECDSAP521Verifier (signingKey));
-				break;
-			}
+				return new i2p::crypto::ECDSAP521Verifier ();
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+				return new i2p::crypto::EDDSA25519Verifier ();
+			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+				return new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA);
+			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+				return new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512);
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				LogPrint (eLogError, "Identity: RSA signing key type ", (int)keyType, " is not supported");
 			break;
-			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-			{
-				size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
-				UpdateVerifier (new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding));
-				break;
-			}
-			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-			{
-				size_t padding =  128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
-				break;
-			}
-			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-			{
-				// zero padding
-				UpdateVerifier (new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512, m_StandardIdentity.signingKey));
-				break;
-			}
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
+		return nullptr;
+	}
+		
+	void IdentityEx::CreateVerifier () const
+	{
+		if (m_Verifier) return; // don't create again
+		auto verifier = CreateVerifier (GetSigningKeyType ());
+		if (verifier)
+		{
+			auto keyLen = verifier->GetPublicKeyLen ();
+			if (keyLen <= 128)
+				verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
+			else
+			{
+				// for P521
+				uint8_t * signingKey = new uint8_t[keyLen];	
+				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
+				size_t excessLen = keyLen - 128; 
+				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+				verifier->SetPublicKey (signingKey);
+				delete[] signingKey;	
+			}		
+		}	
+		UpdateVerifier (verifier); 
 	}
 
 	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
