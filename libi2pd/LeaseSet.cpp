@@ -249,6 +249,9 @@ namespace data
 		if (flags & 0x0001)
 		{
 			// offline key
+			if (offset + 6 >= len) return;
+			const uint8_t * signedData = buf + offset;
+			offset += 4; // expires timestamp
 			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
 			offlineVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
 			if (!offlineVerifier) return;
@@ -256,16 +259,9 @@ namespace data
 			if (offset + keyLen >= len) return;
 			offlineVerifier->SetPublicKey (buf + offset); offset += keyLen;
 			if (offset + offlineVerifier->GetSignatureLen () >= len) return;
-			uint8_t * signedData = new uint8_t[keyLen + 6];
-			htobe32buf (signedData, timestamp + expires);
-			htobe16buf (signedData + 4, keyType);
-			memcpy (signedData + 6, buf + offset - keyLen, keyLen);
-			bool verified = identity->Verify (signedData, keyLen + 6, buf + offset);
-			delete[] signedData;
-			if (!verified) return;
+			if (!identity->Verify (signedData, keyLen + 6, buf + offset)) return;
 			offset += offlineVerifier->GetSignatureLen ();
 		}
-		
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
 		offset += propertiesLen; // skip for now. TODO: implement properties
