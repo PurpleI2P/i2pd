@@ -661,15 +661,13 @@ namespace data
 		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];	
 		if (storeType) // LeaseSet or LeaseSet2
 		{
-			if (storeType == 1)
+			if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
 			{
-				// 1 - LeaseSet
 				LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
 				updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
 			}
-			else
+			else // all others are considered as LeaseSet2 
 			{
-				// 3- LeaseSet2
 				LogPrint (eLogDebug, "NetDb: store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
 				updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
 			}

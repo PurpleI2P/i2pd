@@ -51,6 +51,8 @@ namespace data
 	const size_t MAX_LS_BUFFER_SIZE = 3072;
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
 	const uint8_t MAX_NUM_LEASES = 16;
+
+	const uint8_t NETDB_STORE_TYPE_LEASESET = 1;
 	class LeaseSet: public RoutingDestination
 	{
 		public:
@@ -73,7 +75,7 @@ namespace data
 			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
-			virtual uint8_t GetStoreType () const { return 1; };
+			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
 		  
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
@@ -111,6 +113,8 @@ namespace data
 	 */
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires);
 
+	const uint8_t NETDB_STORE_TYPE_STANDARD_LEASESET2 = 3;
+	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
 	class LeaseSet2: public LeaseSet
 	{
 		public:
@@ -121,6 +125,8 @@ namespace data
 		private:
 
 			void ReadFromBuffer (const uint8_t * buf, size_t len);
+			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
+			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 
 		private:
 

@@ -237,6 +237,7 @@ namespace data
 
 	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
 	{
+		// standard LS2 header
 		auto identity = std::make_shared<IdentityEx>(buf, len);
 		SetIdentity (identity);
 		size_t offset = identity->GetFullLen ();
@@ -262,24 +263,21 @@ namespace data
 			if (!identity->Verify (signedData, keyLen + 6, buf + offset)) return;
 			offset += offlineVerifier->GetSignatureLen ();
 		}
-		// properties
-		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
-		offset += propertiesLen; // skip for now. TODO: implement properties
-		if (offset + 1 >= len) return;
-		// key sections
-		int numKeySections = buf[offset]; offset++;
-		for (int i = 0; i < numKeySections; i++)
+		// type specific part
+		size_t s = 0;
+		switch (m_StoreType)
 		{
-			// skip key for now. TODO: implement encryption key
-			offset += 2; // encryption key type
-			if (offset + 2 >= len) return;
-			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
-			offset += encryptionKeyLen; 
-			if (offset >= len) return;
-		}	
-		// leases
-		int numLeases = buf[offset]; offset++;
-		offset += numLeases*40; // 40 bytes each
+			case NETDB_STORE_TYPE_STANDARD_LEASESET2:
+				s = ReadStandardLS2TypeSpecificPart (buf + offset, len - offset);
+			break;
+			case NETDB_STORE_TYPE_META_LEASESET2:
+				s = ReadMetaLS2TypeSpecificPart (buf + offset, len - offset);
+			break;
+			default:
+				LogPrint (eLogWarning, "LeaseSet2: Unexpected store type ", (int)m_StoreType);
+		}
+		if (!s) return;
+		offset += s;
 		// verify signature
 		if (offset + identity->GetSignatureLen () > len) return;
 		uint8_t * buf1 = new uint8_t[offset + 1];
@@ -290,6 +288,63 @@ namespace data
 		if (!verified)
 			LogPrint (eLogWarning, "LeaseSet2: verification failed");
 		SetIsValid (verified);	
+	}
+
+	size_t LeaseSet2::ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		// properties
+		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
+		offset += propertiesLen; // skip for now. TODO: implement properties
+		if (offset + 1 >= len) return 0;
+		// key sections
+		int numKeySections = buf[offset]; offset++;
+		for (int i = 0; i < numKeySections; i++)
+		{
+			// skip key for now. TODO: implement encryption key
+			offset += 2; // encryption key type
+			if (offset + 2 >= len) return 0;
+			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
+			offset += encryptionKeyLen; 
+			if (offset >= len) return 0;
+		}	
+		// leases
+		if (offset + 1 >= len) return 0;	
+		int numLeases = buf[offset]; offset++;
+		for (int i = 0; i < numLeases; i++)
+		{
+			if (offset + 40 > len) return 0;
+			offset += 40; // lease
+		}
+		return offset;
+	}
+
+	size_t LeaseSet2::ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		// properties
+		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2; 
+		offset += propertiesLen; // skip for now. TODO: implement properties
+		// entries			
+		if (offset + 1 >= len) return 0;
+		int numEntries = buf[offset]; offset++;
+		for (int i = 0; i < numEntries; i++)
+		{
+			if (offset + 40 >= len) return 0;
+			offset += 32; // hash
+			offset += 3; // flags
+ 			offset += 1; // cost
+			offset += 4; // expires
+		}
+		// revocations
+		if (offset + 1 >= len) return 0;
+		int numRevocations = buf[offset]; offset++;	
+		for (int i = 0; i < numRevocations; i++)
+		{
+			if (offset + 32 > len) return 0;
+			offset += 32; // hash
+		}
+		return offset;
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
