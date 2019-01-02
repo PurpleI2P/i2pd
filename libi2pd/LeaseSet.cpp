@@ -89,26 +89,7 @@ namespace data
 			leases += 4; // tunnel ID
 			lease.endDate = bufbe64toh (leases);
 			leases += 8; // end date
-			if (ts < lease.endDate + LEASE_ENDDATE_THRESHOLD)
-			{
-				if (lease.endDate > m_ExpirationTime)
-					m_ExpirationTime = lease.endDate;
-				if (m_StoreLeases)
-				{
-					auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
-					if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
-					(*ret.first)->isUpdated = true;
-					// check if lease's gateway is in our netDb
-					if (!netdb.FindRouter (lease.tunnelGateway))
-					{
-						// if not found request it
-						LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
-						netdb.RequestDestination (lease.tunnelGateway);
-					}
-				}
-			}
-			else
-				LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
+			UpdateLease (lease, ts);
 		}
 		if (!m_ExpirationTime)
 		{
@@ -138,6 +119,30 @@ namespace data
 			LogPrint (eLogWarning, "LeaseSet: verification failed");
 			m_IsValid = false;
 		}
+	}
+
+	void LeaseSet::UpdateLease (const Lease& lease, uint64_t ts)
+	{
+		if (ts < lease.endDate + LEASE_ENDDATE_THRESHOLD)
+		{
+			if (lease.endDate > m_ExpirationTime)
+				m_ExpirationTime = lease.endDate;
+			if (m_StoreLeases)
+			{
+				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
+				if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
+				(*ret.first)->isUpdated = true;
+				// check if lease's gateway is in our netDb
+				if (!netdb.FindRouter (lease.tunnelGateway))
+				{
+					// if not found request it
+					LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
+					netdb.RequestDestination (lease.tunnelGateway);
+				}
+			}
+		}
+		else
+			LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
 	}
 
 	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const
@@ -311,10 +316,15 @@ namespace data
 		// leases
 		if (offset + 1 >= len) return 0;	
 		int numLeases = buf[offset]; offset++;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (int i = 0; i < numLeases; i++)
 		{
 			if (offset + 40 > len) return 0;
-			offset += 40; // lease
+			Lease lease;
+			lease.tunnelGateway = buf + offset; offset += 32; // gateway
+			lease.tunnelID = bufbe32toh (buf + offset); offset += 4; // tunnel ID
+			lease.endDate = bufbe32toh (buf + offset)*1000LL; offset += 4; // end date
+			UpdateLease (lease, ts);
 		}
 		return offset;
 	}

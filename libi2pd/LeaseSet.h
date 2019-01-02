@@ -84,6 +84,8 @@ namespace data
 
 		protected:
 
+			void UpdateLease (const Lease& lease, uint64_t ts);
+
 			// called from LeaseSet2
 			LeaseSet ();
 			void SetBuffer (const uint8_t * buf, size_t len);
