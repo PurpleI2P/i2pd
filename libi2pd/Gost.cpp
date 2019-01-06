@@ -1,5 +1,6 @@
 #include <string.h>
 #include <array>
+#include <openssl/bn.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include "I2PEndian.h"

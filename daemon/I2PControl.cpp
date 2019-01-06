@@ -569,8 +569,8 @@ namespace client
 			EVP_PKEY_assign_RSA (pkey, rsa);
 			X509 * x509 = X509_new ();
 			ASN1_INTEGER_set (X509_get_serialNumber (x509), 1);
-			X509_gmtime_adj (X509_get_notBefore (x509), 0);
-			X509_gmtime_adj (X509_get_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
+			X509_gmtime_adj (X509_getm_notBefore (x509), 0);
+			X509_gmtime_adj (X509_getm_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
 			X509_set_pubkey (x509, pkey); // public key
 			X509_NAME * name = X509_get_subject_name (x509);
 			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)

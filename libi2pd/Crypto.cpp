@@ -1246,7 +1246,9 @@ namespace crypto
 	void InitCrypto (bool precomputation)
 	{
 		i2p::cpu::Detect ();	
+#if LEGACY_OPENSSL
 		SSL_library_init ();
+#endif
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
 			m_OpenSSLMutexes.emplace_back (new std::mutex);
