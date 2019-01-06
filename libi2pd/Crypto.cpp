@@ -9,7 +9,7 @@
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
 #include "Crypto.h"
-#if LEGACY_OPENSSL
+#if LEGACY_OPENSSL || defined(OPENSSL_NO_CHACHA) || defined(OPENSSL_NO_POLY1305)
 #include <openssl/conf.h>
 #include "ChaCha20.h"
 #include "Poly1305.h"
@@ -1091,7 +1091,7 @@ namespace crypto
 		if (len < msgLen) return false;
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
-#if LEGACY_OPENSSL
+#if LEGACY_OPENSSL || defined(OPENSSL_NO_CHACHA) || defined(OPENSSL_NO_POLY1305)
 		chacha::Chacha20State state;
 		// generate one time poly key
 		chacha::Chacha20Init (state, nonce, key, 0);	
@@ -1182,7 +1182,7 @@ namespace crypto
 	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
-#if LEGACY_OPENSSL
+#if LEGACY_OPENSSL || defined(OPENSSL_NO_CHACHA) || defined(OPENSSL_NO_POLY1305)
 		chacha::Chacha20State state;
 		// generate one time poly key
 		chacha::Chacha20Init (state, nonce, key, 0);	
