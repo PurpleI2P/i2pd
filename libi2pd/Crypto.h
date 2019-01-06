@@ -30,6 +30,9 @@
 #	   define OPENSSL_X25519 1
 #	   define OPENSSL_SIPHASH 1
 #   endif
+#   if !defined OPENSSL_NO_CHACHA && !defined OPENSSL_NO_POLY1305 // some builds might not include them
+#	   define OPENSSL_AEAD_CHACHA20_POLY1305 1 
+#   endif
 #endif
 
 namespace i2p
