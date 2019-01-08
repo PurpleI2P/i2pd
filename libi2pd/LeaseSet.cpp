@@ -237,7 +237,10 @@ namespace data
 		m_StoreType (storeType)
 	{	
 		SetBuffer (buf, len);
-		ReadFromBuffer (buf, len);
+		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+			ReadFromBufferEncrypted (buf, len);
+		else
+			ReadFromBuffer (buf, len);
 	}
 
 	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
@@ -246,7 +249,7 @@ namespace data
 		auto identity = std::make_shared<IdentityEx>(buf, len);
 		SetIdentity (identity);
 		size_t offset = identity->GetFullLen ();
-		if (offset + 10 >= len) return;
+		if (offset + 8 >= len) return;
 		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
@@ -264,9 +267,9 @@ namespace data
 			auto keyLen = offlineVerifier->GetPublicKeyLen ();
 			if (offset + keyLen >= len) return;
 			offlineVerifier->SetPublicKey (buf + offset); offset += keyLen;
-			if (offset + offlineVerifier->GetSignatureLen () >= len) return;
+			if (offset + identity->GetSignatureLen () >= len) return;
 			if (!identity->Verify (signedData, keyLen + 6, buf + offset)) return;
-			offset += offlineVerifier->GetSignatureLen ();
+			offset += identity->GetSignatureLen ();
 		}
 		// type specific part
 		size_t s = 0;
@@ -284,15 +287,23 @@ namespace data
 		if (!s) return;
 		offset += s;
 		// verify signature
-		if (offset + identity->GetSignatureLen () > len) return;
-		uint8_t * buf1 = new uint8_t[offset + 1];
+		bool verified = offlineVerifier ? VerifySignature (offlineVerifier, buf, len, offset) :
+			VerifySignature (identity, buf, len, offset);	
+		SetIsValid (verified);	
+	}
+
+	template<typename Verifier>
+	bool LeaseSet2::VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset)
+	{
+		if (signatureOffset + verifier->GetSignatureLen () > len) return false;
+		uint8_t * buf1 = new uint8_t[signatureOffset + 1];
 		buf1[0] = m_StoreType;
-		memcpy (buf1 + 1, buf, offset); // TODO: implement it better
-		bool verified = offlineVerifier ? offlineVerifier->Verify (buf1, offset + 1, buf + offset) : identity->Verify (buf1, offset + 1, buf + offset); 
+		memcpy (buf1 + 1, buf, signatureOffset); // TODO: implement it better
+		bool verified = verifier->Verify (buf1, signatureOffset + 1, buf + signatureOffset); 
 		delete[] buf1;
 		if (!verified)
 			LogPrint (eLogWarning, "LeaseSet2: verification failed");
-		SetIsValid (verified);	
+		return verified;
 	}
 
 	size_t LeaseSet2::ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len)
@@ -355,6 +366,48 @@ namespace data
 			offset += 32; // hash
 		}
 		return offset;
+	}
+
+	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		// blinded key
+		uint16_t blindedKeyType = bufbe16toh (buf + offset); offset += 2;
+		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (blindedKeyType));
+		if (!blindedVerifier) return;
+		auto blindedKeyLen = blindedVerifier->GetPublicKeyLen ();			
+		if (offset + blindedKeyLen >= len) return;
+		blindedVerifier->SetPublicKey (buf + offset); offset += blindedKeyLen;
+		// expiration
+		if (offset + 8 >= len) return;
+		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
+		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
+		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
+		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
+		std::unique_ptr<i2p::crypto::Verifier> offlineVerifier;
+		if (flags & 0x0001)
+		{
+			// offline key
+			if (offset + 6 >= len) return;
+			const uint8_t * signedData = buf + offset;
+			offset += 4; // expires timestamp
+			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
+			offlineVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
+			if (!offlineVerifier) return;
+			auto keyLen = offlineVerifier->GetPublicKeyLen ();
+			if (offset + keyLen >= len) return;
+			offlineVerifier->SetPublicKey (buf + offset); offset += keyLen;
+			if (offset + blindedVerifier->GetSignatureLen () >= len) return;
+			if (!blindedVerifier->Verify (signedData, keyLen + 6, buf + offset)) return;
+			offset += blindedVerifier->GetSignatureLen ();
+		}
+		// outer ciphertext
+		if (offset + 2 > len) return;
+		uint16_t lenOuterCiphertext = bufbe16toh (buf + offset); offset += 2 + lenOuterCiphertext;		
+		// verify signature
+		bool verified = offlineVerifier ? VerifySignature (offlineVerifier, buf, len, offset) :
+			VerifySignature (blindedVerifier, buf, len, offset);	
+		SetIsValid (verified);	
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):

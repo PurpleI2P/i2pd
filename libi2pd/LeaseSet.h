@@ -116,6 +116,7 @@ namespace data
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires);
 
 	const uint8_t NETDB_STORE_TYPE_STANDARD_LEASESET2 = 3;
+	const uint8_t NETDB_STORE_TYPE_ENCRYPTED_LEASESET2 = 5;
 	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
 	class LeaseSet2: public LeaseSet
 	{
@@ -127,8 +128,12 @@ namespace data
 		private:
 
 			void ReadFromBuffer (const uint8_t * buf, size_t len);
+			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
+
+			template<typename Verifier>
+			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
 
 		private:
 
