@@ -28,14 +28,11 @@ namespace api
 		i2p::fs::DetectDataDir(datadir, false);
 		i2p::fs::Init();
 
-#if defined(__x86_64__)
-		i2p::crypto::InitCrypto (false);
-#else
-		i2p::crypto::InitCrypto (true);
-#endif
+		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
+		i2p::crypto::InitCrypto (precomputation);
 
-                int netID; i2p::config::GetOption("netid", netID);
-                i2p::context.SetNetID (netID);
+        int netID; i2p::config::GetOption("netid", netID);
+        i2p::context.SetNetID (netID);
 
 		i2p::context.Init ();
 	}
