@@ -357,7 +357,8 @@ namespace client
 		}
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
-		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
+		if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET || // 1
+			buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2) // 3
 		{
 			LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
@@ -382,7 +383,10 @@ namespace client
 			}
 			else
 			{
-				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
+				if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
+				else
+					leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset); // LeaseSet2
 				if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())

@@ -12,8 +12,8 @@ namespace i2p
 namespace data
 {
 
-	LeaseSet::LeaseSet ():
-		m_IsValid (false), m_StoreLeases (false), m_ExpirationTime (0), m_Buffer (nullptr), m_BufferLen (0)
+	LeaseSet::LeaseSet (bool storeLeases):
+		m_IsValid (false), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_Buffer (nullptr), m_BufferLen (0)
 	{
 	}
 
@@ -69,12 +69,7 @@ namespace data
 			return;
 		}
 
-		// reset existing leases
-		if (m_StoreLeases)
-			for (auto& it: m_Leases)
-				it->isUpdated = false;
-		else
-			m_Leases.clear ();
+		UpdateLeasesBegin ();
 
 		// process leases
 		m_ExpirationTime = 0;
@@ -98,6 +93,29 @@ namespace data
 			return;
 		}
 		m_ExpirationTime += LEASE_ENDDATE_THRESHOLD;
+
+		UpdateLeasesEnd ();
+
+		// verify
+		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
+		{
+			LogPrint (eLogWarning, "LeaseSet: verification failed");
+			m_IsValid = false;
+		}
+	}
+
+	void LeaseSet::UpdateLeasesBegin ()
+	{
+		// reset existing leases
+		if (m_StoreLeases)
+			for (auto& it: m_Leases)
+				it->isUpdated = false;
+		else
+			m_Leases.clear ();
+	}
+
+	void LeaseSet::UpdateLeasesEnd ()
+	{
 		// delete old leases
 		if (m_StoreLeases)
 		{
@@ -111,13 +129,6 @@ namespace data
 				else
 					++it;
 			}
-		}
-
-		// verify
-		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
-		{
-			LogPrint (eLogWarning, "LeaseSet: verification failed");
-			m_IsValid = false;
 		}
 	}
 
@@ -233,8 +244,8 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len):
-		m_StoreType (storeType)
+	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
+		LeaseSet (storeLeases), m_StoreType (storeType)
 	{	
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
@@ -317,26 +328,37 @@ namespace data
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
-			// skip key for now. TODO: implement encryption key
-			offset += 2; // encryption key type
+			uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption key type
 			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
+			if (offset + encryptionKeyLen >= len) return 0;
+			if (!m_Encryptor && IsStoreLeases ()) // create encryptor with leases only, first key
+			{
+				auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
+				m_Encryptor = encryptor; // TODO: atomic
+			}
 			offset += encryptionKeyLen; 
-			if (offset >= len) return 0;
 		}	
 		// leases
 		if (offset + 1 >= len) return 0;	
 		int numLeases = buf[offset]; offset++;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		for (int i = 0; i < numLeases; i++)
+		if (IsStoreLeases ())
 		{
-			if (offset + 40 > len) return 0;
-			Lease lease;
-			lease.tunnelGateway = buf + offset; offset += 32; // gateway
-			lease.tunnelID = bufbe32toh (buf + offset); offset += 4; // tunnel ID
-			lease.endDate = bufbe32toh (buf + offset)*1000LL; offset += 4; // end date
-			UpdateLease (lease, ts);
+			UpdateLeasesBegin ();
+			for (int i = 0; i < numLeases; i++)
+			{
+				if (offset + 40 > len) return 0;
+				Lease lease;
+				lease.tunnelGateway = buf + offset; offset += 32; // gateway
+				lease.tunnelID = bufbe32toh (buf + offset); offset += 4; // tunnel ID
+				lease.endDate = bufbe32toh (buf + offset)*1000LL; offset += 4; // end date
+				UpdateLease (lease, ts);
+			}
+			UpdateLeasesEnd ();
 		}
+		else
+			offset += numLeases*40; // 40 bytes per lease
 		return offset;
 	}
 
@@ -408,6 +430,13 @@ namespace data
 		bool verified = offlineVerifier ? VerifySignature (offlineVerifier, buf, len, offset) :
 			VerifySignature (blindedVerifier, buf, len, offset);	
 		SetIsValid (verified);	
+	}
+
+	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	{
+		auto encryptor = m_Encryptor; // TODO: atomic
+		if (encryptor)
+			encryptor->Encrypt (data, encrypted, ctx, true);	
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):

@@ -84,14 +84,17 @@ namespace data
 
 		protected:
 
+			void UpdateLeasesBegin ();
+			void UpdateLeasesEnd ();
 			void UpdateLease (const Lease& lease, uint64_t ts);
 
 			// called from LeaseSet2
-			LeaseSet ();
+			LeaseSet (bool storeLeases);
 			void SetBuffer (const uint8_t * buf, size_t len);
 			void SetIdentity (std::shared_ptr<const IdentityEx> identity) { m_Identity = identity; };
 			void SetExpirationTime (uint64_t t) { m_ExpirationTime = t; };
 			void SetIsValid (bool isValid) { m_IsValid = isValid; };
+			bool IsStoreLeases () const { return m_StoreLeases; };
 
 		private:
 
@@ -122,8 +125,11 @@ namespace data
 	{
 		public:
 
-			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len);
+			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
 			uint8_t GetStoreType () const { return m_StoreType; };
+
+			// implements RoutingDestination
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
 
 		private:
 
@@ -138,6 +144,7 @@ namespace data
 		private:
 
 			uint8_t m_StoreType;
+			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
 
 	class LocalLeaseSet

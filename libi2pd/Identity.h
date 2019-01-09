@@ -110,8 +110,9 @@ namespace data
   			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
 			void RecalculateIdentHash(uint8_t * buff=nullptr);
 
-			static i2p::crypto::Verifier * CreateVerifier (uint16_t keyType);
-			
+			static i2p::crypto::Verifier * CreateVerifier (SigningKeyType keyType);
+			static std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (CryptoKeyType keyType, const uint8_t * key);			
+
 		private:
 
 			void CreateVerifier () const;

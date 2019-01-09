@@ -318,7 +318,7 @@ namespace data
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
-	i2p::crypto::Verifier * IdentityEx::CreateVerifier (uint16_t keyType)
+	i2p::crypto::Verifier * IdentityEx::CreateVerifier (SigningKeyType keyType)
 	{
 		switch (keyType)
 		{
@@ -401,10 +401,9 @@ namespace data
 		m_Verifier = nullptr;
 	}
 
-	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (const uint8_t * key) const
+	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (CryptoKeyType keyType, const uint8_t * key)
 	{
-		if (!key) key = GetEncryptionPublicKey (); // use publicKey
-		switch (GetCryptoKeyType ())
+		switch (keyType)
 		{
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
@@ -417,9 +416,15 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESGOSTR3410Encryptor>(key);
 			break;
 			default:
-				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)GetCryptoKeyType ());
+				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)keyType);
 		};
 		return nullptr;
+	}		
+
+	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (const uint8_t * key) const
+	{
+		if (!key) key = GetEncryptionPublicKey (); // use publicKey
+		return CreateEncryptor (GetCryptoKeyType (), key);
 	}
 
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)

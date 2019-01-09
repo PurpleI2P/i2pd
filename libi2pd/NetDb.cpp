@@ -297,7 +297,7 @@ namespace data
 		auto it = m_LeaseSets.find(ident);
 		if (it == m_LeaseSets.end ())
 		{
-			auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len);
+			auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
 			m_LeaseSets[ident] = leaseSet;
 			return true; 
 		}
