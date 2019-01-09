@@ -479,15 +479,31 @@ namespace data
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
 		m_ExpirationTime (0), m_Identity (identity)
 	{
-		m_BufferLen = len;
-		m_Buffer = new uint8_t[m_BufferLen];
-		memcpy (m_Buffer, buf, len);
+		if (buf)
+		{
+			m_BufferLen = len;
+			m_Buffer = new uint8_t[m_BufferLen];
+			memcpy (m_Buffer, buf, len);
+		}
+		else
+		{
+			m_Buffer = nullptr;
+			m_BufferLen = 0;
+		}
 	}
 
 	bool LocalLeaseSet::IsExpired () const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
+	}
+
+	void LocalLeaseSet::SetBuffer (const uint8_t * buf, size_t len)
+	{
+		if (m_Buffer) delete[] m_Buffer;
+		m_Buffer = new uint8_t[len];
+		m_BufferLen = len;
+		memcpy (m_Buffer, buf, len);
 	}
 
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires)
@@ -522,6 +538,14 @@ namespace data
 				expires = endDate;
 		}
 		return ident.Verify(ptr, leases - ptr, leases);
+	}
+
+	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
+		uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
+		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
+		LocalLeaseSet (identity, nullptr, 0), m_StoreType (storeType)
+	{
+		// TODO:
 	}
 }
 }

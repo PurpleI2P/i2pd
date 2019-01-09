@@ -168,6 +168,12 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); };
 
+			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
+
+		protected:
+			
+			// called from LocalLeaseSet2
+			void SetBuffer (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -175,6 +181,21 @@ namespace data
 			std::shared_ptr<const IdentityEx> m_Identity;
 			uint8_t * m_Buffer, * m_Leases;
 			size_t m_BufferLen;
+	};
+
+	class LocalLeaseSet2: public LocalLeaseSet
+	{
+		public:
+
+			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
+				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
+				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+
+			uint8_t GetStoreType () const { return m_StoreType; };
+
+		private:
+
+			uint8_t m_StoreType;
 	};
 }
 }
