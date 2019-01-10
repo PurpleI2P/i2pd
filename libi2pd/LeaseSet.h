@@ -50,6 +50,7 @@ namespace data
 
 	const size_t MAX_LS_BUFFER_SIZE = 3072;
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
+	const size_t LEASE2_SIZE = 40; // 32 + 4 + 4	
 	const uint8_t MAX_NUM_LEASES = 16;
 
 	const uint8_t NETDB_STORE_TYPE_LEASESET = 1;
@@ -153,11 +154,11 @@ namespace data
 
 			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);
-			~LocalLeaseSet () { delete[] m_Buffer; };
+			virtual ~LocalLeaseSet () { delete[] m_Buffer; };
 
-			const uint8_t * GetBuffer () const { return m_Buffer; };
-			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); };
-			size_t GetBufferLen () const { return m_BufferLen; };
+			virtual uint8_t * GetBuffer () const { return m_Buffer; };
+			uint8_t * GetSignature () { return GetBuffer () + GetBufferLen () - GetSignatureLen (); };
+			virtual size_t GetBufferLen () const { return m_BufferLen; };
 			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
 			uint8_t * GetLeases () { return m_Leases; };
 
@@ -166,14 +167,9 @@ namespace data
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
 			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; };
 			bool operator== (const LeaseSet& other) const
-			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); };
+			{ return GetBufferLen () == other.GetBufferLen () && !memcmp (GetBuffer (), other.GetBuffer (), GetBufferLen ()); };
 
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-
-		protected:
-			
-			// called from LocalLeaseSet2
-			void SetBuffer (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -190,12 +186,17 @@ namespace data
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
+			
+			uint8_t * GetBuffer () const { return m_Buffer + 1; };
+			size_t GetBufferLen () const { return m_BufferLen; };
 
-			uint8_t GetStoreType () const { return m_StoreType; };
+			uint8_t GetStoreType () const { return m_Buffer[0]; };
 
 		private:
 
-			uint8_t m_StoreType;
+			uint8_t * m_Buffer; // 1 byte store type + actual buffer
+			size_t m_BufferLen;
 	};
 }
 }

@@ -349,7 +349,7 @@ namespace data
 			UpdateLeasesBegin ();
 			for (int i = 0; i < numLeases; i++)
 			{
-				if (offset + 40 > len) return 0;
+				if (offset + LEASE2_SIZE > len) return 0;
 				Lease lease;
 				lease.tunnelGateway = buf + offset; offset += 32; // gateway
 				lease.tunnelID = bufbe32toh (buf + offset); offset += 4; // tunnel ID
@@ -359,7 +359,7 @@ namespace data
 			UpdateLeasesEnd ();
 		}
 		else
-			offset += numLeases*40; // 40 bytes per lease
+			offset += numLeases*LEASE2_SIZE; // 40 bytes per lease
 		return offset;
 	}
 
@@ -499,14 +499,6 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
-	void LocalLeaseSet::SetBuffer (const uint8_t * buf, size_t len)
-	{
-		if (m_Buffer) delete[] m_Buffer;
-		m_Buffer = new uint8_t[len];
-		m_BufferLen = len;
-		memcpy (m_Buffer, buf, len);
-	}
-
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires)
 	{
 		IdentityEx ident(ptr, sz);
@@ -544,9 +536,46 @@ namespace data
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
 		uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
-		LocalLeaseSet (identity, nullptr, 0), m_StoreType (storeType)
+		LocalLeaseSet (identity, nullptr, 0)
 	{
-		// TODO:
+		// assume standard LS2 
+		int num = tunnels.size ();
+		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
+		m_BufferLen = identity->GetFullLen () + 4/*published*/ + 2/*expires*/ + 2/*flag*/ + 2/*properties len*/ +
+			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + identity->GetSignatureLen ();
+		m_Buffer = new uint8_t[m_BufferLen + 1];
+		m_Buffer[0] = storeType;	
+		// LS2 header
+		auto offset = identity->ToBuffer (m_Buffer + 1, m_BufferLen) + 1;
+		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
+		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
+		uint8_t * expiresBuf = m_Buffer + offset; offset += 2; // expires, fill later
+		htobe16buf (m_Buffer + offset, 0); offset += 2; // flags
+		htobe16buf (m_Buffer + offset, 0); offset += 2; // properties len
+		// keys	
+		m_Buffer[offset] = 1; offset++; // 1 key
+		htobe16buf (m_Buffer + offset, keyType); offset += 2; // key type 
+		htobe16buf (m_Buffer + offset, keyLen); offset += 2; // key len 	
+		memcpy (m_Buffer + offset, encryptionPublicKey, keyLen); offset += keyLen; // key
+		// leases
+		uint32_t expirationTime = 0; // in seconds
+		m_Buffer[offset] = num; offset++; // num leases
+		for (int i = 0; i < num; i++)
+		{
+			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
+			offset += 32; // gateway id
+			htobe32buf (m_Buffer + offset, tunnels[i]->GetNextTunnelID ());
+			offset += 4; // tunnel id
+			auto ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // in seconds, 1 minute before expiration
+			if (ts > expirationTime) expirationTime = ts;
+			htobe32buf (m_Buffer + offset, ts);
+			offset += 4; // end date
+		}	
+		// update expiration
+		SetExpirationTime (expirationTime*1000LL);	
+		auto expires = expirationTime - timestamp;
+		htobe16buf (expiresBuf, expires > 0 ? expires : 0);	
+		//  we don't sign it yet. must be signed later on
 	}
 }
 }
