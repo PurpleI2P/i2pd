@@ -307,11 +307,12 @@ namespace data
 	bool LeaseSet2::VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset)
 	{
 		if (signatureOffset + verifier->GetSignatureLen () > len) return false;
-		uint8_t * buf1 = new uint8_t[signatureOffset + 1];
-		buf1[0] = m_StoreType;
-		memcpy (buf1 + 1, buf, signatureOffset); // TODO: implement it better
-		bool verified = verifier->Verify (buf1, signatureOffset + 1, buf + signatureOffset); 
-		delete[] buf1;
+		// we assume buf inside DatabaseStore message, so buf[-1] is valid memory
+		// change it for signature verification, and restore back	
+		uint8_t c = buf[-1];
+		const_cast<uint8_t *>(buf)[-1] = m_StoreType;
+		bool verified = verifier->Verify (buf - 1, signatureOffset + 1, buf + signatureOffset); 
+		const_cast<uint8_t *>(buf)[-1] = c;
 		if (!verified)
 			LogPrint (eLogWarning, "LeaseSet2: verification failed");
 		return verified;
