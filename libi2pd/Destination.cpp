@@ -16,7 +16,8 @@ namespace client
 	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic),
 		m_PublishReplyToken (0), m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
-		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service)
+		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service),
+		m_LeaseSetType (DEFAULT_LEASESET_TYPE)
 	{
 		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -66,6 +67,9 @@ namespace client
 					if (it != params->end ()) m_Nickname = it->second;
 					// otherwise we set default nickname in Start when we know local address
 				}
+				it = params->find (I2CP_PARAM_LEASESET_TYPE);
+				if (it != params->end ())
+					m_LeaseSetType = std::stoi(it->second);
 			}
 		}
 		catch (std::exception & ex)
@@ -1023,9 +1027,21 @@ namespace client
 
 	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
-		auto leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
-		// sign
-		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
+		i2p::data::LocalLeaseSet * leaseSet = nullptr;
+		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+		{
+			leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
+			// sign
+			Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); 
+		}
+		else
+		{
+			// standard LS2 (type 3) assumed for now. TODO: implement others
+			auto leaseSet = new i2p::data::LocalLeaseSet2 (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
+				GetIdentity (), i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, 256, m_EncryptionPublicKey, tunnels);
+			// sign
+			Sign (leaseSet->GetBuffer () - 1, leaseSet->GetBufferLen () - leaseSet->GetSignatureLen () + 1, leaseSet->GetSignature ()); // + leading store type
+		}
 		SetLeaseSet (leaseSet);
 	}
 
