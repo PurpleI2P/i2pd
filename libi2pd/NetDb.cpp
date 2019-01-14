@@ -1220,9 +1220,9 @@ namespace data
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
-			if (ts > it->second->GetExpirationTime () - LEASE_ENDDATE_THRESHOLD)
+			if (!it->second->IsValid () || ts > it->second->GetExpirationTime () - LEASE_ENDDATE_THRESHOLD)
 			{
-				LogPrint (eLogInfo, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				LogPrint (eLogInfo, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired or invalid");
 				it = m_LeaseSets.erase (it);
 			}
 			else
