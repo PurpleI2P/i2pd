@@ -13,12 +13,13 @@ namespace data
 {
 
 	LeaseSet::LeaseSet (bool storeLeases):
-		m_IsValid (false), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_Buffer (nullptr), m_BufferLen (0)
+		m_IsValid (false), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_EncryptionKey (nullptr), 
+		m_Buffer (nullptr), m_BufferLen (0)
 	{
 	}
 
 	LeaseSet::LeaseSet (const uint8_t * buf, size_t len, bool storeLeases):
-		m_IsValid (true), m_StoreLeases (storeLeases), m_ExpirationTime (0)
+		m_IsValid (true), m_StoreLeases (storeLeases), m_ExpirationTime (0), m_EncryptionKey (nullptr)
 	{
 		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
@@ -56,7 +57,11 @@ namespace data
 			m_IsValid = false;
 			return;
 		}
-		memcpy (m_EncryptionKey, m_Buffer + size, 256);
+		if (m_StoreLeases)
+		{
+			if (!m_EncryptionKey) m_EncryptionKey = new uint8_t[256];
+			memcpy (m_EncryptionKey, m_Buffer + size, 256);
+		}	
 		size += 256; // encryption key
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		uint8_t num = m_Buffer[size];
@@ -231,6 +236,7 @@ namespace data
 
 	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
 	{
+		if (!m_EncryptionKey) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted, ctx, true);
@@ -395,6 +401,7 @@ namespace data
 	{
 		size_t offset = 0;
 		// blinded key
+		if (len < 2) return;
 		uint16_t blindedKeyType = bufbe16toh (buf + offset); offset += 2;
 		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (blindedKeyType));
 		if (!blindedVerifier) return;
@@ -438,6 +445,35 @@ namespace data
 		auto encryptor = m_Encryptor; // TODO: atomic
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted, ctx, true);	
+	}
+
+	uint64_t LeaseSet2::ExtractTimestamp (const uint8_t * buf, size_t len) const
+	{
+		if (len < 8) return 0;	
+		if (m_StoreType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+		{
+			// encrypted LS2
+			size_t offset = 0;
+			uint16_t blindedKeyType = bufbe16toh (buf + offset); offset += 2;
+			std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (blindedKeyType));
+			if (!blindedVerifier) return 0 ;
+			auto blindedKeyLen = blindedVerifier->GetPublicKeyLen ();			
+			if (offset + blindedKeyLen + 6 >= len) return 0;
+			offset += blindedKeyLen;
+			uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; 
+			uint16_t expires = bufbe16toh (buf + offset); offset += 2; 
+			return (timestamp + expires)* 1000LL;
+		}
+		else
+		{
+			auto identity = GetIdentity ();
+			if (!identity) return 0;
+			size_t offset = identity->GetFullLen ();
+			if (offset + 6 >= len) return 0;
+			uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; 
+			uint16_t expires = bufbe16toh (buf + offset); offset += 2; 
+			return (timestamp + expires)* 1000LL;
+		}
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):

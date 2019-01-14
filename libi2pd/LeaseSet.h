@@ -59,7 +59,7 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
-			virtual ~LeaseSet () { delete[] m_Buffer; };
+			virtual ~LeaseSet () { delete[] m_EncryptionKey; delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
@@ -100,7 +100,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (bool readIdentity = true, bool verifySignature = true);
-			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // returns max expiration time
+			virtual uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // returns max expiration time
 
 		private:
 
@@ -108,7 +108,7 @@ namespace data
 			std::set<std::shared_ptr<Lease>, LeaseCmp> m_Leases;
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;
-			uint8_t m_EncryptionKey[256];
+			uint8_t * m_EncryptionKey;
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 	};
@@ -141,6 +141,8 @@ namespace data
 
 			template<typename Verifier>
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
+
+			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
 
 		private:
 
