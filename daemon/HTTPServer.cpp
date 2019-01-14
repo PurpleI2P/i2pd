@@ -462,26 +462,35 @@ namespace http {
 			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 			{
 				// create copy of lease set so we extract leases
-				int storeType = leaseSet->GetStoreType ();
-				i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
+				auto storeType = leaseSet->GetStoreType ();
+				std::unique_ptr<i2p::data::LeaseSet> ls;
+				if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					ls.reset (new i2p::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+				else
+					ls.reset (new i2p::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+				if (!ls) return;
 				s << "<div class='leaseset";
-				if (ls.IsExpired())
+				if (ls->IsExpired())
 					s << " expired"; // additional css class for expired
 				s << "'>\r\n";
-				if (!ls.IsValid())
+				if (!ls->IsValid())
 					s << "<div class='invalid'>!! Invalid !! </div>\r\n";
 				s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
 				s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<p class='content'>\r\n";
-				s << "<b>Store type:</b> " << storeType << "<br>\r\n";
-				s << "<b>Expires:</b> " << ConvertTime(ls.GetExpirationTime()) << "<br>\r\n";
-				auto leases = ls.GetNonExpiredLeases();
-				s << "<b>Non Expired Leases: " << leases.size() << "</b><br>\r\n";
-				for ( auto & l : leases )
-				{
-					s << "<b>Gateway:</b> " << l->tunnelGateway.ToBase64() << "<br>\r\n";
-					s << "<b>TunnelID:</b> " << l->tunnelID << "<br>\r\n";
-					s << "<b>EndDate:</b> " << ConvertTime(l->endDate) << "<br>\r\n";
-				}
+				s << "<b>Store type:</b> " << (int)storeType << "<br>\r\n";
+				s << "<b>Expires:</b> " << ConvertTime(ls->GetExpirationTime()) << "<br>\r\n";
+				if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET || storeType == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
+				{	
+					// leases information is available
+					auto leases = ls->GetNonExpiredLeases();
+					s << "<b>Non Expired Leases: " << leases.size() << "</b><br>\r\n";
+					for ( auto & l : leases )
+					{
+						s << "<b>Gateway:</b> " << l->tunnelGateway.ToBase64() << "<br>\r\n";
+						s << "<b>TunnelID:</b> " << l->tunnelID << "<br>\r\n";
+						s << "<b>EndDate:</b> " << ConvertTime(l->endDate) << "<br>\r\n";
+					}
+				}	
 				s << "</p>\r\n</div>\r\n</div>\r\n";
 			}
 		);
