@@ -462,6 +462,7 @@ namespace http {
 			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 			{
 				// create copy of lease set so we extract leases
+				int storeType = leaseSet->GetStoreType ();
 				i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
 				s << "<div class='leaseset";
 				if (ls.IsExpired())
@@ -471,7 +472,7 @@ namespace http {
 					s << "<div class='invalid'>!! Invalid !! </div>\r\n";
 				s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
 				s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<p class='content'>\r\n";
-				s << "<b>Store type:</b> " << (int)ls.GetStoreType () << "<br>\r\n";
+				s << "<b>Store type:</b> " << storeType << "<br>\r\n";
 				s << "<b>Expires:</b> " << ConvertTime(ls.GetExpirationTime()) << "<br>\r\n";
 				auto leases = ls.GetNonExpiredLeases();
 				s << "<b>Non Expired Leases: " << leases.size() << "</b><br>\r\n";
