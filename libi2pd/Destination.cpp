@@ -1037,8 +1037,9 @@ namespace client
 		else
 		{
 			// standard LS2 (type 3) assumed for now. TODO: implement others
+			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
 			leaseSet = new i2p::data::LocalLeaseSet2 (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
-				GetIdentity (), GetIdentity ()->GetCryptoKeyType (), 256, m_EncryptionPublicKey, tunnels);
+				GetIdentity (), GetIdentity ()->GetCryptoKeyType (), keyLen, m_EncryptionPublicKey, tunnels);
 			// sign
 			Sign (leaseSet->GetBuffer () - 1, leaseSet->GetBufferLen () - leaseSet->GetSignatureLen () + 1, leaseSet->GetSignature ()); // + leading store type
 		}

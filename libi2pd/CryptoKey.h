@@ -22,6 +22,7 @@ namespace crypto
 
 			virtual ~CryptoKeyDecryptor () {};
 			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding) = 0; // 512/514 bytes encrypted, 222 bytes data
+			virtual size_t GetPublicKeyLen () const = 0; // we need it to set key in LS2
 	};
 
 // ElGamal
@@ -43,7 +44,8 @@ namespace crypto
 
 			ElGamalDecryptor (const uint8_t * priv);
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
-
+			size_t GetPublicKeyLen () const { return 256; };
+			
 		private:
 
 			uint8_t m_PrivateKey[256];
@@ -73,7 +75,8 @@ namespace crypto
 			ECIESP256Decryptor (const uint8_t * priv);
 			~ECIESP256Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
-
+			size_t GetPublicKeyLen () const { return 64; };
+			
 		private:
 
 			EC_GROUP * m_Curve;
@@ -105,7 +108,8 @@ namespace crypto
 			ECIESGOSTR3410Decryptor (const uint8_t * priv);
 			~ECIESGOSTR3410Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
-
+			size_t GetPublicKeyLen () const { return 64; };
+			
 		private:
 
 			BIGNUM * m_PrivateKey;
