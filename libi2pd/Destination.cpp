@@ -777,12 +777,20 @@ namespace client
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
+		i2p::data::CryptoKeyType keyType = GetIdentity ()->GetCryptoKeyType ();
+		// extract encryption type params for LS2
+		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 && params)
+		{
+			auto it = params->find (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE);
+			if (it != params->end ())
+				keyType = std::stoi(it->second);
+		}		
+	
 		if (isPublic)
-			PersistTemporaryKeys ();
+			PersistTemporaryKeys (keyType);
 		else
-			i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (),
-				m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey);
+			i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, m_EncryptionPrivateKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 
@@ -1000,7 +1008,7 @@ namespace client
 		return ret;
 	}
 
-	void ClientDestination::PersistTemporaryKeys ()
+	void ClientDestination::PersistTemporaryKeys (i2p::data::CryptoKeyType keyType)
 	{
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
@@ -1012,9 +1020,10 @@ namespace client
 			return;
 		}
 
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (),
-				m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type ", (int)keyType, " for address ", ident, ".b32.i2p");
+		memset (m_EncryptionPrivateKey, 0, 256);
+		memset (m_EncryptionPublicKey, 0, 256);	
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
 
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {

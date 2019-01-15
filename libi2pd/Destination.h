@@ -54,6 +54,7 @@ namespace client
 	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
 	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";
 	const int DEFAULT_LEASESET_TYPE = 1;		
+	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
 
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
@@ -233,7 +234,7 @@ namespace client
 
 			std::shared_ptr<ClientDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }
-			void PersistTemporaryKeys ();
+			void PersistTemporaryKeys (i2p::data::CryptoKeyType keyType);
 #ifdef I2LUA
 			void ScheduleCheckForReady(ReadyPromise * p);
 			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
