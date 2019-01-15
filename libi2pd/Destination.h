@@ -234,7 +234,7 @@ namespace client
 
 			std::shared_ptr<ClientDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }
-			void PersistTemporaryKeys (i2p::data::CryptoKeyType keyType);
+			void PersistTemporaryKeys ();
 #ifdef I2LUA
 			void ScheduleCheckForReady(ReadyPromise * p);
 			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
@@ -243,6 +243,7 @@ namespace client
 
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+			i2p::data::CryptoKeyType m_EncryptionKeyType;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 
 			int m_StreamingAckDelay;
