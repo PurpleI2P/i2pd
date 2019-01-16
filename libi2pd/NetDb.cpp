@@ -26,7 +26,7 @@ namespace data
 {
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true), m_HiddenMode(false)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistSyncInterval(60), m_PersistProfiles (true), m_HiddenMode(false)
 	{
 	}
 
@@ -49,6 +49,7 @@ namespace data
 			Reseed ();
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
+		i2p::config::GetOption("persist.syncinterval", m_PersistSyncInterval);
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
@@ -61,8 +62,10 @@ namespace data
 			if (m_PersistProfiles)
 				for (auto& it: m_RouterInfos)
 					it.second->SaveProfile ();
+			SaveUpdated ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
+			m_UnsavedProfiles.clear ();
 			m_Floodfills.clear ();
 			if (m_Thread)
 			{
@@ -79,7 +82,7 @@ namespace data
 
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint32_t lastSave = 0, lastLeasesetsManage = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{
 			try
@@ -123,13 +126,19 @@ namespace data
 					m_Requests.ManageRequests ();
 					lastManageRequest = ts;
 				}
-				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
+				if (ts - lastLeasesetsManage >= 60) // manage leasesets and validate subscriptions every minute
 				{
-					if (lastSave)
+					if (lastLeasesetsManage)
 					{
-						SaveUpdated ();
+						RemoveExpired ();
 						ManageLeaseSets ();
 					}
+					lastLeasesetsManage = ts;
+				}
+				if (ts - lastSave >= m_PersistSyncInterval && m_PersistSyncInterval > 0) // save routers
+				{
+					if (lastSave)
+						SaveUpdated ();
 					lastSave = ts;
 				}
 				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT)
@@ -229,6 +238,13 @@ namespace data
 				}
 				if (inserted)
 				{
+					{
+						std::unique_lock<std::mutex> l(m_UnsavedProfilesMutex);
+						auto it = m_UnsavedProfiles.find (ident);
+						if (it != m_UnsavedProfiles.end ())
+							r->SetProfile(it->second);
+					}
+
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
 					if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
 					{
@@ -489,6 +505,7 @@ namespace data
 		// make sure we cleanup netDb from previous attempts
 		m_RouterInfos.clear ();
 		m_Floodfills.clear ();
+		m_UnsavedProfiles.clear ();
 
 		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
 		std::vector<std::string> files;
@@ -501,8 +518,36 @@ namespace data
 
 	void NetDb::SaveUpdated ()
 	{
-		int updatedCount = 0, deletedCount = 0;
+		int updatedCount = 0;
+		for (auto& it: m_RouterInfos)
+		{
+			std::string ident = it.second->GetIdentHashBase64();
+			std::string path  = m_Storage.Path(ident);
+			if (it.second->IsUpdated ())
+			{
+				it.second->SaveToFile (path);
+				it.second->SetUpdated (false);
+				it.second->DeleteBuffer ();
+				updatedCount++;
+			}
+		} // m_RouterInfos iteration
+
+		if (updatedCount > 0)
+			LogPrint (eLogInfo, "NetDb: saved ", updatedCount, " new/updated routers");
+
+		for (auto& it: m_UnsavedProfiles)
+			it.second->Save (it.first);
+		{
+			std::unique_lock<std::mutex> l(m_UnsavedProfilesMutex);
+			m_UnsavedProfiles.clear ();
+		}
+	}
+
+	void NetDb::RemoveExpired ()
+	{
 		auto total = m_RouterInfos.size ();
+		int deletedCount = 0;
+
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		// routers don't expire if less than 90 or uptime is less than 1 hour
@@ -513,17 +558,6 @@ namespace data
 
 		for (auto& it: m_RouterInfos)
 		{
-			std::string ident = it.second->GetIdentHashBase64();
-			std::string path  = m_Storage.Path(ident);
-			if (it.second->IsUpdated ())
-			{
-				it.second->SaveToFile (path);
-				it.second->SetUpdated (false);
-				it.second->SetUnreachable (false);
-				it.second->DeleteBuffer ();
-				updatedCount++;
-				continue;
-			}
 			// find & mark expired routers
 			if (it.second->UsesIntroducer ())
 			{
@@ -537,14 +571,12 @@ namespace data
 			if (it.second->IsUnreachable ())
 			{
 				// delete RI file
-				m_Storage.Remove(ident);
+				m_Storage.Remove (it.first.ToBase64 ());
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
 		} // m_RouterInfos iteration
 
-		if (updatedCount > 0)
-			LogPrint (eLogInfo, "NetDb: saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
 		{
 			LogPrint (eLogInfo, "NetDb: deleting ", deletedCount, " unreachable routers");
@@ -555,7 +587,8 @@ namespace data
 				{
 					if (it->second->IsUnreachable ())
 					{
-						if (m_PersistProfiles) it->second->SaveProfile ();
+						if (m_PersistProfiles && it->second->HasProfile ())
+							m_UnsavedProfiles[it->second->GetIdentHash ()] = it->second->GetProfile ();
 						it = m_RouterInfos.erase (it);
 						continue;
 					}

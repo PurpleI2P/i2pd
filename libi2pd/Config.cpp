@@ -256,6 +256,7 @@ namespace config {
 		options_description persist("Network information persisting options");
 		persist.add_options()
 			("persist.profiles", value<bool>()->default_value(true), "Persist peer profiles (default: true)")
+			("persist.syncinterval", value<unsigned>()->default_value(60), "Peer profiles and NetDb persistent storage sync interval in seconds (0 - save only on exit)")
 		;
 
 		m_OptionsDesc
