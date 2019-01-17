@@ -250,43 +250,40 @@ namespace data
 		return r;
 	}
 
-	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
-		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len)
 	{
 		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		bool updated = false;
-		if (!from) // unsolicited LS must be received directly
+		auto it = m_LeaseSets.find(ident);
+		if (it != m_LeaseSets.end () && it->second->GetStoreType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 		{
-			auto it = m_LeaseSets.find(ident);
-			if (it != m_LeaseSets.end ())
+			// we update only is existing LeaseSet is not LeaseSet2
+			uint64_t expires;
+			if(LeaseSetBufferValidate(buf, len, expires))
 			{
-				uint64_t expires;
-				if(LeaseSetBufferValidate(buf, len, expires))
+				if(it->second->GetExpirationTime() < expires)
 				{
-					if(it->second->GetExpirationTime() < expires)
-					{
-						it->second->Update (buf, len, false); // signature is verified already
-						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
-						updated = true;
-					}
-					else
-						LogPrint(eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
-				}
-				else
-					LogPrint(eLogError, "NetDb: LeaseSet is invalid: ", ident.ToBase32());
-			}
-			else
-			{
-				auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb
-				if (leaseSet->IsValid ())
-				{
-					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
-					m_LeaseSets[ident] = leaseSet;
+					it->second->Update (buf, len, false); // signature is verified already
+					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 					updated = true;
 				}
 				else
-					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase32());
+					LogPrint(eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
 			}
+			else
+				LogPrint(eLogError, "NetDb: LeaseSet is invalid: ", ident.ToBase32());
+		}
+		else
+		{
+			auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb
+			if (leaseSet->IsValid ())
+			{
+				LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
+				m_LeaseSets[ident] = leaseSet;
+				updated = true;
+			}
+			else
+				LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase32());
 		}
 		return updated;
 	}
@@ -294,14 +291,10 @@ namespace data
 	bool NetDb::AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType)
 	{
 		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
-		auto it = m_LeaseSets.find(ident);
-		if (it == m_LeaseSets.end ())
-		{
-			auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
-			m_LeaseSets[ident] = leaseSet;
-			return true; 
-		}
-		return false;
+		// always new LS2 for now. TODO: implement update
+		auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
+		m_LeaseSets[ident] = leaseSet;
+		return true; 
 	}
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
@@ -661,16 +654,19 @@ namespace data
 		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];	
 		if (storeType) // LeaseSet or LeaseSet2
 		{
-			if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
-			{
-				LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
-				updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
-			}
-			else // all others are considered as LeaseSet2 
-			{
-				LogPrint (eLogDebug, "NetDb: store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
-				updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
-			}
+			if (!m->from) // unsolicited LS must be received directly
+			{	
+				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
+				{
+					LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
+					updated = AddLeaseSet (ident, buf + offset, len - offset);
+				}
+				else // all others are considered as LeaseSet2 
+				{
+					LogPrint (eLogDebug, "NetDb: store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
+					updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
+				}
+			}	
 		}
 		else // RouterInfo
 		{

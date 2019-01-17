@@ -260,6 +260,13 @@ namespace data
 			ReadFromBuffer (buf, len);
 	}
 
+	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
+	{	
+		// shouldn't be called for now. Must be called from NetDb::AddLeaseSet later
+		SetBuffer (buf, len);
+		// TODO:verify signature if requested		
+	}
+		
 	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
 	{
 		// standard LS2 header
