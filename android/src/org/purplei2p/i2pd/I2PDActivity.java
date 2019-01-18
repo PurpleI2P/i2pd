@@ -292,7 +292,7 @@ public class I2PDActivity extends Activity {
 
 			@Override
 			public void run() {
-				try{
+				try {
 					Log.d(TAG, "grac stopping");
 					if(daemon.isStartedOkay()) {
 						daemon.stopAcceptingTunnels();
@@ -302,10 +302,10 @@ public class I2PDActivity extends Activity {
 							gracefulStopAtMillis = graceStartedMillis + GRACEFUL_DELAY_MILLIS;
 						}
 						rescheduleGraceStop(null,gracefulStopAtMillis);
-						}else{
+					} else {
 						i2pdStop();
 					}
-					} catch(Throwable tr) {
+				} catch(Throwable tr) {
 					Log.e(TAG,"",tr);
 				}
 			}
@@ -470,6 +470,7 @@ public class I2PDActivity extends Activity {
 			}
 
 			// copy assets. If processed file exists, it won't be overwrited
+			copyAsset("addressbook");
 			copyAsset("certificates");
 			copyAsset("tunnels.d");
 			copyAsset("i2pd.conf");
