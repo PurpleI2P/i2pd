@@ -471,6 +471,7 @@ public class I2PDActivity extends Activity {
 
 			// copy assets. If processed file exists, it won't be overwrited
 			copyAsset("certificates");
+			copyAsset("tunnels.d");
 			copyAsset("i2pd.conf");
 			copyAsset("subscriptions.txt");
 			copyAsset("tunnels.conf");
