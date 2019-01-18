@@ -1,12 +1,13 @@
-APP_ABI := armeabi-v7a x86
-APP_PLATFORM := android-14
+#APP_ABI := armeabi-v7a x86
+#APP_PLATFORM := android-14
 
 # ABI arm64-v8a and x86_64 supported only from platform-21
 #APP_ABI := arm64-v8a x86_64
 #APP_PLATFORM := android-21
 
 NDK_TOOLCHAIN_VERSION := clang
-APP_STL := c++_shared
+#APP_STL := c++_shared
+APP_STL := c++_static
 
 # Enable c++11 extensions in source code
 APP_CPPFLAGS += -std=c++11 -fexceptions -frtti

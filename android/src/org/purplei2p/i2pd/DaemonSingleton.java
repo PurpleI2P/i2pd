@@ -2,8 +2,8 @@ package org.purplei2p.i2pd;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import android.util.Log;
+import org.purplei2p.i2pd.R;
 
 public class DaemonSingleton {
 	private static final String TAG="i2pd";
@@ -43,24 +43,24 @@ public class DaemonSingleton {
 	private volatile boolean startedOkay;
 
 	public enum State {
-        uninitialized(R.string.uninitialized),
-        starting(R.string.starting),
-        jniLibraryLoaded(R.string.jniLibraryLoaded),
-        startedOkay(R.string.startedOkay),
-        startFailed(R.string.startFailed),
-        gracefulShutdownInProgress(R.string.gracefulShutdownInProgress),
-        stopped(R.string.stopped);
+		uninitialized(R.string.uninitialized),
+		starting(R.string.starting),
+		jniLibraryLoaded(R.string.jniLibraryLoaded),
+		startedOkay(R.string.startedOkay),
+		startFailed(R.string.startFailed),
+		gracefulShutdownInProgress(R.string.gracefulShutdownInProgress),
+		stopped(R.string.stopped);
 
-        State(int statusStringResourceId) {
-            this.statusStringResourceId = statusStringResourceId;
-        }
+		State(int statusStringResourceId) {
+			this.statusStringResourceId = statusStringResourceId;
+		}
 
-        private final int statusStringResourceId;
+		private final int statusStringResourceId;
 
-        public int getStatusStringResourceId() {
-            return statusStringResourceId;
-        }
-    };
+		public int getStatusStringResourceId() {
+			return statusStringResourceId;
+		}
+	};
 
 	private volatile State state = State.uninitialized;
 

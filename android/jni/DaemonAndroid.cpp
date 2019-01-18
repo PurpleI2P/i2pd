@@ -39,7 +39,7 @@ namespace android
 		emit resultReady();
 	}
 
-    Controller::Controller(DaemonAndroidImpl& daemon):
+	Controller::Controller(DaemonAndroidImpl& daemon):
 		m_Daemon (daemon)
 	{
 		Worker *worker = new Worker (m_Daemon);
@@ -57,19 +57,19 @@ namespace android
 		workerThread.quit();
 		workerThread.wait();
 		Log.d(TAG"Waiting for daemon worker thread finished.");
-        if(m_Daemon.isRunning())
-        {
-		    Log.d(TAG"Stopping the daemon...");
-            m_Daemon.stop();
-		    Log.d(TAG"Stopped the daemon.");
+		if(m_Daemon.isRunning())
+		{
+			Log.d(TAG"Stopping the daemon...");
+			m_Daemon.stop();
+			Log.d(TAG"Stopped the daemon.");
 		}
 	}
 */
 	DaemonAndroidImpl::DaemonAndroidImpl ()
 		//:
-        /*mutex(nullptr), */
-        //m_IsRunning(false),
-        //m_RunningChangedCallback(nullptr)
+		/*mutex(nullptr), */
+		//m_IsRunning(false),
+		//m_RunningChangedCallback(nullptr)
 	{
 	}
 
@@ -82,9 +82,9 @@ namespace android
 	{
 		//mutex=new QMutex(QMutex::Recursive);
 		//setRunningCallback(0);
-        //m_IsRunning=false;
-		
-		// make sure assets are ready before proceed	
+		//m_IsRunning=false;
+
+		// make sure assets are ready before proceed
 		i2p::fs::DetectDataDir("", false);
 		int numAttempts = 0;
 		do
@@ -93,7 +93,7 @@ namespace android
 			numAttempts++;
 			std::this_thread::sleep_for (std::chrono::seconds(1)); // otherwise wait for 1 more second
 		}
-		while (numAttempts <= 10); // 10 seconds max	
+		while (numAttempts <= 10); // 10 seconds max
 		return Daemon.init(argc,argv);
 	}
 
@@ -125,16 +125,16 @@ namespace android
 
 	bool DaemonAndroidImpl::isRunning()
 	{
-        return m_IsRunning;
+		return m_IsRunning;
 	}
 
 	void DaemonAndroidImpl::setRunning(bool newValue)
 	{
-        bool oldValue = m_IsRunning;
+		bool oldValue = m_IsRunning;
 		if(oldValue!=newValue)
 		{
-            m_IsRunning = newValue;
-		    if(m_RunningChangedCallback)
+			m_IsRunning = newValue;
+			if(m_RunningChangedCallback)
 				m_RunningChangedCallback();
 		}
 	}
@@ -183,14 +183,14 @@ namespace android
 		catch (boost::exception& ex)
 		{
 			std::stringstream ss;
-		    ss << boost::diagnostic_information(ex);
-		    return ss.str();
+			ss << boost::diagnostic_information(ex);
+			return ss.str();
 		}
 		catch (std::exception& ex)
 		{
 			std::stringstream ss;
-		    ss << ex.what();
-		    return ss.str();
+			ss << ex.what();
+			return ss.str();
 		}
 		catch(...)
 		{
