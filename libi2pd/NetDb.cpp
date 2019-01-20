@@ -82,7 +82,7 @@ namespace data
 
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastLeasesetsManage = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint32_t lastSave = 0, lastLeasesetsManage = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0, lastProfilesCleanup = 0;
 		while (m_IsRunning)
 		{
 			try
@@ -170,6 +170,11 @@ namespace data
 							Explore (numRouters);
 						lastExploratory = ts;
 					}
+				}
+				if (ts - lastProfilesCleanup >= PEER_PROFILE_EXPIRATION_TIMEOUT * 3600)
+				{
+					RemoveObsoleteProfiles ();
+					lastProfilesCleanup = ts;
 				}
 			}
 			catch (std::exception& ex)
@@ -605,6 +610,21 @@ namespace data
 						++it;
 			}
 		}
+	}
+
+	void NetDb::RemoveObsoleteProfiles ()
+	{
+		DeleteObsoleteProfiles ();
+		auto now = boost::posix_time::second_clock::local_time ();
+		{
+			std::unique_lock<std::mutex> l(m_UnsavedProfilesMutex);
+			for (auto it = m_UnsavedProfiles.begin (); it != m_UnsavedProfiles.end ();)
+				if ((now - it->second->GetLastUpdateTime ()).hours () >= PEER_PROFILE_EXPIRATION_TIMEOUT)
+					it = m_UnsavedProfiles.erase (it);
+				else
+					++it;
+		}
+		LogPrint (eLogInfo, "NetDb: obsolete profiles were removed");
 	}
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete)

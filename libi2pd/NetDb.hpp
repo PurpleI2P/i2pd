@@ -110,6 +110,7 @@ namespace data
 			bool LoadRouterInfo (const std::string & path);
 			void SaveUpdated ();
 			void RemoveExpired ();
+			void RemoveObsoleteProfiles ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
