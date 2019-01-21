@@ -1,6 +1,26 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.23.0] - 2019-01-21
+### Added
+- Standard LeaseSet2 support
+- Ability to adjust timestamps through the NTP
+- Ability to disable peer profile persist
+- Request permission for android >= 6
+- Initial addressbook to android assets
+- Cancel graceful shutdown for android
+- Russian translation for android
+### Changed
+- Chacha20 and Poly1305 implementation
+- Eliminate extra copy of NTCP2 send buffers
+- Extract content of tunnel.d from assets on android 
+- Removed name resolvers from transports
+- Update reseed ceritifcates
+### Fixed
+- LeaseSet published content verification
+- Exclude invalid LeaseSets from the list on a floodfill
+- Build for OpenWrt with openssl 1.1.1
+
 ## [2.22.0] - 2018-11-09
 ### Added
 - Multiple tunnel config files from tunnels.d folder

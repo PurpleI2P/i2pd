@@ -1,5 +1,5 @@
 Name:           i2pd
-Version:        2.22.0
+Version:        2.23.0
 Release:        1%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd-git
@@ -103,6 +103,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon Jan 21 2019 orignal <i2porignal@yandex.ru> - 2.23.0
+- update to 2.23.0
+
 * Fri Nov 09 2018 r4sas <r4sas@i2pmail.org> - 2.22.0
 - update to 2.22.0
 - add support of tunnelsdir option
