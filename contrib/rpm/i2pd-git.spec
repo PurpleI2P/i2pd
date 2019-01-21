@@ -42,12 +42,14 @@ cd build
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
     -DBUILD_SHARED_LIBS:BOOL=OFF
+    .
 %else
 %cmake \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
     -DBUILD_SHARED_LIBS:BOOL=OFF
+    .
 %endif
 
 make %{?_smp_mflags}
