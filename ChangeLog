@@ -13,9 +13,9 @@
 ### Changed
 - Chacha20 and Poly1305 implementation
 - Eliminate extra copy of NTCP2 send buffers
-- Extract content of tunnel.d from assets on android 
+- Extract content of tunnel.d from assets on android
 - Removed name resolvers from transports
-- Update reseed ceritifcates
+- Update reseed certificates
 ### Fixed
 - LeaseSet published content verification
 - Exclude invalid LeaseSets from the list on a floodfill

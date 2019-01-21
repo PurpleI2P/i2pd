@@ -35,7 +35,7 @@
   <translation type="qt" />
 
   <releases>
-	  <release version="2.23.0" date="2019-01-21" />	
+      <release version="2.23.0" date="2019-01-21" />
       <release version="2.22.0" date="2018-11-09" />
       <release version="2.21.1" date="2018-10-22" />
       <release version="2.21.0" date="2018-10-04" />
