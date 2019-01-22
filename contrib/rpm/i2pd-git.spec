@@ -41,15 +41,18 @@ cd build
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
-    -DBUILD_SHARED_LIBS:BOOL=OFF \
-    .
+    -DBUILD_SHARED_LIBS:BOOL=OFF
 %else
 %cmake \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
+%if 0%{?fedora} > 29
     -DBUILD_SHARED_LIBS:BOOL=OFF \
     .
+%else
+    -DBUILD_SHARED_LIBS:BOOL=OFF
+%endif
 %endif
 
 make %{?_smp_mflags}
