@@ -66,9 +66,9 @@ public class I2PDActivity extends Activity {
 						}
 						DaemonSingleton.State state = daemon.getState();
 						textView.setText(
-						String.valueOf(state)+
-						(DaemonSingleton.State.startFailed.equals(state)?": "+daemon.getDaemonStartResult():"")+
-						(DaemonSingleton.State.gracefulShutdownInProgress.equals(state)?":  "+formatGraceTimeRemaining()+" "+getText(R.string.remaining):"")
+						String.valueOf(getText(state.getStatusStringResourceId()))+
+						(DaemonSingleton.State.startFailed.equals(state) ? ": "+daemon.getDaemonStartResult() : "")+
+						(DaemonSingleton.State.gracefulShutdownInProgress.equals(state) ? ":  "+formatGraceTimeRemaining()+" "+getText(R.string.remaining) : "")
 						);
 					} catch (Throwable tr) {
 						Log.e(TAG,"error ignored",tr);
@@ -100,14 +100,14 @@ public class I2PDActivity extends Activity {
 		daemonStateUpdatedListener.daemonStateUpdate();
 
 		 // request permissions
-        if (Build.VERSION.SDK_INT >= 23) 
+		if (Build.VERSION.SDK_INT >= 23)
 		{
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) 
+			if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) 
 			{
-                ActivityCompat.requestPermissions(this,
-                	new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
-            }
+				ActivityCompat.requestPermissions(this,
+					new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+					MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
+			}
 		}
 
 		// set the app be foreground
@@ -139,19 +139,19 @@ public class I2PDActivity extends Activity {
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) 
 	{
-    	switch (requestCode) 
+		switch (requestCode) 
 		{
-        	case MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE:
+			case MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE:
 			{
-		        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) 
-		            Log.e(TAG, "Memory permission granted");
+				if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) 
+					Log.e(TAG, "Memory permission granted");
 				else 
-		            Log.e(TAG, "Memory permission declined");
+					Log.e(TAG, "Memory permission declined");
 					// TODO: terminate
-		        return;
+				return;
 			}
-			default: ;	
-    	}
+			default: ;
+		}
 	}
 
 	private static void cancelGracefulStop() {
@@ -249,7 +249,7 @@ public class I2PDActivity extends Activity {
 				{
 					item.setTitle(R.string.action_cancel_graceful_stop);	
 					i2pdGracefulStop();
-				}	
+				}
 			return true;
 		}
 
@@ -292,7 +292,7 @@ public class I2PDActivity extends Activity {
 
 			@Override
 			public void run() {
-				try{
+				try {
 					Log.d(TAG, "grac stopping");
 					if(daemon.isStartedOkay()) {
 						daemon.stopAcceptingTunnels();
@@ -302,10 +302,10 @@ public class I2PDActivity extends Activity {
 							gracefulStopAtMillis = graceStartedMillis + GRACEFUL_DELAY_MILLIS;
 						}
 						rescheduleGraceStop(null,gracefulStopAtMillis);
-						}else{
+					} else {
 						i2pdStop();
 					}
-					} catch(Throwable tr) {
+				} catch(Throwable tr) {
 					Log.e(TAG,"",tr);
 				}
 			}
@@ -329,7 +329,7 @@ public class I2PDActivity extends Activity {
 						daemon.startAcceptingTunnels();
 					else
 						i2pdStop();
-				} 
+				}
 				catch(Throwable tr)
 				{
 					Log.e(TAG,"",tr);
@@ -470,7 +470,9 @@ public class I2PDActivity extends Activity {
 			}
 
 			// copy assets. If processed file exists, it won't be overwrited
+			copyAsset("addressbook");
 			copyAsset("certificates");
+			copyAsset("tunnels.d");
 			copyAsset("i2pd.conf");
 			copyAsset("subscriptions.txt");
 			copyAsset("tunnels.conf");

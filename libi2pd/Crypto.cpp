@@ -9,7 +9,7 @@
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
 #include "Crypto.h"
-#if LEGACY_OPENSSL
+#if !OPENSSL_AEAD_CHACHA20_POLY1305
 #include "ChaCha20.h"
 #include "Poly1305.h"
 #endif
@@ -282,6 +282,7 @@ namespace crypto
 	{
 #if OPENSSL_X25519
 		m_Ctx = EVP_PKEY_CTX_new_id (NID_X25519, NULL);
+		m_Pkey = nullptr;
 #else		
 		m_Ctx = BN_CTX_new ();
 #endif		
@@ -304,8 +305,7 @@ namespace crypto
 	{
 #if OPENSSL_X25519
 		EVP_PKEY_CTX_free (m_Ctx);
-		if (m_Pkey)
-			EVP_PKEY_free (m_Pkey);	
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);	
 #else				
 		BN_CTX_free (m_Ctx);
 #endif		
@@ -314,7 +314,11 @@ namespace crypto
 	void X25519Keys::GenerateKeys ()
 	{
 #if OPENSSL_X25519
-		m_Pkey = nullptr;
+		if (m_Pkey)
+		{ 
+			EVP_PKEY_free (m_Pkey);	
+			m_Pkey = nullptr;
+		}
 		EVP_PKEY_keygen_init (m_Ctx);
 		EVP_PKEY_keygen (m_Ctx, &m_Pkey);
 		EVP_PKEY_CTX_free (m_Ctx);
@@ -1086,7 +1090,32 @@ namespace crypto
 		if (len < msgLen) return false;
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
-#if LEGACY_OPENSSL
+#if OPENSSL_AEAD_CHACHA20_POLY1305
+		int outlen = 0;
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		if (encrypt)
+		{
+			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
+			EVP_EncryptFinal_ex(ctx, buf, &outlen);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
+		}
+		else
+		{
+			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
+			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
+			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
+			EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen);
+			ret = EVP_DecryptFinal_ex(ctx, buf + outlen, &outlen) > 0;
+		}
+
+		EVP_CIPHER_CTX_free (ctx);
+#else		
 		chacha::Chacha20State state;
 		// generate one time poly key
 		chacha::Chacha20Init (state, nonce, key, 0);	
@@ -1145,39 +1174,25 @@ namespace crypto
 			polyHash.Finish (tag);	
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
-#else
-		int outlen = 0;
-		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
-		if (encrypt)
-		{
-			EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
-			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
-			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
-			EVP_EncryptFinal_ex(ctx, buf, &outlen);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
-		}
-		else
-		{
-			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
-			EVP_DecryptInit_ex(ctx, NULL, NULL, key, nonce);
-			EVP_DecryptUpdate(ctx, NULL, &outlen, ad, adLen);
-			EVP_DecryptUpdate(ctx, buf, &outlen, msg, msgLen);
-			ret = EVP_DecryptFinal_ex(ctx, buf + outlen, &outlen) > 0;
-		}
-
-		EVP_CIPHER_CTX_free (ctx);
 #endif
 		return ret;
 	}
 
-	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
+	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
-#if LEGACY_OPENSSL
+#if OPENSSL_AEAD_CHACHA20_POLY1305
+		int outlen = 0;
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
+		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
+		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
+		for (const auto& it: bufs)	
+			EVP_EncryptUpdate(ctx, it.first, &outlen, it.first, it.second);
+		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
+		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
+		EVP_CIPHER_CTX_free (ctx);
+#else		
 		chacha::Chacha20State state;
 		// generate one time poly key
 		chacha::Chacha20Init (state, nonce, key, 0);	
@@ -1188,10 +1203,10 @@ namespace crypto
 		// encrypt buffers	
 		Chacha20SetCounter (state, 1);
 		size_t size = 0;
-		for (auto& it: bufs)
+		for (const auto& it: bufs)
 		{
-			chacha::Chacha20Encrypt (state, (uint8_t *)it.first, it.second);
-			polyHash.Update ((uint8_t *)it.first, it.second); // after encryption
+			chacha::Chacha20Encrypt (state, it.first, it.second);
+			polyHash.Update (it.first, it.second); // after encryption
 			size += it.second;
 		}
 		// padding
@@ -1209,18 +1224,7 @@ namespace crypto
 		htole64buf (padding + 8, size);
 		polyHash.Update (padding, 16);	
 		// MAC
-		polyHash.Finish ((uint64_t *)mac);
-#else
-		int outlen = 0;
-		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
-		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
-		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
-		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
-		for (auto& it: bufs)	
-			EVP_EncryptUpdate(ctx, (uint8_t *)it.first, &outlen, (uint8_t *)it.first, it.second);
-		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
-		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
-		EVP_CIPHER_CTX_free (ctx);
+		polyHash.Finish ((uint64_t *)mac);	
 #endif		
 	}
 
@@ -1238,11 +1242,13 @@ namespace crypto
 		}
 	}*/
 
-
+	
 	void InitCrypto (bool precomputation)
 	{
-		i2p::cpu::Detect ();
+		i2p::cpu::Detect ();	
+#if LEGACY_OPENSSL
 		SSL_library_init ();
+#endif
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
 			m_OpenSSLMutexes.emplace_back (new std::mutex);
@@ -1277,3 +1283,4 @@ namespace crypto
 	}
 }
 }
+

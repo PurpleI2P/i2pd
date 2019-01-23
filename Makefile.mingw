@@ -3,9 +3,11 @@ CXX = g++
 WINDRES = windres
 CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
-BOOST_SUFFIX = -mt
 INCFLAGS = -Idaemon -I.
 LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
+
+# Boost libraries suffix
+BOOST_SUFFIX = -mt
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)

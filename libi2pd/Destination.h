@@ -52,6 +52,9 @@ namespace client
 	const int DEFAULT_TAGS_TO_SEND = 40;
 	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
 	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
+	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";
+	const int DEFAULT_LEASESET_TYPE = 1;		
+	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
 
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
@@ -122,6 +125,7 @@ namespace client
 		protected:
 
 			void SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet);
+			int GetLeaseSetType () const { return m_LeaseSetType; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
@@ -165,6 +169,7 @@ namespace client
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer;
 			std::string m_Nickname;
+			int m_LeaseSetType;
 
 		public:
 
@@ -238,6 +243,7 @@ namespace client
 
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+			i2p::data::CryptoKeyType m_EncryptionKeyType;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 
 			int m_StreamingAckDelay;

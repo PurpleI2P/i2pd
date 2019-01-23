@@ -30,7 +30,6 @@ namespace transport
 	NTCP2Establisher::NTCP2Establisher ():
 		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr) 
 	{ 
-		CreateEphemeralKey ();
 	}
 
 	NTCP2Establisher::~NTCP2Establisher () 
@@ -357,6 +356,7 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT), 
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
+		m_Establisher (new NTCP2Establisher),
 		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
@@ -364,7 +364,6 @@ namespace transport
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
 	{
-		m_Establisher.reset (new NTCP2Establisher);
 		if (in_RemoteRouter) // Alice
 		{
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
@@ -735,11 +734,13 @@ namespace transport
 
 	void NTCP2Session::ClientLogin ()
 	{
+		m_Establisher->CreateEphemeralKey ();
 		SendSessionRequest ();
 	}
 
 	void NTCP2Session::ServerLogin ()
 	{
+		m_Establisher->CreateEphemeralKey ();
 		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
@@ -899,14 +900,9 @@ namespace transport
 		m_Handler.Flush ();
 	}
 
-	void NTCP2Session::SendNextFrame (const uint8_t * payload, size_t len)
+	void NTCP2Session::SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf)
 	{
-		if (IsTerminated ()) return;	
-		uint8_t nonce[12];
-		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
-		m_NextSendBuffer = new uint8_t[len + 16 + 2];
-		i2p::crypto::AEADChaCha20Poly1305 (payload, len, nullptr, 0, m_SendKey, nonce, m_NextSendBuffer + 2, len + 16, true);
-#if OPENSSL_SIPHASH
+		#if OPENSSL_SIPHASH
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8); 
 		size_t l = 8;    
@@ -915,12 +911,101 @@ namespace transport
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 #endif
 		// length must be in BigEndian
-		htobe16buf (m_NextSendBuffer, (len + 16) ^ le16toh (m_SendIV.key));
-		LogPrint (eLogDebug, "NTCP2: sent length ", len + 16);
+		htobe16buf (lengthBuf, frameLen ^ le16toh (m_SendIV.key));
+		LogPrint (eLogDebug, "NTCP2: sent length ", frameLen);
+	}	
 
-		// send message
+	void NTCP2Session::SendI2NPMsgs (std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	{
+		if (msgs.empty () || IsTerminated ()) return;
+		
+		size_t totalLen = 0;
+		std::vector<std::pair<uint8_t *, size_t> > encryptBufs;
+		std::vector<boost::asio::const_buffer> bufs; 
+		std::shared_ptr<I2NPMessage> first;
+		uint8_t * macBuf = nullptr;
+		for (auto& it: msgs) 
+		{	
+			it->ToNTCP2 ();
+			auto buf = it->GetNTCP2Header ();
+			auto len = it->GetNTCP2Length ();
+			// block header
+			buf -= 3; 
+			buf[0] = eNTCP2BlkI2NPMessage; // blk
+			htobe16buf (buf + 1, len); // size
+			len += 3; 	
+			totalLen += len;		
+			encryptBufs.push_back (std::make_pair (buf, len));
+			if (&it == &msgs.front ()) // first message
+			{
+				// allocate two bytes for length
+				buf -= 2; len += 2;
+				first = it;
+			}	
+			if (&it == &msgs.back () && it->len + 16 < it->maxLen) // last message
+			{	
+				// if it's long enough we add padding and MAC to it
+				// create padding block
+				auto paddingLen = CreatePaddingBlock (totalLen, buf + len, it->maxLen - it->len - 16);
+				if (paddingLen)
+				{
+					encryptBufs.push_back (std::make_pair (buf + len, paddingLen));
+					len += paddingLen;
+					totalLen += paddingLen;
+				}
+				macBuf = buf + len;
+				// allocate 16 bytes for MAC
+				len += 16;
+			}	
+				
+			bufs.push_back (boost::asio::buffer (buf, len));
+		}
+
+		if (!macBuf) // last block was not enough for MAC
+		{
+			// allocate send buffer
+			m_NextSendBuffer = new uint8_t[287]; // can be any size > 16, we just allocate 287 frequently
+			// crate padding block
+			auto paddingLen = CreatePaddingBlock (totalLen, m_NextSendBuffer, 287 - 16);
+			// and padding block to encrypt and send
+			if (paddingLen)
+				encryptBufs.push_back (std::make_pair (m_NextSendBuffer, paddingLen));			
+			bufs.push_back (boost::asio::buffer (m_NextSendBuffer, paddingLen + 16));
+			macBuf = m_NextSendBuffer + paddingLen;
+			totalLen += paddingLen;		
+		}
+		uint8_t nonce[12];
+		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
+		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
+		SetNextSentFrameLength (totalLen + 16, first->GetNTCP2Header () - 5); // frame length right before first block
+			
+		// send buffers
 		m_IsSending = true;	
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, len + 16 + 2), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),
+			std::bind(&NTCP2Session::HandleI2NPMsgsSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
+	}	
+
+	void NTCP2Session::HandleI2NPMsgsSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	{
+		HandleNextFrameSent (ecode, bytes_transferred);
+		// msgs get destroyed here
+	}
+	
+	void NTCP2Session::EncryptAndSendNextBuffer (size_t payloadLen)
+	{
+		if (IsTerminated ()) 
+		{
+			delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
+			return; 
+		}
+		// encrypt
+		uint8_t nonce[12];
+		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
+		i2p::crypto::AEADChaCha20Poly1305Encrypt ({std::make_pair (m_NextSendBuffer + 2, payloadLen)}, m_SendKey, nonce, m_NextSendBuffer + payloadLen + 2);	
+		SetNextSentFrameLength (payloadLen + 16, m_NextSendBuffer);
+		// send
+		m_IsSending = true;	
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_NextSendBuffer, payloadLen + 16 + 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleNextFrameSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
@@ -938,31 +1023,25 @@ namespace transport
 			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
-			LogPrint (eLogDebug, "NTCP2: Next frame sent");
+			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
 			SendQueue ();
 		}	
 	}
-
+	
 	void NTCP2Session::SendQueue ()
 	{
 		if (!m_SendQueue.empty ())
 		{
-			auto buf = m_Server.NewNTCP2FrameBuffer ();
-			uint8_t * payload = buf->data ();
+			std::vector<std::shared_ptr<I2NPMessage> > msgs;
 			size_t s = 0;
-			// add I2NP blocks
 			while (!m_SendQueue.empty ())
 			{
 				auto msg = m_SendQueue.front ();
 				size_t len = msg->GetNTCP2Length (); 
 				if (s + len + 3 <= NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) // 3 bytes block header
 				{
-					payload[s] = eNTCP2BlkI2NPMessage; // blk
-					htobe16buf (payload + s + 1, len); // size
-					s += 3;
-					msg->ToNTCP2 ();
-					memcpy (payload + s, msg->GetNTCP2Header (), len);
-					s += len;
+					msgs.push_back (msg);
+					s += (len + 3);
 					m_SendQueue.pop_front ();
 				}
 				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
@@ -973,46 +1052,55 @@ namespace transport
 				else
 					break;
 			}
-			// add padding block 
-			int paddingSize = (s*NTCP2_MAX_PADDING_RATIO)/100;
-			if (s + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - s -3;
-			if (paddingSize) paddingSize = rand () % paddingSize;
-			payload[s] = eNTCP2BlkPadding; // blk
-			htobe16buf (payload + s + 1, paddingSize); // size
-			s += 3;
-			memset (payload + s, 0, paddingSize);			
-			s += paddingSize;
-			// send
-			SendNextFrame (payload, s);
-			m_Server.DeleteNTCP2FrameBuffer (buf);
+			SendI2NPMsgs (msgs);
 		} 
 	}
 
+	size_t NTCP2Session::CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len)
+	{
+		if (len < 3) return 0; 
+		len -= 3;
+		if (msgLen < 256) msgLen = 256; // for short message padding should not be always zero
+		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
+		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
+		if (paddingSize > len) paddingSize = len;
+		if (paddingSize) paddingSize = rand () % paddingSize;
+		buf[0] = eNTCP2BlkPadding; // blk
+		htobe16buf (buf + 1, paddingSize); // size
+		memset (buf + 3, 0, paddingSize);			
+		return paddingSize + 3;
+	}	
+		
 	void NTCP2Session::SendRouterInfo ()
 	{
 		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
-		int paddingSize = (riLen*NTCP2_MAX_PADDING_RATIO)/100;
-		size_t payloadLen = riLen + paddingSize + 7; // 7 = 2*3 bytes header + 1 byte RI flag 
-		uint8_t * payload = new uint8_t[payloadLen];
-		payload[0] = eNTCP2BlkRouterInfo;
-		htobe16buf (payload + 1, riLen + 1); // size
-		payload[3] = 0; // flag
-		memcpy (payload + 4, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
-		payload[riLen + 4] = eNTCP2BlkPadding;
-		htobe16buf (payload + riLen + 5, paddingSize);
-		RAND_bytes (payload + riLen + 7, paddingSize);
-		SendNextFrame (payload, payloadLen);
-		delete[] payload;
+		size_t payloadLen = riLen + 4; // 3 bytes block header + 1 byte RI flag
+		m_NextSendBuffer = new uint8_t[payloadLen + 16 + 2 + 64]; // up to 64 bytes padding
+		m_NextSendBuffer[2] = eNTCP2BlkRouterInfo;
+		htobe16buf (m_NextSendBuffer + 3, riLen + 1); // size
+		m_NextSendBuffer[5] = 0; // flag
+		memcpy (m_NextSendBuffer + 6, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
+		// padding block
+		auto paddingSize = CreatePaddingBlock (payloadLen, m_NextSendBuffer + 2 + payloadLen, 64);
+		payloadLen += paddingSize;
+		// encrypt and send
+		EncryptAndSendNextBuffer (payloadLen);
 	}
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
 		if (!m_SendKey || !m_SendSipKey) return;
-		uint8_t payload[12] = { eNTCP2BlkTermination, 0, 9 };
-		htobe64buf (payload + 3, m_ReceiveSequenceNumber);
-		payload[11] = (uint8_t)reason;
-		SendNextFrame (payload, 12);
+		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block 		
+		// termination block
+		m_NextSendBuffer[2] = eNTCP2BlkTermination;
+		m_NextSendBuffer[3] = 0; m_NextSendBuffer[4] = 9; // 9 bytes block size
+		htobe64buf (m_NextSendBuffer + 5, m_ReceiveSequenceNumber);	
+		m_NextSendBuffer[13] = (uint8_t)reason;
+		// padding block
+		auto paddingSize = CreatePaddingBlock (12, m_NextSendBuffer + 14, 19);
+		// encrypt and send
+		EncryptAndSendNextBuffer (paddingSize + 12);
 	}
 
 	void NTCP2Session::SendTerminationAndTerminate (NTCP2TerminationReason reason)

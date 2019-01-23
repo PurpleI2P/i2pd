@@ -28,15 +28,17 @@ android {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 28
         minSdkVersion 14
-        versionCode 1
-        versionName "2.22.0"
+        versionCode 2230
+        versionName "2.23.0"
         ndk {
             abiFilters 'armeabi-v7a'
             abiFilters 'x86'
+            //abiFilters 'arm64-v8a'
+            //abiFilters 'x86_64'
         }
         externalNativeBuild {
             ndkBuild {
-                arguments "-j4"
+                arguments "-j3"
             }
         }
     }
@@ -47,6 +49,15 @@ android {
             res.srcDirs = ['res']
             jniLibs.srcDirs = ['libs']
             assets.srcDirs = ['assets']
+        }
+    }
+    splits {
+        abi {
+            // change that to true if you need splitted apk
+            enable false
+            reset()
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            universalApk true
         }
     }
     signingConfigs {
@@ -70,5 +81,3 @@ android {
         }
     }
 }
-
-

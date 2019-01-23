@@ -11,7 +11,7 @@
 #include <cstring>
 #include "Crypto.h"
 
-#if LEGACY_OPENSSL
+#if !OPENSSL_AEAD_CHACHA20_POLY1305 
 namespace i2p
 {
 namespace crypto

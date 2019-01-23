@@ -8,7 +8,7 @@ namespace i2p
 {
 namespace client
 {
-	static const i2p::data::SigningKeyType I2P_SERVICE_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+	static const i2p::data::SigningKeyType I2P_SERVICE_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 
 	I2PService::I2PService (std::shared_ptr<ClientDestination> localDestination):
 		m_LocalDestination (localDestination ? localDestination :
@@ -64,7 +64,7 @@ namespace client
 	void I2PService::TriggerReadyCheckTimer()
 	{
 		m_ReadyTimer.expires_from_now(boost::posix_time::seconds (1));
-		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, this, std::placeholders::_1));
+		m_ReadyTimer.async_wait(std::bind(&I2PService::HandleReadyCheckTimer, shared_from_this (), std::placeholders::_1));
 		m_ReadyTimerTriggered = true;
 
 	}

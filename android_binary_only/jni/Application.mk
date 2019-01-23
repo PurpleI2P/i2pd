@@ -6,11 +6,8 @@ APP_ABI := armeabi-v7a
 #can be android-3 but will fail for x86 since arch-x86 is not present at ndkroot/platforms/android-3/ . libz is taken from there.
 APP_PLATFORM := android-14
 
-# http://stackoverflow.com/a/21386866/529442 http://stackoverflow.com/a/15616255/529442 to enable c++11 support in Eclipse
-NDK_TOOLCHAIN_VERSION := 4.9
-# APP_STL := stlport_shared  --> does not seem to contain C++11 features
-#APP_STL := gnustl_shared
-APP_STL := gnustl_static
+NDK_TOOLCHAIN_VERSION := clang
+APP_STL := c++_static
 
 # Enable c++11 extensions in source code
 APP_CPPFLAGS += -std=c++11 -fvisibility=default -fPIE

@@ -184,6 +184,8 @@ namespace client
 
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
 		
+			 bool ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const;
+
 		private:
 
 			void Run ();
@@ -207,6 +209,7 @@ namespace client
 			mutable std::mutex m_OpenSocketsMutex;
 			std::list<std::shared_ptr<SAMSocket> > m_OpenSockets;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
+			std::map<std::string, i2p::data::SigningKeyType> m_SignatureTypes;
 
 		public:
 

@@ -91,11 +91,11 @@ namespace data
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
-		const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
+			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
-		const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
-		uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
+			uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
@@ -107,9 +107,11 @@ namespace data
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory
 
-      bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+  			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+			void RecalculateIdentHash(uint8_t * buff=nullptr);
 
-    void RecalculateIdentHash(uint8_t * buff=nullptr);
+			static i2p::crypto::Verifier * CreateVerifier (SigningKeyType keyType);
+			static std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (CryptoKeyType keyType, const uint8_t * key);			
 
 		private:
 

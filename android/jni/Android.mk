@@ -25,43 +25,43 @@ include $(BUILD_SHARED_LIBRARY)
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := boost_system
-LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_64_0/$(TARGET_ARCH_ABI)/lib/libboost_system.a
-LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_64_0/include
+LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_68_0-clang/$(TARGET_ARCH_ABI)/lib/libboost_system.a
+LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_68_0-clang/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := boost_date_time
-LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_64_0/$(TARGET_ARCH_ABI)/lib/libboost_date_time.a
-LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_64_0/include
+LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_68_0-clang/$(TARGET_ARCH_ABI)/lib/libboost_date_time.a
+LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_68_0-clang/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := boost_filesystem
-LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_64_0/$(TARGET_ARCH_ABI)/lib/libboost_filesystem.a
-LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_64_0/include
+LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_68_0-clang/$(TARGET_ARCH_ABI)/lib/libboost_filesystem.a
+LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_68_0-clang/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := boost_program_options
-LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_64_0/$(TARGET_ARCH_ABI)/lib/libboost_program_options.a
-LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_64_0/include
+LOCAL_SRC_FILES := $(BOOST_PATH)/boost_1_68_0-clang/$(TARGET_ARCH_ABI)/lib/libboost_program_options.a
+LOCAL_EXPORT_C_INCLUDES := $(BOOST_PATH)/boost_1_68_0-clang/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto
-LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.1/$(TARGET_ARCH_ABI)/lib/libcrypto.a
-LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.1/include
+LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.1a-clang/$(TARGET_ARCH_ABI)/lib/libcrypto.a
+LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.1a-clang/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := ssl
-LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.1/$(TARGET_ARCH_ABI)/lib/libssl.a
-LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.1/include
+LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.1a-clang/$(TARGET_ARCH_ABI)/lib/libssl.a
+LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.1a-clang/include
 LOCAL_STATIC_LIBRARIES := crypto
 include $(PREBUILT_STATIC_LIBRARY)
 

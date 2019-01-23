@@ -65,7 +65,7 @@ namespace client
 
 			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, // transient
-				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
+				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
 				const std::map<std::string, std::string> * params = nullptr); // used by SAM only
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
@@ -74,7 +74,7 @@ namespace client
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
 			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
-				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256,
+				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
@@ -92,6 +92,8 @@ namespace client
 			void ReadSocksProxy ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
+			template<typename Section>
+			std::string GetI2CPStringOption (const Section& section, const std::string& name, const std::string& value) const; // GetI2CPOption with string default value
 			template<typename Section>
 			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const; // for tunnels
 			void ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const; // for HTTP and SOCKS proxy

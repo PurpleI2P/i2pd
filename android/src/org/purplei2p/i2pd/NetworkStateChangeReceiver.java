@@ -9,12 +9,12 @@ import android.net.NetworkInfo;
 
 public class NetworkStateChangeReceiver extends BroadcastReceiver {
 
-    private static final String TAG = "i2pd";
+	private static final String TAG = "i2pd";
 
 	//api level 1
-    @Override
-    public void onReceive(final Context context, final Intent intent) {
-        Log.d(TAG,"Network state change");
+	@Override
+	public void onReceive(final Context context, final Intent intent) {
+		Log.d(TAG,"Network state change");
 		try {
 			ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 			NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
@@ -26,5 +26,5 @@ public class NetworkStateChangeReceiver extends BroadcastReceiver {
 		} catch (Throwable tr) {
 			Log.d(TAG,"",tr);
 		}
-    }
+	}
 }

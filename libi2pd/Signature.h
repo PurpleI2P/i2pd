@@ -24,6 +24,7 @@ namespace crypto
 			virtual size_t GetPublicKeyLen () const = 0;
 			virtual size_t GetSignatureLen () const = 0;
 			virtual size_t GetPrivateKeyLen () const { return GetSignatureLen ()/2; };
+			virtual void SetPublicKey (const uint8_t * signingKey) = 0;
 	};
 
 	class Signer
@@ -41,9 +42,13 @@ namespace crypto
 	{
 		public:
 
-			DSAVerifier (const uint8_t * signingKey)
+			DSAVerifier ()
 			{
 				m_PublicKey = CreateDSA ();
+			}
+			
+			void SetPublicKey (const uint8_t * signingKey)
+			{	
 				DSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL), NULL);
 			}
 
@@ -154,9 +159,13 @@ namespace crypto
 	{
 		public:
 
-			ECDSAVerifier (const uint8_t * signingKey)
+			ECDSAVerifier ()
 			{
 				m_PublicKey = EC_KEY_new_by_curve_name (curve);
+			}
+			
+			void SetPublicKey (const uint8_t * signingKey)
+			{	
 				BIGNUM * x = BN_bin2bn (signingKey, keyLen/2, NULL);
 				BIGNUM * y = BN_bin2bn (signingKey + keyLen/2, keyLen/2, NULL);
 				EC_KEY_set_public_key_affine_coordinates (m_PublicKey, x, y);
@@ -275,7 +284,8 @@ namespace crypto
 	{
 		public:
 
-			EDDSA25519Verifier (const uint8_t * signingKey);
+			EDDSA25519Verifier ();
+			void SetPublicKey (const uint8_t * signingKey);
 			~EDDSA25519Verifier ();
 			
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
@@ -386,15 +396,22 @@ namespace crypto
 
 			enum { keyLen = Hash::hashLen };
 
-			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey):
-				m_ParamSet (paramSet)
+			GOSTR3410Verifier (GOSTR3410ParamSet paramSet):
+				m_ParamSet (paramSet), m_PublicKey (nullptr)
+			{
+			}		
+
+			void SetPublicKey (const uint8_t * signingKey)	
 			{
 				BIGNUM * x = BN_bin2bn (signingKey, GetPublicKeyLen ()/2, NULL);
 				BIGNUM * y = BN_bin2bn (signingKey + GetPublicKeyLen ()/2, GetPublicKeyLen ()/2, NULL);
 				m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
 				BN_free (x); BN_free (y);
 			}
-			~GOSTR3410Verifier () { EC_POINT_free (m_PublicKey); }
+			~GOSTR3410Verifier () 
+			{ 
+				if (m_PublicKey) EC_POINT_free (m_PublicKey); 
+			}
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{

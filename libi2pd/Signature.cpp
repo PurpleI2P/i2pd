@@ -7,35 +7,43 @@ namespace i2p
 namespace crypto
 {
 #if OPENSSL_EDDSA	
-	EDDSA25519Verifier::EDDSA25519Verifier (const uint8_t * signingKey)
+	EDDSA25519Verifier::EDDSA25519Verifier ()
 	{
-		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ED25519, NULL, signingKey, 32);
 		m_MDCtx = EVP_MD_CTX_create ();	
-		EVP_DigestVerifyInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
 	}
 
 	EDDSA25519Verifier::~EDDSA25519Verifier ()
 	{
 		EVP_MD_CTX_destroy (m_MDCtx);
-		EVP_PKEY_free (m_Pkey);
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 	}
 
+	void EDDSA25519Verifier::SetPublicKey (const uint8_t * signingKey)
+	{
+		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ED25519, NULL, signingKey, 32);
+		EVP_DigestVerifyInit (m_MDCtx, NULL, NULL, NULL, m_Pkey);
+	}	
+	
 	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
 		return EVP_DigestVerify (m_MDCtx, signature, 64, buf, len);
 	}
 	
 #else	
-	EDDSA25519Verifier::EDDSA25519Verifier (const uint8_t * signingKey)
+	EDDSA25519Verifier::EDDSA25519Verifier ()
+	{
+	}
+
+	EDDSA25519Verifier::~EDDSA25519Verifier ()
+	{
+	}	
+
+	void EDDSA25519Verifier::SetPublicKey (const uint8_t * signingKey)
 	{
 		memcpy (m_PublicKeyEncoded, signingKey, EDDSA25519_PUBLIC_KEY_LENGTH);
 		BN_CTX * ctx = BN_CTX_new ();
 		m_PublicKey = GetEd25519 ()->DecodePublicKey (m_PublicKeyEncoded, ctx);
 		BN_CTX_free (ctx);
-	}
-
-	EDDSA25519Verifier::~EDDSA25519Verifier ()
-	{
 	}	
 	
 	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const

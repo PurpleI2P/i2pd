@@ -345,11 +345,8 @@ namespace client
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
 			if (!it->second->IsRunning ())
-			{
 				it->second->Start ();
-				return it->second;
-			}
-			return nullptr;
+			return it->second;
 		}
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -360,7 +357,7 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
+		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, EDDSA
 		m_SharedLocalDestination->Acquire ();
 	}
 
@@ -379,6 +376,12 @@ namespace client
 	}
 
 	template<typename Section>
+	std::string ClientContext::GetI2CPStringOption (const Section& section, const std::string& name, const std::string& value) const
+	{
+        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), value);
+	}
+
+	template<typename Section>
 	void ClientContext::ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const
 	{
 		options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH,  DEFAULT_INBOUND_TUNNEL_LENGTH);
@@ -388,7 +391,10 @@ namespace client
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
 		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
 		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
-		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY);
+		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY); 
+		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
+		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "");
+		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;		
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -480,7 +486,7 @@ namespace client
 					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "transient");
 					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
-					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 					// I2CP
 					std::map<std::string, std::string> options;
@@ -593,7 +599,7 @@ namespace client
 					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
-					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
@@ -719,7 +725,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
+					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
@@ -758,7 +764,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
+					if (localDestination) localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");

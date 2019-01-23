@@ -48,7 +48,7 @@ else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
 	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw
 else # not supported
-$(error Not supported platform)
+	$(error Not supported platform)
 endif
 
 ifeq ($(USE_MESHNET),yes)

@@ -64,7 +64,8 @@ namespace data
 									i2p::crypto::bn2buf (x, signingKey, 32);
 									i2p::crypto::bn2buf (y, signingKey + 32, 32);
 									BN_free (x); BN_free (y);
-									verifier = std::make_shared<i2p::crypto::ECDSAP256Verifier>(signingKey);
+									verifier = std::make_shared<i2p::crypto::ECDSAP256Verifier>();
+									verifier->SetPublicKey (signingKey);
 								}
 								else
 									LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");

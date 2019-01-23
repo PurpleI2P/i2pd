@@ -47,7 +47,10 @@ namespace i2p
 		routerInfo.SetRouterIdentity (GetIdentity ());
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port)
+		{
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+			if (port == 9150) port = 9151; // Tor browser
+		}	
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;    i2p::config::GetOption("ssu", ssu);
@@ -166,7 +169,10 @@ namespace i2p
 	{
 		if (!m_NTCP2Keys) return;
 		if (!port)
+		{	
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+			if (port == 9150) port = 9151; // Tor browser
+		}
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{

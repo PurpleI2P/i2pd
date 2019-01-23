@@ -7,45 +7,45 @@ namespace i2p
 {
 namespace android
 {
-    class DaemonAndroidImpl
-    {
-    public:
+	class DaemonAndroidImpl
+	{
+	public:
 
 		DaemonAndroidImpl ();
 		~DaemonAndroidImpl ();
 
-        //typedef void (*runningChangedCallback)();
+		//typedef void (*runningChangedCallback)();
 
-        /**
-         * @return success
-         */
-        bool init(int argc, char* argv[]);
-        void start();
-        void stop();
-        void restart();
-        //void setRunningCallback(runningChangedCallback cb);
-        //bool isRunning();
-    private:
-        //void setRunning(bool running);
+		/**
+		 * @return success
+		 */
+		bool init(int argc, char* argv[]);
+		void start();
+		void stop();
+		void restart();
+		//void setRunningCallback(runningChangedCallback cb);
+		//bool isRunning();
+	private:
+		//void setRunning(bool running);
 	private:
 		//QMutex* mutex;
-        //bool m_IsRunning;
+		//bool m_IsRunning;
 		//runningChangedCallback m_RunningChangedCallback;
-    };
+	};
 
 	/**
 	 * returns "ok" if daemon init failed
 	 * returns errinfo if daemon initialized and started okay
 	 */
-    std::string start();
+	std::string start();
 
-    // stops the daemon
-    void stop();
+	// stops the daemon
+	void stop();
 
-    /*
+	/*
 	class Worker : public QObject
-    {
-        Q_OBJECT
+	{
+		Q_OBJECT
 	public:
 
 		Worker (DaemonAndroidImpl& daemon);
@@ -54,33 +54,33 @@ namespace android
 
 		DaemonAndroidImpl& m_Daemon;
 
-    public slots:
-        void startDaemon();
-        void restartDaemon();
-        void stopDaemon();
+	public slots:
+		void startDaemon();
+		void restartDaemon();
+		void stopDaemon();
 
-    signals:
-        void resultReady();
-    };
+	signals:
+		void resultReady();
+	};
 
-    class Controller : public QObject
-    {
-        Q_OBJECT
-        QThread workerThread;
-    public:
-        Controller(DaemonAndroidImpl& daemon);
-        ~Controller();
+	class Controller : public QObject
+	{
+		Q_OBJECT
+		QThread workerThread;
+	public:
+		Controller(DaemonAndroidImpl& daemon);
+		~Controller();
 	private:
 		DaemonAndroidImpl& m_Daemon;
 
-    public slots:
-        void handleResults(){}
-    signals:
-        void startDaemon();
-        void stopDaemon();
-        void restartDaemon();
-    };
-    */
+	public slots:
+		void handleResults(){}
+	signals:
+		void startDaemon();
+		void stopDaemon();
+		void restartDaemon();
+	};
+	*/
 }
 }
 

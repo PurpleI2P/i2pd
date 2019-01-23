@@ -16,7 +16,8 @@ namespace client
 	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic),
 		m_PublishReplyToken (0), m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
-		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service)
+		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service),
+		m_LeaseSetType (DEFAULT_LEASESET_TYPE)
 	{
 		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -66,6 +67,9 @@ namespace client
 					if (it != params->end ()) m_Nickname = it->second;
 					// otherwise we set default nickname in Start when we know local address
 				}
+				it = params->find (I2CP_PARAM_LEASESET_TYPE);
+				if (it != params->end ())
+					m_LeaseSetType = std::stoi(it->second);
 			}
 		}
 		catch (std::exception & ex)
@@ -357,7 +361,8 @@ namespace client
 		}
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
-		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
+		if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET || // 1
+			buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2) // 3
 		{
 			LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
@@ -382,7 +387,10 @@ namespace client
 			}
 			else
 			{
-				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
+				if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
+				else
+					leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset); // LeaseSet2
 				if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())
@@ -769,12 +777,20 @@ namespace client
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
-		if (isPublic)
+		m_EncryptionKeyType = GetIdentity ()->GetCryptoKeyType ();
+		// extract encryption type params for LS2
+		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 && params)
+		{
+			auto it = params->find (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE);
+			if (it != params->end ())
+				m_EncryptionKeyType = std::stoi(it->second);
+		}		
+	
+		if (isPublic && m_EncryptionKeyType == GetIdentity ()->GetCryptoKeyType ()) // TODO: presist key type
 			PersistTemporaryKeys ();
 		else
-			i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (),
-				m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey);
+			i2p::data::PrivateKeys::GenerateCryptoKeyPair (m_EncryptionKeyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_EncryptionKeyType, m_EncryptionPrivateKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 
@@ -1004,9 +1020,10 @@ namespace client
 			return;
 		}
 
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (),
-				m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.i2p");
+		memset (m_EncryptionPrivateKey, 0, 256);
+		memset (m_EncryptionPublicKey, 0, 256);	
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair (GetIdentity ()->GetCryptoKeyType (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {
@@ -1019,9 +1036,22 @@ namespace client
 
 	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
-		auto leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
-		// sign
-		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
+		i2p::data::LocalLeaseSet * leaseSet = nullptr;
+		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+		{
+			leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
+			// sign
+			Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); 
+		}
+		else
+		{
+			// standard LS2 (type 3) assumed for now. TODO: implement others
+			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
+			leaseSet = new i2p::data::LocalLeaseSet2 (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
+				GetIdentity (), m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
+			// sign
+			Sign (leaseSet->GetBuffer () - 1, leaseSet->GetBufferLen () - leaseSet->GetSignatureLen () + 1, leaseSet->GetSignature ()); // + leading store type
+		}
 		SetLeaseSet (leaseSet);
 	}
 

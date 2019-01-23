@@ -23,12 +23,17 @@
 // recognize openssl version and features
 #if ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
 #   define LEGACY_OPENSSL 1
+#   define X509_getm_notBefore X509_get_notBefore
+#   define X509_getm_notAfter X509_get_notAfter
 #else
 #   define LEGACY_OPENSSL 0
 #   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
 #	   define OPENSSL_EDDSA 1
 #	   define OPENSSL_X25519 1
 #	   define OPENSSL_SIPHASH 1
+#   endif
+#   if !defined OPENSSL_NO_CHACHA && !defined OPENSSL_NO_POLY1305 // some builds might not include them
+#	   define OPENSSL_AEAD_CHACHA20_POLY1305 1 
 #   endif
 #endif
 
@@ -283,7 +288,7 @@ namespace crypto
 // AEAD/ChaCha20/Poly1305
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
 
-	void AEADChaCha20Poly1305Encrypt (std::vector<std::pair<void*, std::size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
+	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
 
 // init and terminate
 	void InitCrypto (bool precomputation);
