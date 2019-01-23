@@ -558,11 +558,22 @@ namespace client
 		i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 		auto it = params.find (SAM_PARAM_SIGNATURE_TYPE);
 		if (it != params.end ())
-				// TODO: extract string values
-			signatureType = std::stoi(it->second);
+		{
+			if (!m_Owner.ResolveSignatureType (it->second, signatureType))
+				LogPrint (eLogWarning, "SAM: ", SAM_PARAM_SIGNATURE_TYPE, " is invalid ", it->second);	
+		}
 		it = params.find (SAM_PARAM_CRYPTO_TYPE);
 		if (it != params.end ())
-			cryptoType = std::stoi(it->second);
+		{
+			try
+			{	
+				cryptoType = std::stoi(it->second);
+			}
+			catch (const std::exception& ex) 
+			{
+				LogPrint (eLogWarning, "SAM: ", SAM_PARAM_CRYPTO_TYPE, "error: ", ex.what ());	
+			}	
+		}	
 		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
 #ifdef _MSC_VER
 		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
@@ -921,7 +932,17 @@ namespace client
 	SAMBridge::SAMBridge (const std::string& address, int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
-		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint)
+		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint),
+		m_SignatureTypes
+		{
+			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
+			{"ECDSA_SHA256_P256", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256},
+			{"ECDSA_SHA256_P384", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384},
+			{"ECDSA_SHA256_P521", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521},
+			{"EdDSA_SHA512_Ed25519", i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519},
+			{"GOST_GOSTR3411256_GOSTR3410CRYPTOPROA", i2p::data::SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256},
+			{"GOST_GOSTR3411512_GOSTR3410TC26A512", i2p::data::SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512}
+		}
 	{
 	}
 
@@ -1028,15 +1049,8 @@ namespace client
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
 				if (it != params->end ())
 				{	
-					// TODO: extract string values
-					try
-					{	
-						signatureType = std::stoi(it->second);
-					}
-					catch (const std::exception& ex) 
-					{
-						LogPrint (eLogWarning, "SAM: ", SAM_PARAM_SIGNATURE_TYPE, "error: ", ex.what ());	
-					}		
+					if (!ResolveSignatureType (it->second, signatureType))
+						LogPrint (eLogWarning, "SAM: ", SAM_PARAM_SIGNATURE_TYPE, " is invalid ", it->second);	
 				}	
 				it = params->find (SAM_PARAM_CRYPTO_TYPE);
 				if (it != params->end ())
@@ -1165,6 +1179,29 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "SAM: datagram receive error: ", ecode.message ());
+	}
+
+	bool SAMBridge::ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const
+	{
+		try
+		{	
+			type = std::stoi (name);
+		}
+		catch (const std::invalid_argument& ex)
+		{
+			// name is not numeric, resolving
+			auto it = m_SignatureTypes.find (name);
+			if (it != m_SignatureTypes.end ())
+				type = it->second;
+			else
+				return false;
+		}
+		catch (const std::exception& ex) 
+		{
+			return false;		
+		}	
+		// name has been resolved 
+		return true;	
 	}
 }
 }
