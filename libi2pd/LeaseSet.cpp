@@ -630,5 +630,14 @@ namespace data
 		htobe16buf (expiresBuf, expires > 0 ? expires : 0);	
 		//  we don't sign it yet. must be signed later on
 	}
+
+	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
+		LocalLeaseSet (identity, nullptr, 0)
+	{
+		m_BufferLen = len;
+		m_Buffer = new uint8_t[m_BufferLen + 1];
+		memcpy (m_Buffer + 1, buf, len);
+		m_Buffer[0] = storeType;
+	}
 }
 }
