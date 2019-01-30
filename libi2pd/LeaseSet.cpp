@@ -344,6 +344,7 @@ namespace data
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		if (offset + 1 >= len) return 0;
 		// key sections
+		uint16_t currentKeyType = 0;
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
@@ -351,10 +352,16 @@ namespace data
 			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
 			if (offset + encryptionKeyLen >= len) return 0;
-			if (!m_Encryptor && IsStoreLeases ()) // create encryptor with leases only, first key
+			if (IsStoreLeases ()) // create encryptor with leases only
 			{
+				// we pick first valid key, higher key type has higher priority 4-1-0
+				// if two keys with of the same type, pick first
 				auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
-				m_Encryptor = encryptor; // TODO: atomic
+				if (encryptor && (!m_Encryptor || keyType > currentKeyType))
+				{
+					m_Encryptor = encryptor; // TODO: atomic
+					currentKeyType = keyType;
+				}
 			}
 			offset += encryptionKeyLen; 
 		}	
