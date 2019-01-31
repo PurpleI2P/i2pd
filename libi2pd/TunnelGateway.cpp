@@ -51,6 +51,19 @@ namespace tunnel
 		// create fragments
 		const std::shared_ptr<I2NPMessage> & msg = block.data;
 		size_t fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
+		
+		if (!messageCreated && fullMsgLen > m_RemainingSize) // check if we should complete previous message
+		{
+			size_t numFollowOnFragments = fullMsgLen / TUNNEL_DATA_MAX_PAYLOAD_SIZE;
+			// length of bytes doesn't fit full tunnel message
+			// every follow-on fragment adds 7 bytes
+			size_t nonFit = (fullMsgLen + numFollowOnFragments*7) % TUNNEL_DATA_MAX_PAYLOAD_SIZE;
+			if (!nonFit || nonFit > m_RemainingSize)
+			{
+				CompleteCurrentTunnelDataMessage ();
+				CreateCurrentTunnelDataMessage ();
+			}
+		}
 		if (fullMsgLen <= m_RemainingSize)
 		{
 			// message fits. First and last fragment
@@ -65,18 +78,6 @@ namespace tunnel
 		}
 		else
 		{
-			if (!messageCreated) // check if we should complete previous message
-			{
-				size_t numFollowOnFragments = fullMsgLen / TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-				// length of bytes don't fit full tunnel message
-				// every follow-on fragment adds 7 bytes
-				size_t nonFit = (fullMsgLen + numFollowOnFragments*7) % TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-				if (!nonFit || nonFit > m_RemainingSize)
-				{
-					CompleteCurrentTunnelDataMessage ();
-					CreateCurrentTunnelDataMessage ();
-				}
-			}
 			if (diLen + 6 <= m_RemainingSize)
 			{
 				// delivery instructions fit
