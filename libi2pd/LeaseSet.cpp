@@ -262,16 +262,23 @@ namespace data
 
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{	
-		// shouldn't be called for now. Must be called from NetDb::AddLeaseSet later
 		SetBuffer (buf, len);
-		// TODO:verify signature if requested		
+		if (storeType != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+			ReadFromBuffer (buf, len, false, verifySignature);	
+		// TODO: implement encrypted
 	}
 		
-	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
+	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity, bool verifySignature)
 	{
 		// standard LS2 header
-		auto identity = std::make_shared<IdentityEx>(buf, len);
-		SetIdentity (identity);
+		std::shared_ptr<const IdentityEx> identity;
+		if (readIdentity)
+		{	
+			identity = std::make_shared<IdentityEx>(buf, len);
+			SetIdentity (identity);
+		}
+		else
+			identity = GetIdentity ();
 		size_t offset = identity->GetFullLen ();
 		if (offset + 8 >= len) return;
 		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
@@ -315,10 +322,13 @@ namespace data
 		}
 		if (!s) return;
 		offset += s;
-		// verify signature
-		bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
-			VerifySignature (identity, buf, len, offset);	
-		SetIsValid (verified);	
+		if (verifySignature || transientVerifier)
+		{	
+			// verify signature
+			bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
+				VerifySignature (identity, buf, len, offset);	
+			SetIsValid (verified);	
+		}
 	}
 
 	template<typename Verifier>

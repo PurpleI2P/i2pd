@@ -135,7 +135,7 @@ namespace data
 
 		private:
 
-			void ReadFromBuffer (const uint8_t * buf, size_t len);
+			void ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity = true, bool verifySignature = true);
 			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
