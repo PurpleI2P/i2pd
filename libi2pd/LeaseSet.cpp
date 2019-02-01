@@ -263,7 +263,7 @@ namespace data
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{	
 		SetBuffer (buf, len);
-		if (storeType != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+		if (GetStoreType () != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 			ReadFromBuffer (buf, len, false, verifySignature);	
 		// TODO: implement encrypted
 	}
