@@ -217,61 +217,17 @@ namespace stream
 
 	void Stream::ProcessPacket (Packet * packet)
 	{
-		// process flags
 		uint32_t receivedSeqn = packet->GetSeqn ();
 		uint16_t flags = packet->GetFlags ();
 		LogPrint (eLogDebug, "Streaming: Process seqn=", receivedSeqn, ", flags=", flags);
 
-		const uint8_t * optionData = packet->GetOptionData ();
-
-		if (flags & PACKET_FLAG_DELAY_REQUESTED)
-			optionData += 2;
-
-		if (flags & PACKET_FLAG_FROM_INCLUDED)
+		if (!ProcessOptions (flags, packet))
 		{
-			m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, packet->GetOptionSize ());
-			if (m_RemoteIdentity->IsRSA ())
-			{
-				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), "  Discarded");
-				m_LocalDestination.DeletePacket (packet);
-				Terminate ();
-				return;
-			}
-			optionData += m_RemoteIdentity->GetFullLen ();
-			if (!m_RemoteLeaseSet)
-				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+			m_LocalDestination.DeletePacket (packet);
+			Terminate ();
+			return;
 		}
-
-		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
-		{
-			uint16_t maxPacketSize = bufbe16toh (optionData);
-			LogPrint (eLogDebug, "Streaming: Max packet size ", maxPacketSize);
-			optionData += 2;
-		}
-
-		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
-		{
-			uint8_t signature[256];
-			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
-			if(signatureLen <= sizeof(signature))
-			{
-				memcpy (signature, optionData, signatureLen);
-				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-				if (!m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature))
-				{
-					LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
-					Close ();
-					flags |= PACKET_FLAG_CLOSE;
-				}
-				memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
-				optionData += signatureLen;
-			}
-			else
-			{
-				LogPrint(eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
-			}
-		}
-
+		
 		packet->offset = packet->GetPayload () - packet->buf;
 		if (packet->GetLength () > 0)
 		{
@@ -296,6 +252,98 @@ namespace stream
 			m_Status = eStreamStatusClosed;
 			Terminate ();
 		}
+	}
+
+	bool Stream::ProcessOptions (uint16_t flags, Packet * packet)
+	{
+		const uint8_t * optionData = packet->GetOptionData ();
+		size_t optionSize = packet->GetOptionSize ();	
+		if (flags & PACKET_FLAG_DELAY_REQUESTED)
+			optionData += 2;
+
+		if (flags & PACKET_FLAG_FROM_INCLUDED)
+		{
+			m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
+			if (m_RemoteIdentity->IsRSA ())
+			{
+				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), "  Discarded");
+				return false;
+			}
+			optionData += m_RemoteIdentity->GetFullLen ();
+			if (!m_RemoteLeaseSet)
+				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+		}
+
+		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
+		{
+			uint16_t maxPacketSize = bufbe16toh (optionData);
+			LogPrint (eLogDebug, "Streaming: Max packet size ", maxPacketSize);
+			optionData += 2;
+		}
+
+		if (flags & PACKET_FLAG_OFFLINE_SIGNATURE)
+		{
+			if (!m_RemoteIdentity)
+			{
+				LogPrint (eLogInfo, "Streaming: offline signature without identity");
+				return false;
+			}
+			const uint8_t * signedData = optionData;
+			uint32_t expiresTimestamp = bufbe32toh (optionData); optionData += 4; // expires timestamp
+			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
+			{
+				LogPrint (eLogInfo, "Streaming: offline signature transient key expired");
+				return false;
+			}
+			uint16_t keyType = bufbe16toh (optionData); optionData += 2; // key type
+			m_TransientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType)); 
+			if (!m_TransientVerifier)
+			{
+				LogPrint (eLogInfo, "Streaming: Unknown transient key type ", (int)keyType);
+				return false;
+			}
+			auto keyLen = m_TransientVerifier->GetPublicKeyLen ();
+			if ((optionData - packet->GetOptionData ()) + keyLen + m_RemoteIdentity->GetSignatureLen () > optionSize)			
+			{
+				LogPrint (eLogInfo, "Streaming: Option data is too short ", (int)optionSize);
+				return false;
+			}
+			m_TransientVerifier->SetPublicKey (optionData); optionData += keyLen; // key
+			if (!m_RemoteIdentity->Verify (signedData, keyLen + 6, optionData))
+			{
+				LogPrint (eLogError, "Streaming: Transient key signature verification failed");
+				return false;
+			}	
+			optionData += m_RemoteIdentity->GetSignatureLen (); // signature
+		}
+
+		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
+		{
+			uint8_t signature[256];
+			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
+			if(signatureLen <= sizeof(signature))
+			{
+				memcpy (signature, optionData, signatureLen);
+				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+				bool verified = m_TransientVerifier ? 
+					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
+					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
+				if (!verified)
+				{
+					LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+					Close ();
+					flags |= PACKET_FLAG_CLOSE;
+				}
+				memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
+				optionData += signatureLen;
+			}
+			else
+			{
+				LogPrint (eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
+				return false;
+			}
+		}
+		return true;	
 	}
 
 	void Stream::ProcessAck (Packet * packet)

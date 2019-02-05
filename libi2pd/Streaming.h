@@ -38,6 +38,7 @@ namespace stream
 	const uint16_t PACKET_FLAG_PROFILE_INTERACTIVE = 0x0100;
 	const uint16_t PACKET_FLAG_ECHO = 0x0200;
 	const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
+	const uint16_t PACKET_FLAG_OFFLINE_SIGNATURE = 0x0800;
 
 	const size_t STREAMING_MTU = 1730;
 	const size_t MAX_PACKET_SIZE = 4096;
@@ -195,6 +196,7 @@ namespace stream
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
+			bool ProcessOptions (uint16_t flags, Packet * packet);
 			void ProcessAck (Packet * packet);
 			size_t ConcatenatePackets (uint8_t * buf, size_t len);
 
@@ -216,6 +218,7 @@ namespace stream
 			bool m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
+			std::unique_ptr<i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
