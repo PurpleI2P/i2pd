@@ -22,9 +22,10 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-// inet_pton exists in Windows Vista, but XP haven't that function!
+// inet_pton exists Windows since Vista, but XP haven't that function!
+// This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp(int af, const char *src, void *dst)
-{ // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
+{
 	struct sockaddr_storage ss;
 	int size = sizeof (ss);
 	char src_copy[INET6_ADDRSTRLEN + 1];
@@ -59,12 +60,12 @@ namespace util
 namespace net
 {
 #ifdef WIN32
-	bool IsWindowsXPorLater() {
+	bool IsWindowsXPorLater()
+	{
 		OSVERSIONINFO osvi;
 
 		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
 		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-
 		GetVersionEx(&osvi);
 
 		if (osvi.dwMajorVersion <= 5)
@@ -80,9 +81,9 @@ namespace net
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-
 		if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
-		  == ERROR_BUFFER_OVERFLOW) {
+			== ERROR_BUFFER_OVERFLOW)
+		{
 			FREE(pAddresses);
 			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
 		}
@@ -91,24 +92,28 @@ namespace net
 			AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR) {
+		if(dwRetVal != NO_ERROR)
+		{
 			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
 
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses) {
+		while(pCurrAddresses)
+		{
 			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
-			if(pUnicast == nullptr) {
+			if(pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv4 address, this is not supported");
-			}
-			for(int i = 0; pUnicast != nullptr; ++i) {
+
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
-				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr) {
+				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
+				{
 					auto result = pAddresses->Mtu;
 					FREE(pAddresses);
 					return result;
@@ -131,7 +136,8 @@ namespace net
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
 		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
-		  == ERROR_BUFFER_OVERFLOW) {
+			== ERROR_BUFFER_OVERFLOW)
+		{
 			FREE(pAddresses);
 			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
 		}
@@ -140,7 +146,8 @@ namespace net
 			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR) {
+		if(dwRetVal != NO_ERROR)
+		{
 			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
@@ -148,23 +155,28 @@ namespace net
 
 		bool found_address = false;
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses) {
+		while(pCurrAddresses)
+		{
 			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
-			if(pUnicast == nullptr) {
+			if(pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv6 address, this is not supported");
-			}
-			for(int i = 0; pUnicast != nullptr; ++i) {
+
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
 
-				for (int j = 0; j != 8; ++j) {
-					if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j]) {
+				for (int j = 0; j != 8; ++j)
+				{
+					if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j])
 						break;
-					} else {
+					else
 						found_address = true;
-					}
-				} if (found_address) {
+				}
+
+				if (found_address)
+				{
 					auto result = pAddresses->Mtu;
 					FREE(pAddresses);
 					pAddresses = nullptr;
@@ -193,11 +205,14 @@ namespace net
 		if (IsWindowsXPorLater())
 			#define inet_pton inet_pton_xp
 
-		if(localAddress.is_v4()) {
+		if(localAddress.is_v4())
+		{
 			sockaddr_in inputAddress;
 			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
-		} else if(localAddress.is_v6()) {
+		}
+		else if(localAddress.is_v6())
+		{
 			sockaddr_in6 inputAddress;
 			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
 			return GetMTUWindowsIpv6(inputAddress, fallback);
@@ -257,9 +272,9 @@ namespace net
 		}
 		else
 			LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
-	   freeifaddrs(ifaddr);
+		freeifaddrs(ifaddr);
 
-	   return mtu;
+		return mtu;
 	}
 #endif // WIN32
 
@@ -309,7 +324,8 @@ namespace net
 		}
 		if(addrs) freeifaddrs(addrs);
 		std::string fallback;
-		if(ipv6) {
+		if(ipv6)
+		{
 			fallback = "::";
 			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
 		} else {

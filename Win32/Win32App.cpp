@@ -166,10 +166,13 @@ namespace win32
 
 	static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		static UINT s_uTaskbarRestart;
+
 		switch (uMsg)
 		{
 			case WM_CREATE:
 			{
+				s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
 				AddTrayIcon (hWnd);
 				break;
 			}
@@ -316,6 +319,12 @@ namespace win32
 				DrawText(hDC, TEXT(s.str().c_str()), s.str().length(), &rp, DT_CENTER|DT_VCENTER);
 				DeleteObject(hFont);
 				EndPaint(hWnd, &ps);
+				break;
+			}
+			default:
+			{
+				if (uMsg == s_uTaskbarRestart)
+					AddTrayIcon (hWnd);
 				break;
 			}
 		}
