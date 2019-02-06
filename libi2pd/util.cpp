@@ -203,7 +203,9 @@ namespace net
 #endif
 
 		if (IsWindowsXPorLater())
+		{
 			#define inet_pton inet_pton_xp
+		}
 
 		if(localAddress.is_v4())
 		{
@@ -220,7 +222,6 @@ namespace net
 			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
 			return fallback;
 		}
-
 	}
 #else // assume unix
 	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
