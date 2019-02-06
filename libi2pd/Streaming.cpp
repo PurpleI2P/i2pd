@@ -288,33 +288,27 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: offline signature without identity");
 				return false;
 			}
-			const uint8_t * signedData = optionData;
-			uint32_t expiresTimestamp = bufbe32toh (optionData); optionData += 4; // expires timestamp
-			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
+			// if we have it in LeaseSet already we don't neet parse it again
+			if (m_RemoteLeaseSet) m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
+			if (m_TransientVerifier)
 			{
-				LogPrint (eLogInfo, "Streaming: offline signature transient key expired");
-				return false;
+				// skip option data
+				optionData += 6; // timestamp and key type
+				optionData += m_TransientVerifier->GetPublicKeyLen (); // public key
+				optionData += m_RemoteIdentity->GetSignatureLen (); // signature
 			}
-			uint16_t keyType = bufbe16toh (optionData); optionData += 2; // key type
-			m_TransientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType)); 
-			if (!m_TransientVerifier)
+			else
 			{
-				LogPrint (eLogInfo, "Streaming: Unknown transient key type ", (int)keyType);
-				return false;
+				// transient key
+				size_t offset = 0;
+				m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
+				optionData += offset;
+				if (!m_TransientVerifier) 
+				{
+					LogPrint (eLogError, "Streaming: offline signature failed");
+					return false;
+				}				
 			}
-			auto keyLen = m_TransientVerifier->GetPublicKeyLen ();
-			if ((optionData - packet->GetOptionData ()) + keyLen + m_RemoteIdentity->GetSignatureLen () > optionSize)			
-			{
-				LogPrint (eLogInfo, "Streaming: Option data is too short ", (int)optionSize);
-				return false;
-			}
-			m_TransientVerifier->SetPublicKey (optionData); optionData += keyLen; // key
-			if (!m_RemoteIdentity->Verify (signedData, keyLen + 6, optionData))
-			{
-				LogPrint (eLogError, "Streaming: Transient key signature verification failed");
-				return false;
-			}	
-			optionData += m_RemoteIdentity->GetSignatureLen (); // signature
 		}
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)

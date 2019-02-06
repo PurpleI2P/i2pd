@@ -218,7 +218,7 @@ namespace stream
 			bool m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
-			std::unique_ptr<i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
+			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;

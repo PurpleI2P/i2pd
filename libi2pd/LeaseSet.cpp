@@ -285,27 +285,15 @@ namespace data
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
-		std::unique_ptr<i2p::crypto::Verifier> transientVerifier;
 		if (flags & 0x0001)
 		{
 			// transient key
-			if (offset + 6 >= len) return;
-			const uint8_t * signedData = buf + offset;
-			uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
-			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
-			{
-				LogPrint (eLogWarning, "LeaseSet2: transient key expired");
+			m_TransientVerifier = ProcessOfflineSignature (identity, buf, len, offset);
+			if (!m_TransientVerifier)
+			{ 
+				LogPrint (eLogError, "LeaseSet2: offline signature failed");
 				return;
-			}	
-			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
-			transientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
-			if (!transientVerifier) return;
-			auto keyLen = transientVerifier->GetPublicKeyLen ();
-			if (offset + keyLen >= len) return;
-			transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
-			if (offset + identity->GetSignatureLen () >= len) return;
-			if (!identity->Verify (signedData, keyLen + 6, buf + offset)) return;
-			offset += identity->GetSignatureLen ();
+			}
 		}
 		// type specific part
 		size_t s = 0;
@@ -322,10 +310,10 @@ namespace data
 		}
 		if (!s) return;
 		offset += s;
-		if (verifySignature || transientVerifier)
+		if (verifySignature || m_TransientVerifier)
 		{	
 			// verify signature
-			bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
+			bool verified = m_TransientVerifier ? VerifySignature (m_TransientVerifier, buf, len, offset) :
 				VerifySignature (identity, buf, len, offset);	
 			SetIsValid (verified);	
 		}
@@ -443,33 +431,21 @@ namespace data
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
-		std::unique_ptr<i2p::crypto::Verifier> transientVerifier;
 		if (flags & 0x0001)
 		{
 			// transient key
-			if (offset + 6 >= len) return;
-			const uint8_t * signedData = buf + offset;
-			uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
-			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
+			m_TransientVerifier = ProcessOfflineSignature (blindedVerifier, buf, len, offset);
+			if (!m_TransientVerifier) 
 			{
-				LogPrint (eLogWarning, "LeaseSet2: transient key expired");
+				LogPrint (eLogError, "LeaseSet2: offline signature failed");
 				return;
-			}	
-			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
-			transientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
-			if (!transientVerifier) return;
-			auto keyLen = transientVerifier->GetPublicKeyLen ();
-			if (offset + keyLen >= len) return;
-			transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
-			if (offset + blindedVerifier->GetSignatureLen () >= len) return;
-			if (!blindedVerifier->Verify (signedData, keyLen + 6, buf + offset)) return;
-			offset += blindedVerifier->GetSignatureLen ();
+			}
 		}
 		// outer ciphertext
 		if (offset + 2 > len) return;
 		uint16_t lenOuterCiphertext = bufbe16toh (buf + offset); offset += 2 + lenOuterCiphertext;		
 		// verify signature
-		bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
+		bool verified = m_TransientVerifier ? VerifySignature (m_TransientVerifier, buf, len, offset) :
 			VerifySignature (blindedVerifier, buf, len, offset);	
 		SetIsValid (verified);	
 	}
