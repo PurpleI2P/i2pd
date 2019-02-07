@@ -455,11 +455,49 @@ namespace data
 		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
 		ret += 256;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
-		if(signingPrivateKeySize + ret > len) return 0; // overflow
+		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
 		ret += signingPrivateKeySize;
 		m_Signer = nullptr;
-		CreateSigner ();
+		// check if signing private key is all zeros
+		bool allzeros = true;
+		for (size_t i = 0; i < signingPrivateKeySize; i++)
+			if (m_SigningPrivateKey[i]) 
+			{
+				allzeros = false;
+				break;
+			}
+		if (allzeros)
+		{
+			// offline information
+			const uint8_t * offlineInfo = buf + ret;
+			ret += 4; // expires timestamp
+			SigningKeyType keyType = bufbe16toh (buf + ret); ret += 2; // key type
+			std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (keyType));
+			if (!transientVerifier) return 0;
+			auto keyLen = transientVerifier->GetPublicKeyLen ();
+			if (keyLen + ret > len) return 0;
+			transientVerifier->SetPublicKey (buf + ret); ret += keyLen;
+			if (m_Public->GetSignatureLen () + ret > len) return 0;
+			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret)) 
+			{
+				LogPrint (eLogError, "Identity: offline signature verification failed");
+				return 0;
+			}
+			ret += m_Public->GetSignatureLen ();
+			// copy offline signature
+			size_t offlineInfoLen = buf + ret - offlineInfo;
+			m_OfflineSignature.resize (offlineInfoLen);
+			memcpy (m_OfflineSignature.data (), offlineInfo, offlineInfoLen);
+			// override signing private key 
+			signingPrivateKeySize = transientVerifier->GetPrivateKeyLen ();
+			if (signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0;
+			memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
+			ret += signingPrivateKeySize;
+			CreateSigner (keyType);
+		}
+		else
+			CreateSigner (m_Public->GetSigningKeyType ());
 		return ret;
 	}
 
@@ -472,6 +510,7 @@ namespace data
 		if(ret + signingPrivateKeySize > len) return 0; // overflow
 		memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize);
 		ret += signingPrivateKeySize;
+		// TODO: implement offline info
 		return ret;
 	}
 
@@ -506,8 +545,16 @@ namespace data
 
 	void PrivateKeys::CreateSigner () const
 	{
+		if (IsOfflineSignature ())
+			CreateSigner (bufbe16toh (m_OfflineSignature.data () + 4)); // key type
+		else
+			CreateSigner (m_Public->GetSigningKeyType ());
+	}
+	
+	void PrivateKeys::CreateSigner (SigningKeyType keyType) const
+	{
 		if (m_Signer) return;
-		switch (m_Public->GetSigningKeyType ())
+		switch (keyType)
 		{
 			case SIGNING_KEY_TYPE_DSA_SHA1:
 				m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
@@ -538,6 +585,11 @@ namespace data
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 		}
+	}
+
+	size_t PrivateKeys::GetSignatureLen () const
+	{
+		return m_Public->GetSignatureLen ();
 	}
 
 	uint8_t * PrivateKeys::GetPadding()

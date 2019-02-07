@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <vector>
 #include "Base.h"
 #include "Signature.h"
 #include "CryptoKey.h"
@@ -142,8 +143,10 @@ namespace data
 			std::shared_ptr<const IdentityEx> GetPublic () const { return m_Public; };
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
-    uint8_t * GetPadding();
-		void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
+			size_t GetSignatureLen () const; // might not match identity
+			bool IsOfflineSignature () const { return m_OfflineSignature.size () > 0; };
+    		uint8_t * GetPadding();
+			void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 			size_t GetFullLen () const { return m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); };
@@ -162,13 +165,15 @@ namespace data
 		private:
 
 			void CreateSigner () const;
+			void CreateSigner (SigningKeyType keyType) const;
 
 		private:
 
 			std::shared_ptr<IdentityEx> m_Public;
 			uint8_t m_PrivateKey[256];
-			uint8_t m_SigningPrivateKey[1024]; // assume private key doesn't exceed 1024 bytes
+			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
 			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
+			std::vector<uint8_t> m_OfflineSignature; // non zero length, if applicable
 	};
 
 	// kademlia
