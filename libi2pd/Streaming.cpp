@@ -263,7 +263,9 @@ namespace stream
 
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
-			m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
+			if (m_RemoteLeaseSet) m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
+			if (!m_RemoteIdentity)
+				m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
 			if (m_RemoteIdentity->IsRSA ())
 			{
 				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), "  Discarded");
@@ -891,6 +893,12 @@ namespace stream
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
 				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
 			}
+			else
+			{
+				// LeaseSet updated
+				m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
+				m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
+			}	
 		}
 		if (m_RemoteLeaseSet)
 		{
