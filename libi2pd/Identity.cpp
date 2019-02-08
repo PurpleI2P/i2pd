@@ -432,6 +432,9 @@ namespace data
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256
 		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, m_Public->GetSigningPrivateKeyLen ());
+		m_OfflineSignature.resize (0);
+		m_TransientSignatureLen = 0;
+		m_TransientSigningPrivateKeyLen = 0;
 		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
@@ -442,9 +445,20 @@ namespace data
 		m_Public = std::make_shared<IdentityEx>(*other.m_Public);
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256
 		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, m_Public->GetSigningPrivateKeyLen ());
+		m_OfflineSignature = other.m_OfflineSignature;
+		m_TransientSignatureLen = other.m_TransientSignatureLen;
+		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
 		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
+	}
+
+	size_t PrivateKeys::GetFullLen () const 
+	{ 
+		size_t ret = m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); 
+		if (IsOfflineSignature ())
+			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
+		return ret;
 	}
 
 	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
@@ -485,15 +499,16 @@ namespace data
 				return 0;
 			}
 			ret += m_Public->GetSignatureLen ();
+			m_TransientSignatureLen = transientVerifier->GetSignatureLen ();
 			// copy offline signature
 			size_t offlineInfoLen = buf + ret - offlineInfo;
 			m_OfflineSignature.resize (offlineInfoLen);
 			memcpy (m_OfflineSignature.data (), offlineInfo, offlineInfoLen);
 			// override signing private key 
-			signingPrivateKeySize = transientVerifier->GetPrivateKeyLen ();
-			if (signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0;
-			memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
-			ret += signingPrivateKeySize;
+			m_TransientSigningPrivateKeyLen = transientVerifier->GetPrivateKeyLen ();
+			if (m_TransientSigningPrivateKeyLen + ret > len || m_TransientSigningPrivateKeyLen > 128) return 0;
+			memcpy (m_SigningPrivateKey, buf + ret, m_TransientSigningPrivateKeyLen);
+			ret += m_TransientSigningPrivateKeyLen;
 			CreateSigner (keyType);
 		}
 		else
@@ -508,9 +523,23 @@ namespace data
 		ret += 256;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(ret + signingPrivateKeySize > len) return 0; // overflow
-		memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize);
+		if (IsOfflineSignature ())
+			memset (buf + ret, 0, signingPrivateKeySize);
+		else
+			memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize);
 		ret += signingPrivateKeySize;
-		// TODO: implement offline info
+		if (IsOfflineSignature ())
+		{
+			// offline signature
+			auto offlineSignatureLen = m_OfflineSignature.size ();
+			if (ret + offlineSignatureLen > len) return 0;
+			memcpy (buf + ret, m_OfflineSignature.data (), offlineSignatureLen);
+			ret += offlineSignatureLen;
+			// transient private key
+			if (ret + m_TransientSigningPrivateKeyLen > len) return 0;
+			memcpy (buf + ret, m_SigningPrivateKey, m_TransientSigningPrivateKeyLen);
+			ret += m_TransientSigningPrivateKeyLen;
+		}
 		return ret;
 	}
 
@@ -589,7 +618,7 @@ namespace data
 
 	size_t PrivateKeys::GetSignatureLen () const
 	{
-		return m_Public->GetSignatureLen ();
+		return IsOfflineSignature () ? m_TransientSignatureLen : m_Public->GetSignatureLen ();
 	}
 
 	uint8_t * PrivateKeys::GetPadding()
@@ -634,35 +663,7 @@ namespace data
 			PrivateKeys keys;
 			// signature
 			uint8_t signingPublicKey[512]; // signing public key is 512 bytes max
-			switch (type)
-			{
-				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-					i2p::crypto::CreateECDSAP256RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-					i2p::crypto::CreateECDSAP384RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-					i2p::crypto::CreateECDSAP521RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-				case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-				case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-					LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
-				// no break here
-				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, keys.m_SigningPrivateKey, signingPublicKey);
-				break;
-				default:
-					LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
-					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
-			}
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, signingPublicKey);
 			// encryption
 			uint8_t publicKey[256];
 			GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
@@ -673,6 +674,39 @@ namespace data
 			return keys;
 		}
 		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
+	}
+
+	void PrivateKeys::GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub)
+	{
+		switch (type)
+		{
+			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+				i2p::crypto::CreateECDSAP256RandomKeys (priv, pub);
+			break;
+			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+				i2p::crypto::CreateECDSAP384RandomKeys (priv, pub);
+			break;
+			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+				i2p::crypto::CreateECDSAP521RandomKeys (priv, pub);
+			break;
+			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
+			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
+			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
+				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
+			// no break here
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
+			break;
+			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+				i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, priv, pub);
+			break;
+			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+				i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, priv, pub);
+			break;
+			default:
+				LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
+				i2p::crypto::CreateDSARandomKeys (priv, pub); // DSA-SHA1
+		}
 	}
 
 	void PrivateKeys::GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub)
@@ -692,6 +726,27 @@ namespace data
 			default:
 				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
 		}
+	}
+
+	PrivateKeys PrivateKeys::CreateOfflineKeys (SigningKeyType type, uint32_t expires) const
+	{
+		PrivateKeys keys (*this);
+		std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));		
+		if (verifier)
+		{
+			size_t pubKeyLen = verifier->GetPublicKeyLen ();
+			keys.m_TransientSigningPrivateKeyLen = verifier->GetPrivateKeyLen ();
+			keys.m_TransientSignatureLen = verifier->GetSignatureLen ();
+			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
+			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
+			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 4); // public  key
+			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6); // signature	
+			// recreate signer
+			keys.m_Signer = nullptr;
+			keys.CreateSigner ();	
+		}
+		return keys;
 	}
 
 	Keys CreateRandomKeys ()

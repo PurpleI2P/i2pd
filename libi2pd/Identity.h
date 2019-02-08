@@ -144,12 +144,12 @@ namespace data
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
 			size_t GetSignatureLen () const; // might not match identity
-			bool IsOfflineSignature () const { return m_OfflineSignature.size () > 0; };
+			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; };
     		uint8_t * GetPadding();
 			void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
-			size_t GetFullLen () const { return m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); };
+			size_t GetFullLen () const;
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
@@ -160,7 +160,10 @@ namespace data
 
 			static std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key);
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
+			static void GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub); 
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
+
+			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const; 
 
 		private:
 
@@ -174,6 +177,8 @@ namespace data
 			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
 			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
 			std::vector<uint8_t> m_OfflineSignature; // non zero length, if applicable
+			size_t m_TransientSignatureLen = 0;
+			size_t m_TransientSigningPrivateKeyLen = 0;
 	};
 
 	// kademlia
