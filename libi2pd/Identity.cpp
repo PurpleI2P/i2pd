@@ -740,8 +740,8 @@ namespace data
 			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
 			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
 			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 4); // public  key
-			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6); // signature	
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public  key
+			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature	
 			// recreate signer
 			keys.m_Signer = nullptr;
 			keys.CreateSigner ();	
