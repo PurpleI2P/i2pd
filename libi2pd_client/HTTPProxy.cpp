@@ -392,7 +392,7 @@ namespace proxy {
 
 		// update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections
 		if(m_ClientRequest.method != "CONNECT")
-			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0");
+			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0");
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
