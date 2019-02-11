@@ -256,7 +256,11 @@ namespace client
 					{
 						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
 						{
-							m_OutHeader << "Connection: close\r\n";
+							if (line.find("upgrade") == std::string::npos && line.find("Upgrade") == std::string::npos)
+								m_OutHeader << "Connection: close\r\n"; /* close everything, except websocket */
+							else
+								m_OutHeader << line << "\r\n";
+
 							m_ConnectionSent = true;
 						}
 						else if (!m_ProxyConnectionSent && !line.compare(0, 16, "Proxy-Connection"))
