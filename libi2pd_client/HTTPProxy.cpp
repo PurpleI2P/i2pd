@@ -156,7 +156,7 @@ namespace proxy {
 		std::stringstream ss;
 		ss << "<h1>Proxy error: Host not found</h1>\r\n"
 		   << "<p>Remote host not found in router's addressbook</p>\r\n"
-		   << "<p>You may try to find this host on jumpservices below:</p>\r\n"
+		   << "<p>You may try to find this host on jump services below:</p>\r\n"
 		   << "<ul>\r\n";
 		for (const auto& js : jumpservices) {
 			ss << "  <li><a href=\"" << js.second << host << "\">" << js.first << "</a></li>\r\n";
@@ -349,7 +349,7 @@ namespace proxy {
 				else
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
 			} else {
-				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outprxy enabled");
+				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outproxy enabled");
 				std::string message = "Host " + dest_host + " not inside I2P network, but outproxy is not enabled";
 				GenericProxyError("Outproxy failure", message.c_str());
 			}

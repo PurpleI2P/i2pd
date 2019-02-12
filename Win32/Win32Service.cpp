@@ -297,7 +297,8 @@ void InstallService(PCSTR pszServiceName, PCSTR pszDisplayName, DWORD dwStartTyp
 		FreeHandles(schSCManager, schService);
 		return;
 	}
-	strncat(szPath, " --daemon", MAX_PATH);
+	char SvcOpt[] = " --daemon";
+	strncat(szPath, SvcOpt, strlen(SvcOpt));
 
 	// Open the local default service control manager database
 	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
