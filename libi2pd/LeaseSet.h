@@ -124,6 +124,9 @@ namespace data
 	const uint8_t NETDB_STORE_TYPE_STANDARD_LEASESET2 = 3;
 	const uint8_t NETDB_STORE_TYPE_ENCRYPTED_LEASESET2 = 5;
 	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
+
+	const uint16_t LEASESET2_FLAG_OFFLINE_KEYS = 0x0001;
+	
 	class LeaseSet2: public LeaseSet
 	{
 		public:
@@ -211,7 +214,7 @@ namespace data
 	{
 		public:
 
-			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
+			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	

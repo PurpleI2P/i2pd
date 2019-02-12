@@ -163,7 +163,9 @@ namespace data
 			static void GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub); 
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 
+			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const; 
+			const std::vector<uint8_t> GetOfflineSignature () const { return m_OfflineSignature; };
 
 		private:
 
