@@ -256,10 +256,12 @@ namespace client
 					{
 						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
 						{
-							if (line.find("upgrade") == std::string::npos && line.find("Upgrade") == std::string::npos)
-								m_OutHeader << "Connection: close\r\n"; /* close everything, except websocket */
-							else
+							/* close connection, if not Connection: (U|u)pgrade (for websocket) */
+							auto x = line.find("pgrade"); 
+							if (x != std::string::npos && std::tolower(line[x - 1]) == 'u')
 								m_OutHeader << line << "\r\n";
+							else
+								m_OutHeader << "Connection: close\r\n";
 
 							m_ConnectionSent = true;
 						}

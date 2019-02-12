@@ -219,9 +219,11 @@ namespace proxy {
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 		/* add headers */
+		/* close connection, if not Connection: (U|u)pgrade (for websocket) */
 		auto h = req.GetHeader ("Connection");
-		if (h.find("upgrade") == std::string::npos && h.find("Upgrade") == std::string::npos)
-			req.UpdateHeader("Connection", "close"); /* close everything, except websocket */
+		auto x = h.find("pgrade"); 
+		if (!(x != std::string::npos && std::tolower(h[x - 1]) == 'u'))
+			req.UpdateHeader("Connection", "close");
 	}
 
 	/**
