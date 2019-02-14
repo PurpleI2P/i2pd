@@ -589,7 +589,7 @@ namespace data
 		int num = tunnels.size ();
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
 		m_BufferLen = identity->GetFullLen () + 4/*published*/ + 2/*expires*/ + 2/*flag*/ + 2/*properties len*/ +
-			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + identity->GetSignatureLen ();
+			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + keys.GetSignatureLen ();
 		uint16_t flags = 0;
 		if (keys.IsOfflineSignature ()) 
 		{
