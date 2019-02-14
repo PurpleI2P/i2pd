@@ -503,7 +503,7 @@ namespace stream
 					uint8_t * signature = packet + size; // set it later
 					memset (signature, 0, signatureLen); // zeroes for now
 					size += signatureLen; // signature
-					htobe16buf (optionsSize, packet + size - optionsSize); // actual options size
+					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
 					size += m_SendBuffer.Get (packet + size, STREAMING_MTU - size); // payload
 					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 				}
