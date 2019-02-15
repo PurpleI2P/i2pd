@@ -604,7 +604,7 @@ namespace data
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		uint8_t * expiresBuf = m_Buffer + offset; offset += 2; // expires, fill later
-		htobe16buf (m_Buffer + offset, 0); offset += 2; // flags
+		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags
 		if (keys.IsOfflineSignature ())
 		{
 			// offline signature
