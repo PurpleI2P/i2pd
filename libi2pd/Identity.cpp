@@ -444,10 +444,10 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>(*other.m_Public);
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256
-		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, m_Public->GetSigningPrivateKeyLen ());
 		m_OfflineSignature = other.m_OfflineSignature;
 		m_TransientSignatureLen = other.m_TransientSignatureLen;
 		m_TransientSigningPrivateKeyLen = other.m_TransientSigningPrivateKeyLen;
+		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, m_TransientSigningPrivateKeyLen > 0 ? m_TransientSigningPrivateKeyLen : m_Public->GetSigningPrivateKeyLen ());
 		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
@@ -603,7 +603,7 @@ namespace data
 				LogPrint (eLogError, "Identity: RSA signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
+				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, IsOfflineSignature () ? nullptr: m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH)); // TODO: remove public key check
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
@@ -744,7 +744,7 @@ namespace data
 			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature	
 			// recreate signer
 			keys.m_Signer = nullptr;
-			keys.CreateSigner ();	
+			keys.CreateSigner (type);
 		}
 		return keys;
 	}
