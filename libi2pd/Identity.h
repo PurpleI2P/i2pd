@@ -165,7 +165,7 @@ namespace data
 
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const; 
-			const std::vector<uint8_t> GetOfflineSignature () const { return m_OfflineSignature; };
+			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
 
 		private:
 
