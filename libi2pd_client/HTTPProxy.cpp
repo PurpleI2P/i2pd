@@ -156,7 +156,7 @@ namespace proxy {
 		std::stringstream ss;
 		ss << "<h1>Proxy error: Host not found</h1>\r\n"
 		   << "<p>Remote host not found in router's addressbook</p>\r\n"
-		   << "<p>You may try to find this host on jumpservices below:</p>\r\n"
+		   << "<p>You may try to find this host on jump services below:</p>\r\n"
 		   << "<ul>\r\n";
 		for (const auto& js : jumpservices) {
 			ss << "  <li><a href=\"" << js.second << host << "\">" << js.first << "</a></li>\r\n";
@@ -219,7 +219,11 @@ namespace proxy {
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 		/* add headers */
-		req.UpdateHeader("Connection", "close"); /* keep-alive conns not supported yet */
+		/* close connection, if not Connection: (U|u)pgrade (for websocket) */
+		auto h = req.GetHeader ("Connection");
+		auto x = h.find("pgrade"); 
+		if (!(x != std::string::npos && std::tolower(h[x - 1]) == 'u'))
+			req.UpdateHeader("Connection", "close");
 	}
 
 	/**
@@ -349,7 +353,7 @@ namespace proxy {
 				else
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
 			} else {
-				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outprxy enabled");
+				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outproxy enabled");
 				std::string message = "Host " + dest_host + " not inside I2P network, but outproxy is not enabled";
 				GenericProxyError("Outproxy failure", message.c_str());
 			}
@@ -392,7 +396,7 @@ namespace proxy {
 
 		// update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections
 		if(m_ClientRequest.method != "CONNECT")
-			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0");
+			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0");
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);

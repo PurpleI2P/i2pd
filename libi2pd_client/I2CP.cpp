@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2019, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -65,6 +65,13 @@ namespace client
 	{
 		auto ls = new i2p::data::LocalLeaseSet (m_Identity, buf, len);
 		ls->SetExpirationTime (m_LeaseSetExpirationTime);
+		SetLeaseSet (ls);
+	}
+
+	void I2CPDestination::LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len)
+	{
+		auto ls = new i2p::data::LocalLeaseSet2 (storeType, m_Identity, buf, len);
+		ls->SetExpirationTime (m_LeaseSetExpirationTime);	
 		SetLeaseSet (ls);
 	}
 
@@ -512,6 +519,36 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
+	void I2CPSession::CreateLeaseSet2MessageHandler (const uint8_t * buf, size_t len)
+	{
+		uint16_t sessionID = bufbe16toh (buf);
+		if (sessionID == m_SessionID)
+		{
+			size_t offset = 2;
+			if (m_Destination)
+			{
+				uint8_t storeType = buf[offset]; offset++; // store type
+				// TODO: parse LS2 and obtain correct private keys lengths
+				size_t signingPrivateKeyLength = 0, encryptionPrivateKeyLength = 0;
+				if (storeType != i2p::data::NETDB_STORE_TYPE_META_LEASESET2) // no private keys for meta
+				{
+					signingPrivateKeyLength = m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); // no offline keys
+					encryptionPrivateKeyLength = 256; // ElGamal only
+					if (len < offset + signingPrivateKeyLength + encryptionPrivateKeyLength)
+					{
+						LogPrint (eLogError, "I2CP: CreateLeaseSet2 message is too short ", len);
+						return;
+					}
+					m_Destination->SetEncryptionPrivateKey (buf + len - encryptionPrivateKeyLength);
+					// ignore signing private key
+				}
+				m_Destination->LeaseSet2Created (storeType, buf + offset, len - offset - signingPrivateKeyLength - encryptionPrivateKeyLength); 
+			}
+		}
+		else
+			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+	}
+
 	void I2CPSession::SendMessageMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
@@ -704,6 +741,7 @@ namespace client
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_RECONFIGURE_SESSION_MESSAGE] = &I2CPSession::ReconfigureSessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
+		m_MessagesHandlers[I2CP_CREATE_LEASESET2_MESSAGE] = &I2CPSession::CreateLeaseSet2MessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;
 		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;

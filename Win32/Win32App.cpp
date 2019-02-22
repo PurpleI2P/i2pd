@@ -24,17 +24,22 @@
 #define ID_GRACEFUL_SHUTDOWN 2004
 #define ID_STOP_GRACEFUL_SHUTDOWN 2005
 #define ID_RELOAD 2006
+#define ID_ACCEPT_TRANSIT 2007
+#define ID_DECLINE_TRANSIT 2008
 
 #define ID_TRAY_ICON 2050
 #define WM_TRAYICON (WM_USER + 1)
 
 #define IDT_GRACEFUL_SHUTDOWN_TIMER 2100
 #define FRAME_UPDATE_TIMER 2101
+#define IDT_GRACEFUL_TUNNELCHECK_TIMER 2102
 
 namespace i2p
 {
 namespace win32
 {
+	static DWORD GracefulShutdownEndtime = 0;
+
 	static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
 	{
 		HMENU hPopup = CreatePopupMenu();
@@ -42,11 +47,17 @@ namespace win32
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
+		if(!i2p::context.AcceptsTunnels())
+			InsertMenu (hPopup, -1,
+				i2p::util::DaemonWin32::Instance ().isGraceful ? MF_BYPOSITION | MF_STRING | MF_GRAYED : MF_BYPOSITION | MF_STRING,
+				ID_ACCEPT_TRANSIT, "Accept &transit");
+		else
+			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_DECLINE_TRANSIT, "Decline &transit");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload configs");
 		if (!i2p::util::DaemonWin32::Instance ().isGraceful)
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
 		else
-			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_STOP_GRACEFUL_SHUTDOWN, "&Stop graceful shutdown");
+			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_STOP_GRACEFUL_SHUTDOWN, "Stop &graceful shutdown");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_EXIT, "E&xit");
 		SetMenuDefaultItem (hPopup, ID_CONSOLE, FALSE);
 		SendMessage (hWnd, WM_INITMENUPOPUP, (WPARAM)hPopup, 0);
@@ -148,7 +159,13 @@ namespace win32
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
 		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
-		s << "\n";
+		if (GracefulShutdownEndtime != 0)
+		{
+			DWORD GracefulTimeLeft = (GracefulShutdownEndtime - GetTickCount()) / 1000;
+			s << "Graceful shutdown, time left: "; ShowUptime(s, GracefulTimeLeft);
+		}
+		else
+			s << "\n";
 		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
 		s << "Outbound: " << i2p::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
 		s << "Received: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
@@ -166,10 +183,13 @@ namespace win32
 
 	static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		static UINT s_uTaskbarRestart;
+
 		switch (uMsg)
 		{
 			case WM_CREATE:
 			{
+				s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
 				AddTrayIcon (hWnd);
 				break;
 			}
@@ -178,6 +198,7 @@ namespace win32
 				RemoveTrayIcon (hWnd);
 				KillTimer (hWnd, FRAME_UPDATE_TIMER);
 				KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
+				KillTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER);
 				PostQuitMessage (0);
 				break;
 			}
@@ -197,10 +218,28 @@ namespace win32
 						PostMessage (hWnd, WM_CLOSE, 0, 0);
 						return 0;
 					}
+					case ID_ACCEPT_TRANSIT:
+					{
+						i2p::context.SetAcceptsTunnels (true);
+						std::stringstream text;
+						text << "I2Pd now accept transit tunnels";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						return 0;
+					}
+					case ID_DECLINE_TRANSIT:
+					{
+						i2p::context.SetAcceptsTunnels (false);
+						std::stringstream text;
+						text << "I2Pd now decline new transit tunnels";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						return 0;
+					}
 					case ID_GRACEFUL_SHUTDOWN:
 					{
 						i2p::context.SetAcceptsTunnels (false);
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
+						SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr); // check tunnels every second
+						GracefulShutdownEndtime = GetTickCount() + 10*60*1000;
 						i2p::util::DaemonWin32::Instance ().isGraceful = true;
 						return 0;
 					}
@@ -208,6 +247,8 @@ namespace win32
 					{
 						i2p::context.SetAcceptsTunnels (true);
 						KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
+						KillTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER);
+						GracefulShutdownEndtime = 0;
 						i2p::util::DaemonWin32::Instance ().isGraceful = false;
 						return 0;
 					}
@@ -223,7 +264,7 @@ namespace win32
 					{
 						char buf[30];
 						std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-						uint16_t	httpPort; i2p::config::GetOption("http.port", httpPort);
+						uint16_t httpPort; i2p::config::GetOption("http.port", httpPort);
 						snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
 						ShellExecute(NULL, "open", buf, NULL, NULL, SW_SHOWNORMAL);
 						return 0;
@@ -290,14 +331,27 @@ namespace win32
 			}
 			case WM_TIMER:
 			{
-				if (wParam == IDT_GRACEFUL_SHUTDOWN_TIMER)
+				switch(wParam)
 				{
-					PostMessage (hWnd, WM_CLOSE, 0, 0); // exit
-					return 0;
-				}
-				if (wParam == FRAME_UPDATE_TIMER)
-				{
-					InvalidateRect(hWnd, NULL, TRUE);
+					case IDT_GRACEFUL_SHUTDOWN_TIMER:
+					{
+						GracefulShutdownEndtime = 0;
+						PostMessage (hWnd, WM_CLOSE, 0, 0); // exit
+						return 0;
+					}
+					case FRAME_UPDATE_TIMER:
+					{
+						InvalidateRect(hWnd, NULL, TRUE);
+						return 0;
+					}
+					case IDT_GRACEFUL_TUNNELCHECK_TIMER:
+					{
+						if (i2p::tunnel::tunnels.CountTransitTunnels() == 0)
+							PostMessage (hWnd, WM_CLOSE, 0, 0);
+						else
+							SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr);
+						return 0;
+					}
 				}
 				break;
 			}
@@ -316,6 +370,12 @@ namespace win32
 				DrawText(hDC, TEXT(s.str().c_str()), s.str().length(), &rp, DT_CENTER|DT_VCENTER);
 				DeleteObject(hFont);
 				EndPaint(hWnd, &ps);
+				break;
+			}
+			default:
+			{
+				if (uMsg == s_uTaskbarRestart)
+					AddTrayIcon (hWnd);
 				break;
 			}
 		}

@@ -963,7 +963,16 @@ namespace client
 	void SAMBridge::Stop ()
 	{
 		m_IsRunning = false;
-		m_Acceptor.cancel ();
+
+		try
+		{
+			m_Acceptor.cancel ();
+		}
+		catch (const std::exception& ex)
+		{
+			LogPrint (eLogError, "SAM: runtime exception: ", ex.what ());
+		}
+
 		for (auto& it: m_Sessions)
 			it.second->CloseStreams ();
 		m_Sessions.clear ();

@@ -262,43 +262,38 @@ namespace data
 
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{	
-		// shouldn't be called for now. Must be called from NetDb::AddLeaseSet later
 		SetBuffer (buf, len);
-		// TODO:verify signature if requested		
+		if (GetStoreType () != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+			ReadFromBuffer (buf, len, false, verifySignature);	
+		// TODO: implement encrypted
 	}
 		
-	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len)
+	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity, bool verifySignature)
 	{
 		// standard LS2 header
-		auto identity = std::make_shared<IdentityEx>(buf, len);
-		SetIdentity (identity);
+		std::shared_ptr<const IdentityEx> identity;
+		if (readIdentity)
+		{	
+			identity = std::make_shared<IdentityEx>(buf, len);
+			SetIdentity (identity);
+		}
+		else
+			identity = GetIdentity ();
 		size_t offset = identity->GetFullLen ();
 		if (offset + 8 >= len) return;
 		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
-		std::unique_ptr<i2p::crypto::Verifier> transientVerifier;
-		if (flags & 0x0001)
+		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			if (offset + 6 >= len) return;
-			const uint8_t * signedData = buf + offset;
-			uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
-			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
-			{
-				LogPrint (eLogWarning, "LeaseSet2: transient key expired");
+			m_TransientVerifier = ProcessOfflineSignature (identity, buf, len, offset);
+			if (!m_TransientVerifier)
+			{ 
+				LogPrint (eLogError, "LeaseSet2: offline signature failed");
 				return;
-			}	
-			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
-			transientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
-			if (!transientVerifier) return;
-			auto keyLen = transientVerifier->GetPublicKeyLen ();
-			if (offset + keyLen >= len) return;
-			transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
-			if (offset + identity->GetSignatureLen () >= len) return;
-			if (!identity->Verify (signedData, keyLen + 6, buf + offset)) return;
-			offset += identity->GetSignatureLen ();
+			}
 		}
 		// type specific part
 		size_t s = 0;
@@ -315,10 +310,13 @@ namespace data
 		}
 		if (!s) return;
 		offset += s;
-		// verify signature
-		bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
-			VerifySignature (identity, buf, len, offset);	
-		SetIsValid (verified);	
+		if (verifySignature || m_TransientVerifier)
+		{	
+			// verify signature
+			bool verified = m_TransientVerifier ? VerifySignature (m_TransientVerifier, buf, len, offset) :
+				VerifySignature (identity, buf, len, offset);	
+			SetIsValid (verified);	
+		}
 	}
 
 	template<typename Verifier>
@@ -344,6 +342,7 @@ namespace data
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		if (offset + 1 >= len) return 0;
 		// key sections
+		uint16_t currentKeyType = 0;
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
@@ -351,10 +350,16 @@ namespace data
 			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
 			if (offset + encryptionKeyLen >= len) return 0;
-			if (!m_Encryptor && IsStoreLeases ()) // create encryptor with leases only, first key
+			if (IsStoreLeases ()) // create encryptor with leases only
 			{
+				// we pick first valid key, higher key type has higher priority 4-1-0
+				// if two keys with of the same type, pick first
 				auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
-				m_Encryptor = encryptor; // TODO: atomic
+				if (encryptor && (!m_Encryptor || keyType > currentKeyType))
+				{
+					m_Encryptor = encryptor; // TODO: atomic
+					currentKeyType = keyType;
+				}
 			}
 			offset += encryptionKeyLen; 
 		}	
@@ -426,33 +431,21 @@ namespace data
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
-		std::unique_ptr<i2p::crypto::Verifier> transientVerifier;
-		if (flags & 0x0001)
+		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
 			// transient key
-			if (offset + 6 >= len) return;
-			const uint8_t * signedData = buf + offset;
-			uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
-			if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ())
+			m_TransientVerifier = ProcessOfflineSignature (blindedVerifier, buf, len, offset);
+			if (!m_TransientVerifier) 
 			{
-				LogPrint (eLogWarning, "LeaseSet2: transient key expired");
+				LogPrint (eLogError, "LeaseSet2: offline signature failed");
 				return;
-			}	
-			uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
-			transientVerifier.reset (i2p::data::IdentityEx::CreateVerifier (keyType));
-			if (!transientVerifier) return;
-			auto keyLen = transientVerifier->GetPublicKeyLen ();
-			if (offset + keyLen >= len) return;
-			transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
-			if (offset + blindedVerifier->GetSignatureLen () >= len) return;
-			if (!blindedVerifier->Verify (signedData, keyLen + 6, buf + offset)) return;
-			offset += blindedVerifier->GetSignatureLen ();
+			}
 		}
 		// outer ciphertext
 		if (offset + 2 > len) return;
 		uint16_t lenOuterCiphertext = bufbe16toh (buf + offset); offset += 2 + lenOuterCiphertext;		
 		// verify signature
-		bool verified = transientVerifier ? VerifySignature (transientVerifier, buf, len, offset) :
+		bool verified = m_TransientVerifier ? VerifySignature (m_TransientVerifier, buf, len, offset) :
 			VerifySignature (blindedVerifier, buf, len, offset);	
 		SetIsValid (verified);	
 	}
@@ -586,16 +579,24 @@ namespace data
 		return ident.Verify(ptr, leases - ptr, leases);
 	}
 
-	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
+	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 		uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
-		LocalLeaseSet (identity, nullptr, 0)
+		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{
+		auto identity = keys.GetPublic ();
 		// assume standard LS2 
 		int num = tunnels.size ();
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
 		m_BufferLen = identity->GetFullLen () + 4/*published*/ + 2/*expires*/ + 2/*flag*/ + 2/*properties len*/ +
-			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + identity->GetSignatureLen ();
+			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + keys.GetSignatureLen ();
+		uint16_t flags = 0;
+		if (keys.IsOfflineSignature ()) 
+		{
+			flags |= LEASESET2_FLAG_OFFLINE_KEYS;
+			m_BufferLen += keys.GetOfflineSignature ().size ();	
+		}
+
 		m_Buffer = new uint8_t[m_BufferLen + 1];
 		m_Buffer[0] = storeType;	
 		// LS2 header
@@ -603,7 +604,14 @@ namespace data
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		uint8_t * expiresBuf = m_Buffer + offset; offset += 2; // expires, fill later
-		htobe16buf (m_Buffer + offset, 0); offset += 2; // flags
+		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags
+		if (keys.IsOfflineSignature ())
+		{
+			// offline signature
+			const auto& offlineSignature = keys.GetOfflineSignature ();
+			memcpy (m_Buffer + offset, offlineSignature.data (), offlineSignature.size ());
+			offset += offlineSignature.size ();
+		}
 		htobe16buf (m_Buffer + offset, 0); offset += 2; // properties len
 		// keys	
 		m_Buffer[offset] = 1; offset++; // 1 key
@@ -628,7 +636,17 @@ namespace data
 		SetExpirationTime (expirationTime*1000LL);	
 		auto expires = expirationTime - timestamp;
 		htobe16buf (expiresBuf, expires > 0 ? expires : 0);	
-		//  we don't sign it yet. must be signed later on
+		// sign
+		keys.Sign (m_Buffer, offset, m_Buffer + offset); // LS + leading store type
+	}
+
+	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
+		LocalLeaseSet (identity, nullptr, 0)
+	{
+		m_BufferLen = len;
+		m_Buffer = new uint8_t[m_BufferLen + 1];
+		memcpy (m_Buffer + 1, buf, len);
+		m_Buffer[0] = storeType;
 	}
 }
 }

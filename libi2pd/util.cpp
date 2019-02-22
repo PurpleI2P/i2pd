@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sysinfoapi.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
@@ -21,9 +22,10 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-/* // No more needed. Exists in MinGW.
-int inet_pton(int af, const char *src, void *dst)
-{ // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
+// inet_pton exists Windows since Vista, but XP haven't that function!
+// This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
+int inet_pton_xp(int af, const char *src, void *dst)
+{
 	struct sockaddr_storage ss;
 	int size = sizeof (ss);
 	char src_copy[INET6_ADDRSTRLEN + 1];
@@ -45,7 +47,7 @@ int inet_pton(int af, const char *src, void *dst)
 		}
 	}
 	return 0;
-}*/
+}
 #else /* !WIN32 => UNIX */
 #include <sys/types.h>
 #include <ifaddrs.h>
@@ -58,204 +60,236 @@ namespace util
 namespace net
 {
 #ifdef WIN32
-    int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
-    {
-        ULONG outBufLen = 0;
-        PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
-        PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
-        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+	bool IsWindowsXPorLater()
+	{
+		OSVERSIONINFO osvi;
 
+		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+		GetVersionEx(&osvi);
 
-        if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
-          == ERROR_BUFFER_OVERFLOW) {
-            FREE(pAddresses);
-            pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
-        }
+		if (osvi.dwMajorVersion <= 5)
+			return true;
+		else
+			return false;
+	}
 
-        DWORD dwRetVal = GetAdaptersAddresses(
-            AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
-        );
+	int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
+	{
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-        if(dwRetVal != NO_ERROR) {
-            LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
-            FREE(pAddresses);
-            return fallback;
-        }
+		if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+			== ERROR_BUFFER_OVERFLOW)
+		{
+			FREE(pAddresses);
+			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
+		}
 
-        pCurrAddresses = pAddresses;
-        while(pCurrAddresses) {
-            PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+		DWORD dwRetVal = GetAdaptersAddresses(
+			AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
+		);
 
-            pUnicast = pCurrAddresses->FirstUnicastAddress;
-            if(pUnicast == nullptr) {
-                LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv4 address, this is not supported");
-            }
-            for(int i = 0; pUnicast != nullptr; ++i) {
-                LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-                sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
-                if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr) {
-                    auto result = pAddresses->Mtu;
-                    FREE(pAddresses);
-                    return result;
-                }
-                pUnicast = pUnicast->Next;
-            }
-            pCurrAddresses = pCurrAddresses->Next;
-        }
+		if(dwRetVal != NO_ERROR)
+		{
+			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
+			FREE(pAddresses);
+			return fallback;
+		}
 
-        LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv4 addresses found");
-        FREE(pAddresses);
-        return fallback;
-    }
+		pCurrAddresses = pAddresses;
+		while(pCurrAddresses)
+		{
+			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 
-    int GetMTUWindowsIpv6(sockaddr_in6 inputAddress, int fallback)
-    {
-        ULONG outBufLen = 0;
-        PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
-        PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
-        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+			pUnicast = pCurrAddresses->FirstUnicastAddress;
+			if(pUnicast == nullptr)
+				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv4 address, this is not supported");
 
-        if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
-          == ERROR_BUFFER_OVERFLOW) {
-            FREE(pAddresses);
-            pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
-        }
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
+				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
+				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
+				{
+					auto result = pAddresses->Mtu;
+					FREE(pAddresses);
+					return result;
+				}
+				pUnicast = pUnicast->Next;
+			}
+			pCurrAddresses = pCurrAddresses->Next;
+		}
 
-        DWORD dwRetVal = GetAdaptersAddresses(
-            AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
-        );
+		LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv4 addresses found");
+		FREE(pAddresses);
+		return fallback;
+	}
 
-        if(dwRetVal != NO_ERROR) {
-            LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
-            FREE(pAddresses);
-            return fallback;
-        }
+	int GetMTUWindowsIpv6(sockaddr_in6 inputAddress, int fallback)
+	{
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-        bool found_address = false;
-        pCurrAddresses = pAddresses;
-        while(pCurrAddresses) {
-            PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
-            pUnicast = pCurrAddresses->FirstUnicastAddress;
-            if(pUnicast == nullptr) {
-                LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv6 address, this is not supported");
-            }
-            for(int i = 0; pUnicast != nullptr; ++i) {
-                LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-                sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
+		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+			== ERROR_BUFFER_OVERFLOW)
+		{
+			FREE(pAddresses);
+			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
+		}
 
-                for (int j = 0; j != 8; ++j) {
-                    if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j]) {
-                        break;
-                    } else {
-                        found_address = true;
-                    }
-                } if (found_address) {
-                    auto result = pAddresses->Mtu;
-                    FREE(pAddresses);
-                    pAddresses = nullptr;
-                    return result;
-                }
-                pUnicast = pUnicast->Next;
-            }
+		DWORD dwRetVal = GetAdaptersAddresses(
+			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
+		);
 
-            pCurrAddresses = pCurrAddresses->Next;
-        }
+		if(dwRetVal != NO_ERROR)
+		{
+			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
+			FREE(pAddresses);
+			return fallback;
+		}
 
-        LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv6 addresses found");
-        FREE(pAddresses);
-        return fallback;
-    }
+		bool found_address = false;
+		pCurrAddresses = pAddresses;
+		while(pCurrAddresses)
+		{
+			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+			pUnicast = pCurrAddresses->FirstUnicastAddress;
+			if(pUnicast == nullptr)
+				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv6 address, this is not supported");
 
-    int GetMTUWindows(const boost::asio::ip::address& localAddress, int fallback)
-    {
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
+				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
+
+				for (int j = 0; j != 8; ++j)
+				{
+					if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j])
+						break;
+					else
+						found_address = true;
+				}
+
+				if (found_address)
+				{
+					auto result = pAddresses->Mtu;
+					FREE(pAddresses);
+					pAddresses = nullptr;
+					return result;
+				}
+				pUnicast = pUnicast->Next;
+			}
+
+			pCurrAddresses = pCurrAddresses->Next;
+		}
+
+		LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv6 addresses found");
+		FREE(pAddresses);
+		return fallback;
+	}
+
+	int GetMTUWindows(const boost::asio::ip::address& localAddress, int fallback)
+	{
 #ifdef UNICODE
-        string localAddress_temporary = localAddress.to_string();
-        wstring localAddressUniversal(localAddress_temporary.begin(), localAddress_temporary.end());
+		string localAddress_temporary = localAddress.to_string();
+		wstring localAddressUniversal(localAddress_temporary.begin(), localAddress_temporary.end());
 #else
-        std::string localAddressUniversal = localAddress.to_string();
+		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-        if(localAddress.is_v4()) {
-            sockaddr_in inputAddress;
-            inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
-            return GetMTUWindowsIpv4(inputAddress, fallback);
-        } else if(localAddress.is_v6()) {
-            sockaddr_in6 inputAddress;
-            inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
-            return GetMTUWindowsIpv6(inputAddress, fallback);
-        } else {
-            LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
-            return fallback;
-        }
+		if (IsWindowsXPorLater())
+		{
+			#define inet_pton inet_pton_xp
+		}
 
-    }
+		if(localAddress.is_v4())
+		{
+			sockaddr_in inputAddress;
+			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+			return GetMTUWindowsIpv4(inputAddress, fallback);
+		}
+		else if(localAddress.is_v6())
+		{
+			sockaddr_in6 inputAddress;
+			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+			return GetMTUWindowsIpv6(inputAddress, fallback);
+		} else {
+			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
+			return fallback;
+		}
+	}
 #else // assume unix
 	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
-    {
-        ifaddrs* ifaddr, *ifa = nullptr;
-        if(getifaddrs(&ifaddr) == -1)
+	{
+		ifaddrs* ifaddr, *ifa = nullptr;
+		if(getifaddrs(&ifaddr) == -1)
 		{
-            LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
-            return fallback;
-        }
+			LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
+			return fallback;
+		}
 
-        int family = 0;
-        // look for interface matching local address
-        for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
+		int family = 0;
+		// look for interface matching local address
+		for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
-            if(!ifa->ifa_addr)
-                continue;
+			if(!ifa->ifa_addr)
+				continue;
 
-            family = ifa->ifa_addr->sa_family;
-            if(family == AF_INET && localAddress.is_v4())
+			family = ifa->ifa_addr->sa_family;
+			if(family == AF_INET && localAddress.is_v4())
 			{
-                sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
-                if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
-                    break; // address matches
-            }
+				sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
+				if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
+					break; // address matches
+			}
 			else if(family == AF_INET6 && localAddress.is_v6())
 			{
-                sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
-                if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
-                    break; // address matches
-            }
-        }
-        int mtu = fallback;
-        if(ifa && family)
+				sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
+				if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
+					break; // address matches
+			}
+		}
+		int mtu = fallback;
+		if(ifa && family)
 		{ // interface found?
-            int fd = socket(family, SOCK_DGRAM, 0);
-            if(fd > 0)
+			int fd = socket(family, SOCK_DGRAM, 0);
+			if(fd > 0)
 			{
-                ifreq ifr;
-                strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
-                if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
-                    mtu = ifr.ifr_mtu; // MTU
-                else
-                    LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
-                close(fd);
-            }
+				ifreq ifr;
+				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
+				if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
+					mtu = ifr.ifr_mtu; // MTU
+				else
+					LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
+				close(fd);
+			}
 			else
-                LogPrint(eLogError, "NetIface: Failed to create datagram socket");
-        }
+				LogPrint(eLogError, "NetIface: Failed to create datagram socket");
+		}
 		else
-            LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
-       freeifaddrs(ifaddr);
+			LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
+		freeifaddrs(ifaddr);
 
-       return mtu;
-    }
+		return mtu;
+	}
 #endif // WIN32
 
-    int GetMTU(const boost::asio::ip::address& localAddress)
-    {
-        const int fallback = 576; // fallback MTU
+	int GetMTU(const boost::asio::ip::address& localAddress)
+	{
+		const int fallback = 576; // fallback MTU
 
 #ifdef WIN32
-        return GetMTUWindows(localAddress, fallback);
+		return GetMTUWindows(localAddress, fallback);
 #else
-        return GetMTUUnix(localAddress, fallback);
+		return GetMTUUnix(localAddress, fallback);
 #endif
-        return fallback;
-    }
+		return fallback;
+	}
 
 	const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6)
 	{
@@ -291,7 +325,8 @@ namespace net
 		}
 		if(addrs) freeifaddrs(addrs);
 		std::string fallback;
-		if(ipv6) {
+		if(ipv6)
+		{
 			fallback = "::";
 			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
 		} else {

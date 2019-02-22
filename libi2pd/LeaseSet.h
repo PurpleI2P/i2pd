@@ -8,6 +8,7 @@
 #include <memory>
 #include "Identity.h"
 #include "Timestamp.h"
+#include "I2PEndian.h"
 
 namespace i2p
 {
@@ -77,7 +78,8 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-		  
+			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
+
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
@@ -122,20 +124,24 @@ namespace data
 	const uint8_t NETDB_STORE_TYPE_STANDARD_LEASESET2 = 3;
 	const uint8_t NETDB_STORE_TYPE_ENCRYPTED_LEASESET2 = 5;
 	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
+
+	const uint16_t LEASESET2_FLAG_OFFLINE_KEYS = 0x0001;
+	
 	class LeaseSet2: public LeaseSet
 	{
 		public:
 
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
 			uint8_t GetStoreType () const { return m_StoreType; };
+			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
-			
+
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
 
 		private:
 
-			void ReadFromBuffer (const uint8_t * buf, size_t len);
+			void ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity = true, bool verifySignature = true);
 			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
@@ -148,9 +154,31 @@ namespace data
 		private:
 
 			uint8_t m_StoreType;
+			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
 
+	// also called from Streaming.cpp 	
+	template<typename Verifier>
+	std::shared_ptr<i2p::crypto::Verifier> ProcessOfflineSignature (const Verifier& verifier, const uint8_t * buf, size_t len, size_t& offset)
+	{
+		if (offset + 6 >= len) return nullptr;
+		const uint8_t * signedData = buf + offset;
+		uint32_t expiresTimestamp = bufbe32toh (buf + offset); offset += 4; // expires timestamp
+		if (expiresTimestamp < i2p::util::GetSecondsSinceEpoch ()) return nullptr;
+		uint16_t keyType = bufbe16toh (buf + offset); offset += 2;
+		std::shared_ptr<i2p::crypto::Verifier> transientVerifier (i2p::data::IdentityEx::CreateVerifier (keyType));
+		if (!transientVerifier) return nullptr;
+		auto keyLen = transientVerifier->GetPublicKeyLen ();
+		if (offset + keyLen >= len) return nullptr;
+		transientVerifier->SetPublicKey (buf + offset); offset += keyLen;
+		if (offset + verifier->GetSignatureLen () >= len) return nullptr;
+		if (!verifier->Verify (signedData, keyLen + 6, buf + offset)) return nullptr;
+		offset += verifier->GetSignatureLen ();	
+		return transientVerifier;
+	}
+
+//------------------------------------------------------------------------------------
 	class LocalLeaseSet
 	{
 		public:
@@ -186,9 +214,10 @@ namespace data
 	{
 		public:
 
-			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, 
+			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
 			
 			uint8_t * GetBuffer () const { return m_Buffer + 1; };

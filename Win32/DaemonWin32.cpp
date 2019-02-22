@@ -50,7 +50,7 @@ namespace util
 		if (isDaemon)
 		{
 			LogPrint(eLogDebug, "Daemon: running as service");
-			I2PService service(SERVICE_NAME);
+			I2PService service((PSTR)SERVICE_NAME);
 			if (!I2PService::Run(service))
 			{
 				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());

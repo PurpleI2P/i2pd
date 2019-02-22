@@ -777,6 +777,9 @@ namespace client
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
+		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
+
 		m_EncryptionKeyType = GetIdentity ()->GetCryptoKeyType ();
 		// extract encryption type params for LS2
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 && params)
@@ -1048,9 +1051,7 @@ namespace client
 			// standard LS2 (type 3) assumed for now. TODO: implement others
 			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
 			leaseSet = new i2p::data::LocalLeaseSet2 (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
-				GetIdentity (), m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
-			// sign
-			Sign (leaseSet->GetBuffer () - 1, leaseSet->GetBufferLen () - leaseSet->GetSignatureLen () + 1, leaseSet->GetSignature ()); // + leading store type
+				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
 		}
 		SetLeaseSet (leaseSet);
 	}
