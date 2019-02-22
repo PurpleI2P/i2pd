@@ -102,7 +102,6 @@ namespace data
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
-				std::string addressString;
 				int port;
 				uint64_t date;
 				uint8_t cost;

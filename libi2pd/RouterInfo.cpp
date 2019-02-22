@@ -208,20 +208,7 @@ namespace data
 				{
 					boost::system::error_code ecode;
 					address->host = boost::asio::ip::address::from_string (value, ecode);
-					if (ecode)
-					{
-						if (address->transportStyle == eTransportNTCP)
-						{
-							supportedTransports |= eNTCPV4; // TODO:
-							address->addressString = value;
-						}
-						else
-						{
-							supportedTransports |= eSSUV4; // TODO:
-							address->addressString = value;
-						}
-					}
-					else
+					if (!ecode)
 					{
 						// add supported protocol
 						if (address->host.is_v4 ())
