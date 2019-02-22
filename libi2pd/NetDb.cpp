@@ -105,7 +105,7 @@ namespace data
 							case eI2NPDummyMsg:
 								// plain RouterInfo from NTCP2 with flags for now
 								HandleNTCP2RouterInfoMsg (msg);
-							break;	
+							break;
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
@@ -138,7 +138,7 @@ namespace data
 					lastDestinationCleanup = ts;
 				}
 
-				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // update timestamp and publish 
+				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // update timestamp and publish
 				{
 					i2p::context.UpdateTimestamp (ts);
 					if (!m_HiddenMode) Publish ();
@@ -148,7 +148,7 @@ namespace data
 				{
 					auto numRouters = m_RouterInfos.size ();
 					if (!numRouters)
-                    	throw std::runtime_error("No known routers, reseed seems to be totally failed");
+						throw std::runtime_error("No known routers, reseed seems to be totally failed");
 					else // we have peers now
 						m_FloodfillBootstrap = nullptr;
 					if (numRouters < 2500 || ts - lastExploratory >= 90)
@@ -170,17 +170,17 @@ namespace data
 		}
 	}
 
-	void NetDb::SetHidden(bool hide) 
+	void NetDb::SetHidden(bool hide)
 	{
-    	// TODO: remove reachable addresses from router info
-    	m_HiddenMode = hide;
-  	}
+		// TODO: remove reachable addresses from router info
+		m_HiddenMode = hide;
+	}
 
 	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
 		bool updated;
 		AddRouterInfo (buf, len, updated);
-		return updated;	
+		return updated;
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len, bool& updated)
@@ -196,7 +196,7 @@ namespace data
 	{
 		bool updated;
 		AddRouterInfo (ident, buf, len, updated);
-		return updated;	
+		return updated;
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated)
@@ -294,7 +294,7 @@ namespace data
 		// always new LS2 for now. TODO: implement update
 		auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
 		m_LeaseSets[ident] = leaseSet;
-		return true; 
+		return true;
 	}
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
@@ -319,6 +319,9 @@ namespace data
 
 	std::shared_ptr<RouterProfile> NetDb::FindRouterProfile (const IdentHash& ident) const
 	{
+		if (!m_PersistProfiles)
+			return nullptr;
+
 		auto router = FindRouter (ident);
 		return router ? router->GetProfile () : nullptr;
 	}
@@ -418,8 +421,9 @@ namespace data
 
 	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
 	{
-		m_Storage.Iterate([v] (const std::string & filename) {
-        auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
+		m_Storage.Iterate([v] (const std::string & filename)
+		{
+			auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
 				v(ri);
 		});
 	}
@@ -555,7 +559,7 @@ namespace data
 					++it;
 				}
 			}
-			// clean up expired floodfiils
+			// clean up expired floodfills
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 				for (auto it = m_Floodfills.begin (); it != m_Floodfills.end ();)
@@ -651,22 +655,22 @@ namespace data
 		size_t payloadOffset = offset;
 
 		bool updated = false;
-		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];	
+		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];
 		if (storeType) // LeaseSet or LeaseSet2
 		{
 			if (!m->from) // unsolicited LS must be received directly
-			{	
+			{
 				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
 				{
 					LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
 					updated = AddLeaseSet (ident, buf + offset, len - offset);
 				}
-				else // all others are considered as LeaseSet2 
+				else // all others are considered as LeaseSet2
 				{
 					LogPrint (eLogDebug, "NetDb: store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
 					updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
 				}
-			}	
+			}
 		}
 		else // RouterInfo
 		{
@@ -873,7 +877,7 @@ namespace data
 			}
 
 			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
-			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
+				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
 				auto leaseSet = FindLeaseSet (ident);
 				if (!leaseSet)
@@ -1180,13 +1184,13 @@ namespace data
 		return res;
 	}
 
-  std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
-    return GetRandomRouter(
-      [fam](std::shared_ptr<const RouterInfo> router)->bool
-      {
-        return router->IsFamily(fam);
-      });
-  }
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
+		return GetRandomRouter(
+			[fam](std::shared_ptr<const RouterInfo> router)->bool
+		{
+			return router->IsFamily(fam);
+		});
+	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination,
 		const std::set<IdentHash>& excluded) const
