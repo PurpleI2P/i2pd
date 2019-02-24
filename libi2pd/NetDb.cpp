@@ -207,9 +207,18 @@ namespace data
 		{
 			if (r->IsNewer (buf, len))
 			{
+				bool wasFloodfill = r->IsFloodfill ();
 				r->Update (buf, len);
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
-				// TODO: check if floodfill has been changed
+				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
+				{
+					LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
+					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+					if (wasFloodfill)
+						m_Floodfills.remove (r);	
+					else	
+						m_Floodfills.push_back (r);
+				}	
 			}
 			else
 			{
@@ -220,7 +229,7 @@ namespace data
 		else
 		{
 			r = std::make_shared<RouterInfo> (buf, len);
-			if (!r->IsUnreachable ())
+			if (!r->IsUnreachable () && r->HasValidAddresses ())
 			{
 				bool inserted = false;
 				{
@@ -559,11 +568,11 @@ namespace data
 					++it;
 				}
 			}
-			// clean up expired floodfills
+			// clean up expired floodfills or not floodfills anymore
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 				for (auto it = m_Floodfills.begin (); it != m_Floodfills.end ();)
-					if ((*it)->IsUnreachable ())
+					if ((*it)->IsUnreachable () || !(*it)->IsFloodfill ())
 						it = m_Floodfills.erase (it);
 					else
 						++it;

@@ -210,11 +210,19 @@ namespace data
 					address->host = boost::asio::ip::address::from_string (value, ecode);
 					if (!ecode)
 					{
-						// add supported protocol
-						if (address->host.is_v4 ())
-							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;
-						else
-							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+#if BOOST_VERSION >= 104900
+						if (!address->host.is_unspecified ()) // check if address is valid
+#else
+						address->host.to_string (ecode);
+						if (!ecode)
+#endif
+						{	
+							// add supported protocol
+							if (address->host.is_v4 ())
+								supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;
+							else
+								supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+						}	
 					}
 				}
 				else if (!strcmp (key, "port"))
