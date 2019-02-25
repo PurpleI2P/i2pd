@@ -29,6 +29,8 @@ namespace data
 			RouterProfile ();
 			RouterProfile& operator= (const RouterProfile& ) = default;
 
+			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
+
 			void Save (const IdentHash& identHash);
 			void Load (const IdentHash& identHash);
 

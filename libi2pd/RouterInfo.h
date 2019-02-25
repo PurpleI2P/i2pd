@@ -194,6 +194,8 @@ namespace data
 			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
+			bool HasProfile () const { return static_cast<bool>(m_Profile); };
+			void SetProfile (const std::shared_ptr<RouterProfile>& profile) { m_Profile = profile; };
 			void SaveProfile () { if (m_Profile) m_Profile->Save (GetIdentHash ()); };
 
 			void Update (const uint8_t * buf, int len);

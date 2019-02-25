@@ -109,6 +109,8 @@ namespace data
 			void Load ();
 			bool LoadRouterInfo (const std::string & path);
 			void SaveUpdated ();
+			void RemoveExpired ();
+			void RemoveObsoleteProfiles ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
@@ -129,6 +131,8 @@ namespace data
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
+			mutable std::mutex m_UnsavedProfilesMutex;
+			std::map<IdentHash, std::shared_ptr<RouterProfile>> m_UnsavedProfiles;
 			mutable std::mutex m_FloodfillsMutex;
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 
@@ -145,6 +149,7 @@ namespace data
 			friend class NetDbRequests;
 			NetDbRequests m_Requests;
 
+			unsigned m_PersistSyncInterval;
 			bool m_PersistProfiles;
 
 		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
