@@ -368,6 +368,7 @@ namespace client
 		}
 
 		//ensure it's a base64 string
+		i2p::data::PrivateKeys keys;
 		if (!keys.FromBase64(destination))
 		{
 			SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
