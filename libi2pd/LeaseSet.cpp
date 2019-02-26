@@ -251,7 +251,7 @@ namespace data
 	}
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
-		LeaseSet (storeLeases), m_StoreType (storeType)
+		LeaseSet (storeLeases), m_StoreType (storeType), m_PublishedTimestamp (0)
 	{	
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
@@ -281,9 +281,9 @@ namespace data
 			identity = GetIdentity ();
 		size_t offset = identity->GetFullLen ();
 		if (offset + 8 >= len) return;
-		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
+		m_PublishedTimestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
-		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
+		SetExpirationTime ((m_PublishedTimestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{
@@ -427,9 +427,9 @@ namespace data
 		blindedVerifier->SetPublicKey (buf + offset); offset += blindedKeyLen;
 		// expiration
 		if (offset + 8 >= len) return;
-		uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
+		m_PublishedTimestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
-		SetExpirationTime ((timestamp + expires)*1000LL); // in milliseconds
+		SetExpirationTime ((m_PublishedTimestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
 		if (flags & LEASESET2_FLAG_OFFLINE_KEYS)
 		{

@@ -78,6 +78,7 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
+			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
 			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
 
 			// implements RoutingDestination
@@ -133,6 +134,7 @@ namespace data
 
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
 			uint8_t GetStoreType () const { return m_StoreType; };
+			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
@@ -154,6 +156,7 @@ namespace data
 		private:
 
 			uint8_t m_StoreType;
+			uint32_t m_PublishedTimestamp;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};

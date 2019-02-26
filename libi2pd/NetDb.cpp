@@ -300,10 +300,22 @@ namespace data
 	bool NetDb::AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType)
 	{
 		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
-		// always new LS2 for now. TODO: implement update
 		auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
-		m_LeaseSets[ident] = leaseSet;
-		return true;
+		if (leaseSet->IsValid ())
+		{
+			auto it = m_LeaseSets.find(ident);
+			if (it == m_LeaseSets.end () || it->second->GetStoreType () == i2p::data::NETDB_STORE_TYPE_LEASESET ||
+				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
+			{
+				// TODO: implement actual update
+				LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
+				m_LeaseSets[ident] = leaseSet;
+				return true;
+			}
+		}
+		else
+			LogPrint (eLogError, "NetDb: new LeaseSet2 validation failed: ", ident.ToBase32());
+		return false;
 	}
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
