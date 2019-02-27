@@ -1,4 +1,6 @@
 #include <string.h>
+#include <openssl/sha.h>
+#include <openssl/hmac.h>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
@@ -251,13 +253,19 @@ namespace data
 	}
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
-		LeaseSet (storeLeases), m_StoreType (storeType), m_PublishedTimestamp (0)
+		LeaseSet (storeLeases), m_StoreType (storeType)
 	{	
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
-			ReadFromBufferEncrypted (buf, len);
+			ReadFromBufferEncrypted (buf, len, nullptr);
 		else
 			ReadFromBuffer (buf, len);
+	}
+
+	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity):
+		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+	{
+		ReadFromBufferEncrypted (buf, len, identity);
 	}
 
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
@@ -414,7 +422,7 @@ namespace data
 		return offset;
 	}
 
-	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len)
+	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity)
 	{
 		size_t offset = 0;
 		// blinded key
@@ -424,10 +432,12 @@ namespace data
 		if (!blindedVerifier) return;
 		auto blindedKeyLen = blindedVerifier->GetPublicKeyLen ();			
 		if (offset + blindedKeyLen >= len) return;
-		blindedVerifier->SetPublicKey (buf + offset); offset += blindedKeyLen;
+		const uint8_t * blindedPublicKey = buf + offset;
+		blindedVerifier->SetPublicKey (blindedPublicKey); offset += blindedKeyLen;
 		// expiration
 		if (offset + 8 >= len) return;
-		m_PublishedTimestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
+		const uint8_t * publishedTimestamp = buf + offset;
+		m_PublishedTimestamp = bufbe32toh (publishedTimestamp); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((m_PublishedTimestamp + expires)*1000LL); // in milliseconds
 		uint16_t flags = bufbe16toh (buf + offset); offset += 2; // flags
@@ -443,11 +453,53 @@ namespace data
 		}
 		// outer ciphertext
 		if (offset + 2 > len) return;
-		uint16_t lenOuterCiphertext = bufbe16toh (buf + offset); offset += 2 + lenOuterCiphertext;		
+		uint16_t lenOuterCiphertext = bufbe16toh (buf + offset); offset += 2;
+		const uint8_t * outerCiphertext = buf + offset;	
+		offset += lenOuterCiphertext;		
 		// verify signature
 		bool verified = m_TransientVerifier ? VerifySignature (m_TransientVerifier, buf, len, offset) :
 			VerifySignature (blindedVerifier, buf, len, offset);	
-		SetIsValid (verified);	
+		SetIsValid (verified);
+		// handle ciphertext
+		if (verified && identity && lenOuterCiphertext >= 32)
+		{
+			size_t l = identity->GetFullLen();
+			std::vector<uint8_t> destination (l);
+			l = identity->ToBuffer (destination.data(), l);
+			uint8_t credential[32], subcredential[36];
+			// credential = H("credential", Destination)
+			H ("credential", { {destination.data(), l} }, credential);
+			// subcredential = H("subcredential", credential || blindedPublicKey)
+			H ("subcredential", { {credential, 32}, {blindedPublicKey, blindedKeyLen} }, subcredential);
+			// outerInput = subcredential || publishedTimestamp
+			memcpy (subcredential + 32, publishedTimestamp, 4);
+			// outerSalt = outerCiphertext[32:end]
+			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
+			uint8_t outerKey[44];
+			HKDF (outerCiphertext + lenOuterCiphertext - 32, {subcredential, 36}, "ELS2_L1K", outerKey, 44);
+			// decrypt using chacha20
+		}	
+	}
+
+	void LeaseSet2::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, p.c_str (), p.length ());
+		for (const auto& it: bufs)	
+			SHA256_Update (&ctx, it.first, it.second);
+		SHA256_Final (hash, &ctx);
+	}
+
+	void LeaseSet2::HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const char * info, uint8_t * out, size_t outLen)
+	{
+		uint8_t prk[32], t[41]; unsigned int len;
+		HMAC(EVP_sha256(), salt, 32, ikm.first, ikm.second, prk, &len); 
+		memcpy (t, info, 8); t[8] = 0x01;
+		HMAC(EVP_sha256(), prk, 32, t, 9, out, &len);
+		memcpy (t, out, 32); memcpy (t + 32, info, 8); t[40] = 0x02;
+		HMAC(EVP_sha256(), prk, 32, t, 41, t, &len); 
+		memcpy (out + 32, t, outLen % 32); // outLen doesn't exceed 64 
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const

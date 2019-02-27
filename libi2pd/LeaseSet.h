@@ -133,6 +133,7 @@ namespace data
 		public:
 
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
+			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
@@ -144,7 +145,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity = true, bool verifySignature = true);
-			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len);
+			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 
@@ -153,10 +154,14 @@ namespace data
 
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
 
+			// for encrypted LS
+			void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
+			void HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const char * info, uint8_t * out, size_t outLen); // salt - 32, info - 8
+
 		private:
 
 			uint8_t m_StoreType;
-			uint32_t m_PublishedTimestamp;
+			uint32_t m_PublishedTimestamp = 0;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
