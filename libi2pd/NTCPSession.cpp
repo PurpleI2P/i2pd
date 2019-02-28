@@ -843,6 +843,7 @@ namespace transport
 							{
 								m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
 								m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
+								m_NTCPV6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
