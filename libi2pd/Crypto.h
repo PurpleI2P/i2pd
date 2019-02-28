@@ -290,6 +290,8 @@ namespace crypto
 
 	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
 
+	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
+
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();

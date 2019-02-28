@@ -473,11 +473,15 @@ namespace data
 			H ("subcredential", { {credential, 32}, {blindedPublicKey, blindedKeyLen} }, subcredential);
 			// outerInput = subcredential || publishedTimestamp
 			memcpy (subcredential + 32, publishedTimestamp, 4);
-			// outerSalt = outerCiphertext[32:end]
+			// outerSalt = outerCiphertext[0:32]
 			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
 			uint8_t outerKey[44];
-			HKDF (outerCiphertext + lenOuterCiphertext - 32, {subcredential, 36}, "ELS2_L1K", outerKey, 44);
-			// decrypt using chacha20
+			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", outerKey, 44);
+			// decrypt Layer 1
+			// outerKey = keys[0:31]
+			// outerIV = keys[32:43]
+			std::vector<uint8_t> outerPlainText (lenOuterCiphertext - 32);
+			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterCiphertext - 32, outerKey, outerKey + 32, outerPlainText.data ());
 		}	
 	}
 

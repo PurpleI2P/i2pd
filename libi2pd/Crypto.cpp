@@ -1228,6 +1228,23 @@ namespace crypto
 #endif		
 	}
 
+	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
+	{
+#if OPENSSL_AEAD_CHACHA20_POLY1305
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		EVP_EncryptInit_ex(ctx, EVP_chacha20 (), 0, key, nonce);
+		int outlen = 0;
+		EVP_EncryptUpdate(ctx, out, &outlen, msg, msgLen);
+		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
+		EVP_CIPHER_CTX_free (ctx);
+#else
+		chacha::Chacha20State state;
+		chacha::Chacha20Init (state, nonce, key, 0);	
+		if (out != msg) memcpy (out, msg, msgLen);
+		chacha::Chacha20Encrypt (state, out, msgLen);
+#endif
+	}
+
 // init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
