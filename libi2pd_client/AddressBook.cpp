@@ -30,7 +30,10 @@ namespace client
 			std::string etagsPath, indexPath, localPath;
 
 		public:
-			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
+			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") 
+			{
+				i2p::config::GetOption("persist.addressbook", m_IsPersist);
+			}
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
@@ -47,6 +50,9 @@ namespace client
 
 			int LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses); // returns -1 if can't open file, otherwise number of records
 
+		private:
+
+			bool m_IsPersist;
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -69,6 +75,11 @@ namespace client
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
+		if (!m_IsPersist) 
+		{
+			LogPrint(eLogDebug, "Addressbook: Persistance is disabled");
+			return nullptr;	
+		}
 		std::string filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
 		if (!f.is_open ()) {
@@ -92,6 +103,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
+		if (!m_IsPersist) return;
 		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 		if (!f.is_open ())	{
@@ -107,6 +119,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
+		if (!m_IsPersist) return;	
 		storage.Remove( ident.ToBase32() );
 	}
 
