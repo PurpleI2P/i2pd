@@ -576,7 +576,7 @@ namespace data
 			if (it.second->IsUnreachable ())
 			{
 				// delete RI file
-				m_Storage.Remove (it.first.ToBase64 ());
+				m_Storage.Remove (it.second->GetIdentHashBase64 ());
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
