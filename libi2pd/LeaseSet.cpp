@@ -463,9 +463,11 @@ namespace data
 		// handle ciphertext
 		if (verified && identity && lenOuterCiphertext >= 32)
 		{
+			SetIsValid (false); // we must verify it again in Layer 2 
 			size_t l = identity->GetFullLen();
 			std::vector<uint8_t> destination (l);
 			l = identity->ToBuffer (destination.data(), l);
+			// outer key
 			uint8_t credential[32], subcredential[36];
 			// credential = H("credential", Destination)
 			H ("credential", { {destination.data(), l} }, credential);
@@ -475,13 +477,35 @@ namespace data
 			memcpy (subcredential + 32, publishedTimestamp, 4);
 			// outerSalt = outerCiphertext[0:32]
 			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
-			uint8_t outerKey[44];
-			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", outerKey, 44);
+			uint8_t keys[44];
+			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", keys, 44);
 			// decrypt Layer 1
 			// outerKey = keys[0:31]
 			// outerIV = keys[32:43]
-			std::vector<uint8_t> outerPlainText (lenOuterCiphertext - 32);
-			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterCiphertext - 32, outerKey, outerKey + 32, outerPlainText.data ());
+			size_t lenOuterPlaintext = lenOuterCiphertext - 32;
+			std::vector<uint8_t> outerPlainText (lenOuterPlaintext);
+			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterPlaintext, keys, keys + 32, outerPlainText.data ());
+			// inner key
+			// innerSalt = innerCiphertext[0:32]
+			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
+			// skip 1 byte flags
+			HKDF (outerPlainText.data () + 1, {subcredential, 36}, "ELS2_L2K", keys, 44); // no authCookie
+			// decrypt Layer 2
+			// innerKey = keys[0:31]
+			// innerIV = keys[32:43]
+			size_t lenInnerPlaintext = lenOuterPlaintext - 32 - 1;
+			std::vector<uint8_t> innerPlainText (lenInnerPlaintext);
+			i2p::crypto::ChaCha20 (outerPlainText.data () + 32 + 1, lenInnerPlaintext, keys, keys + 32, innerPlainText.data ());
+			if (innerPlainText[0] == NETDB_STORE_TYPE_STANDARD_LEASESET2 || innerPlainText[0] == NETDB_STORE_TYPE_META_LEASESET2)
+			{
+				// override store type and buffer
+				m_StoreType = innerPlainText[0]; 
+				SetBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
+				// parse and verify Layer 2
+				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
+			}
+			else
+				LogPrint (eLogError, "LeaseSet2: unxpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
 	}
 
