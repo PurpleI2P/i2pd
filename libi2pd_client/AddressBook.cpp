@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <openssl/rand.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -45,6 +46,7 @@ namespace client
 
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+			void ResetEtags ();
 
 		private:
 
@@ -218,6 +220,17 @@ namespace client
 		return true;
 	}
 
+	void AddressBookFilesystemStorage::ResetEtags ()
+	{
+		LogPrint (eLogError, "Addressbook: resetting eTags");
+		for (boost::filesystem::directory_iterator it (etagsPath); it != boost::filesystem::directory_iterator (); ++it)
+		{
+			if (!boost::filesystem::is_regular_file (it->status ()))
+				continue;
+			boost::filesystem::remove (it->path ());
+		}
+	}
+
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
 		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
@@ -356,6 +369,9 @@ namespace client
 			LoadHostsFromStream (f, false);
 			m_IsLoaded = true;
 		}
+
+		// reset eTags, because we don’t know how old hosts.txt is or can't load addressbook
+		m_Storage->ResetEtags ();
 	}
 
 	bool AddressBook::LoadHostsFromStream (std::istream& f, bool is_update)

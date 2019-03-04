@@ -46,6 +46,7 @@ namespace client
 
 			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
 			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
+			virtual void ResetEtags () = 0;
 	};
 
 	class AddressBookSubscription;
