@@ -1239,7 +1239,7 @@ namespace crypto
 		EVP_CIPHER_CTX_free (ctx);
 #else
 		chacha::Chacha20State state;
-		chacha::Chacha20Init (state, nonce, key, 0);	
+		chacha::Chacha20Init (state, nonce, key, 1);	
 		if (out != msg) memcpy (out, msg, msgLen);
 		chacha::Chacha20Encrypt (state, out, msgLen);
 #endif
