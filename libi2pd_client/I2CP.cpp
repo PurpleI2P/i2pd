@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_I2CP
+
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/rand.h>
@@ -208,12 +210,12 @@ namespace client
 			if (leases.empty ())
 				leases = remote->GetNonExpiredLeases (true); // with threshold
 			if (!leases.empty ())
-			{	
+			{
 				remoteLease = leases[rand () % leases.size ()];
 				auto leaseRouter = i2p::data::netdb.FindRouter (remoteLease->tunnelGateway);
 				outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
-			}	
+			}
 			if (remoteLease && outboundTunnel)
 				remoteSession->SetSharedRoutingPath (std::make_shared<i2p::garlic::GarlicRoutingPath> (
 					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0, 0})); // 10 secs RTT
@@ -534,21 +536,21 @@ namespace client
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
-		
+
 		if (!offset)
 		{
 			LogPrint (eLogError, "I2CP: Create session malformed identity");
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
-		
+
 		if (m_Owner.FindSessionByIdentHash (identity->GetIdentHash ()))
 		{
 			LogPrint (eLogError, "I2CP: Create session duplicate address ", identity->GetIdentHash ().ToBase32 ());
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
-		}	
-		
+		}
+
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
 		if (optionsSize > len - offset)
@@ -557,7 +559,7 @@ namespace client
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
-		
+
 		std::map<std::string, std::string> params;
 		ExtractMapping (buf + offset, optionsSize, params);
 		offset += optionsSize; // options
@@ -1025,13 +1027,14 @@ namespace client
 		for (const auto& it: m_Sessions)
 		{
 			if (it.second)
-			{	
+			{
 				auto dest = it.second->GetDestination ();
 				if (dest && dest->GetIdentHash () == ident)
 					return it.second;
-			}	
+			}
 		}
 		return nullptr;
-	}	
+	}
 }
 }
+#endif // WITH_I2CP

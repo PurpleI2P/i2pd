@@ -40,11 +40,30 @@ USE_GIT_VERSION := $(or $(USE_GIT_VERSION),no)
 # for MacOS only, waiting for "1", not "yes"
 HOMEBREW        := $(or $(HOMEBREW),0)
 
+# Client protocols
+USE_I2PC        := $(or $(USE_I2PC),yes)
+USE_I2CP        := $(or $(USE_I2CP),yes)
+USE_SAM         := $(or $(USE_SAM),yes)
+USE_BOB         := $(or $(USE_BOB),yes)
+
 ifeq ($(DEBUG),yes)
 	CXX_DEBUG = -g
 else
 	CXX_DEBUG = -Os
 	LD_DEBUG = -s
+endif
+
+ifeq ($(USE_I2PC),yes)
+	NEEDED_CXXFLAGS += -DWITH_I2PC
+endif
+ifeq ($(USE_I2CP),yes)
+	NEEDED_CXXFLAGS += -DWITH_I2CP
+endif
+ifeq ($(USE_SAM),yes)
+	NEEDED_CXXFLAGS += -DWITH_SAM
+endif
+ifeq ($(USE_BOB),yes)
+	NEEDED_CXXFLAGS += -DWITH_BOB
 endif
 
 ifneq (, $(findstring darwin, $(SYS)))

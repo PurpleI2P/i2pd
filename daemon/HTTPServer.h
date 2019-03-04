@@ -95,11 +95,15 @@ namespace http
 	void ShowTunnels (std::stringstream& s);
 	void ShowTransitTunnels (std::stringstream& s);
 	void ShowTransports (std::stringstream& s);
-	void ShowSAMSessions (std::stringstream& s);
 	void ShowI2PTunnels (std::stringstream& s);
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
-    void ShowSAMSession (std::stringstream& s, const std::string& id);
-    void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id);
+#ifdef WITH_SAM
+	void ShowSAMSessions (std::stringstream& s);
+	void ShowSAMSession (std::stringstream& s, const std::string& id);
+#endif
+#ifdef WITH_I2CP
+	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id);
+#endif
 } // http
 } // i2p
 

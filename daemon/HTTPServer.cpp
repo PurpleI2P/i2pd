@@ -68,9 +68,13 @@ namespace http {
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
 	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_PAGE_LOCAL_DESTINATION[] = "local_destination";
+#ifdef WITH_I2CP
 	const char HTTP_PAGE_I2CP_LOCAL_DESTINATION[] = "i2cp_local_destination";
+#endif
+#ifdef WITH_SAM
 	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
+#endif
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_PAGE_LEASESETS[] = "leasesets";
@@ -87,7 +91,9 @@ namespace http {
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
+#ifdef WITH_SAM
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
+#endif
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
 	static std::string ConvertTime (uint64_t time)
@@ -202,8 +208,10 @@ namespace http {
 		s <<
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a><br>\r\n";
+#ifdef WITH_SAM
 		if (i2p::client::context.GetSAMBridge ())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM sessions") << "</a><br>\r\n";
+#endif
 		s <<
 			"</div>\r\n"
 			"<div class=\"content\">";
@@ -361,17 +369,25 @@ namespace http {
 		if (outputFormat==OutputFormatEnum::forWebConsole) {
 			bool httpproxy  = i2p::client::context.GetHttpProxy ()         ? true : false;
 			bool socksproxy = i2p::client::context.GetSocksProxy ()        ? true : false;
-			bool bob        = i2p::client::context.GetBOBCommandChannel () ? true : false;
-			bool sam        = i2p::client::context.GetSAMBridge ()         ? true : false;
-			bool i2cp       = i2p::client::context.GetI2CPServer ()        ? true : false;
-			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			s << "<table class=\"services\"><caption>" << tr("Services") << "</caption><tbody>\r\n";
 			s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "'>" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
 			s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "'>" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+#ifdef WITH_BOB
+			bool bob = i2p::client::context.GetBOBCommandChannel () ? true : false;
 			s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "'>" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+#endif
+#ifdef WITH_SAM
+			bool sam = i2p::client::context.GetSAMBridge () ? true : false;
 			s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "'>" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+#endif
+#ifdef WITH_I2CP
+			bool i2cp = i2p::client::context.GetI2CPServer () ? true : false;
 			s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "'>" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+#endif
+#ifdef WITH_I2PC
+			bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "'>" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+#endif
 			s << "</tbody></table>\r\n";
 		}
 	}
@@ -388,6 +404,7 @@ namespace http {
 		}
 		s << "</div>\r\n";
 
+#ifdef WITH_I2CP
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
@@ -405,6 +422,7 @@ namespace http {
 			}
 			s << "</div>\r\n";
 		}
+#endif
 	}
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
@@ -572,6 +590,7 @@ namespace http {
 		}
 	}
 
+#ifdef WITH_I2CP
 	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
 	{
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
@@ -587,6 +606,7 @@ namespace http {
 		else
 			ShowError(s, tr("I2CP is not enabled"));
 	}
+#endif
 
 	void ShowLeasesSets(std::stringstream& s)
 	{
@@ -879,6 +899,7 @@ namespace http {
 		}
 	}
 
+#ifdef WITH_SAM
 	void ShowSAMSessions (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
@@ -941,6 +962,7 @@ namespace http {
 		}
 		s << "</div>\r\n";
 	}
+#endif
 
 	void ShowI2PTunnels (std::stringstream& s)
 	{
@@ -1194,12 +1216,16 @@ namespace http {
 			uint32_t token = CreateToken ();
 			ShowLocalDestination (s, params["b32"], token);
 		}
+#ifdef WITH_I2CP
 		else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION)
 			ShowI2CPLocalDestination (s, params["i2cp_id"]);
+#endif
+#ifdef WITH_SAM
 		else if (page == HTTP_PAGE_SAM_SESSIONS)
 			ShowSAMSessions (s);
 		else if (page == HTTP_PAGE_SAM_SESSION)
 			ShowSAMSession (s, params["sam_id"]);
+#endif
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
 		else if (page == HTTP_PAGE_LEASESETS)

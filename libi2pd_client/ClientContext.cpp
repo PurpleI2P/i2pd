@@ -26,8 +26,16 @@ namespace client
 	ClientContext context;
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr),
-		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
+		m_HttpProxy (nullptr), m_SocksProxy (nullptr)
+#ifdef WITH_SAM
+		, m_SamBridge (nullptr)
+#endif
+#ifdef WITH_BOB
+		, m_BOBCommandChannel (nullptr)
+#endif
+#ifdef WITH_I2CP
+		, m_I2CPServer (nullptr)
+#endif
 	{
 	}
 
@@ -35,9 +43,15 @@ namespace client
 	{
 		delete m_HttpProxy;
 		delete m_SocksProxy;
+#ifdef WITH_SAM
 		delete m_SamBridge;
+#endif
+#ifdef WITH_BOB
 		delete m_BOBCommandChannel;
+#endif
+#ifdef WITH_I2CP
 		delete m_I2CPServer;
+#endif
 	}
 
 	void ClientContext::Start ()
@@ -58,6 +72,7 @@ namespace client
 		// I2P tunnels
 		ReadTunnels ();
 
+#ifdef WITH_SAM
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
 		if (sam)
@@ -77,7 +92,9 @@ namespace client
 				ThrowFatal ("Unable to start SAM bridge at ", samAddr, ":", samPort, ": ", e.what ());
 			}
 		}
+#endif
 
+#ifdef WITH_BOB
 		// BOB
 		bool bob; i2p::config::GetOption("bob.enabled", bob);
 		if (bob) {
@@ -95,7 +112,9 @@ namespace client
 				ThrowFatal ("Unable to start BOB bridge at ", bobAddr, ":", bobPort, ": ", e.what ());
 			}
 		}
+#endif
 
+#ifdef WITH_I2CP
 		// I2CP
 		bool i2cp; i2p::config::GetOption("i2cp.enabled", i2cp);
 		if (i2cp)
@@ -115,6 +134,7 @@ namespace client
 				ThrowFatal ("Unable to start I2CP at ", i2cpAddr, ":", i2cpPort, ": ", e.what ());
 			}
 		}
+#endif
 
 		m_AddressBook.StartResolvers ();
 
@@ -158,6 +178,7 @@ namespace client
 		}
 		m_ServerTunnels.clear ();
 
+#ifdef WITH_SAM
 		if (m_SamBridge)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping SAM bridge");
@@ -165,7 +186,9 @@ namespace client
 			delete m_SamBridge;
 			m_SamBridge = nullptr;
 		}
+#endif
 
+#ifdef WITH_BOB
 		if (m_BOBCommandChannel)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping BOB command channel");
@@ -173,7 +196,9 @@ namespace client
 			delete m_BOBCommandChannel;
 			m_BOBCommandChannel = nullptr;
 		}
+#endif
 
+#ifdef WITH_I2CP
 		if (m_I2CPServer)
 		{
 			LogPrint(eLogInfo, "Clients: Stopping I2CP");
@@ -181,6 +206,7 @@ namespace client
 			delete m_I2CPServer;
 			m_I2CPServer = nullptr;
 		}
+#endif
 
 		LogPrint(eLogInfo, "Clients: Stopping AddressBook");
 		m_AddressBook.Stop ();

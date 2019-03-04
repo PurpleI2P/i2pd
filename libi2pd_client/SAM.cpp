@@ -1,10 +1,12 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
 */
+
+#ifdef WITH_SAM
 
 #include <string.h>
 #include <stdio.h>
@@ -154,11 +156,7 @@ namespace client
 
 				if (SAMVersionAcceptable(version))
 				{
-#ifdef _MSC_VER
-					size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
-#else
 					size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
-#endif
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_Buffer, l), boost::asio::transfer_all (),
 						std::bind(&SAMSocket::HandleHandshakeReplySent, shared_from_this (),
 						std::placeholders::_1, std::placeholders::_2));
@@ -465,11 +463,7 @@ namespace client
 			size_t l = session->GetLocalDestination ()->GetPrivateKeys ().ToBuffer (buf, 1024);
 			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
 			priv[l1] = 0;
-#ifdef _MSC_VER
-			size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
-#else
 			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
-#endif
 			SendMessageReply (m_Buffer, l2, false);
 		}
 	}
@@ -710,13 +704,8 @@ namespace client
 			}
 		}
 		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
-#ifdef _MSC_VER
-		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
-			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
-#else
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
-#endif
 		SendMessageReply (m_Buffer, l, false);
 	}
 
@@ -754,11 +743,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "SAM: Naming failed, unknown address ", name);
-#ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-#else
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-#endif
 			SendMessageReply (m_Buffer, len, false);
 		}
 	}
@@ -833,11 +818,7 @@ namespace client
 	void SAMSocket::SendI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: I2P error: ", msg);
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
-#else
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
-#endif
 		SendMessageReply (m_Buffer, len, true);
 	}
 
@@ -851,11 +832,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "SAM: Naming lookup failed. LeaseSet for ", name, " not found");
-#ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-#else
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-#endif
 			SendMessageReply (m_Buffer, len, false);
 		}
 	}
@@ -863,11 +840,7 @@ namespace client
 	void SAMSocket::SendNamingLookupReply (const std::string& name, std::shared_ptr<const i2p::data::IdentityEx> identity)
 	{
 		auto base64 = identity->ToBase64 ();
-#ifdef _MSC_VER
-		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
-#else
 		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
-#endif
 		SendMessageReply (m_Buffer, l, false);
 	}
 
@@ -1121,11 +1094,7 @@ namespace client
 			}
 			else
 			{
-#ifdef _MSC_VER
-				size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len);
-#else
 				size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len);
-#endif
 				if (len < SAM_SOCKET_BUFFER_SIZE - l)
 				{
 					memcpy (m_StreamBuffer + l, buf, len);
@@ -1149,11 +1118,7 @@ namespace client
 				m_Owner.SendTo({ {buf, len} }, *ep);
 			else
 			{
-#ifdef _MSC_VER
-				size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_RAW_RECEIVED, (long unsigned int)len);
-#else
 				size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_RAW_RECEIVED, (long unsigned int)len);
-#endif
 				if (len < SAM_SOCKET_BUFFER_SIZE - l)
 				{
 					memcpy (m_StreamBuffer + l, buf, len);
@@ -1528,3 +1493,4 @@ namespace client
 	}
 }
 }
+#endif // WITH_SAM

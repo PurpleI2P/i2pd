@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_BOB
+
 #include <string.h>
 #include "Log.h"
 #include "ClientContext.h"
@@ -884,3 +886,4 @@ namespace client
 	}
 }
 }
+#endif // WITH_BOB

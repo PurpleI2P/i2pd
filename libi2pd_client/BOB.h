@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_BOB
+
 #ifndef BOB_H__
 #define BOB_H__
 
@@ -277,5 +279,5 @@ namespace client
 	};
 }
 }
-
 #endif
+#endif // WITH_BOB

@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_SAM
+
 #ifndef SAM_H__
 #define SAM_H__
 
@@ -286,3 +288,4 @@ namespace client
 }
 
 #endif
+#endif // WITH_SAM

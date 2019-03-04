@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_I2PC
+
 #include <stdio.h>
 #include <sstream>
 #include <openssl/x509.h>
@@ -87,8 +89,7 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"] = &I2PControlService::OutboundBandwidth1S;
 		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
-		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] =
-&I2PControlService::TunnelsSuccessRateHandler;
+		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] = &I2PControlService::TunnelsSuccessRateHandler;
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlService::NetTotalReceivedBytes;
 		m_RouterInfoHandlers["i2p.router.net.total.sent.bytes"]      = &I2PControlService::NetTotalSentBytes;
 
@@ -105,9 +106,15 @@ namespace client
 		m_ClientServicesInfoHandlers["I2PTunnel"] = &I2PControlService::I2PTunnelInfoHandler;
 		m_ClientServicesInfoHandlers["HTTPProxy"] = &I2PControlService::HTTPProxyInfoHandler;
 		m_ClientServicesInfoHandlers["SOCKS"] = &I2PControlService::SOCKSInfoHandler;
+#ifdef WITH_SAM
 		m_ClientServicesInfoHandlers["SAM"] = &I2PControlService::SAMInfoHandler;
+#endif
+#ifdef WITH_BOB
 		m_ClientServicesInfoHandlers["BOB"] = &I2PControlService::BOBInfoHandler;
+#endif
+#ifdef WITH_I2CP
 		m_ClientServicesInfoHandlers["I2CP"] = &I2PControlService::I2CPInfoHandler;
+#endif
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -346,8 +353,7 @@ namespace client
 		}
 	}
 
-// handlers
-
+	// handlers
 	void I2PControlService::AuthenticateHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
 		int api       = params.get<int> ("API");
@@ -372,8 +378,7 @@ namespace client
 	}
 
 
-// I2PControl
-
+	// I2PControl
 	void I2PControlService::I2PControlHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
 		for (auto& it: params)
@@ -507,7 +512,7 @@ namespace client
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
-		    {
+			{
 				Daemon.running = 0;
 			});
 	}
@@ -521,7 +526,7 @@ namespace client
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
-		    {
+			{
 				Daemon.running = 0;
 			});
 	}
@@ -533,7 +538,7 @@ namespace client
 		i2p::data::netdb.Reseed ();
 	}
 
-// network setting
+	// network setting
 	void I2PControlService::NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
 		for (auto it = params.begin (); it != params.end (); it++)
@@ -613,8 +618,7 @@ namespace client
 		EVP_PKEY_free (pkey);
 	}
 
-// ClientServicesInfo
-
+	// ClientServicesInfo
 	void I2PControlService::ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
 		for (auto it = params.begin (); it != params.end (); it++)
@@ -720,6 +724,7 @@ namespace client
 		InsertParam (results, "SOCKS", pt);
 	}
 
+#ifdef WITH_SAM
 	void I2PControlService::SAMInfoHandler (std::ostringstream& results)
 	{
 		boost::property_tree::ptree pt;
@@ -755,7 +760,9 @@ namespace client
 
 		InsertParam (results, "SAM", pt);
 	}
+#endif // WITH_SAM
 
+#ifdef WITH_BOB
 	void I2PControlService::BOBInfoHandler (std::ostringstream& results)
 	{
 		boost::property_tree::ptree pt;
@@ -770,7 +777,9 @@ namespace client
 
 		InsertParam (results, "BOB", pt);
 	}
+#endif // WITH_BOB
 
+#ifdef WITH_I2CP
 	void I2PControlService::I2CPInfoHandler (std::ostringstream& results)
 	{
 		boost::property_tree::ptree pt;
@@ -785,5 +794,7 @@ namespace client
 
 		InsertParam (results, "I2CP", pt);
 	}
+#endif // WITH_I2CP
 }
 }
+#endif // WITH_I2PC

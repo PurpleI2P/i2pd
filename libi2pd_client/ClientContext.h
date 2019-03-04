@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,9 +18,19 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
+
+#ifdef WITH_SAM
 #include "SAM.h"
+#endif
+
+#ifdef WITH_BOB
 #include "BOB.h"
+#endif
+
+#ifdef WITH_I2CP
 #include "I2CP.h"
+#endif
+
 #include "AddressBook.h"
 #include "I18N_langs.h"
 
@@ -76,31 +86,45 @@ namespace client
 			void ReloadConfig ();
 
 			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, // transient
+
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (
+				bool isPublic = false, // transient
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
 				const std::map<std::string, std::string> * params = nullptr); // used by SAM only
+
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service,
 				bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
+
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr);
+
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service,
 				const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
+
 			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys,
 				const std::string & name, const std::map<std::string, std::string> * params = nullptr);
+
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
+
 			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
+#ifdef WITH_BOB
 			const BOBCommandChannel * GetBOBCommandChannel () const { return m_BOBCommandChannel; };
+#endif
+#ifdef WITH_SAM
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
+#endif
+#ifdef WITH_I2CP
 			const I2CPServer * GetI2CPServer () const { return m_I2CPServer; };
+#endif
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
@@ -149,9 +173,15 @@ namespace client
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
 
+#ifdef WITH_SAM
 			SAMBridge * m_SamBridge;
+#endif
+#ifdef WITH_BOB
 			BOBCommandChannel * m_BOBCommandChannel;
+#endif
+#ifdef WITH_I2CP
 			I2CPServer * m_I2CPServer;
+#endif
 
 			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
 

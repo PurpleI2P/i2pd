@@ -26,7 +26,9 @@
 #include "Streaming.h"
 #include "Destination.h"
 #include "HTTPServer.h"
+#ifdef WITH_I2PC
 #include "I2PControl.h"
+#endif
 #include "ClientContext.h"
 #include "Crypto.h"
 #include "UPnP.h"
@@ -45,7 +47,9 @@ namespace util
 		~Daemon_Singleton_Private() {};
 
 		std::unique_ptr<i2p::http::HTTPServer> httpServer;
+#ifdef WITH_I2PC
 		std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
+#endif
 		std::unique_ptr<i2p::transport::UPnP> UPnP;
 		std::unique_ptr<i2p::util::NTPTimeSync> m_NTPSync;
 	};
@@ -441,6 +445,7 @@ namespace util
 		LogPrint(eLogInfo, "Daemon: Starting Client");
 		i2p::client::context.Start ();
 
+#ifdef WITH_I2PC
 		// I2P Control Protocol
 		bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 		if (i2pcontrol) {
@@ -458,6 +463,7 @@ namespace util
 				ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 			}
 		}
+#endif
 		return true;
 	}
 
@@ -490,12 +496,14 @@ namespace util
 			d.httpServer->Stop();
 			d.httpServer = nullptr;
 		}
+#ifdef WITH_I2PC
 		if (d.m_I2PControlService)
 		{
 			LogPrint(eLogInfo, "Daemon: Stopping I2PControl");
 			d.m_I2PControlService->Stop ();
 			d.m_I2PControlService = nullptr;
 		}
+#endif
 		i2p::crypto::TerminateCrypto ();
 		i2p::log::Logger().Stop();
 

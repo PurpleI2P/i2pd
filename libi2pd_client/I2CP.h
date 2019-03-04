@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef WITH_I2CP
+
 #ifndef I2CP_H__
 #define I2CP_H__
 
@@ -249,3 +251,4 @@ namespace client
 }
 
 #endif
+#endif // WITH_I2CP
