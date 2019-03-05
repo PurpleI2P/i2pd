@@ -155,8 +155,9 @@ namespace data
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
 
 			// for encrypted LS
-			void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
-			void HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const std::string& info, uint8_t * out); // salt - 32, out - 64, info <= 32 
+			static void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
+			static void HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const std::string& info, uint8_t * out); // salt - 32, out - 64, info <= 32 
+			static void BlindPublicKey (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, uint8_t * blindedKey); // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
 
 		private:
 

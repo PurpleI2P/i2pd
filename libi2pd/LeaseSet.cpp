@@ -3,6 +3,7 @@
 #include <openssl/hmac.h>
 #include "I2PEndian.h"
 #include "Crypto.h"
+#include "Ed25519.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "NetDb.hpp"
@@ -530,6 +531,16 @@ namespace data
 		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
 		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
 		HMAC(EVP_sha256(), prk, 32, out, 41, out + 32, &len); 
+	}
+
+	void LeaseSet2::BlindPublicKey (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, uint8_t * blindedKey)
+	{
+		uint16_t stA = htobe16 (identity->GetSigningKeyType ()), stA1 = htobe16 (blindedKeyType);
+		uint8_t salt[32], seed[64];
+		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
+		H ("I2PGenerateAlpha", { {identity->GetSigningPublicKeyBuffer (), identity->GetSigningPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
+		HKDF (salt, { (const uint8_t *)date, 8 }, "i2pblinding1", seed);
+		i2p::crypto::GetEd25519 ()->BlindPublicKey (identity->GetSigningPublicKeyBuffer (), seed, blindedKey);
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
