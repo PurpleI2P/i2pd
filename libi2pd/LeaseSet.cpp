@@ -427,7 +427,8 @@ namespace data
 		size_t offset = 0;
 		// blinded key
 		if (len < 2) return;
-		uint16_t blindedKeyType = bufbe16toh (buf + offset); offset += 2;
+		const uint8_t * stA1 = buf + offset; // stA1 = blinded signature type, 2 bytes big endian
+		uint16_t blindedKeyType = bufbe16toh (stA1); offset += 2;
 		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (blindedKeyType));
 		if (!blindedVerifier) return;
 		auto blindedKeyLen = blindedVerifier->GetPublicKeyLen ();			
@@ -464,21 +465,22 @@ namespace data
 		if (verified && identity && lenOuterCiphertext >= 32)
 		{
 			SetIsValid (false); // we must verify it again in Layer 2 
-			size_t l = identity->GetFullLen();
-			std::vector<uint8_t> destination (l);
-			l = identity->ToBuffer (destination.data(), l);
-			// outer key
+			// credentials
 			uint8_t credential[32], subcredential[36];
-			// credential = H("credential", Destination)
-			H ("credential", { {destination.data(), l} }, credential);
+			// A = destination's signing public key 
+			// stA = signature type of A, 2 bytes big endian
+			uint16_t stA = htobe16 (identity->GetSigningKeyType ());
+			// credential = H("credential", A || stA || stA1)
+			H ("credential", { {identity->GetSigningPublicKeyBuffer (), identity->GetSigningPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {stA1, 2} }, credential);
 			// subcredential = H("subcredential", credential || blindedPublicKey)
 			H ("subcredential", { {credential, 32}, {blindedPublicKey, blindedKeyLen} }, subcredential);
+			// outer key
 			// outerInput = subcredential || publishedTimestamp
 			memcpy (subcredential + 32, publishedTimestamp, 4);
 			// outerSalt = outerCiphertext[0:32]
 			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
-			uint8_t keys[44];
-			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", keys, 44);
+			uint8_t keys[64]; // 44 bytes actual data
+			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", keys);
 			// decrypt Layer 1
 			// outerKey = keys[0:31]
 			// outerIV = keys[32:43]
@@ -489,7 +491,7 @@ namespace data
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
 			// skip 1 byte flags
-			HKDF (outerPlainText.data () + 1, {subcredential, 36}, "ELS2_L2K", keys, 44); // no authCookie
+			HKDF (outerPlainText.data () + 1, {subcredential, 36}, "ELS2_L2K", keys); // no authCookie
 			// decrypt Layer 2
 			// innerKey = keys[0:31]
 			// innerIV = keys[32:43]
@@ -519,15 +521,15 @@ namespace data
 		SHA256_Final (hash, &ctx);
 	}
 
-	void LeaseSet2::HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const char * info, uint8_t * out, size_t outLen)
-	{
-		uint8_t prk[32], t[41]; unsigned int len;
+	void LeaseSet2::HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const std::string& info, uint8_t * out)
+	{	
+		uint8_t prk[32]; unsigned int len;
 		HMAC(EVP_sha256(), salt, 32, ikm.first, ikm.second, prk, &len); 
-		memcpy (t, info, 8); t[8] = 0x01;
-		HMAC(EVP_sha256(), prk, 32, t, 9, out, &len);
-		memcpy (t, out, 32); memcpy (t + 32, info, 8); t[40] = 0x02;
-		HMAC(EVP_sha256(), prk, 32, t, 41, t, &len); 
-		memcpy (out + 32, t, outLen % 32); // outLen doesn't exceed 64 
+		auto l = info.length ();
+		memcpy (out, info.c_str (), l); out[l] = 0x01;
+		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
+		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
+		HMAC(EVP_sha256(), prk, 32, out, 41, out + 32, &len); 
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const

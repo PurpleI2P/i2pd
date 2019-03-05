@@ -100,6 +100,7 @@ namespace data
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
+			const uint8_t * GetSigningPublicKeyBuffer () const; // returns NULL for P521
 			size_t GetSigningPrivateKeyLen () const;
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;

@@ -276,6 +276,13 @@ namespace data
 		return 128;
 	}
 
+	const uint8_t * IdentityEx::GetSigningPublicKeyBuffer () const
+	{
+		auto keyLen = GetSigningPublicKeyLen ();
+		if (keyLen > 128) return nullptr; // P521
+		return m_StandardIdentity.signingKey + 128 - keyLen;
+	}
+
 	size_t IdentityEx::GetSigningPrivateKeyLen () const
 	{
 		if (!m_Verifier) CreateVerifier ();

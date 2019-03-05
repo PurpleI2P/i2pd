@@ -156,7 +156,7 @@ namespace data
 
 			// for encrypted LS
 			void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
-			void HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const char * info, uint8_t * out, size_t outLen); // salt - 32, info - 8
+			void HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const std::string& info, uint8_t * out); // salt - 32, out - 64, info <= 32 
 
 		private:
 
