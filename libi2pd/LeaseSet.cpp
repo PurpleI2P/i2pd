@@ -530,7 +530,7 @@ namespace data
 		memcpy (out, info.c_str (), l); out[l] = 0x01;
 		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
 		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
-		HMAC(EVP_sha256(), prk, 32, out, 41, out + 32, &len); 
+		HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
 	}
 
 	void LeaseSet2::BlindPublicKey (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, uint8_t * blindedKey)
@@ -541,6 +541,18 @@ namespace data
 		H ("I2PGenerateAlpha", { {identity->GetSigningPublicKeyBuffer (), identity->GetSigningPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
 		HKDF (salt, { (const uint8_t *)date, 8 }, "i2pblinding1", seed);
 		i2p::crypto::GetEd25519 ()->BlindPublicKey (identity->GetSigningPublicKeyBuffer (), seed, blindedKey);
+	}
+
+	void LeaseSet2::CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash)
+	{
+		uint8_t blinded[32];
+		BlindPublicKey (identity, date, blindedKeyType, blinded);		
+		auto stA1 = htobe16 (blindedKeyType);
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
+		SHA256_Update (&ctx, blinded, 32);
+		SHA256_Final ((uint8_t *)hash, &ctx);
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const

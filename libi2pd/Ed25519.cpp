@@ -495,7 +495,7 @@ namespace crypto
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		// calculate alpha = seed mod l
-		BIGNUM * alpha = DecodeBN<64> (seed); // pub is in Little Endian 
+		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian 
 		BN_mod (alpha, alpha, l, ctx); // % l
 		uint8_t priv[32];	
 		EncodeBN (alpha, priv, 32); // back to Little Endian
