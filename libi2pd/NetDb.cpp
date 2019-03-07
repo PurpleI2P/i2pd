@@ -304,7 +304,7 @@ namespace data
 		if (leaseSet->IsValid ())
 		{
 			auto it = m_LeaseSets.find(ident);
-			if (it == m_LeaseSets.end () || it->second->GetStoreType () == i2p::data::NETDB_STORE_TYPE_LEASESET ||
+			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
 				// TODO: implement actual update
