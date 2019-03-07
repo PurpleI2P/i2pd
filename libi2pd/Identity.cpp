@@ -1,8 +1,7 @@
-#include <time.h>
-#include <stdio.h>
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "Identity.h"
 
 namespace i2p
@@ -774,15 +773,7 @@ namespace data
 	{
 		uint8_t buf[41]; // ident + yyyymmdd
 		memcpy (buf, (const uint8_t *)ident, 32);
-		time_t t = time (nullptr);
-		struct tm tm;
-#ifdef _WIN32
-		gmtime_s(&tm, &t);
-		sprintf_s((char *)(buf + 32), 9, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-#else
-		gmtime_r(&t, &tm);
-		sprintf((char *)(buf + 32), "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-#endif
+		i2p::util::GetCurrentDate ((char *)(buf + 32));
 		IdentHash key;
 		SHA256(buf, 40, key);
 		return key;

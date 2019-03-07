@@ -139,7 +139,7 @@ namespace data
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
-			static void CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash);
+			static void CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash);
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;

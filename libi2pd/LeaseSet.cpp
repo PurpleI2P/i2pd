@@ -466,6 +466,19 @@ namespace data
 		if (verified && identity && lenOuterCiphertext >= 32)
 		{
 			SetIsValid (false); // we must verify it again in Layer 2 
+			if (blindedKeyType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519)
+			{
+				// verify blinding
+				char date[9];
+				i2p::util::GetCurrentDate (date);
+				uint8_t blinded[32];
+				BlindPublicKey (identity, date, blindedKeyType, blinded);
+				if (memcmp (blindedPublicKey, blinded, 32))
+				{
+					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
+					return;
+				}	
+			}	
 			// credentials
 			uint8_t credential[32], subcredential[36];
 			// A = destination's signing public key 
@@ -543,8 +556,16 @@ namespace data
 		i2p::crypto::GetEd25519 ()->BlindPublicKey (identity->GetSigningPublicKeyBuffer (), seed, blindedKey);
 	}
 
-	void LeaseSet2::CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash)
+	void LeaseSet2::CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash)
 	{
+		if (blindedKeyType != i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 &&
+			blindedKeyType != SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+		{
+			LogPrint (eLogError, "LeaseSet2: blinded key type ", (int)blindedKeyType, " is not supported");			
+			return;
+		}
+		char date[9];
+		i2p::util::GetCurrentDate (date);
 		uint8_t blinded[32];
 		BlindPublicKey (identity, date, blindedKeyType, blinded);		
 		auto stA1 = htobe16 (blindedKeyType);
