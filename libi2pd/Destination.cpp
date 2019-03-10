@@ -272,15 +272,20 @@ namespace client
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
 			UpdateLeaseSet ();
+		return GetLeaseSetMt ();
+	}
+
+	std::shared_ptr<const i2p::data::LocalLeaseSet> LeaseSetDestination::GetLeaseSetMt ()
+	{
 		std::lock_guard<std::mutex> l(m_LeaseSetMutex);
 		return m_LeaseSet;
 	}
-
-	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
+		
+	void LeaseSetDestination::SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet)
 	{
 		{
 			std::lock_guard<std::mutex> l(m_LeaseSetMutex);
-			m_LeaseSet.reset (newLeaseSet);
+			m_LeaseSet = newLeaseSet;
 		}
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
@@ -505,7 +510,8 @@ namespace client
 
 	void LeaseSetDestination::Publish ()
 	{
-		if (!m_LeaseSet || !m_Pool)
+		auto leaseSet = GetLeaseSetMt ();
+		if (!leaseSet || !m_Pool)
 		{
 			LogPrint (eLogError, "Destination: Can't publish non-existing LeaseSet");
 			return;
@@ -537,7 +543,7 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
 			return;
 		}
-		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), m_ExcludedFloodfills);
+		auto floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 		if (!floodfill)
 		{
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
@@ -547,7 +553,7 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
-		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken, inbound));
+		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound));
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -592,7 +598,8 @@ namespace client
 				{
 					if (leaseSet)
 					{
-						if (s->m_LeaseSet && *s->m_LeaseSet == *leaseSet)
+						auto ls = s->GetLeaseSetMt ();
+						if (ls && *ls == *leaseSet)
 						{
 							// we got latest LeasetSet
 							LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", GetIdentHash().ToBase32());
@@ -1081,10 +1088,10 @@ namespace client
 
 	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
-		i2p::data::LocalLeaseSet * leaseSet = nullptr;
+		std::shared_ptr<i2p::data::LocalLeaseSet> leaseSet;
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 		{
-			leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
+			leaseSet = std::make_shared<i2p::data::LocalLeaseSet> (GetIdentity (), m_EncryptionPublicKey, tunnels);
 			// sign
 			Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); 
 		}
@@ -1092,7 +1099,7 @@ namespace client
 		{
 			// standard LS2 (type 3) assumed for now. TODO: implement others
 			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
-			leaseSet = new i2p::data::LocalLeaseSet2 (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
+			leaseSet = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
 		}
 		SetLeaseSet (leaseSet);

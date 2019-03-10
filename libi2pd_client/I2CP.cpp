@@ -63,14 +63,14 @@ namespace client
 
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
 	{
-		auto ls = new i2p::data::LocalLeaseSet (m_Identity, buf, len);
+		auto ls = std::make_shared<i2p::data::LocalLeaseSet> (m_Identity, buf, len);
 		ls->SetExpirationTime (m_LeaseSetExpirationTime);
 		SetLeaseSet (ls);
 	}
 
 	void I2CPDestination::LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len)
 	{
-		auto ls = new i2p::data::LocalLeaseSet2 (storeType, m_Identity, buf, len);
+		auto ls = std::make_shared<i2p::data::LocalLeaseSet2> (storeType, m_Identity, buf, len);
 		ls->SetExpirationTime (m_LeaseSetExpirationTime);	
 		SetLeaseSet (ls);
 	}

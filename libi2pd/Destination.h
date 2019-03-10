@@ -127,7 +127,7 @@ namespace client
 
 		protected:
 
-			void SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet);
+			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
@@ -139,6 +139,7 @@ namespace client
 
 			void Run ();
 			void UpdateLeaseSet ();
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
@@ -164,7 +165,7 @@ namespace client
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::mutex m_LeaseSetMutex;
-			std::shared_ptr<i2p::data::LocalLeaseSet> m_LeaseSet;
+			std::shared_ptr<const i2p::data::LocalLeaseSet> m_LeaseSet;
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
 			uint64_t m_LastSubmissionTime; // in seconds
