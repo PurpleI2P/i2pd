@@ -494,7 +494,7 @@ namespace data
 			// outerSalt = outerCiphertext[0:32]
 			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
 			uint8_t keys[64]; // 44 bytes actual data
-			HKDF (outerCiphertext, {subcredential, 36}, "ELS2_L1K", keys);
+			i2p::crypto::HKDF (outerCiphertext, subcredential, 36, "ELS2_L1K", keys);
 			// decrypt Layer 1
 			// outerKey = keys[0:31]
 			// outerIV = keys[32:43]
@@ -505,7 +505,7 @@ namespace data
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
 			// skip 1 byte flags
-			HKDF (outerPlainText.data () + 1, {subcredential, 36}, "ELS2_L2K", keys); // no authCookie
+			i2p::crypto::HKDF (outerPlainText.data () + 1, subcredential, 36, "ELS2_L2K", keys); // no authCookie
 			// decrypt Layer 2
 			// innerKey = keys[0:31]
 			// innerIV = keys[32:43]
@@ -535,24 +535,13 @@ namespace data
 		SHA256_Final (hash, &ctx);
 	}
 
-	void LeaseSet2::HKDF (const uint8_t * salt, const std::pair<const uint8_t *, size_t>& ikm, const std::string& info, uint8_t * out)
-	{	
-		uint8_t prk[32]; unsigned int len;
-		HMAC(EVP_sha256(), salt, 32, ikm.first, ikm.second, prk, &len); 
-		auto l = info.length ();
-		memcpy (out, info.c_str (), l); out[l] = 0x01;
-		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
-		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
-		HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
-	}
-
 	void LeaseSet2::BlindPublicKey (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, uint8_t * blindedKey)
 	{
 		uint16_t stA = htobe16 (identity->GetSigningKeyType ()), stA1 = htobe16 (blindedKeyType);
 		uint8_t salt[32], seed[64];
 		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
 		H ("I2PGenerateAlpha", { {identity->GetSigningPublicKeyBuffer (), identity->GetSigningPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
-		HKDF (salt, { (const uint8_t *)date, 8 }, "i2pblinding1", seed);
+		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
 		i2p::crypto::GetEd25519 ()->BlindPublicKey (identity->GetSigningPublicKeyBuffer (), seed, blindedKey);
 	}
 

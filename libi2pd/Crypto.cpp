@@ -8,11 +8,14 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
-#include "Crypto.h"
+#if OPENSSL_HKDF
+#include <openssl/kdf.h>
+#endif
 #if !OPENSSL_AEAD_CHACHA20_POLY1305
 #include "ChaCha20.h"
 #include "Poly1305.h"
 #endif
+#include "Crypto.h"
 #include "Ed25519.h"
 #include "I2PEndian.h"
 #include "Log.h"
@@ -1242,6 +1245,30 @@ namespace crypto
 		chacha::Chacha20Init (state, nonce, key, 1);	
 		if (out != msg) memcpy (out, msg, msgLen);
 		chacha::Chacha20Encrypt (state, out, msgLen);
+#endif
+	}
+
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out)
+	{
+#if OPENSSL_HKDF
+		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, NULL);
+		EVP_PKEY_derive_init (pctx);
+		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
+		EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
+		EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
+		if (info.length () > 0)
+			EVP_PKEY_CTX_add1_hkdf_info (pctx, info.c_str (), info.length ());
+		size_t outlen = 64;
+		EVP_PKEY_derive (pctx, out, &outlen);
+		EVP_PKEY_CTX_free (pctx);
+#else
+		uint8_t prk[32]; unsigned int len;
+		HMAC(EVP_sha256(), salt, 32, key, keyLen, prk, &len); 
+		auto l = info.length ();
+		memcpy (out, info.c_str (), l); out[l] = 0x01;
+		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
+		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
+		HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
 #endif
 	}
 
