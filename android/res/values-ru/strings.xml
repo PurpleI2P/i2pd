@@ -16,4 +16,5 @@
     <string name="stopped">Приложение было остановлено</string>
     <string name="remaining">осталось</string>
     <string name="title_activity_i2_pdperms_asker_prompt">Запрос</string>
+    <string name="permDenied">Права для записи на SD карту отклонены, вам необходимо предоставить их для продолжения</string>
 </resources>

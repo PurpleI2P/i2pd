@@ -12,7 +12,5 @@ local.properties
 build.sh
 android.iml
 build
-gradle
-gradlew
-gradlew.bat
+
 
