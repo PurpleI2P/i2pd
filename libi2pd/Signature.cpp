@@ -97,7 +97,7 @@ namespace crypto
 		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];	
 		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
 		EVP_PKEY_get_raw_public_key (m_Pkey, publicKey, &len);
-		if (memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
+		if (signingPublicKey && memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
 		{
 			LogPrint (eLogWarning, "EdDSA public key mismatch. Fallback");
 			EVP_PKEY_free (m_Pkey);

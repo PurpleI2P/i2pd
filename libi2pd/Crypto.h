@@ -27,6 +27,7 @@
 #   define X509_getm_notAfter X509_get_notAfter
 #else
 #   define LEGACY_OPENSSL 0
+#	define OPENSSL_HKDF 1
 #   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
 #	   define OPENSSL_EDDSA 1
 #	   define OPENSSL_X25519 1
@@ -289,6 +290,13 @@ namespace crypto
 	bool AEADChaCha20Poly1305 (const uint8_t * msg, size_t msgLen, const uint8_t * ad, size_t adLen, const uint8_t * key, const uint8_t * nonce, uint8_t * buf, size_t len, bool encrypt); // msgLen is len without tag
 
 	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac); // encrypt multiple buffers with zero ad
+
+// ChaCha20
+	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out);
+
+// HKDF
+
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out); // salt - 32, out - 64, info <= 32 
 
 // init and terminate
 	void InitCrypto (bool precomputation);

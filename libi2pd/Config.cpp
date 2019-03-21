@@ -256,6 +256,7 @@ namespace config {
 		options_description persist("Network information persisting options");
 		persist.add_options()
 			("persist.profiles", value<bool>()->default_value(true), "Persist peer profiles (default: true)")
+			("persist.addressbook", value<bool>()->default_value(true), "Persist full addreses (default: true)")
 		;
 
 		m_OptionsDesc

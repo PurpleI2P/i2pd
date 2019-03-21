@@ -1,8 +1,7 @@
-#include <time.h>
-#include <stdio.h>
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "Identity.h"
 
 namespace i2p
@@ -77,6 +76,7 @@ namespace data
 					LogPrint (eLogError, "Identity: RSA signing key type ", (int)type, " is not supported");
 				break;
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+				case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				{
 					size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
 					RAND_bytes (m_StandardIdentity.signingKey, padding);
@@ -275,6 +275,13 @@ namespace data
 		return 128;
 	}
 
+	const uint8_t * IdentityEx::GetSigningPublicKeyBuffer () const
+	{
+		auto keyLen = GetSigningPublicKeyLen ();
+		if (keyLen > 128) return nullptr; // P521
+		return m_StandardIdentity.signingKey + 128 - keyLen;
+	}
+
 	size_t IdentityEx::GetSigningPrivateKeyLen () const
 	{
 		if (!m_Verifier) CreateVerifier ();
@@ -331,6 +338,7 @@ namespace data
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				return new i2p::crypto::ECDSAP521Verifier ();
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::EDDSA25519Verifier ();
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				return new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA);
@@ -603,6 +611,7 @@ namespace data
 				LogPrint (eLogError, "Identity: RSA signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, IsOfflineSignature () ? nullptr: m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH)); // TODO: remove public key check
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
@@ -695,6 +704,7 @@ namespace data
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
 			// no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
@@ -763,15 +773,7 @@ namespace data
 	{
 		uint8_t buf[41]; // ident + yyyymmdd
 		memcpy (buf, (const uint8_t *)ident, 32);
-		time_t t = time (nullptr);
-		struct tm tm;
-#ifdef _WIN32
-		gmtime_s(&tm, &t);
-		sprintf_s((char *)(buf + 32), 9, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-#else
-		gmtime_r(&t, &tm);
-		sprintf((char *)(buf + 32), "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-#endif
+		i2p::util::GetCurrentDate ((char *)(buf + 32));
 		IdentHash key;
 		SHA256(buf, 40, key);
 		return key;

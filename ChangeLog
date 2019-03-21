@@ -1,6 +1,25 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.24.0] - 2019-03-21
+### Added
+- Support of transient keys for LeaseSet2
+- Support of encrypted LeaseSet2
+- Recognize signature type 11 (RedDSA)
+- Support websocket connections over HTTP proxy
+- Ability to disable full addressbook persist
+### Changed
+- Don't load peer profiles if non-persistant
+- REUSE_ADDR for ipv6 acceptors
+- Reset eTags if addressbook can't be loaded
+### Fixed
+- Build with boost 1.70
+- Filter out unspecified addresses from RouterInfo
+- Check floodfill status change
+- Correct SAM response for invalid key
+- SAM crash on termination for Windows
+- Race condition for publishing
+ 
 ## [2.23.0] - 2019-01-21
 ### Added
 - Standard LeaseSet2 support

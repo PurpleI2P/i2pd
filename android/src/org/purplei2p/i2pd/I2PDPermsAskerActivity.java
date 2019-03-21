@@ -119,11 +119,10 @@ public class I2PDPermsAskerActivity extends Activity {
 
 					// permission denied, boo! Disable the
 					// functionality that depends on this permission.
-					textview_retry.setText("SD card write permission denied, you need to allow this to continue");
+					textview_retry.setText(R.string.permDenied);
 					textview_retry.setVisibility(TextView.VISIBLE);
 					button_request_write_ext_storage_perms.setVisibility(Button.VISIBLE);
 				}
-				return;
 			}
 
 			// other 'case' lines to check for other

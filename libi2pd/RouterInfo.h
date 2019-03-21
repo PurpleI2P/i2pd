@@ -102,7 +102,6 @@ namespace data
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
-				std::string addressString;
 				int port;
 				uint64_t date;
 				uint8_t cost;
@@ -170,6 +169,7 @@ namespace data
 			void EnableV4 ();
 			void DisableV4 ();
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
 			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };

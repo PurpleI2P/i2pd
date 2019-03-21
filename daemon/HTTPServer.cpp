@@ -798,8 +798,7 @@ namespace http {
 	}
 
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-		m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0),
-		expected_host(hostname)
+		m_Socket (socket), m_BufferLen (0), expected_host(hostname)
 	{
 		/* cache options */
 		i2p::config::GetOption("http.auth", needAuth);

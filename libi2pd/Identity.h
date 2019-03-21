@@ -67,9 +67,9 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
 	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519ph = 8; // not implemented
-	// following signature type should never appear in netid=2
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
+	const uint16_t SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 = 11; // for LeaseSet2 only
 
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
@@ -100,6 +100,7 @@ namespace data
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
+			const uint8_t * GetSigningPublicKeyBuffer () const; // returns NULL for P521
 			size_t GetSigningPrivateKeyLen () const;
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;

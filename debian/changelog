@@ -1,3 +1,10 @@
+i2pd (2.24.0-1) unstable; urgency=medium
+
+  * updated to version 2.24.0/0.9.39
+  * update docs, dirs, install, links files
+
+ -- orignal <orignal@i2pmail.org>  Thu, 21 Mar 2019 16:00:00 +0000
+
 i2pd (2.23.0-1) unstable; urgency=medium
 
   * updated to version 2.23.0/0.9.38

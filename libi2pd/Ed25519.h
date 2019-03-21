@@ -80,6 +80,7 @@ namespace crypto
 			void ScalarMul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number for x25519
 			void ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const;
 #endif
+			void BlindPublicKey (const uint8_t * pub, const uint8_t * seed, uint8_t * blinded); // for encrypted LeaseSet2, pub - 32, seed - 64, blinded - 32
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;

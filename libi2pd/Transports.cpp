@@ -426,37 +426,28 @@ namespace transport
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
-#if BOOST_VERSION >= 104900
-					if (!address->host.is_unspecified ()) // we have address now
-#else
-					boost::system::error_code ecode;
-				  address->host.to_string (ecode);
-					if (!ecode)
-#endif
+					if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
 					{
-						if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
+						if(!m_NTCPServer->ShouldLimit())
 						{
-							if(!m_NTCPServer->ShouldLimit())
+							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+							if(m_NTCPServer->UsingProxy())
 							{
-								auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-								if(m_NTCPServer->UsingProxy())
-								{
-									NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
-									std::string addr = address->host.to_string();
+								NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
+								std::string addr = address->host.to_string();
 
-									if(address->host.is_v6())
-										remote = NTCPServer::eIP6Address;
+								if(address->host.is_v6())
+									remote = NTCPServer::eIP6Address;
 
-									m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
-								}
-								else
-									m_NTCPServer->Connect (address->host, address->port, s);
-								return true;
+								m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
 							}
 							else
-							{
-								LogPrint(eLogWarning, "Transports: NTCP Limit hit falling back to SSU");
-							}
+								m_NTCPServer->Connect (address->host, address->port, s);
+							return true;
+						}
+						else
+						{
+							LogPrint(eLogWarning, "Transports: NTCP Limit hit falling back to SSU");
 						}
 					}
 				}
@@ -469,17 +460,8 @@ namespace transport
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
 				{
 					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-#if BOOST_VERSION >= 104900
-					if (!address->host.is_unspecified ()) // we have address now
-#else
-					boost::system::error_code ecode;
-					address->host.to_string (ecode);
-					if (!ecode)
-#endif
-					{
-						m_SSUServer->CreateSession (peer.router, address->host, address->port);
-						return true;
-					}
+					m_SSUServer->CreateSession (peer.router, address->host, address->port);
+					return true;
 				}
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");

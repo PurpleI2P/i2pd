@@ -6,14 +6,12 @@ import android.util.Log;
 import org.purplei2p.i2pd.R;
 
 public class DaemonSingleton {
-	private static final String TAG="i2pd";
+	private static final String TAG = "i2pd";
 	private static final DaemonSingleton instance = new DaemonSingleton();
 	public interface StateUpdateListener { void daemonStateUpdate(); }
 	private final Set<StateUpdateListener> stateUpdateListeners = new HashSet<>();
 
-	public static DaemonSingleton getInstance() {
-		return instance;
-	}
+	public static DaemonSingleton getInstance() { return instance; }
 
 	public synchronized void addStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.add(listener); }
 	public synchronized void removeStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.remove(listener); }
@@ -91,7 +89,6 @@ public class DaemonSingleton {
 				} catch (Throwable tr) {
 					lastThrowable=tr;
 					setState(State.startFailed);
-					return;
 				}
 			}
 

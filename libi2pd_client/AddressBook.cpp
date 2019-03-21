@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <openssl/rand.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -30,7 +31,10 @@ namespace client
 			std::string etagsPath, indexPath, localPath;
 
 		public:
-			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
+			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") 
+			{
+				i2p::config::GetOption("persist.addressbook", m_IsPersist);
+			}
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
@@ -42,11 +46,15 @@ namespace client
 
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+			void ResetEtags ();
 
 		private:
 
 			int LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses); // returns -1 if can't open file, otherwise number of records
 
+		private:
+
+			bool m_IsPersist;
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -69,6 +77,11 @@ namespace client
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
+		if (!m_IsPersist) 
+		{
+			LogPrint(eLogDebug, "Addressbook: Persistance is disabled");
+			return nullptr;	
+		}
 		std::string filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
 		if (!f.is_open ()) {
@@ -92,6 +105,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
+		if (!m_IsPersist) return;
 		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 		if (!f.is_open ())	{
@@ -107,6 +121,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
+		if (!m_IsPersist) return;	
 		storage.Remove( ident.ToBase32() );
 	}
 
@@ -203,6 +218,17 @@ namespace client
 		if (f.eof ()) return false;
 		std::getline (f, lastModified);
 		return true;
+	}
+
+	void AddressBookFilesystemStorage::ResetEtags ()
+	{
+		LogPrint (eLogError, "Addressbook: resetting eTags");
+		for (boost::filesystem::directory_iterator it (etagsPath); it != boost::filesystem::directory_iterator (); ++it)
+		{
+			if (!boost::filesystem::is_regular_file (it->status ()))
+				continue;
+			boost::filesystem::remove (it->path ());
+		}
 	}
 
 //---------------------------------------------------------------------
@@ -343,6 +369,9 @@ namespace client
 			LoadHostsFromStream (f, false);
 			m_IsLoaded = true;
 		}
+
+		// reset eTags, because we don’t know how old hosts.txt is or can't load addressbook
+		m_Storage->ResetEtags ();
 	}
 
 	bool AddressBook::LoadHostsFromStream (std::istream& f, bool is_update)

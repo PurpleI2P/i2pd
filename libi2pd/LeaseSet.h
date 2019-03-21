@@ -78,6 +78,7 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
+			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
 			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
 
 			// implements RoutingDestination
@@ -132,9 +133,13 @@ namespace data
 		public:
 
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
+			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
+			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
+
+			static void CalculateStoreHash (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType, i2p::data::IdentHash& hash);
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
@@ -142,7 +147,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity = true, bool verifySignature = true);
-			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len);
+			void ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const IdentityEx> identity);
 			size_t ReadStandardLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 			size_t ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len);
 
@@ -151,9 +156,14 @@ namespace data
 
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
 
+			// for encrypted LS
+			static void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
+			static void BlindPublicKey (std::shared_ptr<const IdentityEx> identity, const char * date, SigningKeyType blindedKeyType, uint8_t * blindedKey); // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
+
 		private:
 
 			uint8_t m_StoreType;
+			uint32_t m_PublishedTimestamp = 0;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};

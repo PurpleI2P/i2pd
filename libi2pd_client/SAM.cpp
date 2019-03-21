@@ -359,6 +359,24 @@ namespace client
 			}
 			forward = std::make_shared<boost::asio::ip::udp::endpoint>(addr, port);
 		}
+		
+		//ensure we actually received a destination
+		if (destination.empty())
+		{
+			SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+			return;
+		}
+
+		if (destination != SAM_VALUE_TRANSIENT)
+		{	
+			//ensure it's a base64 string
+			i2p::data::PrivateKeys keys;
+			if (!keys.FromBase64(destination))
+			{
+				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+				return;
+			}
+		}		
 
 		// create destination
 		auto session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination, &params);
