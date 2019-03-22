@@ -24,7 +24,7 @@ RUN mkdir -p "$I2PD_HOME" "$DATA_DIR" \
 # 1. install deps, clone and build.
 # 2. strip binaries.
 # 3. Purge all dependencies and other unrelated packages, including build directory.
-RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool boost-dev build-base openssl-dev openssl git \
+RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib-dev boost-dev build-base openssl-dev openssl git \
     && mkdir -p /tmp/build \
     && cd /tmp/build && git clone -b ${GIT_BRANCH} ${REPO_URL} \
     && cd i2pd \
