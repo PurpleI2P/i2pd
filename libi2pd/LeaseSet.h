@@ -133,6 +133,7 @@ namespace data
 		public:
 
 			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);
+			BlindedPublicKey (const std::string& b33); // from b33 without .b32.i2p			
 
 			const uint8_t * GetPublicKey () const { return m_PublicKey.data (); };
 			size_t GetPublicKeyLen () const { return m_PublicKey.size (); };

@@ -1,6 +1,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
+#include <zlib.h> // for crc32
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Ed25519.h"
@@ -261,6 +262,41 @@ namespace data
 		m_PublicKey.resize (len);
 		memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), len);
 		m_SigType = identity->GetSigningKeyType ();
+	}
+
+	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
+	{
+		uint8_t addr[40]; // TODO: define lenght from b33
+		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
+		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
+		// checksum is Little Endian
+		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16);  
+		uint8_t flag = addr[0];
+		size_t offset = 1;	
+		if (flag & 0x01) // two bytes signatures
+		{
+			m_SigType = bufbe16toh (addr + offset); offset += 2;
+			m_BlindedSigType = bufbe16toh (addr + offset); offset += 2;
+		}
+		else // one byte sig
+		{
+			m_SigType = addr[offset]; offset++;
+			m_BlindedSigType = addr[offset]; offset++;
+		}
+		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (m_SigType));
+		if (blindedVerifier)
+		{
+			auto len = blindedVerifier->GetPublicKeyLen ();
+			if (offset + len <= l)
+			{
+				m_PublicKey.resize (len);
+				memcpy (m_PublicKey.data (), addr + offset, len);
+			}
+			else
+				LogPrint (eLogError, "LeaseSet2: public key in b33 address is too short for signature type ", (int)m_SigType);	
+		}
+		else
+			LogPrint (eLogError, "LeaseSet2: unknown signature type ", (int)m_SigType, " in b33");
 	}
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
