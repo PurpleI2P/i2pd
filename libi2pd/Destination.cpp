@@ -419,9 +419,9 @@ namespace client
 			case i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2: // 5
 			{
 				auto it2 = m_LeaseSetRequests.find (key);
-				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedIdentity)
+				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedBlindedKey)
 				{
-					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedIdentity);
+					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedBlindedKey);
 					if (ls2->IsValid ())
 					{
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
@@ -644,9 +644,10 @@ namespace client
 				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
+		auto blindedKey = std::make_shared<i2p::data::BlindedPublicKey>(dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);  // always assume type 11
 		i2p::data::IdentHash ident;
-		i2p::data::LeaseSet2::CalculateStoreHash (dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519, ident); // always assume type 11
-		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), ident, requestComplete, dest));
+		i2p::data::LeaseSet2::CalculateStoreHash (blindedKey, ident);
+		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), ident, requestComplete, blindedKey));
 		return true;
 	}
 
@@ -667,19 +668,20 @@ namespace client
 
 	void LeaseSetDestination::CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::IdentityEx> dest, bool notify)
 	{
+		auto blindedKey = std::make_shared<i2p::data::BlindedPublicKey>(dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);  // always assume type 11
 		i2p::data::IdentHash ident;
-		i2p::data::LeaseSet2::CalculateStoreHash (dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519, ident); // always assume type 11
+		i2p::data::LeaseSet2::CalculateStoreHash (blindedKey, ident); 
 		CancelDestinationRequest (ident, notify);
 	}
 
-	void LeaseSetDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::IdentityEx> requestedIdentity)
+	void LeaseSetDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey)
 	{
 		std::set<i2p::data::IdentHash> excluded;
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, excluded);
 		if (floodfill)
 		{
 			auto request = std::make_shared<LeaseSetRequest> (m_Service);
-			request->requestedIdentity = requestedIdentity; // for encrypted LeaseSet2
+			request->requestedBlindedKey = requestedBlindedKey; // for encrypted LeaseSet2
 			if (requestComplete)
 				request->requestComplete.push_back (requestComplete);
 			auto ts = i2p::util::GetSecondsSinceEpoch ();

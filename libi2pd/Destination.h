@@ -82,7 +82,7 @@ namespace client
 			std::list<RequestComplete> requestComplete;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
 			std::shared_ptr<i2p::tunnel::InboundTunnel> replyTunnel;
-			std::shared_ptr<const i2p::data::IdentityEx> requestedIdentity; // for encrypted LeaseSet2 only
+			std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey; // for encrypted LeaseSet2 only
 
 			void Complete (std::shared_ptr<i2p::data::LeaseSet> ls)
 			{
@@ -148,7 +148,7 @@ namespace client
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
 			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
-			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::IdentityEx> requestedIdentity = nullptr);
+			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey = nullptr);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
