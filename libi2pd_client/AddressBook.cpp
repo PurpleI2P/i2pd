@@ -40,9 +40,9 @@ namespace client
 			void RemoveAddress (const i2p::data::IdentHash& ident);
 
 			bool Init ();
-			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
-			int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses);
-			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
+			int Load (std::map<std::string, std::shared_ptr<Address> > & addresses);
+			int LoadLocal (std::map<std::string, std::shared_ptr<Address> >& addresses);
+			int Save (const std::map<std::string, std::shared_ptr<Address> >& addresses);
 
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
@@ -50,7 +50,7 @@ namespace client
 
 		private:
 
-			int LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses); // returns -1 if can't open file, otherwise number of records
+			int LoadFromFile (const std::string& filename, std::map<std::string, std::shared_ptr<Address> >& addresses); // returns -1 if can't open file, otherwise number of records
 
 		private:
 
@@ -125,7 +125,7 @@ namespace client
 		storage.Remove( ident.ToBase32() );
 	}
 
-	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
 		int num = 0;
 		std::ifstream f (filename, std::ifstream::in); // in text mode
@@ -144,16 +144,14 @@ namespace client
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
-				i2p::data::IdentHash ident;
-				ident.FromBase32 (addr);
-				addresses[name] = ident;
+				addresses[name] = std::make_shared<Address>(addr);
 				num++;
 			}
 		}
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::Load (std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
 		int num = LoadFromFile (indexPath, addresses);
 		if (num < 0)
@@ -167,7 +165,7 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::LoadLocal (std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
 		int num = LoadFromFile (localPath, addresses);
 		if (num < 0) return 0;
@@ -175,7 +173,7 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::Save (const std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::Save (const std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
 		if (addresses.empty()) {
 			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
@@ -190,9 +188,14 @@ namespace client
 			return 0;
 		}
 
-		for (const auto& it: addresses) {
-			f << it.first << "," << it.second.ToBase32 () << std::endl;
-			num++;
+		for (const auto& it: addresses)
+		{
+			if (it.second->IsIdentHash ())
+			{	
+				f << it.first << "," << it.second->identHash.ToBase32 () << std::endl;
+				num++;
+			}
+			// TODO: save blinded public key
 		}
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;
@@ -232,6 +235,27 @@ namespace client
 	}
 
 //---------------------------------------------------------------------
+
+	Address::Address (const std::string& b32)
+	{
+		if (b32.length () <= B33_ADDRESS_THRESHOLD)
+		{
+			addressType = eAddressIndentHash;
+			identHash.FromBase32 (b32);
+		}
+		else
+		{
+			addressType = eAddressBlindedPublicKey;
+			blindedPublicKey = std::make_shared<i2p::data::BlindedPublicKey>(b32);
+		}
+	}	
+
+	Address::Address (const i2p::data::IdentHash& hash)
+	{
+		addressType = eAddressIndentHash;
+		identHash = hash;	
+	}
+
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
 		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
 	{
@@ -296,19 +320,29 @@ namespace client
 		auto pos = address.find(".b32.i2p");
 		if (pos != std::string::npos)
 		{
-			Base32ToByteStream (address.c_str(), pos, ident, 32);
-			return true;
+			if (pos <= B33_ADDRESS_THRESHOLD)
+			{
+				Base32ToByteStream (address.c_str(), pos, ident, 32);
+				return true;
+			}
+			else
+				return false;	
 		}
 		else
 		{
 			pos = address.find (".i2p");
 			if (pos != std::string::npos)
 			{
-				auto identHash = FindAddress (address);
-				if (identHash)
+				auto addr = FindAddress (address);
+				if (addr)
 				{
-					ident = *identHash;
-					return true;
+					if (addr->IsIdentHash ())
+					{
+						ident = addr->identHash;
+						return true;
+					}
+					else
+						return false;	
 				}
 				else
 				{
@@ -325,11 +359,11 @@ namespace client
 		return true;
 	}
 
-	const i2p::data::IdentHash * AddressBook::FindAddress (const std::string& address)
+	std::shared_ptr<const Address> AddressBook::FindAddress (const std::string& address)
 	{
 		auto it = m_Addresses.find (address);
 		if (it != m_Addresses.end ())
-			return &it->second;
+			return it->second;
 		return nullptr;
 	}
 
@@ -338,16 +372,16 @@ namespace client
 		auto ident = std::make_shared<i2p::data::IdentityEx>();
 		ident->FromBase64 (base64);
 		m_Storage->AddAddress (ident);
-		m_Addresses[address] = ident->GetIdentHash ();
+		m_Addresses[address] = std::make_shared<Address>(ident->GetIdentHash ());
 		LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
 	}
 
-	void AddressBook::InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
+	void AddressBook::InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
 		m_Storage->AddAddress (address);
 	}
 
-	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetAddress (const std::string& address)
+	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetFullAddress (const std::string& address)
 	{
 		i2p::data::IdentHash ident;
 		if (!GetIdentHash (address, ident)) return nullptr;
@@ -408,16 +442,16 @@ namespace client
 				auto it = m_Addresses.find (name);
 				if (it != m_Addresses.end ()) // already exists ?
 				{
-					if (it->second != ident->GetIdentHash ()) // address changed?
+					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash ()) // address changed?
 					{
-						it->second = ident->GetIdentHash ();
+						it->second->identHash = ident->GetIdentHash ();
 						m_Storage->AddAddress (ident);
 						LogPrint (eLogInfo, "Addressbook: updated host: ", name);
 					}
 				}
 				else
 				{
-					m_Addresses.insert (std::make_pair (name, ident->GetIdentHash ()));
+					m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
 					m_Storage->AddAddress (ident);
 					if (is_update)
 						LogPrint (eLogInfo, "Addressbook: added new host: ", name);
@@ -472,32 +506,33 @@ namespace client
 
 	void AddressBook::LoadLocal ()
 	{
-		std::map<std::string, i2p::data::IdentHash> localAddresses;
+		std::map<std::string, std::shared_ptr<Address>> localAddresses;
 		m_Storage->LoadLocal (localAddresses);
 		for (const auto& it: localAddresses)
 		{
+			if (!it.second->IsIdentHash ()) continue; // skip blinded for now
 			auto dot = it.first.find ('.');
 			if (dot != std::string::npos)
 			{
 				auto domain = it.first.substr (dot + 1);
 				auto it1 = m_Addresses.find (domain);  // find domain in our addressbook
-				if (it1 != m_Addresses.end ())
+				if (it1 != m_Addresses.end () && it1->second->IsIdentHash ())
 				{
-					auto dest = context.FindLocalDestination (it1->second);
+					auto dest = context.FindLocalDestination (it1->second->identHash);
 					if (dest)
 					{
 						// address is ours
 						std::shared_ptr<AddressResolver> resolver;
-						auto it2 = m_Resolvers.find (it1->second);
+						auto it2 = m_Resolvers.find (it1->second->identHash);
 						if (it2 != m_Resolvers.end ())
 							resolver = it2->second; // resolver exists
 						else
 						{
 							// create new resolver
 							resolver = std::make_shared<AddressResolver>(dest);
-							m_Resolvers.insert (std::make_pair(it1->second, resolver));
+							m_Resolvers.insert (std::make_pair(it1->second->identHash, resolver));
 						}
-						resolver->AddAddress (it.first, it.second);
+						resolver->AddAddress (it.first, it.second->identHash);
 					}
 				}
 			}
@@ -627,11 +662,11 @@ namespace client
 
 	void AddressBook::LookupAddress (const std::string& address)
 	{
-		const i2p::data::IdentHash * ident = nullptr;
+		std::shared_ptr<const Address> addr;
 		auto dot = address.find ('.');
 		if (dot != std::string::npos)
-			ident = FindAddress (address.substr (dot + 1));
-		if (!ident)
+			addr = FindAddress (address.substr (dot + 1));
+		if (!addr || !addr->IsIdentHash ()) // TODO:
 		{
 			LogPrint (eLogError, "Addressbook: Can't find domain for ", address);
 			return;
@@ -649,14 +684,14 @@ namespace client
 					std::unique_lock<std::mutex> l(m_LookupsMutex);
 					m_Lookups[nonce] = address;
 				}
-				LogPrint (eLogDebug, "Addressbook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
+				LogPrint (eLogDebug, "Addressbook: Lookup of ", address, " to ", addr->identHash.ToBase32 (), " nonce=", nonce);
 				size_t len = address.length () + 9;
 				uint8_t * buf = new uint8_t[len];
 				memset (buf, 0, 4);
 				htobe32buf (buf + 4, nonce);
 				buf[8] = address.length ();
 				memcpy (buf + 9, address.c_str (), address.length ());
-				datagram->SendDatagramTo (buf, len, *ident, ADDRESS_RESPONSE_DATAGRAM_PORT, ADDRESS_RESOLVER_DATAGRAM_PORT);
+				datagram->SendDatagramTo (buf, len, addr->identHash, ADDRESS_RESPONSE_DATAGRAM_PORT, ADDRESS_RESOLVER_DATAGRAM_PORT);
 				delete[] buf;
 			}
 		}
@@ -686,7 +721,7 @@ namespace client
 			// TODO: verify from
 			i2p::data::IdentHash hash(buf + 8);
 			if (!hash.IsZero ())
-				m_Addresses[address] = hash;
+				m_Addresses[address] = std::make_shared<Address>(hash);
 			else
 				LogPrint (eLogInfo, "AddressBook: Lookup response: ", address, " not found");
 		}

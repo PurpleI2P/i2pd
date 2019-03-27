@@ -467,7 +467,7 @@ namespace client
 			size_t l = dest->FromBase64(destination);
 			if (l > 0)
 			{
-				context.GetAddressBook().InsertAddress(dest);
+				context.GetAddressBook().InsertFullAddress(dest);
 				auto leaseSet = session->localDestination->FindLeaseSet(dest->GetIdentHash());
 				if (leaseSet)
 					Connect(leaseSet);
@@ -615,7 +615,7 @@ namespace client
 		auto dest = session == nullptr ? context.GetSharedLocalDestination() : session->localDestination;
 		if (name == "ME")
 			SendNamingLookupReply (dest->GetIdentity ());
-		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
+		else if ((identity = context.GetAddressBook ().GetFullAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
 		else if (context.GetAddressBook ().GetIdentHash (name, ident))
 		{
@@ -654,7 +654,7 @@ namespace client
 	{
 		if (leaseSet)
 		{
-			context.GetAddressBook ().InsertAddress (leaseSet->GetIdentity ());
+			context.GetAddressBook ().InsertFullAddress (leaseSet->GetIdentity ());
 			SendNamingLookupReply (leaseSet->GetIdentity ());
 		}
 		else
@@ -844,7 +844,7 @@ namespace client
 			m_SocketType = eSAMSocketTypeStream;
 			m_IsAccepting = false;
 			m_Stream = stream;
-			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
+			context.GetAddressBook ().InsertFullAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)
 			{
