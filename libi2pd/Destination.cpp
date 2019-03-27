@@ -213,7 +213,7 @@ namespace client
 		return pool->Reconfigure(inLen, outLen, inQuant, outQuant);
 	}
 	
-	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
+	std::shared_ptr<i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
 		std::shared_ptr<i2p::data::LeaseSet> remoteLS;
 		{
@@ -425,6 +425,7 @@ namespace client
 					if (ls2->IsValid ())
 					{
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
+						m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
 						leaseSet = ls2;
 					}
 				}
@@ -594,7 +595,7 @@ namespace client
 			auto s = shared_from_this ();
 			RequestLeaseSet (GetIdentHash (),
 				// "this" added due to bug in gcc 4.7-4.8
-				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+				[s,this](std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
 					{
@@ -636,7 +637,7 @@ namespace client
 		return true;
 	}
 
-	bool LeaseSetDestination::RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::IdentityEx> dest, RequestComplete requestComplete)
+	bool LeaseSetDestination::RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete)
 	{
 		if (!m_Pool || !IsReady ())
 		{
@@ -644,10 +645,16 @@ namespace client
 				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
-		auto blindedKey = std::make_shared<i2p::data::BlindedPublicKey>(dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);  // always assume type 11
-		i2p::data::IdentHash ident;
-		i2p::data::LeaseSet2::CalculateStoreHash (blindedKey, ident);
-		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), ident, requestComplete, blindedKey));
+		i2p::data::IdentHash storeKey;
+		i2p::data::LeaseSet2::CalculateStoreHash (dest, storeKey);
+		auto leaseSet = FindLeaseSet (storeKey);	
+		if (leaseSet)
+		{
+			if (requestComplete)
+				m_Service.post ([requestComplete, leaseSet](void){requestComplete (leaseSet);});
+			return true;
+		}
+		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), storeKey, requestComplete, dest));
 		return true;
 	}
 
@@ -666,11 +673,10 @@ namespace client
 			});
 	}
 
-	void LeaseSetDestination::CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::IdentityEx> dest, bool notify)
+	void LeaseSetDestination::CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, bool notify)
 	{
-		auto blindedKey = std::make_shared<i2p::data::BlindedPublicKey>(dest, i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);  // always assume type 11
 		i2p::data::IdentHash ident;
-		i2p::data::LeaseSet2::CalculateStoreHash (blindedKey, ident); 
+		i2p::data::LeaseSet2::CalculateStoreHash (dest, ident); 
 		CancelDestinationRequest (ident, notify);
 	}
 
@@ -976,7 +982,7 @@ namespace client
 		{
 			auto s = GetSharedFromThis ();
 			RequestDestination (dest,
-				[s, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
+				[s, streamRequestComplete, port](std::shared_ptr<const i2p::data::LeaseSet> ls)
 				{
 					if (ls)
 						streamRequestComplete(s->CreateStream (ls, port));
@@ -984,6 +990,24 @@ namespace client
 						streamRequestComplete (nullptr);
 				});
 		}
+	}
+
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port)
+	{
+		if (!streamRequestComplete)
+		{
+			LogPrint (eLogError, "Destination: request callback is not specified in CreateStream");
+			return;
+		}
+		auto s = GetSharedFromThis ();
+		RequestDestinationWithEncryptedLeaseSet (dest,
+			[s, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
+			{
+				if (ls)
+					streamRequestComplete(s->CreateStream (ls, port));
+				else
+					streamRequestComplete (nullptr);
+			});
 	}
 
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
