@@ -29,7 +29,7 @@ namespace client
 	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;
 	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;
 
-	const size_t B33_ADDRESS_THRESHOLD = 56; // characters
+	const size_t B33_ADDRESS_THRESHOLD = 52; // characters
 
 	struct Address
 	{
