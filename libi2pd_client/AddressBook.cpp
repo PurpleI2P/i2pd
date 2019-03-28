@@ -189,13 +189,14 @@ namespace client
 		}
 
 		for (const auto& it: addresses)
-		{
+		{	
+			f << it.first << ",";
 			if (it.second->IsIdentHash ())
-			{	
-				f << it.first << "," << it.second->identHash.ToBase32 () << std::endl;
-				num++;
-			}
-			// TODO: save blinded public key
+				f << it.second->identHash.ToBase32 ();
+			else
+				f << it.second->blindedPublicKey->ToB33 ();
+			f << std::endl;
+			num++;
 		}
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;

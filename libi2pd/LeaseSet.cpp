@@ -299,6 +299,21 @@ namespace data
 			LogPrint (eLogError, "LeaseSet2: unknown signature type ", (int)m_SigType, " in b33");
 	}
 
+	std::string BlindedPublicKey::ToB33 () const
+	{
+		if (m_PublicKey.size () > 32) return ""; // assume 25519
+		uint8_t addr[35]; char str[60]; // TODO: define actual length
+		addr[0] = 0; // flags
+		addr[1] = m_SigType; // sig type
+		addr[2] = m_BlindedSigType; // blinded sig type
+		memcpy (addr + 3, m_PublicKey.data (), m_PublicKey.size ());
+		uint32_t checksum = crc32 (0, addr + 3, m_PublicKey.size ()); 
+		// checksum is Little Endian
+		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16); 
+		auto l = ByteStreamToBase32 (addr, m_PublicKey.size () + 3, str, 60);
+		return std::string (str, str + l);
+	}
+
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
 		LeaseSet (storeLeases), m_StoreType (storeType)
 	{	
