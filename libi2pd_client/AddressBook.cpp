@@ -359,6 +359,24 @@ namespace client
 		return true;
 	}
 
+	std::shared_ptr<const Address> AddressBook::GetAddress (const std::string& address)
+	{
+		auto pos = address.find(".b32.i2p");
+		if (pos != std::string::npos)
+			return std::make_shared<const Address>(address.substr (0, pos));
+		else
+		{
+			pos = address.find (".i2p");
+			if (pos != std::string::npos)
+				return FindAddress (address);	
+		}	
+		// if not .b32 we assume full base64 address
+		i2p::data::IdentityEx dest;
+		if (!dest.FromBase64 (address))
+			return nullptr;
+		return std::make_shared<const Address>(dest.GetIdentHash ());
+	}
+
 	std::shared_ptr<const Address> AddressBook::FindAddress (const std::string& address)
 	{
 		auto it = m_Addresses.find (address);

@@ -101,9 +101,9 @@ namespace client
 
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
-		i2p::data::IdentHash identHash;
-		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
-			CreateStream(streamRequestComplete, identHash, port);
+		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
+		if (address)
+			CreateStream(streamRequestComplete, address, port);
 		else
 		{
 			LogPrint (eLogWarning, "I2PService: Remote destination not found: ", dest);
@@ -111,27 +111,31 @@ namespace client
 		}
 	}
 
-	void I2PService::CreateStream(StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash & identHash, int port)
+	void I2PService::CreateStream(StreamRequestComplete streamRequestComplete, std::shared_ptr<const Address> address, int port)
 	{
-		if(m_ConnectTimeout)
+		if(m_ConnectTimeout && !m_LocalDestination->IsReady())
 		{
-			if(m_LocalDestination->IsReady())
-				m_LocalDestination->CreateStream (streamRequestComplete, identHash, port);
-			else
-			{
-				AddReadyCallback([this, streamRequestComplete, identHash, port] (const boost::system::error_code & ec) {
-						if(ec)
-						{
-							LogPrint(eLogWarning, "I2PService::CeateStream() ", ec.message());
-							streamRequestComplete(nullptr);
-						}
+			AddReadyCallback([this, streamRequestComplete, address, port] (const boost::system::error_code & ec) {
+					if(ec)
+					{
+						LogPrint(eLogWarning, "I2PService::CeateStream() ", ec.message());
+						streamRequestComplete(nullptr);
+					}
+					else
+					{	if (address->IsIdentHash ())
+							this->m_LocalDestination->CreateStream(streamRequestComplete, address->identHash, port);
 						else
-							this->m_LocalDestination->CreateStream(streamRequestComplete, identHash, port);
-					});
-			}
+							this->m_LocalDestination->CreateStream (streamRequestComplete, address->blindedPublicKey, port);	
+					}
+				});
 		}
 		else
-			m_LocalDestination->CreateStream(streamRequestComplete, identHash, port);
+		{	
+			if (address->IsIdentHash ())
+				m_LocalDestination->CreateStream (streamRequestComplete, address->identHash, port);
+			else
+				m_LocalDestination->CreateStream (streamRequestComplete, address->blindedPublicKey, port);
+		}
 	}
 
 	TCPIPPipe::TCPIPPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream) : I2PServiceHandler(owner), m_up(upstream), m_down(downstream)

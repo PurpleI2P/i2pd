@@ -393,15 +393,15 @@ namespace client
 	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
 	{
 		public:
-			I2PClientTunnelHandler (I2PClientTunnel * parent, i2p::data::IdentHash destination,
+			I2PClientTunnelHandler (I2PClientTunnel * parent, std::shared_ptr<const Address> address,
 				int destinationPort, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-				I2PServiceHandler(parent), m_DestinationIdentHash(destination),
+				I2PServiceHandler(parent), m_Address(address),
 				m_DestinationPort (destinationPort), m_Socket(socket) {};
 			void Handle();
 			void Terminate();
 		private:
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
-			i2p::data::IdentHash m_DestinationIdentHash;
+			std::shared_ptr<const Address> m_Address;
 			int m_DestinationPort;
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 	};
@@ -410,7 +410,7 @@ namespace client
 	{
 		GetOwner()->CreateStream (
 			std::bind (&I2PClientTunnelHandler::HandleStreamRequestComplete, shared_from_this(), std::placeholders::_1),
-			m_DestinationIdentHash, m_DestinationPort);
+			m_Address, m_DestinationPort);
 	}
 
 	void I2PClientTunnelHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
@@ -445,43 +445,39 @@ namespace client
 	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination,
 		const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort):
 		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination),
-		m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort)
+		m_DestinationPort (destinationPort)
 	{
 	}
 
 	void I2PClientTunnel::Start ()
 	{
 		TCPIPAcceptor::Start ();
-		GetIdentHash();
+		GetAddress ();
 	}
 
 	void I2PClientTunnel::Stop ()
 	{
 		TCPIPAcceptor::Stop();
-		auto *originalIdentHash = m_DestinationIdentHash;
-		m_DestinationIdentHash = nullptr;
-		delete originalIdentHash;
+		m_Address = nullptr;
 	}
 
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-	const i2p::data::IdentHash * I2PClientTunnel::GetIdentHash ()
+	std::shared_ptr<const Address> I2PClientTunnel::GetAddress () 
 	{
-		if (!m_DestinationIdentHash)
+		if (!m_Address)
 		{
-			i2p::data::IdentHash identHash;
-			if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
-				m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
-			else
+			m_Address = i2p::client::context.GetAddressBook ().GetAddress (m_Destination);
+			if (!m_Address)
 				LogPrint (eLogWarning, "I2PTunnel: Remote destination ", m_Destination, " not found");
 		}
-		return m_DestinationIdentHash;
+		return m_Address;
 	}
 
 	std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
-		const i2p::data::IdentHash *identHash = GetIdentHash();
-		if (identHash)
-			return  std::make_shared<I2PClientTunnelHandler>(this, *identHash, m_DestinationPort, socket);
+		auto address = GetAddress ();
+		if (address)
+			return  std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
 		else
 			return nullptr;
 	}

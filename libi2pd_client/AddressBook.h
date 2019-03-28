@@ -75,6 +75,7 @@ namespace client
 			void StartResolvers ();
 			void Stop ();
 			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
+			std::shared_ptr<const Address> GetAddress (const std::string& address);
 			std::shared_ptr<const i2p::data::IdentityEx> GetFullAddress (const std::string& address);
 			std::shared_ptr<const Address> FindAddress (const std::string& address);
 			void LookupAddress (const std::string& address);
