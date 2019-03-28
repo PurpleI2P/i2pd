@@ -810,9 +810,9 @@ namespace client
 
 	void I2PUDPClientTunnel::TryResolving() {
 		LogPrint(eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
-		i2p::data::IdentHash * h = new i2p::data::IdentHash;
 
-		while(!context.GetAddressBook().GetIdentHash(m_RemoteDest, *h) && !m_cancel_resolve)
+		std::shared_ptr<const Address> addr;
+		while(!(addr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)
 		{
 			LogPrint(eLogWarning, "UDP Tunnel: failed to lookup ", m_RemoteDest);
 			std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -822,7 +822,13 @@ namespace client
 			LogPrint(eLogError, "UDP Tunnel: lookup of ", m_RemoteDest, " was cancelled");
 			return;
 		}
-		m_RemoteIdent = h;
+		if (!addr || !addr->IsIdentHash ())
+		{
+			LogPrint(eLogError, "UDP Tunnel: ", m_RemoteDest, " not found");
+			return;
+		}			
+		m_RemoteIdent = new i2p::data::IdentHash;
+		*m_RemoteIdent = addr->identHash;
 		LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
 	}
 

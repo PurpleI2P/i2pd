@@ -603,12 +603,16 @@ namespace client
 				case 1: // address
 				{
 					auto name = ExtractString (buf + 11, len - 11);
-					if (!i2p::client::context.GetAddressBook ().GetIdentHash (name, ident))
+					auto addr = i2p::client::context.GetAddressBook ().GetAddress (name);
+					if (!addr || !addr->IsIdentHash ())
 					{
+						// TODO: handle blinded addresses
 						LogPrint (eLogError, "I2CP: address ", name, " not found");
 						SendHostReplyMessage (requestID, nullptr);
 						return;
 					}
+					else
+						ident = addr->identHash;
 					break;
 				}
 				default:

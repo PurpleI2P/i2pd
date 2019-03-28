@@ -315,50 +315,6 @@ namespace client
 		m_Subscriptions.clear ();
 	}
 
-	bool AddressBook::GetIdentHash (const std::string& address, i2p::data::IdentHash& ident)
-	{
-		auto pos = address.find(".b32.i2p");
-		if (pos != std::string::npos)
-		{
-			if (pos <= B33_ADDRESS_THRESHOLD)
-			{
-				Base32ToByteStream (address.c_str(), pos, ident, 32);
-				return true;
-			}
-			else
-				return false;	
-		}
-		else
-		{
-			pos = address.find (".i2p");
-			if (pos != std::string::npos)
-			{
-				auto addr = FindAddress (address);
-				if (addr)
-				{
-					if (addr->IsIdentHash ())
-					{
-						ident = addr->identHash;
-						return true;
-					}
-					else
-						return false;	
-				}
-				else
-				{
-					LookupAddress (address); // TODO:
-					return false;
-				}
-			}
-		}
-		// if not .b32 we assume full base64 address
-		i2p::data::IdentityEx dest;
-		if (!dest.FromBase64 (address))
-			return false;
-		ident = dest.GetIdentHash ();
-		return true;
-	}
-
 	std::shared_ptr<const Address> AddressBook::GetAddress (const std::string& address)
 	{
 		auto pos = address.find(".b32.i2p");
@@ -368,7 +324,12 @@ namespace client
 		{
 			pos = address.find (".i2p");
 			if (pos != std::string::npos)
-				return FindAddress (address);	
+			{
+				auto addr = FindAddress (address);
+				if (!addr)
+					 LookupAddress (address); // TODO:	
+				return addr;
+			}	
 		}	
 		// if not .b32 we assume full base64 address
 		i2p::data::IdentityEx dest;
@@ -401,9 +362,9 @@ namespace client
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetFullAddress (const std::string& address)
 	{
-		i2p::data::IdentHash ident;
-		if (!GetIdentHash (address, ident)) return nullptr;
-		return m_Storage->GetAddress (ident);
+		auto addr = GetAddress (address);
+		if (!addr || !addr->IsIdentHash ()) return nullptr;
+		return m_Storage->GetAddress (addr->identHash);
 	}
 
 	void AddressBook::LoadHosts ()
@@ -761,14 +722,19 @@ namespace client
 		i2p::http::URL url;
 		// must be run in separate thread
 		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link);
-		if (!url.parse(m_Link)) {
+		if (!url.parse(m_Link)) 
+		{
 			LogPrint(eLogError, "Addressbook: failed to parse url: ", m_Link);
 			return false;
 		}
-		if (!m_Book.GetIdentHash (url.host, m_Ident)) {
+		auto addr = m_Book.GetAddress (url.host);
+		if (!addr || !addr->IsIdentHash ())	
+		{
 			LogPrint (eLogError, "Addressbook: Can't resolve ", url.host);
 			return false;
 		}
+		else
+			m_Ident = addr->identHash;
 		/* this code block still needs some love */
 		std::condition_variable newDataReceived;
 		std::mutex newDataReceivedMutex;

@@ -610,22 +610,22 @@ namespace client
 		ExtractParams (buf, params);
 		std::string& name = params[SAM_PARAM_NAME];
 		std::shared_ptr<const i2p::data::IdentityEx> identity;
-		i2p::data::IdentHash ident;
+		std::shared_ptr<const Address> addr;
 		auto session = m_Owner.FindSession(m_ID);
 		auto dest = session == nullptr ? context.GetSharedLocalDestination() : session->localDestination;
 		if (name == "ME")
 			SendNamingLookupReply (dest->GetIdentity ());
 		else if ((identity = context.GetAddressBook ().GetFullAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
-		else if (context.GetAddressBook ().GetIdentHash (name, ident))
+		else if ((addr = context.GetAddressBook ().GetAddress (name)) && addr->IsIdentHash ())
 		{
-			auto leaseSet = dest->FindLeaseSet (ident);
+			auto leaseSet = dest->FindLeaseSet (addr->identHash);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet->GetIdentity ());
 			else
-				dest->RequestDestination (ident,
+				dest->RequestDestination (addr->identHash,
 					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, ident));
+					shared_from_this (), std::placeholders::_1, addr->identHash));	
 		}
 		else
 		{

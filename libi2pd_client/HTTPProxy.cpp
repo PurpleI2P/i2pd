@@ -339,9 +339,8 @@ namespace proxy {
 			}
 		}
 		/* check dest_host really exists and inside I2P network */
-		i2p::data::IdentHash identHash;
 		if (str_rmatch(dest_host, ".i2p")) {
-			if (!i2p::client::context.GetAddressBook ().GetIdentHash (dest_host, identHash)) {
+			if (!i2p::client::context.GetAddressBook ().GetAddress (dest_host)) {
 				HostNotFound(dest_host);
 				return true; /* request processed */
 			}
