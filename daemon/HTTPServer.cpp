@@ -358,7 +358,7 @@ namespace http {
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i></label>\r\n<input type='checkbox' id='slide-lease'/>\r\n<p class='content'>\r\n";
 			for(auto& it: dest->GetLeaseSets ())
-				s << it.second->GetIdentHash ().ToBase32 () << " " << (int)it.second->GetStoreType () << "<br>\r\n";
+				s << it.first.ToBase32 () << " " << (int)it.second->GetStoreType () << "<br>\r\n";
 			s << "</p>\r\n</div>\r\n";
 		} else
 			s << "<b>LeaseSets:</b> <i>0</i><br>\r\n";
