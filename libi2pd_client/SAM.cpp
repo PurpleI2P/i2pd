@@ -617,15 +617,22 @@ namespace client
 			SendNamingLookupReply (dest->GetIdentity ());
 		else if ((identity = context.GetAddressBook ().GetFullAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
-		else if ((addr = context.GetAddressBook ().GetAddress (name)) && addr->IsIdentHash ())
+		else if ((addr = context.GetAddressBook ().GetAddress (name)))
 		{
-			auto leaseSet = dest->FindLeaseSet (addr->identHash);
-			if (leaseSet)
-				SendNamingLookupReply (leaseSet->GetIdentity ());
+			if (addr->IsIdentHash ())
+			{
+				auto leaseSet = dest->FindLeaseSet (addr->identHash);
+				if (leaseSet)
+					SendNamingLookupReply (leaseSet->GetIdentity ());
+				else
+					dest->RequestDestination (addr->identHash,
+						std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
+						shared_from_this (), std::placeholders::_1, name));	
+			}
 			else
-				dest->RequestDestination (addr->identHash,
+				dest->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
 					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, addr->identHash));	
+					shared_from_this (), std::placeholders::_1, name));	
 		}
 		else
 		{
@@ -650,7 +657,7 @@ namespace client
 		SendMessageReply (m_Buffer, len, true);
 	}
 
-	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident)
+	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name)
 	{
 		if (leaseSet)
 		{
@@ -659,13 +666,11 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError, "SAM: naming lookup failed. LeaseSet for ", ident.ToBase32 (), " not found");
+			LogPrint (eLogError, "SAM: naming lookup failed. LeaseSet for ", name, " not found");
 #ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY,
-				context.GetAddressBook ().ToAddress (ident).c_str());
+			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else
-			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY,
-				context.GetAddressBook ().ToAddress (ident).c_str());
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
 			SendMessageReply (m_Buffer, len, false);
 		}

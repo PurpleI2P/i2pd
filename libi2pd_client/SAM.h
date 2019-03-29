@@ -124,7 +124,7 @@ namespace client
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet);
 			void SendNamingLookupReply (std::shared_ptr<const i2p::data::IdentityEx> identity);
-			void HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident);
+			void HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name);
 			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 			void SendSessionCreateReplyOk ();
 
