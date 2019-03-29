@@ -479,7 +479,7 @@ namespace client
 				}
 			}
 			else
-				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+				SendMessageReply (SAM_STREAM_STATUS_INVALID_KEY, strlen(SAM_STREAM_STATUS_INVALID_KEY), true);
 		}
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
