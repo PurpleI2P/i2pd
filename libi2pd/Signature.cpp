@@ -7,7 +7,8 @@ namespace i2p
 namespace crypto
 {
 #if OPENSSL_EDDSA	
-	EDDSA25519Verifier::EDDSA25519Verifier ()
+	EDDSA25519Verifier::EDDSA25519Verifier ():
+		m_Pkey (nullptr)
 	{
 		m_MDCtx = EVP_MD_CTX_create ();	
 	}
