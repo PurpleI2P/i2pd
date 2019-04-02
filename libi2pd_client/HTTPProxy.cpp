@@ -234,8 +234,6 @@ namespace proxy {
 	 */
 	bool HTTPReqHandler::HandleRequest()
 	{
-		std::string b64;
-
 		m_req_len = m_ClientRequest.parse(m_recv_buf);
 
 		if (m_req_len == 0)
@@ -252,7 +250,8 @@ namespace proxy {
 		m_RequestURL.parse(m_ClientRequest.uri);
 		bool m_Confirm;
 
-		if (ExtractAddressHelper(m_RequestURL, b64, m_Confirm))
+		std::string jump;
+		if (ExtractAddressHelper(m_RequestURL, jump, m_Confirm))
 		{
 			bool addresshelper; i2p::config::GetOption("httpproxy.addresshelper", addresshelper);
 			if (!addresshelper)
@@ -263,8 +262,8 @@ namespace proxy {
 			}
 			if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
 			{
-				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, b64);
-				LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", m_RequestURL.host);
+				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, jump);
+				LogPrint (eLogInfo, "HTTPProxy: added address from addresshelper for ", m_RequestURL.host);
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << "Host " << m_RequestURL.host << " added to router's addressbook from helper. "
@@ -276,7 +275,7 @@ namespace proxy {
 			{
 				std::stringstream ss;
 				ss << "Host " << m_RequestURL.host << " <font color=red>already in router's addressbook</font>. "
-				   << "Click <a href=\"" << m_RequestURL.query << "?i2paddresshelper=" << b64 << "&update=true\">here</a> to update record.";
+				   << "Click <a href=\"" << m_RequestURL.query << "?i2paddresshelper=" << jump << "&update=true\">here</a> to update record.";
 				GenericProxyInfo("Addresshelper found", ss.str().c_str());
 				return true; /* request processed */
 			}

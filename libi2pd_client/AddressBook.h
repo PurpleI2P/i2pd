@@ -78,7 +78,7 @@ namespace client
 			std::shared_ptr<const i2p::data::IdentityEx> GetFullAddress (const std::string& address);
 			std::shared_ptr<const Address> FindAddress (const std::string& address);
 			void LookupAddress (const std::string& address);
-			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
+			void InsertAddress (const std::string& address, const std::string& jump); // for jump links
 			void InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
 			bool LoadHostsFromStream (std::istream& f, bool is_update);

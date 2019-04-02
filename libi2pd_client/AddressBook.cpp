@@ -347,13 +347,27 @@ namespace client
 		return nullptr;
 	}
 
-	void AddressBook::InsertAddress (const std::string& address, const std::string& base64)
+	void AddressBook::InsertAddress (const std::string& address, const std::string& jump)
 	{
-		auto ident = std::make_shared<i2p::data::IdentityEx>();
-		ident->FromBase64 (base64);
-		m_Storage->AddAddress (ident);
-		m_Addresses[address] = std::make_shared<Address>(ident->GetIdentHash ());
-		LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
+		auto pos = jump.find(".b32.i2p");
+		if (pos != std::string::npos)
+		{
+			m_Addresses[address] = std::make_shared<Address>(jump.substr (0, pos));
+			LogPrint (eLogInfo, "Addressbook: added ", address," -> ", jump);
+		}	
+		else
+		{	
+			// assume base64	
+			auto ident = std::make_shared<i2p::data::IdentityEx>();
+			if (ident->FromBase64 (jump))
+			{
+				m_Storage->AddAddress (ident);
+				m_Addresses[address] = std::make_shared<Address>(ident->GetIdentHash ());
+				LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
+			}
+			else
+				LogPrint (eLogError, "Addressbook: malformed address ", jump);
+		}
 	}
 
 	void AddressBook::InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
