@@ -639,22 +639,21 @@ namespace client
 
 	bool LeaseSetDestination::RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete)
 	{
-		if (!m_Pool || !IsReady ())
+		if (!dest || !m_Pool || !IsReady ())
 		{
 			if (requestComplete)
 				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
-		i2p::data::IdentHash storeKey;
-		i2p::data::LeaseSet2::CalculateStoreHash (dest, storeKey);
-		auto leaseSet = FindLeaseSet (storeKey);	
+		auto storeHash = dest->GetStoreHash ();
+		auto leaseSet = FindLeaseSet (storeHash);	
 		if (leaseSet)
 		{
 			if (requestComplete)
 				m_Service.post ([requestComplete, leaseSet](void){requestComplete (leaseSet);});
 			return true;
 		}
-		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), storeKey, requestComplete, dest));
+		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), storeHash, requestComplete, dest));
 		return true;
 	}
 
@@ -675,9 +674,8 @@ namespace client
 
 	void LeaseSetDestination::CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, bool notify)
 	{
-		i2p::data::IdentHash ident;
-		i2p::data::LeaseSet2::CalculateStoreHash (dest, ident); 
-		CancelDestinationRequest (ident, notify);
+		if (dest)
+			CancelDestinationRequest (dest->GetStoreHash (), notify);
 	}
 
 	void LeaseSetDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey)

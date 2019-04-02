@@ -314,6 +314,67 @@ namespace data
 		return std::string (str, str + l);
 	}
 
+	void BlindedPublicKey::GetCredential (uint8_t * credential) const
+	{
+		// A = destination's signing public key 
+		// stA = signature type of A, 2 bytes big endian
+		uint16_t stA = htobe16 (GetSigType ());
+		// stA1 = signature type of blinded A, 2 bytes big endian
+		uint16_t stA1 = htobe16 (GetBlindedSigType ());	
+		// credential = H("credential", A || stA || stA1)
+		H ("credential", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, credential);
+	}
+
+	void BlindedPublicKey::GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const
+	{
+		uint8_t credential[32];
+		GetCredential (credential);
+		// subcredential = H("subcredential", credential || blindedPublicKey)
+		H ("subcredential", { {credential, 32}, {blinded, len} }, subcredential);
+	}
+
+	void BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
+	{
+		int16_t stA = htobe16 (GetSigType ()), stA1 = htobe16 (GetBlindedSigType ());
+		uint8_t salt[32], seed[64];
+		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
+		H ("I2PGenerateAlpha", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
+		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
+		i2p::crypto::GetEd25519 ()->BlindPublicKey (GetPublicKey (), seed, blindedKey);
+	}
+
+	void BlindedPublicKey::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const 
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, p.c_str (), p.length ());
+		for (const auto& it: bufs)	
+			SHA256_Update (&ctx, it.first, it.second);
+		SHA256_Final (hash, &ctx);
+	}
+
+	i2p::data::IdentHash BlindedPublicKey::GetStoreHash () const
+	{
+		i2p::data::IdentHash hash;
+		if (m_BlindedSigType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 ||
+			m_BlindedSigType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+		{
+			char date[9];
+			i2p::util::GetCurrentDate (date);
+			uint8_t blinded[32];
+			GetBlindedKey (date, blinded);		
+			auto stA1 = htobe16 (m_BlindedSigType);
+			SHA256_CTX ctx;
+			SHA256_Init (&ctx);
+			SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
+			SHA256_Update (&ctx, blinded, 32);
+			SHA256_Final ((uint8_t *)hash, &ctx);
+		}
+		else
+			LogPrint (eLogError, "LeaseSet2: blinded key type ", (int)m_BlindedSigType, " is not supported");			
+		return hash;
+	}
+
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
 		LeaseSet (storeLeases), m_StoreType (storeType)
 	{	
@@ -533,24 +594,17 @@ namespace data
 				char date[9];
 				i2p::util::GetCurrentDate (date);
 				uint8_t blinded[32];
-				BlindPublicKey (key, date, blinded);
+				key->GetBlindedKey (date, blinded);
 				if (memcmp (blindedPublicKey, blinded, 32))
 				{
 					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
 					return;
 				}	
 			}	
-			// credentials
-			uint8_t credential[32], subcredential[36];
-			// A = destination's signing public key 
-			// stA = signature type of A, 2 bytes big endian
-			uint16_t stA = htobe16 (key->GetSigType ());
-			// credential = H("credential", A || stA || stA1)
-			H ("credential", { {key->GetPublicKey (), key->GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {stA1, 2} }, credential);
-			// subcredential = H("subcredential", credential || blindedPublicKey)
-			H ("subcredential", { {credential, 32}, {blindedPublicKey, blindedKeyLen} }, subcredential);
 			// outer key
 			// outerInput = subcredential || publishedTimestamp
+			uint8_t subcredential[36];
+			key->GetSubcredential (blindedPublicKey, blindedKeyLen, subcredential);
 			memcpy (subcredential + 32, publishedTimestamp, 4);
 			// outerSalt = outerCiphertext[0:32]
 			// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
@@ -563,6 +617,7 @@ namespace data
 			std::vector<uint8_t> outerPlainText (lenOuterPlaintext);
 			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterPlaintext, keys, keys + 32, outerPlainText.data ());
 			// inner key
+			// innerInput = authCookie || subcredential || publishedTimestamp, TODO: non-empty authCookie
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
 			// skip 1 byte flags
@@ -584,47 +639,6 @@ namespace data
 			else
 				LogPrint (eLogError, "LeaseSet2: unxpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
-	}
-
-	void LeaseSet2::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash)
-	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, p.c_str (), p.length ());
-		for (const auto& it: bufs)	
-			SHA256_Update (&ctx, it.first, it.second);
-		SHA256_Final (hash, &ctx);
-	}
-
-	void LeaseSet2::BlindPublicKey (std::shared_ptr<const BlindedPublicKey> key, const char * date, uint8_t * blindedKey)
-	{
-		uint16_t stA = htobe16 (key->GetSigType ()), stA1 = htobe16 (key->GetBlindedSigType ());
-		uint8_t salt[32], seed[64];
-		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
-		H ("I2PGenerateAlpha", { {key->GetPublicKey (), key->GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
-		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
-		i2p::crypto::GetEd25519 ()->BlindPublicKey (key->GetPublicKey (), seed, blindedKey);
-	}
-
-	void LeaseSet2::CalculateStoreHash (std::shared_ptr<const BlindedPublicKey> key, i2p::data::IdentHash& hash)
-	{
-		auto blindedKeyType = key->GetBlindedSigType ();
-		if (blindedKeyType != i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 &&
-			blindedKeyType != SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
-		{
-			LogPrint (eLogError, "LeaseSet2: blinded key type ", (int)blindedKeyType, " is not supported");			
-			return;
-		}
-		char date[9];
-		i2p::util::GetCurrentDate (date);
-		uint8_t blinded[32];
-		BlindPublicKey (key, date, blinded);		
-		auto stA1 = htobe16 (blindedKeyType);
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
-		SHA256_Update (&ctx, blinded, 32);
-		SHA256_Final ((uint8_t *)hash, &ctx);
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const

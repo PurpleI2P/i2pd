@@ -141,6 +141,15 @@ namespace data
 			SigningKeyType GetSigType () const  { return m_SigType; };
 			SigningKeyType GetBlindedSigType () const  { return m_BlindedSigType; };
 
+			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes
+			void GetBlindedKey (const char * date, uint8_t * blindedKey) const; // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
+			i2p::data::IdentHash GetStoreHash () const;
+
+		private:
+
+			void GetCredential (uint8_t * credential) const; // 32 bytes
+			void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const;
+
 		private:
 
 			std::vector<uint8_t> m_PublicKey;
@@ -158,8 +167,6 @@ namespace data
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
-			static void CalculateStoreHash (std::shared_ptr<const BlindedPublicKey> key, i2p::data::IdentHash& hash);
-
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
 
@@ -174,10 +181,6 @@ namespace data
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
 
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
-
-			// for encrypted LS
-			static void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash);
-			static void BlindPublicKey (std::shared_ptr<const BlindedPublicKey> key, const char * date, uint8_t * blindedKey); // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
 
 		private:
 
