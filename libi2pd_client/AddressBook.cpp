@@ -445,7 +445,8 @@ namespace client
 				}
 				else
 				{
-					m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
+					//m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
+					m_Addresses[name] = std::make_shared<Address>(ident->GetIdentHash ()); // for gcc 4.7
 					m_Storage->AddAddress (ident);
 					if (is_update)
 						LogPrint (eLogInfo, "Addressbook: added new host: ", name);
