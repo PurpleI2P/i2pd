@@ -143,11 +143,13 @@ namespace data
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes
 			void GetBlindedKey (const char * date, uint8_t * blindedKey) const; // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
+			void BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const; // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
 			i2p::data::IdentHash GetStoreHash () const;
 
 		private:
 
 			void GetCredential (uint8_t * credential) const; // 32 bytes
+			void GenerateAlpha (const char * date, uint8_t * seed) const; // 64 bytes, date is 8 chars "YYYYMMDD" 
 			void H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const;
 
 		private:
@@ -250,6 +252,8 @@ namespace data
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	
+			LocalLeaseSet2 (std::shared_ptr<const LeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); // encrypted
+		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
 			
 			uint8_t * GetBuffer () const { return m_Buffer + 1; };

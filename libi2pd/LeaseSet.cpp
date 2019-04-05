@@ -333,14 +333,27 @@ namespace data
 		H ("subcredential", { {credential, 32}, {blinded, len} }, subcredential);
 	}
 
-	void BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
+	void BlindedPublicKey::GenerateAlpha (const char * date, uint8_t * seed) const
 	{
-		int16_t stA = htobe16 (GetSigType ()), stA1 = htobe16 (GetBlindedSigType ());
-		uint8_t salt[32], seed[64];
+		uint16_t stA = htobe16 (GetSigType ()), stA1 = htobe16 (GetBlindedSigType ());
+		uint8_t salt[32];
 		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
 		H ("I2PGenerateAlpha", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
 		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
+	}
+
+	void BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
+	{
+		uint8_t seed[64];	
+		GenerateAlpha (date, seed);	
 		i2p::crypto::GetEd25519 ()->BlindPublicKey (GetPublicKey (), seed, blindedKey);
+	}
+
+	void BlindedPublicKey::BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const
+	{
+		uint8_t seed[64];	
+		GenerateAlpha (date, seed);	
+		i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
 	}
 
 	void BlindedPublicKey::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const 
@@ -838,6 +851,32 @@ namespace data
 		m_Buffer = new uint8_t[m_BufferLen + 1];
 		memcpy (m_Buffer + 1, buf, len);
 		m_Buffer[0] = storeType;
+	}
+
+	LocalLeaseSet2::LocalLeaseSet2 (std::shared_ptr<const LeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
+		LocalLeaseSet (ls->GetIdentity (), nullptr, 0)
+	{
+		m_BufferLen = ls->GetBufferLen (); // TODO 
+		m_Buffer = new uint8_t[m_BufferLen + 1]; 
+		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
+		BlindedPublicKey blindedKey (ls->GetIdentity ());
+		char date[9];
+		i2p::util::GetCurrentDate (date);
+		uint8_t blindedPriv[32], blindedPub[32];
+		blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
+		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKeyType, blindedPriv));
+		auto offset = 1;
+		htobe16buf (m_Buffer + offset, blindedKeyType); offset += 2; // Blinded Public Key Sig Type
+		memcpy (m_Buffer + offset, blindedPub, 32); offset += 32; // Blinded Public Key
+		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
+		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
+		auto expirationTime = ls->GetExpirationTime (); 
+		SetExpirationTime (expirationTime);
+		auto expires = expirationTime/1000LL - timestamp;	
+		htobe16buf (m_Buffer + offset, expires > 0 ? expires : 0); // expires
+		uint16_t flags = 0;
+		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags	
+		// TODO:
 	}
 }
 }

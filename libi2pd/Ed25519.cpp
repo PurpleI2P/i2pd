@@ -544,6 +544,24 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
+	void Ed25519::BlindPrivateKey (const uint8_t * priv, const uint8_t * seed, uint8_t * blindedPriv, uint8_t * blindedPub)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		// calculate alpha = seed mod l
+		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian 
+		BN_mod (alpha, alpha, l, ctx); // % l
+		BIGNUM * p = DecodeBN<32> (priv); // priv is in Little Endian 
+		BN_add (alpha, alpha, p); // alpha = alpha + priv
+		// a' = BLIND_PRIVKEY(a, alpha) = (a + alpha) mod L	
+		BN_mod (alpha, alpha, l, ctx); // % l
+		EncodeBN (alpha, blindedPriv, 32);
+		// A' = DERIVE_PUBLIC(a') 	
+		auto A1 = MulB (blindedPriv, ctx);
+		EncodePublicKey (A1, blindedPub, ctx); 
+		BN_free (alpha); BN_free (p);
+		BN_CTX_free (ctx);
+	}
+
 	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
 	{
 		SHA512 (key, EDDSA25519_PRIVATE_KEY_LENGTH, expandedKey);
