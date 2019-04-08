@@ -856,7 +856,9 @@ namespace data
 	LocalLeaseSet2::LocalLeaseSet2 (std::shared_ptr<const LeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
 		LocalLeaseSet (ls->GetIdentity (), nullptr, 0)
 	{
-		m_BufferLen = ls->GetBufferLen (); // TODO 
+		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1,
+			lenOuterCiphertext = lenOuterPlaintext + 32;
+		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + lenOuterCiphertext + 64/*signature*/;
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		BlindedPublicKey blindedKey (ls->GetIdentity ());
@@ -876,7 +878,32 @@ namespace data
 		htobe16buf (m_Buffer + offset, expires > 0 ? expires : 0); // expires
 		uint16_t flags = 0;
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags	
-		// TODO:
+		htobe16buf (m_Buffer + offset, lenOuterCiphertext); offset += 2; // lenOuterCiphertext
+		// outerChipherText
+		// Layer 1	
+		uint8_t subcredential[36];
+		blindedKey.GetSubcredential (blindedPub, 32, subcredential);
+		htobe32buf (subcredential + 32, timestamp); // outerInput = subcredential || publishedTimestamp
+		// keys = HKDF(outerSalt, outerInput, "ELS2_L1K", 44)
+		uint8_t keys1[64]; // 44 bytes actual data
+		RAND_bytes (m_Buffer + offset, 32); // outerSalt = CSRNG(32)	
+		i2p::crypto::HKDF (m_Buffer + offset, subcredential, 36, "ELS2_L1K", keys1);
+		offset += 32; // outerSalt
+		uint8_t * outerPlainText = m_Buffer + offset;	
+		m_Buffer[offset] = 0; offset++; // flag
+		// Layer 2
+		// keys = HKDF(outerSalt, outerInput, "ELS2_L2K", 44)
+		uint8_t keys2[64]; // 44 bytes actual data
+		RAND_bytes (m_Buffer + offset, 32); // innerSalt = CSRNG(32)	
+		i2p::crypto::HKDF (m_Buffer + offset, subcredential, 36, "ELS2_L2K", keys2);
+		offset += 32; // innerSalt 
+		m_Buffer[offset] = ls->GetStoreType (); 
+		memcpy (m_Buffer + offset, ls->GetBuffer (), ls->GetBufferLen ());
+		i2p::crypto::ChaCha20 (m_Buffer + offset, lenInnerPlaintext, keys2, keys2 + 32, m_Buffer + offset); // encrypt Layer 2
+		offset += lenInnerPlaintext;
+		i2p::crypto::ChaCha20 (outerPlainText, lenOuterPlaintext, keys1, keys1 + 32, outerPlainText); // encrypt Layer 1
+		// signature
+		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
 	}
 }
 }
