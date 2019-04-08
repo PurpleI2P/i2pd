@@ -256,7 +256,7 @@ namespace i2p
 						pos = comma + 1;
 					}
 					while (comma != std::string::npos);
-					LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routesrs");
+					LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routers");
 					i2p::transport::transports.RestrictRoutesToRouters(idents);
 					restricted = idents.size() > 0;
 				}
