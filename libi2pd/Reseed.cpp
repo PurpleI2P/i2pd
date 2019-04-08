@@ -375,7 +375,7 @@ namespace data
 			if (end - contentPos >= contentLength)
 				break; // we are beyond contentLength
 		}
-		if (numFiles) // check if  routers are not outdated
+		if (numFiles) // check if routers are not outdated
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			int numOutdated = 0;

@@ -690,7 +690,7 @@ namespace transport
 					}
 					if (memcmp (addr->ntcp2->staticKey, m_Establisher->m_RemoteStaticKey, 32))
 					{
-						LogPrint (eLogError, "NTCP2: Static key mistmatch in SessionConfirmed");				
+						LogPrint (eLogError, "NTCP2: Static key mismatch in SessionConfirmed");				
 						SendTerminationAndTerminate (eNTCP2IncorrectSParameter);				
 						return;
 					}
@@ -783,7 +783,7 @@ namespace transport
 				size_t moreBytes = m_Socket.available(ec);
 				if (!ec && moreBytes >= m_NextReceivedLen)
 				{
-					// read and process messsage immediately if avaliable
+					// read and process message immediately if available
 					moreBytes = boost::asio::read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (), ec);
 					HandleReceived (ec, moreBytes);
 				}
@@ -887,7 +887,7 @@ namespace transport
 						Terminate ();
 					}
 					else
-						LogPrint (eLogWarning, "NTCP2: Unexpected temination block size ", size);
+						LogPrint (eLogWarning, "NTCP2: Unexpected termination block size ", size);
 				break;
 				case eNTCP2BlkPadding:
 					LogPrint (eLogDebug, "NTCP2: padding");

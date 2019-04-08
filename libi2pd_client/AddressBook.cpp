@@ -79,7 +79,7 @@ namespace client
 	{
 		if (!m_IsPersist) 
 		{
-			LogPrint(eLogDebug, "Addressbook: Persistance is disabled");
+			LogPrint(eLogDebug, "Addressbook: Persistence is disabled");
 			return nullptr;	
 		}
 		std::string filename = storage.Path(ident.ToBase32());
@@ -293,7 +293,7 @@ namespace client
 		}
 		if (m_IsDownloading)
 		{
-			LogPrint (eLogInfo, "Addressbook: subscriptions is downloading, abort");
+			LogPrint (eLogInfo, "Addressbook: subscriptions are downloading, abort");
 			for (int i = 0; i < 30; i++)
 			{
 				if (!m_IsDownloading)

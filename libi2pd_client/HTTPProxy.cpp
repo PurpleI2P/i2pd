@@ -208,7 +208,7 @@ namespace proxy {
 	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
 	{
 		/* drop common headers */
-		req.RemoveHeader("Referer");
+		req.RemoveHeader("Referrer");
 		req.RemoveHeader("Via");
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
