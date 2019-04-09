@@ -368,7 +368,7 @@ namespace client
 		size_t offset = identity->FromBuffer (buf, len);
 		if (!offset)
 		{
-			LogPrint (eLogError, "I2CP: create session maformed identity");
+			LogPrint (eLogError, "I2CP: create session malformed identity");
 			SendSessionStatusMessage (3); // invalid
 			return;
 		}

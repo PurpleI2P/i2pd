@@ -578,7 +578,7 @@ namespace garlic
 							tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 						else
 							LogPrint (eLogError, "Garlic: Tunnel pool is not set for inbound tunnel");
-						if (tunnel) // we have send it through an outbound tunnel
+						if (tunnel) // we have sent it through an outbound tunnel
 							tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
 						else
 							LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");

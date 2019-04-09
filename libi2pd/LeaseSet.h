@@ -26,7 +26,7 @@ namespace data
 		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate; // 0 means invalid
-		bool isUpdated; // trasient
+		bool isUpdated; // transient
 		/* return true if this lease expires within t millisecond + fudge factor */
 		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
 			auto expire = i2p::util::GetMillisecondsSinceEpoch ();

@@ -66,7 +66,7 @@ namespace fs {
 
   /** @brief Returns current application name, default 'i2pd' */
 	const std::string & GetAppName ();
-  /** @brief Set applicaton name, affects autodetection of datadir */
+  /** @brief Set application name, affects autodetection of datadir */
 	void SetAppName (const std::string& name);
 
   /** @brief Returns datadir path */

@@ -1287,7 +1287,7 @@ namespace transport
 				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
-					// Termniate modifies m_NTCPSession, so we postpone it
+					// Terminate modifies m_NTCPSession, so we postpone it
 					m_Service.post ([session] {
 							LogPrint (eLogDebug, "NTCP: No activity for ", session->GetTerminationTimeout (), " seconds");
 							session->Terminate ();

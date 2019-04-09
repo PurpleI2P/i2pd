@@ -212,7 +212,7 @@ namespace transport
 		}
 		if (headerSize >= len)
 		{
-			LogPrint (eLogError, "Session reaquest header size ", headerSize, " exceeds packet length ", len);
+			LogPrint (eLogError, "Session request header size ", headerSize, " exceeds packet length ", len);
 			return;
 		}
 		m_RemoteEndpoint = senderEndpoint;
@@ -1097,7 +1097,7 @@ namespace transport
 		// intro key
 		if (toAddress)
 		{
-			// send our intro key to address instead it's own
+			// send our intro key to address instead of its own
 			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
 			if (addr)
 				memcpy (payload, addr->ssu->key, 32); // intro key

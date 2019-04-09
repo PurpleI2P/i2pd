@@ -376,7 +376,7 @@ namespace data
 				}
 				m_FloodfillBootstrap = ri;
 				ReseedFromFloodfill(*ri);
-				// don't try reseed servers if trying to boostrap from floodfill
+				// don't try reseed servers if trying to bootstrap from floodfill
 				return;
 			}
 		}

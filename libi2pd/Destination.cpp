@@ -577,7 +577,7 @@ namespace client
 				else
 				{
 					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  " seconds from Java floodfill for crypto type ", (int)GetIdentity ()->GetCryptoKeyType ());
-					// Java floodfill never sends confirmantion back for unknown crypto type
+					// Java floodfill never sends confirmation back for unknown crypto type
 					// assume it successive and try to verify
 					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,

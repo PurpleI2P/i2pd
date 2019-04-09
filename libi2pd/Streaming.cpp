@@ -290,7 +290,7 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: offline signature without identity");
 				return false;
 			}
-			// if we have it in LeaseSet already we don't neet parse it again
+			// if we have it in LeaseSet already we don't need to parse it again
 			if (m_RemoteLeaseSet) m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
 			if (m_TransientVerifier)
 			{
@@ -602,7 +602,7 @@ namespace stream
 			size++; // NACK count
 		}
 		size++; // resend delay
-		htobuf16 (packet + size, 0); // nof flags set
+		htobuf16 (packet + size, 0); // no flags set
 		size += 2; // flags
 		htobuf16 (packet + size, 0); // no options
 		size += 2; // options size

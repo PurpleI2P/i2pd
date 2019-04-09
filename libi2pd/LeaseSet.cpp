@@ -266,7 +266,7 @@ namespace data
 
 	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
 	{
-		uint8_t addr[40]; // TODO: define lenght from b33
+		uint8_t addr[40]; // TODO: define length from b33
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
 		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
 		// checksum is Little Endian
@@ -650,7 +650,7 @@ namespace data
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
 			}
 			else
-				LogPrint (eLogError, "LeaseSet2: unxpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
 	}
 
