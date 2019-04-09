@@ -266,7 +266,7 @@ namespace data
 
 	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
 	{
-		uint8_t addr[40]; // TODO: define length from b33
+		uint8_t addr[40]; // TODO: define lenght from b33
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
 		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
 		// checksum is Little Endian
@@ -650,7 +650,7 @@ namespace data
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
 			}
 			else
-				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+				LogPrint (eLogError, "LeaseSet2: unxpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
 	}
 
@@ -898,7 +898,7 @@ namespace data
 		i2p::crypto::HKDF (m_Buffer + offset, subcredential, 36, "ELS2_L2K", keys2);
 		offset += 32; // innerSalt 
 		m_Buffer[offset] = ls->GetStoreType (); 
-		memcpy (m_Buffer + offset, ls->GetBuffer (), ls->GetBufferLen ());
+		memcpy (m_Buffer + offset + 1, ls->GetBuffer (), ls->GetBufferLen ());
 		i2p::crypto::ChaCha20 (m_Buffer + offset, lenInnerPlaintext, keys2, keys2 + 32, m_Buffer + offset); // encrypt Layer 2
 		offset += lenInnerPlaintext;
 		i2p::crypto::ChaCha20 (outerPlainText, lenOuterPlaintext, keys1, keys1 + 32, outerPlainText); // encrypt Layer 1
