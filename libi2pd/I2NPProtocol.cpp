@@ -279,7 +279,7 @@ namespace i2p
 		if (!leaseSet) return nullptr;
 		auto m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();
-		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
+		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetStoreHash (), 32);
 		payload[DATABASE_STORE_TYPE_OFFSET] = leaseSet->GetStoreType (); // LeaseSet or LeaseSet2
 		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, replyToken);
 		size_t size = DATABASE_STORE_HEADER_SIZE;

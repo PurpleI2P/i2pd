@@ -236,6 +236,7 @@ namespace data
 			{ return GetBufferLen () == other.GetBufferLen () && !memcmp (GetBuffer (), other.GetBuffer (), GetBufferLen ()); };
 
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
+			virtual const IdentHash& GetStoreHash () const { return GetIdentHash (); }; // differ from ident hash for encrypted LeaseSet2
 
 		private:
 
@@ -261,11 +262,13 @@ namespace data
 			size_t GetBufferLen () const { return m_BufferLen; };
 
 			uint8_t GetStoreType () const { return m_Buffer[0]; };
+			const IdentHash& GetStoreHash () const { return m_StoreHash ? *m_StoreHash : LocalLeaseSet::GetStoreHash (); };
 
 		private:
 
 			uint8_t * m_Buffer; // 1 byte store type + actual buffer
 			size_t m_BufferLen;
+			std::unique_ptr<IdentHash> m_StoreHash; // for encrypted
 	};
 }
 }

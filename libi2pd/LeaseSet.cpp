@@ -904,6 +904,8 @@ namespace data
 		i2p::crypto::ChaCha20 (outerPlainText, lenOuterPlaintext, keys1, keys1 + 32, outerPlainText); // encrypt Layer 1
 		// signature
 		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
+		// store hash
+		m_StoreHash.reset (new IdentHash (blindedKey.GetStoreHash ()));		
 	}
 }
 }
