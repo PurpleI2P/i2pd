@@ -853,12 +853,12 @@ namespace data
 		m_Buffer[0] = storeType;
 	}
 
-	LocalLeaseSet2::LocalLeaseSet2 (std::shared_ptr<const LeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
+	LocalLeaseSet2::LocalLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
 		LocalLeaseSet (ls->GetIdentity (), nullptr, 0)
 	{
 		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1,
 			lenOuterCiphertext = lenOuterPlaintext + 32;
-		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + lenOuterCiphertext + 64/*signature*/;
+		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + 64/*signature*/;
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		BlindedPublicKey blindedKey (ls->GetIdentity ());
@@ -875,7 +875,7 @@ namespace data
 		auto expirationTime = ls->GetExpirationTime (); 
 		SetExpirationTime (expirationTime);
 		auto expires = expirationTime/1000LL - timestamp;	
-		htobe16buf (m_Buffer + offset, expires > 0 ? expires : 0); // expires
+		htobe16buf (m_Buffer + offset, expires > 0 ? expires : 0); offset += 2; // expires
 		uint16_t flags = 0;
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags	
 		htobe16buf (m_Buffer + offset, lenOuterCiphertext); offset += 2; // lenOuterCiphertext

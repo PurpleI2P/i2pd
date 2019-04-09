@@ -228,6 +228,7 @@ namespace data
 			uint8_t * GetLeases () { return m_Leases; };
 
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
 			bool IsExpired () const;
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
 			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; };
@@ -252,7 +253,7 @@ namespace data
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	
-			LocalLeaseSet2 (std::shared_ptr<const LeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); // encrypted
+			LocalLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); // encrypted
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
 			
