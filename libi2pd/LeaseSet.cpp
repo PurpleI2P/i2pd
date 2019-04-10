@@ -266,7 +266,7 @@ namespace data
 
 	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
 	{
-		uint8_t addr[40]; // TODO: define lenght from b33
+		uint8_t addr[40]; // TODO: define length from b33
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
 		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
 		// checksum is Little Endian
@@ -650,7 +650,7 @@ namespace data
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
 			}
 			else
-				LogPrint (eLogError, "LeaseSet2: unxpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
 	}
 
@@ -853,8 +853,8 @@ namespace data
 		m_Buffer[0] = storeType;
 	}
 
-	LocalLeaseSet2::LocalLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
-		LocalLeaseSet (ls->GetIdentity (), nullptr, 0)
+	LocalEncryptedLeaseSet2::LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType):
+		LocalLeaseSet2 (ls->GetIdentity ()), m_InnerLeaseSet (ls)
 	{
 		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1,
 			lenOuterCiphertext = lenOuterPlaintext + 32;
@@ -905,7 +905,7 @@ namespace data
 		// signature
 		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
 		// store hash
-		m_StoreHash.reset (new IdentHash (blindedKey.GetStoreHash ()));		
+		m_StoreHash = blindedKey.GetStoreHash ();		
 	}
 }
 }

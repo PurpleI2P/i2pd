@@ -272,7 +272,8 @@ namespace client
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
 			UpdateLeaseSet ();
-		return GetLeaseSetMt ();
+		auto ls = GetLeaseSetMt ();
+		return (ls && ls->GetInnerLeaseSet ()) ? ls->GetInnerLeaseSet () : ls; // always non-encrypted
 	}
 
 	std::shared_ptr<const i2p::data::LocalLeaseSet> LeaseSetDestination::GetLeaseSetMt ()
@@ -592,27 +593,31 @@ namespace client
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			auto ls = GetLeaseSetMt ();
+			if (!ls)
+			{
+				LogPrint (eLogWarning, "Destination: couldn't verify LeaseSet for ", GetIdentHash().ToBase32());
+				return;
+			}	
 			auto s = shared_from_this ();
-			RequestLeaseSet (GetIdentHash (),
-				// "this" added due to bug in gcc 4.7-4.8
-				[s,this](std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
+			RequestLeaseSet (ls->GetStoreHash (),
+				[s, ls](std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
 					{
-						auto ls = s->GetLeaseSetMt ();
-						if (ls && *ls == *leaseSet)
+						if (*ls == *leaseSet)
 						{
 							// we got latest LeasetSet
-							LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", GetIdentHash().ToBase32());
+							LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", s->GetIdentHash().ToBase32());
 							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));
 							return;
 						}
 						else
-							LogPrint (eLogDebug, "Destination: LeaseSet is different than just published for ", GetIdentHash().ToBase32());
+							LogPrint (eLogDebug, "Destination: LeaseSet is different than just published for ", s->GetIdentHash().ToBase32());
 					}
 					else
-						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", GetIdentHash().ToBase32());
+						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", s->GetIdentHash().ToBase32());
 					// we have to publish again
 					s->Publish ();
 				});
@@ -1121,10 +1126,13 @@ namespace client
 		}
 		else
 		{
-			// standard LS2 (type 3) assumed for now. TODO: implement others
+			// standard LS2 (type 3) first
 			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
-			leaseSet = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
+			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
+			if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) // encrypt if type 5
+				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys);
+			leaseSet = ls2;
 		}
 		SetLeaseSet (leaseSet);
 	}

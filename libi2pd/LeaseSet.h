@@ -26,7 +26,7 @@ namespace data
 		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate; // 0 means invalid
-		bool isUpdated; // trasient
+		bool isUpdated; // transient
 		/* return true if this lease expires within t millisecond + fudge factor */
 		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
 			auto expire = i2p::util::GetMillisecondsSinceEpoch ();
@@ -237,6 +237,7 @@ namespace data
 
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
 			virtual const IdentHash& GetStoreHash () const { return GetIdentHash (); }; // differ from ident hash for encrypted LeaseSet2
+			virtual std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return nullptr; }; // non-null for encrypted LeaseSet2
 
 		private:
 
@@ -254,7 +255,6 @@ namespace data
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	
-			LocalLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); // encrypted
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
 			
@@ -262,13 +262,30 @@ namespace data
 			size_t GetBufferLen () const { return m_BufferLen; };
 
 			uint8_t GetStoreType () const { return m_Buffer[0]; };
-			const IdentHash& GetStoreHash () const { return m_StoreHash ? *m_StoreHash : LocalLeaseSet::GetStoreHash (); };
 
-		private:
+		protected:
+
+			LocalLeaseSet2 (std::shared_ptr<const IdentityEx> identity): LocalLeaseSet (identity, nullptr, 0), m_Buffer (nullptr), m_BufferLen(0) {}; // called from LocalEncryptedLeaseSet2
+
+		protected:
 
 			uint8_t * m_Buffer; // 1 byte store type + actual buffer
 			size_t m_BufferLen;
-			std::unique_ptr<IdentHash> m_StoreHash; // for encrypted
+	};
+
+	class LocalEncryptedLeaseSet2: public LocalLeaseSet2
+	{
+		public:
+
+			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); 
+
+			const IdentHash& GetStoreHash () const { return m_StoreHash; };
+			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; };
+
+		private:
+
+			IdentHash m_StoreHash;
+			std::shared_ptr<const LocalLeaseSet2> m_InnerLeaseSet;
 	};
 }
 }
