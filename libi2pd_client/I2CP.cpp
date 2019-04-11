@@ -70,7 +70,9 @@ namespace client
 
 	void I2CPDestination::LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len)
 	{
-		auto ls = std::make_shared<i2p::data::LocalLeaseSet2> (storeType, m_Identity, buf, len);
+		auto ls = (storeType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) ?
+			std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (m_Identity, buf, len):
+			std::make_shared<i2p::data::LocalLeaseSet2> (storeType, m_Identity, buf, len);
 		ls->SetExpirationTime (m_LeaseSetExpirationTime);	
 		SetLeaseSet (ls);
 	}
@@ -528,21 +530,35 @@ namespace client
 			if (m_Destination)
 			{
 				uint8_t storeType = buf[offset]; offset++; // store type
-				// TODO: parse LS2 and obtain correct private keys lengths
-				size_t signingPrivateKeyLength = 0, encryptionPrivateKeyLength = 0;
-				if (storeType != i2p::data::NETDB_STORE_TYPE_META_LEASESET2) // no private keys for meta
+				i2p::data::LeaseSet2 ls (storeType, buf + offset, len - offset); // outer layer only for encrypted
+				if (!ls.IsValid ())
 				{
-					signingPrivateKeyLength = m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); // no offline keys
-					encryptionPrivateKeyLength = 256; // ElGamal only
-					if (len < offset + signingPrivateKeyLength + encryptionPrivateKeyLength)
+					LogPrint (eLogError, "I2CP: invalid LeaseSet2 of type ", storeType);
+					return;
+				}	
+				offset += ls.GetBufferLen ();
+				// private keys
+				int numPrivateKeys = buf[offset]; offset++;
+				uint16_t currentKeyType = 0;
+				const uint8_t * currentKey = nullptr;	
+				for (int i = 0; i < numPrivateKeys; i++)
+				{
+					if (offset + 4 > len) return;
+					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
+					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
+					if (offset + keyLen > len) return;
+					if (keyType > currentKeyType)
 					{
-						LogPrint (eLogError, "I2CP: CreateLeaseSet2 message is too short ", len);
-						return;
+						currentKeyType = keyType;
+						currentKey = buf + offset;
 					}
-					m_Destination->SetEncryptionPrivateKey (buf + len - encryptionPrivateKeyLength);
-					// ignore signing private key
-				}
-				m_Destination->LeaseSet2Created (storeType, buf + offset, len - offset - signingPrivateKeyLength - encryptionPrivateKeyLength); 
+					offset += keyLen;
+				}				
+				// TODO: support multiple keys
+				if (currentKey)
+					m_Destination->SetEncryptionPrivateKey (currentKey);
+
+				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ()); 
 			}
 		}
 		else

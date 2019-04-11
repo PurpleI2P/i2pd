@@ -907,5 +907,21 @@ namespace data
 		// store hash
 		m_StoreHash = blindedKey.GetStoreHash ();		
 	}
+
+	LocalEncryptedLeaseSet2::LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
+		LocalLeaseSet2 (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2, identity, buf, len) 
+	{
+		// fill inner LeaseSet2 
+		auto blindedKey = std::make_shared<BlindedPublicKey>(identity);	
+		i2p::data::LeaseSet2 ls (buf, len, blindedKey); // inner layer
+		if (ls.IsValid ())
+		{
+			m_InnerLeaseSet = std::make_shared<LocalLeaseSet2>(ls.GetStoreType (), identity, ls.GetBuffer (), ls.GetBufferLen ());
+			m_StoreHash = blindedKey->GetStoreHash ();
+		}
+		else
+			LogPrint (eLogError, "LeaseSet2: couldn't extract inner layer");			
+	}
+	
 }
 }

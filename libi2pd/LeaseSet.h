@@ -254,7 +254,7 @@ namespace data
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
-			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	
+			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	// from I2CP
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
 			
@@ -278,6 +278,8 @@ namespace data
 		public:
 
 			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); 
+
+			LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP
 
 			const IdentHash& GetStoreHash () const { return m_StoreHash; };
 			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; };
