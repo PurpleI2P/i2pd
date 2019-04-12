@@ -872,10 +872,11 @@ namespace data
 		memcpy (m_Buffer + offset, blindedPub, 32); offset += 32; // Blinded Public Key
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
-		auto expirationTime = ls->GetExpirationTime (); 
-		SetExpirationTime (expirationTime);
-		auto expires = expirationTime/1000LL - timestamp;	
-		htobe16buf (m_Buffer + offset, expires > 0 ? expires : 0); offset += 2; // expires
+		auto nextMidnight = (timestamp/86400LL + 1)*86400LL; // 86400 = 24*3600 seconds
+		auto expirationTime = ls->GetExpirationTime ()/1000LL; 
+		if (expirationTime > nextMidnight) expirationTime = nextMidnight;
+		SetExpirationTime (expirationTime*1000LL);
+		htobe16buf (m_Buffer + offset, expirationTime > timestamp ? expirationTime - timestamp : 0); offset += 2; // expires
 		uint16_t flags = 0;
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags	
 		htobe16buf (m_Buffer + offset, lenOuterCiphertext); offset += 2; // lenOuterCiphertext
