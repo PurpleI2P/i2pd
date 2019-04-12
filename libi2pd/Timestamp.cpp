@@ -182,7 +182,13 @@ namespace util
 
 	void GetCurrentDate (char * date)
 	{
-		time_t t = time (nullptr);
+		GetDateString (GetSecondsSinceEpoch (), date);
+	}
+
+	void GetDateString (uint64_t timestamp, char * date)
+	{
+		using clock = std::chrono::system_clock;
+		auto t = clock::to_time_t (clock::time_point (std::chrono::seconds(timestamp)));
 		struct tm tm;
 #ifdef _WIN32
 		gmtime_s(&tm, &t);

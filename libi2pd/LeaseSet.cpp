@@ -366,16 +366,21 @@ namespace data
 		SHA256_Final (hash, &ctx);
 	}
 
-	i2p::data::IdentHash BlindedPublicKey::GetStoreHash () const
+	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
 	{
 		i2p::data::IdentHash hash;
 		if (m_BlindedSigType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 ||
 			m_BlindedSigType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
 		{
-			char date[9];
-			i2p::util::GetCurrentDate (date);
 			uint8_t blinded[32];
-			GetBlindedKey (date, blinded);		
+			if (date)
+				GetBlindedKey (date, blinded);
+			else
+			{
+				char currentDate[9];
+				i2p::util::GetCurrentDate (currentDate);
+				GetBlindedKey (currentDate, blinded);	
+			}	
 			auto stA1 = htobe16 (m_BlindedSigType);
 			SHA256_CTX ctx;
 			SHA256_Init (&ctx);
@@ -605,7 +610,7 @@ namespace data
 			{
 				// verify blinding
 				char date[9];
-				i2p::util::GetCurrentDate (date);
+				i2p::util::GetDateString (m_PublishedTimestamp, date);
 				uint8_t blinded[32];
 				key->GetBlindedKey (date, blinded);
 				if (memcmp (blindedPublicKey, blinded, 32))
@@ -862,15 +867,15 @@ namespace data
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		BlindedPublicKey blindedKey (ls->GetIdentity ());
+		auto timestamp = i2p::util::GetSecondsSinceEpoch ();	
 		char date[9];
-		i2p::util::GetCurrentDate (date);
+		i2p::util::GetDateString (timestamp, date);
 		uint8_t blindedPriv[32], blindedPub[32];
 		blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKeyType, blindedPriv));
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKeyType); offset += 2; // Blinded Public Key Sig Type
 		memcpy (m_Buffer + offset, blindedPub, 32); offset += 32; // Blinded Public Key
-		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		auto nextMidnight = (timestamp/86400LL + 1)*86400LL; // 86400 = 24*3600 seconds
 		auto expirationTime = ls->GetExpirationTime ()/1000LL; 
@@ -906,7 +911,7 @@ namespace data
 		// signature
 		blindedSigner->Sign (m_Buffer, offset, m_Buffer + offset);
 		// store hash
-		m_StoreHash = blindedKey.GetStoreHash ();		
+		m_StoreHash = blindedKey.GetStoreHash (date);		
 	}
 
 	LocalEncryptedLeaseSet2::LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
