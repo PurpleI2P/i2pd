@@ -106,6 +106,12 @@ namespace i2p
 		{ 
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true);	
+			if (!ntcp) // NTCP2 should replace NTCP
+			{
+				bool published; i2p::config::GetOption("ntcp2.published", published);
+				if (published)
+					PublishNTCP2Address (port, true);
+			}
 		}
 
 	}
