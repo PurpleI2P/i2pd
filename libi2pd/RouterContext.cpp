@@ -344,6 +344,51 @@ namespace i2p
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
 	}
 
+	void RouterContext::PublishNTCPAddress (bool publish, bool v4only)
+	{
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		if (publish)
+		{
+			for (const auto& addr : addresses) // v4
+			{
+				if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					addr->host.is_v4 ())
+				{
+					// insert NTCP address with host/port from SSU
+					m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
+					break;
+				}
+			}
+			if (!v4only)
+			{
+				for (const auto& addr : addresses) // v6
+				{
+					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+						addr->host.is_v6 ())
+					{
+						// insert NTCP address with host/port from SSU
+						m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
+						break;
+					}
+				}
+			}	
+		}
+		else
+		{
+			for (auto it = addresses.begin (); it != addresses.end ();)
+			{
+				if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
+					(!v4only || (*it)->host.is_v4 ()))
+				{
+					it = addresses.erase (it);
+					if (v4only) break; // otherwise might be more than one address
+				}
+				else
+					++it;
+			}
+		}	
+	}	
+		
 	void RouterContext::SetUnreachable ()
 	{
 		// set caps
@@ -353,22 +398,13 @@ namespace i2p
 		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
 		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 		m_RouterInfo.SetCaps (caps);
-		// remove NTCP address
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end (); ++it)
-		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
-				(*it)->host.is_v4 ())
-			{
-				addresses.erase (it);
-				break;
-			}
-		}
+		// remove NTCP v4 address
+		PublishNTCPAddress (false);
 		// delete previous introducers
+		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 			if (addr->ssu)
 				addr->ssu->introducers.clear ();
-
 		// update
 		UpdateRouterInfo ();
 	}
@@ -383,27 +419,15 @@ namespace i2p
 		if (m_IsFloodfill)
 			caps |= i2p::data::RouterInfo::eFloodfill;
 		m_RouterInfo.SetCaps (caps);
-
-		auto& addresses = m_RouterInfo.GetAddresses ();
 		// insert NTCP back
 		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-		if (ntcp) {
-			for (const auto& addr : addresses)
-			{
-				if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					addr->host.is_v4 ())
-				{
-					// insert NTCP address with host/port from SSU
-					m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-					break;
-				}
-			}
-		}
+		if (ntcp) 
+			PublishNTCPAddress (true);
 		// delete previous introducers
+		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 			if (addr->ssu)
 				addr->ssu->introducers.clear ();
-
 		// update
 		UpdateRouterInfo ();
 	}
