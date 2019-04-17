@@ -917,7 +917,12 @@ namespace stream
 			if (leases.empty ())
 			{
 				expired = false;
-				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // time to request
+				// time to request
+				if (m_RemoteLeaseSet->GetOrigStoreType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
+						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
+				else
+					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); 
 				leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // then with threshold
 			}
 			if (!leases.empty ())
