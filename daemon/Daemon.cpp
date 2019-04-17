@@ -165,6 +165,13 @@ namespace i2p
 					uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
 					if (!ntcp && !ntcp2port) ntcp2port = port; // use standard port
 					i2p::context.PublishNTCP2Address (ntcp2port, true); // publish
+					if (ipv6)
+					{
+						std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
+						auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
+						if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
+							i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
+					}
 				}
 				else
 					i2p::context.PublishNTCP2Address (port, false); // unpublish

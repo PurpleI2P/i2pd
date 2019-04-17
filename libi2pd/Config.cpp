@@ -239,6 +239,7 @@ namespace config {
 			("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
 			("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
+			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
 		;
 
 		options_description nettime("Time sync options");
