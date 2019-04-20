@@ -18,6 +18,8 @@ public class I2PD_JNI {
 
 	public static native void onNetworkStateChanged(boolean isConnected);
 
+	public static native void setDataDir(String jdataDir);
+
 	public static void loadLibraries() {
 		//System.loadLibrary("c++_shared");
 		System.loadLibrary("i2pd");

@@ -65,6 +65,8 @@ namespace android
 		}
 	}
 */
+	std::string dataDir = "";
+
 	DaemonAndroidImpl::DaemonAndroidImpl ()
 		//:
 		/*mutex(nullptr), */
@@ -85,7 +87,7 @@ namespace android
 		//m_IsRunning=false;
 
 		// make sure assets are ready before proceed
-		i2p::fs::DetectDataDir("", false);
+		i2p::fs::DetectDataDir(dataDir, false);
 		int numAttempts = 0;
 		do
 		{
@@ -202,6 +204,11 @@ namespace android
 	void stop()
 	{
 		daemon.stop();
+	}
+
+	void SetDataDir(std::string jdataDir)
+	{
+		dataDir = jdataDir;
 	}
 }
 }

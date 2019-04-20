@@ -2,7 +2,9 @@ package org.purplei2p.i2pd;
 
 import java.util.HashSet;
 import java.util.Set;
+import android.os.Environment;
 import android.util.Log;
+
 import org.purplei2p.i2pd.R;
 
 public class DaemonSingleton {
@@ -80,6 +82,7 @@ public class DaemonSingleton {
 				}
 				try {
 					synchronized (DaemonSingleton.this) {
+						I2PD_JNI.setDataDir(Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd");
 						daemonStartResult = I2PD_JNI.startDaemon();
 						if("ok".equals(daemonStartResult)){
 							setState(State.startedOkay);

@@ -42,6 +42,8 @@ namespace android
 	// stops the daemon
 	void stop();
 
+	// set datadir received from jni
+	void SetDataDir(std::string jdataDir);
 	/*
 	class Worker : public QObject
 	{

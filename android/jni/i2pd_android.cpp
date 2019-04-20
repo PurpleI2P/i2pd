@@ -5,7 +5,7 @@
 #include "Transports.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
-	(JNIEnv * env, jclass clazz) {
+	(JNIEnv *env, jclass clazz) {
 #if defined(__arm__)
 	#if defined(__ARM_ARCH_7A__)
 		#if defined(__ARM_NEON__)
@@ -42,27 +42,53 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 }
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
-	(JNIEnv * env, jclass clazz) {
+	(JNIEnv *env, jclass clazz) {
 	return env->NewStringUTF(i2p::android::start().c_str());
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon
-	(JNIEnv * env, jclass clazz) {
+	(JNIEnv *env, jclass clazz) {
 	i2p::android::stop();
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopAcceptingTunnels
-	(JNIEnv * env, jclass clazz) {
+	(JNIEnv *env, jclass clazz) {
 	i2p::context.SetAcceptsTunnels (false);
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startAcceptingTunnels
-	(JNIEnv * env, jclass clazz) {
+	(JNIEnv *env, jclass clazz) {
 	i2p::context.SetAcceptsTunnels (true);
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
-	(JNIEnv * env, jclass clazz, jboolean isConnected) {
+	(JNIEnv *env, jclass clazz, jboolean isConnected) {
 	bool isConnectedBool = (bool) isConnected;
 	i2p::transport::transports.SetOnline (isConnectedBool);
+}
+
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_setDataDir
+	(JNIEnv *env, jclass clazz, jstring jdataDir) {
+
+	/*
+	// Method 1: convert UTF-16 jstring to std::string (https://stackoverflow.com/a/41820336)
+	const jclass stringClass = env->GetObjectClass(jdataDir);
+	const jmethodID getBytes = env->GetMethodID(stringClass, "getBytes", "(Ljava/lang/String;)[B");
+	const jbyteArray stringJbytes = (jbyteArray) env->CallObjectMethod(jdataDir, getBytes, env->NewStringUTF("UTF-8"));
+
+	size_t length = (size_t) env->GetArrayLength(stringJbytes);
+	jbyte* pBytes = env->GetByteArrayElements(stringJbytes, NULL);
+
+	std::string dataDir = std::string((char *)pBytes, length);
+	env->ReleaseByteArrayElements(stringJbytes, pBytes, JNI_ABORT);
+
+	env->DeleteLocalRef(stringJbytes);
+	env->DeleteLocalRef(stringClass); */
+
+	// Method 2: get string chars and make char array.
+	auto dataDir = env->GetStringUTFChars(jdataDir, NULL);
+	env->ReleaseStringUTFChars(jdataDir, dataDir);
+
+	// Set DataDir
+	i2p::android::SetDataDir(dataDir);
 }
