@@ -1243,7 +1243,7 @@ namespace data
 		{
 			if (!it->second->IsValid () || ts > it->second->GetExpirationTime () - LEASE_ENDDATE_THRESHOLD)
 			{
-				LogPrint (eLogInfo, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired or invalid");
+				LogPrint (eLogInfo, "NetDb: LeaseSet ", it->first.ToBase64 (), " expired or invalid");
 				it = m_LeaseSets.erase (it);
 			}
 			else
