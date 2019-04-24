@@ -750,6 +750,11 @@ namespace transport
 				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
+					if (it.first != session->GetRemoteEndpoint ())
+					{
+						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
+						session->SetRemoteEndpoint (it.first); // TODO: investigate why it happens
+					}
 					m_Service.post ([session]
 						{
 							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
@@ -776,6 +781,11 @@ namespace transport
 				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
+					if (it.first != session->GetRemoteEndpoint ())
+					{
+						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
+						session->SetRemoteEndpoint (it.first); // TODO: investigate why it happens
+					}
 					m_ServiceV6.post ([session]
 						{
 							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
