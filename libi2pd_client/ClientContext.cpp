@@ -39,7 +39,7 @@ namespace client
 		if (!m_SharedLocalDestination)
 			CreateNewSharedLocalDestination ();
 
-		// addressbook	
+		// addressbook
 		m_AddressBook.Start ();
 
 		// HTTP proxy
@@ -207,16 +207,16 @@ namespace client
 		{
 			m_HttpProxy->Stop ();
 			m_HttpProxy = nullptr;
-		}		
+		}
 		ReadHttpProxy ();
-	
+
 		// recreate SOCKS proxy
 		if (m_SocksProxy)
 		{
 			m_SocksProxy->Stop ();
 			m_SocksProxy = nullptr;
-		}		
-		ReadSocksProxy ();	
+		}
+		ReadSocksProxy ();
 
 		// delete unused destinations
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -391,10 +391,10 @@ namespace client
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
 		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
 		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
-		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY); 
+		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY);
 		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "");
-		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;		
+		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -418,21 +418,21 @@ namespace client
 	{
 		int numClientTunnels = 0, numServerTunnels = 0;
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
-		if (tunConf.empty ()) 
+		if (tunConf.empty ())
 		{
 			// TODO: cleanup this in 2.8.0
 			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
 			if (i2p::fs::Exists(tunConf))
 				LogPrint(eLogWarning, "Clients: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
-			else 
+			else
 				tunConf = i2p::fs::DataDirPath ("tunnels.conf");
 		}
 		LogPrint(eLogDebug, "Clients: tunnels config file: ", tunConf);
 		ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
-		
+
 		std::string tunDir; i2p::config::GetOption("tunnelsdir", tunDir);
 		if (tunDir.empty ())
-			tunDir = i2p::fs::DataDirPath ("tunnels.d");		
+			tunDir = i2p::fs::DataDirPath ("tunnels.d");
 		if (i2p::fs::Exists (tunDir))
 		{
 			std::vector<std::string> files;
@@ -450,7 +450,7 @@ namespace client
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
 
-	
+
 	void ClientContext::ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels)
 	{
 		boost::property_tree::ptree pt;
@@ -540,7 +540,8 @@ namespace client
 						{
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
-							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, outproxy, localDestination);
+							bool addresshelper = section.second.get("addresshelper", true);
+							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, outproxy, addresshelper, localDestination);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}
@@ -555,7 +556,7 @@ namespace client
 						{
 							// tcp client
 							auto tun = std::make_shared<I2PClientTunnel> (name, dest, address, port, localDestination, destinationPort);
-							clientTunnel = tun;	
+							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}
 						uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);
@@ -674,7 +675,7 @@ namespace client
 						serverTunnel->SetAccessList (idents);
 					}
 					auto ins = m_ServerTunnels.insert (std::make_pair (
-							std::make_pair (localDestination->GetIdentHash (), inPort), 
+							std::make_pair (localDestination->GetIdentHash (), inPort),
 							serverTunnel));
 					if (ins.second)
 					{
@@ -716,6 +717,7 @@ namespace client
 			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
 			std::string httpOutProxyURL; i2p::config::GetOption("httpproxy.outproxy",     httpOutProxyURL);
+			bool httpAddresshelper; i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
 			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
@@ -732,7 +734,7 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, httpAddresshelper, localDestination);
 				m_HttpProxy->Start();
 			}
 			catch (std::exception& e)
@@ -741,7 +743,7 @@ namespace client
 			}
 		}
 	}
-	
+
 	void ClientContext::ReadSocksProxy ()
 	{
 		std::shared_ptr<ClientDestination> localDestination;
