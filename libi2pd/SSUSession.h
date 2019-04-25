@@ -80,8 +80,8 @@ namespace transport
 			void Close ();
 			void Done ();
 			void Failed ();
-			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; }; // TODO: not to use
+			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
+			
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
@@ -104,7 +104,7 @@ namespace transport
 			size_t GetSSUHeaderSize (const uint8_t * buf) const;
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
-			void ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void ProcessSessionRequest (const uint8_t * buf, size_t len);
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
@@ -140,7 +140,7 @@ namespace transport
 
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
-			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
+			const boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			boost::asio::deadline_timer m_ConnectTimer;
 			bool m_IsPeerTest;
 			SessionState m_State;

@@ -328,7 +328,11 @@ namespace transport
 			{
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
-					if (session) session->FlushData ();
+					if (session) 
+					{ 
+						session->FlushData (); 
+						session = nullptr; 
+					}
 					auto it = sessions->find (packet->from);
 					if (it != sessions->end ())
 						session = it->second;
@@ -751,10 +755,7 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-					{
 						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
-						session->SetRemoteEndpoint (it.first); // TODO: investigate why it happens
-					}
 					m_Service.post ([session]
 						{
 							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
@@ -782,10 +783,7 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-					{
-						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
-						session->SetRemoteEndpoint (it.first); // TODO: investigate why it happens
-					}
+						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
 					m_ServiceV6.post ([session]
 						{
 							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
