@@ -1,6 +1,23 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.25.0] - 2019-05-09
+### Added
+- Create, publish and handle encrypted LeaseSet2
+- Support of b33 addresses 
+- RedDSA key blinding
+- .b32.i2p addresses in jump links
+- ntcp2.addressv6 parameter
+### Changed
+- Allow HTTP headers without value
+- Set data directory from external storage path for Android
+- addresshelper support is configurable per tunnel
+- gradlew script for android build
+### Fixed
+- Deletion of expired encrypted LeaseSet2 on floodfills
+- ipv6 fallback address
+- SSU incoming packets routing
+
 ## [2.24.0] - 2019-03-21
 ### Added
 - Support of transient keys for LeaseSet2
