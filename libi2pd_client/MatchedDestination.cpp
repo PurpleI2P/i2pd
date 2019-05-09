@@ -14,13 +14,13 @@ namespace client
 
 	void MatchedTunnelDestination::ResolveCurrentLeaseSet()
 	{
-		if(i2p::client::context.GetAddressBook().GetIdentHash(m_RemoteName, m_RemoteIdent))
+		auto addr = i2p::client::context.GetAddressBook().GetAddress (m_RemoteName);	
+		if(addr && addr->IsIdentHash ())
 		{
+			m_RemoteIdent = addr->identHash;	
 			auto ls = FindLeaseSet(m_RemoteIdent);
 			if(ls)
-			{
 				HandleFoundCurrentLeaseSet(ls);
-			}
 			else
 				RequestDestination(m_RemoteIdent, std::bind(&MatchedTunnelDestination::HandleFoundCurrentLeaseSet, this, std::placeholders::_1));
 		}

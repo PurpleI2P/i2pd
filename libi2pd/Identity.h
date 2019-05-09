@@ -163,6 +163,7 @@ namespace data
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
 			static void GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub); 
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
+			static i2p::crypto::Signer * CreateSigner (SigningKeyType keyType, const uint8_t * priv);
 
 			// offline keys
 			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const; 

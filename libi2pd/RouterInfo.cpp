@@ -51,7 +51,7 @@ namespace data
 
 	void RouterInfo::Update (const uint8_t * buf, int len)
 	{
-		// verify signature since we have indentity already
+		// verify signature since we have identity already
 		int l = len - m_RouterIdentity->GetSignatureLen ();
 		if (m_RouterIdentity->Verify (buf, l, buf + l))
 		{
@@ -883,7 +883,7 @@ namespace data
 	template<typename Filter>	
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
-		// TODO: make it more gereric using comparator
+		// TODO: make it more generic using comparator
 #if (BOOST_VERSION >= 105300)
 		auto addresses = boost::atomic_load (&m_Addresses);
 #else

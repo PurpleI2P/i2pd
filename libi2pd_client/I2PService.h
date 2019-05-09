@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include "Destination.h"
 #include "Identity.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -49,7 +50,7 @@ namespace client
 				m_LocalDestination = dest;
 			}
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
-			void CreateStream(StreamRequestComplete complete, const i2p::data::IdentHash & ident, int port);
+			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, int port);
 			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
 
 			virtual void Start () = 0;

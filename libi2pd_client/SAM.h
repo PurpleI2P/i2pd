@@ -35,6 +35,7 @@ namespace client
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
+	const char SAM_STREAM_STATUS_INVALID_KEY[] = "STREAM STATUS RESULT=INVALID_KEY\n";
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
@@ -123,7 +124,7 @@ namespace client
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet);
 			void SendNamingLookupReply (std::shared_ptr<const i2p::data::IdentityEx> identity);
-			void HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident);
+			void HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name);
 			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 			void SendSessionCreateReplyOk ();
 

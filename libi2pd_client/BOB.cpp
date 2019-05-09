@@ -72,19 +72,26 @@ namespace client
 				if (eol != receiver->buffer && eol[-1] == '\r') eol[-1] = 0; // workaround for Transmission, it sends '\r\n' terminated address
 				receiver->data = (uint8_t *)eol + 1;
 				receiver->dataLen = receiver->bufferOffset - (eol - receiver->buffer + 1);
-				i2p::data::IdentHash ident;
-				if (!context.GetAddressBook ().GetIdentHash (receiver->buffer, ident))
+				auto addr = context.GetAddressBook ().GetAddress (receiver->buffer);
+				if (!addr)
 				{
 					LogPrint (eLogError, "BOB: address ", receiver->buffer, " not found");
 					return;
 				}
-				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
-				if (leaseSet)
-					CreateConnection (receiver, leaseSet);
+				if (addr->IsIdentHash ())
+				{
+					auto leaseSet = GetLocalDestination ()->FindLeaseSet (addr->identHash);
+					if (leaseSet)
+						CreateConnection (receiver, leaseSet);
+					else
+						GetLocalDestination ()->RequestDestination (addr->identHash,
+							std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestComplete,
+							this, std::placeholders::_1, receiver));
+				}
 				else
-					GetLocalDestination ()->RequestDestination (ident,
-						std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestComplete,
-						this, std::placeholders::_1, receiver));
+					GetLocalDestination ()->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
+							std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestComplete,
+							this, std::placeholders::_1, receiver));
 			}
 			else
 			{
@@ -540,29 +547,37 @@ namespace client
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
-		i2p::data::IdentHash ident;
-		if (!context.GetAddressBook ().GetIdentHash (operand, ident))
+		auto addr = context.GetAddressBook ().GetAddress (operand);
+		if (!addr)
 		{
 			SendReplyError ("Address Not found");
 			return;
 		}
 		auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
-		auto leaseSet = localDestination->FindLeaseSet (ident);
-		if (leaseSet)
-			SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
-		else
-		{
-			auto s = shared_from_this ();
-			localDestination->RequestDestination (ident,
-				[s](std::shared_ptr<i2p::data::LeaseSet> ls)
+		if (addr->IsIdentHash ())
+		{	
+			// we might have leaseset already
+			auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
+			if (leaseSet)
+			{	
+				SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
+				return;
+			}
+		}
+		// trying to request
+		auto s = shared_from_this ();	
+		auto requstCallback = 
+			[s](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
 					if (ls)
 						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
 					else
 						s->SendReplyError ("LeaseSet Not found");
-				}
-			);
-		}
+				};
+		if (addr->IsIdentHash ())
+			localDestination->RequestDestination (addr->identHash, requstCallback);
+		else
+			localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey, requstCallback);
 	}
 
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)

@@ -121,8 +121,8 @@ namespace crypto
 		return passed;
 	}
 
-	void Ed25519::Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len,
-		uint8_t * signature) const
+	void Ed25519::Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, 
+		const uint8_t * buf, size_t len, uint8_t * signature) const
 	{
 		BN_CTX * bnCtx = BN_CTX_new ();
 		// calculate r
@@ -153,6 +153,44 @@ namespace crypto
 		BN_CTX_free (bnCtx);
 	}
 
+	void Ed25519::SignRedDSA (const uint8_t * privateKey, const uint8_t * publicKeyEncoded, 
+		const uint8_t * buf, size_t len, uint8_t * signature) const
+	{
+		BN_CTX * bnCtx = BN_CTX_new ();
+		// T = 80 random bytes
+		uint8_t T[80];
+		RAND_bytes (T, 80);
+		// calculate r = H*(T || publickey || data)
+		SHA512_CTX ctx;
+		SHA512_Init (&ctx);
+		SHA512_Update (&ctx, T, 80);
+		SHA512_Update (&ctx, publicKeyEncoded, 32); 
+		SHA512_Update (&ctx, buf, len); // data
+		uint8_t digest[64];
+		SHA512_Final (digest, &ctx);
+		BIGNUM * r = DecodeBN<64> (digest); 
+		BN_mod (r, r, l, bnCtx); // % l	
+		EncodeBN (r, digest, 32);
+		// calculate R
+		uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
+		EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R); 
+		// calculate S
+		SHA512_Init (&ctx);
+		SHA512_Update (&ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
+		SHA512_Update (&ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
+		SHA512_Update (&ctx, buf, len); // data
+		SHA512_Final (digest, &ctx);
+		BIGNUM * h = DecodeBN<64> (digest);
+		// S = (r + h*a) % l
+		BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (privateKey); 
+		BN_mod_mul (h, h, a, l, bnCtx); // %l
+		BN_mod_add (h, h, r, l, bnCtx); // %l
+		memcpy (signature, R, EDDSA25519_SIGNATURE_LENGTH/2);
+		EncodeBN (h, signature + EDDSA25519_SIGNATURE_LENGTH/2, EDDSA25519_SIGNATURE_LENGTH/2); // S
+		BN_free (r); BN_free (h); BN_free (a);
+		BN_CTX_free (bnCtx);
+	}
+	
 	EDDSAPoint Ed25519::Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const
 	{
 		// x3 = (x1*y2+y1*x2)*(z1*z2-d*t1*t2)
@@ -506,6 +544,24 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
+	void Ed25519::BlindPrivateKey (const uint8_t * priv, const uint8_t * seed, uint8_t * blindedPriv, uint8_t * blindedPub)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		// calculate alpha = seed mod l
+		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian 
+		BN_mod (alpha, alpha, l, ctx); // % l
+		BIGNUM * p = DecodeBN<32> (priv); // priv is in Little Endian 
+		BN_add (alpha, alpha, p); // alpha = alpha + priv
+		// a' = BLIND_PRIVKEY(a, alpha) = (a + alpha) mod L	
+		BN_mod (alpha, alpha, l, ctx); // % l
+		EncodeBN (alpha, blindedPriv, 32);
+		// A' = DERIVE_PUBLIC(a') 	
+		auto A1 = MulB (blindedPriv, ctx);
+		EncodePublicKey (A1, blindedPub, ctx); 
+		BN_free (alpha); BN_free (p);
+		BN_CTX_free (ctx);
+	}
+
 	void Ed25519::ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey)
 	{
 		SHA512 (key, EDDSA25519_PRIVATE_KEY_LENGTH, expandedKey);
@@ -514,6 +570,18 @@ namespace crypto
 		expandedKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] |= 0x40; // set second bit
 	}
 
+	void Ed25519::CreateRedDSAPrivateKey (uint8_t * priv)
+	{
+		uint8_t seed[32];
+		RAND_bytes (seed, 32);
+		BIGNUM * p = DecodeBN<32> (seed); 	
+		BN_CTX * ctx = BN_CTX_new ();
+		BN_mod (p, p, l, ctx); // % l
+		EncodeBN (p, priv, 32); 
+		BN_CTX_free (ctx);
+		BN_free (p);
+	}	
+	
 	static std::unique_ptr<Ed25519> g_Ed25519;
 	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{

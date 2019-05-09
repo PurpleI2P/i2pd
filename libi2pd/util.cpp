@@ -295,7 +295,10 @@ namespace net
 	{
 #ifdef WIN32
 		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
-		return boost::asio::ip::address::from_string("127.0.0.1");
+		if(ipv6)
+			return boost::asio::ip::address::from_string("::1");
+		else
+			return boost::asio::ip::address::from_string("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
 		ifaddrs * addrs = nullptr;
@@ -327,7 +330,7 @@ namespace net
 		std::string fallback;
 		if(ipv6)
 		{
-			fallback = "::";
+			fallback = "::1";
 			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
 		} else {
 			fallback = "127.0.0.1";

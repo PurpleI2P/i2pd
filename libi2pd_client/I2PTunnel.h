@@ -13,6 +13,7 @@
 #include "Datagram.h"
 #include "Streaming.h"
 #include "I2PService.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -129,11 +130,11 @@ namespace client
 			const char* GetName() { return m_Name.c_str (); }
 
 		private:
-			const i2p::data::IdentHash * GetIdentHash ();
+			std::shared_ptr<const Address> GetAddress ();
 
 		private:
 			std::string m_Name, m_Destination;
-			const i2p::data::IdentHash * m_DestinationIdentHash;
+			std::shared_ptr<const Address> m_Address;
 			int m_DestinationPort;
 	};
 

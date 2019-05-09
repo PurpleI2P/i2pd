@@ -154,14 +154,24 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 
+			bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
+			i2p::context.PublishNTCPAddress (ntcp, !ipv6);  
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
 			{
 				bool published; i2p::config::GetOption("ntcp2.published", published);
 				if (published)
 				{
-					uint16_t port; i2p::config::GetOption("ntcp2.port", port);
-					i2p::context.PublishNTCP2Address (port, true); // publish
+					uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
+					if (!ntcp && !ntcp2port) ntcp2port = port; // use standard port
+					i2p::context.PublishNTCP2Address (ntcp2port, true); // publish
+					if (ipv6)
+					{
+						std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
+						auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
+						if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
+							i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
+					}
 				}
 				else
 					i2p::context.PublishNTCP2Address (port, false); // unpublish
@@ -256,7 +266,7 @@ namespace i2p
 						pos = comma + 1;
 					}
 					while (comma != std::string::npos);
-					LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routesrs");
+					LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routers");
 					i2p::transport::transports.RestrictRoutesToRouters(idents);
 					restricted = idents.size() > 0;
 				}

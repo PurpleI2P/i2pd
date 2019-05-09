@@ -1235,7 +1235,9 @@ namespace crypto
 	{
 #if OPENSSL_AEAD_CHACHA20_POLY1305
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
-		EVP_EncryptInit_ex(ctx, EVP_chacha20 (), 0, key, nonce);
+		uint32_t iv[4];
+		iv[0] = htole32 (1); memcpy (iv + 1, nonce, 12); // counter | nonce
+		EVP_EncryptInit_ex(ctx, EVP_chacha20 (), NULL, key, (const uint8_t *)iv);
 		int outlen = 0;
 		EVP_EncryptUpdate(ctx, out, &outlen, msg, msgLen);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);

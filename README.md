@@ -1,3 +1,6 @@
+![GitHub release](https://img.shields.io/github/release/PurpleI2P/i2pd.svg?label=latest%20release)
+![GitHub](https://img.shields.io/github/license/PurpleI2P/i2pd.svg)
+
 i2pd
 ====
 
@@ -38,8 +41,12 @@ Resources
 Installing
 ----------
 
-The easiest way to install i2pd is by using
-[precompiled binaries](https://github.com/PurpleI2P/i2pd/releases/latest).
+The easiest way to install i2pd is by using precompiled packages and binaries.
+You can fetch most of them on [release](https://github.com/PurpleI2P/i2pd/releases/latest) page.  
+Please see [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/install/) for more info.
+
+Building
+--------
 See [documentation](https://i2pd.readthedocs.io/en/latest/) for how to build
 i2pd from source on your OS.  
 
@@ -54,11 +61,11 @@ Build instructions:
 
 **Supported systems:**
 
-* GNU/Linux x86/x64		- [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* Windows				- [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
-* Mac OS X				- [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* CentOS / Fedora		- [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
-* Docker image     - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=i2pd)](https://hub.docker.com/r/meeh/i2pd/builds/)
+* GNU/Linux - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
+* Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
+* Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
+* CentOS / Fedora / Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
+* Docker image - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=i2pd)](https://hub.docker.com/r/meeh/i2pd/builds/)
 * FreeBSD
 * Android
 * iOS

@@ -55,12 +55,16 @@ namespace http {
   static std::pair<std::string, std::string> parse_header_line(const std::string& line)
   {
     std::size_t pos = 0;
-    std::size_t len = 2; /* strlen(": ") */
+    std::size_t len = 1; /*: */
     std::size_t max = line.length();
-    if ((pos = line.find(": ", pos)) == std::string::npos)
-      return std::make_pair("", "");
-    while ((pos + len) < max && isspace(line.at(pos + len)))
-      len++;
+    if ((pos = line.find(':', pos)) == std::string::npos)
+      return std::make_pair("", ""); // no ':' found
+	if (pos + 1 < max) // ':' at the end of header is valid
+	{		
+    	while ((pos + len) < max && isspace(line.at(pos + len)))
+      		len++;
+		if (len == 1) return std::make_pair("", ""); // no following space, but something else
+	}
     return std::make_pair(line.substr(0, pos), line.substr(pos + len));
   }
 

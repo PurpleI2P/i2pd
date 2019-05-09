@@ -81,12 +81,15 @@ namespace crypto
 			void ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const;
 #endif
 			void BlindPublicKey (const uint8_t * pub, const uint8_t * seed, uint8_t * blinded); // for encrypted LeaseSet2, pub - 32, seed - 64, blinded - 32
+			void BlindPrivateKey (const uint8_t * priv, const uint8_t * seed, uint8_t * blindedPriv, uint8_t * blindedPub); // for encrypted LeaseSet2, pub - 32, seed - 64, blinded - 32
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
-
+			void SignRedDSA (const uint8_t * privateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
+			
 			static void ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey); // key - 32 bytes, expandedKey - 64 bytes
-
+			void CreateRedDSAPrivateKey (uint8_t * priv); // priv is 32 bytes
+			
 		private:
 
 			EDDSAPoint Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const;

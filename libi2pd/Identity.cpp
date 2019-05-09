@@ -338,12 +338,13 @@ namespace data
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				return new i2p::crypto::ECDSAP521Verifier ();
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				return new i2p::crypto::EDDSA25519Verifier ();
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
 				return new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA);
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
 				return new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512);
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
+				return new i2p::crypto::RedDSA25519Verifier ();
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
@@ -590,39 +591,53 @@ namespace data
 	
 	void PrivateKeys::CreateSigner (SigningKeyType keyType) const
 	{
-		if (m_Signer) return;
+		if (m_Signer) return;	
+		if (keyType == SIGNING_KEY_TYPE_DSA_SHA1)
+			m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
+		else if (keyType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 && !IsOfflineSignature ())
+			m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH)); // TODO: remove public key check
+		else
+		{
+			// public key is not required
+			auto signer = CreateSigner (keyType, m_SigningPrivateKey);
+			if (signer) m_Signer.reset (signer);
+		}	
+	}
+
+	i2p::crypto::Signer * PrivateKeys::CreateSigner (SigningKeyType keyType, const uint8_t * priv)
+	{
 		switch (keyType)
 		{
-			case SIGNING_KEY_TYPE_DSA_SHA1:
-				m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
-			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-				m_Signer.reset (new i2p::crypto::ECDSAP256Signer (m_SigningPrivateKey));
+				return new i2p::crypto::ECDSAP256Signer (priv);
 			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-				m_Signer.reset (new i2p::crypto::ECDSAP384Signer (m_SigningPrivateKey));
+				return new i2p::crypto::ECDSAP384Signer (priv);
 			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-				m_Signer.reset (new i2p::crypto::ECDSAP521Signer (m_SigningPrivateKey));
+				return new i2p::crypto::ECDSAP521Signer (priv);
 			break;
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-				LogPrint (eLogError, "Identity: RSA signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
+				LogPrint (eLogError, "Identity: RSA signing key type ", (int)keyType, " is not supported");
 			break;
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
-				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, IsOfflineSignature () ? nullptr: m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH)); // TODO: remove public key check
+				return new i2p::crypto::EDDSA25519Signer (priv, nullptr);
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-				m_Signer.reset (new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
+				return new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, priv);
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-				m_Signer.reset (new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, m_SigningPrivateKey));
+				return new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, priv);
 			break;
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
+				return new i2p::crypto::RedDSA25519Signer (priv); 
+			break;	
 			default:
-				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
+				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
+		return nullptr;
 	}
 
 	size_t PrivateKeys::GetSignatureLen () const
@@ -704,7 +719,6 @@ namespace data
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
 			// no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
@@ -713,6 +727,9 @@ namespace data
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
 				i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, priv, pub);
 			break;
+			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
+				i2p::crypto::CreateRedDSA25519RandomKeys (priv, pub);
+			break;	
 			default:
 				LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 				i2p::crypto::CreateDSARandomKeys (priv, pub); // DSA-SHA1

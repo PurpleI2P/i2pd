@@ -30,6 +30,9 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startAcceptingTunnels
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
 	(JNIEnv * env, jclass clazz, jboolean isConnected);
 
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_setDataDir
+	(JNIEnv *env, jclass clazz, jstring jdataDir);
+
 #ifdef __cplusplus
 }
 #endif

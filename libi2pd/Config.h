@@ -32,12 +32,12 @@ namespace config {
    * @param  argc  Cmdline arguments count, should be passed from main().
    * @param  argv  Cmdline parameters array, should be passed from main()
    *
-   * If --help is given in parameters, shows it's list with description
-   * terminates the program with exitcode 0.
+   * If --help is given in parameters, shows its list with description
+   * and terminates the program with exitcode 0.
    *
    * In case of parameter misuse boost throws an exception.
    * We internally handle type boost::program_options::unknown_option,
-   * and then terminate program with exitcode 1.
+   * and then terminate the program with exitcode 1.
    *
    * Other exceptions will be passed to higher level.
    */
@@ -107,7 +107,7 @@ namespace config {
   /**
    * @brief  Check is value explicitly given or default
    * @param  name  Name of checked parameter
-   * @return true if value set to default, false othervise
+   * @return true if value set to default, false otherwise
    */
   bool IsDefault(const char *name);
 }

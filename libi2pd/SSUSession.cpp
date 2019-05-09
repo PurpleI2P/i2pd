@@ -158,7 +158,7 @@ namespace transport
 				ProcessData (buf + headerSize, len - headerSize);
 			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:
-				ProcessSessionRequest (buf, len, senderEndpoint); // buf with header
+				ProcessSessionRequest (buf, len); // buf with header
 			break;
 			case PAYLOAD_TYPE_SESSION_CREATED:
 				ProcessSessionCreated (buf, len); // buf with header
@@ -194,7 +194,7 @@ namespace transport
 		}
 	}
 
-	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU message: session request");
 		bool sendRelayTag = true;
@@ -212,10 +212,9 @@ namespace transport
 		}
 		if (headerSize >= len)
 		{
-			LogPrint (eLogError, "Session reaquest header size ", headerSize, " exceeds packet length ", len);
+			LogPrint (eLogError, "Session request header size ", headerSize, " exceeds packet length ", len);
 			return;
 		}
-		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		CreateAESandMacKey (buf + headerSize);
@@ -1097,7 +1096,7 @@ namespace transport
 		// intro key
 		if (toAddress)
 		{
-			// send our intro key to address instead it's own
+			// send our intro key to address instead of its own
 			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
 			if (addr)
 				memcpy (payload, addr->ssu->key, 32); // intro key

@@ -467,7 +467,7 @@ namespace client
 			size_t l = dest->FromBase64(destination);
 			if (l > 0)
 			{
-				context.GetAddressBook().InsertAddress(dest);
+				context.GetAddressBook().InsertFullAddress(dest);
 				auto leaseSet = session->localDestination->FindLeaseSet(dest->GetIdentHash());
 				if (leaseSet)
 					Connect(leaseSet);
@@ -479,7 +479,7 @@ namespace client
 				}
 			}
 			else
-				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
+				SendMessageReply (SAM_STREAM_STATUS_INVALID_KEY, strlen(SAM_STREAM_STATUS_INVALID_KEY), true);
 		}
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
@@ -610,22 +610,29 @@ namespace client
 		ExtractParams (buf, params);
 		std::string& name = params[SAM_PARAM_NAME];
 		std::shared_ptr<const i2p::data::IdentityEx> identity;
-		i2p::data::IdentHash ident;
+		std::shared_ptr<const Address> addr;
 		auto session = m_Owner.FindSession(m_ID);
 		auto dest = session == nullptr ? context.GetSharedLocalDestination() : session->localDestination;
 		if (name == "ME")
 			SendNamingLookupReply (dest->GetIdentity ());
-		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
+		else if ((identity = context.GetAddressBook ().GetFullAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
-		else if (context.GetAddressBook ().GetIdentHash (name, ident))
+		else if ((addr = context.GetAddressBook ().GetAddress (name)))
 		{
-			auto leaseSet = dest->FindLeaseSet (ident);
-			if (leaseSet)
-				SendNamingLookupReply (leaseSet->GetIdentity ());
+			if (addr->IsIdentHash ())
+			{
+				auto leaseSet = dest->FindLeaseSet (addr->identHash);
+				if (leaseSet)
+					SendNamingLookupReply (leaseSet->GetIdentity ());
+				else
+					dest->RequestDestination (addr->identHash,
+						std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
+						shared_from_this (), std::placeholders::_1, name));	
+			}
 			else
-				dest->RequestDestination (ident,
+				dest->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
 					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, ident));
+					shared_from_this (), std::placeholders::_1, name));	
 		}
 		else
 		{
@@ -650,22 +657,20 @@ namespace client
 		SendMessageReply (m_Buffer, len, true);
 	}
 
-	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident)
+	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name)
 	{
 		if (leaseSet)
 		{
-			context.GetAddressBook ().InsertAddress (leaseSet->GetIdentity ());
+			context.GetAddressBook ().InsertFullAddress (leaseSet->GetIdentity ());
 			SendNamingLookupReply (leaseSet->GetIdentity ());
 		}
 		else
 		{
-			LogPrint (eLogError, "SAM: naming lookup failed. LeaseSet for ", ident.ToBase32 (), " not found");
+			LogPrint (eLogError, "SAM: naming lookup failed. LeaseSet for ", name, " not found");
 #ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY,
-				context.GetAddressBook ().ToAddress (ident).c_str());
+			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else
-			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY,
-				context.GetAddressBook ().ToAddress (ident).c_str());
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
 			SendMessageReply (m_Buffer, len, false);
 		}
@@ -844,7 +849,7 @@ namespace client
 			m_SocketType = eSAMSocketTypeStream;
 			m_IsAccepting = false;
 			m_Stream = stream;
-			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
+			context.GetAddressBook ().InsertFullAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)
 			{

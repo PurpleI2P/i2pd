@@ -487,6 +487,42 @@ namespace crypto
 	typedef GOSTR3410Signer<GOSTR3411_256_Hash> GOSTR3410_256_Signer;
 	typedef GOSTR3410Verifier<GOSTR3411_512_Hash> GOSTR3410_512_Verifier;
 	typedef GOSTR3410Signer<GOSTR3411_512_Hash> GOSTR3410_512_Signer;
+
+	// RedDSA
+	typedef EDDSA25519Verifier RedDSA25519Verifier;
+	class RedDSA25519Signer: public Signer
+	{
+		public:
+
+			RedDSA25519Signer (const uint8_t * signingPrivateKey)
+			{
+				memcpy (m_PrivateKey, signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
+				BN_CTX * ctx = BN_CTX_new ();
+				auto publicKey = GetEd25519 ()->GeneratePublicKey (m_PrivateKey, ctx);
+				GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, ctx);
+				BN_CTX_free (ctx);
+			}	
+			~RedDSA25519Signer () {};
+			
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
+			{
+				GetEd25519 ()->SignRedDSA (m_PrivateKey, m_PublicKeyEncoded, buf, len, signature);	
+			}
+			
+			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
+
+		private:
+		
+			uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
+			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
+	};
+
+	inline void CreateRedDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		GetEd25519 ()->CreateRedDSAPrivateKey (signingPrivateKey);
+		RedDSA25519Signer signer (signingPrivateKey);
+		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);	
+	}
 }
 }
 

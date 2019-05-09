@@ -13,6 +13,7 @@
 #include "Identity.h"
 #include "Log.h"
 #include "Destination.h"
+#include "LeaseSet.h"
 
 namespace i2p
 {
@@ -28,6 +29,19 @@ namespace client
 	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;
 	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;
 
+	const size_t B33_ADDRESS_THRESHOLD = 52; // characters
+
+	struct Address
+	{
+		enum { eAddressIndentHash, eAddressBlindedPublicKey } addressType;
+		i2p::data::IdentHash identHash;
+		std::shared_ptr<i2p::data::BlindedPublicKey> blindedPublicKey;
+
+		Address (const std::string& b32);	
+		Address (const i2p::data::IdentHash& hash);	
+		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
+	};
+
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
@@ -40,9 +54,9 @@ namespace client
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
 
 			virtual bool Init () = 0;
-			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
-			virtual int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
-			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+			virtual int Load (std::map<std::string, std::shared_ptr<Address> >& addresses) = 0;
+			virtual int LoadLocal (std::map<std::string, std::shared_ptr<Address> >& addresses) = 0;
+			virtual int Save (const std::map<std::string, std::shared_ptr<Address> >& addresses) = 0;
 
 			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
 			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
@@ -60,12 +74,12 @@ namespace client
 			void Start ();
 			void StartResolvers ();
 			void Stop ();
-			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
-			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const std::string& address);
-			const i2p::data::IdentHash * FindAddress (const std::string& address);
+			std::shared_ptr<const Address> GetAddress (const std::string& address);
+			std::shared_ptr<const i2p::data::IdentityEx> GetFullAddress (const std::string& address);
+			std::shared_ptr<const Address> FindAddress (const std::string& address);
 			void LookupAddress (const std::string& address);
-			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
-			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
+			void InsertAddress (const std::string& address, const std::string& jump); // for jump links
+			void InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
 			bool LoadHostsFromStream (std::istream& f, bool is_update);
 			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
@@ -93,7 +107,7 @@ namespace client
 		private:
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
+			std::map<std::string, std::shared_ptr<Address> >  m_Addresses;
 			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
 			std::mutex m_LookupsMutex;
 			std::map<uint32_t, std::string> m_Lookups; // nonce -> address

@@ -290,7 +290,7 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: offline signature without identity");
 				return false;
 			}
-			// if we have it in LeaseSet already we don't neet parse it again
+			// if we have it in LeaseSet already we don't need to parse it again
 			if (m_RemoteLeaseSet) m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
 			if (m_TransientVerifier)
 			{
@@ -602,7 +602,7 @@ namespace stream
 			size++; // NACK count
 		}
 		size++; // resend delay
-		htobuf16 (packet + size, 0); // nof flags set
+		htobuf16 (packet + size, 0); // no flags set
 		size += 2; // flags
 		htobuf16 (packet + size, 0); // no options
 		size += 2; // options size
@@ -917,7 +917,12 @@ namespace stream
 			if (leases.empty ())
 			{
 				expired = false;
-				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // time to request
+				// time to request
+				if (m_RemoteLeaseSet->GetOrigStoreType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
+						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
+				else
+					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); 
 				leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // then with threshold
 			}
 			if (!leases.empty ())
