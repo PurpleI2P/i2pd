@@ -86,7 +86,7 @@ namespace data
                 while (reseedRetries < 10)
                 {
                     auto ind = rand () % httpsReseedHostList.size ();
-                    std::string reseedUrl = httpsReseedHostList[ind] + "dotnetseeds.su3";
+                    std::string reseedUrl = httpsReseedHostList[ind] + "seeds.su3";
                     auto num = ReseedFromSU3Url (reseedUrl);
                     if (num > 0) return num; // success
                     reseedRetries++;
@@ -144,7 +144,7 @@ namespace data
 		}
 	}
 
-	const char SU3_MAGIC_NUMBER[]="DOTNETsu3";
+	const char SU3_MAGIC_NUMBER[]="su3";
 	int Reseeder::ProcessSU3Stream (std::istream& s)
 	{
 		char magicNumber[7];
