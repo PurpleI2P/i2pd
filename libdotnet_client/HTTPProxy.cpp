@@ -30,8 +30,8 @@ namespace proxy {
 		"<head>\r\n"
 		"  <title>.NET HTTP proxy</title>\r\n"
 		"  <style type=\"text/css\">\r\n"
-		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
-		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #fff; color: #000; }\r\n"
+		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #000; }\r\n"
 		"  </style>\r\n"
 		"</head>\r\n"
 	;

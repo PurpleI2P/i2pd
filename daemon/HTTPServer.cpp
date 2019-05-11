@@ -66,8 +66,8 @@ namespace http {
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
 		"  .slide p, .slide [type='checkbox']{ display:none; }\r\n"
 		"  .slide [type='checkbox']:checked ~ p { display:block; margin-top: 0; padding: 0; }\r\n"
-		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
-		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
+		"  .disabled:after { color: #d33f3f; content: \"Disabled\" }\r\n"
+		"  .enabled:after  { color: #56b734; content: \"Enabled\"  }\r\n"
 		"</style>\r\n";
 
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
