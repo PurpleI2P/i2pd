@@ -187,7 +187,7 @@ namespace config {
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
 			("reseed.urls", value<std::string>()->default_value(
-				"https://reseed.podivilov.ru/,",
+				"https://reseed.podivilov.ru/,"
 				"https://reseed.podivilov.com/"
 			),                                                            "Reseed URLs, separated by comma")
 		;

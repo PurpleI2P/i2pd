@@ -187,7 +187,7 @@ namespace proxy {
 	bool HTTPReqHandler::ExtractAddressHelper(dotnet::http::URL & url, std::string & b64, bool & confirm)
 	{
 		confirm = false;
-		const char *param = "dotnetaddresshelper=";
+		const char *param = "addresshelper=";
 		std::size_t pos = url.query.find(param);
 		std::size_t len = std::strlen(param);
 		std::map<std::string, std::string> params;
@@ -198,7 +198,7 @@ namespace proxy {
 		if (!url.parse_query(params))
 			return false;
 
-		std::string value = params["dotnetaddresshelper"];
+		std::string value = params["addresshelper"];
 		len += value.length();
 		b64 = dotnet::http::UrlDecode(value);
 		// if we need update exists, request formed with update param
@@ -276,7 +276,7 @@ namespace proxy {
 			{
 				std::stringstream ss;
 				ss << "Host " << m_RequestURL.host << " <font color=red>already in router's addressbook</font>. "
-				   << "Click <a href=\"" << m_RequestURL.query << "?dotnetaddresshelper=" << jump << "&update=true\">here</a> to update record.";
+				   << "Click <a href=\"" << m_RequestURL.query << "?addresshelper=" << jump << "&update=true\">here</a> to update record.";
 				GenericProxyInfo("Addresshelper found", ss.str().c_str());
 				return true; /* request processed */
 			}
