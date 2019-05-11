@@ -6,7 +6,7 @@
 - Create, publish and handle encrypted LeaseSet2
 - Support of b33 addresses 
 - RedDSA key blinding
-- .b32.i2p addresses in jump links
+- .b32.dotnet addresses in jump links
 - ntcp2.addressv6 parameter
 ### Changed
 - Allow HTTP headers without value
@@ -70,7 +70,7 @@
 ### Changed
 - cost=13 for unpublished NTCP2 address
 ### Fixed
-- Handle I2NP messages longer than 32K
+- Handle DNNP messages longer than 32K
 
 ## [2.21.0] - 2018-10-04
 ### Added
@@ -103,8 +103,8 @@
 - HTTP outproxy authorization
 - AVX/AESNI runtime detection
 - Initial implementation of NTCP2
-- I2CP session reconfigure
-- I2CP method ClientServicesInfo
+- DNCP session reconfigure
+- DNCP method ClientServicesInfo
 - Datagrams to websocks
 ### Changed
 - RouterInfo uses EdDSA signature by default
@@ -124,7 +124,7 @@
 
 ## [2.18.0] - 2018-01-30
 ### Added
-- Show tunnel nicknames for I2CP destination in WebUI
+- Show tunnel nicknames for DNCP destination in WebUI
 - Re-create HTTP and SOCKS proxy by tunnel reload
 - Graceful shutdown as soon as no more transit tunnels
 ### Changed
@@ -145,7 +145,7 @@
 - Show status of client services through web console
 - Change log level through web connsole
 - transient keys for tunnels
-- i2p.streaming.initialAckDelay parameter
+- dotnet.streaming.initialAckDelay parameter
 - CRYPTO_TYPE for SAM destination
 - signature and crypto type for newkeys BOB command
 ### Changed
@@ -176,7 +176,7 @@
 ## [2.15.0] - 2017-08-17
 ### Added
 - QT GUI
-- Ability to add and remove I2P tunnels without restart
+- Ability to add and remove DOTNET tunnels without restart
 - Ability to disable SOCKS outproxy option
 ### Changed
 - Strip-out Accept-* hedaers in HTTP proxy
@@ -226,7 +226,7 @@
 - Multiple memory leaks
 - Incomptibility of some EdDSA private keys with Java
 - Clock skew for Windows XP
-- Occasional crashes with I2PSnark
+- Occasional crashes with DOTNETSnark
 
 ## [2.11.0] - 2016-12-18
 ### Added
@@ -257,7 +257,7 @@
 
 ## [2.10.0] - 2016-10-17
 ### Added
-- Datagram i2p tunnels
+- Datagram dotnet tunnels
 - Unique local addresses for server tunnels
 - Configurable list of reseed servers  and initial addressbook
 - Configurable netid
@@ -268,12 +268,12 @@
 - Strict reseed checks enabled by default
 
 ## Fixed
-- Multiple fixes in I2CP and BOB implementations
+- Multiple fixes in DNCP and BOB implementations
 
 ## [2.9.0] - 2016-08-12
 ### Changed
 - Proxy refactoring & speedup
-- Transmission-I2P support
+- Transmission-DOTNET support
 - Graceful shutdown for Windows
 - Android without QT
 - Reduced number of timers in SSU
@@ -283,15 +283,15 @@
 ## [2.8.0] - 2016-06-20
 ### Added
 - Basic Android support
-- I2CP implementation
+- DNCP implementation
 - 'doxygen' target
 
 ### Changed
-- I2PControl refactoring & fixes (proper jsonrpc responses on errors)
+- DotNetControl refactoring & fixes (proper jsonrpc responses on errors)
 - boost::regex no more needed
 
 ### Fixed
-- initscripts: added openrc one, in sysv-ish make I2PD_PORT optional
+- initscripts: added openrc one, in sysv-ish make DOTNET_PORT optional
 - properly close NTCP sessions (memleak)
 
 ## [2.7.0] - 2016-05-18
@@ -320,7 +320,7 @@
 
 ## [2.5.1] - 2016-03-10
 ### Fixed
-- Doesn't create ~/.i2pd dir if missing
+- Doesn't create ~/.dotnet dir if missing
 
 ## [2.5.0] - 2016-03-04
 ### Added
@@ -335,9 +335,9 @@
 
 ## [2.4.0] - 2016-02-03
 ### Added
-- X-I2P-* headers for server http-tunnels
-- I2CP options for I2P tunnels
-- Show I2P tunnels in webconsole
+- X-DOTNET-* headers for server http-tunnels
+- DNCP options for DOTNET tunnels
+- Show DOTNET tunnels in webconsole
 
 ### Changed
 - Refactoring of cmdline/config parsing
@@ -345,9 +345,9 @@
 ## [2.3.0] - 2016-01-12
 ### Added
 - Support for new router bandwidth class codes (P and X)
-- I2PControl supports external webui
+- DotNetControl supports external webui
 - Added --pidfile and --notransit parameters
-- Ability to specify signature type for i2p tunnel
+- Ability to specify signature type for dotnet tunnel
 
 ### Changed
 - Fixed multiple floodfill-related bugs

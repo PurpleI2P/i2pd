@@ -2,7 +2,7 @@
 
 # Copyright (c) 2013-2019, The PurpleI2P Project
 #
-# This file is part of Purple i2pd project and licensed under BSD3
+# This file is part of Purple dotnet project and licensed under BSD3
 #
 # See full license text in LICENSE file at top of project tree
 #
@@ -25,9 +25,9 @@ if [ -z $screenfind ]; then
 	exit 1;
 fi
 
-if [ -z i2pd-$arch ]; then
-	echo "Can't find i2pd binary for your archtecture.";
+if [ -z dotnet-$arch ]; then
+	echo "Can't find dotnet binary for your archtecture.";
 	exit 1;
 fi
 
-screen -AmdS i2pd ./i2pd-$arch --datadir=$DIR
+screen -AmdS dotnet ./dotnet-$arch --datadir=$DIR

@@ -1,7 +1,7 @@
 cmake_minimum_required ( VERSION 2.8.12 )
 # this addresses CMP0059 with CMake > 3.3 for PCH flags
 cmake_policy( VERSION 2.8.12 )
-project ( "i2pd" )
+project ( "dotnet" )
 
 # for debugging
 #set(CMAKE_VERBOSE_MAKEFILE on)
@@ -30,57 +30,57 @@ set ( CMAKE_SOURCE_DIR ".." )
 include(TargetArch)
 target_architecture(ARCHITECTURE)
 
-set(LIBI2PD_SRC_DIR ../libi2pd)
-set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
+set(LIBDOTNET_SRC_DIR ../libdotnet)
+set(LIBDOTNET_CLIENT_SRC_DIR ../libdotnet_client)
 
-include_directories(${LIBI2PD_SRC_DIR})
-include_directories(${LIBI2PD_CLIENT_SRC_DIR})
+include_directories(${LIBDOTNET_SRC_DIR})
+include_directories(${LIBDOTNET_CLIENT_SRC_DIR})
 
-set (LIBI2PD_SRC
-  "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
-  "${LIBI2PD_SRC_DIR}/Config.cpp"
-  "${LIBI2PD_SRC_DIR}/CPU.cpp"
-  "${LIBI2PD_SRC_DIR}/Crypto.cpp"
-  "${LIBI2PD_SRC_DIR}/CryptoKey.cpp"
-  "${LIBI2PD_SRC_DIR}/Garlic.cpp"
-  "${LIBI2PD_SRC_DIR}/Gzip.cpp"
-  "${LIBI2PD_SRC_DIR}/HTTP.cpp"
-  "${LIBI2PD_SRC_DIR}/I2NPProtocol.cpp"
-  "${LIBI2PD_SRC_DIR}/Identity.cpp"
-  "${LIBI2PD_SRC_DIR}/LeaseSet.cpp"
-  "${LIBI2PD_SRC_DIR}/FS.cpp"
-  "${LIBI2PD_SRC_DIR}/Log.cpp"
-  "${LIBI2PD_SRC_DIR}/NTCPSession.cpp"
-  "${LIBI2PD_SRC_DIR}/NetDbRequests.cpp"
-  "${LIBI2PD_SRC_DIR}/NetDb.cpp"
-  "${LIBI2PD_SRC_DIR}/Profiling.cpp"
-  "${LIBI2PD_SRC_DIR}/Reseed.cpp"
-  "${LIBI2PD_SRC_DIR}/RouterContext.cpp"
-  "${LIBI2PD_SRC_DIR}/RouterInfo.cpp"
-  "${LIBI2PD_SRC_DIR}/SSU.cpp"
-  "${LIBI2PD_SRC_DIR}/SSUData.cpp"
-  "${LIBI2PD_SRC_DIR}/SSUSession.cpp"
-  "${LIBI2PD_SRC_DIR}/Streaming.cpp"
-  "${LIBI2PD_SRC_DIR}/Destination.cpp"
-  "${LIBI2PD_SRC_DIR}/TransitTunnel.cpp"
-  "${LIBI2PD_SRC_DIR}/Tunnel.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelGateway.cpp"
-  "${LIBI2PD_SRC_DIR}/Transports.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelEndpoint.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelPool.cpp"
-  "${LIBI2PD_SRC_DIR}/Base.cpp"
-  "${LIBI2PD_SRC_DIR}/util.cpp"
-  "${LIBI2PD_SRC_DIR}/Datagram.cpp"
-  "${LIBI2PD_SRC_DIR}/Family.cpp"
-  "${LIBI2PD_SRC_DIR}/Signature.cpp"
-  "${LIBI2PD_SRC_DIR}/Timestamp.cpp"
-  "${LIBI2PD_SRC_DIR}/api.cpp"
-  "${LIBI2PD_SRC_DIR}/Event.cpp"
-  "${LIBI2PD_SRC_DIR}/Gost.cpp"
-  "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"
-  "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
-  "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
-  "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
+set (LIBDOTNET_SRC
+  "${LIBDOTNET_SRC_DIR}/BloomFilter.cpp"
+  "${LIBDOTNET_SRC_DIR}/Config.cpp"
+  "${LIBDOTNET_SRC_DIR}/CPU.cpp"
+  "${LIBDOTNET_SRC_DIR}/Crypto.cpp"
+  "${LIBDOTNET_SRC_DIR}/CryptoKey.cpp"
+  "${LIBDOTNET_SRC_DIR}/Garlic.cpp"
+  "${LIBDOTNET_SRC_DIR}/Gzip.cpp"
+  "${LIBDOTNET_SRC_DIR}/HTTP.cpp"
+  "${LIBDOTNET_SRC_DIR}/DNNPProtocol.cpp"
+  "${LIBDOTNET_SRC_DIR}/Identity.cpp"
+  "${LIBDOTNET_SRC_DIR}/LeaseSet.cpp"
+  "${LIBDOTNET_SRC_DIR}/FS.cpp"
+  "${LIBDOTNET_SRC_DIR}/Log.cpp"
+  "${LIBDOTNET_SRC_DIR}/NTCPSession.cpp"
+  "${LIBDOTNET_SRC_DIR}/NetDbRequests.cpp"
+  "${LIBDOTNET_SRC_DIR}/NetDb.cpp"
+  "${LIBDOTNET_SRC_DIR}/Profiling.cpp"
+  "${LIBDOTNET_SRC_DIR}/Reseed.cpp"
+  "${LIBDOTNET_SRC_DIR}/RouterContext.cpp"
+  "${LIBDOTNET_SRC_DIR}/RouterInfo.cpp"
+  "${LIBDOTNET_SRC_DIR}/SSU.cpp"
+  "${LIBDOTNET_SRC_DIR}/SSUData.cpp"
+  "${LIBDOTNET_SRC_DIR}/SSUSession.cpp"
+  "${LIBDOTNET_SRC_DIR}/Streaming.cpp"
+  "${LIBDOTNET_SRC_DIR}/Destination.cpp"
+  "${LIBDOTNET_SRC_DIR}/TransitTunnel.cpp"
+  "${LIBDOTNET_SRC_DIR}/Tunnel.cpp"
+  "${LIBDOTNET_SRC_DIR}/TunnelGateway.cpp"
+  "${LIBDOTNET_SRC_DIR}/Transports.cpp"
+  "${LIBDOTNET_SRC_DIR}/TunnelEndpoint.cpp"
+  "${LIBDOTNET_SRC_DIR}/TunnelPool.cpp"
+  "${LIBDOTNET_SRC_DIR}/Base.cpp"
+  "${LIBDOTNET_SRC_DIR}/util.cpp"
+  "${LIBDOTNET_SRC_DIR}/Datagram.cpp"
+  "${LIBDOTNET_SRC_DIR}/Family.cpp"
+  "${LIBDOTNET_SRC_DIR}/Signature.cpp"
+  "${LIBDOTNET_SRC_DIR}/Timestamp.cpp"
+  "${LIBDOTNET_SRC_DIR}/api.cpp"
+  "${LIBDOTNET_SRC_DIR}/Event.cpp"
+  "${LIBDOTNET_SRC_DIR}/Gost.cpp"
+  "${LIBDOTNET_SRC_DIR}/ChaCha20.cpp"
+  "${LIBDOTNET_SRC_DIR}/Poly1305.cpp"
+  "${LIBDOTNET_SRC_DIR}/Ed25519.cpp"
+  "${LIBDOTNET_SRC_DIR}/NTCP2.cpp"
 )
 
 if (WITH_WEBSOCKETS)
@@ -89,51 +89,51 @@ if (WITH_WEBSOCKETS)
 endif ()
 
 if (WIN32 OR MSYS)
-  list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
+  list (APPEND LIBDOTNET_SRC "${CMAKE_SOURCE_DIR}/DotNetEndian.cpp")
 endif ()
 
 if (WITH_I2LUA)
   add_definitions(-DI2LUA)
 endif()
 
-add_library(libi2pd ${LIBI2PD_SRC})
-set_target_properties(libi2pd PROPERTIES PREFIX "")
+add_library(libdotnet ${LIBDOTNET_SRC})
+set_target_properties(libdotnet PROPERTIES PREFIX "")
 
 if (WITH_LIBRARY)
-  install(TARGETS libi2pd
-    EXPORT libi2pd
+  install(TARGETS libdotnet
+    EXPORT libdotnet
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     COMPONENT Libraries)
-# TODO Make libi2pd available to 3rd party projects via CMake as imported target
+# TODO Make libdotnet available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
-# install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# install(EXPORT libdotnet DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 set (CLIENT_SRC
-  "${LIBI2PD_CLIENT_SRC_DIR}/AddressBook.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/BOB.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/ClientContext.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/MatchedDestination.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2PTunnel.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2PService.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/SAM.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/SOCKS.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/HTTPProxy.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2CP.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/WebSocks.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/AddressBook.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/BOB.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/ClientContext.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/MatchedDestination.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/DotNetTunnel.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/DotNetService.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/SAM.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/SOCKS.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/HTTPProxy.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/DNCP.cpp"
+  "${LIBDOTNET_CLIENT_SRC_DIR}/WebSocks.cpp"
 )
 
 if(WITH_WEBSOCKETS)
-  list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
+  list (APPEND CLIENT_SRC "${LIBDOTNET_CLIENT_SRC_DIR}/Websocket.cpp")
 endif ()
 
-add_library(libi2pdclient ${CLIENT_SRC})
-set_target_properties(libi2pdclient PROPERTIES PREFIX "")
+add_library(libdotnetclient ${CLIENT_SRC})
+set_target_properties(libdotnetclient PROPERTIES PREFIX "")
 
 if (WITH_LIBRARY)
-  install(TARGETS libi2pdclient
-    EXPORT libi2pdclient
+  install(TARGETS libdotnetclient
+    EXPORT libdotnetclient
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     COMPONENT Libraries)
@@ -144,8 +144,8 @@ set(DAEMON_SRC_DIR ../daemon)
 set (DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
   "${DAEMON_SRC_DIR}/HTTPServer.cpp"
-  "${DAEMON_SRC_DIR}/I2PControl.cpp"
-  "${DAEMON_SRC_DIR}/i2pd.cpp"
+  "${DAEMON_SRC_DIR}/DotNetControl.cpp"
+  "${DAEMON_SRC_DIR}/dotnet.cpp"
   "${DAEMON_SRC_DIR}/UPnP.cpp"
 )
 
@@ -302,7 +302,7 @@ if (WITH_STATIC)
   endif ()
 else()
   if (NOT WIN32 AND NOT MSYS)
-    # TODO: Consider separate compilation for LIBI2PD_SRC for library.
+    # TODO: Consider separate compilation for LIBDOTNET_SRC for library.
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
@@ -312,31 +312,31 @@ endif ()
 
 if (WITH_PCH)
   include_directories(BEFORE ${CMAKE_BINARY_DIR})
-  add_library(stdafx STATIC "${LIBI2PD_SRC_DIR}/stdafx.cpp")
+  add_library(stdafx STATIC "${LIBDOTNET_SRC_DIR}/stdafx.cpp")
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
     add_custom_command(TARGET stdafx POST_BUILD
-      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb libi2pd.dir\\$<CONFIG>\\
-      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pdclient.dir\\$<CONFIG>\\
-      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb libdotnet.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb dotnetclient.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb dotnet.dir\\$<CONFIG>\\
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
-    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    target_compile_options(libi2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libdotnet PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libdotnetclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
     string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
     add_custom_command(TARGET stdafx PRE_BUILD
-      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libi2pd/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
+      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libdotnet/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
-    target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
-    target_compile_options(libi2pdclient PRIVATE -include libi2pd/stdafx.h)
+    target_compile_options(libdotnet PRIVATE -include libdotnet/stdafx.h)
+    target_compile_options(libdotnetclient PRIVATE -include libdotnet/stdafx.h)
   endif()
-  target_link_libraries(libi2pd stdafx)
+  target_link_libraries(libdotnet stdafx)
 endif()
 
-target_link_libraries(libi2pdclient libi2pd)
+target_link_libraries(libdotnetclient libdotnet)
 
 find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -375,7 +375,7 @@ if (NOT ZLIB_FOUND )
   if (WITH_PCH)
     add_dependencies( stdafx zlib-project )
   else ()
-    add_dependencies( libi2pd zlib-project )
+    add_dependencies( libdotnet zlib-project )
   endif ()
   # ExternalProject_Get_Property(zlib-project install_dir)
   set ( ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/zlib/include" CACHE FILEPATH "zlib include dir" FORCE)
@@ -397,7 +397,7 @@ include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_
 # warn if for meshnet
 if (WITH_MESHNET)
   message(STATUS "Building for testnet")
-  message(WARNING "This build will NOT work on mainline i2p")
+  message(WARNING "This build will NOT work on mainline dotnet")
 endif()
 
 include(CheckAtomic)
@@ -445,7 +445,7 @@ if (WITH_BINARY)
     if (MSVC)
       target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
-      target_compile_options("${PROJECT_NAME}" PRIVATE -include libi2pd/stdafx.h)
+      target_compile_options("${PROJECT_NAME}" PRIVATE -include libdotnet/stdafx.h)
     endif()
   endif()
 
@@ -469,7 +469,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd libi2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries( "${PROJECT_NAME}" libdotnet libdotnetclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
@@ -496,8 +496,8 @@ install(FILES "C:/projects/openssl-$ENV{OPENSSL}/LICENSE"
   OPTIONAL                      # for local builds only!
   )
 
-file(GLOB_RECURSE I2PD_SOURCES "../libi2pd/*.cpp" "../libi2pd_client/*.cpp" "../daemon/*.cpp" "../build" "../Win32" "../Makefile*")
-install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
+file(GLOB_RECURSE DOTNET_SOURCES "../libdotnet/*.cpp" "../libdotnet_client/*.cpp" "../daemon/*.cpp" "../build" "../Win32" "../Makefile*")
+install(FILES ${DOTNET_SOURCES} DESTINATION src/ COMPONENT Source)
 # install(DIRECTORY ../ DESTINATION src/
 #   # OPTIONAL
 #   COMPONENT Source FILES_MATCHING
@@ -505,8 +505,8 @@ install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
 #   PATTERN "*.cpp"
 #   )
 
-file(GLOB I2PD_HEADERS "../libi2pd/*.h" "../libi2pd_client/*.h" "../daemon/*.h")
-install(FILES ${I2PD_HEADERS} DESTINATION src/ COMPONENT Headers)
+file(GLOB DOTNET_HEADERS "../libdotnet/*.h" "../libdotnet_client/*.h" "../daemon/*.h")
+install(FILES ${DOTNET_HEADERS} DESTINATION src/ COMPONENT Headers)
 # install(DIRECTORY ../ DESTINATION src/
 #   # OPTIONAL
 #   COMPONENT Headers FILES_MATCHING
@@ -514,16 +514,16 @@ install(FILES ${I2PD_HEADERS} DESTINATION src/ COMPONENT Headers)
 #   PATTERN "*.h"
 #   )
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Purple I2P, a C++ I2P daemon")
-set(CPACK_PACKAGE_VENDOR "Purple I2P")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Purple DOTNET, a C++ DOTNET daemon")
+set(CPACK_PACKAGE_VENDOR "Purple DOTNET")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
-file(READ ../libi2pd/version.h version_h)
-string(REGEX REPLACE ".*I2PD_VERSION_MAJOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MAJOR "${version_h}")
-string(REGEX REPLACE ".*I2PD_VERSION_MINOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MINOR "${version_h}")
-string(REGEX REPLACE ".*I2PD_VERSION_MICRO ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MICRO "${version_h}")
-string(REGEX REPLACE ".*I2PD_VERSION_PATCH ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_PATCH "${version_h}")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "Purple I2P")# ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+file(READ ../libdotnet/version.h version_h)
+string(REGEX REPLACE ".*DOTNET_VERSION_MAJOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MAJOR "${version_h}")
+string(REGEX REPLACE ".*DOTNET_VERSION_MINOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MINOR "${version_h}")
+string(REGEX REPLACE ".*DOTNET_VERSION_MICRO ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MICRO "${version_h}")
+string(REGEX REPLACE ".*DOTNET_VERSION_PATCH ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_PATCH "${version_h}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Purple DOTNET")# ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
 include(CPackComponent)
 cpack_add_component(Runtime
   DESCRIPTION "Main files"
@@ -572,18 +572,18 @@ if((WIN32 OR MSYS) AND NOT UNIX)
   # sure there is at least one set of four (4) backlasshes.
   set(CPACK_NSIS_DEFINES "RequestExecutionLevel user")
   set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/../Win32\\\\mask.bmp")
-  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin/i2pd.exe")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin/dotnet.exe")
   SET(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
-  set(CPACK_NSIS_HELP_LINK "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd\\\\issues")
-  set(CPACK_NSIS_URL_INFO_ABOUT "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd")
-  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Install i2pd as windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=install'
-CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Remove i2pd windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=remove'")
-  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Install i2pd as windows service.lnk'
-Delete '$SMPROGRAMS\\\\$START_MENU\\\\Remove i2pd windows service.lnk'")
+  set(CPACK_NSIS_HELP_LINK "https:\\\\\\\\github.com\\\\PurpleI2P\\\\dotnet\\\\issues")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https:\\\\\\\\github.com\\\\PurpleI2P\\\\dotnet")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Install dotnet as windows service.lnk' '$INSTDIR\\\\bin\\\\dotnet.exe' '--service=install'
+CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Remove dotnet windows service.lnk' '$INSTDIR\\\\bin\\\\dotnet.exe' '--service=remove'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Install dotnet as windows service.lnk'
+Delete '$SMPROGRAMS\\\\$START_MENU\\\\Remove dotnet windows service.lnk'")
 else()
-  set(CPACK_STRIP_FILES "bin/i2pd")
+  set(CPACK_STRIP_FILES "bin/dotnet")
   set(CPACK_SOURCE_STRIP_FILES "")
 endif()
-set(CPACK_PACKAGE_EXECUTABLES "i2pd" "C++ I2P daemon")
+set(CPACK_PACKAGE_EXECUTABLES "dotnet" "C++ DOTNET daemon")
 set(CPACK_SOURCE_GENERATOR "TGZ")
 include(CPack)

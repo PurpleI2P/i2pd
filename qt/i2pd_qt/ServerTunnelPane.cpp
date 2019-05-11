@@ -22,10 +22,10 @@ int ServerTunnelPane::appendServerTunnelForm(
 
     QComboBox *tunnelTypeComboBox = new QComboBox(gridLayoutWidget_2);
     tunnelTypeComboBox->setObjectName(QStringLiteral("tunnelTypeComboBox"));
-    tunnelTypeComboBox->addItem("Server", i2p::client::I2P_TUNNELS_SECTION_TYPE_SERVER);
-    tunnelTypeComboBox->addItem("HTTP", i2p::client::I2P_TUNNELS_SECTION_TYPE_HTTP);
-    tunnelTypeComboBox->addItem("IRC", i2p::client::I2P_TUNNELS_SECTION_TYPE_IRC);
-    tunnelTypeComboBox->addItem("UDP Server", i2p::client::I2P_TUNNELS_SECTION_TYPE_UDPSERVER);
+    tunnelTypeComboBox->addItem("Server", dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_SERVER);
+    tunnelTypeComboBox->addItem("HTTP", dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_HTTP);
+    tunnelTypeComboBox->addItem("IRC", dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_IRC);
+    tunnelTypeComboBox->addItem("UDP Server", dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_UDPSERVER);
 
     int h=19*60;
     gridLayoutWidget_2->setGeometry(QRect(0, 0, 561, h));
@@ -34,13 +34,13 @@ int ServerTunnelPane::appendServerTunnelForm(
     {
         const QString& type = tunnelConfig->getType();
         int index=0;
-        if(type==i2p::client::I2P_TUNNELS_SECTION_TYPE_SERVER)tunnelTypeComboBox->setCurrentIndex(index);
+        if(type==dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_SERVER)tunnelTypeComboBox->setCurrentIndex(index);
         ++index;
-        if(type==i2p::client::I2P_TUNNELS_SECTION_TYPE_HTTP)tunnelTypeComboBox->setCurrentIndex(index);
+        if(type==dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_HTTP)tunnelTypeComboBox->setCurrentIndex(index);
         ++index;
-        if(type==i2p::client::I2P_TUNNELS_SECTION_TYPE_IRC)tunnelTypeComboBox->setCurrentIndex(index);
+        if(type==dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_IRC)tunnelTypeComboBox->setCurrentIndex(index);
         ++index;
-        if(type==i2p::client::I2P_TUNNELS_SECTION_TYPE_UDPSERVER)tunnelTypeComboBox->setCurrentIndex(index);
+        if(type==dotnet::client::DOTNET_TUNNELS_SECTION_TYPE_UDPSERVER)tunnelTypeComboBox->setCurrentIndex(index);
         ++index;
     }
 
@@ -186,7 +186,7 @@ int ServerTunnelPane::appendServerTunnelForm(
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
-        i2p::data::SigningKeyType sigType = tunnelConfig->getsigType();
+        dotnet::data::SigningKeyType sigType = tunnelConfig->getsigType();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         ui.sigTypeLabel = new QLabel(gridLayoutWidget_2);
@@ -236,8 +236,8 @@ int ServerTunnelPane::appendServerTunnelForm(
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
-        I2CPParameters& i2cpParameters = tunnelConfig->getI2cpParameters();
-        appendControlsForI2CPParameters(i2cpParameters, gridIndex);
+        DNCPParameters& dncpParameters = tunnelConfig->getI2cpParameters();
+        appendControlsForDNCPParameters(dncpParameters, gridIndex);
     }
 
     retranslateServerTunnelForm(ui);

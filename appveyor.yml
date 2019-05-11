@@ -36,14 +36,14 @@ install:
 
 build_script:
 - cmd: >-
-    cd \projects\i2pd
+    cd \projects\dotnet
 
     echo MSYSTEM = %MSYSTEM%, bitness = %bitness%
 
 - c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j2"
-- 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
+- 7z a -tzip -mx9 -mmt dotnet-mingw-win%bitness%.zip dotnet.exe
 
 test: off
 
 artifacts:
-- path: i2pd-mingw-win*.zip
+- path: dotnet-mingw-win*.zip

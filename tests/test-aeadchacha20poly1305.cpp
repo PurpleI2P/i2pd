@@ -44,17 +44,17 @@ int main ()
 {
 	uint8_t buf[114+16];
 	// test encryption
-	i2p::crypto::AEADChaCha20Poly1305 ((uint8_t *)text, 114, ad, 12, key, nonce, buf, 114 + 16, true);
+	dotnet::crypto::AEADChaCha20Poly1305 ((uint8_t *)text, 114, ad, 12, key, nonce, buf, 114 + 16, true);
 	assert (memcmp (buf, encrypted, 114) == 0);
 	assert (memcmp (buf + 114, tag, 16) == 0);
 	// test decryption
 	uint8_t buf1[114];
-	assert (i2p::crypto::AEADChaCha20Poly1305 (buf, 114, ad, 12, key, nonce, buf1, 114, false));
+	assert (dotnet::crypto::AEADChaCha20Poly1305 (buf, 114, ad, 12, key, nonce, buf1, 114, false));
 	assert (memcmp (buf1, text, 114) == 0);
 	// test encryption of multiple buffers
 	memcpy (buf, text, 114);
 	std::vector<std::pair<uint8_t*, std::size_t> > bufs{ std::make_pair (buf, 20), std::make_pair (buf + 20, 10), std::make_pair (buf + 30, 70), std::make_pair (buf + 100, 14) };  
-	i2p::crypto::AEADChaCha20Poly1305Encrypt (bufs, key, nonce, buf + 114);
-	i2p::crypto::AEADChaCha20Poly1305 (buf, 114, nullptr, 0, key, nonce, buf1, 114, false);
+	dotnet::crypto::AEADChaCha20Poly1305Encrypt (bufs, key, nonce, buf + 114);
+	dotnet::crypto::AEADChaCha20Poly1305 (buf, 114, nullptr, 0, key, nonce, buf1, 114, false);
 	assert (memcmp (buf1, text, 114) == 0);
 }

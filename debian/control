@@ -1,32 +1,32 @@
-Source: i2pd
+Source: dotnet
 Section: net
 Priority: optional
-Maintainer: r4sas <r4sas@i2pmail.org>
+Maintainer: r4sas <r4sas@dotnetmail.org>
 Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.17.2~), gcc (>= 4.7) | clang (>= 3.3), libboost-system-dev (>= 1.46), libboost-date-time-dev (>= 1.46), libboost-filesystem-dev (>= 1.46), libboost-program-options-dev (>= 1.46), libminiupnpc-dev, libssl-dev, zlib1g-dev
 Standards-Version: 3.9.6
-Homepage: http://i2pd.website/
-Vcs-Git: git://github.com/PurpleI2P/i2pd.git
-Vcs-Browser: https://github.com/PurpleI2P/i2pd
+Homepage: http://dotnet.website/
+Vcs-Git: git://github.com/PurpleI2P/dotnet.git
+Vcs-Browser: https://github.com/PurpleI2P/dotnet
 
-Package: i2pd
+Package: dotnet
 Architecture: any
 Pre-Depends: adduser
 Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base,
-Description: Full-featured C++ implementation of I2P client.
- I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
- communications over I2P are anonymous and end-to-end encrypted, participants
+Description: Full-featured C++ implementation of DOTNET client.
+ DOTNET (Invisible Internet Protocol) is a universal anonymous network layer. All
+ communications over DOTNET are anonymous and end-to-end encrypted, participants
  don't reveal their real IP addresses.
  .
- This package contains the full-featured C++ implementation of I2P router.
+ This package contains the full-featured C++ implementation of DOTNET router.
 
-Package: i2pd-dbg
+Package: dotnet-dbg
 Architecture: any
 Priority: extra
 Section: debug
-Depends: i2pd (= ${binary:Version}), ${misc:Depends}
-Description: i2pd debugging symbols
- I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
- communications over I2P are anonymous and end-to-end encrypted, participants
+Depends: dotnet (= ${binary:Version}), ${misc:Depends}
+Description: dotnet debugging symbols
+ DOTNET (Invisible Internet Protocol) is a universal anonymous network layer. All
+ communications over DOTNET are anonymous and end-to-end encrypted, participants
  don't reveal their real IP addresses.
  .
  This package contains symbols required for debugging.

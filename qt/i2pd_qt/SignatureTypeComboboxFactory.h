@@ -24,7 +24,7 @@ public:
 
     static void fillComboBox(QComboBox* signatureTypeCombobox, uint16_t selectedSigType) {
         /*
-            <orignal> https://geti2p.net/spec/common-structures#certificate
+            <orignal> https://getdotnet.net/spec/common-structures#certificate
             <orignal> все коды перечислены
             <Hypnosis> это таблица "The defined Signing Public Key types are:" ?
             <orignal> да
@@ -34,7 +34,7 @@ public:
         int index=0;
         bool foundSelected=false;
 
-        using namespace i2p::data;
+        using namespace dotnet::data;
 
         addItem(signatureTypeCombobox, QApplication::translate("signatureTypeCombobox", "DSA_SHA1", 0), SIGNING_KEY_TYPE_DSA_SHA1); //0
         if(selectedSigType==SIGNING_KEY_TYPE_DSA_SHA1){signatureTypeCombobox->setCurrentIndex(index);foundSelected=true;}

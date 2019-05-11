@@ -1,11 +1,11 @@
-description "i2p client daemon"
+description "dotnet client daemon"
 
 start on runlevel [2345]
 stop on runlevel [016] or unmounting-filesystem
 
-# these can be overridden in /etc/init/i2pd.override
-env LOGFILE="/var/log/i2pd/i2pd.log"
+# these can be overridden in /etc/init/dotnet.override
+env LOGFILE="/var/log/dotnet/dotnet.log"
 
 expect fork
 
-exec /usr/sbin/i2pd --daemon --service --log=file --logfile=$LOGFILE
+exec /usr/sbin/dotnet --daemon --service --log=file --logfile=$LOGFILE

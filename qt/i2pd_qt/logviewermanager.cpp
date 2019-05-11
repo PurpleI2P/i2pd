@@ -9,10 +9,10 @@ LogViewerManager::LogViewerManager(std::shared_ptr<std::iostream> logStream_,
     controllerForBgThread(nullptr)
 {
     assert(logTextEdit!=nullptr);
-    controllerForBgThread=new i2pd::qt::logviewer::Controller(*this);
+    controllerForBgThread=new dotnet::qt::logviewer::Controller(*this);
 }
 
-namespace i2pd {
+namespace dotnet {
 namespace qt {
 namespace logviewer {
 

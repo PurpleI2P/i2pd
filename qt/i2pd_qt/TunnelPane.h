@@ -21,7 +21,7 @@ class ServerTunnelPane;
 class ClientTunnelPane;
 
 class TunnelConfig;
-class I2CPParameters;
+class DNCPParameters;
 
 class MainWindow;
 
@@ -70,7 +70,7 @@ protected:
     QComboBox *tunnelTypeComboBox;
     QLabel *typeLabel;
 
-    //i2cp
+    //dncp
 
     QLabel * inbound_lengthLabel;
     QLineEdit * inbound_lengthLineEdit;
@@ -90,19 +90,19 @@ protected:
     QString readTunnelTypeComboboxData();
 
     //should be created by factory
-    i2p::data::SigningKeyType readSigTypeComboboxUI(QComboBox* sigTypeComboBox);
+    dotnet::data::SigningKeyType readSigTypeComboboxUI(QComboBox* sigTypeComboBox);
 
 public:
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
-        I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
-        i2cpParams.setInbound_length(inbound_lengthLineEdit->text());
-        i2cpParams.setInbound_quantity(inbound_quantityLineEdit->text());
-        i2cpParams.setOutbound_length(outbound_lengthLineEdit->text());
-        i2cpParams.setOutbound_quantity(outbound_quantityLineEdit->text());
-        i2cpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
+        DNCPParameters& dncpParams=tunnelConfig->getI2cpParameters();
+        dncpParams.setInbound_length(inbound_lengthLineEdit->text());
+        dncpParams.setInbound_quantity(inbound_quantityLineEdit->text());
+        dncpParams.setOutbound_length(outbound_lengthLineEdit->text());
+        dncpParams.setOutbound_quantity(outbound_quantityLineEdit->text());
+        dncpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
         return true;
     }
 protected:
@@ -111,7 +111,7 @@ protected:
             QGroupBox *tunnelGroupBox,
             QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
             QWidget *tunnelsFormGridLayoutWidget, int tunnelsRow, int height, int h);
-    void appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex);
+    void appendControlsForDNCPParameters(DNCPParameters& dncpParameters, int& gridIndex);
 public:
     int height() {
         return gridLayoutWidget_2?gridLayoutWidget_2->height():0;
@@ -125,7 +125,7 @@ private:
         ui.nameLabel->setText(QApplication::translate("tunForm", "Tunnel name:", 0));
     }
 
-    void retranslateI2CPParameters() {
+    void retranslateDNCPParameters() {
         inbound_lengthLabel->setText(QApplication::translate("tunForm", "Number of hops of an inbound tunnel:", 0));;
         outbound_lengthLabel->setText(QApplication::translate("tunForm", "Number of hops of an outbound tunnel:", 0));;
         inbound_quantityLabel->setText(QApplication::translate("tunForm", "Number of inbound tunnels:", 0));;

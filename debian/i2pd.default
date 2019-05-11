@@ -1,11 +1,11 @@
-# Defaults for i2pd initscript
-# sourced by /etc/init.d/i2pd
-# installed at /etc/default/i2pd by the maintainer scripts
-I2PD_ENABLED="yes"
+# Defaults for dotnet initscript
+# sourced by /etc/init.d/dotnet
+# installed at /etc/default/dotnet by the maintainer scripts
+DOTNET_ENABLED="yes"
 
 # Additional options that are passed to the Daemon.
-# see possible switches in /usr/share/doc/i2pd/configuration.md.gz
+# see possible switches in /usr/share/doc/dotnet/configuration.md.gz
 DAEMON_OPTS=""
 
-# If you have problems with hunging i2pd, you can try enable this
+# If you have problems with hunging dotnet, you can try enable this
 ulimit -n 4096

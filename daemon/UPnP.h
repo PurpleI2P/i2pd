@@ -15,7 +15,7 @@
 
 #include <boost/asio.hpp>
 
-namespace i2p
+namespace dotnet
 {
 namespace transport
 {
@@ -34,12 +34,12 @@ namespace transport
 
 		void Discover ();
 		void PortMapping ();
-		void TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+		void TryPortMapping (std::shared_ptr<dotnet::data::RouterInfo::Address> address);
 		void CloseMapping ();
-		void CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+		void CloseMapping (std::shared_ptr<dotnet::data::RouterInfo::Address> address);
 
 		void Run ();
-		std::string GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+		std::string GetProto (std::shared_ptr<dotnet::data::RouterInfo::Address> address);
 
 	private:
 
@@ -63,7 +63,7 @@ namespace transport
 }
 
 #else  // USE_UPNP
-namespace i2p {
+namespace dotnet {
 namespace transport {
   /* class stub */
   class UPnP {

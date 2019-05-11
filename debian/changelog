@@ -1,50 +1,50 @@
-i2pd (2.25.0-1) unstable; urgency=medium
+dotnet (2.25.0-1) unstable; urgency=medium
 
   * updated to version 2.25.0/0.9.40
 
- -- orignal <orignal@i2pmail.org>  Thu, 9 May 2019 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 9 May 2019 16:00:00 +0000
 
-i2pd (2.24.0-1) unstable; urgency=medium
+dotnet (2.24.0-1) unstable; urgency=medium
 
   * updated to version 2.24.0/0.9.39
 
- -- orignal <orignal@i2pmail.org>  Thu, 21 Mar 2019 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 21 Mar 2019 16:00:00 +0000
 
-i2pd (2.23.0-1) unstable; urgency=medium
+dotnet (2.23.0-1) unstable; urgency=medium
 
   * updated to version 2.23.0/0.9.38
   * update docs, dirs, install, links files
 
- -- orignal <orignal@i2pmail.org>  Mon, 21 Jan 2019 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Mon, 21 Jan 2019 16:00:00 +0000
 
-i2pd (2.22.0-1) unstable; urgency=medium
+dotnet (2.22.0-1) unstable; urgency=medium
 
   * updated to version 2.22.0/0.9.37
   * update manpage (1)
   * update links, install files to support tunnelsdir option
   * renamed and updated patch (#1210)
 
- -- r4sas <r4sas@i2pmail.org>  Fri, 09 Nov 2018 02:00:00 +0000
+ -- r4sas <r4sas@dotnetmail.org>  Fri, 09 Nov 2018 02:00:00 +0000
 
-i2pd (2.21.1-1) unstable; urgency=medium
+dotnet (2.21.1-1) unstable; urgency=medium
 
   * updated to version 2.21.1
 
- -- orignal <orignal@i2pmail.org>  Thu, 22 Oct 2018 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 22 Oct 2018 16:00:00 +0000
 
-i2pd (2.21.0-1) unstable; urgency=medium
+dotnet (2.21.0-1) unstable; urgency=medium
 
   * updated to version 2.21.0/0.9.37
 
- -- orignal <orignal@i2pmail.org>  Thu, 4 Oct 2018 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 4 Oct 2018 16:00:00 +0000
 
-i2pd (2.20.0-1) unstable; urgency=medium
+dotnet (2.20.0-1) unstable; urgency=medium
 
   * updated to version 2.20.0/0.9.36
 
- -- orignal <orignal@i2pmail.org>  Thu, 23 Aug 2018 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 23 Aug 2018 16:00:00 +0000
 
-i2pd (2.19.0-1) unstable; urgency=medium
+dotnet (2.19.0-1) unstable; urgency=medium
 
   * updated to version 2.19.0/0.9.35
   * update manpage (1)
@@ -53,107 +53,107 @@ i2pd (2.19.0-1) unstable; urgency=medium
   * fixes in systemd unit (#1089, #1142, #1154, #1155)
   * package now building with systemd support
 
- -- R4SAS <r4sas@i2pmail.org>  Tue, 26 Jun 2018 16:27:45 +0000
+ -- R4SAS <r4sas@dotnetmail.org>  Tue, 26 Jun 2018 16:27:45 +0000
 
-i2pd (2.18.0-1) unstable; urgency=low
+dotnet (2.18.0-1) unstable; urgency=low
 
   * updated to version 2.18.0/0.9.33
 
- -- orignal <orignal@i2pmail.org>  Tue, 30 Jan 2018 16:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Tue, 30 Jan 2018 16:00:00 +0000
 
-i2pd (2.17.0-1) unstable; urgency=low
+dotnet (2.17.0-1) unstable; urgency=low
 
   * updated to version 2.17.0/0.9.32
 
- -- orignal <orignal@i2pmail.org>  Mon, 4 Dec 2017 18:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Mon, 4 Dec 2017 18:00:00 +0000
 
-i2pd (2.16.0-1) unstable; urgency=low
+dotnet (2.16.0-1) unstable; urgency=low
 
   * updated to version 2.16.0/0.9.32
 
- -- orignal <orignal@i2pmail.org>  Mon, 13 Nov 2017 18:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Mon, 13 Nov 2017 18:00:00 +0000
 
-i2pd (2.15.0-1) unstable; urgency=low
+dotnet (2.15.0-1) unstable; urgency=low
 
   * updated to version 2.15.0/0.9.31
 
- -- orignal <orignal@i2pmail.org>  Thu, 17 Aug 2017 18:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 17 Aug 2017 18:00:00 +0000
 
-i2pd (2.14.0-1) unstable; urgency=low
+dotnet (2.14.0-1) unstable; urgency=low
 
   * updated to version 2.14.0/0.9.30
   * updated debian/control
-  * renamed logrotate to i2pd.logrotate
+  * renamed logrotate to dotnet.logrotate
   * fixed init.d script
 
- -- orignal <orignal@i2pmail.org>  Thu, 1 Jun 2017 14:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 1 Jun 2017 14:00:00 +0000
 
-i2pd (2.13.0-1) unstable; urgency=low
+dotnet (2.13.0-1) unstable; urgency=low
 
   * updated to version 2.13.0/0.9.29
   * updated debian/control
-  * renamed logrotate to i2pd.logrotate
+  * renamed logrotate to dotnet.logrotate
   * fixed init.d script
 
- -- orignal <orignal@i2pmail.org>  Thu, 6 Apr 2017 14:00:00 +0000
+ -- orignal <orignal@dotnetmail.org>  Thu, 6 Apr 2017 14:00:00 +0000
 
-i2pd (2.12.0-1) unstable; urgency=low
+dotnet (2.12.0-1) unstable; urgency=low
 
   * updated to version 2.12.0/0.9.28
 
- -- orignal <orignal@i2pmail.org>  Tue, 14 Feb 2017 17:59:30 +0000
+ -- orignal <orignal@dotnetmail.org>  Tue, 14 Feb 2017 17:59:30 +0000
 
-i2pd (2.11.0-1) unstable; urgency=low
+dotnet (2.11.0-1) unstable; urgency=low
 
   * updated to version 2.11.0/0.9.28
 
- -- orignal <orignal@i2pmail.org>  Sun, 18 Dec 2016 21:01:30 +0000
+ -- orignal <orignal@dotnetmail.org>  Sun, 18 Dec 2016 21:01:30 +0000
 
-i2pd (2.10.2-1) unstable; urgency=low
+dotnet (2.10.2-1) unstable; urgency=low
 
   * updated to version 2.10.2
 
- -- orignal <orignal@i2pmail.org>  Sun, 4 Dec 2016 19:38:30 +0000
+ -- orignal <orignal@dotnetmail.org>  Sun, 4 Dec 2016 19:38:30 +0000
 
-i2pd (2.10.1-1) unstable; urgency=low
+dotnet (2.10.1-1) unstable; urgency=low
 
   * updated to version 2.10.1
 
- -- orignal <orignal@i2pmail.org>  Mon, 7 Nov 2016 14:18:30 +0000
+ -- orignal <orignal@dotnetmail.org>  Mon, 7 Nov 2016 14:18:30 +0000
 
-i2pd (2.10.0-1) unstable; urgency=low
+dotnet (2.10.0-1) unstable; urgency=low
 
   * updated to version 2.10.0/0.9.27
   * reseed.verify set to true by default
 
- -- orignal <orignal@i2pmail.org>  Sun, 16 Oct 2016 13:55:40 +0000
+ -- orignal <orignal@dotnetmail.org>  Sun, 16 Oct 2016 13:55:40 +0000
 
-i2pd (2.9.0-1) unstable; urgency=low
+dotnet (2.9.0-1) unstable; urgency=low
 
   * updated to version 2.9.0
   * updated tune-patch
-  * removed I2PD_PORT in i2pd.default
+  * removed DOTNET_PORT in dotnet.default
   * removed all port assigments in services files
   * fixed logrotate
   * subscriptions.txt and tunnels.conf taken from docs folder
 
- -- orignal <orignal@i2pmail.org>  Fri, 12 Aug 2016 14:25:40 +0000
+ -- orignal <orignal@dotnetmail.org>  Fri, 12 Aug 2016 14:25:40 +0000
 
-i2pd (2.7.0-1) unstable; urgency=low
+dotnet (2.7.0-1) unstable; urgency=low
 
   * updated to version 2.7.0/0.9.25
 
- -- hagen <hagen@i2pmail.org>  Wed, 18 May 2016 01:11:04 +0000
+ -- hagen <hagen@dotnetmail.org>  Wed, 18 May 2016 01:11:04 +0000
 
-i2pd (2.2.0-2) unstable; urgency=low
+dotnet (2.2.0-2) unstable; urgency=low
 
   * updated to version 2.2.0
 
- -- hagen <hagen@i2pmail.org>  Wed, 23 Dec 2015 01:29:40 +0000
+ -- hagen <hagen@dotnetmail.org>  Wed, 23 Dec 2015 01:29:40 +0000
 
-i2pd (2.1.0-1) unstable; urgency=low
+dotnet (2.1.0-1) unstable; urgency=low
 
   * updated to version 2.1.0/0.9.23
   * updated deps
 
- -- hagen <hagen@i2pmail.org>  Fri, 19 Sep 2014 05:16:12 +0000
+ -- hagen <hagen@dotnetmail.org>  Fri, 19 Sep 2014 05:16:12 +0000

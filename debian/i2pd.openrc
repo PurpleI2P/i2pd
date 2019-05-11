@@ -1,18 +1,18 @@
 #!/sbin/openrc-run
 
-pidfile="/var/run/i2pd/i2pd.pid"
-logfile="/var/log/i2pd/i2pd.log"
-mainconf="/etc/i2pd/i2pd.conf"
-tunconf="/etc/i2pd/tunnels.conf"
-tundir="/etc/i2pd/tunnels.conf.d"
+pidfile="/var/run/dotnet/dotnet.pid"
+logfile="/var/log/dotnet/dotnet.log"
+mainconf="/etc/dotnet/dotnet.conf"
+tunconf="/etc/dotnet/tunnels.conf"
+tundir="/etc/dotnet/tunnels.conf.d"
 
-name="i2pd"
-command="/usr/sbin/i2pd"
+name="dotnet"
+command="/usr/sbin/dotnet"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
-description="i2p router written in C++"
-required_dirs="/var/lib/i2pd"
+description="dotnet router written in C++"
+required_dirs="/var/lib/dotnet"
 required_files="$mainconf"
-start_stop_daemon_args="--chuid i2pd"
+start_stop_daemon_args="--chuid dotnet"
 
 depend() {
   need mountall
@@ -21,17 +21,17 @@ depend() {
 }
 
 start_pre() {
-  if [ -r /etc/default/i2pd ]; then
-    . /etc/default/i2pd
+  if [ -r /etc/default/dotnet ]; then
+    . /etc/default/dotnet
   fi
 
-  if [ "x$I2PD_ENABLED" != "xyes" ]; then
-    ewarn "i2pd disabled in /etc/default/i2pd"
+  if [ "x$DOTNET_ENABLED" != "xyes" ]; then
+    ewarn "dotnet disabled in /etc/default/dotnet"
     exit 1
   fi
 
-  checkpath -f -o i2pd:adm $logfile
-  checkpath -f -o i2pd:adm $pidfile
+  checkpath -f -o dotnet:adm $logfile
+  checkpath -f -o dotnet:adm $pidfile
 
   if [ -n "$DAEMON_OPTS" ]; then
     command_args="$command_args $DAEMON_OPTS"

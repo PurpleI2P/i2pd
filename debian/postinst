@@ -1,29 +1,29 @@
 #!/bin/sh
 set -e
 
-LOGFILE='/var/log/i2pd/i2pd.log'
-I2PDHOME='/var/lib/i2pd'
-I2PDUSER='i2pd'
+LOGFILE='/var/log/dotnet/dotnet.log'
+DOTNETHOME='/var/lib/dotnet'
+DOTNETUSER='dotnet'
 
 case "$1" in
   configure|reconfigure)
     # Older versions of adduser created the home directory.
     # The version of adduser in Debian unstable does not.
     # Create user and group as a system user.
-    if getent passwd $I2PDUSER > /dev/null 2>&1; then
-      groupadd -f $I2PDUSER || true
-      usermod -s "/bin/false" -e 1 $I2PDUSER > /dev/null || true
+    if getent passwd $DOTNETUSER > /dev/null 2>&1; then
+      groupadd -f $DOTNETUSER || true
+      usermod -s "/bin/false" -e 1 $DOTNETUSER > /dev/null || true
     else
-      adduser --system --quiet --group --home $I2PDHOME $I2PDUSER
+      adduser --system --quiet --group --home $DOTNETHOME $DOTNETUSER
     fi
 
-    mkdir -p -m0750 /var/log/i2pd
-    chown -f ${I2PDUSER}:adm /var/log/i2pd
+    mkdir -p -m0750 /var/log/dotnet
+    chown -f ${DOTNETUSER}:adm /var/log/dotnet
     touch $LOGFILE
     chmod 640 $LOGFILE
-    chown -f ${I2PDUSER}:adm $LOGFILE
-    mkdir -p -m0750 $I2PDHOME
-    chown -f -R -P ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
+    chown -f ${DOTNETUSER}:adm $LOGFILE
+    mkdir -p -m0750 $DOTNETHOME
+    chown -f -R -P ${DOTNETUSER}:${DOTNETUSER} ${DOTNETHOME}
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
     echo "Aborting upgrade"

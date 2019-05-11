@@ -1,9 +1,9 @@
-i2pd_qt.pro.user*
+dotnet_qt.pro.user*
 moc_*
 ui_*
 qrc_*
-i2pd_qt
+dotnet_qt
 Makefile*
 *.stash
 object_script.*
-i2pd_qt_plugin_import.cpp
+dotnet_qt_plugin_import.cpp

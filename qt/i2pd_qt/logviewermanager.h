@@ -17,7 +17,7 @@
 
 class LogViewerManager;
 
-namespace i2pd {
+namespace dotnet {
 namespace qt {
 namespace logviewer {
 
@@ -73,7 +73,7 @@ class LogViewerManager : public QObject
 private:
     std::shared_ptr<std::iostream> logStream;
     QPlainTextEdit* logTextEdit;
-    i2pd::qt::logviewer::Controller* controllerForBgThread;
+    dotnet::qt::logviewer::Controller* controllerForBgThread;
 public:
     //also starts a bg thread (QTimer) polling logStream->readsome(buf, n)
     explicit LogViewerManager(std::shared_ptr<std::iostream> logStream_,
@@ -81,7 +81,7 @@ public:
                               QObject *parent);
     //also deallocs the bg thread (QTimer)
     virtual ~LogViewerManager(){}
-    const i2pd::qt::logviewer::Controller& getControllerForBgThread() {
+    const dotnet::qt::logviewer::Controller& getControllerForBgThread() {
         assert(controllerForBgThread!=nullptr);
         return *controllerForBgThread;
     }

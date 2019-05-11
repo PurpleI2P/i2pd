@@ -2,11 +2,11 @@
 set -e
 
 if [ "$1" = "purge" ]; then
-	rm -f /etc/default/i2pd
-	rm -rf /etc/i2pd
-	rm -rf /var/lib/i2pd
-	rm -rf /var/log/i2pd
-	rm -rf /var/run/i2pd
+	rm -f /etc/default/dotnet
+	rm -rf /etc/dotnet
+	rm -rf /var/lib/dotnet
+	rm -rf /var/log/dotnet
+	rm -rf /var/run/dotnet
 fi
 
 #DEBHELPER#

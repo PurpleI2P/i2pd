@@ -1,26 +1,26 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          i2pd
+# Provides:          dotnet
 # Required-Start:    $network $local_fs $remote_fs
 # Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: i2p router written in C++
+# Short-Description: dotnet router written in C++
 ### END INIT INFO
 
-# Author: hagen <hagen@i2pmail.org>
+# Author: hagen <hagen@dotnetmail.org>
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=i2pd                 # Introduce a short description here
-NAME=i2pd                 # Introduce the short server's name here
+DESC=dotnet                 # Introduce a short description here
+NAME=dotnet                 # Introduce the short server's name here
 DAEMON=/usr/sbin/$NAME    # Introduce the server's location here
 DAEMON_OPTS=""            # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME/$NAME.pid
-I2PCONF=/etc/$NAME/i2pd.conf
+DOTNETCONF=/etc/$NAME/dotnet.conf
 TUNCONF=/etc/$NAME/tunnels.conf
 TUNDIR=/etc/$NAME/tunnels.conf.d
 LOGFILE=/var/log/$NAME/$NAME.log
-USER="i2pd"
+USER="dotnet"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -37,23 +37,23 @@ do_start()
   #   1 if daemon was already running
   #   2 if daemon could not be started
 
-  if [ "x$I2PD_ENABLED" != "xyes" ]; then
+  if [ "x$DOTNET_ENABLED" != "xyes" ]; then
     log_warning_msg "$NAME disabled in config"
     return 2
   fi
 
-  test -e /var/run/i2pd || install -m 755 -o i2pd -g i2pd -d /var/run/i2pd
+  test -e /var/run/dotnet || install -m 755 -o dotnet -g dotnet -d /var/run/dotnet
   touch "$PIDFILE"
   chown -f $USER:adm "$PIDFILE"
 
-  test -e /var/log/i2pd || install -m 755 -o i2pd -g i2pd -d /var/log/i2pd
+  test -e /var/log/dotnet || install -m 755 -o dotnet -g dotnet -d /var/log/dotnet
   touch "$LOGFILE"
   chown -f $USER:adm "$LOGFILE"
 
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" --test > /dev/null \
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
-    --service --daemon --log=file --logfile=$LOGFILE --conf=$I2PCONF --tunconf=$TUNCONF \
+    --service --daemon --log=file --logfile=$LOGFILE --conf=$DOTNETCONF --tunconf=$TUNCONF \
     --tunnelsdir=$TUNDIR --pidfile=$PIDFILE $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?

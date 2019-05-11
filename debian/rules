@@ -12,10 +12,10 @@ DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow
 
 %:
 	dh $@ --parallel
-#	dh_apparmor --profile-name=usr.sbin.i2pd -pi2pd
+#	dh_apparmor --profile-name=usr.sbin.dotnet -pdotnet
 
 override_dh_strip:
-	dh_strip --dbg-package=i2pd-dbg
+	dh_strip --dbg-package=dotnet-dbg
 
 ## uncomment this if you have "missing info" problem when building package
 #override_dh_shlibdeps:

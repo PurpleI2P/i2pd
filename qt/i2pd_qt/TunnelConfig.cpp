@@ -5,25 +5,25 @@ void TunnelConfig::saveHeaderToStringStream(std::stringstream& out) {
         << "type=" << type.toStdString() << "\n";
 }
 
-void TunnelConfig::saveI2CPParametersToStringStream(std::stringstream& out) {
-    if (i2cpParameters.getInbound_length().toUShort() != i2p::client::DEFAULT_INBOUND_TUNNEL_LENGTH)
-            out << i2p::client::I2CP_PARAM_INBOUND_TUNNEL_LENGTH << "="
-                    << i2cpParameters.getInbound_length().toStdString() << "\n";
-    if (i2cpParameters.getOutbound_length().toUShort() != i2p::client::DEFAULT_OUTBOUND_TUNNEL_LENGTH)
-            out << i2p::client::I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH << "="
-                    << i2cpParameters.getOutbound_length().toStdString() << "\n";
-    if (i2cpParameters.getInbound_quantity().toUShort() != i2p::client::DEFAULT_INBOUND_TUNNELS_QUANTITY)
-            out << i2p::client::I2CP_PARAM_INBOUND_TUNNELS_QUANTITY << "="
-                    << i2cpParameters.getInbound_quantity().toStdString() << "\n";
-    if (i2cpParameters.getOutbound_quantity().toUShort() != i2p::client::DEFAULT_OUTBOUND_TUNNELS_QUANTITY)
-            out << i2p::client::I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY << "="
-                    << i2cpParameters.getOutbound_quantity().toStdString() << "\n";
-    if (i2cpParameters.getCrypto_tagsToSend().toUShort() != i2p::client::DEFAULT_TAGS_TO_SEND)
-            out << i2p::client::I2CP_PARAM_TAGS_TO_SEND << "="
-                    << i2cpParameters.getCrypto_tagsToSend().toStdString() << "\n";
-    if (!i2cpParameters.getExplicitPeers().isEmpty()) //todo #947
-            out << i2p::client::I2CP_PARAM_EXPLICIT_PEERS << "="
-                    << i2cpParameters.getExplicitPeers().toStdString() << "\n";
+void TunnelConfig::saveDNCPParametersToStringStream(std::stringstream& out) {
+    if (dncpParameters.getInbound_length().toUShort() != dotnet::client::DEFAULT_INBOUND_TUNNEL_LENGTH)
+            out << dotnet::client::DNCP_PARAM_INBOUND_TUNNEL_LENGTH << "="
+                    << dncpParameters.getInbound_length().toStdString() << "\n";
+    if (dncpParameters.getOutbound_length().toUShort() != dotnet::client::DEFAULT_OUTBOUND_TUNNEL_LENGTH)
+            out << dotnet::client::DNCP_PARAM_OUTBOUND_TUNNEL_LENGTH << "="
+                    << dncpParameters.getOutbound_length().toStdString() << "\n";
+    if (dncpParameters.getInbound_quantity().toUShort() != dotnet::client::DEFAULT_INBOUND_TUNNELS_QUANTITY)
+            out << dotnet::client::DNCP_PARAM_INBOUND_TUNNELS_QUANTITY << "="
+                    << dncpParameters.getInbound_quantity().toStdString() << "\n";
+    if (dncpParameters.getOutbound_quantity().toUShort() != dotnet::client::DEFAULT_OUTBOUND_TUNNELS_QUANTITY)
+            out << dotnet::client::DNCP_PARAM_OUTBOUND_TUNNELS_QUANTITY << "="
+                    << dncpParameters.getOutbound_quantity().toStdString() << "\n";
+    if (dncpParameters.getCrypto_tagsToSend().toUShort() != dotnet::client::DEFAULT_TAGS_TO_SEND)
+            out << dotnet::client::DNCP_PARAM_TAGS_TO_SEND << "="
+                    << dncpParameters.getCrypto_tagsToSend().toStdString() << "\n";
+    if (!dncpParameters.getExplicitPeers().isEmpty()) //todo #947
+            out << dotnet::client::DNCP_PARAM_EXPLICIT_PEERS << "="
+                    << dncpParameters.getExplicitPeers().toStdString() << "\n";
     out << "\n";
 }
 

@@ -3,7 +3,7 @@
 
 #include "Base.h"
 
-using namespace i2p::data;
+using namespace dotnet::data;
 
 int main() {
   const char *in = "test";

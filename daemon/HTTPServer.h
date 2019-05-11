@@ -10,7 +10,7 @@
 #include <sstream>
 #include "HTTP.h"
 
-namespace i2p
+namespace dotnet
 {
 namespace http
 {
@@ -87,9 +87,9 @@ namespace http
     void ShowTransitTunnels (std::stringstream& s);
     void ShowTransports (std::stringstream& s);
     void ShowSAMSessions (std::stringstream& s);
-    void ShowI2PTunnels (std::stringstream& s);
+    void ShowDotNetTunnels (std::stringstream& s);
     void ShowLocalDestination (std::stringstream& s, const std::string& b32);
 } // http
-} // i2p
+} // dotnet
 
 #endif /* HTTP_SERVER_H__ */

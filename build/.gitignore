@@ -1,8 +1,8 @@
 # Various generated files
 /CMakeFiles/
-/i2pd
-/libi2pd.a
-/libi2pdclient.a
+/dotnet
+/libdotnet.a
+/libdotnetclient.a
 /cmake_install.cmake
 /CMakeCache.txt
 /CPackConfig.cmake
@@ -10,5 +10,5 @@
 /install_manifest.txt
 /arch.c
 # windows build script
-i2pd*.zip
+dotnet*.zip
 build*.log

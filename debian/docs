@@ -1,5 +1,5 @@
 README.md
-contrib/i2pd.conf
+contrib/dotnet.conf
 contrib/subscriptions.txt
 contrib/tunnels.conf
 contrib/tunnels.d

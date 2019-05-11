@@ -23,16 +23,16 @@ void handle_signal(int sig)
 	{
 		case SIGHUP:
 			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening tunnel configuration...");
-			i2p::client::context.ReloadConfig();
+			dotnet::client::context.ReloadConfig();
 		break;
 		case SIGUSR1:
 			LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
-			i2p::log::Logger().Reopen ();
+			dotnet::log::Logger().Reopen ();
 		break;
 		case SIGINT:
-			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
+			if (dotnet::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
 			{
-				i2p::context.SetAcceptsTunnels (false);
+				dotnet::context.SetAcceptsTunnels (false);
 				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
 				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
 			}
@@ -49,7 +49,7 @@ void handle_signal(int sig)
 	}
 }
 
-namespace i2p
+namespace dotnet
 {
 	namespace util
 	{
@@ -76,7 +76,7 @@ namespace i2p
 					LogPrint(eLogError, "Daemon: could not create process group.");
 					return false;
 				}
-				std::string d = i2p::fs::GetDataDir();
+				std::string d = dotnet::fs::GetDataDir();
 				if (chdir(d.c_str()) != 0)
 				{
 					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
@@ -91,7 +91,7 @@ namespace i2p
 
 			// set proc limits
 			struct rlimit limit;
-			uint16_t nfiles; i2p::config::GetOption("limits.openfiles", nfiles);
+			uint16_t nfiles; dotnet::config::GetOption("limits.openfiles", nfiles);
 			getrlimit(RLIMIT_NOFILE, &limit);
 			if (nfiles == 0) {
 				LogPrint(eLogInfo, "Daemon: using system limit in ", limit.rlim_cur, " max open files");
@@ -106,7 +106,7 @@ namespace i2p
 			} else {
 				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
 			}
-			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
+			uint32_t cfsize; dotnet::config::GetOption("limits.coresize", cfsize);
 			if (cfsize) // core file size set
 			{
 				cfsize *= 1024;
@@ -127,9 +127,9 @@ namespace i2p
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
-			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
+			std::string pidfile; dotnet::config::GetOption("pidfile", pidfile);
 			if (pidfile == "") {
-				pidfile = i2p::fs::DataDirPath("i2pd.pid");
+				pidfile = dotnet::fs::DataDirPath("dotnet.pid");
 			}
 			if (pidfile != "") {
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
@@ -174,7 +174,7 @@ namespace i2p
 
 		bool DaemonLinux::stop()
 		{
-			i2p::fs::Remove(pidfile);
+			dotnet::fs::Remove(pidfile);
 
 			return Daemon_Singleton::stop();
 		}
@@ -187,7 +187,7 @@ namespace i2p
 				if (gracefulShutdownInterval)
 				{
 					gracefulShutdownInterval--; // - 1 second
-					if (gracefulShutdownInterval <= 0 || i2p::tunnel::tunnels.CountTransitTunnels() <= 0)
+					if (gracefulShutdownInterval <= 0 || dotnet::tunnel::tunnels.CountTransitTunnels() <= 0)
 					{
 						LogPrint(eLogInfo, "Graceful shutdown");
 						return;

@@ -924,9 +924,9 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="doRestartI2PDPushButton">
+             <widget class="QPushButton" name="doRestartDOTNETPushButton">
               <property name="text">
-               <string>Restart i2pd</string>
+               <string>Restart dotnet</string>
               </property>
              </widget>
             </item>

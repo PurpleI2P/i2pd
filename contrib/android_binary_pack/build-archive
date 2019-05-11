@@ -2,7 +2,7 @@
 
 # Copyright (c) 2013-2017, The PurpleI2P Project
 #
-# This file is part of Purple i2pd project and licensed under BSD3
+# This file is part of Purple dotnet project and licensed under BSD3
 #
 # See full license text in LICENSE file at top of project tree
 
@@ -20,25 +20,25 @@ if [ -d archive ]; then
 	rm -r archive
 fi
 
-if [ -f i2pd_*_android_binary.zip ]; then
-	rm i2pd_*_android_binary.zip
+if [ -f dotnet_*_android_binary.zip ]; then
+	rm dotnet_*_android_binary.zip
 fi
 
 # Prepare files for package
 mkdir archive
 
 for ABI in "${!ABILIST[@]}"; do
-	if [ -f ../../android_binary_only/libs/${ABI}/i2pd ]; then
-		cp ../../android_binary_only/libs/${ABI}/i2pd archive/i2pd-${ABILIST[$ABI]}
+	if [ -f ../../android_binary_only/libs/${ABI}/dotnet ]; then
+		cp ../../android_binary_only/libs/${ABI}/dotnet archive/dotnet-${ABILIST[$ABI]}
 	fi
 done
 
-cp i2pd archive/i2pd
+cp dotnet archive/dotnet
 cp -rH ../../android/assets/* archive/
 
 # Compress files
 cd archive
-zip -r6 ../i2pd_${GITDESC}_android_binary.zip .
+zip -r6 ../dotnet_${GITDESC}_android_binary.zip .
 
 # Remove temporary folder
 cd ..

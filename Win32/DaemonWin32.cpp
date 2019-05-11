@@ -11,7 +11,7 @@
 #include "Win32/Win32App.h"
 #endif
 
-namespace i2p
+namespace dotnet
 {
 namespace util
 {
@@ -26,7 +26,7 @@ namespace util
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
 
-		std::string serviceControl; i2p::config::GetOption("svcctl", serviceControl);
+		std::string serviceControl; dotnet::config::GetOption("svcctl", serviceControl);
 		if (serviceControl == "install")
 		{
 			LogPrint(eLogInfo, "WinSVC: installing ", SERVICE_NAME, " as service");
@@ -50,8 +50,8 @@ namespace util
 		if (isDaemon)
 		{
 			LogPrint(eLogDebug, "Daemon: running as service");
-			I2PService service((PSTR)SERVICE_NAME);
-			if (!I2PService::Run(service))
+			DotNetService service((PSTR)SERVICE_NAME);
+			if (!DotNetService::Run(service))
 			{
 				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
 				return false;
@@ -71,19 +71,19 @@ namespace util
 		setlocale(LC_ALL, "Russian");
 		setlocale(LC_TIME, "C");
 #ifdef WIN32_APP
-		if (!i2p::win32::StartWin32App ()) return false;
+		if (!dotnet::win32::StartWin32App ()) return false;
 
 		// override log
-		i2p::config::SetOption("log", std::string ("file"));
+		dotnet::config::SetOption("log", std::string ("file"));
 #endif
 		bool ret = Daemon_Singleton::start();
-		if (ret && i2p::log::Logger().GetLogType() == eLogFile)
+		if (ret && dotnet::log::Logger().GetLogType() == eLogFile)
 		{
 			// TODO: find out where this garbage to console comes from
 			SetStdHandle(STD_OUTPUT_HANDLE, INVALID_HANDLE_VALUE);
 			SetStdHandle(STD_ERROR_HANDLE, INVALID_HANDLE_VALUE);
 		}
-		bool insomnia; i2p::config::GetOption("insomnia", insomnia);
+		bool insomnia; dotnet::config::GetOption("insomnia", insomnia);
 		if (insomnia)
 			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 		return ret;
@@ -92,7 +92,7 @@ namespace util
 	bool DaemonWin32::stop()
 	{
 #ifdef WIN32_APP
-		i2p::win32::StopWin32App ();
+		dotnet::win32::StopWin32App ();
 #endif
 		return Daemon_Singleton::stop();
 	}
@@ -100,7 +100,7 @@ namespace util
 	void DaemonWin32::run ()
 	{
 #ifdef WIN32_APP
-		i2p::win32::RunWin32App ();
+		dotnet::win32::RunWin32App ();
 #else
 		while (running)
 		{

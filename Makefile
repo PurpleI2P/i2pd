@@ -1,14 +1,14 @@
 SYS := $(shell $(CXX) -dumpmachine)
-SHLIB := libi2pd.so
-ARLIB := libi2pd.a
-SHLIB_CLIENT := libi2pdclient.so
-ARLIB_CLIENT := libi2pdclient.a
-I2PD := i2pd
+SHLIB := libdotnet.so
+ARLIB := libdotnet.a
+SHLIB_CLIENT := libdotnetclient.so
+ARLIB_CLIENT := libdotnetclient.a
+DOTNET := dotnet
 GREP := grep
 DEPS := obj/make.dep
 
-LIB_SRC_DIR := libi2pd
-LIB_CLIENT_SRC_DIR := libi2pd_client
+LIB_SRC_DIR := libdotnet
+LIB_CLIENT_SRC_DIR := libdotnet_client
 DAEMON_SRC_DIR := daemon
 
 include filelist.mk
@@ -57,7 +57,7 @@ endif
 
 NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
 
-all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
+all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(DOTNET)
 
 mk_obj_dir:
 	@mkdir -p obj
@@ -87,7 +87,7 @@ obj/%.o: %.cpp
 -include $(DEPS)
 
 DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
+$(DOTNET): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
@@ -107,20 +107,20 @@ $(ARLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+	$(RM) $(DOTNET) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
-strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
+strip: $(DOTNET) $(SHLIB_CLIENT) $(SHLIB)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
-	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
+	    --prefix=dotnet_$(LATEST_TAG)/ $(LATEST_TAG) -o dotnet_$(LATEST_TAG).tar.gz
 
 last-dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
-	    --prefix=i2pd_$(LATEST_TAG)/ $(BRANCH) -o ../i2pd_$(LATEST_TAG).orig.tar.gz
+	    --prefix=dotnet_$(LATEST_TAG)/ $(BRANCH) -o ../dotnet_$(LATEST_TAG).orig.tar.gz
 
 doxygen:
 	doxygen -s docs/Doxyfile

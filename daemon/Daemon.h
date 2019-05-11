@@ -5,7 +5,7 @@
 #include <string>
 #include <ostream>
 
-namespace i2p
+namespace dotnet
 {
 namespace util
 {
@@ -34,9 +34,9 @@ namespace util
 	};
 
 #if defined(QT_GUI_LIB) // check if QT
-#define Daemon i2p::util::DaemonQT::Instance()
+#define Daemon dotnet::util::DaemonQT::Instance()
 	// dummy, invoked from RunQT
-	class DaemonQT: public i2p::util::Daemon_Singleton
+	class DaemonQT: public dotnet::util::Daemon_Singleton
 	{
 		public:
 			static DaemonQT& Instance()
@@ -47,7 +47,7 @@ namespace util
 	};
 
 #elif defined(_WIN32)
-#define Daemon i2p::util::DaemonWin32::Instance()
+#define Daemon dotnet::util::DaemonWin32::Instance()
 	class DaemonWin32 : public Daemon_Singleton
 	{
 		public:
@@ -67,9 +67,9 @@ namespace util
 			DaemonWin32 ():isGraceful(false) {}
 	};
 #elif (defined(ANDROID) && !defined(ANDROID_BINARY))
-#define Daemon i2p::util::DaemonAndroid::Instance()
+#define Daemon dotnet::util::DaemonAndroid::Instance()
 	// dummy, invoked from android/jni/DaemonAndroid.*
-	class DaemonAndroid: public i2p::util::Daemon_Singleton
+	class DaemonAndroid: public dotnet::util::Daemon_Singleton
 	{
 		public:
 			static DaemonAndroid& Instance()
@@ -79,7 +79,7 @@ namespace util
 			}
 	};
 #else
-#define Daemon i2p::util::DaemonLinux::Instance()
+#define Daemon dotnet::util::DaemonLinux::Instance()
 	class DaemonLinux : public Daemon_Singleton
 	{
 		public:

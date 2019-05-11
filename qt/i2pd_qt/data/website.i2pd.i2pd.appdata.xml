@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2018 Viktor Villainov <supervillain@riseup.net> -->
 <component type="desktop">
-  <id>website.i2pd.i2pd</id>
-  <launchable type="desktop-id">website.i2pd.i2pd.desktop</launchable>
+  <id>website.dotnet.dotnet</id>
+  <launchable type="desktop-id">website.dotnet.dotnet.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>BSD-3-Clause</project_license>
-  <name>i2pd</name>
+  <name>dotnet</name>
   <summary>Invisible Internet</summary>
   <description>
-        <p>i2pd (I2P Daemon) is a full-featured C++ implementation of I2P client.</p>
-        <p>I2P (Invisible Internet Protocol) is a universal anonymous network layer. 
-        All communications over I2P are anonymous and end-to-end encrypted, participants
+        <p>dotnet (DOTNET Daemon) is a full-featured C++ implementation of DOTNET client.</p>
+        <p>DOTNET (Invisible Internet Protocol) is a universal anonymous network layer. 
+        All communications over DOTNET are anonymous and end-to-end encrypted, participants
         don't reveal their real IP addresses. </p>
-        <p>I2P allows people from all around the world to communicate and share information
+        <p>DOTNET allows people from all around the world to communicate and share information
         without restrictions.</p>
         <p>Features:</p>
         <ul>
@@ -24,12 +24,12 @@
   </description>
   <screenshots>
     <screenshot type="default">
-      <image height="590" width="923">https://i2pd.website/images/i2pd_qt.png</image>
+      <image height="590" width="923">https://dotnet.website/images/dotnet_qt.png</image>
     </screenshot>
   </screenshots>
-  <url type="homepage">https://i2pd.website/</url>
-  <url type="bugtracker">https://github.com/PurpleI2P/i2pd/issues</url>
-  <url type="help">https://i2pd.readthedocs.io/en/latest/</url>
+  <url type="homepage">https://dotnet.website/</url>
+  <url type="bugtracker">https://github.com/PurpleI2P/dotnet/issues</url>
+  <url type="help">https://dotnet.readthedocs.io/en/latest/</url>
   <update_contact>supervillain@riseup.net</update_contact>
   <developer_name>PurpleI2P Team</developer_name>
   <translation type="qt" />

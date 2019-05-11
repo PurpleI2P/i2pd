@@ -1,4 +1,4 @@
-/var/log/i2pd/i2pd.log {
+/var/log/dotnet/dotnet.log {
         rotate 6
         daily
         missingok

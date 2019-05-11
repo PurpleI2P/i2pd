@@ -83,10 +83,10 @@ void TunnelPane::setupTunnelPane(
     retranslateTunnelForm(*this);
 }
 
-void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex) {
+void TunnelPane::appendControlsForDNCPParameters(DNCPParameters& dncpParameters, int& gridIndex) {
     {
         //number of hops of an inbound tunnel
-        const QString& inbound_length=i2cpParameters.getInbound_length();
+        const QString& inbound_length=dncpParameters.getInbound_length();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         inbound_lengthLabel = new QLabel(gridLayoutWidget_2);
@@ -105,7 +105,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
     }
     {
         //number of hops of an outbound tunnel
-        const QString& outbound_length=i2cpParameters.getOutbound_length();
+        const QString& outbound_length=dncpParameters.getOutbound_length();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         outbound_lengthLabel = new QLabel(gridLayoutWidget_2);
@@ -124,7 +124,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
     }
     {
         //number of inbound tunnels
-        const QString& inbound_quantity=i2cpParameters.getInbound_quantity();
+        const QString& inbound_quantity=dncpParameters.getInbound_quantity();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         inbound_quantityLabel = new QLabel(gridLayoutWidget_2);
@@ -143,7 +143,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
     }
     {
         //number of outbound tunnels
-        const QString& outbound_quantity=i2cpParameters.getOutbound_quantity();
+        const QString& outbound_quantity=dncpParameters.getOutbound_quantity();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         outbound_quantityLabel = new QLabel(gridLayoutWidget_2);
@@ -162,7 +162,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
     }
     {
         //number of ElGamal/AES tags to send
-        const QString& crypto_tagsToSend=i2cpParameters.getCrypto_tagsToSend();
+        const QString& crypto_tagsToSend=dncpParameters.getCrypto_tagsToSend();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         crypto_tagsToSendLabel = new QLabel(gridLayoutWidget_2);
@@ -180,7 +180,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
 
-    retranslateI2CPParameters();
+    retranslateDNCPParameters();
 }
 
 void TunnelPane::updated() {
@@ -210,22 +210,22 @@ void TunnelPane::deleteButtonReleased() {
 }
 
 /*
-const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
-const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
-const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
-const char I2P_TUNNELS_SECTION_TYPE_IRC[] = "irc";
-const char I2P_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
-const char I2P_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
-const char I2P_TUNNELS_SECTION_TYPE_SOCKS[] = "socks";
-const char I2P_TUNNELS_SECTION_TYPE_WEBSOCKS[] = "websocks";
-const char I2P_TUNNELS_SECTION_TYPE_HTTPPROXY[] = "httpproxy";
+const char DOTNET_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
+const char DOTNET_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+const char DOTNET_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+const char DOTNET_TUNNELS_SECTION_TYPE_IRC[] = "irc";
+const char DOTNET_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
+const char DOTNET_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
+const char DOTNET_TUNNELS_SECTION_TYPE_SOCKS[] = "socks";
+const char DOTNET_TUNNELS_SECTION_TYPE_WEBSOCKS[] = "websocks";
+const char DOTNET_TUNNELS_SECTION_TYPE_HTTPPROXY[] = "httpproxy";
 */
 QString TunnelPane::readTunnelTypeComboboxData() {
     return tunnelTypeComboBox->currentData().toString();
 }
 
-i2p::data::SigningKeyType TunnelPane::readSigTypeComboboxUI(QComboBox* sigTypeComboBox) {
-    return (i2p::data::SigningKeyType) sigTypeComboBox->currentData().toInt();
+dotnet::data::SigningKeyType TunnelPane::readSigTypeComboboxUI(QComboBox* sigTypeComboBox) {
+    return (dotnet::data::SigningKeyType) sigTypeComboBox->currentData().toInt();
 }
 
 void TunnelPane::deleteTunnelForm() {

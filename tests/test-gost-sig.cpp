@@ -18,15 +18,15 @@ const uint8_t example2[72] =
 int main ()
 {
 	uint8_t priv[64], pub[128], signature[128];
-	i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, priv, pub);
-	i2p::crypto::GOSTR3410_512_Signer signer (i2p::crypto::eGOSTR3410TC26A512, priv);
+	dotnet::crypto::CreateGOSTR3410RandomKeys (dotnet::crypto::eGOSTR3410TC26A512, priv, pub);
+	dotnet::crypto::GOSTR3410_512_Signer signer (dotnet::crypto::eGOSTR3410TC26A512, priv);
 	signer.Sign (example2, 72, signature);
-	i2p::crypto::GOSTR3410_512_Verifier verifier (i2p::crypto::eGOSTR3410TC26A512, pub);
+	dotnet::crypto::GOSTR3410_512_Verifier verifier (dotnet::crypto::eGOSTR3410TC26A512, pub);
 	assert (verifier.Verify (example2, 72, signature));
 
-	i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, priv, pub);
-	i2p::crypto::GOSTR3410_256_Signer signer1 (i2p::crypto::eGOSTR3410CryptoProA, priv);
+	dotnet::crypto::CreateGOSTR3410RandomKeys (dotnet::crypto::eGOSTR3410CryptoProA, priv, pub);
+	dotnet::crypto::GOSTR3410_256_Signer signer1 (dotnet::crypto::eGOSTR3410CryptoProA, priv);
 	signer1.Sign (example2, 72, signature);
-	i2p::crypto::GOSTR3410_256_Verifier verifier1 (i2p::crypto::eGOSTR3410CryptoProA, pub);
+	dotnet::crypto::GOSTR3410_256_Verifier verifier1 (dotnet::crypto::eGOSTR3410CryptoProA, pub);
 	assert (verifier1.Verify (example2, 72, signature));
 }

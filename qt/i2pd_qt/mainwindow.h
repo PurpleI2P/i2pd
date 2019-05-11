@@ -111,7 +111,7 @@ public:
         optName+=option.option.toStdString();
         //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
-        i2p::config::GetOptionAsAny(optName, programOption);
+        dotnet::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
                    :boost::any_cast<boost::program_options::variable_value>(programOption).value();
     }
@@ -365,11 +365,11 @@ namespace Ui {
   class GeneralSettingsContentsForm;
 }
 
-using namespace i2p::client;
+using namespace dotnet::client;
 
 class TunnelPane;
 
-using namespace i2p::qt;
+using namespace dotnet::qt;
 
 class Controller;
 
@@ -381,7 +381,7 @@ public:
     explicit MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent=nullptr);
     ~MainWindow();
 
-    void setI2PController(i2p::qt::Controller* controller_);
+    void setDotNetController(dotnet::qt::Controller* controller_);
 
     void highlightWrongInput(QString warningText, QWidget* widgetToFocus);
 
@@ -393,7 +393,7 @@ public:
 
 private:
     enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
-                     transports, i2p_tunnels, sam_sessions};
+                     transports, dotnet_tunnels, sam_sessions};
 private slots:
     void updated();
 
@@ -422,7 +422,7 @@ public slots:
     void showStatus_tunnels_Page();
     void showStatus_transit_tunnels_Page();
     void showStatus_transports_Page();
-    void showStatus_i2p_tunnels_Page();
+    void showStatus_dotnet_tunnels_Page();
     void showStatus_sam_sessions_Page();
 
     void showLogViewerPage();
@@ -465,7 +465,7 @@ private:
 
     widgetlockregistry widgetlocks;
 
-    i2p::qt::Controller* i2pController;
+    dotnet::qt::Controller* dotnetController;
 
 protected:
 
@@ -532,30 +532,30 @@ private:
     void deleteTunnelForms();
 
     template<typename Section, typename Type>
-    std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
+    std::string GetDNCPOption (const Section& section, const std::string& name, const Type& value) const
     {
         return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::to_string (value));
     }
 
     template<typename Section>
-    void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options, I2CPParameters& param
+    void ReadDNCPOptions (const Section& section, std::map<std::string, std::string>& options, DNCPParameters& param
                           /*TODO fill param*/) const
     {
-        std::string _INBOUND_TUNNEL_LENGTH = options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH,  DEFAULT_INBOUND_TUNNEL_LENGTH);
+        std::string _INBOUND_TUNNEL_LENGTH = options[DNCP_PARAM_INBOUND_TUNNEL_LENGTH] = GetDNCPOption (section, DNCP_PARAM_INBOUND_TUNNEL_LENGTH,  DEFAULT_INBOUND_TUNNEL_LENGTH);
         param.setInbound_length(QString(_INBOUND_TUNNEL_LENGTH.c_str()));
-        std::string _OUTBOUND_TUNNEL_LENGTH = options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
+        std::string _OUTBOUND_TUNNEL_LENGTH = options[DNCP_PARAM_OUTBOUND_TUNNEL_LENGTH] = GetDNCPOption (section, DNCP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
         param.setOutbound_length(QString(_OUTBOUND_TUNNEL_LENGTH.c_str()));
-        std::string _INBOUND_TUNNELS_QUANTITY = options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
+        std::string _INBOUND_TUNNELS_QUANTITY = options[DNCP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetDNCPOption (section, DNCP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
         param.setInbound_quantity( QString(_INBOUND_TUNNELS_QUANTITY.c_str()));
-        std::string _OUTBOUND_TUNNELS_QUANTITY = options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
+        std::string _OUTBOUND_TUNNELS_QUANTITY = options[DNCP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetDNCPOption (section, DNCP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
         param.setOutbound_quantity(QString(_OUTBOUND_TUNNELS_QUANTITY.c_str()));
-        std::string _TAGS_TO_SEND = options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
+        std::string _TAGS_TO_SEND = options[DNCP_PARAM_TAGS_TO_SEND] = GetDNCPOption (section, DNCP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
         param.setCrypto_tagsToSend(QString(_TAGS_TO_SEND.c_str()));
-        options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);//TODO include into param
-        options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);//TODO include into param
+        options[DNCP_PARAM_MIN_TUNNEL_LATENCY] = GetDNCPOption(section, DNCP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);//TODO include into param
+        options[DNCP_PARAM_MAX_TUNNEL_LATENCY] = GetDNCPOption(section, DNCP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);//TODO include into param
     }
 
-    void CreateDefaultI2CPOptions (I2CPParameters& param
+    void CreateDefaultDNCPOptions (DNCPParameters& param
                           /*TODO fill param*/) const
     {
         const int _INBOUND_TUNNEL_LENGTH = DEFAULT_INBOUND_TUNNEL_LENGTH;
@@ -595,18 +595,18 @@ private:
 
     void CreateDefaultClientTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
         std::string name=GenerateNewTunnelName();
-        std::string type = I2P_TUNNELS_SECTION_TYPE_CLIENT;
+        std::string type = DOTNET_TUNNELS_SECTION_TYPE_CLIENT;
         std::string dest = "127.0.0.1";
         int port = 0;
         std::string keys = "";
         std::string address = "127.0.0.1";
         int destinationPort = 0;
-        i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-        // I2CP
-        I2CPParameters i2cpParameters;
-        CreateDefaultI2CPOptions (i2cpParameters);
+        dotnet::data::SigningKeyType sigType = dotnet::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+        // DNCP
+        DNCPParameters dncpParameters;
+        CreateDefaultDNCPOptions (dncpParameters);
 
-        tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+        tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), dncpParameters,
                                                       dest,
                                                       port,
                                                       keys,
@@ -620,7 +620,7 @@ private:
 
     void CreateDefaultServerTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
         std::string name=GenerateNewTunnelName();
-        std::string type=I2P_TUNNELS_SECTION_TYPE_SERVER;
+        std::string type=DOTNET_TUNNELS_SECTION_TYPE_SERVER;
         std::string host = "127.0.0.1";
         int port = 0;
         std::string keys = "";
@@ -629,15 +629,15 @@ private:
         std::string hostOverride = "";
         std::string webircpass = "";
         bool gzip = true;
-        i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+        dotnet::data::SigningKeyType sigType = dotnet::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
         std::string address = "127.0.0.1";
         bool isUniqueLocal = true;
 
-        // I2CP
-        I2CPParameters i2cpParameters;
-        CreateDefaultI2CPOptions (i2cpParameters);
+        // DNCP
+        DNCPParameters dncpParameters;
+        CreateDefaultDNCPOptions (dncpParameters);
 
-        tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+        tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), dncpParameters,
                                                   host,
                                                   port,
                                                   keys,
@@ -661,11 +661,11 @@ private:
         std::string tunConf=tunconfpath.toStdString();
         if (tunConf == "") {
             // TODO: cleanup this in 2.8.0
-            tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
-            if (i2p::fs::Exists(tunConf)) {
+            tunConf = dotnet::fs::DataDirPath ("tunnels.cfg");
+            if (dotnet::fs::Exists(tunConf)) {
                 LogPrint(eLogWarning, "FS: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
             } else {
-                tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+                tunConf = dotnet::fs::DataDirPath ("tunnels.conf");
             }
         }
         LogPrint(eLogDebug, "tunnels config file: ", tunConf);
@@ -684,33 +684,33 @@ private:
             std::string name = section.first;
             try
             {
-                std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
-                if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT
-                        || type == I2P_TUNNELS_SECTION_TYPE_SOCKS
-                        || type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS
-                        || type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY
-                        || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+                std::string type = section.second.get<std::string> (DOTNET_TUNNELS_SECTION_TYPE);
+                if (type == DOTNET_TUNNELS_SECTION_TYPE_CLIENT
+                        || type == DOTNET_TUNNELS_SECTION_TYPE_SOCKS
+                        || type == DOTNET_TUNNELS_SECTION_TYPE_WEBSOCKS
+                        || type == DOTNET_TUNNELS_SECTION_TYPE_HTTPPROXY
+                        || type == DOTNET_TUNNELS_SECTION_TYPE_UDPCLIENT)
                 {
                     // mandatory params
                     std::string dest;
-                    if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
-                        dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
+                    if (type == DOTNET_TUNNELS_SECTION_TYPE_CLIENT || type == DOTNET_TUNNELS_SECTION_TYPE_UDPCLIENT) {
+                        dest = section.second.get<std::string> (DOTNET_CLIENT_TUNNEL_DESTINATION);
                         std::cout << "had read tunnel dest: " << dest << std::endl;
                     }
-                    int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
+                    int port = section.second.get<int> (DOTNET_CLIENT_TUNNEL_PORT);
                     std::cout << "had read tunnel port: " << port << std::endl;
                     // optional params
-                    std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
-                    std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-                    int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+                    std::string keys = section.second.get (DOTNET_CLIENT_TUNNEL_KEYS, "");
+                    std::string address = section.second.get (DOTNET_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+                    int destinationPort = section.second.get<int>(DOTNET_CLIENT_TUNNEL_DESTINATION_PORT, 0);
                     std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
-                    i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-                    // I2CP
+                    dotnet::data::SigningKeyType sigType = section.second.get (DOTNET_CLIENT_TUNNEL_SIGNATURE_TYPE, dotnet::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+                    // DNCP
                     std::map<std::string, std::string> options;
-                    I2CPParameters i2cpParameters;
-                    ReadI2CPOptions (section, options, i2cpParameters);
+                    DNCPParameters dncpParameters;
+                    ReadDNCPOptions (section, options, dncpParameters);
 
-                    tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                    tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), dncpParameters,
                                                               dest,
                                                               port,
                                                               keys,
@@ -718,39 +718,39 @@ private:
                                                               destinationPort,
                                                               sigType);
                 }
-                else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
-                                 || type == I2P_TUNNELS_SECTION_TYPE_HTTP
-                                 || type == I2P_TUNNELS_SECTION_TYPE_IRC
-                                 || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
+                else if (type == DOTNET_TUNNELS_SECTION_TYPE_SERVER
+                                 || type == DOTNET_TUNNELS_SECTION_TYPE_HTTP
+                                 || type == DOTNET_TUNNELS_SECTION_TYPE_IRC
+                                 || type == DOTNET_TUNNELS_SECTION_TYPE_UDPSERVER)
                 {
                     // mandatory params
-                    std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
-                    int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
+                    std::string host = section.second.get<std::string> (DOTNET_SERVER_TUNNEL_HOST);
+                    int port = section.second.get<int> (DOTNET_SERVER_TUNNEL_PORT);
                     // optional params
-                    std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS, "");
-                    int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
-                    std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
-                    std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
-                    std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
-                    bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
-                    i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-                    std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
-                    bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+                    std::string keys = section.second.get<std::string> (DOTNET_SERVER_TUNNEL_KEYS, "");
+                    int inPort = section.second.get (DOTNET_SERVER_TUNNEL_INPORT, 0);
+                    std::string accessList = section.second.get (DOTNET_SERVER_TUNNEL_ACCESS_LIST, "");
+                    std::string hostOverride = section.second.get (DOTNET_SERVER_TUNNEL_HOST_OVERRIDE, "");
+                    std::string webircpass = section.second.get<std::string> (DOTNET_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
+                    bool gzip = section.second.get (DOTNET_SERVER_TUNNEL_GZIP, true);
+                    dotnet::data::SigningKeyType sigType = section.second.get (DOTNET_SERVER_TUNNEL_SIGNATURE_TYPE, dotnet::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+                    std::string address = section.second.get<std::string> (DOTNET_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
+                    bool isUniqueLocal = section.second.get(DOTNET_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
-                    // I2CP
+                    // DNCP
                     std::map<std::string, std::string> options;
-                    I2CPParameters i2cpParameters;
-                    ReadI2CPOptions (section, options, i2cpParameters);
+                    DNCPParameters dncpParameters;
+                    ReadDNCPOptions (section, options, dncpParameters);
 
                     /*
-                    std::set<i2p::data::IdentHash> idents;
+                    std::set<dotnet::data::IdentHash> idents;
                     if (accessList.length () > 0)
                     {
                         size_t pos = 0, comma;
                         do
                         {
                             comma = accessList.find (',', pos);
-                            i2p::data::IdentHash ident;
+                            dotnet::data::IdentHash ident;
                             ident.FromBase32 (accessList.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));
                             idents.insert (ident);
                             pos = comma + 1;
@@ -758,7 +758,7 @@ private:
                         while (comma != std::string::npos);
                     }
                     */
-                    tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                    tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), dncpParameters,
                                                               host,
                                                               port,
                                                               keys,

@@ -6,10 +6,10 @@
 
 #ifdef _WIN32
 // Internal name of the service
-#define SERVICE_NAME             "i2pdService"
+#define SERVICE_NAME             "dotnetService"
 
 // Displayed name of the service
-#define SERVICE_DISPLAY_NAME     "i2pd router service"
+#define SERVICE_DISPLAY_NAME     "dotnet router service"
 
 // Service start options.
 #define SERVICE_START_TYPE       SERVICE_DEMAND_START
@@ -24,19 +24,19 @@
 #define SERVICE_PASSWORD         NULL
 #endif
 
-class I2PService
+class DotNetService
 {
 public:
 
-	I2PService(PSTR pszServiceName,
+	DotNetService(PSTR pszServiceName,
 		BOOL fCanStop = TRUE,
 		BOOL fCanShutdown = TRUE,
 		BOOL fCanPauseContinue = FALSE);
 
-	virtual ~I2PService(void);
+	virtual ~DotNetService(void);
 
 	static BOOL isService();
-	static BOOL Run(I2PService &service);
+	static BOOL Run(DotNetService &service);
 	void Stop();
 
 protected:
@@ -59,7 +59,7 @@ private:
 	void Pause();
 	void Continue();
 	void Shutdown();
-	static I2PService* s_service;
+	static DotNetService* s_service;
 	PSTR m_name;
 	SERVICE_STATUS m_status;
 	SERVICE_STATUS_HANDLE m_statusHandle;

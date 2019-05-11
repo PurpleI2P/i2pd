@@ -2,68 +2,68 @@ QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = i2pd_qt
+TARGET = dotnet_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11 -ggdb
 DEFINES += USE_UPNP
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
-    ../../libi2pd/api.cpp \
-    ../../libi2pd/Base.cpp \
-    ../../libi2pd/BloomFilter.cpp \
-    ../../libi2pd/Config.cpp \
-    ../../libi2pd/CPU.cpp \
-    ../../libi2pd/Crypto.cpp \
-	../../libi2pd/CryptoKey.cpp \
-    ../../libi2pd/Datagram.cpp \
-    ../../libi2pd/Destination.cpp \
-    ../../libi2pd/Event.cpp \
-    ../../libi2pd/Family.cpp \
-    ../../libi2pd/FS.cpp \
-    ../../libi2pd/Garlic.cpp \
-    ../../libi2pd/Gost.cpp \
-    ../../libi2pd/Gzip.cpp \
-    ../../libi2pd/HTTP.cpp \
-    ../../libi2pd/I2NPProtocol.cpp \
-    ../../libi2pd/I2PEndian.cpp \
-    ../../libi2pd/Identity.cpp \
-    ../../libi2pd/LeaseSet.cpp \
-    ../../libi2pd/Log.cpp \
-    ../../libi2pd/NetDb.cpp \
-    ../../libi2pd/NetDbRequests.cpp \
-    ../../libi2pd/NTCPSession.cpp \
-    ../../libi2pd/Profiling.cpp \
-    ../../libi2pd/Reseed.cpp \
-    ../../libi2pd/RouterContext.cpp \
-    ../../libi2pd/RouterInfo.cpp \
-    ../../libi2pd/Signature.cpp \
-    ../../libi2pd/SSU.cpp \
-    ../../libi2pd/SSUData.cpp \
-    ../../libi2pd/SSUSession.cpp \
-    ../../libi2pd/Streaming.cpp \
-    ../../libi2pd/Timestamp.cpp \
-    ../../libi2pd/TransitTunnel.cpp \
-    ../../libi2pd/Transports.cpp \
-    ../../libi2pd/Tunnel.cpp \
-    ../../libi2pd/TunnelEndpoint.cpp \
-    ../../libi2pd/TunnelGateway.cpp \
-    ../../libi2pd/TunnelPool.cpp \
-    ../../libi2pd/util.cpp \
-    ../../libi2pd/Ed25519.cpp \
-    ../../libi2pd/Chacha20.cpp \
-    ../../libi2pd/Poly1305.cpp \    
-    ../../libi2pd_client/AddressBook.cpp \
-    ../../libi2pd_client/BOB.cpp \
-    ../../libi2pd_client/ClientContext.cpp \
-    ../../libi2pd_client/HTTPProxy.cpp \
-    ../../libi2pd_client/I2CP.cpp \
-    ../../libi2pd_client/I2PService.cpp \
-    ../../libi2pd_client/I2PTunnel.cpp \
-    ../../libi2pd_client/MatchedDestination.cpp \
-    ../../libi2pd_client/SAM.cpp \
-    ../../libi2pd_client/SOCKS.cpp \
-    ../../libi2pd_client/Websocket.cpp \
-    ../../libi2pd_client/WebSocks.cpp \
+    ../../libdotnet/api.cpp \
+    ../../libdotnet/Base.cpp \
+    ../../libdotnet/BloomFilter.cpp \
+    ../../libdotnet/Config.cpp \
+    ../../libdotnet/CPU.cpp \
+    ../../libdotnet/Crypto.cpp \
+	../../libdotnet/CryptoKey.cpp \
+    ../../libdotnet/Datagram.cpp \
+    ../../libdotnet/Destination.cpp \
+    ../../libdotnet/Event.cpp \
+    ../../libdotnet/Family.cpp \
+    ../../libdotnet/FS.cpp \
+    ../../libdotnet/Garlic.cpp \
+    ../../libdotnet/Gost.cpp \
+    ../../libdotnet/Gzip.cpp \
+    ../../libdotnet/HTTP.cpp \
+    ../../libdotnet/DNNPProtocol.cpp \
+    ../../libdotnet/DotNetEndian.cpp \
+    ../../libdotnet/Identity.cpp \
+    ../../libdotnet/LeaseSet.cpp \
+    ../../libdotnet/Log.cpp \
+    ../../libdotnet/NetDb.cpp \
+    ../../libdotnet/NetDbRequests.cpp \
+    ../../libdotnet/NTCPSession.cpp \
+    ../../libdotnet/Profiling.cpp \
+    ../../libdotnet/Reseed.cpp \
+    ../../libdotnet/RouterContext.cpp \
+    ../../libdotnet/RouterInfo.cpp \
+    ../../libdotnet/Signature.cpp \
+    ../../libdotnet/SSU.cpp \
+    ../../libdotnet/SSUData.cpp \
+    ../../libdotnet/SSUSession.cpp \
+    ../../libdotnet/Streaming.cpp \
+    ../../libdotnet/Timestamp.cpp \
+    ../../libdotnet/TransitTunnel.cpp \
+    ../../libdotnet/Transports.cpp \
+    ../../libdotnet/Tunnel.cpp \
+    ../../libdotnet/TunnelEndpoint.cpp \
+    ../../libdotnet/TunnelGateway.cpp \
+    ../../libdotnet/TunnelPool.cpp \
+    ../../libdotnet/util.cpp \
+    ../../libdotnet/Ed25519.cpp \
+    ../../libdotnet/Chacha20.cpp \
+    ../../libdotnet/Poly1305.cpp \    
+    ../../libdotnet_client/AddressBook.cpp \
+    ../../libdotnet_client/BOB.cpp \
+    ../../libdotnet_client/ClientContext.cpp \
+    ../../libdotnet_client/HTTPProxy.cpp \
+    ../../libdotnet_client/DNCP.cpp \
+    ../../libdotnet_client/DotNetService.cpp \
+    ../../libdotnet_client/DotNetTunnel.cpp \
+    ../../libdotnet_client/MatchedDestination.cpp \
+    ../../libdotnet_client/SAM.cpp \
+    ../../libdotnet_client/SOCKS.cpp \
+    ../../libdotnet_client/Websocket.cpp \
+    ../../libdotnet_client/WebSocks.cpp \
     ClientTunnelPane.cpp \
     MainWindowItems.cpp \
     ServerTunnelPane.cpp \
@@ -72,8 +72,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     TunnelPane.cpp \
     ../../daemon/Daemon.cpp \
     ../../daemon/HTTPServer.cpp \
-    ../../daemon/i2pd.cpp \
-    ../../daemon/I2PControl.cpp \
+    ../../daemon/dotnet.cpp \
+    ../../daemon/DotNetControl.cpp \
     ../../daemon/UnixDaemon.cpp \
     ../../daemon/UPnP.cpp \
     textbrowsertweaked1.cpp \
@@ -81,76 +81,76 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
     logviewermanager.cpp \
-    ../../libi2pd/NTCP2.cpp
+    ../../libdotnet/NTCP2.cpp
 
 #qt creator does not handle this well
-#SOURCES += $$files(../../libi2pd/*.cpp)
-#SOURCES += $$files(../../libi2pd_client/*.cpp)
+#SOURCES += $$files(../../libdotnet/*.cpp)
+#SOURCES += $$files(../../libdotnet_client/*.cpp)
 #SOURCES += $$files(../../daemon/*.cpp)
 #SOURCES += $$files(./*.cpp)
 
 SOURCES -= ../../daemon/UnixDaemon.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
-    ../../libi2pd/api.h \
-    ../../libi2pd/Base.h \
-    ../../libi2pd/BloomFilter.h \
-    ../../libi2pd/Config.h \
-    ../../libi2pd/Crypto.h \
-	../../libi2pd/CryptoKey.h \
-    ../../libi2pd/Datagram.h \
-    ../../libi2pd/Destination.h \
-    ../../libi2pd/Event.h \
-    ../../libi2pd/Family.h \
-    ../../libi2pd/FS.h \
-    ../../libi2pd/Garlic.h \
-    ../../libi2pd/Gost.h \
-    ../../libi2pd/Gzip.h \
-    ../../libi2pd/HTTP.h \
-    ../../libi2pd/I2NPProtocol.h \
-    ../../libi2pd/I2PEndian.h \
-    ../../libi2pd/Identity.h \
-    ../../libi2pd/LeaseSet.h \
-    ../../libi2pd/LittleBigEndian.h \
-    ../../libi2pd/Log.h \
-    ../../libi2pd/NetDb.hpp \
-    ../../libi2pd/NetDbRequests.h \
-    ../../libi2pd/NTCPSession.h \
-    ../../libi2pd/Profiling.h \
-    ../../libi2pd/Queue.h \
-    ../../libi2pd/Reseed.h \
-    ../../libi2pd/RouterContext.h \
-    ../../libi2pd/RouterInfo.h \
-    ../../libi2pd/Signature.h \
-    ../../libi2pd/SSU.h \
-    ../../libi2pd/SSUData.h \
-    ../../libi2pd/SSUSession.h \
-    ../../libi2pd/Streaming.h \
-    ../../libi2pd/Tag.h \
-    ../../libi2pd/Timestamp.h \
-    ../../libi2pd/TransitTunnel.h \
-    ../../libi2pd/Transports.h \
-    ../../libi2pd/TransportSession.h \
-    ../../libi2pd/Tunnel.h \
-    ../../libi2pd/TunnelBase.h \
-    ../../libi2pd/TunnelConfig.h \
-    ../../libi2pd/TunnelEndpoint.h \
-    ../../libi2pd/TunnelGateway.h \
-    ../../libi2pd/TunnelPool.h \
-    ../../libi2pd/util.h \
-    ../../libi2pd/version.h \
-    ../../libi2pd_client/AddressBook.h \
-    ../../libi2pd_client/BOB.h \
-    ../../libi2pd_client/ClientContext.h \
-    ../../libi2pd_client/HTTPProxy.h \
-    ../../libi2pd_client/I2CP.h \
-    ../../libi2pd_client/I2PService.h \
-    ../../libi2pd_client/I2PTunnel.h \
-    ../../libi2pd_client/MatchedDestination.h \
-    ../../libi2pd_client/SAM.h \
-    ../../libi2pd_client/SOCKS.h \
-    ../../libi2pd_client/Websocket.h \
-    ../../libi2pd_client/WebSocks.h \
+    ../../libdotnet/api.h \
+    ../../libdotnet/Base.h \
+    ../../libdotnet/BloomFilter.h \
+    ../../libdotnet/Config.h \
+    ../../libdotnet/Crypto.h \
+	../../libdotnet/CryptoKey.h \
+    ../../libdotnet/Datagram.h \
+    ../../libdotnet/Destination.h \
+    ../../libdotnet/Event.h \
+    ../../libdotnet/Family.h \
+    ../../libdotnet/FS.h \
+    ../../libdotnet/Garlic.h \
+    ../../libdotnet/Gost.h \
+    ../../libdotnet/Gzip.h \
+    ../../libdotnet/HTTP.h \
+    ../../libdotnet/DNNPProtocol.h \
+    ../../libdotnet/DotNetEndian.h \
+    ../../libdotnet/Identity.h \
+    ../../libdotnet/LeaseSet.h \
+    ../../libdotnet/LittleBigEndian.h \
+    ../../libdotnet/Log.h \
+    ../../libdotnet/NetDb.hpp \
+    ../../libdotnet/NetDbRequests.h \
+    ../../libdotnet/NTCPSession.h \
+    ../../libdotnet/Profiling.h \
+    ../../libdotnet/Queue.h \
+    ../../libdotnet/Reseed.h \
+    ../../libdotnet/RouterContext.h \
+    ../../libdotnet/RouterInfo.h \
+    ../../libdotnet/Signature.h \
+    ../../libdotnet/SSU.h \
+    ../../libdotnet/SSUData.h \
+    ../../libdotnet/SSUSession.h \
+    ../../libdotnet/Streaming.h \
+    ../../libdotnet/Tag.h \
+    ../../libdotnet/Timestamp.h \
+    ../../libdotnet/TransitTunnel.h \
+    ../../libdotnet/Transports.h \
+    ../../libdotnet/TransportSession.h \
+    ../../libdotnet/Tunnel.h \
+    ../../libdotnet/TunnelBase.h \
+    ../../libdotnet/TunnelConfig.h \
+    ../../libdotnet/TunnelEndpoint.h \
+    ../../libdotnet/TunnelGateway.h \
+    ../../libdotnet/TunnelPool.h \
+    ../../libdotnet/util.h \
+    ../../libdotnet/version.h \
+    ../../libdotnet_client/AddressBook.h \
+    ../../libdotnet_client/BOB.h \
+    ../../libdotnet_client/ClientContext.h \
+    ../../libdotnet_client/HTTPProxy.h \
+    ../../libdotnet_client/DNCP.h \
+    ../../libdotnet_client/DotNetService.h \
+    ../../libdotnet_client/DotNetTunnel.h \
+    ../../libdotnet_client/MatchedDestination.h \
+    ../../libdotnet_client/SAM.h \
+    ../../libdotnet_client/SOCKS.h \
+    ../../libdotnet_client/Websocket.h \
+    ../../libdotnet_client/WebSocks.h \
     ClientTunnelPane.h \
     MainWindowItems.h \
     ServerTunnelPane.h \
@@ -160,18 +160,18 @@ HEADERS  += DaemonQT.h mainwindow.h \
     TunnelsPageUpdateListener.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \
-    ../../daemon/I2PControl.h \
+    ../../daemon/DotNetControl.h \
     ../../daemon/UPnP.h \
     textbrowsertweaked1.h \
     pagewithbackbutton.h \
     widgetlock.h \
     widgetlockregistry.h \
-    i2pd.rc \
-    i2pd.rc \
+    dotnet.rc \
+    dotnet.rc \
     logviewermanager.h
 
-INCLUDEPATH += ../../libi2pd
-INCLUDEPATH += ../../libi2pd_client
+INCLUDEPATH += ../../libdotnet
+INCLUDEPATH += ../../libdotnet_client
 INCLUDEPATH += ../../daemon
 INCLUDEPATH += .
 
@@ -208,7 +208,7 @@ linux:!android {
 
 windows {
         message("Using Windows settings")
-        RC_FILE = i2pd.rc
+        RC_FILE = dotnet.rc
         DEFINES += BOOST_USE_WINDOWS_H WINDOWS _WINDOWS WIN32_LEAN_AND_MEAN MINIUPNP_STATICLIB
         DEFINES -= UNICODE _UNICODE
         BOOST_SUFFIX = -mt
@@ -237,8 +237,8 @@ windows {
 !android:!symbian:!maemo5:!simulator {
 	message("Build with a system tray icon")
 	# see also http://doc.qt.io/qt-4.8/qt-desktop-systray-systray-pro.html for example on wince*
-	#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS i2pd_qt.pro resources images
-	RESOURCES = i2pd.qrc
+	#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS dotnet_qt.pro resources images
+	RESOURCES = dotnet.qrc
 	QT += xml
 	#INSTALLS += sources
 }

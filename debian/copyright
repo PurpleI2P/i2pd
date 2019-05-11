@@ -1,22 +1,22 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: i2pd
+Upstream-Name: dotnet
 Source: https://github.com/PurpleI2P
 
 Files: *
 Copyright: 2013-2017 PurpleI2P
 License: BSD-3-clause
 
-Files: qt/i2pd_qt/android/src/org/kde/necessitas/ministro/IMinistro.aidl
-       qt/i2pd_qt/android/src/org/kde/necessitas/ministro/IMinistroCallback.aidl
-       qt/i2pd_qt/android/src/org/qtproject/qt5/android/bindings/QtActivity.java
-       qt/i2pd_qt/android/src/org/qtproject/qt5/android/bindings/QtApplication.java
+Files: qt/dotnet_qt/android/src/org/kde/necessitas/ministro/IMinistro.aidl
+       qt/dotnet_qt/android/src/org/kde/necessitas/ministro/IMinistroCallback.aidl
+       qt/dotnet_qt/android/src/org/qtproject/qt5/android/bindings/QtActivity.java
+       qt/dotnet_qt/android/src/org/qtproject/qt5/android/bindings/QtApplication.java
 Copyright: 2011-2013 BogDan Vatra <bogdan@kde.org>
 License: BSD-2-Clause
 
 Files: debian/*
-Copyright: 2013-2015 Kill Your TV <killyourtv@i2pmail.org>
-           2014-2016 hagen <hagen@i2pmail.org>
-           2016-2017 R4SAS <r4sas@i2pmail.org>
+Copyright: 2013-2015 Kill Your TV <killyourtv@dotnetmail.org>
+           2014-2016 hagen <hagen@dotnetmail.org>
+           2016-2017 R4SAS <r4sas@dotnetmail.org>
            2017-2018 Yangfl <mmyangfl@gmail.com>
 License: GPL-2+
 

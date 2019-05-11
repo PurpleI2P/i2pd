@@ -29,7 +29,7 @@ int main ()
 {
     uint8_t buf[32];
     BN_CTX * ctx = BN_CTX_new ();
-    i2p::crypto::GetEd25519 ()->ScalarMul (u, k, buf, ctx);
+    dotnet::crypto::GetEd25519 ()->ScalarMul (u, k, buf, ctx);
     BN_CTX_free (ctx);
     assert(memcmp (buf, p, 32) == 0);
 }

@@ -34,7 +34,7 @@
 #define FRAME_UPDATE_TIMER 2101
 #define IDT_GRACEFUL_TUNNELCHECK_TIMER 2102
 
-namespace i2p
+namespace dotnet
 {
 namespace win32
 {
@@ -47,14 +47,14 @@ namespace win32
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
-		if(!i2p::context.AcceptsTunnels())
+		if(!dotnet::context.AcceptsTunnels())
 			InsertMenu (hPopup, -1,
-				i2p::util::DaemonWin32::Instance ().isGraceful ? MF_BYPOSITION | MF_STRING | MF_GRAYED : MF_BYPOSITION | MF_STRING,
+				dotnet::util::DaemonWin32::Instance ().isGraceful ? MF_BYPOSITION | MF_STRING | MF_GRAYED : MF_BYPOSITION | MF_STRING,
 				ID_ACCEPT_TRANSIT, "Accept &transit");
 		else
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_DECLINE_TRANSIT, "Decline &transit");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload configs");
-		if (!i2p::util::DaemonWin32::Instance ().isGraceful)
+		if (!dotnet::util::DaemonWin32::Instance ().isGraceful)
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
 		else
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_STOP_GRACEFUL_SHUTDOWN, "Stop &graceful shutdown");
@@ -85,8 +85,8 @@ namespace win32
 		nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
 		nid.uCallbackMessage = WM_TRAYICON;
 		nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (MAINICON));
-		strcpy (nid.szTip, "i2pd");
-		strcpy (nid.szInfo, "i2pd is starting");
+		strcpy (nid.szTip, "dotnet");
+		strcpy (nid.szInfo, "dotnet is starting");
 		Shell_NotifyIcon(NIM_ADD, &nid );
 	}
 
@@ -140,14 +140,14 @@ namespace win32
 	{
 		s << "\n";
 		s << "Status: ";
-		switch (i2p::context.GetStatus())
+		switch (dotnet::context.GetStatus())
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
 			case eRouterStatusFirewalled: s << "Firewalled"; break;
 			case eRouterStatusError:
 			{
-				switch (i2p::context.GetError())
+				switch (dotnet::context.GetError())
 				{
 					case eRouterErrorClockSkew: s << "Clock skew"; break;
 					default: s << "Error";
@@ -157,8 +157,8 @@ namespace win32
 			default: s << "Unknown";
 		}
 		s << "; ";
-		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
-		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
+		s << "Success Rate: " << dotnet::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
+		s << "Uptime: "; ShowUptime(s, dotnet::context.GetUptime ());
 		if (GracefulShutdownEndtime != 0)
 		{
 			DWORD GracefulTimeLeft = (GracefulShutdownEndtime - GetTickCount()) / 1000;
@@ -166,18 +166,18 @@ namespace win32
 		}
 		else
 			s << "\n";
-		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
-		s << "Outbound: " << i2p::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
-		s << "Received: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
-		s << "Sent: "; ShowTransfered (s, i2p::transport::transports.GetTotalSentBytes());
+		s << "Inbound: " << dotnet::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
+		s << "Outbound: " << dotnet::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
+		s << "Received: "; ShowTransfered (s, dotnet::transport::transports.GetTotalReceivedBytes());
+		s << "Sent: "; ShowTransfered (s, dotnet::transport::transports.GetTotalSentBytes());
 		s << "\n";
-		s << "Routers: " << i2p::data::netdb.GetNumRouters () << "; ";
-		s << "Floodfills: " << i2p::data::netdb.GetNumFloodfills () << "; ";
-		s << "LeaseSets: " << i2p::data::netdb.GetNumLeaseSets () << "\n";
+		s << "Routers: " << dotnet::data::netdb.GetNumRouters () << "; ";
+		s << "Floodfills: " << dotnet::data::netdb.GetNumFloodfills () << "; ";
+		s << "LeaseSets: " << dotnet::data::netdb.GetNumLeaseSets () << "\n";
 		s << "Tunnels: ";
-		s << "In: " << i2p::tunnel::tunnels.CountInboundTunnels() << "; ";
-		s << "Out: " << i2p::tunnel::tunnels.CountOutboundTunnels() << "; ";
-		s << "Transit: " << i2p::tunnel::tunnels.CountTransitTunnels() << "\n";
+		s << "In: " << dotnet::tunnel::tunnels.CountInboundTunnels() << "; ";
+		s << "Out: " << dotnet::tunnel::tunnels.CountOutboundTunnels() << "; ";
+		s << "Transit: " << dotnet::tunnel::tunnels.CountTransitTunnels() << "\n";
 		s << "\n";
 	}
 
@@ -209,8 +209,8 @@ namespace win32
 					case ID_ABOUT:
 					{
 						std::stringstream text;
-						text << "Version: " << I2PD_VERSION << " " << CODENAME;
-						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						text << "Version: " << DOTNET_VERSION << " " << CODENAME;
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("dotnet"), MB_ICONINFORMATION | MB_OK );
 						return 0;
 					}
 					case ID_EXIT:
@@ -220,51 +220,51 @@ namespace win32
 					}
 					case ID_ACCEPT_TRANSIT:
 					{
-						i2p::context.SetAcceptsTunnels (true);
+						dotnet::context.SetAcceptsTunnels (true);
 						std::stringstream text;
-						text << "I2Pd now accept transit tunnels";
-						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						text << "DOTNET now accept transit tunnels";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("dotnet"), MB_ICONINFORMATION | MB_OK );
 						return 0;
 					}
 					case ID_DECLINE_TRANSIT:
 					{
-						i2p::context.SetAcceptsTunnels (false);
+						dotnet::context.SetAcceptsTunnels (false);
 						std::stringstream text;
-						text << "I2Pd now decline new transit tunnels";
-						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						text << "DOTNET now decline new transit tunnels";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("dotnet"), MB_ICONINFORMATION | MB_OK );
 						return 0;
 					}
 					case ID_GRACEFUL_SHUTDOWN:
 					{
-						i2p::context.SetAcceptsTunnels (false);
+						dotnet::context.SetAcceptsTunnels (false);
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
 						SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr); // check tunnels every second
 						GracefulShutdownEndtime = GetTickCount() + 10*60*1000;
-						i2p::util::DaemonWin32::Instance ().isGraceful = true;
+						dotnet::util::DaemonWin32::Instance ().isGraceful = true;
 						return 0;
 					}
 					case ID_STOP_GRACEFUL_SHUTDOWN:
 					{
-						i2p::context.SetAcceptsTunnels (true);
+						dotnet::context.SetAcceptsTunnels (true);
 						KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
 						KillTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER);
 						GracefulShutdownEndtime = 0;
-						i2p::util::DaemonWin32::Instance ().isGraceful = false;
+						dotnet::util::DaemonWin32::Instance ().isGraceful = false;
 						return 0;
 					}
 					case ID_RELOAD:
 					{
-						i2p::client::context.ReloadConfig();
+						dotnet::client::context.ReloadConfig();
 						std::stringstream text;
-						text << "I2Pd reloading configs...";
-						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
+						text << "DOTNET reloading configs...";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("dotnet"), MB_ICONINFORMATION | MB_OK );
 						return 0;
 					}
 					case ID_CONSOLE:
 					{
 						char buf[30];
-						std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-						uint16_t httpPort; i2p::config::GetOption("http.port", httpPort);
+						std::string httpAddr; dotnet::config::GetOption("http.address", httpAddr);
+						uint16_t httpPort; dotnet::config::GetOption("http.port", httpPort);
 						snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
 						ShellExecute(NULL, "open", buf, NULL, NULL, SW_SHOWNORMAL);
 						return 0;
@@ -290,7 +290,7 @@ namespace win32
 					}
 					case SC_CLOSE:
 					{
-						std::string close; i2p::config::GetOption("close", close);
+						std::string close; dotnet::config::GetOption("close", close);
 						if (0 == close.compare("ask"))
 						switch(::MessageBox(hWnd, "Would you like to minimize instead of exiting?"
 						" You can add 'close' configuration option. Valid values are: ask, minimize, exit.",
@@ -346,7 +346,7 @@ namespace win32
 					}
 					case IDT_GRACEFUL_TUNNELCHECK_TIMER:
 					{
-						if (i2p::tunnel::tunnels.CountTransitTunnels() == 0)
+						if (dotnet::tunnel::tunnels.CountTransitTunnels() == 0)
 							PostMessage (hWnd, WM_CLOSE, 0, 0);
 						else
 							SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr);
@@ -384,9 +384,9 @@ namespace win32
 
 	bool StartWin32App ()
 	{
-		if (FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd")))
+		if (FindWindow (DOTNET_WIN32_CLASSNAME, TEXT("dotnet")))
 		{
-			MessageBox(NULL, TEXT("I2Pd is running already"), TEXT("Warning"), MB_OK);
+			MessageBox(NULL, TEXT("DOTNET is running already"), TEXT("Warning"), MB_OK);
 			return false;
 		}
 		// register main window
@@ -404,10 +404,10 @@ namespace win32
 		//wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
 		wclx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 		wclx.lpszMenuName = NULL;
-		wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
+		wclx.lpszClassName = DOTNET_WIN32_CLASSNAME;
 		RegisterClassEx (&wclx);
 		// create new window
-		if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 350, 210, NULL, NULL, hInst, NULL))
+		if (!CreateWindow(DOTNET_WIN32_CLASSNAME, TEXT("dotnet"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 350, 210, NULL, NULL, hInst, NULL))
 		{
 			MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
 			return false;
@@ -428,15 +428,15 @@ namespace win32
 
 	void StopWin32App ()
 	{
-		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+		HWND hWnd = FindWindow (DOTNET_WIN32_CLASSNAME, TEXT("dotnet"));
 		if (hWnd)
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_EXIT, 0), 0);
-		UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
+		UnregisterClass (DOTNET_WIN32_CLASSNAME, GetModuleHandle(NULL));
 	}
 
 	bool GracefulShutdown ()
 	{
-		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+		HWND hWnd = FindWindow (DOTNET_WIN32_CLASSNAME, TEXT("dotnet"));
 		if (hWnd)
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;
@@ -444,7 +444,7 @@ namespace win32
 
 	bool StopGracefulShutdown ()
 	{
-		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+		HWND hWnd = FindWindow (DOTNET_WIN32_CLASSNAME, TEXT("dotnet"));
 		if (hWnd)
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_STOP_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;

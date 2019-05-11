@@ -586,7 +586,7 @@
         <item>
          <widget class="QLabel" name="label_30">
           <property name="text">
-           <string>Name i2pd appears in UPnP forwardings list:</string>
+           <string>Name dotnet appears in UPnP forwardings list:</string>
           </property>
          </widget>
         </item>
@@ -611,7 +611,7 @@
      </widget>
     </item>
     <item row="16" column="0">
-     <widget class="QGroupBox" name="i2cpGroupBox">
+     <widget class="QGroupBox" name="dncpGroupBox">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -625,9 +625,9 @@
        </size>
       </property>
       <property name="title">
-       <string>I2CP interface</string>
+       <string>DNCP interface</string>
       </property>
-      <widget class="QCheckBox" name="i2cpEnabledCheckBox">
+      <widget class="QCheckBox" name="dncpEnabledCheckBox">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -640,7 +640,7 @@
         <string>Enabled</string>
        </property>
       </widget>
-      <widget class="QWidget" name="i2cp_horizontalLayoutWidget_8">
+      <widget class="QWidget" name="dncp_horizontalLayoutWidget_8">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -649,19 +649,19 @@
          <height>31</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="i2cp_horizontalLayout_25">
+       <layout class="QHBoxLayout" name="dncp_horizontalLayout_25">
         <item>
-         <widget class="QLabel" name="i2cp_label_24">
+         <widget class="QLabel" name="dncp_label_24">
           <property name="text">
            <string>IP address to listen on:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2cpAddressLineEdit"/>
+         <widget class="QLineEdit" name="dncpAddressLineEdit"/>
         </item>
         <item>
-         <spacer name="i2cp_horizontalSpacer_19">
+         <spacer name="dncp_horizontalSpacer_19">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -675,7 +675,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="i2cp_horizontalLayoutWidget_9">
+      <widget class="QWidget" name="dncp_horizontalLayoutWidget_9">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -684,16 +684,16 @@
          <height>31</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="i2cp_horizontalLayout_26">
+       <layout class="QHBoxLayout" name="dncp_horizontalLayout_26">
         <item>
-         <widget class="QLabel" name="i2cp_label_25">
+         <widget class="QLabel" name="dncp_label_25">
           <property name="text">
            <string>Port to listen on:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2cpPortLineEdit">
+         <widget class="QLineEdit" name="dncpPortLineEdit">
           <property name="maximumSize">
            <size>
             <width>80</width>
@@ -703,7 +703,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="i2cp_horizontalSpacer_20">
+         <spacer name="dncp_horizontalSpacer_20">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -1412,7 +1412,7 @@
        </size>
       </property>
       <property name="title">
-       <string>Data folder (for storage of i2pd data — RI, keys, peer profiles, …):</string>
+       <string>Data folder (for storage of dotnet data — RI, keys, peer profiles, …):</string>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_7">
        <property name="geometry">
@@ -1564,7 +1564,7 @@
           <item>
            <widget class="QLabel" name="label_10">
             <property name="text">
-             <string>NetID (network ID router belongs to. The main I2P ID is 2):</string>
+             <string>NetID (network ID router belongs to. The main DOTNET ID is 2):</string>
             </property>
            </widget>
           </item>
@@ -1847,7 +1847,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>Make direct I2P connections only to
+        <string>Make direct DOTNET connections only to
 routers in specified Family:</string>
        </property>
       </widget>
@@ -1861,7 +1861,7 @@ routers in specified Family:</string>
         </rect>
        </property>
        <property name="text">
-        <string>Make direct I2P connections only to routers specified here.
+        <string>Make direct DOTNET connections only to routers specified here.
 Comma separated list of base64 identities:</string>
        </property>
       </widget>
@@ -1934,7 +1934,7 @@ Comma separated list of base64 identities:</string>
      </widget>
     </item>
     <item row="17" column="0">
-     <widget class="QGroupBox" name="i2pControlGroupBox">
+     <widget class="QGroupBox" name="dotnetControlGroupBox">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -1948,9 +1948,9 @@ Comma separated list of base64 identities:</string>
        </size>
       </property>
       <property name="title">
-       <string>I2PControl interface</string>
+       <string>DotNetControl interface</string>
       </property>
-      <widget class="QCheckBox" name="i2pControlEnabledCheckBox">
+      <widget class="QCheckBox" name="dotnetControlEnabledCheckBox">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -1963,7 +1963,7 @@ Comma separated list of base64 identities:</string>
         <string>Enabled</string>
        </property>
       </widget>
-      <widget class="QWidget" name="i2pControl_horizontalLayoutWidget_8">
+      <widget class="QWidget" name="dotnetControl_horizontalLayoutWidget_8">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -1972,19 +1972,19 @@ Comma separated list of base64 identities:</string>
          <height>31</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="i2pControl_horizontalLayout_25">
+       <layout class="QHBoxLayout" name="dotnetControl_horizontalLayout_25">
         <item>
-         <widget class="QLabel" name="i2pControl_label_24">
+         <widget class="QLabel" name="dotnetControl_label_24">
           <property name="text">
            <string>IP address to listen on:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2pControlAddressLineEdit"/>
+         <widget class="QLineEdit" name="dotnetControlAddressLineEdit"/>
         </item>
         <item>
-         <spacer name="i2pControl_horizontalSpacer_19">
+         <spacer name="dotnetControl_horizontalSpacer_19">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -1998,7 +1998,7 @@ Comma separated list of base64 identities:</string>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="i2pControl_horizontalLayoutWidget_9">
+      <widget class="QWidget" name="dotnetControl_horizontalLayoutWidget_9">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -2007,16 +2007,16 @@ Comma separated list of base64 identities:</string>
          <height>31</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="i2pControl_horizontalLayout_26">
+       <layout class="QHBoxLayout" name="dotnetControl_horizontalLayout_26">
         <item>
-         <widget class="QLabel" name="i2pControl_label_25">
+         <widget class="QLabel" name="dotnetControl_label_25">
           <property name="text">
            <string>Port to listen on:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2pControlPortLineEdit">
+         <widget class="QLineEdit" name="dotnetControlPortLineEdit">
           <property name="maximumSize">
            <size>
             <width>80</width>
@@ -2026,7 +2026,7 @@ Comma separated list of base64 identities:</string>
          </widget>
         </item>
         <item>
-         <spacer name="i2pControl_horizontalSpacer_20">
+         <spacer name="dotnetControl_horizontalSpacer_20">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -2058,7 +2058,7 @@ Comma separated list of base64 identities:</string>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2pControlPasswordLineEdit"/>
+         <widget class="QLineEdit" name="dotnetControlPasswordLineEdit"/>
         </item>
         <item>
          <spacer name="horizontalSpacer_21">
@@ -2093,10 +2093,10 @@ Comma separated list of base64 identities:</string>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2pControlCertFileLineEdit"/>
+         <widget class="QLineEdit" name="dotnetControlCertFileLineEdit"/>
         </item>
         <item>
-         <widget class="QPushButton" name="i2pControlCertFileBrowsePushButton">
+         <widget class="QPushButton" name="dotnetControlCertFileBrowsePushButton">
           <property name="text">
            <string>Browse…</string>
           </property>
@@ -2122,10 +2122,10 @@ Comma separated list of base64 identities:</string>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="i2pControlKeyFileLineEdit"/>
+         <widget class="QLineEdit" name="dotnetControlKeyFileLineEdit"/>
         </item>
         <item>
-         <widget class="QPushButton" name="i2pControlKeyFileBrowsePushButton">
+         <widget class="QPushButton" name="dotnetControlKeyFileBrowsePushButton">
           <property name="text">
            <string>Browse…</string>
           </property>

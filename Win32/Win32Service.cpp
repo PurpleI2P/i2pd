@@ -10,9 +10,9 @@
 #include "Daemon.h"
 #include "Log.h"
 
-I2PService *I2PService::s_service = NULL;
+DotNetService *DotNetService::s_service = NULL;
 
-BOOL I2PService::isService()
+BOOL DotNetService::isService()
 {
 	BOOL bIsService = FALSE;
 	HWINSTA hWinStation = GetProcessWindowStation();
@@ -27,7 +27,7 @@ BOOL I2PService::isService()
 	return bIsService;
 }
 
-BOOL I2PService::Run(I2PService &service)
+BOOL DotNetService::Run(DotNetService &service)
 {
 	s_service = &service;
 	SERVICE_TABLE_ENTRY serviceTable[] =
@@ -38,7 +38,7 @@ BOOL I2PService::Run(I2PService &service)
 	return StartServiceCtrlDispatcher(serviceTable);
 }
 
-void WINAPI I2PService::ServiceMain(DWORD dwArgc, PSTR *pszArgv)
+void WINAPI DotNetService::ServiceMain(DWORD dwArgc, PSTR *pszArgv)
 {
 	assert(s_service != NULL);
 	s_service->m_statusHandle = RegisterServiceCtrlHandler(
@@ -51,7 +51,7 @@ void WINAPI I2PService::ServiceMain(DWORD dwArgc, PSTR *pszArgv)
 }
 
 
-void WINAPI I2PService::ServiceCtrlHandler(DWORD dwCtrl)
+void WINAPI DotNetService::ServiceCtrlHandler(DWORD dwCtrl)
 {
 	switch (dwCtrl)
 	{
@@ -64,7 +64,7 @@ void WINAPI I2PService::ServiceCtrlHandler(DWORD dwCtrl)
 	}
 }
 
-I2PService::I2PService(PSTR pszServiceName,
+DotNetService::DotNetService(PSTR pszServiceName,
 	BOOL fCanStop,
 	BOOL fCanShutdown,
 	BOOL fCanPauseContinue)
@@ -97,7 +97,7 @@ I2PService::I2PService(PSTR pszServiceName,
 	}
 }
 
-I2PService::~I2PService(void)
+DotNetService::~DotNetService(void)
 {
 	if (m_hStoppedEvent)
 	{
@@ -106,7 +106,7 @@ I2PService::~I2PService(void)
 	}
 }
 
-void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
+void DotNetService::Start(DWORD dwArgc, PSTR *pszArgv)
 {
 	try
 	{
@@ -126,18 +126,18 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 	}
 }
 
-void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
+void DotNetService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
 	LogPrint(eLogInfo, "Win32Service in OnStart", EVENTLOG_INFORMATION_TYPE);
 	Daemon.start();
-	//i2p::util::config::OptionParser(dwArgc, pszArgv);
-	//i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
-	//i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-	//	i2p::util::config::GetArg("-port", 17070));
-	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
+	//dotnet::util::config::OptionParser(dwArgc, pszArgv);
+	//dotnet::util::filesystem::ReadConfigFile(dotnet::util::config::mapArgs, dotnet::util::config::mapMultiArgs);
+	//dotnet::context.OverrideNTCPAddress(dotnet::util::config::GetCharArg("-host", "127.0.0.1"),
+	//	dotnet::util::config::GetArg("-port", 17070));
+	_worker = new std::thread(std::bind(&DotNetService::WorkerThread, this));
 }
 
-void I2PService::WorkerThread()
+void DotNetService::WorkerThread()
 {
 	while (!m_fStopping)
 	{
@@ -147,7 +147,7 @@ void I2PService::WorkerThread()
 	SetEvent(m_hStoppedEvent);
 }
 
-void I2PService::Stop()
+void DotNetService::Stop()
 {
 	DWORD dwOriginalState = m_status.dwCurrentState;
 	try
@@ -168,7 +168,7 @@ void I2PService::Stop()
 	}
 }
 
-void I2PService::OnStop()
+void DotNetService::OnStop()
 {
 	// Log a service stop message to the Application log.
 	LogPrint(eLogInfo, "Win32Service in OnStop", EVENTLOG_INFORMATION_TYPE);
@@ -182,7 +182,7 @@ void I2PService::OnStop()
 	delete _worker;
 }
 
-void I2PService::Pause()
+void DotNetService::Pause()
 {
 	try
 	{
@@ -202,11 +202,11 @@ void I2PService::Pause()
 	}
 }
 
-void I2PService::OnPause()
+void DotNetService::OnPause()
 {
 }
 
-void I2PService::Continue()
+void DotNetService::Continue()
 {
 	try
 	{
@@ -226,11 +226,11 @@ void I2PService::Continue()
 	}
 }
 
-void I2PService::OnContinue()
+void DotNetService::OnContinue()
 {
 }
 
-void I2PService::Shutdown()
+void DotNetService::Shutdown()
 {
 	try
 	{
@@ -247,11 +247,11 @@ void I2PService::Shutdown()
 	}
 }
 
-void I2PService::OnShutdown()
+void DotNetService::OnShutdown()
 {
 }
 
-void I2PService::SetServiceStatus(DWORD dwCurrentState,
+void DotNetService::SetServiceStatus(DWORD dwCurrentState,
 	DWORD dwWin32ExitCode,
 	DWORD dwWaitHint)
 {

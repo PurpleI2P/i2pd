@@ -11,7 +11,7 @@
 #include <QMutexLocker>
 #include <QThread>
 
-namespace i2p
+namespace dotnet
 {
 namespace qt
 {
@@ -167,8 +167,8 @@ namespace qt
             w.show ();
 
             {
-                i2p::qt::Controller daemonQtController(daemon);
-                w.setI2PController(&daemonQtController);
+                dotnet::qt::Controller daemonQtController(daemon);
+                w.setDotNetController(&daemonQtController);
                 LogPrint(eLogDebug, "Starting the daemon...");
                 emit daemonQtController.startDaemon();
                 //daemon.start ();

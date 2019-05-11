@@ -1,23 +1,23 @@
-![GitHub release](https://img.shields.io/github/release/PurpleI2P/i2pd.svg?label=latest%20release)
-![GitHub](https://img.shields.io/github/license/PurpleI2P/i2pd.svg)
+![GitHub release](https://img.shields.io/github/release/PurpleI2P/dotnet.svg?label=latest%20release)
+![GitHub](https://img.shields.io/github/license/PurpleI2P/dotnet.svg)
 
-i2pd
+dotnet
 ====
 
-[Русская версия](https://github.com/PurpleI2P/i2pd_docs_ru/blob/master/README.md)
+[Русская версия](https://github.com/PurpleI2P/dotnet_docs_ru/blob/master/README.md)
 
-i2pd (I2P Daemon) is a full-featured C++ implementation of I2P client.  
+dotnet (DOTNET Daemon) is a full-featured C++ implementation of DOTNET client.  
 
-I2P (Invisible Internet Protocol) is a universal anonymous network layer.  
-All communications over I2P are anonymous and end-to-end encrypted, participants
+DOTNET (Invisible Internet Protocol) is a universal anonymous network layer.  
+All communications over DOTNET are anonymous and end-to-end encrypted, participants
 don't reveal their real IP addresses.  
 
-I2P client is a software used for building and using anonymous I2P
+DOTNET client is a software used for building and using anonymous DOTNET
 networks. Such networks are commonly used for anonymous peer-to-peer
 applications (filesharing, cryptocurrencies) and anonymous client-server
 applications (websites, instant messengers, chat-servers).  
 
-I2P allows people from all around the world to communicate and share information
+DOTNET allows people from all around the world to communicate and share information
 without restrictions.  
 
 Features
@@ -31,50 +31,50 @@ Features
 Resources
 ---------
 
-* [Website](http://i2pd.website)
-* [Documentation](https://i2pd.readthedocs.io/en/latest/)
-* [Wiki](https://github.com/PurpleI2P/i2pd/wiki)
-* [Tickets/Issues](https://github.com/PurpleI2P/i2pd/issues)
-* [Specifications](https://geti2p.net/spec)
-* [Twitter](https://twitter.com/hashtag/i2pd)
+* [Website](http://dotnet.website)
+* [Documentation](https://dotnet.readthedocs.io/en/latest/)
+* [Wiki](https://github.com/PurpleI2P/dotnet/wiki)
+* [Tickets/Issues](https://github.com/PurpleI2P/dotnet/issues)
+* [Specifications](https://getdotnet.net/spec)
+* [Twitter](https://twitter.com/hashtag/dotnet)
 
 Installing
 ----------
 
-The easiest way to install i2pd is by using precompiled packages and binaries.
-You can fetch most of them on [release](https://github.com/PurpleI2P/i2pd/releases/latest) page.  
-Please see [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/install/) for more info.
+The easiest way to install dotnet is by using precompiled packages and binaries.
+You can fetch most of them on [release](https://github.com/PurpleI2P/dotnet/releases/latest) page.  
+Please see [documentation](https://dotnet.readthedocs.io/en/latest/user-guide/install/) for more info.
 
 Building
 --------
-See [documentation](https://i2pd.readthedocs.io/en/latest/) for how to build
-i2pd from source on your OS.  
+See [documentation](https://dotnet.readthedocs.io/en/latest/) for how to build
+dotnet from source on your OS.  
 
 
 Build instructions:
 
-* [unix](https://i2pd.readthedocs.io/en/latest/devs/building/unix/)
-* [windows](https://i2pd.readthedocs.io/en/latest/devs/building/windows/)
-* [iOS](https://i2pd.readthedocs.io/en/latest/devs/building/ios/)
-* [android](https://i2pd.readthedocs.io/en/latest/devs/building/android/)
+* [unix](https://dotnet.readthedocs.io/en/latest/devs/building/unix/)
+* [windows](https://dotnet.readthedocs.io/en/latest/devs/building/windows/)
+* [iOS](https://dotnet.readthedocs.io/en/latest/devs/building/ios/)
+* [android](https://dotnet.readthedocs.io/en/latest/devs/building/android/)
 
 
 **Supported systems:**
 
-* GNU/Linux - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
-* Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* CentOS / Fedora / Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
-* Docker image - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=i2pd)](https://hub.docker.com/r/meeh/i2pd/builds/)
+* GNU/Linux - [![Build Status](https://travis-ci.org/PurpleI2P/dotnet.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/dotnet)
+* Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/dotnet)
+* Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/dotnet.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/dotnet)
+* CentOS / Fedora / Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/dotnet/package/dotnet-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/dotnet/package/dotnet-git/)
+* Docker image - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=dotnet)](https://hub.docker.com/r/meeh/dotnet/builds/)
 * FreeBSD
 * Android
 * iOS
 
-Using i2pd
+Using dotnet
 ----------
 
-See [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/run/) and
-[example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/contrib/i2pd.conf).
+See [documentation](https://dotnet.readthedocs.io/en/latest/user-guide/run/) and
+[example config file](https://github.com/PurpleI2P/dotnet/blob/openssl/contrib/dotnet.conf).
 
 Donations
 ---------

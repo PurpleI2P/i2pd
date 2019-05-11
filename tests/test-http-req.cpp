@@ -1,7 +1,7 @@
 #include <cassert>
 #include "../HTTP.h"
 
-using namespace i2p::http;
+using namespace dotnet::http;
 
 int main() {
   HTTPReq *req;
@@ -12,7 +12,7 @@ int main() {
   buf =
     "GET / HTTP/1.0\r\n"
     "User-Agent: curl/7.26.0\r\n"
-    "Host: inr.i2p\r\n"
+    "Host: inr.dotnet\r\n"
     "Accept: */*\r\n"
     "\r\n"
     "test";
@@ -26,7 +26,7 @@ int main() {
   assert(req->headers.count("Host") == 1);
   assert(req->headers.count("Accept") == 1);
   assert(req->headers.count("User-Agent") == 1);
-  assert(req->headers.find("Host")->second       == "inr.i2p");
+  assert(req->headers.find("Host")->second       == "inr.dotnet");
   assert(req->headers.find("Accept")->second     == "*/*");
   assert(req->headers.find("User-Agent")->second == "curl/7.26.0");
   delete req;
@@ -64,8 +64,8 @@ int main() {
 
   /* test: parsing slightly malformed request */
   buf =
-    "GET http://inr.i2p HTTP/1.1\r\n"
-    "Host:  stats.i2p\r\n"
+    "GET http://inr.dotnet HTTP/1.1\r\n"
+    "Host:  stats.dotnet\r\n"
     "Accept-Encoding: \r\n"
     "Accept: */*\r\n"
     "\r\n";
@@ -73,12 +73,12 @@ int main() {
   req = new HTTPReq;
   assert((ret = req->parse(buf, len)) == len); /* no host header */
   assert(req->method == "GET");
-  assert(req->uri == "http://inr.i2p");
+  assert(req->uri == "http://inr.dotnet");
   assert(req->headers.size() == 3);
   assert(req->headers.count("Host") == 1);
   assert(req->headers.count("Accept") == 1);
   assert(req->headers.count("Accept-Encoding") == 1);
-  assert(req->headers["Host"] == "stats.i2p");
+  assert(req->headers["Host"] == "stats.dotnet");
   assert(req->headers["Accept"] == "*/*");
   assert(req->headers["Accept-Encoding"] == "");
   delete req;

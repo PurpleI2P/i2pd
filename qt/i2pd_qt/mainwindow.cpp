@@ -46,7 +46,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     ,uiSettings(new Ui::GeneralSettingsContentsForm)
     ,routerCommandsParent(new QWidget(this))
     ,widgetlocks()
-    ,i2pController(nullptr)
+    ,dotnetController(nullptr)
     ,configItems()
     ,datadir()
     ,confpath()
@@ -66,7 +66,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     ui->verticalLayout->setGeometry(QRect(0,0,171,ui->verticalLayout->geometry().height()));
     //ui->statusButtonsPane->adjustSize();
     //ui->centralWidget->adjustSize();
-    setWindowTitle(QApplication::translate("AppTitle","I2PD"));
+    setWindowTitle(QApplication::translate("AppTitle","DOTNET"));
 
     //TODO handle resizes and change the below into resize() call
     setFixedHeight(550);
@@ -126,7 +126,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     QObject::connect(statusButtonsUI->tunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_tunnels_Page()));
     QObject::connect(statusButtonsUI->transitTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_transit_tunnels_Page()));
     QObject::connect(statusButtonsUI->transportsPushButton, SIGNAL(released()), this, SLOT(showStatus_transports_Page()));
-    QObject::connect(statusButtonsUI->i2pTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_i2p_tunnels_Page()));
+    QObject::connect(statusButtonsUI->dotnetTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_dotnet_tunnels_Page()));
     QObject::connect(statusButtonsUI->samSessionsPushButton, SIGNAL(released()), this, SLOT(showStatus_sam_sessions_Page()));
 
     QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
@@ -147,7 +147,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
     QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
 
-    QObject::connect(ui->doRestartI2PDPushButton, SIGNAL(released()), this, SLOT(handleDoRestartButton()));
+    QObject::connect(ui->doRestartDOTNETPushButton, SIGNAL(released()), this, SLOT(handleDoRestartButton()));
 
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
@@ -192,7 +192,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initIPAddressBox(   OPTION("http","address",[]{return "";}), uiSettings->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
     initTCPPortBox(     OPTION("http","port",[]{return "7070";}), uiSettings->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
     initCheckBox(       OPTION("http","auth",[]{return "";}), uiSettings->webconsoleBasicAuthCheckBox);
-    initStringBox(      OPTION("http","user",[]{return "i2pd";}), uiSettings->webconsoleUserNameLineEditBasicAuth);
+    initStringBox(      OPTION("http","user",[]{return "dotnet";}), uiSettings->webconsoleUserNameLineEditBasicAuth);
     initStringBox(      OPTION("http","pass",[]{return "";}), uiSettings->webconsolePasswordLineEditBasicAuth);
 
     initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), uiSettings->httpProxyEnabledCheckBox);
@@ -226,19 +226,19 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initIPAddressBox(   OPTION("bob","address",[]{return "";}), uiSettings->bobAddressLineEdit, tr("BOB -> IP address"));
     initTCPPortBox(     OPTION("bob","port",[]{return "2827";}), uiSettings->bobPortLineEdit, tr("BOB -> Port"));
 
-    initCheckBox(       OPTION("i2cp","enabled",[]{return "false";}), uiSettings->i2cpEnabledCheckBox);
-    initIPAddressBox(   OPTION("i2cp","address",[]{return "";}), uiSettings->i2cpAddressLineEdit, tr("I2CP -> IP address"));
-    initTCPPortBox(     OPTION("i2cp","port",[]{return "7654";}), uiSettings->i2cpPortLineEdit, tr("I2CP -> Port"));
+    initCheckBox(       OPTION("dncp","enabled",[]{return "false";}), uiSettings->dncpEnabledCheckBox);
+    initIPAddressBox(   OPTION("dncp","address",[]{return "";}), uiSettings->dncpAddressLineEdit, tr("DNCP -> IP address"));
+    initTCPPortBox(     OPTION("dncp","port",[]{return "7654";}), uiSettings->dncpPortLineEdit, tr("DNCP -> Port"));
 
-    initCheckBox(       OPTION("i2pcontrol","enabled",[]{return "false";}), uiSettings->i2pControlEnabledCheckBox);
-    initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), uiSettings->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
-    initTCPPortBox(     OPTION("i2pcontrol","port",[]{return "7650";}), uiSettings->i2pControlPortLineEdit, tr("I2PControl -> Port"));
-    initStringBox(      OPTION("i2pcontrol","password",[]{return "";}), uiSettings->i2pControlPasswordLineEdit);
-    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), uiSettings->i2pControlCertFileLineEdit, uiSettings->i2pControlCertFileBrowsePushButton);
-    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), uiSettings->i2pControlKeyFileLineEdit, uiSettings->i2pControlKeyFileBrowsePushButton);
+    initCheckBox(       OPTION("dotnetcontrol","enabled",[]{return "false";}), uiSettings->dotnetControlEnabledCheckBox);
+    initIPAddressBox(   OPTION("dotnetcontrol","address",[]{return "";}), uiSettings->dotnetControlAddressLineEdit, tr("DotNetControl -> IP address"));
+    initTCPPortBox(     OPTION("dotnetcontrol","port",[]{return "7650";}), uiSettings->dotnetControlPortLineEdit, tr("DotNetControl -> Port"));
+    initStringBox(      OPTION("dotnetcontrol","password",[]{return "";}), uiSettings->dotnetControlPasswordLineEdit);
+    initFileChooser(    OPTION("dotnetcontrol","cert",[]{return "dotnetcontrol.crt.pem";}), uiSettings->dotnetControlCertFileLineEdit, uiSettings->dotnetControlCertFileBrowsePushButton);
+    initFileChooser(    OPTION("dotnetcontrol","key",[]{return "dotnetcontrol.key.pem";}), uiSettings->dotnetControlKeyFileLineEdit, uiSettings->dotnetControlKeyFileBrowsePushButton);
 
     initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), uiSettings->enableUPnPCheckBox);
-    initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), uiSettings->upnpNameLineEdit);
+    initStringBox(      OPTION("upnp","name",[]{return "DOTNET";}), uiSettings->upnpNameLineEdit);
 
     initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), uiSettings->useElGamalPrecomputedTablesCheckBox);
 
@@ -319,7 +319,7 @@ void MainWindow::logDestinationComboBoxValueChanged(const QString & text) {
 
 
 void MainWindow::updateRouterCommandsButtons() {
-    bool acceptsTunnels = i2p::context.AcceptsTunnels ();
+    bool acceptsTunnels = dotnet::context.AcceptsTunnels ();
     routerCommandsUI->declineTransitTunnelsPushButton->setEnabled(acceptsTunnels);
     routerCommandsUI->acceptTransitTunnelsPushButton->setEnabled(!acceptsTunnels);
 }
@@ -360,16 +360,16 @@ QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
 
     switch (statusPage) {
     case main_page:
-        i2p::http::ShowStatus(s, showHiddenInfo, i2p::http::OutputFormatEnum::forQtUi);
+        dotnet::http::ShowStatus(s, showHiddenInfo, dotnet::http::OutputFormatEnum::forQtUi);
         break;
     case commands: break;
-    case local_destinations: i2p::http::ShowLocalDestinations(s);break;
-    case leasesets: i2p::http::ShowLeasesSets(s); break;
-    case tunnels: i2p::http::ShowTunnels(s); break;
-    case transit_tunnels: i2p::http::ShowTransitTunnels(s); break;
-    case transports: i2p::http::ShowTransports(s); break;
-    case i2p_tunnels: i2p::http::ShowI2PTunnels(s); break;
-    case sam_sessions: i2p::http::ShowSAMSessions(s); break;
+    case local_destinations: dotnet::http::ShowLocalDestinations(s);break;
+    case leasesets: dotnet::http::ShowLeasesSets(s); break;
+    case tunnels: dotnet::http::ShowTunnels(s); break;
+    case transit_tunnels: dotnet::http::ShowTransitTunnels(s); break;
+    case transports: dotnet::http::ShowTransports(s); break;
+    case dotnet_tunnels: dotnet::http::ShowDotNetTunnels(s); break;
+    case sam_sessions: dotnet::http::ShowSAMSessions(s); break;
     default: assert(false); break;
     }
 
@@ -384,7 +384,7 @@ void MainWindow::showStatus_leasesets_Page() { showStatusPage(StatusPage::leases
 void MainWindow::showStatus_tunnels_Page() { showStatusPage(StatusPage::tunnels); }
 void MainWindow::showStatus_transit_tunnels_Page() { showStatusPage(StatusPage::transit_tunnels); }
 void MainWindow::showStatus_transports_Page() { showStatusPage(StatusPage::transports); }
-void MainWindow::showStatus_i2p_tunnels_Page() { showStatusPage(StatusPage::i2p_tunnels); }
+void MainWindow::showStatus_dotnet_tunnels_Page() { showStatusPage(StatusPage::dotnet_tunnels); }
 void MainWindow::showStatus_sam_sessions_Page() { showStatusPage(StatusPage::sam_sessions); }
 
 
@@ -465,7 +465,7 @@ void MainWindow::setIcon() {
     trayIcon->setIcon(icon);
     setWindowIcon(icon);
 
-    trayIcon->setToolTip(QApplication::translate("MainWindow", "i2pd", 0));
+    trayIcon->setToolTip(QApplication::translate("MainWindow", "dotnet", 0));
 }
 
 void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason) {
@@ -484,10 +484,10 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason) {
 void MainWindow::closeEvent(QCloseEvent *event) {
     if(quitting){ QMainWindow::closeEvent(event); return; }
     if (trayIcon->isVisible()) {
-        QMessageBox::information(this, tr("i2pd"),
+        QMessageBox::information(this, tr("dotnet"),
                                  tr("The program will keep running in the "
                                     "system tray. To gracefully terminate the program, "
-                                    "choose <b>Graceful Quit</b> at the main i2pd window."));
+                                    "choose <b>Graceful Quit</b> at the main dotnet window."));
         hide();
         event->ignore();
     }
@@ -509,14 +509,14 @@ void MainWindow::handleGracefulQuitButton() {
     ui->gracefulQuitPushButton->setEnabled(false);
     ui->gracefulQuitPushButton->adjustSize();
     ui->quitPage->adjustSize();
-    i2p::context.SetAcceptsTunnels (false); // stop accpting tunnels
+    dotnet::context.SetAcceptsTunnels (false); // stop accpting tunnels
     QTimer::singleShot(10*60*1000//millis
         , this, SLOT(handleGracefulQuitTimerEvent()));
 }
 
 void MainWindow::handleDoRestartButton() {
     qDebug()<<"Do Restart pressed.";
-    emit i2pController->restartDaemon();
+    emit dotnetController->restartDaemon();
 }
 
 
@@ -597,37 +597,37 @@ NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
 void MainWindow::loadAllConfigs(){
 
     //BORROWED FROM ??? //TODO move this code into single location
-    std::string config;  i2p::config::GetOption("conf",    config);
-    std::string datadir; i2p::config::GetOption("datadir", datadir);
+    std::string config;  dotnet::config::GetOption("conf",    config);
+    std::string datadir; dotnet::config::GetOption("datadir", datadir);
     bool service = false;
 #ifndef _WIN32
-    i2p::config::GetOption("service", service);
+    dotnet::config::GetOption("service", service);
 #endif
-    i2p::fs::DetectDataDir(datadir, service);
-    i2p::fs::Init();
+    dotnet::fs::DetectDataDir(datadir, service);
+    dotnet::fs::Init();
 
-    datadir = i2p::fs::GetDataDir();
+    datadir = dotnet::fs::GetDataDir();
     // TODO: drop old name detection in v2.8.0
     if (config == "")
     {
-        config = i2p::fs::DataDirPath("i2p.conf");
-        if (i2p::fs::Exists (config)) {
-            LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
+        config = dotnet::fs::DataDirPath("dotnet.conf");
+        if (dotnet::fs::Exists (config)) {
+            LogPrint(eLogWarning, "Daemon: please rename dotnet.conf to dotnet.conf here: ", config);
         } else {
-            config = i2p::fs::DataDirPath("i2pd.conf");
-            /*if (!i2p::fs::Exists (config)) {}*/
+            config = dotnet::fs::DataDirPath("dotnet.conf");
+            /*if (!dotnet::fs::Exists (config)) {}*/
         }
     }
 
     //BORROWED FROM ClientContext.cpp //TODO move this code into single location
-    std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
+    std::string tunConf; dotnet::config::GetOption("tunconf", tunConf);
     if (tunConf == "") {
         // TODO: cleanup this in 2.8.0
-        tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
-        if (i2p::fs::Exists(tunConf)) {
+        tunConf = dotnet::fs::DataDirPath ("tunnels.cfg");
+        if (dotnet::fs::Exists(tunConf)) {
             LogPrint(eLogWarning, "FS: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
         } else {
-            tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+            tunConf = dotnet::fs::DataDirPath ("tunnels.conf");
         }
     }
 
@@ -803,7 +803,7 @@ void MainWindow::SaveTunnelsConfig() {
         TunnelConfig* tunconf = it->second;
         tunconf->saveHeaderToStringStream(out);
         tunconf->saveToStringStream(out);
-        tunconf->saveI2CPParametersToStringStream(out);
+        tunconf->saveDNCPParametersToStringStream(out);
     }
 
     using namespace std;
@@ -816,7 +816,7 @@ void MainWindow::SaveTunnelsConfig() {
     outfile << out.str().c_str();
     outfile.close();
 
-    i2p::client::context.ReloadConfig();
+    dotnet::client::context.ReloadConfig();
 
 }
 
@@ -842,21 +842,21 @@ void MainWindow::addClientTunnelPushButtonReleased() {
     CreateDefaultClientTunnel();
 }
 
-void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
-    this->i2pController = controller_;
+void MainWindow::setDotNetController(dotnet::qt::Controller* controller_) {
+    this->dotnetController = controller_;
 }
 
 void MainWindow::runPeerTest() {
-    i2p::transport::transports.PeerTest();
+    dotnet::transport::transports.PeerTest();
 }
 
 void MainWindow::enableTransit() {
-    i2p::context.SetAcceptsTunnels(true);
+    dotnet::context.SetAcceptsTunnels(true);
     updateRouterCommandsButtons();
 }
 
 void MainWindow::disableTransit() {
-    i2p::context.SetAcceptsTunnels(false);
+    dotnet::context.SetAcceptsTunnels(false);
     updateRouterCommandsButtons();
 }
 
@@ -875,7 +875,7 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
         pageWithBackButton->show();
         textBrowser->hide();
         std::stringstream s;
-        i2p::http::ShowLocalDestination(s,str.toStdString());
+        dotnet::http::ShowLocalDestination(s,str.toStdString());
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
     }
 }

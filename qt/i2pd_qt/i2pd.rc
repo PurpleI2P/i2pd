@@ -1,11 +1,11 @@
 IDI_ICON1 ICON DISCARDABLE "resources/icons/mask.ico"
 
 #include <windows.h>             // needed for VERSIONINFO
-#include "../../libi2pd/version.h"
+#include "../../libdotnet/version.h"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     I2PD_VERSION_MAJOR,I2PD_VERSION_MINOR,I2PD_VERSION_MICRO,I2PD_VERSION_PATCH
-PRODUCTVERSION  I2P_VERSION_MAJOR,I2P_VERSION_MINOR,I2P_VERSION_MICRO,I2P_VERSION_PATCH
+FILEVERSION     DOTNET_VERSION_MAJOR,DOTNET_VERSION_MINOR,DOTNET_VERSION_MICRO,DOTNET_VERSION_PATCH
+PRODUCTVERSION  DOTNET_VERSION_MAJOR,DOTNET_VERSION_MINOR,DOTNET_VERSION_MICRO,DOTNET_VERSION_PATCH
 FILEOS          VOS_NT_WINDOWS32
 FILETYPE        VFT_APP
 BEGIN
@@ -14,14 +14,14 @@ BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
             VALUE "CompanyName",        "PurpleI2P"
-            VALUE "FileDescription",    "I2Pd Qt"
-            VALUE "FileVersion",        I2PD_VERSION
-            VALUE "InternalName",       "i2pd-qt"
+            VALUE "FileDescription",    "DOTNET Qt"
+            VALUE "FileVersion",        DOTNET_VERSION
+            VALUE "InternalName",       "dotnet-qt"
             VALUE "LegalCopyright",     "Copyright (C) 2013-2018, The PurpleI2P Project"
             VALUE "LegalTrademarks1",   "Distributed under the BSD 3-Clause software license, see the accompanying file COPYING or https://opensource.org/licenses/BSD-3-Clause."
-            VALUE "OriginalFilename",   "i2pd_qt.exe"
-            VALUE "ProductName",        "i2pd-qt"
-            VALUE "ProductVersion",     I2P_VERSION
+            VALUE "OriginalFilename",   "dotnet_qt.exe"
+            VALUE "ProductName",        "dotnet-qt"
+            VALUE "ProductVersion",     DOTNET_VERSION
         END
     END
 

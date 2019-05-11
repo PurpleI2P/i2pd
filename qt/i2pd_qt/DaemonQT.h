@@ -7,7 +7,7 @@
 #include <QMutex>
 #include <QMessageBox>
 
-namespace i2p
+namespace dotnet
 {
 namespace qt
 {

@@ -29,9 +29,9 @@
 // For image and info
 #include "version.h"
 
-namespace i2p {
+namespace dotnet {
 namespace http {
-	const char *itoopieFavicon =
+	const char *dotnetFavicon =
 		"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACx"
 		"jwv8YQUAAAAJcEhZcwAALiIAAC4iAari3ZIAAAAHdElNRQfgCQsUNSZrkhi1AAAAGXRFWHRTb2Z0"
@@ -75,10 +75,10 @@ namespace http {
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
 	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_PAGE_LOCAL_DESTINATION[] = "local_destination";
-	const char HTTP_PAGE_I2CP_LOCAL_DESTINATION[] = "i2cp_local_destination";
+	const char HTTP_PAGE_DNCP_LOCAL_DESTINATION[] = "dncp_local_destination";
 	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
-	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
+	const char HTTP_PAGE_DOTNET_TUNNELS[] = "dotnet_tunnels";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_PAGE_LEASESETS[] = "leasesets";
 	const char HTTP_COMMAND_ENABLE_TRANSIT[] = "enable_transit";
@@ -125,17 +125,17 @@ namespace http {
 			s << numKBytes / 1024 / 1024 << " GiB";
 	}
 
-	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
+	static void ShowTunnelDetails (std::stringstream& s, enum dotnet::tunnel::TunnelState eState, bool explr, int bytes)
 	{
 		std::string state;
 		switch (eState) {
-			case i2p::tunnel::eTunnelStateBuildReplyReceived :
-			case i2p::tunnel::eTunnelStatePending     : state = "building"; break;
-			case i2p::tunnel::eTunnelStateBuildFailed :
-			case i2p::tunnel::eTunnelStateTestFailed  :
-			case i2p::tunnel::eTunnelStateFailed      : state = "failed";   break;
-			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
-			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
+			case dotnet::tunnel::eTunnelStateBuildReplyReceived :
+			case dotnet::tunnel::eTunnelStatePending     : state = "building"; break;
+			case dotnet::tunnel::eTunnelStateBuildFailed :
+			case dotnet::tunnel::eTunnelStateTestFailed  :
+			case dotnet::tunnel::eTunnelStateFailed      : state = "failed";   break;
+			case dotnet::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
+			case dotnet::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
 		s << "<span class=\"tunnel " << state << "\"> " << state << ((explr) ? " (exploratory)" : "") << "</span>, ";
@@ -145,18 +145,18 @@ namespace http {
 	static void SetLogLevel (const std::string& level)
 	{
 		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
-			i2p::log::Logger().SetLogLevel(level);
+			dotnet::log::Logger().SetLogLevel(level);
 		else {
 			LogPrint(eLogError, "HTTPServer: unknown loglevel set attempted");
 			return;
 		}
-		i2p::log::Logger().Reopen ();
+		dotnet::log::Logger().Reopen ();
 	}
 
 	static void ShowPageHead (std::stringstream& s)
 	{
 		std::string webroot;
-		i2p::config::GetOption("http.webroot", webroot);
+		dotnet::config::GetOption("http.webroot", webroot);
 		s <<
 			"<!DOCTYPE html>\r\n"
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
@@ -166,13 +166,13 @@ namespace http {
 #else
 			"  <meta charset=\"windows-1251\">\r\n"
 #endif
-			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
+			"  <link rel=\"shortcut icon\" href=\"" << dotnetFavicon << "\">\r\n"
+			"  <title>Purple DOTNET " VERSION " Webconsole</title>\r\n"
 			<< cssStyles <<
 			"</head>\r\n";
 		s <<
 			"<body>\r\n"
-			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
+			"<div class=header><b>dotnet</b> webconsole</div>\r\n"
 			"<div class=wrapper>\r\n"
 			"<div class=left>\r\n"
 			"  <a href=\"" << webroot << "\">Main page</a><br>\r\n<br>\r\n"
@@ -182,8 +182,8 @@ namespace http {
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n";
-		if (i2p::client::context.GetSAMBridge ())
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_DOTNET_TUNNELS << "\">DOTNET tunnels</a><br>\r\n";
+		if (dotnet::client::context.GetSAMBridge ())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n";
 		s <<
 			"</div>\r\n"
@@ -206,13 +206,13 @@ namespace http {
     void ShowStatus (
             std::stringstream& s,
             bool includeHiddenContent,
-            i2p::http::OutputFormatEnum outputFormat)
+            dotnet::http::OutputFormatEnum outputFormat)
 	{
 		s << "<b>Uptime:</b> ";
-		ShowUptime(s, i2p::context.GetUptime ());
+		ShowUptime(s, dotnet::context.GetUptime ());
 		s << "<br>\r\n";
 		s << "<b>Network status:</b> ";
-		switch (i2p::context.GetStatus ())
+		switch (dotnet::context.GetStatus ())
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
@@ -220,7 +220,7 @@ namespace http {
 			case eRouterStatusError:
 			{
 				s << "Error";
-				switch (i2p::context.GetError ())
+				switch (dotnet::context.GetError ())
 				{
 					case eRouterErrorClockSkew:
 						s << "<br>Clock skew";
@@ -239,30 +239,30 @@ namespace http {
 			s << "<br>\r\n";
 		}
 #endif
-		auto family = i2p::context.GetFamily ();
+		auto family = dotnet::context.GetFamily ();
 		if (family.length () > 0)
 			s << "<b>Family:</b> " << family << "<br>\r\n";
-		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
+		s << "<b>Tunnel creation success rate:</b> " << dotnet::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		ShowTraffic (s, dotnet::transport::transports.GetTotalReceivedBytes ());
+		s << " (" << (double) dotnet::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Sent:</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		ShowTraffic (s, dotnet::transport::transports.GetTotalSentBytes ());
+		s << " (" << (double) dotnet::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Transit:</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
-		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
+		ShowTraffic (s, dotnet::transport::transports.GetTotalTransitTransmittedBytes ());
+		s << " (" << (double) dotnet::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		s << "<b>Data path:</b> " << dotnet::fs::GetDataDir() << "<br>\r\n";
         s << "<div class='slide'>";
         if((outputFormat==OutputFormatEnum::forWebConsole)||!includeHiddenContent) {
             s << "<label for='slide-info'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide-info'/>\r\n<p class='content'>\r\n";
         }
         if(includeHiddenContent) {
-            s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
-			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
-			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+            s << "<b>Router Ident:</b> " << dotnet::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
+			s << "<b>Router Family:</b> " << dotnet::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
+			s << "<b>Router Caps:</b> " << dotnet::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
 			s << "<b>Our external address:</b>" << "<br>\r\n" ;
-			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+			for (const auto& address : dotnet::context.GetRouterInfo().GetAddresses())
 			{
 				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 				{
@@ -273,7 +273,7 @@ namespace http {
 				}
 				switch (address->transportStyle)
 				{
-					case i2p::data::RouterInfo::eTransportNTCP:
+					case dotnet::data::RouterInfo::eTransportNTCP:
 					{
 						s << "NTCP";
 						if (address->IsPublishedNTCP2 ()) s << "2";
@@ -281,7 +281,7 @@ namespace http {
 						s << "&nbsp;&nbsp;";
 						break;
 					}
-					case i2p::data::RouterInfo::eTransportSSU:
+					case dotnet::data::RouterInfo::eTransportSSU:
 						if (address->host.is_v6 ())
 							s << "SSUv6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 						else
@@ -297,60 +297,60 @@ namespace http {
         if(outputFormat==OutputFormatEnum::forQtUi) {
             s << "<br>";
         }
-        s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
-		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
-		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
+        s << "<b>Routers:</b> " << dotnet::data::netdb.GetNumRouters () << " ";
+		s << "<b>Floodfills:</b> " << dotnet::data::netdb.GetNumFloodfills () << " ";
+		s << "<b>LeaseSets:</b> " << dotnet::data::netdb.GetNumLeaseSets () << "<br>\r\n";
 
-		size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
-		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
-		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		size_t clientTunnelCount = dotnet::tunnel::tunnels.CountOutboundTunnels();
+		clientTunnelCount += dotnet::tunnel::tunnels.CountInboundTunnels();
+		size_t transitTunnelCount = dotnet::tunnel::tunnels.CountTransitTunnels();
 
 		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n<br>\r\n";
 
         if(outputFormat==OutputFormatEnum::forWebConsole) {
             s << "<table><caption>Services</caption><tr><th>Service</th><th>State</th></tr>\r\n";
-            s << "<tr><td>" << "HTTP Proxy"		<< "</td><td><div class='" << ((i2p::client::context.GetHttpProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "SOCKS Proxy"	<< "</td><td><div class='" << ((i2p::client::context.GetSocksProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "BOB"			<< "</td><td><div class='" << ((i2p::client::context.GetBOBCommandChannel ())	? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "SAM"			<< "</td><td><div class='" << ((i2p::client::context.GetSAMBridge ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "I2CP"			<< "</td><td><div class='" << ((i2p::client::context.GetI2CPServer ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
-            s << "<tr><td>" << "I2PControl"		<< "</td><td><div class='" << ((i2pcontrol) 									? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            s << "<tr><td>" << "HTTP Proxy"		<< "</td><td><div class='" << ((dotnet::client::context.GetHttpProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            s << "<tr><td>" << "SOCKS Proxy"	<< "</td><td><div class='" << ((dotnet::client::context.GetSocksProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            s << "<tr><td>" << "BOB"			<< "</td><td><div class='" << ((dotnet::client::context.GetBOBCommandChannel ())	? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            s << "<tr><td>" << "SAM"			<< "</td><td><div class='" << ((dotnet::client::context.GetSAMBridge ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            s << "<tr><td>" << "DNCP"			<< "</td><td><div class='" << ((dotnet::client::context.GetDNCPServer ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+            bool dotnetcontrol; dotnet::config::GetOption("dotnetcontrol.enabled", dotnetcontrol);
+            s << "<tr><td>" << "DotNetControl"		<< "</td><td><div class='" << ((dotnetcontrol) 									? "enabled" : "disabled") << "'></div></td></tr>\r\n";
             s << "</table>\r\n";
         }
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetDestinations ())
+		for (auto& it: dotnet::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+			s << dotnet::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 
-		auto i2cpServer = i2p::client::context.GetI2CPServer ();
-		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
+		auto dncpServer = dotnet::client::context.GetDNCPServer ();
+		if (dncpServer && !(dncpServer->GetSessions ().empty ()))
 		{
-			s << "<br><b>I2CP Local Destinations:</b><br>\r\n<br>\r\n";
-			for (auto& it: i2cpServer->GetSessions ())
+			s << "<br><b>DNCP Local Destinations:</b><br>\r\n<br>\r\n";
+			for (auto& it: dncpServer->GetSessions ())
 			{
 				auto dest = it.second->GetDestination ();
 				if (dest)
 				{
 					auto ident = dest->GetIdentHash ();
 					auto& name = dest->GetNickname ();
-					s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
-					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"<br>\r\n" << std::endl;
+					s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_DNCP_LOCAL_DESTINATION << "&dncp_id=" << it.first << "\">[ ";
+					s << name << " ]</a> &#8660; " << dotnet::client::context.GetAddressBook ().ToAddress(ident) <<"<br>\r\n" << std::endl;
 				}
 			}
 		}
 	}
 
-	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest)
+	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const dotnet::client::LeaseSetDestination> dest)
 	{
 		s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
@@ -386,7 +386,7 @@ namespace http {
 		if (!dest->GetSessions ().empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
 			for (const auto& it: dest->GetSessions ()) {
-				tmp_s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
+				tmp_s << dotnet::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
 				out_tags = out_tags + it.second->GetNumOutgoingTags ();
 			}
 			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n" << tmp_s.str () << "</p>\r\n</div>\r\n";
@@ -398,9 +398,9 @@ namespace http {
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
-		i2p::data::IdentHash ident;
+		dotnet::data::IdentHash ident;
 		ident.FromBase32 (b32);
-		auto dest = i2p::client::context.FindLocalDestination (ident);
+		auto dest = dotnet::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
 			ShowLeaseSetDestination (s, dest);
@@ -422,7 +422,7 @@ namespace http {
 			{
 				s << "<tr>";
 				s << "<td>" << it->GetSendStreamID () << "</td>";
-				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
+				s << "<td>" << dotnet::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
 				s << "<td>" << it->GetNumSentBytes () << "</td>";
 				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
 				s << "<td>" << it->GetSendQueueSize () << "</td>";
@@ -437,20 +437,20 @@ namespace http {
 		}
 	}
 
-	static void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+	static void ShowDNCPLocalDestination (std::stringstream& s, const std::string& id)
 	{
-		auto i2cpServer = i2p::client::context.GetI2CPServer ();
-		if (i2cpServer)
+		auto dncpServer = dotnet::client::context.GetDNCPServer ();
+		if (dncpServer)
 		{
-			s << "<b>I2CP Local Destination:</b><br>\r\n<br>\r\n";
-			auto it = i2cpServer->GetSessions ().find (std::stoi (id));
-			if (it != i2cpServer->GetSessions ().end ())
+			s << "<b>DNCP Local Destination:</b><br>\r\n<br>\r\n";
+			auto it = dncpServer->GetSessions ().find (std::stoi (id));
+			if (it != dncpServer->GetSessions ().end ())
 				ShowLeaseSetDestination (s, it->second->GetDestination ());
 			else
-				ShowError(s, "I2CP session not found");
+				ShowError(s, "DNCP session not found");
 		}
 		else
-			ShowError(s, "I2CP is not enabled");
+			ShowError(s, "DNCP is not enabled");
 	}
 
 	void ShowLeasesSets(std::stringstream& s)
@@ -458,16 +458,16 @@ namespace http {
 		s << "<b>LeaseSets:</b><br>\r\n<br>\r\n";
 		int counter = 1;
 		// for each lease set
-		i2p::data::netdb.VisitLeaseSets(
-			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+		dotnet::data::netdb.VisitLeaseSets(
+			[&s, &counter](const dotnet::data::IdentHash dest, std::shared_ptr<dotnet::data::LeaseSet> leaseSet)
 			{
 				// create copy of lease set so we extract leases
 				auto storeType = leaseSet->GetStoreType ();
-				std::unique_ptr<i2p::data::LeaseSet> ls;
-				if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET)
-					ls.reset (new i2p::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+				std::unique_ptr<dotnet::data::LeaseSet> ls;
+				if (storeType == dotnet::data::NETDB_STORE_TYPE_LEASESET)
+					ls.reset (new dotnet::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 				else
-					ls.reset (new i2p::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+					ls.reset (new dotnet::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 				if (!ls) return;
 				s << "<div class='leaseset";
 				if (ls->IsExpired())
@@ -479,7 +479,7 @@ namespace http {
 				s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<p class='content'>\r\n";
 				s << "<b>Store type:</b> " << (int)storeType << "<br>\r\n";
 				s << "<b>Expires:</b> " << ConvertTime(ls->GetExpirationTime()) << "<br>\r\n";
-				if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET || storeType == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
+				if (storeType == dotnet::data::NETDB_STORE_TYPE_LEASESET || storeType == dotnet::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
 				{	
 					// leases information is available
 					auto leases = ls->GetNonExpiredLeases();
@@ -500,12 +500,12 @@ namespace http {
 	void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
-		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
+		s << "<b>Queue size:</b> " << dotnet::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
-		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+		auto ExplPool = dotnet::tunnel::tunnels.GetExploratoryPool ();
 
 		s << "<b>Inbound tunnels:</b><br>\r\n";
-		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+		for (auto & it : dotnet::tunnel::tunnels.GetInboundTunnels ()) {
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
@@ -513,7 +513,7 @@ namespace http {
 		}
 		s << "<br>\r\n";
 		s << "<b>Outbound tunnels:</b><br>\r\n";
-		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+		for (auto & it : dotnet::tunnel::tunnels.GetOutboundTunnels ()) {
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
@@ -524,12 +524,12 @@ namespace http {
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n<br>\r\n";
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
-		if (i2p::context.AcceptsTunnels ())
+		if (dotnet::context.AcceptsTunnels ())
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
@@ -539,7 +539,7 @@ namespace http {
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
 #elif defined(WIN32_APP)
-		if (i2p::util::DaemonWin32::Instance().isGraceful)
+		if (dotnet::util::DaemonWin32::Instance().isGraceful)
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
@@ -557,11 +557,11 @@ namespace http {
 	void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
-		for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
+		for (const auto& it: dotnet::tunnel::tunnels.GetTransitTunnels ())
 		{
-			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
+			if (std::dynamic_pointer_cast<dotnet::tunnel::TransitTunnelGateway>(it))
 				s << it->GetTunnelID () << " &#8658; ";
-			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
+			else if (std::dynamic_pointer_cast<dotnet::tunnel::TransitTunnelEndpoint>(it))
 				s << " &#8658; " << it->GetTunnelID ();
 			else
 				s << " &#8658; " << it->GetTunnelID () << " &#8658; ";
@@ -579,7 +579,7 @@ namespace http {
 			{
 				// incoming connection doesn't have remote RI
 				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				tmp_s << dotnet::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
@@ -589,7 +589,7 @@ namespace http {
 			if (it.second && it.second->IsEstablished () && it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
 			{
 				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				tmp_s6 << dotnet::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< "[" << it.second->GetSocket ().remote_endpoint().address ().to_string () << "]";
 				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
@@ -612,21 +612,21 @@ namespace http {
 	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
-		auto ntcpServer = i2p::transport::transports.GetNTCPServer ();
+		auto ntcpServer = dotnet::transport::transports.GetNTCPServer ();
 		if (ntcpServer)
 		{
 			auto sessions = ntcpServer->GetNTCPSessions ();
 			if (!sessions.empty ())
 				ShowNTCPTransports (s, sessions, "NTCP");
 		}
-		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
+		auto ntcp2Server = dotnet::transport::transports.GetNTCP2Server ();
 		if (ntcp2Server)
 		{
 			auto sessions = ntcp2Server->GetNTCP2Sessions ();
 			if (!sessions.empty ())
 				ShowNTCPTransports (s, sessions, "NTCP2");
 		}
-		auto ssuServer = i2p::transport::transports.GetSSUServer ();
+		auto ssuServer = dotnet::transport::transports.GetSSUServer ();
 		if (ssuServer)
 		{
 			auto sessions = ssuServer->GetSessions ();
@@ -668,8 +668,8 @@ namespace http {
 
 	void ShowSAMSessions (std::stringstream& s)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		auto sam = i2p::client::context.GetSAMBridge ();
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
+		auto sam = dotnet::client::context.GetSAMBridge ();
 		if (!sam) {
 			ShowError(s, "SAM disabled");
 			return;
@@ -685,9 +685,9 @@ namespace http {
 
 	static void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
-		auto sam = i2p::client::context.GetSAMBridge ();
+		auto sam = dotnet::client::context.GetSAMBridge ();
 		if (!sam) {
 			ShowError(s, "SAM disabled");
 			return;
@@ -699,16 +699,16 @@ namespace http {
 		}
 		auto& ident = session->localDestination->GetIdentHash();
 		s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
+		s << dotnet::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
 		s << "<br>\r\n";
 		s << "<b>Streams:</b><br>\r\n";
 		for (const auto& it: sam->ListSockets(id))
 		{
 			switch (it->GetSocketType ())
 			{
-				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
-				case i2p::client::eSAMSocketTypeStream   : s << "stream";   break;
-				case i2p::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
+				case dotnet::client::eSAMSocketTypeSession  : s << "session";  break;
+				case dotnet::client::eSAMSocketTypeStream   : s << "stream";   break;
+				case dotnet::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
 				default: s << "unknown"; break;
 			}
 			s << " [" << it->GetSocket ().remote_endpoint() << "]";
@@ -716,37 +716,37 @@ namespace http {
 		}
 	}
 
-	void ShowI2PTunnels (std::stringstream& s)
+	void ShowDotNetTunnels (std::stringstream& s)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetClientTunnels ())
+		for (auto& it: dotnet::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << it.second->GetName () << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}
-		auto httpProxy = i2p::client::context.GetHttpProxy ();
+		auto httpProxy = dotnet::client::context.GetHttpProxy ();
 		if (httpProxy)
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "HTTP Proxy" << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}
-		auto socksProxy = i2p::client::context.GetSocksProxy ();
+		auto socksProxy = dotnet::client::context.GetSocksProxy ();
 		if (socksProxy)
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "SOCKS Proxy" << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}
-		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
+		auto& serverTunnels = dotnet::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
 			s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
 			for (auto& it: serverTunnels)
@@ -754,12 +754,12 @@ namespace http {
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8658; ";
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
 				s << "</a><br>\r\n"<< std::endl;
 			}
 		}
-		auto& clientForwards = i2p::client::context.GetClientForwards ();
+		auto& clientForwards = dotnet::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
 		{
 			s << "<br>\r\n<b>Client Forwards:</b><br>\r\n<br>\r\n";
@@ -768,11 +768,11 @@ namespace http {
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
 			}
 		}
-		auto& serverForwards = i2p::client::context.GetServerForwards ();
+		auto& serverForwards = dotnet::client::context.GetServerForwards ();
 		if (!serverForwards.empty ())
 		{
 			s << "<br>\r\n<b>Server Forwards:</b><br>\r\n<br>\r\n";
@@ -781,7 +781,7 @@ namespace http {
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << dotnet::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
 			}
 		}
@@ -801,9 +801,9 @@ namespace http {
 		m_Socket (socket), m_BufferLen (0), expected_host(hostname)
 	{
 		/* cache options */
-		i2p::config::GetOption("http.auth", needAuth);
-		i2p::config::GetOption("http.user", user);
-		i2p::config::GetOption("http.pass", pass);
+		dotnet::config::GetOption("http.auth", needAuth);
+		dotnet::config::GetOption("http.user", user);
+		dotnet::config::GetOption("http.pass", pass);
 	}
 
 	void HTTPConnection::Receive ()
@@ -861,7 +861,7 @@ namespace http {
 		auto provided = req.GetHeader ("Authorization");
 		if (provided.length () > 0)
 		{
-			std::string expected = "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+			std::string expected = "Basic " + dotnet::data::ToBase64Standard (user + ":" + pass);
 			if (expected == provided) return true;
 		}
 
@@ -884,11 +884,11 @@ namespace http {
 			return;
 		}
 		bool strictheaders;
-		i2p::config::GetOption("http.strictheaders", strictheaders);
+		dotnet::config::GetOption("http.strictheaders", strictheaders);
 		if (strictheaders)
 		{
 			std::string http_hostname;
-			i2p::config::GetOption("http.hostname", http_hostname);
+			dotnet::config::GetOption("http.hostname", http_hostname);
 			std::string host = req.GetHeader("Host");
 			auto idx = host.find(':');
 			/* strip out port so it's just host */
@@ -912,7 +912,7 @@ namespace http {
 		} else if (req.uri.find("cmd=") != std::string::npos) {
 			HandleCommand (req, res, s);
 		} else {
-            ShowStatus (s, true, i2p::http::OutputFormatEnum::forWebConsole);
+            ShowStatus (s, true, dotnet::http::OutputFormatEnum::forWebConsole);
 			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);
@@ -942,7 +942,7 @@ namespace http {
 			uint32_t token;
 			RAND_bytes ((uint8_t *)&token, 4);
 			token &= 0x7FFFFFFF; // clear first bit
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = dotnet::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Tokens.begin (); it != m_Tokens.end (); )
 			{
 				if (ts > it->second + TOKEN_EXPIRATION_TIMEOUT)
@@ -959,14 +959,14 @@ namespace http {
 			ShowLocalDestinations (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
 			ShowLocalDestination (s, params["b32"]);
-		else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION)
-			ShowI2CPLocalDestination (s, params["i2cp_id"]);
+		else if (page == HTTP_PAGE_DNCP_LOCAL_DESTINATION)
+			ShowDNCPLocalDestination (s, params["dncp_id"]);
 		else if (page == HTTP_PAGE_SAM_SESSIONS)
 			ShowSAMSessions (s);
 		else if (page == HTTP_PAGE_SAM_SESSION)
 			ShowSAMSession (s, params["sam_id"]);
-		else if (page == HTTP_PAGE_I2P_TUNNELS)
-			ShowI2PTunnels (s);
+		else if (page == HTTP_PAGE_DOTNET_TUNNELS)
+			ShowDotNetTunnels (s);
 		else if (page == HTTP_PAGE_LEASESETS)
 			ShowLeasesSets(s);
 		else {
@@ -993,32 +993,32 @@ namespace http {
 
 		std::string cmd = params["cmd"];
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
-			i2p::transport::transports.PeerTest ();
+			dotnet::transport::transports.PeerTest ();
 		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
-			i2p::client::context.ReloadConfig ();
+			dotnet::client::context.ReloadConfig ();
 		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
-			i2p::context.SetAcceptsTunnels (true);
+			dotnet::context.SetAcceptsTunnels (true);
 		else if (cmd == HTTP_COMMAND_DISABLE_TRANSIT)
-			i2p::context.SetAcceptsTunnels (false);
+			dotnet::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
-			i2p::context.SetAcceptsTunnels (false);
+			dotnet::context.SetAcceptsTunnels (false);
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			Daemon.gracefulShutdownInterval = 10*60;
 #elif defined(WIN32_APP)
-			i2p::win32::GracefulShutdown ();
+			dotnet::win32::GracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
-			i2p::context.SetAcceptsTunnels (true);
+			dotnet::context.SetAcceptsTunnels (true);
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))  || defined(ANDROID_BINARY))
 			Daemon.gracefulShutdownInterval = 0;
 #elif defined(WIN32_APP)
-			i2p::win32::StopGracefulShutdown ();
+			dotnet::win32::StopGracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
 #ifndef WIN32_APP
 			Daemon.running = false;
 #else
-			i2p::win32::StopWin32App ();
+			dotnet::win32::StopWin32App ();
 #endif
 		} else if (cmd == HTTP_COMMAND_LOGLEVEL){
 			std::string level = params["level"];
@@ -1028,7 +1028,7 @@ namespace http {
 			ShowError(s, "Unknown command: " + cmd);
 			return;
 		}
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		std::string webroot; dotnet::config::GetOption("http.webroot", webroot);
 		std::string redirect = "5; url=" + webroot + "?page=commands";
 		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
 		s << "<a href=\"" << webroot << "?page=commands\">Back to commands list</a><br>\r\n";
@@ -1061,9 +1061,9 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
-		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
-		std::string user; i2p::config::GetOption("http.user", user);
-		std::string pass; i2p::config::GetOption("http.pass", pass);
+		bool needAuth;    dotnet::config::GetOption("http.auth", needAuth);
+		std::string user; dotnet::config::GetOption("http.user", user);
+		std::string pass; dotnet::config::GetOption("http.pass", pass);
 		/* generate pass if needed */
 		if (needAuth && pass == "") {
 			uint8_t random[16];
@@ -1075,7 +1075,7 @@ namespace http {
 			for (size_t i = 0; i < sizeof(random); i++) {
 				pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
 			}
-			i2p::config::SetOption("http.pass", pass);
+			dotnet::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
 		m_IsRunning = true;
@@ -1139,4 +1139,4 @@ namespace http {
 		conn->Receive ();
 	}
 } // http
-} // i2p
+} // dotnet

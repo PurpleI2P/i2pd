@@ -1,7 +1,7 @@
 #include <cassert>
 #include "../HTTP.h"
 
-using namespace i2p::http;
+using namespace dotnet::http;
 
 int main() {
   const char *buf =

@@ -18,7 +18,7 @@
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 
-namespace i2p
+namespace dotnet
 {
 namespace transport
 {
@@ -121,7 +121,7 @@ namespace transport
 
 		// UPnP discovered
 		LogPrint (eLogDebug, "UPnP: ExternalIPAddress is ", m_externalIPAddress);
-		i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
+		dotnet::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
 		// port mapping
 		PortMapping ();
 	}
@@ -153,11 +153,11 @@ namespace transport
 		}
 	}
 
-	void UPnP::TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
+	void UPnP::TryPortMapping (std::shared_ptr<dotnet::data::RouterInfo::Address> address)
 	{
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int r;
-		std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
+		std::string strDesc; dotnet::config::GetOption("upnp.name", strDesc);
 #ifdef UPNPDISCOVER_SUCCESS
 		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
 #else
@@ -175,7 +175,7 @@ namespace transport
 		}
 	}
 
-	void UPnP::CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
+	void UPnP::CloseMapping (std::shared_ptr<dotnet::data::RouterInfo::Address> address)
 	{
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int r = 0;
@@ -190,14 +190,14 @@ namespace transport
 		FreeUPNPUrls (&m_upnpUrls);
 	}
 
-	std::string UPnP::GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address)
+	std::string UPnP::GetProto (std::shared_ptr<dotnet::data::RouterInfo::Address> address)
 	{
 		switch (address->transportStyle)
 		{
-			case i2p::data::RouterInfo::eTransportNTCP:
+			case dotnet::data::RouterInfo::eTransportNTCP:
 			return "TCP";
 			break;
-			case i2p::data::RouterInfo::eTransportSSU:
+			case dotnet::data::RouterInfo::eTransportSSU:
 			default:
 			return "UDP";
 		}
@@ -205,7 +205,7 @@ namespace transport
 }
 }
 #else /* USE_UPNP */
-namespace i2p {
+namespace dotnet {
 namespace transport {
 }
 }
