@@ -259,6 +259,11 @@ namespace data
 				else if (key[0] == 'i')
 				{
 					// introducers
+					if (!address->ssu)
+					{
+						LogPrint (eLogError, "RouterInfo: Introducer is presented for non-SSU address. Skipped");
+						continue;
+					}	
 					introducers = true;
 					size_t l = strlen(key);
 					unsigned char index = key[l-1] - '0'; // TODO:
