@@ -182,7 +182,7 @@ namespace http {
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_DOTNET_TUNNELS << "\">DOTNET tunnels</a><br>\r\n";
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_DOTNET_TUNNELS << "\">Active tunnels</a><br>\r\n";
 		if (dotnet::client::context.GetSAMBridge ())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n";
 		s <<
