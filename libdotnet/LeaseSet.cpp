@@ -337,8 +337,8 @@ namespace data
 	{
 		uint16_t stA = htobe16 (GetSigType ()), stA1 = htobe16 (GetBlindedSigType ());
 		uint8_t salt[32];
-		//seed = HKDF(H("DOTNETGenerateAlpha", keydata), datestring || secret, "dotnetblinding1", 64)	
-		H ("DOTNETGenerateAlpha", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
+		//seed = HKDF(H("DotNetGenerateAlpha", keydata), datestring || secret, "dotnetblinding1", 64)	
+		H ("DotNetGenerateAlpha", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
 		dotnet::crypto::HKDF (salt, (const uint8_t *)date, 8, "dotnetblinding1", seed);
 	}
 

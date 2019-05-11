@@ -338,7 +338,7 @@ namespace proxy {
 				}
 			}
 		}
-		/* check dest_host really exists and inside DOTNET network */
+		/* check dest_host really exists and inside .NET network */
 		if (str_rmatch(dest_host, ".dotnet")) {
 			if (!dotnet::client::context.GetAddressBook ().GetAddress (dest_host)) {
 				HostNotFound(dest_host);
@@ -353,7 +353,7 @@ namespace proxy {
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
 			} else {
 				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outproxy enabled");
-				std::string message = "Host " + dest_host + " not inside DOTNET network, but outproxy is not enabled";
+				std::string message = "Host " + dest_host + " not inside .NET network, but outproxy is not enabled";
 				GenericProxyError("Outproxy failure", message.c_str());
 			}
 			return true;

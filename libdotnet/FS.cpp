@@ -53,7 +53,7 @@ namespace fs {
 		if(!GetModuleFileName(NULL, localAppData, MAX_PATH))
 		{
 #if defined(WIN32_APP)
-			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT("DOTNET: error"), MB_ICONERROR | MB_OK);
+			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT(".NET: error"), MB_ICONERROR | MB_OK);
 #else
 			fprintf(stderr, "Error: Unable to get application path!");
 #endif
@@ -71,7 +71,7 @@ namespace fs {
 				if(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
 #if defined(WIN32_APP)
-					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT("DOTNET: error"), MB_ICONERROR | MB_OK);
+					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT(".NET: error"), MB_ICONERROR | MB_OK);
 #else
 					fprintf(stderr, "Error: Unable to get AppData path!");
 #endif
