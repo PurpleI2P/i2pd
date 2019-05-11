@@ -167,12 +167,12 @@ namespace http {
 			"  <meta charset=\"windows-1251\">\r\n"
 #endif
 			"  <link rel=\"shortcut icon\" href=\"" << dotnetFavicon << "\">\r\n"
-			"  <title>Purple DOTNET " VERSION " Webconsole</title>\r\n"
+			"  <title>.NET " VERSION " webconsole</title>\r\n"
 			<< cssStyles <<
 			"</head>\r\n";
 		s <<
 			"<body>\r\n"
-			"<div class=header><b>dotnet</b> webconsole</div>\r\n"
+			"<div class=header><b>.NET</b> webconsole</div>\r\n"
 			"<div class=wrapper>\r\n"
 			"<div class=left>\r\n"
 			"  <a href=\"" << webroot << "\">Main page</a><br>\r\n<br>\r\n"
