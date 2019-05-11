@@ -42,7 +42,7 @@ namespace client
 		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
 	};
 
-	inline std::string GetB32Address(const dotnet::data::IdentHash& ident) { return ident.ToBase32().append(".b32.dotnet"); }
+	inline std::string GetB32Address(const dotnet::data::IdentHash& ident) { return ident.ToBase32().append(".dot.net"); }
 
 	class AddressBookStorage // interface for storage
 	{
@@ -83,7 +83,7 @@ namespace client
 
 			bool LoadHostsFromStream (std::istream& f, bool is_update);
 			void DownloadComplete (bool success, const dotnet::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
-			//This method returns the ".b32.dotnet" address
+			//This method returns the ".dot.net" address
 			std::string ToAddress(const dotnet::data::IdentHash& ident) { return GetB32Address(ident); }
 			std::string ToAddress(std::shared_ptr<const dotnet::data::IdentityEx> ident) { return ToAddress(ident->GetIdentHash ()); }
 

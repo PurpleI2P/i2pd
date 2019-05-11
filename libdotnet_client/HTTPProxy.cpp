@@ -23,13 +23,12 @@
 namespace dotnet {
 namespace proxy {
 	std::map<std::string, std::string> jumpservices = {
-		{ "inr.dotnet",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.dotnet/search/?q=" },
-		{ "stats.dotnet",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.dotnet/cgi-bin/jump.cgi?a=" },
+		{ "dot.net",    "http://f26brxp77ydqc7cnjctnj75ktcgjhh3tqqvrgf4a6l25aqk3vp3a.dot.net/search/?q=" },
 	};
 
 	static const char *pageHead =
 		"<head>\r\n"
-		"  <title>DOTNET HTTP proxy</title>\r\n"
+		"  <title>.NET HTTP proxy</title>\r\n"
 		"  <style type=\"text/css\">\r\n"
 		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
 		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"

@@ -1102,7 +1102,7 @@ namespace client
 			return;
 		}
 
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.dotnet");
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".dot.net");
 		memset (m_EncryptionPrivateKey, 0, 256);
 		memset (m_EncryptionPublicKey, 0, 256);	
 		dotnet::data::PrivateKeys::GenerateCryptoKeyPair (GetIdentity ()->GetCryptoKeyType (), m_EncryptionPrivateKey, m_EncryptionPublicKey);

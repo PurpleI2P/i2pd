@@ -82,7 +82,7 @@ namespace config {
 		httpserver.add_options()
 			("http.enabled", value<bool>()->default_value(true),                "Enable or disable webconsole")
 			("http.address", value<std::string>()->default_value("127.0.0.1"),  "Webconsole listen address")
-			("http.port", value<uint16_t>()->default_value(7070),               "Webconsole listen port")
+			("http.port", value<uint16_t>()->default_value(5050),               "Webconsole listen port")
 			("http.auth", value<bool>()->default_value(false),                  "Enable Basic HTTP auth for webconsole")
 			("http.user", value<std::string>()->default_value("dotnet"),        "Username for basic auth")
 			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
@@ -95,7 +95,7 @@ namespace config {
 		httpproxy.add_options()
 			("httpproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable HTTP Proxy")
 			("httpproxy.address", value<std::string>()->default_value("127.0.0.1"),   "HTTP Proxy listen address")
-			("httpproxy.port", value<uint16_t>()->default_value(4444),                "HTTP Proxy listen port")
+			("httpproxy.port", value<uint16_t>()->default_value(5555),                "HTTP Proxy listen port")
 			("httpproxy.keys", value<std::string>()->default_value(""),               "File to persist HTTP Proxy keys")
 			("httpproxy.signaturetype", value<dotnet::data::SigningKeyType>()->default_value(dotnet::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
 			("httpproxy.inbound.length", value<std::string>()->default_value("3"),    "HTTP proxy inbound tunnel length")
@@ -112,7 +112,7 @@ namespace config {
 		socksproxy.add_options()
 			("socksproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable SOCKS Proxy")
 			("socksproxy.address", value<std::string>()->default_value("127.0.0.1"),   "SOCKS Proxy listen address")
-			("socksproxy.port", value<uint16_t>()->default_value(4447),                "SOCKS Proxy listen port")
+			("socksproxy.port", value<uint16_t>()->default_value(5055),                "SOCKS Proxy listen port")
 			("socksproxy.keys", value<std::string>()->default_value(""),               "File to persist SOCKS Proxy keys")
 			("socksproxy.signaturetype", value<dotnet::data::SigningKeyType>()->default_value(dotnet::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
 			("socksproxy.inbound.length", value<std::string>()->default_value("3"),    "SOCKS proxy inbound tunnel length")
@@ -123,35 +123,35 @@ namespace config {
 			("socksproxy.latency.max", value<std::string>()->default_value("0"),       "SOCKS proxy max latency for tunnels")
 			("socksproxy.outproxy.enabled", value<bool>()->default_value(false),       "Enable or disable SOCKS outproxy")
 			("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
-			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
+			("socksproxy.outproxyport", value<uint16_t>()->default_value(5505),        "Upstream outproxy port for SOCKS Proxy")
 		;
 
 		options_description sam("SAM bridge options");
 		sam.add_options()
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
-			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+			("sam.port", value<uint16_t>()->default_value(50000),              "SAM listen port")
 		;
 
 		options_description bob("BOB options");
 		bob.add_options()
 			("bob.enabled", value<bool>()->default_value(false),              "Enable or disable BOB command channel")
 			("bob.address", value<std::string>()->default_value("127.0.0.1"), "BOB listen address")
-			("bob.port", value<uint16_t>()->default_value(2827),              "BOB listen port")
+			("bob.port", value<uint16_t>()->default_value(50505),              "BOB listen port")
 		;
 
 		options_description dncp("DNCP options");
 		dncp.add_options()
 			("dncp.enabled", value<bool>()->default_value(false),              "Enable or disable DNCP")
 			("dncp.address", value<std::string>()->default_value("127.0.0.1"), "DNCP listen address")
-			("dncp.port", value<uint16_t>()->default_value(7654),              "DNCP listen port")
+			("dncp.port", value<uint16_t>()->default_value(50555),              "DNCP listen port")
 		;
 
 		options_description dotnetcontrol("DotNetControl options");
 		dotnetcontrol.add_options()
 			("dotnetcontrol.enabled", value<bool>()->default_value(false),                       "Enable or disable DOTNET Control Protocol")
 			("dotnetcontrol.address", value<std::string>()->default_value("127.0.0.1"),          "DOTNETCP listen address")
-			("dotnetcontrol.port", value<uint16_t>()->default_value(7650),                       "DOTNETCP listen port")
+			("dotnetcontrol.port", value<uint16_t>()->default_value(55505),                       "DOTNETCP listen port")
 			("dotnetcontrol.password", value<std::string>()->default_value("dotnet"),            "DOTNETCP access password")
 			("dotnetcontrol.cert", value<std::string>()->default_value("dotnetcontrol.crt.pem"), "DOTNETCP connection certificate")
 			("dotnetcontrol.key", value<std::string>()->default_value("dotnetcontrol.key.pem"),  "DOTNETCP connection certificate key")
@@ -195,7 +195,7 @@ namespace config {
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
 			("addressbook.defaulturl", value<std::string>()->default_value(
-				"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.dotnet/export/alive-hosts.txt"
+				"http://f26brxp77ydqc7cnjctnj75ktcgjhh3tqqvrgf4a6l25aqk3vp3a.dot.net/export/alive-hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
 			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma");
 
@@ -211,7 +211,7 @@ namespace config {
 		websocket.add_options()
 			("websockets.enabled", value<bool>()->default_value(false),              "Enable websocket server")
 			("websockets.address", value<std::string>()->default_value("127.0.0.1"), "Address to bind websocket server on")
-			("websockets.port", value<uint16_t>()->default_value(7666),              "Port to bind websocket server on")
+			("websockets.port", value<uint16_t>()->default_value(55555),              "Port to bind websocket server on")
 		;
 
 		options_description exploratory("Exploratory Options");

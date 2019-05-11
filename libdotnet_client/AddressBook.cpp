@@ -318,7 +318,7 @@ namespace client
 
 	std::shared_ptr<const Address> AddressBook::GetAddress (const std::string& address)
 	{
-		auto pos = address.find(".b32.dotnet");
+		auto pos = address.find(".dot.net");
 		if (pos != std::string::npos)
 			return std::make_shared<const Address>(address.substr (0, pos));
 		else
@@ -332,7 +332,7 @@ namespace client
 				return addr;
 			}	
 		}	
-		// if not .b32 we assume full base64 address
+		// if not .dot.net we assume full base64 address
 		dotnet::data::IdentityEx dest;
 		if (!dest.FromBase64 (address))
 			return nullptr;
@@ -349,7 +349,7 @@ namespace client
 
 	void AddressBook::InsertAddress (const std::string& address, const std::string& jump)
 	{
-		auto pos = jump.find(".b32.dotnet");
+		auto pos = jump.find(".dot.net");
 		if (pos != std::string::npos)
 		{
 			m_Addresses[address] = std::make_shared<Address>(jump.substr (0, pos));

@@ -209,7 +209,7 @@ namespace client
 			{
 				std::stringstream ss;
 				ss << from.GetIdentHash().ToBase32();
-				ss << ".b32.dotnet:";
+				ss << ".dot.net:";
 				ss << std::to_string(fromPort);
 				ss << "\n";
 				ss.write((char *)buf, len);

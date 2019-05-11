@@ -25,7 +25,7 @@ namespace client
 	// for HTTP tunnels
 	const char X_DOTNET_DEST_HASH[] = "X-DOTNET-DestHash"; // hash  in base64
 	const char X_DOTNET_DEST_B64[] = "X-DOTNET-DestB64"; // full address in base64
-	const char X_DOTNET_DEST_B32[] = "X-DOTNET-DestB32"; // .b32.dotnet address
+	const char X_DOTNET_DEST_B32[] = "X-DOTNET-DestB32"; // .dot.net address
 
 	class DotNetTunnelConnection: public DotNetServiceHandler, public std::enable_shared_from_this<DotNetTunnelConnection>
 	{

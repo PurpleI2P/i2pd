@@ -152,7 +152,7 @@ public:
     bool isUniqueLocal = section.second.get(DOTNET_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 # * inport -- optional, dotnet service port, if unset - the same as 'port'
 # * accesslist -- comma-separated list of dotnet addresses, allowed to connect
-#    every address is b32 without '.b32.dotnet' part
+#    every address is b32 without '.dot.net' part
 [somelabel]
 type = server
 host = 127.0.0.1

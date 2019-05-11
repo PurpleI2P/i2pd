@@ -134,7 +134,7 @@ namespace data
 		public:
 
 			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType = dotnet::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);
-			BlindedPublicKey (const std::string& b33); // from b33 without .b32.dotnet			
+			BlindedPublicKey (const std::string& b33); // from b33 without .dot.net			
 			std::string ToB33 () const;
 
 			const uint8_t * GetPublicKey () const { return m_PublicKey.data (); };
