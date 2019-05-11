@@ -56,7 +56,7 @@ namespace client
 			virtual void Start () = 0;
 			virtual void Stop () = 0;
 
-			virtual const char* GetName() { return "Generic DOTNET Service"; }
+			virtual const char* GetName() { return "Generic .NET Service"; }
 
 		private:
 			void TriggerReadyCheckTimer();

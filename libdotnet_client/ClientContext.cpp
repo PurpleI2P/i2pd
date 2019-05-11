@@ -127,14 +127,14 @@ namespace client
 
 		for (auto& it: m_ClientTunnels)
 		{
-			LogPrint(eLogInfo, "Clients: stopping DOTNET client tunnel on port ", it.first);
+			LogPrint(eLogInfo, "Clients: stopping .NET client tunnel on port ", it.first);
 			it.second->Stop ();
 		}
 		m_ClientTunnels.clear ();
 
 		for (auto& it: m_ServerTunnels)
 		{
-			LogPrint(eLogInfo, "Clients: stopping DOTNET server tunnel");
+			LogPrint(eLogInfo, "Clients: stopping .NET server tunnel");
 			it.second->Stop ();
 		}
 		m_ServerTunnels.clear ();
@@ -446,8 +446,8 @@ namespace client
 			}
 		}
 
-		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " DOTNET client tunnels created");
-		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " DOTNET server tunnels created");
+		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " client tunnels created");
+		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " server tunnels created");
 	}
 
 
@@ -523,7 +523,7 @@ namespace client
 							clientTunnel->Start();
 						}
 						else
-							LogPrint(eLogError, "Clients: DOTNET Client forward for endpoint ", end, " already exists");
+							LogPrint(eLogError, "Clients: .NET Client forward for endpoint ", end, " already exists");
 
 					} else {
 						boost::asio::ip::tcp::endpoint clientEndpoint;
@@ -563,7 +563,7 @@ namespace client
 						if(timeout)
 						{
 							clientTunnel->SetConnectTimeout(timeout);
-							LogPrint(eLogInfo, "Clients: DOTNET Client tunnel connect timeout set to ", timeout);
+							LogPrint(eLogInfo, "Clients: .NET Client tunnel connect timeout set to ", timeout);
 						}
 
 						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint, clientTunnel));
@@ -577,11 +577,11 @@ namespace client
 							// TODO: update
 							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
 							{
-								LogPrint (eLogInfo, "Clients: DOTNET client tunnel destination updated");
+								LogPrint (eLogInfo, "Clients: .NET client tunnel destination updated");
 								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
 							}
 							ins.first->second->isUpdated = true;
-							LogPrint (eLogInfo, "Clients: DOTNET client tunnel for endpoint ", clientEndpoint, " already exists");
+							LogPrint (eLogInfo, "Clients: .NET client tunnel for endpoint ", clientEndpoint, " already exists");
 						}
 					}
 				}
@@ -637,10 +637,10 @@ namespace client
 								serverTunnel)).second)
 						{
 							serverTunnel->Start();
-							LogPrint(eLogInfo, "Clients: DOTNET Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
+							LogPrint(eLogInfo, "Clients: .NET Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
 						}
 						else
-							LogPrint(eLogError, "Clients: DOTNET Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+							LogPrint(eLogError, "Clients: .NET Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
 
 						continue;
 					}
@@ -687,11 +687,11 @@ namespace client
 						// TODO: update
 						if (ins.first->second->GetLocalDestination () != serverTunnel->GetLocalDestination ())
 						{
-							LogPrint (eLogInfo, "Clients: DOTNET server tunnel destination updated");
+							LogPrint (eLogInfo, "Clients: .NET server tunnel destination updated");
 							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
 						}
 						ins.first->second->isUpdated = true;
-						LogPrint (eLogInfo, "Clients: DOTNET server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+						LogPrint (eLogInfo, "Clients: .NET server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
 					}
 
 				}

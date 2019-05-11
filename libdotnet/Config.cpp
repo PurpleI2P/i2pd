@@ -149,12 +149,12 @@ namespace config {
 
 		options_description dotnetcontrol("DotNetControl options");
 		dotnetcontrol.add_options()
-			("dotnetcontrol.enabled", value<bool>()->default_value(false),                       "Enable or disable DOTNET Control Protocol")
-			("dotnetcontrol.address", value<std::string>()->default_value("127.0.0.1"),          "DOTNETCP listen address")
-			("dotnetcontrol.port", value<uint16_t>()->default_value(55505),                       "DOTNETCP listen port")
-			("dotnetcontrol.password", value<std::string>()->default_value("dotnet"),            "DOTNETCP access password")
-			("dotnetcontrol.cert", value<std::string>()->default_value("dotnetcontrol.crt.pem"), "DOTNETCP connection certificate")
-			("dotnetcontrol.key", value<std::string>()->default_value("dotnetcontrol.key.pem"),  "DOTNETCP connection certificate key")
+			("dotnetcontrol.enabled", value<bool>()->default_value(false),                       "Enable or disable .NET Control Protocol")
+			("dotnetcontrol.address", value<std::string>()->default_value("127.0.0.1"),          "DNCP listen address")
+			("dotnetcontrol.port", value<uint16_t>()->default_value(55505),                       "DNCP listen port")
+			("dotnetcontrol.password", value<std::string>()->default_value("dotnet"),            "DNCP access password")
+			("dotnetcontrol.cert", value<std::string>()->default_value("dotnetcontrol.crt.pem"), "DNCP connection certificate")
+			("dotnetcontrol.key", value<std::string>()->default_value("dotnetcontrol.key.pem"),  "DNCP connection certificate key")
 		;
 
 		bool upnp_default = false;

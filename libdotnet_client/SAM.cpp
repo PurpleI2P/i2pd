@@ -833,7 +833,7 @@ namespace client
 		{
 			LogPrint (eLogError, "SAM: socket write error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ("socket write error at HandleWriteDOTNETata");
+				Terminate ("socket write error at HandleWriteDotnetAta");
 		}
 		else
 		{
@@ -845,7 +845,7 @@ namespace client
 	{
 		if (stream)
 		{
-			LogPrint (eLogDebug, "SAM: incoming DOTNET connection for session ", m_ID);
+			LogPrint (eLogDebug, "SAM: incoming .NET connection for session ", m_ID);
 			m_SocketType = eSAMSocketTypeStream;
 			m_IsAccepting = false;
 			m_Stream = stream;
@@ -880,7 +880,7 @@ namespace client
 				DOTNETReceive ();
 		}
 		else
-			LogPrint (eLogWarning, "SAM: DOTNET acceptor has been reset");
+			LogPrint (eLogWarning, "SAM: .NET acceptor has been reset");
 	}
 
 	void SAMSocket::HandleDOTNETatagramReceive (const dotnet::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
