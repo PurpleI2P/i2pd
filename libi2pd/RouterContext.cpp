@@ -516,6 +516,24 @@ namespace i2p
 		if (!found && port) // we have found NTCP2 v4 but not v6
 		{
 			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
+			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+			if (!ntcp)
+			{
+				// we must publish SSU address
+				auto mtu = i2p::util::net::GetMTU (host);
+				if (mtu)
+				{
+					LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
+					if (mtu > 1472) // TODO: magic constant
+					{
+						mtu = 1472;
+						LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
+					}
+				}
+				else
+					mtu = 1472;	
+				m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu);
+			}	
 			updated = true;
 		}
 		if (updated)
