@@ -110,7 +110,17 @@ namespace i2p
 			{
 				bool published; i2p::config::GetOption("ntcp2.published", published);
 				if (published)
+				{
 					PublishNTCP2Address (port, true);
+					if (ipv6)
+					{
+						// add NTCP2 ipv6 address
+						std::string host = "::1";
+						if (!i2p::config::IsDefault ("ntcp2.addressv6"))
+							i2p::config::GetOption ("ntcp2.addressv6", host);
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
+					}
+				}
 			}
 		}
 	}
@@ -517,7 +527,8 @@ namespace i2p
 		{
 			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
-			if (!ntcp)
+			bool ssu; i2p::config::GetOption("ssu", ssu);
+			if (!ntcp && ssu)
 			{
 				// we must publish SSU address
 				auto mtu = i2p::util::net::GetMTU (host);
