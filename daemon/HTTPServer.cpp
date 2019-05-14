@@ -354,6 +354,12 @@ namespace http {
 	{
 		s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+		if (dest->IsEncryptedLeaseSet ())
+		{
+			i2p::data::BlindedPublicKey blinded (dest->GetIdentity ());
+			s << "<b>B33:</b> " << blinded.ToB33 () << ".32.bi2p <br>\r\n";	
+		}
+
 		if(dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i></label>\r\n<input type='checkbox' id='slide-lease'/>\r\n<p class='content'>\r\n";

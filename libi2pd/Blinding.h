@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <vector>
 #include "Identity.h"
 
 namespace i2p
