@@ -357,7 +357,9 @@ namespace http {
 		if (dest->IsEncryptedLeaseSet ())
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity ());
-			s << "<b>B33:</b> " << blinded.ToB33 () << ".32.bi2p <br>\r\n";	
+			s << "<div class='slide'><label for='slide-b33'><b>Encrypted B33 address:</b></label>\r\n<input type='checkbox' id='slide-b33'/>\r\n<p class='content'>\r\n";
+			s << blinded.ToB33 () << ".b32.i2p<br>\r\n";
+			s << "</p>\r\n</div>\r\n";
 		}
 
 		if(dest->GetNumRemoteLeaseSets())
