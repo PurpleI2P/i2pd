@@ -22,6 +22,9 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
+#define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
+#define address_pair_v6(a,b) { boost::asio::ip::address_v6::from_string (a).to_bytes (), boost::asio::ip::address_v6::from_string (b).to_bytes () }
+
 // inet_pton exists Windows since Vista, but XP haven't that function!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp(int af, const char *src, void *dst)
@@ -341,34 +344,45 @@ namespace net
 	}
 
 	bool IsInReservedRange(const boost::asio::ip::address& host) {
-		if(host.is_v6())
-			return false; // for now checking only v4
-		
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
-		std::string reservedIPv4Ranges[][2] = {
-			{"0.0.0.0",      "0.255.255.255"},
-			{"10.0.0.0",     "10.255.255.255"},
-			{"100.64.0.0",   "100.127.255.255"},
-			{"127.0.0.0",    "127.255.255.255"},
-			{"169.254.0.0",  "169.254.255.255"},
-			{"172.16.0.0",   "172.31.255.255"},
-			{"192.0.0.0",    "192.0.0.255"},
-			{"192.0.2.0",    "192.0.2.255"},
-			{"192.88.99.0",  "192.88.99.255"},
-			{"192.168.0.0",  "192.168.255.255"},
-			{"198.18.0.0",   "192.19.255.255"},
-			{"198.51.100.0", "198.51.100.255"},
-			{"203.0.113.0",  "203.0.113.255"},
-			{"224.0.0.0",    "255.255.255.255"}
-		};
+		if(host.is_v4())
+		{
+			static const std::vector< std::pair<uint32_t, uint32_t> > reservedIPv4Ranges = {
+				address_pair_v4("0.0.0.0",      "0.255.255.255"),
+				address_pair_v4("10.0.0.0",     "10.255.255.255"),
+				address_pair_v4("100.64.0.0",   "100.127.255.255"),
+				address_pair_v4("127.0.0.0",    "127.255.255.255"),
+				address_pair_v4("169.254.0.0",  "169.254.255.255"),
+				address_pair_v4("172.16.0.0",   "172.31.255.255"),
+				address_pair_v4("192.0.0.0",    "192.0.0.255"),
+				address_pair_v4("192.0.2.0",    "192.0.2.255"),
+				address_pair_v4("192.88.99.0",  "192.88.99.255"),
+				address_pair_v4("192.168.0.0",  "192.168.255.255"),
+				address_pair_v4("198.18.0.0",   "192.19.255.255"),
+				address_pair_v4("198.51.100.0", "198.51.100.255"),
+				address_pair_v4("203.0.113.0",  "203.0.113.255"),
+				address_pair_v4("224.0.0.0",    "255.255.255.255")
+			};
 
-		for(int i = 0; i < sizeof(reservedIPv4Ranges); i++) {
-			uint32_t rangeStart = boost::asio::ip::address_v4::from_string(reservedIPv4Ranges[i][0]).to_ulong();
-			uint32_t rangeEnd   = boost::asio::ip::address_v4::from_string(reservedIPv4Ranges[i][1]).to_ulong();
-			uint32_t ip_address = host.to_v4().to_ulong();
+			uint32_t ipv4_address = host.to_v4 ().to_ulong ();
+			for(const auto& it : reservedIPv4Ranges) {
+				if (ipv4_address >= it.first && ipv4_address <= it.second)
+					return true;
+			}
+		}
+		if(host.is_v6())
+		{
+			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges = {
+				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+			};
 
-			if (ip_address >= rangeStart &&	ip_address <= rangeEnd)
-				return true;
+			boost::asio::ip::address_v6::bytes_type ipv6_address = host.to_v6 ().to_bytes ();
+			for(const auto& it : reservedIPv6Ranges) {
+				if (ipv6_address >= it.first && ipv6_address <= it.second)
+					return true;
+			}
 		}
 		return false;
 	}
