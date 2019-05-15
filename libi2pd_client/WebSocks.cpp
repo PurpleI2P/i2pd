@@ -81,11 +81,14 @@ namespace client
 		void CreateStreamTo(const std::string & addr, int port, StreamConnectFunc complete)
 		{
 			auto & addressbook = i2p::client::context.GetAddressBook();
-			i2p::data::IdentHash ident;
-			if(addressbook.GetIdentHash(addr, ident)) {
-				// address found
-				m_Dest->CreateStream(complete, ident, port);
-			} else {
+			auto a = addressbook.GetAddress (addr);
+			if (a && a->IsIdentHash ())
+			{
+				// address found				
+				m_Dest->CreateStream(complete, a->identHash, port);
+			}
+			else 
+			{
 				// not found
 				complete(nullptr);
 			}
@@ -443,12 +446,12 @@ namespace client
 					addr = line.substr(0, itr);
 					port = std::atoi(line.substr(itr+1).c_str());
 				}
-				i2p::data::IdentHash ident;
-				if(addressbook.GetIdentHash(addr, ident))
+				auto a = addressbook.GetAddress (addr);
+				if (a && a->IsIdentHash ())
 				{
 					const char * data = payload.c_str() + idx + 1;
 					size_t len = payload.size() - (1 + line.size());
-					m_Datagram->SendDatagramTo((const uint8_t*)data, len, ident, m_RemotePort, port);
+					m_Datagram->SendDatagramTo((const uint8_t*)data, len, a->identHash, m_RemotePort, port);
 				}
 			} else {
 				// wtf?
