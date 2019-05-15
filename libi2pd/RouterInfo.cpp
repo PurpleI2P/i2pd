@@ -245,17 +245,19 @@ namespace data
 					ExtractCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 static key
 				{
-					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					if (!address->ntcp2)
+						address->ntcp2.reset (new NTCP2Ext ());
 					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
-					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);	
-				}	
+					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);
+				}
 				else if (!strcmp (key, "i")) // ntcp2 iv
 				{
-					if (!address->ntcp2) address->ntcp2.reset (new NTCP2Ext ());
+					if (!address->ntcp2)
+						address->ntcp2.reset (new NTCP2Ext ());
 					supportedTransports |= (address->host.is_v4 ()) ? eNTCP2V4 : eNTCP2V6;
-					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);	
+					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);
 					address->ntcp2->isPublished = true; // presence if "i" means "published"
-				}	
+				}
 				else if (key[0] == 'i')
 				{
 					// introducers
@@ -263,7 +265,7 @@ namespace data
 					{
 						LogPrint (eLogError, "RouterInfo: Introducer is presented for non-SSU address. Skipped");
 						continue;
-					}	
+					}
 					introducers = true;
 					size_t l = strlen(key);
 					unsigned char index = key[l-1] - '0'; // TODO:
@@ -292,9 +294,11 @@ namespace data
 				}
 				if (!s) return;
 			}
-			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
-			if (isNTCP2Only && address->ntcp2) address->ntcp2->isNTCP2Only = true;
-			if (supportedTransports) 
+			if (introducers)
+				supportedTransports |= eSSUV4; // in case if host is not presented
+			if (isNTCP2Only && address->ntcp2)
+				address->ntcp2->isNTCP2Only = true;
+			if (supportedTransports)
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
@@ -354,9 +358,9 @@ namespace data
 			SetUnreachable (true);
 	}
 
-  bool RouterInfo::IsFamily(const std::string & fam) const {
-    return m_Family == fam;
-  }
+	bool RouterInfo::IsFamily(const std::string & fam) const {
+		return m_Family == fam;
+	}
 
 	void RouterInfo::ExtractCaps (const char * value)
 	{
@@ -799,7 +803,7 @@ namespace data
 
 	bool RouterInfo::IsV6 () const
 	{
-		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
+		return m_SupportedTransports & (eNTCPV6 | eSSUV6 | eNTCP2V6);
 	}
 
 	bool RouterInfo::IsV4 () const
@@ -813,12 +817,11 @@ namespace data
 			m_SupportedTransports |= eNTCPV6 | eSSUV6 | eNTCP2V6;
 	}
 
-  void RouterInfo::EnableV4 ()
+	void RouterInfo::EnableV4 ()
 	{
 		if (!IsV4 ())
 			m_SupportedTransports |= eNTCPV4 | eSSUV4 | eNTCP2V4;
 	}
-
 
 	void RouterInfo::DisableV6 ()
 	{
@@ -836,7 +839,7 @@ namespace data
 		}
 	}
 
-  void RouterInfo::DisableV4 ()
+	void RouterInfo::DisableV4 ()
 	{
 		if (IsV4 ())
 		{
@@ -851,7 +854,6 @@ namespace data
 			}
 		}
 	}
-
 
 	bool RouterInfo::UsesIntroducer () const
 	{

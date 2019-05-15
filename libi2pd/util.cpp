@@ -337,9 +337,41 @@ namespace net
 			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
 		}
 		return boost::asio::ip::address::from_string(fallback);
-
 #endif
 	}
-}
+
+	bool IsInReservedRange(const boost::asio::ip::address& host) {
+		if(host.is_v6())
+			return false; // for now checking only v4
+		
+		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
+		std::string reservedIPv4Ranges[][2] = {
+			{"0.0.0.0",      "0.255.255.255"},
+			{"10.0.0.0",     "10.255.255.255"},
+			{"100.64.0.0",   "100.127.255.255"},
+			{"127.0.0.0",    "127.255.255.255"},
+			{"169.254.0.0",  "169.254.255.255"},
+			{"172.16.0.0",   "172.31.255.255"},
+			{"192.0.0.0",    "192.0.0.255"},
+			{"192.0.2.0",    "192.0.2.255"},
+			{"192.88.99.0",  "192.88.99.255"},
+			{"192.168.0.0",  "192.168.255.255"},
+			{"198.18.0.0",   "192.19.255.255"},
+			{"198.51.100.0", "198.51.100.255"},
+			{"203.0.113.0",  "203.0.113.255"},
+			{"224.0.0.0",    "255.255.255.255"}
+		};
+
+		for(int i = 0; i < sizeof(reservedIPv4Ranges); i++) {
+			uint32_t rangeStart = boost::asio::ip::address_v4::from_string(reservedIPv4Ranges[i][0]).to_ulong();
+			uint32_t rangeEnd   = boost::asio::ip::address_v4::from_string(reservedIPv4Ranges[i][1]).to_ulong();
+			uint32_t ip_address = host.to_v4().to_ulong();
+
+			if (ip_address >= rangeStart &&	ip_address <= rangeEnd)
+				return true;
+		}
+		return false;
+	}
+} // net
 } // util
 } // i2p

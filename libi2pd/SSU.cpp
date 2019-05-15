@@ -10,31 +10,18 @@ namespace i2p
 {
 namespace transport
 {
-
-	SSUServer::SSUServer (const boost::asio::ip::address & addr, int port):
-		m_OnlyV6(true), m_IsRunning(false),
-		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_ReceiversThreadV6 (nullptr), m_Work (m_Service), m_WorkV6 (m_ServiceV6),
-		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
-		m_EndpointV6 (addr, port), m_Socket (m_ReceiversService, m_Endpoint),
-		m_SocketV6 (m_ReceiversServiceV6), m_IntroducersUpdateTimer (m_Service),
-		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service),
-		m_TerminationTimerV6 (m_ServiceV6)
-	{
-		OpenSocketV6 ();
-	}
-
 	SSUServer::SSUServer (int port):
-		m_OnlyV6(false), m_IsRunning(false),
-		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_ReceiversThreadV6 (nullptr), 	m_Work (m_Service), m_WorkV6 (m_ServiceV6),
+		m_IsRunning(false), m_Thread (nullptr), m_ThreadV6 (nullptr),
+		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr),
+		m_Work (m_Service), m_WorkV6 (m_ServiceV6),
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
 		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6),
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
 		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)
 	{
-		OpenSocket ();
+		if (context.SupportsV4 ())
+			OpenSocket ();
 		if (context.SupportsV6 ())
 			OpenSocketV6 ();
 	}
@@ -63,7 +50,7 @@ namespace transport
 	void SSUServer::Start ()
 	{
 		m_IsRunning = true;
-		if (!m_OnlyV6)
+		if (context.SupportsV4 ())
 		{
 			m_ReceiversThread = new std::thread (std::bind (&SSUServer::RunReceivers, this));
 			m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
@@ -328,10 +315,10 @@ namespace transport
 			{
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
-					if (session) 
-					{ 
-						session->FlushData (); 
-						session = nullptr; 
+					if (session)
+					{
+						session->FlushData ();
+						session = nullptr;
 					}
 					auto it = sessions->find (packet->from);
 					if (it != sessions->end ())
@@ -597,7 +584,7 @@ namespace transport
 						session->GetState () == eSessionStateEstablished &&
 						ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
 				}
-											);
+			);
 			if (session)
 			{
 				ret.insert (session.get ());
@@ -795,4 +782,3 @@ namespace transport
 	}
 }
 }
-

@@ -542,9 +542,9 @@ namespace i2p
 					}
 				}
 				else
-					mtu = 1472;	
+					mtu = 1472;
 				m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu);
-			}	
+			}
 			updated = true;
 		}
 		if (updated)
@@ -570,8 +570,10 @@ namespace i2p
 
 	bool RouterContext::Load ()
 	{
+		// read router keys
 		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
-		if (!fk.is_open ())	return false;
+		if (!fk.is_open ())
+			return false;
 		fk.seekg (0, std::ios::end);
 		size_t len = fk.tellg();
 		fk.seekg (0, std::ios::beg);
@@ -589,6 +591,8 @@ namespace i2p
 			m_Keys.FromBuffer (buf, len);
 			delete[] buf;
 		}
+		fk.close();
+
 		// read NTCP2 keys if available
 		std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
 		if (n2k)
@@ -603,6 +607,7 @@ namespace i2p
 			}
 			n2k.close ();
 		}
+
 		// read RouterInfo
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
@@ -615,6 +620,11 @@ namespace i2p
 			// Migration to 0.9.24. TODO: remove later
 			m_RouterInfo.DeleteProperty ("coreVersion");
 			m_RouterInfo.DeleteProperty ("stat_uptime");
+
+			bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+			bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+			SetSupportsV4(ipv4);
+			SetSupportsV6(ipv6);
 		}
 		else
 		{
@@ -626,14 +636,14 @@ namespace i2p
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
 
 		// read NTCP2
-		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true); // enable NTCP2
 		}
 		else
-			UpdateNTCP2Address (false);	 // disable NTCP2
+			UpdateNTCP2Address (false); // disable NTCP2
 
 		return true;
 	}

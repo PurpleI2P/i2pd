@@ -14,6 +14,7 @@
 #include "NTCPSession.h"
 #include "HTTP.h"
 #include "util.h"
+#include "Config.h"
 #ifdef WITH_EVENTS
 #include "Event.h"
 #endif
@@ -815,43 +816,52 @@ namespace transport
 			else
 			{
 				// create acceptors
+				bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+				bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+
 				auto& addresses = context.GetRouterInfo ().GetAddresses ();
 				for (const auto& address: addresses)
 				{
 					if (!address) continue;
 					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !address->IsNTCP2 ())
 					{
-						if (address->host.is_v4())
+						if (address->host.is_v4() && context.SupportsV4 () && ipv4)
 						{
 							try
 							{
-								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
+								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service);
+								m_NTCPAcceptor->open (boost::asio::ip::tcp::v4());
+								m_NTCPAcceptor->set_option (boost::asio::socket_base::reuse_address (true));
+								m_NTCPAcceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
+								m_NTCPAcceptor->listen ();
+
+								LogPrint (eLogInfo, "NTCP: Start listening IPv4 TCP port ", address->port);
+								auto conn = std::make_shared<NTCPSession>(*this);
+								m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, conn, std::placeholders::_1));
 							} catch ( std::exception & ex ) {
-								/** fail to bind ip4 */
-								LogPrint(eLogError, "NTCP: Failed to bind to ip4 port ",address->port, ex.what());
+								/** fail to bind IPv4 */
+								LogPrint(eLogError, "NTCP: Failed to bind to IPv4 port ",address->port, ex.what());
 								continue;
 							}
 
-							LogPrint (eLogInfo, "NTCP: Start listening TCP port ", address->port);
-							auto conn = std::make_shared<NTCPSession>(*this);
-							m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, conn, std::placeholders::_1));
 						}
-						else if (address->host.is_v6() && context.SupportsV6 ())
+						else if (address->host.is_v6() && context.SupportsV6 () && ipv6)
 						{
-							m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
 							try
 							{
+								m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
 								m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
 								m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
 								m_NTCPV6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
-								LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
+								LogPrint (eLogInfo, "NTCP: Start listening IPv6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession> (*this);
 								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
 							} catch ( std::exception & ex ) {
-								LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+								/** fail to bind IPv6 */
+								LogPrint(eLogError, "NTCP: failed to bind to IPv6 port ", address->port);
 								continue;
 							}
 						}
