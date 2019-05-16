@@ -14,7 +14,7 @@ namespace data
 	{
 		public:
 
-			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);
+			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity);
 			BlindedPublicKey (const std::string& b33); // from b33 without .b32.i2p			
 			std::string ToB33 () const;
 
