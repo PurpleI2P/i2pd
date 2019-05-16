@@ -15,6 +15,7 @@
 #include "NetDb.hpp"
 #include "RouterContext.h"
 #include "RouterInfo.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -177,7 +178,7 @@ namespace data
 			s.read ((char *)&address->cost, sizeof (address->cost));
 			s.read ((char *)&address->date, sizeof (address->date));
 			bool isNTCP2Only = false;
-			char transportStyle[6]; 
+			char transportStyle[6];
 			auto transportStyleLen = ReadString (transportStyle, 6, s) - 1;
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
 			{
@@ -207,22 +208,23 @@ namespace data
 				if (!strcmp (key, "host"))
 				{
 					boost::system::error_code ecode;
-					address->host = boost::asio::ip::address::from_string (value, ecode);
+					auto hostaddr = boost::asio::ip::address::from_string (value, ecode); // store in temporary variable
 					if (!ecode)
 					{
 #if BOOST_VERSION >= 104900
-						if (!address->host.is_unspecified ()) // check if address is valid
+						if (!hostaddr.is_unspecified () && !i2p::util::net::IsInReservedRange(hostaddr)) // check if address is valid
 #else
-						address->host.to_string (ecode);
-						if (!ecode)
+						hostaddr.to_string (ecode);
+						if (!ecode && !i2p::util::net::IsInReservedRange(hostaddr))
 #endif
-						{	
+						{
+							address->host = hostaddr;
 							// add supported protocol
 							if (address->host.is_v4 ())
-								supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;
+								supportedTransports |= (address->transportStyle == eTransportNTCP) ? (isNTCP2Only ? eNTCP2V4 : eNTCPV4) : eSSUV4;
 							else
-								supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
-						}	
+								supportedTransports |= (address->transportStyle == eTransportNTCP) ? (isNTCP2Only ? eNTCP2V6 : eNTCPV6) : eSSUV6;
+						}
 					}
 				}
 				else if (!strcmp (key, "port"))
@@ -554,7 +556,7 @@ namespace data
 				properties << '=';
 				WriteString (boost::lexical_cast<std::string>(address.port), properties);
 				properties << ';';
-			}	
+			}
 			if (address.IsNTCP2 ())
 			{
 				// publish s and v for NTCP2
@@ -562,7 +564,7 @@ namespace data
 				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
 				WriteString ("v", properties); properties << '=';
 				WriteString ("2", properties); properties << ';';
-			}	
+			}
 
 			uint16_t size = htobe16 (properties.str ().size ());
 			s.write ((char *)&size, sizeof (size));
@@ -710,7 +712,7 @@ namespace data
 		addr->ntcp2->isNTCP2Only = true; // NTCP2 only address
 		if (port) addr->ntcp2->isPublished = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
-		memcpy (addr->ntcp2->iv, iv, 16);	
+		memcpy (addr->ntcp2->iv, iv, 16);
 		m_Addresses->push_back(std::move(addr));
 	}
 
@@ -887,7 +889,7 @@ namespace data
 			});
 	}
 
-	template<typename Filter>	
+	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
 		// TODO: make it more generic using comparator
@@ -898,7 +900,7 @@ namespace data
 #endif
 		for (const auto& address : *addresses)
 			if (filter (address)) return address;
-		
+
 		return nullptr;
 	}
 

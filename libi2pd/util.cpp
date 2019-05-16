@@ -53,6 +53,9 @@ int inet_pton_xp(int af, const char *src, void *dst)
 #include <ifaddrs.h>
 #endif
 
+#define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
+#define address_pair_v6(a,b) { boost::asio::ip::address_v6::from_string (a).to_bytes (), boost::asio::ip::address_v6::from_string (b).to_bytes () }
+
 namespace i2p
 {
 namespace util
@@ -339,9 +342,6 @@ namespace net
 		return boost::asio::ip::address::from_string(fallback);
 #endif
 	}
-
-#define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
-#define address_pair_v6(a,b) { boost::asio::ip::address_v6::from_string (a).to_bytes (), boost::asio::ip::address_v6::from_string (b).to_bytes () }
 
 	bool IsInReservedRange(const boost::asio::ip::address& host) {
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
