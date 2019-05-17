@@ -3,7 +3,9 @@
 #include <boost/asio.hpp>
 
 #include "util.h"
+#include "Config.h"
 #include "Log.h"
+#include "version.h"
 
 #ifdef WIN32
 #include <stdlib.h>
@@ -344,6 +346,11 @@ namespace net
 	}
 
 	bool IsInReservedRange(const boost::asio::ip::address& host) {
+		// ignore checking for netid other than main network
+		int NetID; i2p::config::GetOption("netid", NetID);
+		if (NetID != I2PD_NET_ID)
+			return false;
+
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if(host.is_v4())
 		{
