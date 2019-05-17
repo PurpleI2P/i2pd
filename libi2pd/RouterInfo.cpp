@@ -212,10 +212,10 @@ namespace data
 					if (!ecode)
 					{
 #if BOOST_VERSION >= 104900
-						if (!hostaddr.is_unspecified () && !i2p::util::net::IsInReservedRange(hostaddr)) // check if address is valid
+						if (!hostaddr.is_unspecified () && ((i2p::context.GetNetID () != I2PD_NET_ID) || !i2p::util::net::IsInReservedRange(hostaddr)))
 #else
 						hostaddr.to_string (ecode);
-						if (!ecode && !i2p::util::net::IsInReservedRange(hostaddr))
+						if (!ecode && ((i2p::context.GetNetID () != I2PD_NET_ID) || !i2p::util::net::IsInReservedRange(hostaddr)))
 #endif
 						{
 							address->host = hostaddr;

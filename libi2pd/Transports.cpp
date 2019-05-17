@@ -406,7 +406,7 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-				if (address && m_NTCP2Server && !i2p::util::net::IsInReservedRange(address->host)) 
+				if (address && m_NTCP2Server)
 				{ // we support NTCP2, it has priority over NTCP and remote address is not in reserved range
 					auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 					m_NTCP2Server->Connect (address->host, address->port, s);
@@ -417,7 +417,7 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
-				if (address && m_NTCPServer && !i2p::util::net::IsInReservedRange(address->host))
+				if (address && m_NTCPServer)
 				{
 					if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
 					{
@@ -451,7 +451,7 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-				if (address && m_SSUServer && !i2p::util::net::IsInReservedRange(address->host))
+				if (address && m_SSUServer)
 				{
 					m_SSUServer->CreateSession (peer.router, address->host, address->port);
 					return true;
