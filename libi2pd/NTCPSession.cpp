@@ -820,9 +820,10 @@ namespace transport
 							try
 							{
 								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
+								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
 							} catch ( std::exception & ex ) {
 								/** fail to bind ip4 */
-								LogPrint(eLogError, "NTCP: Failed to bind to ip4 port ",address->port, ex.what());
+								LogPrint(eLogError, "NTCP: Failed to bind to v4 port ",address->port, ex.what());
 								continue;
 							}
 
@@ -841,11 +842,11 @@ namespace transport
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
-								LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
+								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession> (*this);
 								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
 							} catch ( std::exception & ex ) {
-								LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+								LogPrint(eLogError, "NTCP: failed to bind to v6 port ", address->port);
 								continue;
 							}
 						}
