@@ -835,12 +835,12 @@ namespace transport
 								m_NTCPAcceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
 								m_NTCPAcceptor->listen ();
 
-								LogPrint (eLogInfo, "NTCP: Start listening IPv4 TCP port ", address->port);
+								LogPrint (eLogInfo, "NTCP: Start listening v4 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession>(*this);
 								m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, conn, std::placeholders::_1));
 							} catch ( std::exception & ex ) {
 								/** fail to bind IPv4 */
-								LogPrint(eLogError, "NTCP: Failed to bind to IPv4 port ",address->port, ex.what());
+								LogPrint(eLogError, "NTCP: Failed to bind to v4 port ", address->port, ": ", ex.what());
 								continue;
 							}
 
@@ -856,12 +856,12 @@ namespace transport
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
-								LogPrint (eLogInfo, "NTCP: Start listening IPv6 TCP port ", address->port);
+								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession> (*this);
 								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
 							} catch ( std::exception & ex ) {
 								/** fail to bind IPv6 */
-								LogPrint(eLogError, "NTCP: failed to bind to IPv6 port ", address->port);
+								LogPrint(eLogError, "NTCP: failed to bind to v6 port ", address->port, ": ", ex.what());
 								continue;
 							}
 						}
