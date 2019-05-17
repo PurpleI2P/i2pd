@@ -1092,6 +1092,7 @@ namespace http {
 			Accept ();
 		} catch (std::exception& ex) {
 			LogPrint (eLogError, "HTTPServer: failed to start webconsole: ", ex.what ());
+			Stop ();
 		}
 	}
 
