@@ -317,7 +317,7 @@ namespace i2p
 			bool http; i2p::config::GetOption("http.enabled", http);
 			if (http) {
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-				uint16_t    httpPort; i2p::config::GetOption("http.port",		 httpPort);
+				uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
 				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
 				d.httpServer->Start();

@@ -1226,10 +1226,15 @@ namespace http {
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
-		m_IsRunning = true;
-		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
-		m_Acceptor.listen ();
-		Accept ();
+
+		try {
+			m_IsRunning = true;
+			m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
+			m_Acceptor.listen ();
+			Accept ();
+		} catch (std::exception& ex) {
+			LogPrint (eLogError, "HTTPServer: failed to start webconsole: ", ex.what ());
+		}
 	}
 
 	void HTTPServer::Stop ()
