@@ -389,7 +389,7 @@ namespace client
 	}
 
 
-	/* This handler tries to stablish a connection with the desired server and dies if it fails to do so */
+	/* This handler tries to establish a connection with the desired server and dies if it fails to do so */
 	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
 	{
 		public:
