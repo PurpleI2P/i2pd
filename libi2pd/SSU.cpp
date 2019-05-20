@@ -50,14 +50,14 @@ namespace transport
 	void SSUServer::OpenSocketV6 ()
 	{
 		try {
-			m_SocketV6.open (boost::asio::ip::udp::v6());
+			m_SocketV6.open (boost::asio::ip::udp::v6 ());
 			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
 			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 #ifndef WIN32
 			// Set preference to use public IPv6 address -- works only on linux
 			typedef boost::asio::detail::socket_option::boolean<IPV6_ADDR_PREFERENCES, IPV6_PREFER_SRC_PUBLIC> ipv6PreferPubAddr;
-			m_SocketV6.set_option (ipv6PreferPubAddr(true));
+			m_SocketV6.set_option (ipv6PreferPubAddr (true));
 #endif
 			m_SocketV6.bind (m_EndpointV6);
 			LogPrint (eLogInfo, "SSU: Start listening v6 port ", m_EndpointV6.port());

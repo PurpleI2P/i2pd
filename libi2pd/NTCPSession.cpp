@@ -19,6 +19,10 @@
 #include "Event.h"
 #endif
 
+#ifndef WIN32
+#include <linux/in6.h>
+#endif
+
 using namespace i2p::crypto;
 
 namespace i2p
@@ -850,9 +854,14 @@ namespace transport
 							try
 							{
 								m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
-								m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
+								m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6 ());
 								m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
 								m_NTCPV6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
+#ifndef WIN32
+								// Set preference to use public IPv6 address -- works only on linux
+								typedef boost::asio::detail::socket_option::boolean<IPV6_ADDR_PREFERENCES, IPV6_PREFER_SRC_PUBLIC> ipv6PreferPubAddr;
+								m_NTCPV6Acceptor->set_option (ipv6PreferPubAddr (true));
+#endif
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
