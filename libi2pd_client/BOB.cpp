@@ -593,7 +593,7 @@ namespace client
 		LogPrint (eLogDebug, "BOB: list");
 		const auto& destinations = m_Owner.GetDestinations ();
 		for (const auto& it: destinations)
-			SendData (it.first.c_str ());
+			SendData (("DATA NICKNAME: " + it.first).c_str ());
 		SendReplyOK ("Listing done");
 	}
 
