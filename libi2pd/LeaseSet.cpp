@@ -727,12 +727,12 @@ namespace data
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();	
 		char date[9];
 		i2p::util::GetDateString (timestamp, date);
-		uint8_t blindedPriv[32], blindedPub[32];
-		blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
+		uint8_t blindedPriv[64], blindedPub[128]; // 64 and 128 max
+		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKeyType, blindedPriv));
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKeyType); offset += 2; // Blinded Public Key Sig Type
-		memcpy (m_Buffer + offset, blindedPub, 32); offset += 32; // Blinded Public Key
+		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		auto nextMidnight = (timestamp/86400LL + 1)*86400LL; // 86400 = 24*3600 seconds
 		auto expirationTime = ls->GetExpirationTime ()/1000LL; 

@@ -25,7 +25,7 @@ namespace data
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes
 			void GetBlindedKey (const char * date, uint8_t * blindedKey) const; // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
-			void BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const; // blinded key 32 bytes, date is 8 chars "YYYYMMDD" 
+			size_t BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const; // date is 8 chars "YYYYMMDD", return public key length 
 			i2p::data::IdentHash GetStoreHash (const char * date = nullptr) const; // date is 8 chars "YYYYMMDD", use current if null
 
 		private:
