@@ -447,7 +447,7 @@ namespace transport
 				else
 					LogPrint (eLogDebug, "Transports: NTCP address is not present for ", i2p::data::GetIdentHashAbbreviation (ident), ", trying SSU");
 			}
-			if (peer.numAttempts == 2)// SSU
+			if (peer.numAttempts == 2) // SSU
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());

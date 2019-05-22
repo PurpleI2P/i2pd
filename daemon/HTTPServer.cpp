@@ -203,10 +203,10 @@ namespace http {
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-    void ShowStatus (
-            std::stringstream& s,
-            bool includeHiddenContent,
-            i2p::http::OutputFormatEnum outputFormat)
+	void ShowStatus (
+			std::stringstream& s,
+			bool includeHiddenContent,
+			i2p::http::OutputFormatEnum outputFormat)
 	{
 		s << "<b>Uptime:</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
@@ -253,16 +253,16 @@ namespace http {
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
-        s << "<div class='slide'>";
-        if((outputFormat==OutputFormatEnum::forWebConsole)||!includeHiddenContent) {
-            s << "<label for='slide-info'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide-info'/>\r\n<p class='content'>\r\n";
-        }
-        if(includeHiddenContent) {
-            s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
-			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
-			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+		s << "<div class='slide'>";
+		if((outputFormat==OutputFormatEnum::forWebConsole)||!includeHiddenContent) {
+			s << "<label for='slide-info'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide-info'/>\r\n<p class='content'>\r\n";
+		}
+		if(includeHiddenContent) {
+			s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo ().GetIdentHashBase64 () << "<br>\r\n";
+			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo ().GetProperty ("family") << "<br>\r\n";
+			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo ().GetProperty ("caps") << "<br>\r\n";
 			s << "<b>Our external address:</b>" << "<br>\r\n" ;
-			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+			for (const auto& address : i2p::context.GetRouterInfo ().GetAddresses ())
 			{
 				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 				{
@@ -292,12 +292,12 @@ namespace http {
 				}
 				s << address->host.to_string() << ":" << address->port << "<br>\r\n";
 			}
-        }
+		}
 		s << "</p>\r\n</div>\r\n";
-        if(outputFormat==OutputFormatEnum::forQtUi) {
-            s << "<br>";
-        }
-        s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+		if(outputFormat==OutputFormatEnum::forQtUi) {
+			s << "<br>";
+		}
+		s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
 
@@ -308,17 +308,17 @@ namespace http {
 		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n<br>\r\n";
 
-        if(outputFormat==OutputFormatEnum::forWebConsole) {
-            s << "<table><caption>Services</caption><tr><th>Service</th><th>State</th></tr>\r\n";
-            s << "<tr><td>" << "HTTP Proxy"		<< "</td><td><div class='" << ((i2p::client::context.GetHttpProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "SOCKS Proxy"	<< "</td><td><div class='" << ((i2p::client::context.GetSocksProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "BOB"			<< "</td><td><div class='" << ((i2p::client::context.GetBOBCommandChannel ())	? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "SAM"			<< "</td><td><div class='" << ((i2p::client::context.GetSAMBridge ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "<tr><td>" << "I2CP"			<< "</td><td><div class='" << ((i2p::client::context.GetI2CPServer ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
-            s << "<tr><td>" << "I2PControl"		<< "</td><td><div class='" << ((i2pcontrol) 									? "enabled" : "disabled") << "'></div></td></tr>\r\n";
-            s << "</table>\r\n";
-        }
+		if(outputFormat==OutputFormatEnum::forWebConsole) {
+			s << "<table><caption>Services</caption><tr><th>Service</th><th>State</th></tr>\r\n";
+			s << "<tr><td>" << "HTTP Proxy"		<< "</td><td><div class='" << ((i2p::client::context.GetHttpProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			s << "<tr><td>" << "SOCKS Proxy"	<< "</td><td><div class='" << ((i2p::client::context.GetSocksProxy ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			s << "<tr><td>" << "BOB"			<< "</td><td><div class='" << ((i2p::client::context.GetBOBCommandChannel ())	? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			s << "<tr><td>" << "SAM"			<< "</td><td><div class='" << ((i2p::client::context.GetSAMBridge ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			s << "<tr><td>" << "I2CP"			<< "</td><td><div class='" << ((i2p::client::context.GetI2CPServer ())			? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
+			s << "<tr><td>" << "I2PControl"		<< "</td><td><div class='" << ((i2pcontrol) 									? "enabled" : "disabled") << "'></div></td></tr>\r\n";
+			s << "</table>\r\n";
+		}
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
@@ -918,7 +918,7 @@ namespace http {
 		} else if (req.uri.find("cmd=") != std::string::npos) {
 			HandleCommand (req, res, s);
 		} else {
-            ShowStatus (s, true, i2p::http::OutputFormatEnum::forWebConsole);
+			ShowStatus (s, true, i2p::http::OutputFormatEnum::forWebConsole);
 			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);

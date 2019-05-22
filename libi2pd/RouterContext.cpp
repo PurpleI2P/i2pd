@@ -621,10 +621,10 @@ namespace i2p
 			m_RouterInfo.DeleteProperty ("coreVersion");
 			m_RouterInfo.DeleteProperty ("stat_uptime");
 
-			bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+			/*bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 			bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 			SetSupportsV4(ipv4);
-			SetSupportsV6(ipv6);
+			SetSupportsV6(ipv6);*/
 		}
 		else
 		{

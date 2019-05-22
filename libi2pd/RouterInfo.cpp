@@ -677,6 +677,7 @@ namespace data
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
+		LogPrint (eLogInfo, "RouterInfo: added NTCP address ", addr->host.to_string(), ":", addr->port, " to our RI");
 		m_Addresses->push_front(std::move(addr)); // always make NTCP first
 	}
 
@@ -694,6 +695,7 @@ namespace data
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
+		LogPrint (eLogInfo, "RouterInfo: added SSU address ", addr->host.to_string(), ":", addr->port, " to our RI");
 		m_Addresses->push_back(std::move(addr));
 
 		m_Caps |= eSSUTesting;
@@ -713,6 +715,7 @@ namespace data
 		if (port) addr->ntcp2->isPublished = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);
+		LogPrint (eLogInfo, "RouterInfo: added NTCP2 address ", addr->host.to_string(), ":", addr->port, " to our RI");
 		m_Addresses->push_back(std::move(addr));
 	}
 
