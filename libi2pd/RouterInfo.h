@@ -161,6 +161,7 @@ namespace data
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
+			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsV6 () const;
 			bool IsV4 () const;

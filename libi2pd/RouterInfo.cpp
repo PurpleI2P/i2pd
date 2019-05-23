@@ -808,6 +808,11 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
+	bool RouterInfo::IsSSUV6 () const
+	{
+		return m_SupportedTransports & eSSUV6;
+	}
+
 	bool RouterInfo::IsNTCP2 (bool v4only) const
 	{
 		if (v4only)

@@ -1076,6 +1076,15 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSUV6Router () const
+	{
+		return GetRandomRouter (
+			[](std::shared_ptr<const RouterInfo> router)->bool
+			{
+				return !router->IsHidden () && router->IsSSUV6 ();
+			});
+	}		
+
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer () const
 	{
 		return GetRandomRouter (
