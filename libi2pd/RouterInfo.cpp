@@ -26,10 +26,11 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
-		m_FullPath (fullPath), m_Buffer (nullptr), m_IsUpdated (false), m_IsUnreachable (false),
+		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false),
 		m_SupportedTransports (0), m_Caps (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
+		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile ();
 	}
 
@@ -39,7 +40,7 @@ namespace data
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{	
-			m_Buffer = new uint8_t[len];
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 			memcpy (m_Buffer, buf, len);
 			m_BufferLen = len;
 			ReadFromBuffer (true);
@@ -59,6 +60,12 @@ namespace data
 
 	void RouterInfo::Update (const uint8_t * buf, size_t len)
 	{
+		if (len > MAX_RI_BUFFER_SIZE)
+		{
+			LogPrint (eLogError, "RouterInfo: Buffer is too long ", len);
+			m_IsUnreachable = true;
+			return;
+		}
 		// verify signature since we have identity already
 		int l = len - m_RouterIdentity->GetSignatureLen ();
 		if (m_RouterIdentity->Verify (buf, l, buf + l))
@@ -70,15 +77,9 @@ namespace data
 			m_Caps = 0;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			m_Properties.clear ();
-			// check if existing buffer long enough			
-			if (m_Buffer && len > m_BufferLen)
-			{
-				delete[] m_Buffer;
-				m_Buffer = nullptr;
-			}	
 			// copy buffer
 			if (!m_Buffer)
-				m_Buffer = new uint8_t[len];
+				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 			memcpy (m_Buffer, buf, len);
 			m_BufferLen = len;
 			// skip identity
@@ -114,8 +115,6 @@ namespace data
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
-			if (m_Buffer) delete[] m_Buffer;
-			m_Buffer = new uint8_t[m_BufferLen];
 			s.read((char *)m_Buffer, m_BufferLen);
 		}
 		else
