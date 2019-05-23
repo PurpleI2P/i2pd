@@ -38,7 +38,7 @@ namespace data
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
-		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer (true);
@@ -101,7 +101,7 @@ namespace data
 			}
 			s.seekg(0, std::ios::beg);
 			if (!m_Buffer)
-				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+				m_Buffer = new uint8_t[m_BufferLen];
 			s.read((char *)m_Buffer, m_BufferLen);
 		}
 		else
