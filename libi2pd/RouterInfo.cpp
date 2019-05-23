@@ -30,7 +30,6 @@ namespace data
 		m_SupportedTransports (0), m_Caps (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
-		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile ();
 	}
 
