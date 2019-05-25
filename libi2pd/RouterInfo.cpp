@@ -115,6 +115,7 @@ namespace data
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
+			if (!m_Buffer) m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 			s.read((char *)m_Buffer, m_BufferLen);
 		}
 		else
