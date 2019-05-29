@@ -661,7 +661,7 @@ namespace client
 		if(!sentCurrent && !m_Nickname.empty())
 		{
 			// add the current tunnel to the list
-			BuildStatusLine(true, nullptr, statusLine);
+			BuildStatusLine(true, m_CurrentDestination, statusLine);
 			LogPrint(eLogError, statusLine);
 			SendData(statusLine.c_str());
 		}
