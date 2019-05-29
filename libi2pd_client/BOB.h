@@ -37,11 +37,29 @@ namespace client
 	const char BOB_COMMAND_LIST[] = "list";
 	const char BOB_COMMAND_OPTION[] = "option";
 	const char BOB_COMMAND_STATUS[] = "status";
-
-	const char BOB_VERSION[] = "BOB 00.00.10\nOK\n";
-	const char BOB_REPLY_OK[] = "OK %s\n";
-	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
-	const char BOB_DATA[] = "NICKNAME %s\n";
+	const char BOB_COMMAND_HELP[] = "help";
+	
+	const char BOB_HELP_ZAP[] = "zap - Shuts down BOB.";
+	const char BOB_HELP_QUIT[] = "quit - Quits this session with BOB.";
+	const char BOB_HELP_START[] = "start - Starts the current nicknamed tunnel.";
+	const char BOB_HELP_STOP[] = "stop - Stops the current nicknamed tunnel.";
+	const char BOB_HELP_SETNICK[] = "setnick <NICKNAME> - Creates a new nickname.";
+	const char BOB_HELP_GETNICK[] = "getnick <TUNNELNAME> - Sets the nickname from the database.";
+	const char BOB_HELP_NEWKEYS[] = "newkeys - Generate a new keypair for the current nickname.";
+	const char BOB_HELP_GETKEYS[] = "getkeys - Return the keypair for the current nickname.";
+	const char BOB_HELP_SETKEYS[] = "setkeys <BASE64_KEYPAIR> - Sets the keypair for the current nickname.";
+	const char BOB_HELP_GETDEST[] = "getdest - Return the destination for the current nickname.";
+	const char BOB_HELP_OUTHOST[] = "outhost <HOSTNAME|IP> - Set the outhound hostname or IP.";
+	const char BOB_HELP_OUTPORT[] = "outport <PORT_NUMBER> - Set the outbound port that nickname contacts.";
+	const char BOB_HELP_INHOST[] = "inhost <HOSTNAME|IP> - Set the inbound hostname or IP.";
+	const char BOB_HELP_INPORT[] = "inport <PORT_NUMBER> - Set the inbound port number nickname listens on.";
+	const char BOB_HELP_QUIET[] = "quiet <True|False> - Wether to send the incoming destination.";
+	const char BOB_HELP_LOOKUP[] = "lookup <I2P_HOSTNAME> - Look up an I2P hostname.";
+	const char BOB_HELP_CLEAR[] = "clear - Clear the current nickname out of the list.";
+	const char BOB_HELP_LIST[] = "list - List all tunnels.";
+	const char BOB_HELP_OPTION[] = "option <KEY>=<VALUE> - Set an option. NOTE: Don't use any spaces.";
+	const char BOB_HELP_STATUS[] = "status <NICKNAME> - Display status of a nicknamed tunnel.";
+	const char BOB_HELP_HELP [] = "help <COMMAND> - Get help on a command.";
 
 	class BOBI2PTunnel: public I2PService
 	{
@@ -96,7 +114,7 @@ namespace client
 	{
 		public:
 
-			 BOBI2POutboundTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
+			 BOBI2POutboundTunnel (const std::string& outhost, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
 
 			void Start ();
 			void Stop ();
@@ -119,14 +137,22 @@ namespace client
 	{
 		public:
 
-			BOBDestination (std::shared_ptr<ClientDestination> localDestination);
+			BOBDestination (std::shared_ptr<ClientDestination> localDestination,
+					const std::string &nickname, const std::string &inhost, const std::string &outhost,
+					const int inport, const int outport, const bool quiet);
 			~BOBDestination ();
 
 			void Start ();
 			void Stop ();
 			void StopTunnels ();
-			void CreateInboundTunnel (int port, const std::string& address);
-			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
+			void CreateInboundTunnel (int port, const std::string& inhost);
+			void CreateOutboundTunnel (const std::string& outhost, int port, bool quiet);
+			const std::string& GetNickname() const { return m_Nickname; }
+			const std::string& GetInHost() const { return m_InHost; }
+			const std::string& GetOutHost() const { return m_OutHost; }
+			int GetInPort() const { return m_InPort; }
+			int GetOutPort() const { return m_OutPort; }
+			bool GetQuiet() const { return m_Quiet; }
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
 
@@ -135,6 +161,11 @@ namespace client
 			std::shared_ptr<ClientDestination> m_LocalDestination;
 			BOBI2POutboundTunnel * m_OutboundTunnel;
 			BOBI2PInboundTunnel * m_InboundTunnel;
+			
+			std::string m_Nickname;
+			std::string m_InHost, m_OutHost;
+			int m_InPort, m_OutPort;
+			bool m_Quiet;
 	};
 
 	class BOBCommandChannel;
@@ -170,26 +201,29 @@ namespace client
 			void ListCommandHandler (const char * operand, size_t len);
 			void OptionCommandHandler (const char * operand, size_t len);
 			void StatusCommandHandler (const char * operand, size_t len);
+			void HelpCommandHandler (const char * operand, size_t len);
 
 		private:
 
 			void Receive ();
+			void HandleReceivedLine(const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
-			void Send (size_t len);
+			void Send ();
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void SendReplyOK (const char * msg);
+			void SendReplyOK (const char * msg = nullptr);
 			void SendReplyError (const char * msg);
-			void SendData (const char * nickname);
+			void SendData (const char * data);
+			
+			void BuildStatusLine(bool currentTunnel, BOBDestination *destination, std::string &out);
 
 		private:
 
 			BOBCommandChannel& m_Owner;
 			boost::asio::ip::tcp::socket m_Socket;
-			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
-			size_t m_ReceiveBufferOffset;
+            boost::asio::streambuf m_ReceiveBuffer, m_SendBuffer;
 			bool m_IsOpen, m_IsQuiet, m_IsActive;
-			std::string m_Nickname, m_Address;
+			std::string m_Nickname, m_InHost, m_OutHost;
 			int m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options;
@@ -226,10 +260,12 @@ namespace client
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::map<std::string, BOBDestination *> m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
+			std::map<std::string, std::string> m_HelpStrings;
 
 		public:
 
 			const decltype(m_CommandHandlers)& GetCommandHandlers () const { return m_CommandHandlers; };
+			const decltype(m_HelpStrings)& GetHelpStrings () const { return m_HelpStrings; };
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 	};
 }
