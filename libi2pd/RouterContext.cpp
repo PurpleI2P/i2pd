@@ -238,6 +238,20 @@ namespace i2p
 			if (address->host != host && address->IsCompatible (host))
 			{
 				address->host = host;
+				if (host.is_v6 () && address->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+				{
+					// update MTU
+					auto mtu = i2p::util::net::GetMTU (host);
+					if (mtu)
+					{
+						LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
+						if (mtu > 1472) { // TODO: magic constant
+							mtu = 1472;
+							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
+						}
+						if (address->ssu) address->ssu->mtu = mtu;
+					}
+				}
 				updated = true;
 			}
 		}
@@ -444,7 +458,66 @@ namespace i2p
 	void RouterContext::SetSupportsV6 (bool supportsV6)
 	{
 		if (supportsV6)
+		{	
 			m_RouterInfo.EnableV6 ();
+			// insert v6 addresses if necessary
+			bool foundSSU = false, foundNTCP = false, foundNTCP2 = false;
+			uint16_t port = 0;
+			auto& addresses = m_RouterInfo.GetAddresses ();
+			for (auto& addr: addresses)
+			{
+				if (addr->host.is_v6 ())
+				{
+					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+						foundSSU = true;
+					else if (addr->IsNTCP2 ())
+					{
+						if (addr->IsPublishedNTCP2 ()) foundNTCP2 = true;
+					}
+					else
+						foundNTCP = true;
+				}	
+				port = addr->port;
+			}
+			if (!port) i2p::config::GetOption("port", port);
+			// SSU
+			if (!foundSSU)
+			{
+				bool ssu; i2p::config::GetOption("ssu", ssu);
+				if (ssu)
+				{
+					std::string host = "::1"; // TODO: read host
+					m_RouterInfo.AddSSUAddress (host.c_str (), port, GetIdentHash ());
+				}		
+			}
+			// NTCP2
+			if (!foundNTCP2)
+			{
+				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+				bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
+				if (ntcp2 && ntcp2Published)
+				{
+					std::string ntcp2Host; 
+					if (!i2p::config::IsDefault ("ntcp2.addressv6"))
+						i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
+					else
+						ntcp2Host = "::1";				 
+					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+					if (!ntcp2Port) ntcp2Port = port;
+					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
+				}
+			}
+			// NTCP
+			if (!foundNTCP)
+			{
+				bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+				if (ntcp)
+				{
+					std::string host = "::1"; 
+					m_RouterInfo.AddNTCPAddress (host.c_str (), port);
+				}
+			}	
+		}
 		else
 			m_RouterInfo.DisableV6 ();
 		UpdateRouterInfo ();
@@ -459,50 +532,9 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
-
-	void RouterContext::UpdateNTCPV6Address (const boost::asio::ip::address& host)
-	{
-		bool updated = false, found = false;
-		int port = 0;
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto& addr: addresses)
-		{
-			if (addr->host.is_v6 () && addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
-			{
-				if (addr->host != host)
-				{
-					addr->host = host;
-					updated = true;
-				}
-				found = true;
-			}
-			else
-				port = addr->port;
-		}
-		if (!found)
-		{
-			// create new address
-			m_RouterInfo.AddNTCPAddress (host.to_string ().c_str (), port);
-			auto mtu = i2p::util::net::GetMTU (host);
-			if (mtu)
-			{
-				LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-				if (mtu > 1472) { // TODO: magic constant
-					mtu = 1472;
-					LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
-				}
-			}
-			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu ? mtu : 1472); // TODO
-			updated = true;
-		}
-		if (updated)
-			UpdateRouterInfo ();
-	}
-
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
-		bool updated = false, found = false;
-		int port = 0;
+		bool updated = false;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr: addresses)
 		{
@@ -515,38 +547,11 @@ namespace i2p
 						addr->host = host;
 						updated = true;
 					}
-					found = true;
 					break;
 				}
-				else
-					port = addr->port; // NTCP2 v4
 			}
 		}
 
-		if (!found && port) // we have found NTCP2 v4 but not v6
-		{
-			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
-			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
-			bool ssu; i2p::config::GetOption("ssu", ssu);
-			if (!ntcp && ssu)
-			{
-				// we must publish SSU address
-				auto mtu = i2p::util::net::GetMTU (host);
-				if (mtu)
-				{
-					LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-					if (mtu > 1472) // TODO: magic constant
-					{
-						mtu = 1472;
-						LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
-					}
-				}
-				else
-					mtu = 1472;	
-				m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu);
-			}	
-			updated = true;
-		}
 		if (updated)
 			UpdateRouterInfo ();
 	}

@@ -824,7 +824,7 @@ namespace data
 
 	bool RouterInfo::IsV6 () const
 	{
-		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
+		return m_SupportedTransports & (eNTCPV6 | eSSUV6 | eNTCP2V6);
 	}
 
 	bool RouterInfo::IsV4 () const
