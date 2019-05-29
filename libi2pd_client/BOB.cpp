@@ -50,7 +50,7 @@ namespace client
 	void BOBI2PInboundTunnel::ReceiveAddress (std::shared_ptr<AddressReceiver> receiver)
 	{
 		receiver->socket->async_read_some (boost::asio::buffer(
-		        receiver->buffer + receiver->bufferOffset,
+				receiver->buffer + receiver->bufferOffset,
 				BOB_COMMAND_BUFFER_SIZE - receiver->bufferOffset),
 			std::bind(&BOBI2PInboundTunnel::HandleReceivedAddress, this,
 				std::placeholders::_1, std::placeholders::_2, receiver));
@@ -119,9 +119,9 @@ namespace client
 		connection->I2PConnect (receiver->data, receiver->dataLen);
 	}
 
-	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& address, int port,
+	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, int port,
 		std::shared_ptr<ClientDestination> localDestination, bool quiet): BOBI2PTunnel (localDestination),
-		m_Endpoint (boost::asio::ip::address::from_string (address), port), m_IsQuiet (quiet)
+		m_Endpoint (boost::asio::ip::address::from_string (outhost), port), m_IsQuiet (quiet)
 	{
 	}
 
@@ -154,9 +154,13 @@ namespace client
 		}
 	}
 
-	BOBDestination::BOBDestination (std::shared_ptr<ClientDestination> localDestination):
+	BOBDestination::BOBDestination (std::shared_ptr<ClientDestination> localDestination,
+			const std::string &nickname, const std::string &inhost, const std::string &outhost,
+			const int inport, const int outport, const bool quiet):
 		m_LocalDestination (localDestination),
-		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr)
+		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr),
+		m_Nickname(nickname), m_InHost(inhost), m_OutHost(outhost),
+		m_InPort(inport), m_OutPort(outport), m_Quiet(quiet)
 	{
 	}
 
@@ -195,15 +199,18 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateInboundTunnel (int port, const std::string& address)
+	void BOBDestination::CreateInboundTunnel (int port, const std::string& inhost)
 	{
 		if (!m_InboundTunnel)
 		{
+			// update inport and inhost (user can stop tunnel and change)
+			m_InPort = port;
+			m_InHost = inhost;
 			boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), port);
-			if (!address.empty ())
+			if (!inhost.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::address::from_string (inhost, ec);
 				if (!ec)
 					ep.address (addr);
 				else
@@ -213,15 +220,21 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateOutboundTunnel (const std::string& address, int port, bool quiet)
+	void BOBDestination::CreateOutboundTunnel (const std::string& outhost, int port, bool quiet)
 	{
 		if (!m_OutboundTunnel)
-			m_OutboundTunnel = new BOBI2POutboundTunnel (address, port, m_LocalDestination, quiet);
+		{
+			// update outport and outhost (user can stop tunnel and change)
+			m_OutPort = port;
+			m_OutHost = outhost;
+			m_OutboundTunnel = new BOBI2POutboundTunnel (outhost, port, m_LocalDestination, quiet);
+		}
 	}
 
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner):
 		m_Owner (owner), m_Socket (m_Owner.GetService ()),
-		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), m_IsActive (false),
+		m_ReceiveBuffer(BOB_COMMAND_BUFFER_SIZE + 1), m_SendBuffer(BOB_COMMAND_BUFFER_SIZE + 1),
+		m_IsOpen (true), m_IsQuiet (false), m_IsActive (false),
 		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
 	}
@@ -238,65 +251,48 @@ namespace client
 
 	void BOBCommandSession::Receive ()
 	{
-		m_Socket.async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, BOB_COMMAND_BUFFER_SIZE - m_ReceiveBufferOffset),
-			std::bind(&BOBCommandSession::HandleReceived, shared_from_this (),
-			std::placeholders::_1, std::placeholders::_2));
+		boost::asio::async_read_until(m_Socket, m_ReceiveBuffer, '\n',
+			std::bind(&BOBCommandSession::HandleReceivedLine, shared_from_this(),
+				std::placeholders::_1, std::placeholders::_2));
 	}
-
-	void BOBCommandSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	
+	void BOBCommandSession::HandleReceivedLine(const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode)
+		if(ecode)
 		{
-			LogPrint (eLogError, "BOB: command channel read error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: command channel read error: ", ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{
-			size_t size = m_ReceiveBufferOffset + bytes_transferred;
-			m_ReceiveBuffer[size] = 0;
-			char * eol = strchr (m_ReceiveBuffer, '\n');
-			if (eol)
+			std::string line;
+			
+			std::istream is(&m_ReceiveBuffer);
+			std::getline(is, line);
+			
+			std::string command, operand;
+			std::istringstream iss(line);
+			iss >> command >> operand;
+			
+			// process command
+			auto& handlers = m_Owner.GetCommandHandlers();
+			auto it = handlers.find(command);
+			if(it != handlers.end())
 			{
-				*eol = 0;
-				char * operand =  strchr (m_ReceiveBuffer, ' ');
-				if (operand)
-				{
-					*operand = 0;
-					operand++;
-				}
-				else
-					operand = eol;
-				// process command
-				auto& handlers = m_Owner.GetCommandHandlers ();
-				auto it = handlers.find (m_ReceiveBuffer);
-				if (it != handlers.end ())
-					(this->*(it->second))(operand, eol - operand);
-				else
-				{
-					LogPrint (eLogError, "BOB: unknown command ", m_ReceiveBuffer);
-					SendReplyError ("unknown command");
-				}
-
-				m_ReceiveBufferOffset = size - (eol - m_ReceiveBuffer) - 1;
-				memmove (m_ReceiveBuffer, eol + 1, m_ReceiveBufferOffset);
+				(this->*(it->second))(operand.c_str(), operand.length());
 			}
 			else
 			{
-				if (size < BOB_COMMAND_BUFFER_SIZE)
-					m_ReceiveBufferOffset = size;
-				else
-				{
-					LogPrint (eLogError, "BOB: Malformed input of the command channel");
-					Terminate ();
-				}
+				LogPrint (eLogError, "BOB: unknown command ", command.c_str());
+				SendReplyError ("unknown command");
 			}
 		}
 	}
 
-	void BOBCommandSession::Send (size_t len)
+	void BOBCommandSession::Send ()
 	{
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SendBuffer, len),
+		boost::asio::async_write (m_Socket, m_SendBuffer,
 			boost::asio::transfer_all (),
 			std::bind(&BOBCommandSession::HandleSent, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
@@ -305,7 +301,7 @@ namespace client
 	void BOBCommandSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogError, "BOB: command channel send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -321,39 +317,65 @@ namespace client
 
 	void BOBCommandSession::SendReplyOK (const char * msg)
 	{
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_REPLY_OK, msg);
-#else
-		size_t len = snprintf (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_REPLY_OK, msg);
-#endif
-		Send (len);
+		std::ostream os(&m_SendBuffer);
+		os << "OK";
+		if(msg)
+		{
+			os << " " << msg;
+		}
+		os << std::endl;
+		Send ();
 	}
 
 	void BOBCommandSession::SendReplyError (const char * msg)
 	{
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_REPLY_ERROR, msg);
-#else
-		size_t len = snprintf (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_REPLY_ERROR, msg);
-#endif
-		Send (len);
+		std::ostream os(&m_SendBuffer);
+		os << "ERROR " << msg << std::endl;
+		Send ();
 	}
 
 	void BOBCommandSession::SendVersion ()
 	{
-		size_t len = strlen (BOB_VERSION);
-		memcpy (m_SendBuffer, BOB_VERSION, len);
-		Send (len);
+		std::ostream os(&m_SendBuffer);
+		os << "BOB 00.00.10" << std::endl;
+		SendReplyOK();
 	}
 
-	void BOBCommandSession::SendData (const char * nickname)
+	void BOBCommandSession::SendData (const char * data)
 	{
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_DATA, nickname);
-#else
-		size_t len = snprintf (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_DATA, nickname);
-#endif
-		Send (len);
+		std::ostream os(&m_SendBuffer);
+		os << "DATA " << data << std::endl;
+	}
+	
+	void BOBCommandSession::BuildStatusLine(bool currentTunnel, BOBDestination *dest, std::string &out)
+	{
+		// helper lambdas
+		const auto isset = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
+		const auto issetNum = [&isset](const int p) { return isset(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
+		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
+		const auto destReady = [](const BOBDestination * const dest) { return dest->GetLocalDestination()->IsReady(); };
+		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
+		
+		// tunnel info
+		const std::string nickname = currentTunnel ? m_Nickname : dest->GetNickname();
+		const bool quiet = currentTunnel ? m_IsQuiet : dest->GetQuiet();
+		const std::string inhost = isset(currentTunnel ? m_InHost : dest->GetInHost());
+		const std::string outhost = isset(currentTunnel ? m_OutHost : dest->GetOutHost());
+		const std::string inport = issetNum(currentTunnel ? m_InPort : dest->GetInPort());
+		const std::string outport = issetNum(currentTunnel ? m_OutPort : dest->GetOutPort());
+		const bool keys = destExists(dest); // key must exist when destination is created
+		const bool starting = destExists(dest) && !destReady(dest);
+		const bool running = destExists(dest) && destReady(dest);
+		const bool stopping = false;
+		
+		// build line
+		std::stringstream ss;
+		ss	<< "NICKNAME: " << nickname          << " " << "STARTING: " << bool_str(starting) << " "
+			<< "RUNNING: "  << bool_str(running) << " " << "STOPPING: " << bool_str(stopping) << " "
+			<< "KEYS: "     << bool_str(keys)    << " " << "QUIET: "    << bool_str(quiet) << " "
+			<< "INPORT: "   << inport            << " " << "INHOST: "   << inhost << " "
+			<< "OUTPORT: "  << outport           << " " << "OUTHOST: "  << outhost;
+		out = ss.str();
 	}
 
 	void BOBCommandSession::ZapCommandHandler (const char * operand, size_t len)
@@ -377,15 +399,50 @@ namespace client
 			SendReplyError ("tunnel is active");
 			return;
 		}
+		if (!m_Keys.GetPublic ()) // keys are set ?
+		{
+			SendReplyError("Keys must be set.");
+			return;
+		}
+		if (m_InPort == 0
+			&& m_OutHost.empty() && m_OutPort == 0)
+		{
+			SendReplyError("(inhost):inport or outhost:outport must be set.");
+			return;
+		}
+		if(!m_InHost.empty())
+		{
+			// TODO: FIXME: temporary validation, until hostname support is added
+			boost::system::error_code ec;
+			boost::asio::ip::address::from_string(m_InHost, ec);
+			if (ec)
+			{
+				SendReplyError("inhost must be a valid IPv4 address.");
+				return;
+			}
+		}
+		if(!m_OutHost.empty())
+		{
+			// TODO: FIXME: temporary validation, until hostname support is added
+			boost::system::error_code ec;
+			boost::asio::ip::address::from_string(m_OutHost, ec);
+			if (ec)
+			{
+				SendReplyError("outhost must be a IPv4 address.");
+				return;
+			}
+		}
+		
 		if (!m_CurrentDestination)
 		{
-			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options));
+			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options), // deleted in clear command
+													   m_Nickname, m_InHost, m_OutHost, m_InPort, m_OutPort, m_IsQuiet);
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}
 		if (m_InPort)
-			m_CurrentDestination->CreateInboundTunnel (m_InPort, m_Address);
-		if (m_OutPort && !m_Address.empty ())
-			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
+			m_CurrentDestination->CreateInboundTunnel (m_InPort, m_InHost);
+		if (m_OutPort && !m_OutHost.empty ())
+			m_CurrentDestination->CreateOutboundTunnel (m_OutHost, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();
 		SendReplyOK ("Tunnel starting");
 		m_IsActive = true;
@@ -496,7 +553,7 @@ namespace client
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outhost ", operand);
-		m_Address = operand;
+		m_OutHost = operand;
 		SendReplyOK ("outhost set");
 	}
 
@@ -513,7 +570,7 @@ namespace client
 	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: inhost ", operand);
-		m_Address = operand;
+		m_InHost = operand;
 		SendReplyOK ("inhost set");
 	}
 
@@ -591,9 +648,23 @@ namespace client
 	void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: list");
+		std::string statusLine;
+		bool sentCurrent = false;
 		const auto& destinations = m_Owner.GetDestinations ();
 		for (const auto& it: destinations)
-			SendData (("DATA NICKNAME: " + it.first).c_str ());
+		{
+			BuildStatusLine(false, it.second, statusLine);
+			SendData (statusLine.c_str());
+			if(m_Nickname.compare(it.second->GetNickname()) == 0)
+				sentCurrent = true;
+		}
+		if(!sentCurrent && !m_Nickname.empty())
+		{
+			// add the current tunnel to the list
+			BuildStatusLine(true, nullptr, statusLine);
+			LogPrint(eLogError, statusLine);
+			SendData(statusLine.c_str());
+		}
 		SendReplyOK ("Listing done");
 	}
 
@@ -619,34 +690,53 @@ namespace client
 	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
+		std::string statusLine;
 		if (m_Nickname == operand)
 		{
-			std::stringstream s;
-			s << "DATA"; s << " NICKNAME: "; s << m_Nickname;
-			if (m_CurrentDestination)
-			{
-				if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-					s << " STARTING: false RUNNING: true STOPPING: false";
-				else
-					s << " STARTING: true RUNNING: false STOPPING: false";
-			}
-			else
-				s << " STARTING: false RUNNING: false STOPPING: false";
-			s << " KEYS: true"; s << " QUIET: "; s << (m_IsQuiet ? "true":"false");
-			if (m_InPort)
-			{
-				s << " INPORT: " << m_InPort;
-				s << " INHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
-			}
-			if (m_OutPort)
-			{
-				s << " OUTPORT: " << m_OutPort;
-				s << " OUTHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
-			}
-			SendReplyOK (s.str().c_str());
+			// check current tunnel
+			BuildStatusLine(true, nullptr, statusLine);
+			SendReplyOK(statusLine.c_str());
 		}
 		else
-			SendReplyError ("no nickname has been set");
+		{
+			// check other
+			std::string name = operand;
+			auto ptr = m_Owner.FindDestination(name);
+			if(ptr != nullptr)
+			{
+				BuildStatusLine(false, ptr, statusLine);
+				SendReplyOK(statusLine.c_str());
+			}
+			else
+			{
+				SendReplyError("no nickname has been set");
+			}
+		}
+	}
+	void BOBCommandSession::HelpCommandHandler (const char * operand, size_t len)
+	{
+		auto helpStrings = m_Owner.GetHelpStrings();
+		if(len == 0)
+		{
+			std::stringstream ss;
+			ss << "COMMANDS:";
+			for (auto const& x : helpStrings)
+			{
+				ss << " " << x.first;
+			}
+			const std::string &str = ss.str();
+			SendReplyOK(str.c_str());
+		}
+		else
+		{
+			auto it = helpStrings.find(operand);
+			if (it != helpStrings.end ())
+			{
+				SendReplyOK(it->second.c_str());
+				return;
+			}
+			SendReplyError("No such command");
+		}
 	}
 
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
@@ -674,6 +764,29 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_STATUS] = &BOBCommandSession::StatusCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_HELP] = &BOBCommandSession::HelpCommandHandler;
+		// command -> help string
+		m_HelpStrings[BOB_COMMAND_ZAP] = BOB_HELP_ZAP;
+		m_HelpStrings[BOB_COMMAND_QUIT] = BOB_HELP_QUIT;
+		m_HelpStrings[BOB_COMMAND_START] = BOB_HELP_START;
+		m_HelpStrings[BOB_COMMAND_STOP] = BOB_HELP_STOP;
+		m_HelpStrings[BOB_COMMAND_SETNICK] = BOB_HELP_SETNICK;
+		m_HelpStrings[BOB_COMMAND_GETNICK] = BOB_HELP_GETNICK;
+		m_HelpStrings[BOB_COMMAND_NEWKEYS] = BOB_HELP_NEWKEYS;
+		m_HelpStrings[BOB_COMMAND_GETKEYS] = BOB_HELP_GETKEYS;
+		m_HelpStrings[BOB_COMMAND_SETKEYS] = BOB_HELP_SETKEYS;
+		m_HelpStrings[BOB_COMMAND_GETDEST] = BOB_HELP_GETDEST;
+		m_HelpStrings[BOB_COMMAND_OUTHOST] = BOB_HELP_OUTHOST;
+		m_HelpStrings[BOB_COMMAND_OUTPORT] = BOB_HELP_OUTPORT;
+		m_HelpStrings[BOB_COMMAND_INHOST] = BOB_HELP_INHOST;
+		m_HelpStrings[BOB_COMMAND_INPORT] = BOB_HELP_INPORT;
+		m_HelpStrings[BOB_COMMAND_QUIET] = BOB_HELP_QUIET;
+		m_HelpStrings[BOB_COMMAND_LOOKUP] = BOB_HELP_LOOKUP;
+		m_HelpStrings[BOB_COMMAND_CLEAR] = BOB_HELP_CLEAR;
+		m_HelpStrings[BOB_COMMAND_LIST] = BOB_HELP_LIST;
+		m_HelpStrings[BOB_COMMAND_OPTION] = BOB_HELP_OPTION;
+		m_HelpStrings[BOB_COMMAND_STATUS] = BOB_HELP_STATUS;
+		m_HelpStrings[BOB_COMMAND_HELP] = BOB_HELP_HELP;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
