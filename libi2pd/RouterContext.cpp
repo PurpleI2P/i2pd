@@ -180,7 +180,7 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::PublishNTCP2Address (int port, bool publish)
+	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4only)
 	{
 		if (!m_NTCP2Keys) return;
 		if (!port)
@@ -191,7 +191,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish))
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
 			{
 				address->port = port;
 				address->cost = publish ? 3 : 14;
@@ -438,7 +438,7 @@ namespace i2p
 		{
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
-				PublishNTCP2Address (port, false);
+				PublishNTCP2Address (port, false, true);
 		}				
 		// update
 		UpdateRouterInfo ();
@@ -478,7 +478,7 @@ namespace i2p
 				{
 					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 					if (!ntcp2Port) ntcp2Port = port;
-					PublishNTCP2Address (ntcp2Port, true);
+					PublishNTCP2Address (ntcp2Port, true, true);
 				}
 			}
 		}
