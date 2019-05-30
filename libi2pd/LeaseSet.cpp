@@ -468,9 +468,9 @@ namespace data
 				// verify blinding
 				char date[9];
 				i2p::util::GetDateString (m_PublishedTimestamp, date);
-				uint8_t blinded[32];
-				key->GetBlindedKey (date, blinded);
-				if (memcmp (blindedPublicKey, blinded, 32))
+				std::vector<uint8_t> blinded (blindedKeyLen);
+				key->GetBlindedKey (date, blinded.data ());
+				if (memcmp (blindedPublicKey, blinded.data (), blindedKeyLen))
 				{
 					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
 					return;
