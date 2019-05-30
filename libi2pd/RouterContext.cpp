@@ -421,13 +421,25 @@ namespace i2p
 		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
 		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 		m_RouterInfo.SetCaps (caps);
-		// remove NTCP v4 address
-		PublishNTCPAddress (false);
+		uint16_t port = 0;
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 			if (addr->ssu)
+			{
 				addr->ssu->introducers.clear ();
+				port = addr->port;
+			}
+		// remove NTCP or NTCP2 v4 address
+		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
+		if (ntcp)		
+			PublishNTCPAddress (false);
+		else
+		{
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
+				PublishNTCP2Address (port, false);
+		}				
 		// update
 		UpdateRouterInfo ();
 	}
@@ -442,15 +454,34 @@ namespace i2p
 		if (m_IsFloodfill)
 			caps |= i2p::data::RouterInfo::eFloodfill;
 		m_RouterInfo.SetCaps (caps);
-		// insert NTCP back
-		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-		if (ntcp)
-			PublishNTCPAddress (true);
+		uint16_t port = 0;
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 			if (addr->ssu)
+			{
 				addr->ssu->introducers.clear ();
+				port = addr->port;
+			}
+		// insert NTCP or NTCP2 back
+		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
+		if (ntcp)
+			PublishNTCPAddress (true);
+		else
+		{
+			// ntcp2
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
+			{
+				bool published; i2p::config::GetOption ("ntcp2.published", published);
+				if (published)
+				{
+					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+					if (!ntcp2Port) ntcp2Port = port;
+					PublishNTCP2Address (ntcp2Port, true);
+				}
+			}
+		}
 		// update
 		UpdateRouterInfo ();
 	}
