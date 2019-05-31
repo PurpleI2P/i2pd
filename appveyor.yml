@@ -17,7 +17,7 @@ environment:
   - MSYSTEM: MINGW32
 
 install:
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
 
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
