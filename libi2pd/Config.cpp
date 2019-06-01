@@ -195,10 +195,8 @@ namespace config {
 				"https://reseed.i2p.net.in/,"
 				"https://download.xxlspeed.com/,"
 				"https://reseed-fr.i2pd.xyz/,"
-				"https://reseed.atomike.ninja/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
-				"https://itoopie.atomike.ninja/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
                 "https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
