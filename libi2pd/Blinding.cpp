@@ -175,40 +175,48 @@ namespace data
 		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
 	}
 
-	void BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
+	size_t BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
 	{
 		uint8_t seed[64];	
 		GenerateAlpha (date, seed);	
+		size_t publicKeyLength = 0;
 		switch (m_SigType)
 		{
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 			{
+				publicKeyLength = i2p::crypto::ECDSAP256_KEY_LENGTH;	
 				EC_GROUP * group = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
-				BlindPublicKeyECDSA (i2p::crypto::ECDSAP256_KEY_LENGTH, group, GetPublicKey (), seed, blindedKey);
+				BlindPublicKeyECDSA (publicKeyLength, group, GetPublicKey (), seed, blindedKey);
 				EC_GROUP_free (group);
 				break;
 			}
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 			{
+				publicKeyLength = i2p::crypto::ECDSAP384_KEY_LENGTH;
 				EC_GROUP * group = EC_GROUP_new_by_curve_name (NID_secp384r1);
-				BlindPublicKeyECDSA (i2p::crypto::ECDSAP384_KEY_LENGTH, group, GetPublicKey (), seed, blindedKey);
+				BlindPublicKeyECDSA (publicKeyLength, group, GetPublicKey (), seed, blindedKey);
 				EC_GROUP_free (group);
 				break;
 			}
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 			{
+				publicKeyLength = i2p::crypto::ECDSAP521_KEY_LENGTH;
 				EC_GROUP * group = EC_GROUP_new_by_curve_name (NID_secp521r1);
-				BlindPublicKeyECDSA (i2p::crypto::ECDSAP521_KEY_LENGTH, group, GetPublicKey (), seed, blindedKey);
+				BlindPublicKeyECDSA (publicKeyLength, group, GetPublicKey (), seed, blindedKey);
 				EC_GROUP_free (group);
 				break;
 			}
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+			{
 				i2p::crypto::GetEd25519 ()->BlindPublicKey (GetPublicKey (), seed, blindedKey);	
-			break;
+				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
+				break;
+			}
 			default:
 				LogPrint (eLogError, "Blinding: can't blind signature type ", (int)m_SigType);
 		}
+		return publicKeyLength;
 	}
 
 	size_t BlindedPublicKey::BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const
@@ -267,23 +275,23 @@ namespace data
 	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
 	{
 		i2p::data::IdentHash hash;
-		if (m_BlindedSigType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 ||
-			m_BlindedSigType == i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+		uint8_t blinded[128];
+		size_t publicKeyLength = 0;	
+		if (date)
+			publicKeyLength = GetBlindedKey (date, blinded);
+		else
 		{
-			uint8_t blinded[32];
-			if (date)
-				GetBlindedKey (date, blinded);
-			else
-			{
-				char currentDate[9];
-				i2p::util::GetCurrentDate (currentDate);
-				GetBlindedKey (currentDate, blinded);	
-			}	
+			char currentDate[9];
+			i2p::util::GetCurrentDate (currentDate);
+			publicKeyLength = GetBlindedKey (currentDate, blinded);	
+		}	
+		if (publicKeyLength)
+		{
 			auto stA1 = htobe16 (m_BlindedSigType);
 			SHA256_CTX ctx;
 			SHA256_Init (&ctx);
 			SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
-			SHA256_Update (&ctx, blinded, 32);
+			SHA256_Update (&ctx, blinded, publicKeyLength);
 			SHA256_Final ((uint8_t *)hash, &ctx);
 		}
 		else

@@ -463,7 +463,7 @@ namespace data
 		if (verified && key && lenOuterCiphertext >= 32)
 		{
 			SetIsValid (false); // we must verify it again in Layer 2 
-			if (blindedKeyType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519)
+			if (blindedKeyType == key->GetBlindedSigType ())
 			{
 				// verify blinding
 				char date[9];
@@ -475,6 +475,11 @@ namespace data
 					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
 					return;
 				}	
+			}	
+			else
+			{
+				LogPrint (eLogError, "LeaseSet2: Unexpected blinded key type ", blindedKeyType, " instread ", key->GetBlindedSigType ());
+				return;
 			}	
 			// outer key
 			// outerInput = subcredential || publishedTimestamp
