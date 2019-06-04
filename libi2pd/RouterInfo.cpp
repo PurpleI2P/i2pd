@@ -212,7 +212,8 @@ namespace data
 					if (!ecode)
 					{
 #if BOOST_VERSION >= 104900
-						if (!hostaddr.is_unspecified () && ((i2p::context.GetNetID () != I2PD_NET_ID) || !i2p::util::net::IsInReservedRange(hostaddr)))
+						//if (!hostaddr.is_unspecified () && ((i2p::context.GetNetID () != I2PD_NET_ID) || !i2p::util::net::IsInReservedRange(hostaddr)))
+						if (!hostaddr.is_unspecified ())
 #else
 						hostaddr.to_string (ecode);
 						if (!ecode && ((i2p::context.GetNetID () != I2PD_NET_ID) || !i2p::util::net::IsInReservedRange(hostaddr)))

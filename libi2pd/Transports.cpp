@@ -208,6 +208,7 @@ namespace transport
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
 		for (const auto& address : addresses)
 		{
+			LogPrint (eLogInfo, "Transports: Iteration through address ", address->host.to_string() ,":", address->port);
 			if (!address) continue;
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
@@ -227,9 +228,9 @@ namespace transport
 			{
 				if (m_SSUServer == nullptr && enableSSU)
 				{
-					m_SSUServer = new SSUServer (address->port);
-					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
 					try {
+						m_SSUServer = new SSUServer (address->port);
+						LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
 						m_SSUServer->Start ();
 					} catch ( std::exception & ex ) {
 						LogPrint(eLogError, "Transports: Failed to bind to UDP port", address->port);
