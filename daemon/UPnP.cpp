@@ -79,43 +79,55 @@ namespace transport
 
 	void UPnP::Discover ()
 	{
-#if MINIUPNPC_API_VERSION >= 14
-		int nerror = 0;
-		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
-#elif ( MINIUPNPC_API_VERSION >= 8 || defined(UPNPDISCOVER_SUCCESS) )
-		int nerror = 0;
-		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
+#if (MINIUPNPC_API_VERSION >= 8)
+		int err = UPNPDISCOVER_SUCCESS;
+		bool isError;
+
+#if (MINIUPNPC_API_VERSION >= 14)
+		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, 2, &err);
 #else
-		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0);
+		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, &err);
+#endif
+
+		isError = err != UPNPDISCOVER_SUCCESS;
+#else
+		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
+		isError = err == NULL;
 #endif
 		{
-			// notify satrting thread
+			// notify starting thread
 			std::unique_lock<std::mutex> l(m_StartedMutex);
 			m_Started.notify_all ();
 		}
 
-		int r;
-		r = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
-		if (r == 1)
+		if (isError)
 		{
-			r = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
-			if(r != UPNPCOMMAND_SUCCESS)
+			LogPrint (eLogError, "UPnP: unable to discover IGD devices: error ", err);
+			return;
+		}
+
+		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
+		if (err == UPNP_IGD_VALID_CONNECTED)
+		{
+			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
+			if(err != UPNPCOMMAND_SUCCESS)
 			{
-				LogPrint (eLogError, "UPnP: UPNP_GetExternalIPAddress() returned ", r);
+				LogPrint (eLogError, "UPnP: unable to get external address: error ", err);
 				return;
 			}
 			else
 			{
+				LogPrint (eLogError, "UPnP: found Internet Gateway Device ", m_upnpUrls.controlURL);
 				if (!m_externalIPAddress[0])
 				{
-					LogPrint (eLogError, "UPnP: GetExternalIPAddress() failed.");
+					LogPrint (eLogError, "UPnP: fount IGD doesn't know our external address");
 					return;
 				}
 			}
 		}
 		else
 		{
-			LogPrint (eLogError, "UPnP: GetValidIGD() failed.");
+			LogPrint (eLogError, "UPnP: unable to find valid IGD: error ", err);
 			return;
 		}
 
@@ -126,6 +138,20 @@ namespace transport
 		PortMapping ();
 	}
 
+	int UPnP::CheckMapping (const char* port, const char* type)
+	{
+		int err = UPNPCOMMAND_SUCCESS;
+
+#if (MINIUPNPC_API_VERSION >= 10)
+		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL, NULL, NULL, NULL, NULL);
+#elif (MINIUPNPC_API_VERSION >= 8)
+		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL, NULL, NULL, NULL);
+#else
+		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL);
+#endif
+		return err;
+	}
+
 	void UPnP::PortMapping ()
 	{
 		const auto& a = context.GetRouterInfo().GetAddresses();
@@ -134,13 +160,47 @@ namespace transport
 			if (!address->host.is_v6 () && address->port)
 				TryPortMapping (address);
 		}
-		m_Timer.expires_from_now (boost::posix_time::minutes(20));	// every 20 minutes
+		m_Timer.expires_from_now (boost::posix_time::minutes(20)); // every 20 minutes
 		m_Timer.async_wait ([this](const boost::system::error_code& ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 			PortMapping ();
 		});
+	}
 
+	void UPnP::TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
+	{
+		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
+		std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
+		int err = UPNPCOMMAND_SUCCESS;
+
+		// check for existing mapping
+		err = CheckMapping (strPort.c_str (), strType.c_str ());
+		if (err != UPNPCOMMAND_SUCCESS) // if mapping not found
+		{
+			LogPrint (eLogDebug, "UPnP: port ", strPort, " possible is not forwarded: return code ", err);
+
+#if (MINIUPNPC_API_VERSION >= 8)
+			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL, NULL);
+#else
+			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL);
+#endif
+			if (err != UPNPCOMMAND_SUCCESS)
+			{
+				LogPrint (eLogError, "UPnP: port forwarding to ", m_NetworkAddr, ":", strPort, " failed: return code ", err);
+				return;
+			}
+			else
+			{
+				LogPrint (eLogInfo, "UPnP: port successfully forwarded (", m_externalIPAddress ,":", strPort, " type ", strType, " -> ", m_NetworkAddr ,":", strPort ,")");
+				return;
+			}
+		}
+		else
+		{
+			LogPrint (eLogDebug, "UPnP: external forward from ", m_NetworkAddr, ":", strPort, " exists on current IGD");
+			return;
+		}
 	}
 
 	void UPnP::CloseMapping ()
@@ -153,34 +213,17 @@ namespace transport
 		}
 	}
 
-	void UPnP::TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
-	{
-		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
-		int r;
-		std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
-#ifdef UPNPDISCOVER_SUCCESS
-		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
-#else
-		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
-#endif
-		if (r!=UPNPCOMMAND_SUCCESS)
-		{
-			LogPrint (eLogError, "UPnP: AddPortMapping (", m_NetworkAddr, ":", strPort, ") failed with code ", r);
-			return;
-		}
-		else
-		{
-			LogPrint (eLogDebug, "UPnP: Port Mapping successful. (", m_NetworkAddr ,":", strPort, " type ", strType, " -> ", m_externalIPAddress ,":", strPort ,")");
-			return;
-		}
-	}
-
 	void UPnP::CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
 	{
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
-		int r = 0;
-		r = UPNP_DeletePortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), 0);
-		LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", r);
+		int err = UPNPCOMMAND_SUCCESS;
+		
+		err = CheckMapping (strPort.c_str (), strType.c_str ());
+		if (err == UPNPCOMMAND_SUCCESS)
+		{
+			err = UPNP_DeletePortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), NULL);
+			LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", err);
+		}
 	}
 
 	void UPnP::Close ()
@@ -195,11 +238,11 @@ namespace transport
 		switch (address->transportStyle)
 		{
 			case i2p::data::RouterInfo::eTransportNTCP:
-			return "TCP";
-			break;
+				return "TCP";
+				break;
 			case i2p::data::RouterInfo::eTransportSSU:
 			default:
-			return "UDP";
+				return "UDP";
 		}
 	}
 }
