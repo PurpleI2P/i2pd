@@ -79,9 +79,10 @@ namespace transport
 
 	void UPnP::Discover ()
 	{
+		bool isError;
+
 #if (MINIUPNPC_API_VERSION >= 8)
 		int err = UPNPDISCOVER_SUCCESS;
-		bool isError;
 
 #if (MINIUPNPC_API_VERSION >= 14)
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, 2, &err);
@@ -92,7 +93,7 @@ namespace transport
 		isError = err != UPNPDISCOVER_SUCCESS;
 #else
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
-		isError = err == NULL;
+		isError = m_Devlist == NULL;
 #endif
 		{
 			// notify starting thread
