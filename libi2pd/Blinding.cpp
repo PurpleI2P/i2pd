@@ -247,7 +247,7 @@ namespace data
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-				publicKeyLength = BlindECDSA (m_SigType, GetPublicKey (), seed, BlindEncodedPrivateKeyECDSA, blindedPriv, blindedPub);
+				publicKeyLength = BlindECDSA (m_SigType, priv, seed, BlindEncodedPrivateKeyECDSA, blindedPriv, blindedPub);
 			break;
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
