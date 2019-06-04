@@ -81,10 +81,10 @@ namespace transport
 	{
 		bool isError;
 
-#if MINIUPNPC_API_VERSION >= 8
+#if ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
 		int err = UPNPDISCOVER_SUCCESS;
 
-#if MINIUPNPC_API_VERSION >= 14
+#if (MINIUPNPC_API_VERSION >= 14)
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, 2, &err);
 #else
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, &err);
@@ -143,9 +143,9 @@ namespace transport
 	{
 		int err = UPNPCOMMAND_SUCCESS;
 
-#if MINIUPNPC_API_VERSION >= 10
+#if (MINIUPNPC_API_VERSION >= 10)
 		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL, NULL, NULL, NULL, NULL);
-#elif MINIUPNPC_API_VERSION >= 8
+#elif ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
 		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL, NULL, NULL, NULL);
 #else
 		err = UPNP_GetSpecificPortMappingEntry(m_upnpUrls.controlURL, m_upnpData.first.servicetype, port, type, NULL, NULL);
@@ -181,7 +181,7 @@ namespace transport
 		{
 			LogPrint (eLogDebug, "UPnP: port ", strPort, " possible is not forwarded: return code ", err);
 
-#if MINIUPNPC_API_VERSION >= 8
+#if ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
 			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL, NULL);
 #else
 			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL);
