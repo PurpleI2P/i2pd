@@ -156,6 +156,7 @@ namespace data
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
 
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
+			size_t ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const; // subcredential is subcredential + timestamp, return length of autData without flag
 
 		private:
 

@@ -1,7 +1,9 @@
 #include <string.h>
+#include <unordered_map>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
+#include "Tag.h"
 #include "Timestamp.h"
 #include "NetDb.hpp"
 #include "Tunnel.h"
@@ -497,17 +499,26 @@ namespace data
 			std::vector<uint8_t> outerPlainText (lenOuterPlaintext);
 			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterPlaintext, keys, keys + 32, outerPlainText.data ());
 			// inner key
-			// innerInput = authCookie || subcredential || publishedTimestamp, TODO: non-empty authCookie
+			// innerInput = authCookie || subcredential || publishedTimestamp
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
-			// skip 1 byte flags
-			i2p::crypto::HKDF (outerPlainText.data () + 1, subcredential, 36, "ELS2_L2K", keys); // no authCookie
+			uint8_t innerInput[68];
+			size_t authDataLen = ExtractClientAuthData (outerPlainText.data (), lenOuterPlaintext, nullptr /*TODO*/, subcredential, innerInput);			
+			if (authDataLen > 0)
+			{
+				memcpy (innerInput + 32, subcredential, 36); 
+				i2p::crypto::HKDF (outerPlainText.data () + 1, innerInput, 68, "ELS2_L2K", keys);
+			}
+			else
+				// no authData presented, innerInput = subcredential || publishedTimestamp
+				// skip 1 byte flags
+				i2p::crypto::HKDF (outerPlainText.data () + 1, subcredential, 36, "ELS2_L2K", keys); // no authCookie
 			// decrypt Layer 2
 			// innerKey = keys[0:31]
 			// innerIV = keys[32:43]
-			size_t lenInnerPlaintext = lenOuterPlaintext - 32 - 1;
+			size_t lenInnerPlaintext = lenOuterPlaintext - 32 - 1 - authDataLen;
 			std::vector<uint8_t> innerPlainText (lenInnerPlaintext);
-			i2p::crypto::ChaCha20 (outerPlainText.data () + 32 + 1, lenInnerPlaintext, keys, keys + 32, innerPlainText.data ());
+			i2p::crypto::ChaCha20 (outerPlainText.data () + 32 + 1 + authDataLen, lenInnerPlaintext, keys, keys + 32, innerPlainText.data ());
 			if (innerPlainText[0] == NETDB_STORE_TYPE_STANDARD_LEASESET2 || innerPlainText[0] == NETDB_STORE_TYPE_META_LEASESET2)
 			{
 				// override store type and buffer
@@ -519,6 +530,49 @@ namespace data
 			else
 				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
+	}
+
+	size_t LeaseSet2::ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const
+	{
+		size_t offset = 0;
+		uint8_t flag = buf[offset]; offset++; // flag
+		if (flag & 0x01) // client auth
+		{
+			if (flag & 0x0E) // PSK, bits 3-1 are set to 1
+			{
+				const uint8_t * authSalt = buf + offset; authSalt += 32; // authSalt
+				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
+				std::unordered_map<uint64_t, i2p::data::Tag<32> > authClients;
+				for (int i = 0; i < numClients; i++)
+				{
+					uint64_t clientID = buf64toh (buf + offset); offset += 8; // clientID_i, don't care about endianess
+					authClients.emplace (clientID, buf + offset);
+					offset += 32; // clientCookie_i 
+				}
+				// calculate authCookie
+				if (secret)
+				{
+					uint8_t authInput[68];
+					memcpy (authInput, secret, 32);
+					memcpy (authInput, subcredential, 36);
+					uint8_t okm[64]; // 52 actual data
+					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm); 
+					uint64_t clientID = buf64toh (okm + 44); // clientID_i = okm[44:51]
+					auto it = authClients.find (clientID);
+					if (it != authClients.end ())
+						// clientKey_i = okm[0:31]
+						// clientIV_i = okm[32:43]
+						i2p::crypto::ChaCha20 (it->second, 32, okm, okm + 32, authCookie); 
+					else
+						LogPrint (eLogError, "LeaseSet2: Client cookie for clientID_i ", clientID, " not found");
+				}
+				else
+					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: psk_i is not provided");
+			}
+			else
+				LogPrint (eLogError, "LeaseSet2: unknown client auth type ", (int)flag);	
+		}
+		return offset - 1;
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
