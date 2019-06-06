@@ -1,5 +1,4 @@
 #include <string.h>
-#include <unordered_map>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
@@ -257,15 +256,15 @@ namespace data
 	{	
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
-			ReadFromBufferEncrypted (buf, len, nullptr);
+			ReadFromBufferEncrypted (buf, len, nullptr, nullptr);
 		else
 			ReadFromBuffer (buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key):
+	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret):
 		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2), m_OrigStoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 	{
-		ReadFromBufferEncrypted (buf, len, key);
+		ReadFromBufferEncrypted (buf, len, key, secret);
 	}
 
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
@@ -422,7 +421,7 @@ namespace data
 		return offset;
 	}
 
-	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key)
+	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret)
 	{
 		size_t offset = 0;
 		// blinded key
@@ -503,7 +502,7 @@ namespace data
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
 			uint8_t innerInput[68];
-			size_t authDataLen = ExtractClientAuthData (outerPlainText.data (), lenOuterPlaintext, nullptr /*TODO*/, subcredential, innerInput);			
+			size_t authDataLen = ExtractClientAuthData (outerPlainText.data (), lenOuterPlaintext, secret, subcredential, innerInput);			
 			if (authDataLen > 0)
 			{
 				memcpy (innerInput + 32, subcredential, 36); 
@@ -538,17 +537,11 @@ namespace data
 		uint8_t flag = buf[offset]; offset++; // flag
 		if (flag & 0x01) // client auth
 		{
-			if (flag & 0x0E) // PSK, bits 3-1 are set to 1
+			if ((flag & 0x0E) == 0x0E) // PSK, bits 3-1 are set to 1
 			{
 				const uint8_t * authSalt = buf + offset; authSalt += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
-				std::unordered_map<uint64_t, i2p::data::Tag<32> > authClients;
-				for (int i = 0; i < numClients; i++)
-				{
-					uint64_t clientID = buf64toh (buf + offset); offset += 8; // clientID_i, don't care about endianess
-					authClients.emplace (clientID, buf + offset);
-					offset += 32; // clientCookie_i 
-				}
+				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
 				// calculate authCookie
 				if (secret)
 				{
@@ -556,15 +549,22 @@ namespace data
 					memcpy (authInput, secret, 32);
 					memcpy (authInput, subcredential, 36);
 					uint8_t okm[64]; // 52 actual data
-					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm); 
-					uint64_t clientID = buf64toh (okm + 44); // clientID_i = okm[44:51]
-					auto it = authClients.find (clientID);
-					if (it != authClients.end ())
-						// clientKey_i = okm[0:31]
-						// clientIV_i = okm[32:43]
-						i2p::crypto::ChaCha20 (it->second, 32, okm, okm + 32, authCookie); 
-					else
-						LogPrint (eLogError, "LeaseSet2: Client cookie for clientID_i ", clientID, " not found");
+					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm);  
+					// try to find clientCookie_i  for clientID_i = okm[44:51]
+					bool found = false;
+					for (int i = 0; i < numClients; i++)
+					{
+						if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
+						{
+							// clientKey_i = okm[0:31]
+							// clientIV_i = okm[32:43]
+							i2p::crypto::ChaCha20 (authClients + i*40 + 8, 32, okm, okm + 32, authCookie); // clientCookie_i 
+							found = true;
+							break;
+						}	
+					}
+					if (!found)
+						LogPrint (eLogError, "LeaseSet2: Client cookie not found");
 				}
 				else
 					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: psk_i is not provided");
