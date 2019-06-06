@@ -17,7 +17,7 @@ namespace i2p {
 namespace http {
 	const std::vector<std::string> HTTP_METHODS = {
 		"GET", "HEAD", "POST", "PUT", "PATCH",
-		"DELETE", "OPTIONS", "CONNECT"
+		"DELETE", "OPTIONS", "CONNECT", "PROPFIND"
 	};
 	const std::vector<std::string> HTTP_VERSIONS = {
 		"HTTP/1.0", "HTTP/1.1"
