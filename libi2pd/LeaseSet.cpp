@@ -537,9 +537,9 @@ namespace data
 		uint8_t flag = buf[offset]; offset++; // flag
 		if (flag & 0x01) // client auth
 		{
-			if ((flag & 0x0E) == 0x0E) // PSK, bits 3-1 are set to 1
+			if (flag & 0x02) // PSK, bit 1 is set to 1
 			{
-				const uint8_t * authSalt = buf + offset; authSalt += 32; // authSalt
+				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
 				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
 				// calculate authCookie
