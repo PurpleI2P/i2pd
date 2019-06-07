@@ -698,14 +698,14 @@ namespace data
 			LogPrint (eLogDebug, "NetDb: store request: RouterInfo");
 			size_t size = bufbe16toh (buf + offset);
 			offset += 2;
-			if (size > 2048 || size > len - offset)
+			if (size > MAX_RI_BUFFER_SIZE || size > len - offset)
 			{
 				LogPrint (eLogError, "NetDb: invalid RouterInfo length ", (int)size);
 				return;
 			}
-			uint8_t uncompressed[2048];
-			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, 2048);
-			if (uncompressedSize && uncompressedSize < 2048)
+			uint8_t uncompressed[MAX_RI_BUFFER_SIZE];
+			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, MAX_RI_BUFFER_SIZE);
+			if (uncompressedSize && uncompressedSize < MAX_RI_BUFFER_SIZE)
 				updated = AddRouterInfo (ident, uncompressed, uncompressedSize);
 			else
 			{
@@ -1075,6 +1075,15 @@ namespace data
 				return !router->IsHidden () && router->IsPeerTesting () && router->IsSSU (v4only);
 			});
 	}
+
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSUV6Router () const
+	{
+		return GetRandomRouter (
+			[](std::shared_ptr<const RouterInfo> router)->bool
+			{
+				return !router->IsHidden () && router->IsSSUV6 ();
+			});
+	}		
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer () const
 	{

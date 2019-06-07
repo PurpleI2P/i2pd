@@ -38,7 +38,7 @@ namespace data
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
 
-	const int MAX_RI_BUFFER_SIZE = 2048;
+	const int MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -161,6 +161,7 @@ namespace data
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
+			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsV6 () const;
 			bool IsV4 () const;
@@ -196,7 +197,7 @@ namespace data
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void SaveProfile () { if (m_Profile) m_Profile->Save (GetIdentHash ()); };
 
-			void Update (const uint8_t * buf, int len);
+			void Update (const uint8_t * buf, size_t len);
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 

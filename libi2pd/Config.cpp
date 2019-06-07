@@ -58,7 +58,7 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", value<bool>()->default_value(true),                      "Enable NTCP transport (default: enabled)")
+			("ntcp", value<bool>()->default_value(false),                      "Enable NTCP transport (default: disabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
 #ifdef _WIN32
@@ -195,10 +195,8 @@ namespace config {
 				"https://reseed.i2p.net.in/,"
 				"https://download.xxlspeed.com/,"
 				"https://reseed-fr.i2pd.xyz/,"
-				"https://reseed.atomike.ninja/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
-				"https://itoopie.atomike.ninja/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
                 "https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
@@ -237,7 +235,7 @@ namespace config {
 		options_description ntcp2("NTCP2 Options");
 		ntcp2.add_options()
 			("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
-			("ntcp2.published", value<bool>()->default_value(false), "Publish NTCP2 (default: disabled)")
+			("ntcp2.published", value<bool>()->default_value(true), "Publish NTCP2 (default: enabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
 		;

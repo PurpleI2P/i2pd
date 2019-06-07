@@ -181,6 +181,7 @@ namespace client
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
+			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; };
 	};
 
 	class ClientDestination: public LeaseSetDestination

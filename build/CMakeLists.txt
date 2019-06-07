@@ -81,6 +81,7 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
   "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
   "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
+  "${LIBI2PD_SRC_DIR}/Blinding.cpp"
 )
 
 if (WITH_WEBSOCKETS)
@@ -469,6 +470,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
+  target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
   target_link_libraries( "${PROJECT_NAME}" libi2pd libi2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2019, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <cstring>
 #include <cassert>
 #include <string>
@@ -5,6 +13,7 @@
 #include <memory>
 #include <set>
 #include <boost/asio.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <mutex>
 
 #include "I2PService.h"
@@ -211,16 +220,28 @@ namespace proxy {
 	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
 	{
 		/* drop common headers */
-		req.RemoveHeader("Referrer");
 		req.RemoveHeader("Via");
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
 		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
-		req.RemoveHeader("Proxy-");	// Proxy-*
+		req.RemoveHeader("Proxy-"); // Proxy-*
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
+
+		/**
+		 * according to i2p ticket #1862:
+		 * leave Referrer if requested URL with same schema, host and port,
+		 * otherwise, drop it.
+		 */
+		if(req.GetHeader("Referrer") != "") {
+			i2p::http::URL reqURL; reqURL.parse(req.uri);
+			i2p::http::URL refURL; refURL.parse(req.GetHeader("Referrer"));
+			if(!boost::iequals(reqURL.schema, refURL.schema) || !boost::iequals(reqURL.host, refURL.host) || reqURL.port != refURL.port)
+				req.RemoveHeader("Referrer");
+		}
+
 		/* add headers */
 		/* close connection, if not Connection: (U|u)pgrade (for websocket) */
 		auto h = req.GetHeader ("Connection");

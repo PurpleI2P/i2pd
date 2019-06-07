@@ -552,6 +552,20 @@ namespace transport
 						m_SSUServer->CreateSession (router);		// no peer test
 				}
 			}
+			if (i2p::context.SupportsV6 ())
+			{
+				// try to connect to few v6 addresses to get our address back
+				for (int i = 0; i < 3; i++)
+				{
+					auto router = i2p::data::netdb.GetRandomSSUV6Router ();
+					if (router)
+					{
+						auto addr = router->GetSSUV6Address ();
+						if (addr)
+							m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
+					}
+				}
+			}
 		}
 		else
 			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");

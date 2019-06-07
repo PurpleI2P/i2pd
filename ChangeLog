@@ -1,6 +1,21 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.26.0] - 2019-06-07
+### Added
+- HTTP method "PROFIND"
+- Detection of external ipv6 address through the SSU
+- NTCP2 publishing depends on network status
+### Changed
+- ntcp is disabled by default, ntcp2 is published by default
+- Response to BOB's "list" command
+- ipv6 address is not longer NTCP's local endpoint's address
+- Reseeds list
+### Fixed
+- Check and handle incorrect BOB input
+- Ignore introducers for NTCP or NTCP2 addresses
+- RouterInfo check from NTCP2
+
 ## [2.25.0] - 2019-05-09
 ### Added
 - Create, publish and handle encrypted LeaseSet2

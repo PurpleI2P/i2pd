@@ -1,11 +1,8 @@
 #include <string.h>
-#include <openssl/sha.h>
-#include <openssl/hmac.h>
-#include <zlib.h> // for crc32
 #include "I2PEndian.h"
 #include "Crypto.h"
-#include "Ed25519.h"
 #include "Log.h"
+#include "Tag.h"
 #include "Timestamp.h"
 #include "NetDb.hpp"
 #include "Tunnel.h"
@@ -254,159 +251,20 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
-	BlindedPublicKey::BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, SigningKeyType blindedKeyType):
-		m_BlindedSigType (blindedKeyType)
-	{
-		if (!identity) return;
-		auto len = identity->GetSigningPublicKeyLen ();
-		m_PublicKey.resize (len);
-		memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), len);
-		m_SigType = identity->GetSigningKeyType ();
-	}
-
-	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
-	{
-		uint8_t addr[40]; // TODO: define length from b33
-		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
-		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
-		// checksum is Little Endian
-		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16);  
-		uint8_t flag = addr[0];
-		size_t offset = 1;	
-		if (flag & 0x01) // two bytes signatures
-		{
-			m_SigType = bufbe16toh (addr + offset); offset += 2;
-			m_BlindedSigType = bufbe16toh (addr + offset); offset += 2;
-		}
-		else // one byte sig
-		{
-			m_SigType = addr[offset]; offset++;
-			m_BlindedSigType = addr[offset]; offset++;
-		}
-		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (m_SigType));
-		if (blindedVerifier)
-		{
-			auto len = blindedVerifier->GetPublicKeyLen ();
-			if (offset + len <= l)
-			{
-				m_PublicKey.resize (len);
-				memcpy (m_PublicKey.data (), addr + offset, len);
-			}
-			else
-				LogPrint (eLogError, "LeaseSet2: public key in b33 address is too short for signature type ", (int)m_SigType);	
-		}
-		else
-			LogPrint (eLogError, "LeaseSet2: unknown signature type ", (int)m_SigType, " in b33");
-	}
-
-	std::string BlindedPublicKey::ToB33 () const
-	{
-		if (m_PublicKey.size () > 32) return ""; // assume 25519
-		uint8_t addr[35]; char str[60]; // TODO: define actual length
-		addr[0] = 0; // flags
-		addr[1] = m_SigType; // sig type
-		addr[2] = m_BlindedSigType; // blinded sig type
-		memcpy (addr + 3, m_PublicKey.data (), m_PublicKey.size ());
-		uint32_t checksum = crc32 (0, addr + 3, m_PublicKey.size ()); 
-		// checksum is Little Endian
-		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16); 
-		auto l = ByteStreamToBase32 (addr, m_PublicKey.size () + 3, str, 60);
-		return std::string (str, str + l);
-	}
-
-	void BlindedPublicKey::GetCredential (uint8_t * credential) const
-	{
-		// A = destination's signing public key 
-		// stA = signature type of A, 2 bytes big endian
-		uint16_t stA = htobe16 (GetSigType ());
-		// stA1 = signature type of blinded A, 2 bytes big endian
-		uint16_t stA1 = htobe16 (GetBlindedSigType ());	
-		// credential = H("credential", A || stA || stA1)
-		H ("credential", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, credential);
-	}
-
-	void BlindedPublicKey::GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const
-	{
-		uint8_t credential[32];
-		GetCredential (credential);
-		// subcredential = H("subcredential", credential || blindedPublicKey)
-		H ("subcredential", { {credential, 32}, {blinded, len} }, subcredential);
-	}
-
-	void BlindedPublicKey::GenerateAlpha (const char * date, uint8_t * seed) const
-	{
-		uint16_t stA = htobe16 (GetSigType ()), stA1 = htobe16 (GetBlindedSigType ());
-		uint8_t salt[32];
-		//seed = HKDF(H("I2PGenerateAlpha", keydata), datestring || secret, "i2pblinding1", 64)	
-		H ("I2PGenerateAlpha", { {GetPublicKey (), GetPublicKeyLen ()}, {(const uint8_t *)&stA, 2}, {(const uint8_t *)&stA1, 2} }, salt);
-		i2p::crypto::HKDF (salt, (const uint8_t *)date, 8, "i2pblinding1", seed);
-	}
-
-	void BlindedPublicKey::GetBlindedKey (const char * date, uint8_t * blindedKey) const
-	{
-		uint8_t seed[64];	
-		GenerateAlpha (date, seed);	
-		i2p::crypto::GetEd25519 ()->BlindPublicKey (GetPublicKey (), seed, blindedKey);
-	}
-
-	void BlindedPublicKey::BlindPrivateKey (const uint8_t * priv, const char * date, uint8_t * blindedPriv, uint8_t * blindedPub) const
-	{
-		uint8_t seed[64];	
-		GenerateAlpha (date, seed);	
-		i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
-	}
-
-	void BlindedPublicKey::H (const std::string& p, const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * hash) const 
-	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, p.c_str (), p.length ());
-		for (const auto& it: bufs)	
-			SHA256_Update (&ctx, it.first, it.second);
-		SHA256_Final (hash, &ctx);
-	}
-
-	i2p::data::IdentHash BlindedPublicKey::GetStoreHash (const char * date) const
-	{
-		i2p::data::IdentHash hash;
-		if (m_BlindedSigType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519 ||
-			m_BlindedSigType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
-		{
-			uint8_t blinded[32];
-			if (date)
-				GetBlindedKey (date, blinded);
-			else
-			{
-				char currentDate[9];
-				i2p::util::GetCurrentDate (currentDate);
-				GetBlindedKey (currentDate, blinded);	
-			}	
-			auto stA1 = htobe16 (m_BlindedSigType);
-			SHA256_CTX ctx;
-			SHA256_Init (&ctx);
-			SHA256_Update (&ctx, (const uint8_t *)&stA1, 2);
-			SHA256_Update (&ctx, blinded, 32);
-			SHA256_Final ((uint8_t *)hash, &ctx);
-		}
-		else
-			LogPrint (eLogError, "LeaseSet2: blinded key type ", (int)m_BlindedSigType, " is not supported");			
-		return hash;
-	}
-
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
 		LeaseSet (storeLeases), m_StoreType (storeType), m_OrigStoreType (storeType)
 	{	
 		SetBuffer (buf, len);
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
-			ReadFromBufferEncrypted (buf, len, nullptr);
+			ReadFromBufferEncrypted (buf, len, nullptr, nullptr);
 		else
 			ReadFromBuffer (buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key):
+	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret):
 		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2), m_OrigStoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 	{
-		ReadFromBufferEncrypted (buf, len, key);
+		ReadFromBufferEncrypted (buf, len, key, secret);
 	}
 
 	void LeaseSet2::Update (const uint8_t * buf, size_t len, bool verifySignature)
@@ -563,7 +421,7 @@ namespace data
 		return offset;
 	}
 
-	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key)
+	void LeaseSet2::ReadFromBufferEncrypted (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret)
 	{
 		size_t offset = 0;
 		// blinded key
@@ -606,18 +464,23 @@ namespace data
 		if (verified && key && lenOuterCiphertext >= 32)
 		{
 			SetIsValid (false); // we must verify it again in Layer 2 
-			if (blindedKeyType == i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519)
+			if (blindedKeyType == key->GetBlindedSigType ())
 			{
 				// verify blinding
 				char date[9];
 				i2p::util::GetDateString (m_PublishedTimestamp, date);
-				uint8_t blinded[32];
-				key->GetBlindedKey (date, blinded);
-				if (memcmp (blindedPublicKey, blinded, 32))
+				std::vector<uint8_t> blinded (blindedKeyLen);
+				key->GetBlindedKey (date, blinded.data ());
+				if (memcmp (blindedPublicKey, blinded.data (), blindedKeyLen))
 				{
 					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
 					return;
 				}	
+			}	
+			else
+			{
+				LogPrint (eLogError, "LeaseSet2: Unexpected blinded key type ", blindedKeyType, " instread ", key->GetBlindedSigType ());
+				return;
 			}	
 			// outer key
 			// outerInput = subcredential || publishedTimestamp
@@ -635,17 +498,26 @@ namespace data
 			std::vector<uint8_t> outerPlainText (lenOuterPlaintext);
 			i2p::crypto::ChaCha20 (outerCiphertext + 32, lenOuterPlaintext, keys, keys + 32, outerPlainText.data ());
 			// inner key
-			// innerInput = authCookie || subcredential || publishedTimestamp, TODO: non-empty authCookie
+			// innerInput = authCookie || subcredential || publishedTimestamp
 			// innerSalt = innerCiphertext[0:32]
 			// keys = HKDF(innerSalt, innerInput, "ELS2_L2K", 44)
-			// skip 1 byte flags
-			i2p::crypto::HKDF (outerPlainText.data () + 1, subcredential, 36, "ELS2_L2K", keys); // no authCookie
+			uint8_t innerInput[68];
+			size_t authDataLen = ExtractClientAuthData (outerPlainText.data (), lenOuterPlaintext, secret, subcredential, innerInput);			
+			if (authDataLen > 0)
+			{
+				memcpy (innerInput + 32, subcredential, 36); 
+				i2p::crypto::HKDF (outerPlainText.data () + 1, innerInput, 68, "ELS2_L2K", keys);
+			}
+			else
+				// no authData presented, innerInput = subcredential || publishedTimestamp
+				// skip 1 byte flags
+				i2p::crypto::HKDF (outerPlainText.data () + 1, subcredential, 36, "ELS2_L2K", keys); // no authCookie
 			// decrypt Layer 2
 			// innerKey = keys[0:31]
 			// innerIV = keys[32:43]
-			size_t lenInnerPlaintext = lenOuterPlaintext - 32 - 1;
+			size_t lenInnerPlaintext = lenOuterPlaintext - 32 - 1 - authDataLen;
 			std::vector<uint8_t> innerPlainText (lenInnerPlaintext);
-			i2p::crypto::ChaCha20 (outerPlainText.data () + 32 + 1, lenInnerPlaintext, keys, keys + 32, innerPlainText.data ());
+			i2p::crypto::ChaCha20 (outerPlainText.data () + 32 + 1 + authDataLen, lenInnerPlaintext, keys, keys + 32, innerPlainText.data ());
 			if (innerPlainText[0] == NETDB_STORE_TYPE_STANDARD_LEASESET2 || innerPlainText[0] == NETDB_STORE_TYPE_META_LEASESET2)
 			{
 				// override store type and buffer
@@ -657,6 +529,50 @@ namespace data
 			else
 				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}	
+	}
+
+	size_t LeaseSet2::ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const
+	{
+		size_t offset = 0;
+		uint8_t flag = buf[offset]; offset++; // flag
+		if (flag & 0x01) // client auth
+		{
+			if (flag & 0x02) // PSK, bit 1 is set to 1
+			{
+				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
+				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
+				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				// calculate authCookie
+				if (secret)
+				{
+					uint8_t authInput[68];
+					memcpy (authInput, secret, 32);
+					memcpy (authInput, subcredential, 36);
+					uint8_t okm[64]; // 52 actual data
+					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm);  
+					// try to find clientCookie_i  for clientID_i = okm[44:51]
+					bool found = false;
+					for (int i = 0; i < numClients; i++)
+					{
+						if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
+						{
+							// clientKey_i = okm[0:31]
+							// clientIV_i = okm[32:43]
+							i2p::crypto::ChaCha20 (authClients + i*40 + 8, 32, okm, okm + 32, authCookie); // clientCookie_i 
+							found = true;
+							break;
+						}	
+					}
+					if (!found)
+						LogPrint (eLogError, "LeaseSet2: Client cookie not found");
+				}
+				else
+					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: psk_i is not provided");
+			}
+			else
+				LogPrint (eLogError, "LeaseSet2: unknown client auth type ", (int)flag);	
+		}
+		return offset - 1;
 	}
 
 	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
@@ -870,12 +786,12 @@ namespace data
 		auto timestamp = i2p::util::GetSecondsSinceEpoch ();	
 		char date[9];
 		i2p::util::GetDateString (timestamp, date);
-		uint8_t blindedPriv[32], blindedPub[32];
-		blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
+		uint8_t blindedPriv[64], blindedPub[128]; // 64 and 128 max
+		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKeyType, blindedPriv));
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKeyType); offset += 2; // Blinded Public Key Sig Type
-		memcpy (m_Buffer + offset, blindedPub, 32); offset += 32; // Blinded Public Key
+		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key
 		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
 		auto nextMidnight = (timestamp/86400LL + 1)*86400LL; // 86400 = 24*3600 seconds
 		auto expirationTime = ls->GetExpirationTime ()/1000LL; 

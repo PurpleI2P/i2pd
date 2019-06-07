@@ -1,4 +1,4 @@
-version: 2.25.0.{build}
+version: 2.26.0.{build}
 pull_requests:
   do_not_increment_build_number: true
 branches:
@@ -17,7 +17,7 @@ environment:
   - MSYSTEM: MINGW32
 
 install:
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
 
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu --force"
