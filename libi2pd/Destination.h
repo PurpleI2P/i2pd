@@ -55,6 +55,7 @@ namespace client
 	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";
 	const int DEFAULT_LEASESET_TYPE = 1;		
 	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
+	const char I2CP_PARAM_LEASESET_PRIV_KEY[] = "i2cp.leaseSetPrivKey"; // PSK decryption key, base64
 
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
@@ -175,6 +176,7 @@ namespace client
 				m_PublishDelayTimer, m_CleanupTimer;
 			std::string m_Nickname;
 			int m_LeaseSetType;
+			std::unique_ptr<i2p::data::Tag<32> > m_LeaseSetPrivKey; // non-null if presented
 
 		public:
 

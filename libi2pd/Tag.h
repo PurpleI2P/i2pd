@@ -71,14 +71,14 @@ public:
 		return std::string (str, str + l);
 	}
 
-	void FromBase32 (const std::string& s)
+	size_t FromBase32 (const std::string& s)
 	{
-		i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+		return i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
 	}
 
-	void FromBase64 (const std::string& s)
+	size_t FromBase64 (const std::string& s)
 	{
-		i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+		return i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
 	}
 
 private:
