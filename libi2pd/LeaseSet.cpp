@@ -479,7 +479,7 @@ namespace data
 			}	
 			else
 			{
-				LogPrint (eLogError, "LeaseSet2: Unexpected blinded key type ", blindedKeyType, " instread ", key->GetBlindedSigType ());
+				LogPrint (eLogError, "LeaseSet2: Unexpected blinded key type ", blindedKeyType, " instead ", key->GetBlindedSigType ());
 				return;
 			}	
 			// outer key
@@ -506,7 +506,7 @@ namespace data
 			if (authDataLen > 0)
 			{
 				memcpy (innerInput + 32, subcredential, 36); 
-				i2p::crypto::HKDF (outerPlainText.data () + 1, innerInput, 68, "ELS2_L2K", keys);
+				i2p::crypto::HKDF (outerPlainText.data () + 1 + authDataLen, innerInput, 68, "ELS2_L2K", keys);
 			}
 			else
 				// no authData presented, innerInput = subcredential || publishedTimestamp
@@ -542,12 +542,17 @@ namespace data
 				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
 				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				if (offset > len) 
+				{
+					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in auth data");
+					return 0;
+				}
 				// calculate authCookie
 				if (secret)
 				{
 					uint8_t authInput[68];
 					memcpy (authInput, secret, 32);
-					memcpy (authInput, subcredential, 36);
+					memcpy (authInput + 32, subcredential, 36);
 					uint8_t okm[64]; // 52 actual data
 					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm);  
 					// try to find clientCookie_i  for clientID_i = okm[44:51]
