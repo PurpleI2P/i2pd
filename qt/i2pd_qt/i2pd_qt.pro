@@ -12,7 +12,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/Base.cpp \
     ../../libi2pd/Blinding.cpp \
     ../../libi2pd/BloomFilter.cpp \
-    ../../libi2pd/Chacha20.cpp \
+    ../../libi2pd/ChaCha20.cpp \
     ../../libi2pd/Config.cpp \
     ../../libi2pd/CPU.cpp \
     ../../libi2pd/Crypto.cpp \
@@ -90,17 +90,22 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
 #SOURCES += $$files(../../daemon/*.cpp)
 #SOURCES += $$files(./*.cpp)
 
-SOURCES -= ../../daemon/UnixDaemon.cpp
+#SOURCES -= ../../daemon/UnixDaemon.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/api.h \
     ../../libi2pd/Base.h \
+    ../../libi2pd/Blinding.h \
     ../../libi2pd/BloomFilter.h \
+    ../../libi2pd/ChaCha20.h \
     ../../libi2pd/Config.h \
+    ../../libi2pd/CPU.h \
     ../../libi2pd/Crypto.h \
-	../../libi2pd/CryptoKey.h \
+    ../../libi2pd/CryptoKey.h \
+    ../../libi2pd/CryptoWorker.h \
     ../../libi2pd/Datagram.h \
     ../../libi2pd/Destination.h \
+    ../../libi2pd/Ed25519.h \
     ../../libi2pd/Event.h \
     ../../libi2pd/Family.h \
     ../../libi2pd/FS.h \
@@ -116,13 +121,16 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/Log.h \
     ../../libi2pd/NetDb.hpp \
     ../../libi2pd/NetDbRequests.h \
+    ../../libi2pd/NTCP2.h \
     ../../libi2pd/NTCPSession.h \
+    ../../libi2pd/Poly1305.h \
     ../../libi2pd/Profiling.h \
     ../../libi2pd/Queue.h \
     ../../libi2pd/Reseed.h \
     ../../libi2pd/RouterContext.h \
     ../../libi2pd/RouterInfo.h \
     ../../libi2pd/Signature.h \
+    ../../libi2pd/Siphash.h \
     ../../libi2pd/SSU.h \
     ../../libi2pd/SSUData.h \
     ../../libi2pd/SSUSession.h \
@@ -152,6 +160,10 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd_client/SOCKS.h \
     ../../libi2pd_client/Websocket.h \
     ../../libi2pd_client/WebSocks.h \
+    ../../daemon/Daemon.h \
+    ../../daemon/HTTPServer.h \
+    ../../daemon/I2PControl.h \
+    ../../daemon/UPnP.h \
     ClientTunnelPane.h \
     MainWindowItems.h \
     ServerTunnelPane.h \
@@ -159,15 +171,10 @@ HEADERS  += DaemonQT.h mainwindow.h \
     TunnelConfig.h \
     TunnelPane.h \
     TunnelsPageUpdateListener.h \
-    ../../daemon/Daemon.h \
-    ../../daemon/HTTPServer.h \
-    ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h \
     textbrowsertweaked1.h \
     pagewithbackbutton.h \
     widgetlock.h \
     widgetlockregistry.h \
-    i2pd.rc \
     i2pd.rc \
     logviewermanager.h
 
