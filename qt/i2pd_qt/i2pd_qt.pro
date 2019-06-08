@@ -4,19 +4,22 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11 -ggdb
+QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
 DEFINES += USE_UPNP
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/api.cpp \
     ../../libi2pd/Base.cpp \
+    ../../libi2pd/Blinding.cpp \
     ../../libi2pd/BloomFilter.cpp \
+    ../../libi2pd/Chacha20.cpp \
     ../../libi2pd/Config.cpp \
     ../../libi2pd/CPU.cpp \
     ../../libi2pd/Crypto.cpp \
-	../../libi2pd/CryptoKey.cpp \
+    ../../libi2pd/CryptoKey.cpp \
     ../../libi2pd/Datagram.cpp \
     ../../libi2pd/Destination.cpp \
+    ../../libi2pd/Ed25519.cpp \
     ../../libi2pd/Event.cpp \
     ../../libi2pd/Family.cpp \
     ../../libi2pd/FS.cpp \
@@ -31,7 +34,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/Log.cpp \
     ../../libi2pd/NetDb.cpp \
     ../../libi2pd/NetDbRequests.cpp \
+    ../../libi2pd/NTCP2.cpp \
     ../../libi2pd/NTCPSession.cpp \
+    ../../libi2pd/Poly1305.cpp \
     ../../libi2pd/Profiling.cpp \
     ../../libi2pd/Reseed.cpp \
     ../../libi2pd/RouterContext.cpp \
@@ -49,9 +54,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
-    ../../libi2pd/Ed25519.cpp \
-    ../../libi2pd/Chacha20.cpp \
-    ../../libi2pd/Poly1305.cpp \    
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \
@@ -64,24 +66,23 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd_client/SOCKS.cpp \
     ../../libi2pd_client/Websocket.cpp \
     ../../libi2pd_client/WebSocks.cpp \
+    ../../daemon/Daemon.cpp \
+    ../../daemon/HTTPServer.cpp \
+    ../../daemon/I2PControl.cpp \
+    ../../daemon/i2pd.cpp \
+    ../../daemon/UnixDaemon.cpp \
+    ../../daemon/UPnP.cpp \
     ClientTunnelPane.cpp \
     MainWindowItems.cpp \
     ServerTunnelPane.cpp \
     SignatureTypeComboboxFactory.cpp \
     TunnelConfig.cpp \
     TunnelPane.cpp \
-    ../../daemon/Daemon.cpp \
-    ../../daemon/HTTPServer.cpp \
-    ../../daemon/i2pd.cpp \
-    ../../daemon/I2PControl.cpp \
-    ../../daemon/UnixDaemon.cpp \
-    ../../daemon/UPnP.cpp \
     textbrowsertweaked1.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
     logviewermanager.cpp \
-    ../../libi2pd/NTCP2.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
