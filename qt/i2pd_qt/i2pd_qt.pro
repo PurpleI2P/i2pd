@@ -70,7 +70,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/HTTPServer.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/i2pd.cpp \
-    ../../daemon/UnixDaemon.cpp \
     ../../daemon/UPnP.cpp \
     ClientTunnelPane.cpp \
     MainWindowItems.cpp \
@@ -82,15 +81,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
-    logviewermanager.cpp \
-
-#qt creator does not handle this well
-#SOURCES += $$files(../../libi2pd/*.cpp)
-#SOURCES += $$files(../../libi2pd_client/*.cpp)
-#SOURCES += $$files(../../daemon/*.cpp)
-#SOURCES += $$files(./*.cpp)
-
-#SOURCES -= ../../daemon/UnixDaemon.cpp
+    logviewermanager.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/api.h \
