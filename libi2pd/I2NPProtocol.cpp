@@ -258,12 +258,12 @@ namespace i2p
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (const i2p::data::IdentHash& storeHash, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 	{
 		if (!leaseSet) return nullptr;
 		auto m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();
-		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
+		memcpy (payload + DATABASE_STORE_KEY_OFFSET, storeHash, 32);
 		payload[DATABASE_STORE_TYPE_OFFSET] = leaseSet->GetStoreType (); //  1 for LeaseSet
 		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
 		size_t size = DATABASE_STORE_HEADER_SIZE;

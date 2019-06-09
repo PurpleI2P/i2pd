@@ -909,7 +909,7 @@ namespace data
 				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (leaseSet);
+					replyMsg = CreateDatabaseStoreMsg (ident, leaseSet);
 				}
 			}
 
