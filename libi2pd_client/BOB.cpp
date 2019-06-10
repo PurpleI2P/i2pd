@@ -350,8 +350,8 @@ namespace client
 	void BOBCommandSession::BuildStatusLine(bool currentTunnel, BOBDestination *dest, std::string &out)
 	{
 		// helper lambdas
-		const auto isset = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
-		const auto issetNum = [&isset](const int p) { return isset(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
+		const auto issetStr = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
+		const auto issetNum = [&issetStr](const int p) { return issetStr(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
 		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
 		const auto destReady = [](const BOBDestination * const dest) { return dest->GetLocalDestination()->IsReady(); };
 		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
@@ -359,8 +359,8 @@ namespace client
 		// tunnel info
 		const std::string nickname = currentTunnel ? m_Nickname : dest->GetNickname();
 		const bool quiet = currentTunnel ? m_IsQuiet : dest->GetQuiet();
-		const std::string inhost = isset(currentTunnel ? m_InHost : dest->GetInHost());
-		const std::string outhost = isset(currentTunnel ? m_OutHost : dest->GetOutHost());
+		const std::string inhost = issetStr(currentTunnel ? m_InHost : dest->GetInHost());
+		const std::string outhost = issetStr(currentTunnel ? m_OutHost : dest->GetOutHost());
 		const std::string inport = issetNum(currentTunnel ? m_InPort : dest->GetInPort());
 		const std::string outport = issetNum(currentTunnel ? m_OutPort : dest->GetOutPort());
 		const bool keys = destExists(dest); // key must exist when destination is created
