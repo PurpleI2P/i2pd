@@ -531,20 +531,63 @@ namespace data
 		}	
 	}
 
+	// helper for ExtractClientAuthData
+	static inline bool GetAuthCookie (const uint8_t * authClients, int numClients, const uint8_t * okm, uint8_t * authCookie)
+	{
+		// try to find clientCookie_i  for clientID_i = okm[44:51]
+		for (int i = 0; i < numClients; i++)
+		{
+			if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
+			{
+				// clientKey_i = okm[0:31]
+				// clientIV_i = okm[32:43]
+				i2p::crypto::ChaCha20 (authClients + i*40 + 8, 32, okm, okm + 32, authCookie); // clientCookie_i 
+				return true;
+			}	
+		}
+		return false;	
+	}	
+
 	size_t LeaseSet2::ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const
 	{
 		size_t offset = 0;
 		uint8_t flag = buf[offset]; offset++; // flag
 		if (flag & 0x01) // client auth
 		{
-			if (flag & 0x02) // PSK, bit 1 is set to 1
+			if (!(flag & 0x0E)) // DH, bit 1-3 all zeroes
+			{
+				const uint8_t * ephemeralPublicKey = buf + offset; offset += 32; // ephemeralPublicKey
+				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
+				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				if (offset > len) 
+				{
+					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in DH auth data");
+					return 0;
+				}
+				// calculate authCookie
+				if (secret)
+				{
+					i2p::crypto::X25519Keys ck (secret, nullptr); // derive cpk_i from csk_i
+					uint8_t authInput[100];
+					ck.Agree (ephemeralPublicKey, authInput); // sharedSecret is first 32 bytes of authInput
+					memcpy (authInput + 32, ck.GetPublicKey (), 32); // cpk_i
+					memcpy (authInput + 32, subcredential, 36);
+					uint8_t okm[64]; // 52 actual data
+					i2p::crypto::HKDF (ephemeralPublicKey, authInput, 100, "ELS2_XCA", okm); 
+					if (!GetAuthCookie (authClients, numClients, okm, authCookie))
+						LogPrint (eLogError, "LeaseSet2: Client cookie DH not found"); 
+				}
+				else
+					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: csk_i is not provided");	
+			}
+			else if (flag & 0x02) // PSK, bit 1 is set to 1
 			{
 				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
 				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
 				if (offset > len) 
 				{
-					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in auth data");
+					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in PSK auth data");
 					return 0;
 				}
 				// calculate authCookie
@@ -555,21 +598,8 @@ namespace data
 					memcpy (authInput + 32, subcredential, 36);
 					uint8_t okm[64]; // 52 actual data
 					i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm);  
-					// try to find clientCookie_i  for clientID_i = okm[44:51]
-					bool found = false;
-					for (int i = 0; i < numClients; i++)
-					{
-						if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
-						{
-							// clientKey_i = okm[0:31]
-							// clientIV_i = okm[32:43]
-							i2p::crypto::ChaCha20 (authClients + i*40 + 8, 32, okm, okm + 32, authCookie); // clientCookie_i 
-							found = true;
-							break;
-						}	
-					}
-					if (!found)
-						LogPrint (eLogError, "LeaseSet2: Client cookie not found");
+					if (!GetAuthCookie (authClients, numClients, okm, authCookie))
+						LogPrint (eLogError, "LeaseSet2: Client cookie PSK not found");
 				}
 				else
 					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: psk_i is not provided");
