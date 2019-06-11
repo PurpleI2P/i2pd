@@ -571,7 +571,7 @@ namespace data
 					uint8_t authInput[100];
 					ck.Agree (ephemeralPublicKey, authInput); // sharedSecret is first 32 bytes of authInput
 					memcpy (authInput + 32, ck.GetPublicKey (), 32); // cpk_i
-					memcpy (authInput + 32, subcredential, 36);
+					memcpy (authInput + 64, subcredential, 36);
 					uint8_t okm[64]; // 52 actual data
 					i2p::crypto::HKDF (ephemeralPublicKey, authInput, 100, "ELS2_XCA", okm); 
 					if (!GetAuthCookie (authClients, numClients, okm, authCookie))
