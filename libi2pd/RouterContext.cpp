@@ -183,17 +183,18 @@ namespace i2p
 	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4only)
 	{
 		if (!m_NTCP2Keys) return;
-		if (!port)
-		{
-			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-			if (port == 9150) port = 9151; // Tor browser
-		}
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
 			{
-				address->port = port;
+				if (!port && !address->port)
+				{	
+					// select random port only if address's port is not set
+					port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+					if (port == 9150) port = 9151; // Tor browser
+				}	
+				if (port) address->port = port;
 				address->cost = publish ? 3 : 14;
 				address->ntcp2->isPublished = publish;
 				address->ntcp2->iv = m_NTCP2Keys->iv;
