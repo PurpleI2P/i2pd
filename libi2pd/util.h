@@ -46,7 +46,7 @@ namespace util
 				{
 					auto tmp = m_Head;
 					m_Head = static_cast<T*>(*(void * *)m_Head); // next
-					delete tmp;
+					::operator delete ((void *)tmp);
 				}
 			}
 
