@@ -691,21 +691,23 @@ namespace client
 	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
+		const std::string name = operand;
 		std::string statusLine;
-		if (m_Nickname == operand)
+
+		// always prefer destination
+		auto ptr = m_Owner.FindDestination(name);
+		if(ptr != nullptr)
 		{
-			// check current tunnel
-			BuildStatusLine(true, nullptr, statusLine);
+			// tunnel destination exists
+			BuildStatusLine(false, ptr, statusLine);
 			SendReplyOK(statusLine.c_str());
 		}
 		else
 		{
-			// check other
-			std::string name = operand;
-			auto ptr = m_Owner.FindDestination(name);
-			if(ptr != nullptr)
+			if(m_Nickname == name && !name.empty())
 			{
-				BuildStatusLine(false, ptr, statusLine);
+				// tunnel is incomplete / has not been started yet
+				BuildStatusLine(true, nullptr, statusLine);
 				SendReplyOK(statusLine.c_str());
 			}
 			else
