@@ -341,10 +341,10 @@ namespace client
 		SendReplyOK();
 	}
 
-	void BOBCommandSession::SendData (const char * data)
+	void BOBCommandSession::SendRaw (const char * data)
 	{
 		std::ostream os(&m_SendBuffer);
-		os << "DATA " << data << std::endl;
+		os << data << std::endl;
 	}
 	
 	void BOBCommandSession::BuildStatusLine(bool currentTunnel, BOBDestination *dest, std::string &out)
@@ -370,7 +370,8 @@ namespace client
 		
 		// build line
 		std::stringstream ss;
-		ss	<< "NICKNAME: " << nickname          << " " << "STARTING: " << bool_str(starting) << " "
+		ss	<< "DATA "
+			<< "NICKNAME: " << nickname          << " " << "STARTING: " << bool_str(starting) << " "
 			<< "RUNNING: "  << bool_str(running) << " " << "STOPPING: " << bool_str(stopping) << " "
 			<< "KEYS: "     << bool_str(keys)    << " " << "QUIET: "    << bool_str(quiet) << " "
 			<< "INPORT: "   << inport            << " " << "INHOST: "   << inhost << " "
@@ -654,16 +655,16 @@ namespace client
 		for (const auto& it: destinations)
 		{
 			BuildStatusLine(false, it.second, statusLine);
-			SendData (statusLine.c_str());
+			SendRaw(statusLine.c_str());
 			if(m_Nickname.compare(it.second->GetNickname()) == 0)
 				sentCurrent = true;
 		}
 		if(!sentCurrent && !m_Nickname.empty())
 		{
-			// add the current tunnel to the list
+			// add the current tunnel to the list.
+			// this is for the incomplete tunnel which has not been started yet.
 			BuildStatusLine(true, m_CurrentDestination, statusLine);
-			LogPrint(eLogError, statusLine);
-			SendData(statusLine.c_str());
+			SendRaw(statusLine.c_str());
 		}
 		SendReplyOK ("Listing done");
 	}
@@ -690,21 +691,23 @@ namespace client
 	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
+		const std::string name = operand;
 		std::string statusLine;
-		if (m_Nickname == operand)
+
+		// always prefer destination
+		auto ptr = m_Owner.FindDestination(name);
+		if(ptr != nullptr)
 		{
-			// check current tunnel
-			BuildStatusLine(true, nullptr, statusLine);
+			// tunnel destination exists
+			BuildStatusLine(false, ptr, statusLine);
 			SendReplyOK(statusLine.c_str());
 		}
 		else
 		{
-			// check other
-			std::string name = operand;
-			auto ptr = m_Owner.FindDestination(name);
-			if(ptr != nullptr)
+			if(m_Nickname == name && !name.empty())
 			{
-				BuildStatusLine(false, ptr, statusLine);
+				// tunnel is incomplete / has not been started yet
+				BuildStatusLine(true, nullptr, statusLine);
 				SendReplyOK(statusLine.c_str());
 			}
 			else
