@@ -661,9 +661,9 @@ namespace client
 		}
 		if(!sentCurrent && !m_Nickname.empty())
 		{
-			// add the current tunnel to the list
+			// add the current tunnel to the list.
+			// this is for the incomplete tunnel which has not been started yet.
 			BuildStatusLine(true, m_CurrentDestination, statusLine);
-			LogPrint(eLogError, statusLine);
 			SendRaw(statusLine.c_str());
 		}
 		SendReplyOK ("Listing done");
