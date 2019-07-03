@@ -523,9 +523,10 @@ namespace data
 		auto total = m_RouterInfos.size ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+		auto uptime = i2p::context.GetUptime ();	
 		// routers don't expire if less than 90 or uptime is less than 1 hour
-		bool checkForExpiration = total > NETDB_MIN_ROUTERS && ts > (i2p::context.GetStartupTime () + 600)*1000LL; // 10 minutes
-		if (checkForExpiration && ts > (i2p::context.GetStartupTime () + 3600)*1000LL) // 1 hour
+		bool checkForExpiration = total > NETDB_MIN_ROUTERS && uptime > 600; // 10 minutes
+		if (checkForExpiration && uptime > 3600) // 1 hour
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 					NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
@@ -909,7 +910,7 @@ namespace data
 				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (leaseSet);
+					replyMsg = CreateDatabaseStoreMsg (ident, leaseSet);
 				}
 			}
 

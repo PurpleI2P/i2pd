@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <chrono>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -64,8 +65,7 @@ namespace i2p
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
 			i2p::crypto::X25519Keys& GetStaticKeys (); 
 
-			uint32_t GetUptime () const;
-			uint32_t GetStartupTime () const { return m_StartupTime; };
+			uint32_t GetUptime () const; // in seconds
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
 			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
@@ -137,7 +137,7 @@ namespace i2p
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LastUpdateTime; // in seconds
 			bool m_AcceptsTunnels, m_IsFloodfill;
-			uint64_t m_StartupTime; // in seconds since epoch
+			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;
 			RouterStatus m_Status;

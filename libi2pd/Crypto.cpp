@@ -296,11 +296,20 @@ namespace crypto
 #if OPENSSL_X25519		
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
-		memcpy (m_PublicKey, pub, 32); // TODO: verify against m_Pkey
+		if (pub)
+			memcpy (m_PublicKey, pub, 32); // TODO: verify against m_Pkey
+		else
+		{
+			size_t len = 32;
+			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
+		}		
 #else
+		m_Ctx = BN_CTX_new ();	
 		memcpy (m_PrivateKey, priv, 32);
-		memcpy (m_PublicKey, pub, 32);
-		m_Ctx = BN_CTX_new ();
+		if (pub)
+			memcpy (m_PublicKey, pub, 32);
+		else
+			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
 #endif		
 	}	
 	

@@ -4,19 +4,22 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11 -ggdb
+QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
 DEFINES += USE_UPNP
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/api.cpp \
     ../../libi2pd/Base.cpp \
+    ../../libi2pd/Blinding.cpp \
     ../../libi2pd/BloomFilter.cpp \
+    ../../libi2pd/ChaCha20.cpp \
     ../../libi2pd/Config.cpp \
     ../../libi2pd/CPU.cpp \
     ../../libi2pd/Crypto.cpp \
-	../../libi2pd/CryptoKey.cpp \
+    ../../libi2pd/CryptoKey.cpp \
     ../../libi2pd/Datagram.cpp \
     ../../libi2pd/Destination.cpp \
+    ../../libi2pd/Ed25519.cpp \
     ../../libi2pd/Event.cpp \
     ../../libi2pd/Family.cpp \
     ../../libi2pd/FS.cpp \
@@ -31,7 +34,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/Log.cpp \
     ../../libi2pd/NetDb.cpp \
     ../../libi2pd/NetDbRequests.cpp \
+    ../../libi2pd/NTCP2.cpp \
     ../../libi2pd/NTCPSession.cpp \
+    ../../libi2pd/Poly1305.cpp \
     ../../libi2pd/Profiling.cpp \
     ../../libi2pd/Reseed.cpp \
     ../../libi2pd/RouterContext.cpp \
@@ -49,9 +54,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
-    ../../libi2pd/Ed25519.cpp \
-    ../../libi2pd/Chacha20.cpp \
-    ../../libi2pd/Poly1305.cpp \    
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \
@@ -64,42 +66,37 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd_client/SOCKS.cpp \
     ../../libi2pd_client/Websocket.cpp \
     ../../libi2pd_client/WebSocks.cpp \
+    ../../daemon/Daemon.cpp \
+    ../../daemon/HTTPServer.cpp \
+    ../../daemon/I2PControl.cpp \
+    ../../daemon/i2pd.cpp \
+    ../../daemon/UPnP.cpp \
     ClientTunnelPane.cpp \
     MainWindowItems.cpp \
     ServerTunnelPane.cpp \
     SignatureTypeComboboxFactory.cpp \
     TunnelConfig.cpp \
     TunnelPane.cpp \
-    ../../daemon/Daemon.cpp \
-    ../../daemon/HTTPServer.cpp \
-    ../../daemon/i2pd.cpp \
-    ../../daemon/I2PControl.cpp \
-    ../../daemon/UnixDaemon.cpp \
-    ../../daemon/UPnP.cpp \
     textbrowsertweaked1.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
-    logviewermanager.cpp \
-    ../../libi2pd/NTCP2.cpp
-
-#qt creator does not handle this well
-#SOURCES += $$files(../../libi2pd/*.cpp)
-#SOURCES += $$files(../../libi2pd_client/*.cpp)
-#SOURCES += $$files(../../daemon/*.cpp)
-#SOURCES += $$files(./*.cpp)
-
-SOURCES -= ../../daemon/UnixDaemon.cpp
+    logviewermanager.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/api.h \
     ../../libi2pd/Base.h \
+    ../../libi2pd/Blinding.h \
     ../../libi2pd/BloomFilter.h \
+    ../../libi2pd/ChaCha20.h \
     ../../libi2pd/Config.h \
+    ../../libi2pd/CPU.h \
     ../../libi2pd/Crypto.h \
-	../../libi2pd/CryptoKey.h \
+    ../../libi2pd/CryptoKey.h \
+    ../../libi2pd/CryptoWorker.h \
     ../../libi2pd/Datagram.h \
     ../../libi2pd/Destination.h \
+    ../../libi2pd/Ed25519.h \
     ../../libi2pd/Event.h \
     ../../libi2pd/Family.h \
     ../../libi2pd/FS.h \
@@ -115,13 +112,16 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/Log.h \
     ../../libi2pd/NetDb.hpp \
     ../../libi2pd/NetDbRequests.h \
+    ../../libi2pd/NTCP2.h \
     ../../libi2pd/NTCPSession.h \
+    ../../libi2pd/Poly1305.h \
     ../../libi2pd/Profiling.h \
     ../../libi2pd/Queue.h \
     ../../libi2pd/Reseed.h \
     ../../libi2pd/RouterContext.h \
     ../../libi2pd/RouterInfo.h \
     ../../libi2pd/Signature.h \
+    ../../libi2pd/Siphash.h \
     ../../libi2pd/SSU.h \
     ../../libi2pd/SSUData.h \
     ../../libi2pd/SSUSession.h \
@@ -151,6 +151,10 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd_client/SOCKS.h \
     ../../libi2pd_client/Websocket.h \
     ../../libi2pd_client/WebSocks.h \
+    ../../daemon/Daemon.h \
+    ../../daemon/HTTPServer.h \
+    ../../daemon/I2PControl.h \
+    ../../daemon/UPnP.h \
     ClientTunnelPane.h \
     MainWindowItems.h \
     ServerTunnelPane.h \
@@ -158,15 +162,10 @@ HEADERS  += DaemonQT.h mainwindow.h \
     TunnelConfig.h \
     TunnelPane.h \
     TunnelsPageUpdateListener.h \
-    ../../daemon/Daemon.h \
-    ../../daemon/HTTPServer.h \
-    ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h \
     textbrowsertweaked1.h \
     pagewithbackbutton.h \
     widgetlock.h \
     widgetlockregistry.h \
-    i2pd.rc \
     i2pd.rc \
     logviewermanager.h
 

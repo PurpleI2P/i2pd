@@ -396,6 +396,10 @@ namespace transport
 		{
 			m_IsTerminated = true;
 			m_IsEstablished = false;
+			boost::system::error_code ec;
+			m_Socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+			if (ec)
+				LogPrint (eLogDebug, "NTCP2: Couldn't shutdown socket: ", ec.message ());
 			m_Socket.close ();
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());

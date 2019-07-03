@@ -70,6 +70,16 @@ namespace client
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
 					m_LeaseSetType = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_LEASESET_PRIV_KEY);
+				if (it != params->end ())
+				{
+					m_LeaseSetPrivKey.reset (new i2p::data::Tag<32>());
+					if (m_LeaseSetPrivKey->FromBase64 (it->second) != 32)
+					{
+						LogPrint(eLogError, "Destination: invalid value i2cp.leaseSetPrivKey ", it->second);
+						m_LeaseSetPrivKey.reset (nullptr);
+					}
+				}
 			}
 		}
 		catch (std::exception & ex)
@@ -422,7 +432,7 @@ namespace client
 				auto it2 = m_LeaseSetRequests.find (key);
 				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedBlindedKey)
 				{
-					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedBlindedKey);
+					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? *m_LeaseSetPrivKey : nullptr);
 					if (ls2->IsValid ())
 					{
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key

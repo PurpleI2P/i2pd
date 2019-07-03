@@ -19,7 +19,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
-		m_StartupTime (0), m_ShareRatio (100), m_Status (eRouterStatusOK),
+		m_ShareRatio (100), m_Status (eRouterStatusOK),
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -27,7 +27,7 @@ namespace i2p
 	void RouterContext::Init ()
 	{
 		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
-		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
+		m_StartupTime = std::chrono::steady_clock::now();
 		if (!Load ())
 			CreateNewRouter ();
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
@@ -183,17 +183,18 @@ namespace i2p
 	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4only)
 	{
 		if (!m_NTCP2Keys) return;
-		if (!port)
-		{
-			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-			if (port == 9150) port = 9151; // Tor browser
-		}
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
 			{
-				address->port = port;
+				if (!port && !address->port)
+				{	
+					// select random port only if address's port is not set
+					port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+					if (port == 9150) port = 9151; // Tor browser
+				}	
+				if (port) address->port = port;
 				address->cost = publish ? 3 : 14;
 				address->ntcp2->isPublished = publish;
 				address->ntcp2->iv = m_NTCP2Keys->iv;
@@ -715,7 +716,7 @@ namespace i2p
 
 	uint32_t RouterContext::GetUptime () const
 	{
-		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
+		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
 	}
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const

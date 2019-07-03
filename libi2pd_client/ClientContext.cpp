@@ -395,6 +395,8 @@ namespace client
 		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "");
 		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
+		std::string privKey = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_PRIV_KEY, "");
+		if (privKey.length () > 0) options[I2CP_PARAM_LEASESET_PRIV_KEY] = privKey;
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
