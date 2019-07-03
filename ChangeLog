@@ -1,6 +1,16 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.27.0] - 2019-07-03
+### Added
+- Support of PSK and DH authentication for encrypted LeaseSet2
+### Changed
+- Uptime is based on monotonic timer
+### Fixed
+- BOB status command response
+- Correct NTCP2 port if NTCP is disabled
+- Flood encrypted LeaseSet2 with store hash
+
 ## [2.26.0] - 2019-06-07
 ### Added
 - HTTP method "PROPFIND"

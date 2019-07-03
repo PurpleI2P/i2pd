@@ -29,8 +29,8 @@ android {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 28
         minSdkVersion 14
-        versionCode 2260
-        versionName "2.26.0"
+        versionCode 2270
+        versionName "2.27.0"
         ndk {
             abiFilters 'armeabi-v7a'
             abiFilters 'x86'
