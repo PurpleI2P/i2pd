@@ -133,7 +133,7 @@ namespace datagram
 			htobe32buf (msg->GetPayload (), size); // length
 			htobe16buf (buf + 4, fromPort); // source port
 			htobe16buf (buf + 6, toPort); // destination port
-			buf[9] = isRaw ? i2p::client::PROTOCOL_TYPE_DATAGRAM : i2p::client::PROTOCOL_TYPE_DATAGRAM; // raw or datagram protocol
+			buf[9] = isRaw ? i2p::client::PROTOCOL_TYPE_RAW : i2p::client::PROTOCOL_TYPE_DATAGRAM; // raw or datagram protocol
 			msg->len += size + 4;
 			msg->FillI2NPMessageHeader (eI2NPData);
 		}
