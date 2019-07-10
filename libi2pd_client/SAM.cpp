@@ -259,7 +259,7 @@ namespace client
 						ProcessDestGenerate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
-					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
+					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND) || !strcmp (m_Buffer, SAM_RAW_SEND))
 					{
 						size_t len = bytes_transferred - (separator - m_Buffer) - 1;
 						size_t processed = ProcessDatagramSend (separator + 1, len, eol + 1);

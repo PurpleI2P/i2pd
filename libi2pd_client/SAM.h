@@ -40,6 +40,7 @@ namespace client
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
 	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
+	const char SAM_RAW_SEND[] = "RAW SEND";
 	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
 	const char SAM_DEST_REPLY[] = "DEST REPLY PUB=%s PRIV=%s\n";
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
