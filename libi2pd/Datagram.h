@@ -37,7 +37,7 @@ namespace datagram
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
 	public:
-		DatagramSession(i2p::client::ClientDestination * localDestination, const i2p::data::IdentHash & remoteIdent);
+		DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination, const i2p::data::IdentHash & remoteIdent);
 
 		void Start ();
 		void Stop ();
@@ -81,7 +81,7 @@ namespace datagram
     void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
 
 	private:
-		i2p::client::ClientDestination * m_LocalDestination;
+		std::shared_ptr<i2p::client::ClientDestination> m_LocalDestination;
     i2p::data::IdentHash m_RemoteIdent;
     std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
     std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
@@ -99,22 +99,28 @@ namespace datagram
 	class DatagramDestination
 	{
 		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
+		typedef std::function<void (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> RawReceiver;
 
+		
 		public:
 
 
     DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
 			~DatagramDestination ();
 
-	void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
-			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-
+			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+			void SendRawDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw = false);
+						
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
 			void ResetReceiver () { m_Receiver = nullptr; };
 
 			void SetReceiver (const Receiver& receiver, uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts[port] = receiver; };
 			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
 
+			void SetRawReceiver (const RawReceiver& receiver) { m_RawReceiver = receiver; };
+			void ResetRawReceiver () { m_RawReceiver = nullptr; };
+			
 			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
 
 			// clean up stale sessions
@@ -124,17 +130,19 @@ namespace datagram
 
     std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort, bool isRaw = false);
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
-
+			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			
 			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
 
 		private:
-			i2p::client::ClientDestination * m_Owner;
-			i2p::data::IdentityEx m_Identity;
+
+			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
 			Receiver m_Receiver; // default
+			RawReceiver m_RawReceiver; // default
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, DatagramSession_ptr > m_Sessions;
 			std::mutex m_ReceiversMutex;

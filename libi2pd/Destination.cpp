@@ -977,6 +977,13 @@ namespace client
 				else
 					LogPrint (eLogError, "Destination: Missing datagram destination");
 			break;
+			case PROTOCOL_TYPE_RAW:
+				// raw datagram
+				if (m_DatagramDestination)
+					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length, true);
+				else
+					LogPrint (eLogError, "Destination: Missing raw datagram destination");
+			break;	
 			default:
 				LogPrint (eLogError, "Destination: Data: unexpected protocol ", buf[9]);
 		}
