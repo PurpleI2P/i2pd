@@ -247,16 +247,31 @@ namespace data
 			size_t m_BufferLen;
 	};
 
+
 	class LocalEncryptedLeaseSet2: public LocalLeaseSet2
 	{
 		public:
 
-			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); 
+			enum LeaseSetAuthType
+			{
+				eLeaseSetAuthTypeNone = 0,
+				eLeaseSetAuthTypeDH = 1,
+				eLeaseSetAuthTypePSK = 2
+			};
+			typedef i2p::data::Tag<32> AuthPublicKey;
+
+		public:
+
+			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, LeaseSetAuthType authType = eLeaseSetAuthTypeNone, std::shared_ptr<std::vector<AuthPublicKey> > authKeys = nullptr); 
 
 			LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP
 
 			const IdentHash& GetStoreHash () const { return m_StoreHash; };
 			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; };
+
+		private:
+
+			void CreateClientAuthData (const uint8_t * subcredential, LeaseSetAuthType authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authClients) const;
 
 		private:
 
