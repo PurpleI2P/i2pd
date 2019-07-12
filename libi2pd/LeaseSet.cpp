@@ -821,7 +821,7 @@ namespace data
 		{
 			if (authType == eLeaseSetAuthTypeDH) layer1Flags |= 0x01; // DH, authentication scheme 0, auth bit 1
 			else if (authType == eLeaseSetAuthTypePSK) layer1Flags |= 0x03; // PSK, authentication scheme 1, auth bit 1
-			m_BufferLen += authKeys->size ()*40 + 2; // auth data len
+			if (layer1Flags) m_BufferLen += authKeys->size ()*40 + 2; // auth data len
 		}
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
