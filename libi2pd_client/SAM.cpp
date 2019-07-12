@@ -1001,8 +1001,9 @@ namespace client
 
 	SAMBridge::SAMBridge (const std::string& address, int port):
 		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
-		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint),
+		m_Service(std::make_shared<boost::asio::io_service>()),
+		m_Acceptor (*m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
+		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (*m_Service, m_DatagramEndpoint),
 		m_SignatureTypes
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
@@ -1046,7 +1047,7 @@ namespace client
 		for (auto& it: m_Sessions)
 			it.second->CloseStreams ();
 		m_Sessions.clear ();
-		m_Service.stop ();
+		m_Service->stop ();
 		if (m_Thread)
 		{
 			m_Thread->join ();
@@ -1061,7 +1062,7 @@ namespace client
 		{
 			try
 			{
-				m_Service.run ();
+				m_Service->run ();
 			}
 			catch (std::exception& ex)
 			{
@@ -1116,7 +1117,7 @@ namespace client
 		{
 			i2p::data::PrivateKeys keys;
 			if (!keys.FromBase64 (destination)) return nullptr;
-			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
+			localDestination = i2p::client::context.CreateNewSAMDestination (m_Service, keys, true, params);
 		}
 		else // transient
 		{
@@ -1144,7 +1145,7 @@ namespace client
 					}	
 				}	
 			}
-			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
+			localDestination = i2p::client::context.CreateNewSAMDestination (m_Service, true, signatureType, cryptoType, params);
 		}
 		if (localDestination)
 		{

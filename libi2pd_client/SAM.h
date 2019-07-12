@@ -184,7 +184,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return *m_Service; };
 			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string	 means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
@@ -213,7 +213,7 @@ namespace client
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
+			std::shared_ptr<boost::asio::io_service> m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
