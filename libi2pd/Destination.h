@@ -134,6 +134,7 @@ namespace client
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
+			bool IsPublic () const { return m_IsPublic; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;

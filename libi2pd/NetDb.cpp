@@ -307,10 +307,18 @@ namespace data
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
-				// TODO: implement actual update
-				LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
-				m_LeaseSets[ident] = leaseSet;
-				return true;
+				if (leaseSet->IsPublic ())
+				{
+					// TODO: implement actual update
+					LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
+					m_LeaseSets[ident] = leaseSet;
+					return true;
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NetDb: Unpublished LeaseSet2 received: ", ident.ToBase32());
+					m_LeaseSets.erase (ident);
+				}
 			}
 		}
 		else

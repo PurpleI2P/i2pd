@@ -129,7 +129,8 @@ namespace data
 	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
 
 	const uint16_t LEASESET2_FLAG_OFFLINE_KEYS = 0x0001;
-	
+	const uint16_t LEASESET2_FLAG_UNPUBLISHED_LEASESET = 0x0002;	
+
 	class LeaseSet2: public LeaseSet
 	{
 		public:
@@ -139,6 +140,7 @@ namespace data
 			uint8_t GetStoreType () const { return m_StoreType; };
 			uint8_t GetOrigStoreType () const { return m_OrigStoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
+			bool IsPublic () const { return m_IsPublic; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
@@ -162,6 +164,7 @@ namespace data
 
 			uint8_t m_StoreType, m_OrigStoreType;  
 			uint32_t m_PublishedTimestamp = 0;
+			bool m_IsPublic = true;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
@@ -227,7 +230,7 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
-				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, bool isPublic);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	// from I2CP
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };

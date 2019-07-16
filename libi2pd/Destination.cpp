@@ -1147,7 +1147,7 @@ namespace client
 			// standard LS2 (type 3) first
 			auto keyLen = m_Decryptor ? m_Decryptor->GetPublicKeyLen () : 256;
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
-				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels);
+				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels, IsPublic ());
 			if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) // encrypt if type 5
 				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys);
 			leaseSet = ls2;

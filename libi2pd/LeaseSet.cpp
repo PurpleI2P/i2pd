@@ -302,6 +302,7 @@ namespace data
 				return;
 			}
 		}
+		if (flags & LEASESET2_FLAG_UNPUBLISHED_LEASESET) m_IsPublic = false;
 		// type specific part
 		size_t s = 0;
 		switch (m_StoreType)
@@ -741,7 +742,7 @@ namespace data
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 		uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
-		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
+		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, bool isPublic):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{
 		auto identity = keys.GetPublic ();
@@ -756,6 +757,7 @@ namespace data
 			flags |= LEASESET2_FLAG_OFFLINE_KEYS;
 			m_BufferLen += keys.GetOfflineSignature ().size ();	
 		}
+		if (!isPublic) flags |= LEASESET2_FLAG_UNPUBLISHED_LEASESET;
 
 		m_Buffer = new uint8_t[m_BufferLen + 1];
 		m_Buffer[0] = storeType;	
