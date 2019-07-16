@@ -812,7 +812,7 @@ namespace data
 	}
 
 	LocalEncryptedLeaseSet2::LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, 
-		LeaseSetAuthType authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys):
+		int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys):
 		LocalLeaseSet2 (ls->GetIdentity ()), m_InnerLeaseSet (ls)
 	{
 		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1,
@@ -821,8 +821,8 @@ namespace data
 		uint8_t layer1Flags = 0;
 		if (authKeys)
 		{
-			if (authType == eLeaseSetAuthTypeDH) layer1Flags |= 0x01; // DH, authentication scheme 0, auth bit 1
-			else if (authType == eLeaseSetAuthTypePSK) layer1Flags |= 0x03; // PSK, authentication scheme 1, auth bit 1
+			if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_DH) layer1Flags |= 0x01; // DH, authentication scheme 0, auth bit 1
+			else if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_PSK) layer1Flags |= 0x03; // PSK, authentication scheme 1, auth bit 1
 			if (layer1Flags) m_BufferLen += authKeys->size ()*40 + 2; // auth data len
 		}
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
@@ -905,9 +905,9 @@ namespace data
 			LogPrint (eLogError, "LeaseSet2: couldn't extract inner layer");			
 	}
 
-	void LocalEncryptedLeaseSet2::CreateClientAuthData (const uint8_t * subcredential, LeaseSetAuthType authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authClients) const 
+	void LocalEncryptedLeaseSet2::CreateClientAuthData (const uint8_t * subcredential, int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authClients) const 
 	{
-		if (authType == eLeaseSetAuthTypeDH)
+		if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_DH)
 		{
 			i2p::crypto::X25519Keys ek;
 			ek.GenerateKeys (); // esk and epk

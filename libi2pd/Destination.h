@@ -252,6 +252,9 @@ namespace client
 			void ScheduleCheckForReady(ReadyPromise * p);
 			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
 #endif
+
+			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
+
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
@@ -266,6 +269,9 @@ namespace client
 			int m_RefCounter; // how many clients(tunnels) use this destination
 
 			boost::asio::deadline_timer m_ReadyChecker;
+
+			int m_AuthType;
+			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys;  
 
 		public:
 

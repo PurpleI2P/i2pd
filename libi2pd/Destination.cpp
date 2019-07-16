@@ -846,7 +846,7 @@ namespace client
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params), m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
-		m_ReadyChecker(GetService())
+		m_ReadyChecker(GetService()), m_AuthType (i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -868,12 +868,46 @@ namespace client
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 
-		// extract streaming params
-		if (params)
+		try
+		{	
+			if (params)
+			{
+				// extract streaming params
+				auto it = params->find (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY);
+				if (it != params->end ())
+					m_StreamingAckDelay = std::stoi(it->second);
+
+				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+				{
+					// authentication for encrypted LeaseSet
+					it = params->find (I2CP_PARAM_LEASESET_AUTH_TYPE);
+					m_AuthType = std::stoi (it->second);
+					if (m_AuthType > 0)
+					{
+						m_AuthKeys = std::make_shared<std::vector<i2p::data::AuthPublicKey> >();
+						if (m_AuthType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_DH)
+							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_DH, params);	
+						else if (m_AuthType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
+							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_PSK, params);	
+						else
+						{
+							LogPrint (eLogError, "Destination: Unexpected auth type ", m_AuthType);
+							m_AuthType = 0;
+						}
+						if (m_AuthKeys->size ())
+							LogPrint (eLogInfo, "Destination: ", m_AuthKeys->size (), " auth keys read");
+						else
+						{
+							LogPrint (eLogError, "Destination: No auth keys read for auth type ", m_AuthType);
+							m_AuthKeys = nullptr;	
+						}
+					}
+				}
+			}
+		}
+		catch (std::exception & ex)
 		{
-			auto it = params->find (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY);
-			if (it != params->end ())
-				m_StreamingAckDelay = std::stoi(it->second);
+			LogPrint(eLogError, "Destination: unable to parse parameters for destination: ", ex.what());
 		}
 	}
 
@@ -1149,7 +1183,7 @@ namespace client
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels, IsPublic ());
 			if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) // encrypt if type 5
-				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys);
+				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys, m_AuthType, m_AuthKeys);
 			leaseSet = ls2;
 		}
 		SetLeaseSet (leaseSet);
@@ -1167,6 +1201,23 @@ namespace client
 		else
 			LogPrint (eLogError, "Destinations: decryptor is not set");
 		return false;
+	}
+
+	void ClientDestination::ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params)
+	{
+		for (auto it: *params)
+		if (it.first.length () >= group.length () && !it.first.compare (0, group.length (), group))
+		{
+			auto pos = it.second.find (':');
+			if (pos != std::string::npos)
+			{
+				i2p::data::AuthPublicKey pubKey;
+				if (pubKey.FromBase64 (it.second.substr (pos+1)))
+					m_AuthKeys->push_back (pubKey);
+				else
+					LogPrint (eLogError, "Destination: Unexpected auth key ", it.second.substr (pos+1));
+			}	
+		}
 	}
 }
 }
