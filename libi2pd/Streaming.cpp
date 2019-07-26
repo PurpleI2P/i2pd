@@ -964,7 +964,6 @@ namespace stream
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
-		m_LastIncomingReceiveStreamID (0),
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
 	}
@@ -1013,18 +1012,17 @@ namespace stream
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-				if (receiveStreamID == m_LastIncomingReceiveStreamID)
+				auto it1 = m_IncomingStreams.find (receiveStreamID);
+				if (it1 != m_IncomingStreams.end ())
 				{
 					// already pending
 					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}
-				auto incomingStream = CreateNewIncomingStream ();
+				auto incomingStream = CreateNewIncomingStream (receiveStreamID);
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
-			 
-				m_LastIncomingReceiveStreamID = receiveStreamID;
 
 				// handle saved packets if any
 				{
@@ -1062,13 +1060,13 @@ namespace stream
 			else // follow on packet without SYN
 			{
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-				for (auto& it: m_Streams)
-					if (it.second->GetSendStreamID () == receiveStreamID)
-					{
-						// found
-						it.second->HandleNextPacket (packet);
-						return;
-					}
+				auto it1 = m_IncomingStreams.find (receiveStreamID);
+				if (it1 != m_IncomingStreams.end ())
+				{
+					// found
+					it1->second->HandleNextPacket (packet);
+					return;
+				}
 				// save follow on packet
 				auto it = m_SavedPackets.find (receiveStreamID);
 				if (it != m_SavedPackets.end ())
@@ -1105,11 +1103,12 @@ namespace stream
 		return s;
 	}
 
-	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream ()
+	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream (uint32_t receiveStreamID)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
+		m_IncomingStreams[receiveStreamID] = s;
 		return s;
 	}
 
@@ -1118,9 +1117,8 @@ namespace stream
 		if (stream)
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			auto it = m_Streams.find (stream->GetRecvStreamID ());
-			if (it != m_Streams.end ())
-				m_Streams.erase (it);
+			m_Streams.erase (stream->GetRecvStreamID ());
+			m_IncomingStreams.erase (stream->GetSendStreamID ());
 		}
 	}
 
