@@ -239,6 +239,7 @@ namespace client
 			char * eol = (char *)memchr (m_Buffer, '\n', bytes_transferred);
 			if (eol)
 			{
+				if (eol > m_Buffer && eol[-1] == '\r') eol--;
 				*eol = 0;
 				char * separator = strchr (m_Buffer, ' ');
 				if (separator)
