@@ -79,7 +79,6 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-			virtual uint8_t GetOrigStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
 			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
 			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
 			virtual bool IsPublishedEncrypted () const { return false; };
@@ -140,7 +139,6 @@ namespace data
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
 			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
-			uint8_t GetOrigStoreType () const { return m_OrigStoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			bool IsPublic () const { return m_IsPublic; };
 			bool IsPublishedEncrypted () const { return m_IsPublishedEncrypted; };
@@ -165,7 +163,7 @@ namespace data
 
 		private:
 
-			uint8_t m_StoreType, m_OrigStoreType;  
+			uint8_t m_StoreType;  
 			uint32_t m_PublishedTimestamp = 0;
 			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;

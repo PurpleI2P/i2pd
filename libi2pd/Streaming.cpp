@@ -918,7 +918,7 @@ namespace stream
 			{
 				expired = false;
 				// time to request
-				if (m_RemoteLeaseSet->GetOrigStoreType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+				if (m_RemoteLeaseSet->IsPublishedEncrypted ())
 					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
 						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
 				else
