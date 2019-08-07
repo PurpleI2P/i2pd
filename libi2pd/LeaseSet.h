@@ -82,6 +82,7 @@ namespace data
 			virtual uint8_t GetOrigStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
 			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
 			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
+			virtual bool IsPublishedEncrypted () const { return false; };
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
@@ -130,6 +131,7 @@ namespace data
 
 	const uint16_t LEASESET2_FLAG_OFFLINE_KEYS = 0x0001;
 	const uint16_t LEASESET2_FLAG_UNPUBLISHED_LEASESET = 0x0002;	
+	const uint16_t LEASESET2_FLAG_PUBLISHED_ENCRYPTED = 0x0004;
 
 	class LeaseSet2: public LeaseSet
 	{
@@ -141,6 +143,7 @@ namespace data
 			uint8_t GetOrigStoreType () const { return m_OrigStoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			bool IsPublic () const { return m_IsPublic; };
+			bool IsPublishedEncrypted () const { return m_IsPublishedEncrypted; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
@@ -164,7 +167,7 @@ namespace data
 
 			uint8_t m_StoreType, m_OrigStoreType;  
 			uint32_t m_PublishedTimestamp = 0;
-			bool m_IsPublic = true;
+			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
@@ -230,7 +233,8 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
-				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, bool isPublic);
+				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, 
+				bool isPublic, bool isPublishedEncrypted = false);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	// from I2CP
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
