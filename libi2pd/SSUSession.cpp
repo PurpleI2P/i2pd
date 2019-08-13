@@ -1,4 +1,5 @@
 #include <boost/bind.hpp>
+#include "version.h"
 #include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -729,7 +730,8 @@ namespace transport
 		encryption.Encrypt (encrypted, encryptedLen, encrypted);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, iv, 16);
-		htobe16buf (buf + len + 16, encryptedLen);
+		uint16_t netid = i2p::context.GetNetID ();
+		htobe16buf (buf + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, header->mac);
 	}
 
@@ -750,7 +752,8 @@ namespace transport
 		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, header->iv, 16);
-		htobe16buf (buf + len + 16, encryptedLen);
+		uint16_t netid = i2p::context.GetNetID ();
+		htobe16buf (buf + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
 	}
 
@@ -799,7 +802,8 @@ namespace transport
 		uint16_t encryptedLen = len - (encrypted - buf);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, header->iv, 16);
-		htobe16buf (buf + len + 16, encryptedLen);
+		uint16_t netid = i2p::context.GetNetID ();
+		htobe16buf (buf + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
 		uint8_t digest[16];
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, digest);
 		return !memcmp (header->mac, digest, 16);

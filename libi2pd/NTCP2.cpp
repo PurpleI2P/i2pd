@@ -161,6 +161,7 @@ namespace transport
 		// fill options
 		uint8_t options[32]; // actual options size is 16 bytes
 		memset (options, 0, 16);
+		options[0] = i2p::context.GetNetID (); // network ID
 		options[1] = 2; // ver	
 		htobe16buf (options + 2, paddingLength); // padLen
 		// m3p2Len	
@@ -248,6 +249,11 @@ namespace transport
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, m_K, nonce, options, 16, false)) // decrypt
 		{
 			// options
+			if (options[0] && options[0] != i2p::context.GetNetID ())
+			{
+				LogPrint (eLogWarning, "NTCP2: SessionRequest networkID ", (int)options[0], " mismatch. Expected ", i2p::context.GetNetID ());
+				return false;
+			}
 			if (options[1] == 2) // ver is always 2 
 			{
 				paddingLen = bufbe16toh (options + 2);
