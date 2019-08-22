@@ -410,7 +410,7 @@ namespace client
 		auto authType = GetI2CPOption(section, I2CP_PARAM_LEASESET_AUTH_TYPE, 0);
 		if (authType != "0") // auth is set
 		{
-			options[I2CP_PARAM_LEASESET_TYPE] = authType;
+			options[I2CP_PARAM_LEASESET_AUTH_TYPE] = authType;
 			if (authType == "1") // DH
 				ReadI2CPOptionsGroup (section, I2CP_PARAM_LEASESET_CLIENT_DH, options);
 			else if (authType == "2") // PSK
@@ -629,8 +629,8 @@ namespace client
 
 					// I2CP
 					std::map<std::string, std::string> options;
-					ReadI2CPOptions (section, options);
-
+					ReadI2CPOptions (section, options);	
+					
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
