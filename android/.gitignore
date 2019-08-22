@@ -13,3 +13,4 @@ build.sh
 android.iml
 build
 *.iml
+*.local
