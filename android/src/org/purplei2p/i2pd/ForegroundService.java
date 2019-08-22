@@ -1,6 +1,5 @@
 package org.purplei2p.i2pd;
 
-import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -11,10 +10,9 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.support.annotation.RequiresApi;
-import android.support.v4.app.NotificationCompat;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 public class ForegroundService extends Service {
 	private static final String TAG="FgService";
@@ -112,14 +110,15 @@ public class ForegroundService extends Service {
 
 		// If earlier version channel ID is not used
 		// https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
-		String channelId = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? createNotificationChannel() : "";
+		String channelId = Build.VERSION.SDK_INT >= 26 ? createNotificationChannel() : "";
 
 		// Set the info for the views that show in the notification panel.
-		Notification notification = new NotificationCompat.Builder(this, channelId)
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
 				.setOngoing(true)
-				.setSmallIcon(R.drawable.itoopie_notification_icon) // the status icon
-				.setPriority(Notification.PRIORITY_DEFAULT)
-				.setCategory(Notification.CATEGORY_SERVICE)
+				.setSmallIcon(R.drawable.itoopie_notification_icon); // the status icon
+		if(Build.VERSION.SDK_INT >= 16) builder = builder.setPriority(Notification.PRIORITY_DEFAULT);
+		if(Build.VERSION.SDK_INT >= 21) builder = builder.setCategory(Notification.CATEGORY_SERVICE);
+		Notification notification = builder
 				.setTicker(text) // the status text
 				.setWhen(System.currentTimeMillis()) // the time stamp
 				.setContentTitle(getText(R.string.app_name)) // the label of the entry
@@ -141,9 +140,10 @@ public class ForegroundService extends Service {
 		//chan.setLightColor(Color.PURPLE);
 		chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
 		NotificationManager service = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-		service.createNotificationChannel(chan);
+		if(service!=null)service.createNotificationChannel(chan);
+		else Log.e(TAG, "error: NOTIFICATION_SERVICE is null");
 		return channelId;
 	}
 
-	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
+    private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }

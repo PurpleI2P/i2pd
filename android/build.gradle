@@ -5,7 +5,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.2'
+        classpath 'com.android.tools.build:gradle:3.4.2'
     }
 }
 
@@ -16,18 +16,19 @@ repositories {
     maven {
         url 'https://maven.google.com'
     }
+    google()
 }
 
 dependencies {
-    implementation 'com.android.support:support-compat:28.0.0'
+    implementation 'androidx.core:core:1.0.2'
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "org.purplei2p.i2pd"
-        targetSdkVersion 28
+        targetSdkVersion 29
         minSdkVersion 14
         versionCode 2270
         versionName "2.27.0"
@@ -80,5 +81,9 @@ android {
         ndkBuild {
             path './jni/Android.mk'
         }
+    }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
     }
 }
