@@ -990,6 +990,7 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.clear ();
+			m_IncomingStreams.clear ();
 		}
 	}
 
