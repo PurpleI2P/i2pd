@@ -44,7 +44,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 // For future package update checking
-import org.purplei2p.i2pd.BuildConfig;
 
 import static android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS;
 
@@ -86,6 +85,7 @@ public class I2PDActivity extends Activity {
 	};
 	private static volatile long graceStartedMillis;
 	private static final Object graceStartedMillis_LOCK=new Object();
+	private Menu optionsMenu;
 
 	private static String formatGraceTimeRemaining() {
 		long remainingSeconds;
@@ -138,7 +138,7 @@ public class I2PDActivity extends Activity {
 		super.onDestroy();
 		textView = null;
 		daemon.removeStateChangeListener(daemonStateUpdatedListener);
-		//cancelGracefulStop();
+		//cancelGracefulStop0();
 		try{
 			doUnbindService();
 			}catch(Throwable tr){
@@ -160,7 +160,7 @@ public class I2PDActivity extends Activity {
         }
 	}
 
-	private static void cancelGracefulStop() {
+	private void cancelGracefulStop0() {
 		Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null) {
 			gracefulQuitTimer.cancel();
@@ -232,6 +232,7 @@ public class I2PDActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.options_main, menu);
 		menu.findItem(R.id.action_battery_otimizations).setVisible(isBatteryOptimizationsOpenOsDialogApiAvailable());
+		this.optionsMenu = menu;
 		return true;
 	}
 
@@ -251,15 +252,11 @@ public class I2PDActivity extends Activity {
 			i2pdStop();
 			return true;
 			case R.id.action_graceful_stop:
-				if (getGracefulQuitTimer()!= null)
-				{
-					item.setTitle(R.string.action_graceful_stop);
-					i2pdCancelGracefulStop ();
-				}
-				else
-				{
-					item.setTitle(R.string.action_cancel_graceful_stop);	
-					i2pdGracefulStop();
+				synchronized (graceStartedMillis_LOCK) {
+					if (getGracefulQuitTimer() != null)
+						cancelGracefulStop();
+					else
+						i2pdGracefulStop();
 				}
 				return true;
 			case R.id.action_battery_otimizations:
@@ -282,7 +279,7 @@ public class I2PDActivity extends Activity {
 	}
 
 	private void i2pdStop() {
-		cancelGracefulStop();
+		cancelGracefulStop0();
 		new Thread(() -> {
             Log.d(TAG, "stopping");
             try {
@@ -329,16 +326,17 @@ public class I2PDActivity extends Activity {
         },"gracInit").start();
 	}
 	
-	private void i2pdCancelGracefulStop() 
+	private void cancelGracefulStop()
 	{
-		cancelGracefulStop();
-		Toast.makeText(this, R.string.startedOkay, Toast.LENGTH_SHORT).show();
+		cancelGracefulStop0();
 		new Thread(() -> {
             try
             {
-                Log.d(TAG, "grac stopping cancel");
-                if(daemon.isStartedOkay())
-                    daemon.startAcceptingTunnels();
+                Log.d(TAG, "canceling grac stop");
+                if(daemon.isStartedOkay()) {
+					daemon.startAcceptingTunnels();
+					runOnUiThread(() -> Toast.makeText(this, R.string.shutdown_canceled, Toast.LENGTH_SHORT).show());
+				}
                 else
                     i2pdStop();
             }
@@ -374,8 +372,19 @@ public class I2PDActivity extends Activity {
 		return gracefulQuitTimer;
 	}
 
-	private static void setGracefulQuitTimer(Timer gracefulQuitTimer) {
+	private void setGracefulQuitTimer(Timer gracefulQuitTimer) {
 		I2PDActivity.gracefulQuitTimer = gracefulQuitTimer;
+		runOnUiThread(()-> {
+			Menu menu = optionsMenu;
+			if (menu != null) {
+				MenuItem item = menu.findItem(R.id.action_graceful_stop);
+				if (item != null) {
+					synchronized (graceStartedMillis_LOCK) {
+						item.setTitle(getGracefulQuitTimer() != null ? R.string.action_cancel_graceful_stop : R.string.action_graceful_stop);
+					}
+				}
+			}
+		});
 	}
 
 	/**
@@ -398,20 +407,22 @@ public class I2PDActivity extends Activity {
 			// to a file. That doesn't appear to be the case. If the returned array is
 			// null or has 0 length, we assume the path is to a file. This means empty
 			// directories will get turned into files.
-			if (contents == null || contents.length == 0)
-			throw new IOException();
+			if (contents == null || contents.length == 0) {
+				copyFileAsset(path);
+				return;
+			}
 
 			// Make the directory.
 			File dir = new File(i2pdpath, path);
-			Log.d(TAG, "dir.mkdirs() returned "+dir.mkdirs());
+			boolean result = dir.mkdirs();
+			Log.d(TAG, "dir.mkdirs() returned " + result);
 
 			// Recurse on the contents.
 			for (String entry : contents) {
-				copyAsset(path + "/" + entry);
+				copyAsset(path + '/' + entry);
 			}
 		} catch (IOException e) {
-			Log.e(TAG,"ex ignored", e);
-			copyFileAsset(path);
+			Log.e(TAG, "ex ignored for path='" + path + "'", e);
 		}
 	}
 
@@ -424,19 +435,21 @@ public class I2PDActivity extends Activity {
 	*/
 	private void copyFileAsset(String path) {
 		File file = new File(i2pdpath, path);
-		if(!file.exists()) try {
-			InputStream in = getAssets().open(path);
-			OutputStream out = new FileOutputStream(file);
-			byte[] buffer = new byte[1024];
-			int read = in.read(buffer);
-			while (read != -1) {
-				out.write(buffer, 0, read);
-				read = in.read(buffer);
+		if(!file.exists()) {
+			try {
+				try (InputStream in = getAssets().open(path) ) {
+					try (OutputStream out = new FileOutputStream(file)) {
+						byte[] buffer = new byte[1024];
+						int read = in.read(buffer);
+						while (read != -1) {
+							out.write(buffer, 0, read);
+							read = in.read(buffer);
+						}
+					}
+				}
+			} catch (IOException e) {
+				Log.e(TAG, "", e);
 			}
-			out.close();
-			in.close();
-		} catch (IOException e) {
-			Log.e(TAG, "", e);
 		}
 	}
 

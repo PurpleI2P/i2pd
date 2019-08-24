@@ -24,4 +24,5 @@
     <string name="device_does_not_support_disabling_battery_optimizations">Your Android version does not support opting out of battery optimizations</string>
     <string name="menu_item_battery_optimizations_str">Battery Optimizations</string>
     <string name="os_version_does_not_support_battery_optimizations_show_os_dialog_api">Your Android OS version does not support showing the dialog for battery optimizations for applications.</string>
+    <string name="shutdown_canceled">Planned shutdown canceled</string>
 </resources>
