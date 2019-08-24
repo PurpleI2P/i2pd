@@ -46,6 +46,8 @@ import androidx.core.content.ContextCompat;
 // For future package update checking
 import org.purplei2p.i2pd.BuildConfig;
 
+import static android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS;
+
 public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pdActvt";
 	private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
@@ -229,7 +231,12 @@ public class I2PDActivity extends Activity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.options_main, menu);
+		menu.findItem(R.id.action_battery_otimizations).setVisible(isBatteryOptimizationsOpenOsDialogApiAvailable());
 		return true;
+	}
+
+	private boolean isBatteryOptimizationsOpenOsDialogApiAvailable() {
+		return android.os.Build.VERSION.SDK_INT >= 23;
 	}
 
 	@Override
@@ -254,10 +261,24 @@ public class I2PDActivity extends Activity {
 					item.setTitle(R.string.action_cancel_graceful_stop);	
 					i2pdGracefulStop();
 				}
-			return true;
+				return true;
+			case R.id.action_battery_otimizations:
+				onActionBatteryOptimizations();
+				return true;
 		}
 
 		return super.onOptionsItemSelected(item);
+	}
+
+	private void onActionBatteryOptimizations() {
+		if (isBatteryOptimizationsOpenOsDialogApiAvailable()) {
+			try {
+				startActivity(new Intent(ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+			} catch (ActivityNotFoundException e) {
+				Log.e(TAG,"BATT_OPTIM_DIALOG_ActvtNotFound", e);
+				Toast.makeText(this, R.string.os_version_does_not_support_battery_optimizations_show_os_dialog_api, Toast.LENGTH_SHORT).show();
+			}
+		}
 	}
 
 	private void i2pdStop() {
@@ -389,6 +410,7 @@ public class I2PDActivity extends Activity {
 				copyAsset(path + "/" + entry);
 			}
 		} catch (IOException e) {
+			Log.e(TAG,"ex ignored", e);
 			copyFileAsset(path);
 		}
 	}
@@ -518,7 +540,7 @@ public class I2PDActivity extends Activity {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setTitle(R.string.battery_optimizations_enabled);
 			builder.setMessage(R.string.battery_optimizations_enabled_dialog);
-			builder.setPositiveButton(R.string.next, (dialog, which) -> {
+			builder.setPositiveButton(R.string.continue_str, (dialog, which) -> {
 				try {
 					startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse(PACKAGE_URI_SCHEME + getPackageName())));
 				} catch (ActivityNotFoundException e) {
