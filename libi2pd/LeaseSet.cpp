@@ -875,7 +875,7 @@ namespace data
 		{
 			RAND_bytes (innerInput, 32); // authCookie
 			htobe16buf (m_Buffer + offset, authKeys->size ()); offset += 2; // num clients
-			CreateClientAuthData (subcredential, authType, authKeys, innerInput, m_Buffer);
+			CreateClientAuthData (subcredential, authType, authKeys, innerInput, m_Buffer + offset);
 			offset += authKeys->size ()*40; // auth clients
 		}	
 		// Layer 2
