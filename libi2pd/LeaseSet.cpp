@@ -826,20 +826,18 @@ namespace data
 		int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys):
 		LocalLeaseSet2 (ls->GetIdentity ()), m_InnerLeaseSet (ls)
 	{
-		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1,
-			lenOuterCiphertext = lenOuterPlaintext + 32;
-		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + 64/*signature*/;
+		size_t lenInnerPlaintext = ls->GetBufferLen () + 1, lenOuterPlaintext = lenInnerPlaintext + 32 + 1;
 		uint8_t layer1Flags = 0;
 		if (authKeys)
 		{
 			if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_DH) layer1Flags |= 0x01; // DH, authentication scheme 0, auth bit 1
 			else if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_PSK) layer1Flags |= 0x03; // PSK, authentication scheme 1, auth bit 1
 			if (layer1Flags) 
-			{	
-				m_BufferLen += 32 + 2 + authKeys->size ()*40; // auth data len
-				lenOuterCiphertext += 32 + 2 + authKeys->size ()*40;
-			}	
-		}
+				lenOuterPlaintext += 32 + 2 + authKeys->size ()*40; // auth data len
+		}	
+		size_t lenOuterCiphertext = lenOuterPlaintext + 32;
+			
+		m_BufferLen = 2/*blinded sig type*/ + 32/*blinded pub key*/ + 4/*published*/ + 2/*expires*/ + 2/*flags*/ + 2/*lenOuterCiphertext*/ + lenOuterCiphertext + 64/*signature*/;	
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
 		m_Buffer[0] = NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 		BlindedPublicKey blindedKey (ls->GetIdentity ());
