@@ -836,8 +836,8 @@ namespace data
 			else if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_PSK) layer1Flags |= 0x03; // PSK, authentication scheme 1, auth bit 1
 			if (layer1Flags) 
 			{	
-				m_BufferLen += authKeys->size ()*40 + 2; // auth data len
-				lenOuterCiphertext += authKeys->size ()*40 + 2;
+				m_BufferLen += 32 + 2 + authKeys->size ()*40; // auth data len
+				lenOuterCiphertext += 32 + 2 + authKeys->size ()*40;
 			}	
 		}
 		m_Buffer = new uint8_t[m_BufferLen + 1]; 
@@ -878,9 +878,8 @@ namespace data
 		if (layer1Flags)
 		{
 			RAND_bytes (innerInput, 32); // authCookie
-			htobe16buf (m_Buffer + offset, authKeys->size ()); offset += 2; // num clients
 			CreateClientAuthData (subcredential, authType, authKeys, innerInput, m_Buffer + offset);
-			offset += authKeys->size ()*40; // auth clients
+			offset += 32 + 2 + authKeys->size ()*40; // auth clients
 		}	
 		// Layer 2
 		// keys = HKDF(outerSalt, outerInput, "ELS2_L2K", 44)
@@ -920,12 +919,14 @@ namespace data
 			LogPrint (eLogError, "LeaseSet2: couldn't extract inner layer");			
 	}
 
-	void LocalEncryptedLeaseSet2::CreateClientAuthData (const uint8_t * subcredential, int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authClients) const 
+	void LocalEncryptedLeaseSet2::CreateClientAuthData (const uint8_t * subcredential, int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authData) const 
 	{
 		if (authType == ENCRYPTED_LEASESET_AUTH_TYPE_DH)
 		{
 			i2p::crypto::X25519Keys ek;
 			ek.GenerateKeys (); // esk and epk
+			memcpy (authData, ek.GetPublicKey (), 32); authData += 32; // epk
+			htobe16buf (authData, authKeys->size ()); authData += 2; // num clients
 			uint8_t authInput[100]; //  sharedSecret || cpk_i || subcredential || publishedTimestamp
 			memcpy (authInput + 64, subcredential, 36);
 			for (auto& it: *authKeys)
@@ -934,14 +935,16 @@ namespace data
 				memcpy (authInput + 32, it, 32);
 				uint8_t okm[64]; // 52 actual data
 				i2p::crypto::HKDF (ek.GetPublicKey (), authInput, 100, "ELS2_XCA", okm); 
-				memcpy (authClients, okm + 44, 8); authClients += 8; // clientID_i
-				i2p::crypto::ChaCha20 (authCookie, 32, okm, okm + 32, authClients); authClients += 32; // clientCookie_i 
+				memcpy (authData, okm + 44, 8); authData += 8; // clientID_i
+				i2p::crypto::ChaCha20 (authCookie, 32, okm, okm + 32, authData); authData += 32; // clientCookie_i 
 			}
 		}
 		else // assume PSK
 		{
 			uint8_t authSalt[32];
 			RAND_bytes (authSalt, 32);
+			memcpy (authData, authSalt, 32); authData += 32; // authSalt
+			htobe16buf (authData, authKeys->size ()); authData += 2; // num clients
 			uint8_t authInput[68]; // authInput = psk_i || subcredential || publishedTimestamp
 			memcpy (authInput + 32, subcredential, 36);
 			for (auto& it: *authKeys)
@@ -949,8 +952,8 @@ namespace data
 				memcpy (authInput, it, 32);
 				uint8_t okm[64]; // 52 actual data
 				i2p::crypto::HKDF (authSalt, authInput, 68, "ELS2PSKA", okm);  
-				memcpy (authClients, okm + 44, 8); authClients += 8; // clientID_i
-				i2p::crypto::ChaCha20 (authCookie, 32, okm, okm + 32, authClients); authClients += 32; // clientCookie_i 		
+				memcpy (authData, okm + 44, 8); authData += 8; // clientID_i
+				i2p::crypto::ChaCha20 (authCookie, 32, okm, okm + 32, authData); authData += 32; // clientCookie_i 		
 			}	
 		}
 	}
