@@ -7,6 +7,8 @@ TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
 DEFINES += USE_UPNP
 
+debug: DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+
 SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/api.cpp \
     ../../libi2pd/Base.cpp \
