@@ -18,7 +18,7 @@ namespace logviewer {
 
 QString Worker::pollAndShootATimerForInfiniteRetries() {
     std::shared_ptr<std::iostream> logStream=logViewerManager.getLogStream();
-    assert(logStream!=nullptr);
+    if(!logStream)return "";
     std::streamsize MAX_SZ=64*1024;
     char*buf=(char*)malloc(MAX_SZ*sizeof(char));
     if(buf==nullptr)return "";
