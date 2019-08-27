@@ -11,6 +11,8 @@
 #include <QMutexLocker>
 #include <QThread>
 
+//#define DEBUG_WITH_DEFAULT_LOGGING (1)
+
 namespace i2p
 {
 namespace qt
@@ -151,10 +153,16 @@ namespace qt
         int result;
 
         {
-            std::shared_ptr<std::iostream> logstreamptr=std::make_shared<std::stringstream>();
+            std::shared_ptr<std::iostream> logstreamptr=
+#ifdef DEBUG_WITH_DEFAULT_LOGGING
+                    nullptr
+#else
+                    std::make_shared<std::stringstream>()
+#endif
+            ;
             //TODO move daemon init deinit to a bg thread
             DaemonQTImpl daemon;
-            (*logstreamptr) << "Initialising the daemon..." << std::endl;
+            if(logstreamptr) (*logstreamptr) << "Initialising the daemon..." << std::endl;
             bool daemonInitSuccess = daemon.init(argc, argv, logstreamptr);
             if(!daemonInitSuccess)
             {
