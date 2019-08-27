@@ -40,12 +40,14 @@ namespace client
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
 	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
+	const char SAM_RAW_SEND[] = "RAW SEND";
 	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
 	const char SAM_DEST_REPLY[] = "DEST REPLY PUB=%s PRIV=%s\n";
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
 	const char SAM_NAMING_LOOKUP[] = "NAMING LOOKUP";
 	const char SAM_NAMING_REPLY[] = "NAMING REPLY RESULT=OK NAME=ME VALUE=%s\n";
 	const char SAM_DATAGRAM_RECEIVED[] = "DATAGRAM RECEIVED DESTINATION=%s SIZE=%lu\n";
+	const char SAM_RAW_RECEIVED[] = "RAW RECEIVED SIZE=%lu\n";
 	const char SAM_NAMING_REPLY_INVALID_KEY[] = "NAMING REPLY RESULT=INVALID_KEY NAME=%s\n";
 	const char SAM_NAMING_REPLY_KEY_NOT_FOUND[] = "NAMING REPLY RESULT=KEY_NOT_FOUND NAME=%s\n";
 	const char SAM_PARAM_MIN[] = "MIN";
@@ -111,6 +113,7 @@ namespace client
 			void HandleI2PAccept (std::shared_ptr<i2p::stream::Stream> stream);
 			void HandleWriteI2PData (const boost::system::error_code& ecode, size_t sz);
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleI2PRawDatagramReceive (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
@@ -149,14 +152,23 @@ namespace client
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 	};
 
+	enum SAMSessionType
+	{
+		eSAMSessionTypeUnknown,
+		eSAMSessionTypeStream,
+		eSAMSessionTypeDatagram,
+		eSAMSessionTypeRaw
+	};
+
 	struct SAMSession
 	{
 		SAMBridge & m_Bridge;
 		std::shared_ptr<ClientDestination> localDestination;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint;
 		std::string Name;
+		SAMSessionType Type;
 
-		SAMSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest);
+		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
 		~SAMSession ();
 
 		void CloseStreams ();
@@ -173,7 +185,7 @@ namespace client
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			std::shared_ptr<SAMSession> CreateSession (const std::string& id, const std::string& destination, // empty string	 means transient
+			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string	 means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;

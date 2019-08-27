@@ -1,6 +1,18 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.28.0] - 2019-08-27
+### Added
+- RAW datagrams in SAM
+- Publishing encrypted LeaseSet2 with DH or PSH authentication
+- Ability to disable battery optimization for Android
+- Transport Network ID Check
+### Changed
+- Set and handle published encrypted flag for LeaseSet2
+### Fixed
+- ReceiveID changes in the same stream
+- "\r\n" command terminator in SAM
+
 ## [2.27.0] - 2019-07-03
 ### Added
 - Support of PSK and DH authentication for encrypted LeaseSet2

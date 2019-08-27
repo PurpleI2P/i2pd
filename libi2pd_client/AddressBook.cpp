@@ -422,9 +422,9 @@ namespace client
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
-				size_t pos = s.find('#');
+				size_t pos = addr.find('#');
 				if (pos != std::string::npos)
-					addr = addr.substr(pos); // remove comments
+					addr = addr.substr(0, pos); // remove comments
 
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
 				if (!ident->FromBase64(addr)) {

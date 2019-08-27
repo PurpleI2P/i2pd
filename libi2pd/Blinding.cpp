@@ -139,6 +139,11 @@ namespace data
 	{
 		uint8_t addr[40]; // TODO: define length from b33
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
+		if (l < 32)
+		{
+			LogPrint (eLogError, "Blinding: malformed b33 ", b33);
+			return;
+		}	
 		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
 		// checksum is Little Endian
 		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16);  

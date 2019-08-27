@@ -17,4 +17,12 @@
     <string name="remaining">remaining</string>
     <string name="title_activity_i2_pdperms_asker_prompt">Prompt</string>
     <string name="permDenied">SD card write permission denied, you need to allow this to continue</string>
+    <string name="battery_optimizations_enabled">Battery optimizations enabled</string>
+    <string name="battery_optimizations_enabled_explained">Your Android is doing some heavy battery optimizations on I2PD that might lead to daemon closing with no other reason.\nIt is recommended to allow disabling those battery optimizations.</string>
+    <string name="battery_optimizations_enabled_dialog"   >Your Android is doing some heavy battery optimizations on I2PD that might lead to daemon closing with no other reason.\n\nYou will now be asked to allow to disable those.</string>
+    <string name="continue_str">Continue</string>
+    <string name="device_does_not_support_disabling_battery_optimizations">Your Android version does not support opting out of battery optimizations</string>
+    <string name="menu_item_battery_optimizations_str">Battery Optimizations</string>
+    <string name="os_version_does_not_support_battery_optimizations_show_os_dialog_api">Your Android OS version does not support showing the dialog for battery optimizations for applications.</string>
+    <string name="shutdown_canceled">Planned shutdown canceled</string>
 </resources>

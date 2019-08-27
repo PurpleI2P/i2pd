@@ -269,8 +269,10 @@ namespace stream
 
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 
+		private:
+
 			void HandleNextPacket (Packet * packet);
-			std::shared_ptr<Stream> CreateNewIncomingStream ();
+			std::shared_ptr<Stream> CreateNewIncomingStream (uint32_t receiveStreamID);
 			void HandlePendingIncomingTimer (const boost::system::error_code& ecode);
 
 		private:
@@ -280,8 +282,8 @@ namespace stream
 			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
+			std::map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
 			Acceptor m_Acceptor;
-			uint32_t m_LastIncomingReceiveStreamID;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN

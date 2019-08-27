@@ -56,7 +56,10 @@ namespace client
 	const int DEFAULT_LEASESET_TYPE = 1;		
 	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
 	const char I2CP_PARAM_LEASESET_PRIV_KEY[] = "i2cp.leaseSetPrivKey"; // PSK decryption key, base64
-
+	const char I2CP_PARAM_LEASESET_AUTH_TYPE[] = "i2cp.leaseSetAuthType";
+	const char I2CP_PARAM_LEASESET_CLIENT_DH[] = "i2cp.leaseSetClient.dh"; // group of i2cp.leaseSetClient.dh.nnn
+	const char I2CP_PARAM_LEASESET_CLIENT_PSK[] = "i2cp.leaseSetClient.psk"; // group of i2cp.leaseSetClient.psk.nnn
+	
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
 	const int DEFAULT_MIN_TUNNEL_LATENCY = 0;
@@ -131,6 +134,7 @@ namespace client
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
+			bool IsPublic () const { return m_IsPublic; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
@@ -248,6 +252,9 @@ namespace client
 			void ScheduleCheckForReady(ReadyPromise * p);
 			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
 #endif
+
+			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
+
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
@@ -262,6 +269,9 @@ namespace client
 			int m_RefCounter; // how many clients(tunnels) use this destination
 
 			boost::asio::deadline_timer m_ReadyChecker;
+
+			int m_AuthType;
+			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys;  
 
 		public:
 

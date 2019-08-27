@@ -382,6 +382,16 @@ namespace client
 	}
 
 	template<typename Section>
+	void ClientContext::ReadI2CPOptionsGroup (const Section& section, const std::string& group, std::map<std::string, std::string>& options) const
+	{
+		for (auto it: section.second)
+		{
+			if (it.first.length () >= group.length () && !it.first.compare (0, group.length (), group))
+				options[it.first] = it.second.get_value ("");
+		}	
+	}
+	
+	template<typename Section>
 	void ClientContext::ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const
 	{
 		options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH,  DEFAULT_INBOUND_TUNNEL_LENGTH);
@@ -397,6 +407,15 @@ namespace client
 		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
 		std::string privKey = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_PRIV_KEY, "");
 		if (privKey.length () > 0) options[I2CP_PARAM_LEASESET_PRIV_KEY] = privKey;
+		auto authType = GetI2CPOption(section, I2CP_PARAM_LEASESET_AUTH_TYPE, 0);
+		if (authType != "0") // auth is set
+		{
+			options[I2CP_PARAM_LEASESET_AUTH_TYPE] = authType;
+			if (authType == "1") // DH
+				ReadI2CPOptionsGroup (section, I2CP_PARAM_LEASESET_CLIENT_DH, options);
+			else if (authType == "2") // PSK
+				ReadI2CPOptionsGroup (section, I2CP_PARAM_LEASESET_CLIENT_PSK, options);
+		}
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -610,8 +629,8 @@ namespace client
 
 					// I2CP
 					std::map<std::string, std::string> options;
-					ReadI2CPOptions (section, options);
-
+					ReadI2CPOptions (section, options);	
+					
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					if(!LoadPrivateKeys (k, keys, sigType, cryptoType))

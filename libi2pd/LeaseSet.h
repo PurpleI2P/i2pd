@@ -79,9 +79,9 @@ namespace data
 			bool operator== (const LeaseSet& other) const
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 			virtual uint8_t GetStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
-			virtual uint8_t GetOrigStoreType () const { return NETDB_STORE_TYPE_LEASESET; };
 			virtual uint32_t GetPublishedTimestamp () const { return 0; }; // should be set for LeaseSet2 only
 			virtual std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return nullptr; };		  
+			virtual bool IsPublishedEncrypted () const { return false; };
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
@@ -129,7 +129,9 @@ namespace data
 	const uint8_t NETDB_STORE_TYPE_META_LEASESET2 = 7;
 
 	const uint16_t LEASESET2_FLAG_OFFLINE_KEYS = 0x0001;
-	
+	const uint16_t LEASESET2_FLAG_UNPUBLISHED_LEASESET = 0x0002;	
+	const uint16_t LEASESET2_FLAG_PUBLISHED_ENCRYPTED = 0x0004;
+
 	class LeaseSet2: public LeaseSet
 	{
 		public:
@@ -137,8 +139,9 @@ namespace data
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
 			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
-			uint8_t GetOrigStoreType () const { return m_OrigStoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
+			bool IsPublic () const { return m_IsPublic; };
+			bool IsPublishedEncrypted () const { return m_IsPublishedEncrypted; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
 
@@ -160,8 +163,9 @@ namespace data
 
 		private:
 
-			uint8_t m_StoreType, m_OrigStoreType;  
+			uint8_t m_StoreType;  
 			uint32_t m_PublishedTimestamp = 0;
+			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
@@ -227,7 +231,8 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
 				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
-				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, 
+				bool isPublic, bool isPublishedEncrypted = false);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	// from I2CP
 		
 			virtual ~LocalLeaseSet2 () { delete[] m_Buffer; };
@@ -247,16 +252,27 @@ namespace data
 			size_t m_BufferLen;
 	};
 
+
+	const int ENCRYPTED_LEASESET_AUTH_TYPE_NONE = 0;
+	const int ENCRYPTED_LEASESET_AUTH_TYPE_DH = 1;
+	const int ENCRYPTED_LEASESET_AUTH_TYPE_PSK = 2;
+
+	typedef i2p::data::Tag<32> AuthPublicKey;	
+
 	class LocalEncryptedLeaseSet2: public LocalLeaseSet2
 	{
 		public:
 
-			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, i2p::data::SigningKeyType blindedKeyType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519); 
+			LocalEncryptedLeaseSet2 (std::shared_ptr<const LocalLeaseSet2> ls, const i2p::data::PrivateKeys& keys, int authType = ENCRYPTED_LEASESET_AUTH_TYPE_NONE, std::shared_ptr<std::vector<AuthPublicKey> > authKeys = nullptr); 
 
 			LocalEncryptedLeaseSet2 (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP
 
 			const IdentHash& GetStoreHash () const { return m_StoreHash; };
 			std::shared_ptr<const LocalLeaseSet> GetInnerLeaseSet () const { return m_InnerLeaseSet; };
+
+		private:
+
+			void CreateClientAuthData (const uint8_t * subcredential, int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authData) const;
 
 		private:
 

@@ -14,32 +14,44 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 // For future package update checking
-import org.purplei2p.i2pd.BuildConfig;
+
+import static android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS;
 
 public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pdActvt";
 	private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
+	public static final String PACKAGE_URI_SCHEME = "package:";
 
 	private TextView textView;
 	private boolean assetsCopied;
@@ -53,32 +65,27 @@ public class I2PDActivity extends Activity {
 		public void daemonStateUpdate()
 		{
 			processAssets();
-			runOnUiThread(new Runnable(){
-
-				@Override
-				public void run() {
-					try {
-						if(textView==null) return;
-						Throwable tr = daemon.getLastThrowable();
-						if(tr!=null) {
-							textView.setText(throwableToString(tr));
-							return;
-						}
-						DaemonSingleton.State state = daemon.getState();
-						textView.setText(
-						String.valueOf(getText(state.getStatusStringResourceId()))+
-						(DaemonSingleton.State.startFailed.equals(state) ? ": "+daemon.getDaemonStartResult() : "")+
-						(DaemonSingleton.State.gracefulShutdownInProgress.equals(state) ? ":  "+formatGraceTimeRemaining()+" "+getText(R.string.remaining) : "")
-						);
-					} catch (Throwable tr) {
-						Log.e(TAG,"error ignored",tr);
-					}
-				}
-			});
+			runOnUiThread(() -> {
+                try {
+                    if(textView==null) return;
+                    Throwable tr = daemon.getLastThrowable();
+                    if(tr!=null) {
+                        textView.setText(throwableToString(tr));
+                        return;
+                    }
+                    DaemonSingleton.State state = daemon.getState();
+                    String startResultStr = DaemonSingleton.State.startFailed.equals(state) ? String.format(": %s", daemon.getDaemonStartResult()) : "";
+                    String graceStr = DaemonSingleton.State.gracefulShutdownInProgress.equals(state) ? String.format(": %s %s", formatGraceTimeRemaining(), getText(R.string.remaining)) : "";
+                    textView.setText(String.format("%s%s%s", getText(state.getStatusStringResourceId()), startResultStr, graceStr));
+                } catch (Throwable tr) {
+                    Log.e(TAG,"error ignored",tr);
+                }
+            });
 		}
 	};
 	private static volatile long graceStartedMillis;
 	private static final Object graceStartedMillis_LOCK=new Object();
+	private Menu optionsMenu;
 
 	private static String formatGraceTimeRemaining() {
 		long remainingSeconds;
@@ -92,6 +99,7 @@ public class I2PDActivity extends Activity {
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		Log.i(TAG, "onCreate");
 		super.onCreate(savedInstanceState);
 
 		textView = new TextView(this);
@@ -121,6 +129,8 @@ public class I2PDActivity extends Activity {
 			}
 			rescheduleGraceStop(gracefulQuitTimer, gracefulStopAtMillis);
 		}
+
+		openBatteryOptimizationDialogIfNeeded();
 	}
 
 	@Override
@@ -128,7 +138,7 @@ public class I2PDActivity extends Activity {
 		super.onDestroy();
 		textView = null;
 		daemon.removeStateChangeListener(daemonStateUpdatedListener);
-		//cancelGracefulStop();
+		//cancelGracefulStop0();
 		try{
 			doUnbindService();
 			}catch(Throwable tr){
@@ -137,24 +147,20 @@ public class I2PDActivity extends Activity {
 	}
 
 	@Override
-	public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) 
+	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
 	{
-		switch (requestCode) 
-		{
-			case MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE:
-			{
-				if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) 
-					Log.e(TAG, "Memory permission granted");
-				else 
-					Log.e(TAG, "Memory permission declined");
-					// TODO: terminate
-				return;
-			}
-			default: ;
-		}
+        if (requestCode == MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                Log.e(TAG, "WR_EXT_STORAGE perm granted");
+            else {
+                Log.e(TAG, "WR_EXT_STORAGE perm declined, stopping i2pd");
+                i2pdStop();
+                //TODO must work w/o this perm, ask orignal
+            }
+        }
 	}
 
-	private static void cancelGracefulStop() {
+	private void cancelGracefulStop0() {
 		Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null) {
 			gracefulQuitTimer.cancel();
@@ -225,11 +231,17 @@ public class I2PDActivity extends Activity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.options_main, menu);
+		menu.findItem(R.id.action_battery_otimizations).setVisible(isBatteryOptimizationsOpenOsDialogApiAvailable());
+		this.optionsMenu = menu;
 		return true;
 	}
 
+	private boolean isBatteryOptimizationsOpenOsDialogApiAvailable() {
+		return android.os.Build.VERSION.SDK_INT >= 23;
+	}
+
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
+	public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
@@ -240,37 +252,43 @@ public class I2PDActivity extends Activity {
 			i2pdStop();
 			return true;
 			case R.id.action_graceful_stop:
-				if (getGracefulQuitTimer()!= null)
-				{
-					item.setTitle(R.string.action_graceful_stop);
-					i2pdCancelGracefulStop ();
+				synchronized (graceStartedMillis_LOCK) {
+					if (getGracefulQuitTimer() != null)
+						cancelGracefulStop();
+					else
+						i2pdGracefulStop();
 				}
-				else
-				{
-					item.setTitle(R.string.action_cancel_graceful_stop);	
-					i2pdGracefulStop();
-				}
-			return true;
+				return true;
+			case R.id.action_battery_otimizations:
+				onActionBatteryOptimizations();
+				return true;
 		}
 
 		return super.onOptionsItemSelected(item);
 	}
 
-	private void i2pdStop() {
-		cancelGracefulStop();
-		new Thread(new Runnable(){
-
-			@Override
-			public void run() {
-				Log.d(TAG, "stopping");
-				try{
-					daemon.stopDaemon();
-					}catch (Throwable tr) {
-					Log.e(TAG, "", tr);
-				}
+	private void onActionBatteryOptimizations() {
+		if (isBatteryOptimizationsOpenOsDialogApiAvailable()) {
+			try {
+				startActivity(new Intent(ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+			} catch (ActivityNotFoundException e) {
+				Log.e(TAG,"BATT_OPTIM_DIALOG_ActvtNotFound", e);
+				Toast.makeText(this, R.string.os_version_does_not_support_battery_optimizations_show_os_dialog_api, Toast.LENGTH_SHORT).show();
 			}
+		}
+	}
 
-		},"stop").start();
+	private void i2pdStop() {
+		cancelGracefulStop0();
+		new Thread(() -> {
+            Log.d(TAG, "stopping");
+            try {
+                daemon.stopDaemon();
+            } catch (Throwable tr) {
+                Log.e(TAG, "", tr);
+            }
+            quit(); //TODO make menu items for starting i2pd. On my Android, I need to reboot the OS to restart i2pd.
+        },"stop").start();
 	}
 
 	private static volatile Timer gracefulQuitTimer;
@@ -288,55 +306,45 @@ public class I2PDActivity extends Activity {
 		}
 		Toast.makeText(this, R.string.graceful_stop_is_in_progress,
 		Toast.LENGTH_SHORT).show();
-		new Thread(new Runnable(){
-
-			@Override
-			public void run() {
-				try {
-					Log.d(TAG, "grac stopping");
-					if(daemon.isStartedOkay()) {
-						daemon.stopAcceptingTunnels();
-						long gracefulStopAtMillis;
-						synchronized (graceStartedMillis_LOCK) {
-							graceStartedMillis = System.currentTimeMillis();
-							gracefulStopAtMillis = graceStartedMillis + GRACEFUL_DELAY_MILLIS;
-						}
-						rescheduleGraceStop(null,gracefulStopAtMillis);
-					} else {
-						i2pdStop();
-					}
-				} catch(Throwable tr) {
-					Log.e(TAG,"",tr);
-				}
-			}
-
-		},"gracInit").start();
+		new Thread(() -> {
+            try {
+                Log.d(TAG, "grac stopping");
+                if(daemon.isStartedOkay()) {
+                    daemon.stopAcceptingTunnels();
+                    long gracefulStopAtMillis;
+                    synchronized (graceStartedMillis_LOCK) {
+                        graceStartedMillis = System.currentTimeMillis();
+                        gracefulStopAtMillis = graceStartedMillis + GRACEFUL_DELAY_MILLIS;
+                    }
+                    rescheduleGraceStop(null,gracefulStopAtMillis);
+                } else {
+                    i2pdStop();
+                }
+            } catch(Throwable tr) {
+                Log.e(TAG,"",tr);
+            }
+        },"gracInit").start();
 	}
 	
-	private void i2pdCancelGracefulStop() 
+	private void cancelGracefulStop()
 	{
-		cancelGracefulStop();
-		Toast.makeText(this, R.string.startedOkay, Toast.LENGTH_SHORT).show();
-		new Thread(new Runnable()
-		{
-			@Override
-			public void run() 
-			{
-				try
-				{
-					Log.d(TAG, "grac stopping cancel");
-					if(daemon.isStartedOkay()) 
-						daemon.startAcceptingTunnels();
-					else
-						i2pdStop();
+		cancelGracefulStop0();
+		new Thread(() -> {
+            try
+            {
+                Log.d(TAG, "canceling grac stop");
+                if(daemon.isStartedOkay()) {
+					daemon.startAcceptingTunnels();
+					runOnUiThread(() -> Toast.makeText(this, R.string.shutdown_canceled, Toast.LENGTH_SHORT).show());
 				}
-				catch(Throwable tr)
-				{
-					Log.e(TAG,"",tr);
-				}
-			}
-
-		},"gracCancel").start();
+                else
+                    i2pdStop();
+            }
+            catch(Throwable tr)
+            {
+                Log.e(TAG,"",tr);
+            }
+        },"gracCancel").start();
 	}
 
 	private void rescheduleGraceStop(Timer gracefulQuitTimerOld, long gracefulStopAtMillis) {
@@ -364,8 +372,19 @@ public class I2PDActivity extends Activity {
 		return gracefulQuitTimer;
 	}
 
-	private static void setGracefulQuitTimer(Timer gracefulQuitTimer) {
+	private void setGracefulQuitTimer(Timer gracefulQuitTimer) {
 		I2PDActivity.gracefulQuitTimer = gracefulQuitTimer;
+		runOnUiThread(()-> {
+			Menu menu = optionsMenu;
+			if (menu != null) {
+				MenuItem item = menu.findItem(R.id.action_graceful_stop);
+				if (item != null) {
+					synchronized (graceStartedMillis_LOCK) {
+						item.setTitle(getGracefulQuitTimer() != null ? R.string.action_cancel_graceful_stop : R.string.action_graceful_stop);
+					}
+				}
+			}
+		});
 	}
 
 	/**
@@ -388,19 +407,22 @@ public class I2PDActivity extends Activity {
 			// to a file. That doesn't appear to be the case. If the returned array is
 			// null or has 0 length, we assume the path is to a file. This means empty
 			// directories will get turned into files.
-			if (contents == null || contents.length == 0)
-			throw new IOException();
+			if (contents == null || contents.length == 0) {
+				copyFileAsset(path);
+				return;
+			}
 
 			// Make the directory.
 			File dir = new File(i2pdpath, path);
-			dir.mkdirs();
+			boolean result = dir.mkdirs();
+			Log.d(TAG, "dir.mkdirs() returned " + result);
 
 			// Recurse on the contents.
 			for (String entry : contents) {
-				copyAsset(path + "/" + entry);
+				copyAsset(path + '/' + entry);
 			}
 		} catch (IOException e) {
-			copyFileAsset(path);
+			Log.e(TAG, "ex ignored for path='" + path + "'", e);
 		}
 	}
 
@@ -413,63 +435,89 @@ public class I2PDActivity extends Activity {
 	*/
 	private void copyFileAsset(String path) {
 		File file = new File(i2pdpath, path);
-		if(!file.exists()) try {
-			InputStream in = getAssets().open(path);
-			OutputStream out = new FileOutputStream(file);
-			byte[] buffer = new byte[1024];
-			int read = in.read(buffer);
-			while (read != -1) {
-				out.write(buffer, 0, read);
-				read = in.read(buffer);
+		if(!file.exists()) {
+			try {
+				try (InputStream in = getAssets().open(path) ) {
+					try (OutputStream out = new FileOutputStream(file)) {
+						byte[] buffer = new byte[1024];
+						int read = in.read(buffer);
+						while (read != -1) {
+							out.write(buffer, 0, read);
+							read = in.read(buffer);
+						}
+					}
+				}
+			} catch (IOException e) {
+				Log.e(TAG, "", e);
 			}
-			out.close();
-			in.close();
-		} catch (IOException e) {
-			Log.e(TAG, "", e);
 		}
 	}
 
 	private void deleteRecursive(File fileOrDirectory) {
 		if (fileOrDirectory.isDirectory()) {
-			for (File child : fileOrDirectory.listFiles()) {
-				deleteRecursive(child);
+			File[] files = fileOrDirectory.listFiles();
+			if(files!=null) {
+				for (File child : files) {
+					deleteRecursive(child);
+				}
 			}
 		}
-		fileOrDirectory.delete();
+		boolean deleteResult = fileOrDirectory.delete();
+        if(!deleteResult)Log.e(TAG, "fileOrDirectory.delete() returned "+deleteResult+", absolute path='"+fileOrDirectory.getAbsolutePath()+"'");
 	}
 
 	private void processAssets() {
 		if (!assetsCopied) try {
 			assetsCopied = true; // prevent from running on every state update
 
-			File holderfile = new File(i2pdpath, "assets.ready");
+			File holderFile = new File(i2pdpath, "assets.ready");
 			String versionName = BuildConfig.VERSION_NAME; // here will be app version, like 2.XX.XX
 			StringBuilder text = new StringBuilder();
 
-			if (holderfile.exists()) try { // if holder file exists, read assets version string
-				BufferedReader br = new BufferedReader(new FileReader(holderfile));
-				String line;
+			if (holderFile.exists()) {
+                try { // if holder file exists, read assets version string
+                    FileReader fileReader = new FileReader(holderFile);
 
-				while ((line = br.readLine()) != null) {
-					text.append(line);
-				}
-				br.close();
-			}
-			catch (IOException e) {
-				Log.e(TAG, "", e);
-			}
+                    try {
+                        BufferedReader br = new BufferedReader(fileReader);
+
+                        try {
+                            String line;
+
+                            while ((line = br.readLine()) != null) {
+                                text.append(line);
+                            }
+                        }finally {
+                            try{
+                                br.close();
+                            } catch (IOException e) {
+                                Log.e(TAG, "", e);
+                            }
+                        }
+                    } finally {
+                        try{
+                            fileReader.close();
+                        } catch (IOException e) {
+                            Log.e(TAG, "", e);
+                        }
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "", e);
+                }
+            }
 
 			// if version differs from current app version or null, try to delete certificates folder
 			if (!text.toString().contains(versionName)) try {
-				holderfile.delete();
-				File certpath = new File(i2pdpath, "certificates");
-				deleteRecursive(certpath);
+                boolean deleteResult = holderFile.delete();
+                if(!deleteResult)Log.e(TAG, "holderFile.delete() returned "+deleteResult+", absolute path='"+holderFile.getAbsolutePath()+"'");
+				File certPath = new File(i2pdpath, "certificates");
+				deleteRecursive(certPath);
 			}
 			catch (Throwable tr) {
 				Log.e(TAG, "", tr);
 			}
 
-			// copy assets. If processed file exists, it won't be overwrited
+			// copy assets. If processed file exists, it won't be overwritten
 			copyAsset("addressbook");
 			copyAsset("certificates");
 			copyAsset("tunnels.d");
@@ -478,14 +526,95 @@ public class I2PDActivity extends Activity {
 			copyAsset("tunnels.conf");
 
 			// update holder file about successful copying
-			FileWriter writer = new FileWriter(holderfile);
-			writer.append(versionName);
-			writer.flush();
-			writer.close();
+			FileWriter writer = new FileWriter(holderFile);
+			try {
+                writer.append(versionName);
+            } finally {
+			    try{
+                    writer.close();
+                }catch (IOException e){
+                    Log.e(TAG,"on writer close", e);
+                }
+            }
 		}
 		catch (Throwable tr)
 		{
-			Log.e(TAG,"copy assets",tr);
+			Log.e(TAG,"on assets copying", tr);
 		}
+	}
+
+	@SuppressLint("BatteryLife")
+	private void openBatteryOptimizationDialogIfNeeded() {
+		boolean questionEnabled = getPreferences().getBoolean(getBatteryOptimizationPreferenceKey(), true);
+		Log.i(TAG,"BATT_OPTIM_questionEnabled=="+questionEnabled);
+		if (!isKnownIgnoringBatteryOptimizations()
+				&& android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+				&& questionEnabled) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle(R.string.battery_optimizations_enabled);
+			builder.setMessage(R.string.battery_optimizations_enabled_dialog);
+			builder.setPositiveButton(R.string.continue_str, (dialog, which) -> {
+				try {
+					startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse(PACKAGE_URI_SCHEME + getPackageName())));
+				} catch (ActivityNotFoundException e) {
+					Log.e(TAG,"BATT_OPTIM_ActvtNotFound", e);
+					Toast.makeText(this, R.string.device_does_not_support_disabling_battery_optimizations, Toast.LENGTH_SHORT).show();
+				}
+			});
+			builder.setOnDismissListener(dialog -> setNeverAskForBatteryOptimizationsAgain());
+			final AlertDialog dialog = builder.create();
+			dialog.setCanceledOnTouchOutside(false);
+			dialog.show();
+		}
+	}
+
+	private void setNeverAskForBatteryOptimizationsAgain() {
+		getPreferences().edit().putBoolean(getBatteryOptimizationPreferenceKey(), false).apply();
+	}
+
+	protected boolean isKnownIgnoringBatteryOptimizations() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			final PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+			if (pm == null) {
+			    Log.i(TAG, "BATT_OPTIM: POWER_SERVICE==null");
+			    return false;
+            }
+            boolean ignoring = pm.isIgnoringBatteryOptimizations(getPackageName());
+            Log.i(TAG, "BATT_OPTIM: ignoring==" + ignoring);
+            return ignoring;
+		} else {
+            Log.i(TAG, "BATT_OPTIM: old sdk version=="+Build.VERSION.SDK_INT);
+			return false;
+		}
+	}
+
+	protected SharedPreferences getPreferences() {
+		return PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+	}
+
+	private String getBatteryOptimizationPreferenceKey() {
+		@SuppressLint("HardwareIds") String device = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+		return "show_battery_optimization" + (device == null ? "" : device);
+	}
+
+	private void quit() {
+		try {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+				finishAndRemoveTask();
+			} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+				finishAffinity();
+			} else {
+				//moveTaskToBack(true);
+				finish();
+			}
+		}catch (Throwable tr) {
+			Log.e(TAG, "", tr);
+		}
+		try{
+			daemon.stopDaemon();
+		}catch (Throwable tr) {
+			Log.e(TAG, "", tr);
+		}
+		System.exit(0);
 	}
 }
