@@ -12,6 +12,7 @@
 ### Fixed
 - ReceiveID changes in the same stream
 - "\r\n" command terminator in SAM
+- Addressbook lines with signatures
 
 ## [2.27.0] - 2019-07-03
 ### Added
