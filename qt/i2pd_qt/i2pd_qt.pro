@@ -5,7 +5,10 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
-DEFINES += USE_UPNP
+
+# For now, disable UPnP which currently crashes on Stop() -- https://github.com/PurpleI2P/i2pd/issues/1387
+#DEFINES += USE_UPNP
+DEFINES -= USE_UPNP
 
 debug: DEFINES += DEBUG_WITH_DEFAULT_LOGGING
 
