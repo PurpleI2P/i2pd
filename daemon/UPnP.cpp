@@ -110,9 +110,10 @@ namespace transport
 		}
 
 		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
+        m_upnpUrlsInitialized=err!=0;
 		if (err == UPNP_IGD_VALID_CONNECTED)
 		{
-			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
+            err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
 			if(err != UPNPCOMMAND_SUCCESS)
 			{
 				LogPrint (eLogError, "UPnP: unable to get external address: error ", err);
@@ -218,11 +219,14 @@ namespace transport
 
 	void UPnP::CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
 	{
+        if(!m_upnpUrlsInitialized) {
+            return;
+        }
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int err = UPNPCOMMAND_SUCCESS;
 		
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
-		if (err == UPNPCOMMAND_SUCCESS)
+        if (err == UPNPCOMMAND_SUCCESS)
 		{
 			err = UPNP_DeletePortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), NULL);
 			LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", err);
@@ -233,8 +237,11 @@ namespace transport
 	{
 		freeUPNPDevlist (m_Devlist);
 		m_Devlist = 0;
-		FreeUPNPUrls (&m_upnpUrls);
-	}
+        if(m_upnpUrlsInitialized){
+            FreeUPNPUrls (&m_upnpUrls);
+            m_upnpUrlsInitialized=false;
+        }
+    }
 
 	std::string UPnP::GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address)
 	{
