@@ -14,7 +14,7 @@ namespace data
 	{
 		public:
 
-			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity);
+			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, bool clientAuth = false);
 			BlindedPublicKey (const std::string& b33); // from b33 without .b32.i2p			
 			std::string ToB33 () const;
 
@@ -38,6 +38,7 @@ namespace data
 
 			std::vector<uint8_t> m_PublicKey;
 			i2p::data::SigningKeyType m_SigType, m_BlindedSigType;
+			bool m_IsClientAuth = false;
 	};
 }
 }

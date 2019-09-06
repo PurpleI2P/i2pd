@@ -134,6 +134,7 @@ namespace client
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
+			int GetAuthType () const { return m_AuthType; };
 			bool IsPublic () const { return m_IsPublic; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
@@ -179,7 +180,7 @@ namespace client
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer;
 			std::string m_Nickname;
-			int m_LeaseSetType;
+			int m_LeaseSetType, m_AuthType;
 			std::unique_ptr<i2p::data::Tag<32> > m_LeaseSetPrivKey; // non-null if presented
 
 		public:
@@ -188,6 +189,7 @@ namespace client
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
 			bool IsEncryptedLeaseSet () const { return m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2; };
+			bool IsPerClientAuth () const { return m_AuthType > 0; };
 	};
 
 	class ClientDestination: public LeaseSetDestination
@@ -270,8 +272,7 @@ namespace client
 
 			boost::asio::deadline_timer m_ReadyChecker;
 
-			int m_AuthType;
-			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys;  
+			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys; // we don't need them for I2CP  
 
 		public:
 

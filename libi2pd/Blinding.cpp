@@ -124,8 +124,14 @@ namespace data
 		return publicKeyLength;
 	}
 
+//----------------------------------------------------------
 
-	BlindedPublicKey::BlindedPublicKey (std::shared_ptr<const IdentityEx> identity)
+	const uint8_t B33_TWO_BYTES_SIGTYPE_FLAG = 0x01;
+	const uint8_t B33_PER_SECRET_FLAG = 0x02; // not used for now	
+	const uint8_t B33_PER_CLIENT_AUTH_FLAG = 0x04;
+
+	BlindedPublicKey::BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, bool clientAuth):
+		m_IsClientAuth (clientAuth)
 	{
 		if (!identity) return;
 		auto len = identity->GetSigningPublicKeyLen ();
@@ -147,9 +153,9 @@ namespace data
 		uint32_t checksum = crc32 (0, addr + 3, l - 3); 
 		// checksum is Little Endian
 		addr[0] ^= checksum; addr[1] ^= (checksum >> 8); addr[2] ^= (checksum >> 16);  
-		uint8_t flag = addr[0];
+		uint8_t flags = addr[0];
 		size_t offset = 1;	
-		if (flag & 0x01) // two bytes signatures
+		if (flags & B33_TWO_BYTES_SIGTYPE_FLAG) // two bytes signatures
 		{
 			m_SigType = bufbe16toh (addr + offset); offset += 2;
 			m_BlindedSigType = bufbe16toh (addr + offset); offset += 2;
@@ -159,6 +165,8 @@ namespace data
 			m_SigType = addr[offset]; offset++;
 			m_BlindedSigType = addr[offset]; offset++;
 		}
+		m_IsClientAuth = flags & B33_PER_CLIENT_AUTH_FLAG;
+
 		std::unique_ptr<i2p::crypto::Verifier> blindedVerifier (i2p::data::IdentityEx::CreateVerifier (m_SigType));
 		if (blindedVerifier)
 		{
@@ -179,7 +187,9 @@ namespace data
 	{
 		if (m_PublicKey.size () > 32) return ""; // assume 25519
 		uint8_t addr[35]; char str[60]; // TODO: define actual length
-		addr[0] = 0; // flags
+		uint8_t flags = 0;
+		if (m_IsClientAuth) flags |= B33_PER_CLIENT_AUTH_FLAG;		
+		addr[0] = flags; // flags
 		addr[1] = m_SigType; // sig type
 		addr[2] = m_BlindedSigType; // blinded sig type
 		memcpy (addr + 3, m_PublicKey.data (), m_PublicKey.size ());
