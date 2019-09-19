@@ -602,20 +602,29 @@ namespace transport
 
 	void NTCP2Session::HandleSessionConfirmedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
-		KeyDerivationFunctionDataPhase ();
-		// Alice data phase keys
-		m_SendKey = m_Kab;
-		m_ReceiveKey = m_Kba; 
-		SetSipKeys (m_Sipkeysab, m_Sipkeysba);
-		memcpy (m_ReceiveIV.buf, m_Sipkeysba + 16, 8);
-		memcpy (m_SendIV.buf, m_Sipkeysab + 16, 8);
-		Established ();
-		ReceiveLength ();
+		(void) bytes_transferred;
+		if (ecode)
+		{
+			LogPrint (eLogWarning, "NTCP2: couldn't send SessionConfirmed message: ", ecode.message ());
+			Terminate ();
+		}
+		else
+		{	
+			LogPrint (eLogDebug, "NTCP2: SessionConfirmed sent");
+			KeyDerivationFunctionDataPhase ();
+			// Alice data phase keys
+			m_SendKey = m_Kab;
+			m_ReceiveKey = m_Kba; 
+			SetSipKeys (m_Sipkeysab, m_Sipkeysba);
+			memcpy (m_ReceiveIV.buf, m_Sipkeysba + 16, 8);
+			memcpy (m_SendIV.buf, m_Sipkeysab + 16, 8);
+			Established ();
+			ReceiveLength ();
 
-		// TODO: remove
-		// m_SendQueue.push_back (CreateDeliveryStatusMsg (1));
-		// SendQueue ();
+			// TODO: remove
+			// m_SendQueue.push_back (CreateDeliveryStatusMsg (1));
+			// SendQueue ();
+		}		
 	}
 
 	void NTCP2Session::HandleSessionCreatedSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
