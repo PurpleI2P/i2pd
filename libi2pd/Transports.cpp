@@ -503,28 +503,6 @@ namespace transport
 			}
 		}
 	}
-	
-	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
-	{
-		if (!router) return;
-		m_Service->post (std::bind (&Transports::PostCloseSession, this, router));
-	}
-
-	void Transports::PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
-	{
-		auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (router) : nullptr;
-		if (ssuSession) // try SSU first
-		{
-			m_SSUServer->DeleteSession (ssuSession);
-			LogPrint (eLogDebug, "Transports: SSU session closed");
-		}
-		auto ntcpSession = m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
-		if (ntcpSession) // try deleting ntcp session too
-		{
-			ntcpSession->Terminate ();
-			LogPrint(eLogDebug, "Transports: NTCP session closed");
-		}
-	}
 
 	void Transports::DetectExternalIP ()
 	{
