@@ -719,7 +719,7 @@ namespace transport
 					// ready to communicate	
 					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
-					m_Server.AddNTCP2Session (shared_from_this ());
+					m_Server.AddNTCP2Session (shared_from_this (), true);
 					Established ();
 					ReceiveLength ();
 				}
@@ -1258,7 +1258,7 @@ namespace transport
 		}
 	}
 
-	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session)
+	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)
 	{
 		if (!session || !session->GetRemoteIdentity ()) return false;
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
@@ -1270,6 +1270,8 @@ namespace transport
 			return false;
 		}
 		m_NTCP2Sessions.insert (std::make_pair (ident, session));
+		if (incoming)	
+			m_PendingIncomingSessions.remove (session);
 		return true;
 	}
 

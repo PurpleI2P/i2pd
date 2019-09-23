@@ -227,7 +227,7 @@ namespace transport
 			void Start ();
 			void Stop ();
 
-			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session);
+			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
 			std::shared_ptr<NTCP2Session> FindNTCP2Session (const i2p::data::IdentHash& ident);
 
