@@ -141,7 +141,8 @@ namespace data
 		m_BlindedSigType = m_SigType;	
 	}
 
-	BlindedPublicKey::BlindedPublicKey (const std::string& b33)
+	BlindedPublicKey::BlindedPublicKey (const std::string& b33):
+		m_SigType (0) // 0 means invalid, we can't blind DSA, set it later
 	{
 		uint8_t addr[40]; // TODO: define length from b33
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
