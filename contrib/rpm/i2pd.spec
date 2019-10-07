@@ -130,7 +130,7 @@ getent passwd i2pd >/dev/null || \
 - update to 2.22.0
 - add support of tunnelsdir option
 
-* Thu Oct 22 2018 orignal <i2porignal@yandex.ru> - 2.21.1
+* Mon Oct 22 2018 orignal <i2porignal@yandex.ru> - 2.21.1
 - update to 2.21.1
 
 * Thu Oct 4 2018 orignal <i2porignal@yandex.ru> - 2.21.0
