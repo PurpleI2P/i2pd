@@ -237,17 +237,19 @@ namespace client
 
 //---------------------------------------------------------------------
 
-	Address::Address (const std::string& b32)
+	Address::Address (const std::string& b32):
+		addressType (eAddressInvalid)
 	{
 		if (b32.length () <= B33_ADDRESS_THRESHOLD)
 		{
-			addressType = eAddressIndentHash;
-			identHash.FromBase32 (b32);
+			if (identHash.FromBase32 (b32) > 0)
+				addressType = eAddressIndentHash;
 		}
 		else
 		{
-			addressType = eAddressBlindedPublicKey;
 			blindedPublicKey = std::make_shared<i2p::data::BlindedPublicKey>(b32);
+			if (blindedPublicKey->IsValid ())
+				addressType = eAddressBlindedPublicKey;
 		}
 	}	
 
@@ -320,7 +322,10 @@ namespace client
 	{
 		auto pos = address.find(".b32.i2p");
 		if (pos != std::string::npos)
-			return std::make_shared<const Address>(address.substr (0, pos));
+		{			
+			auto addr = std::make_shared<const Address>(address.substr (0, pos));
+			return addr->IsValid () ? addr : nullptr;
+		}
 		else
 		{
 			pos = address.find (".i2p");

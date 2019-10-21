@@ -27,7 +27,12 @@ namespace i2p
 	void RouterContext::Init ()
 	{
 		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
+#ifdef WIN32
+		// for compatibility with WinXP
+		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();	
+#else
 		m_StartupTime = std::chrono::steady_clock::now();
+#endif
 		if (!Load ())
 			CreateNewRouter ();
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
@@ -716,7 +721,12 @@ namespace i2p
 
 	uint32_t RouterContext::GetUptime () const
 	{
+#ifdef WIN32
+		// for compatibility with WinXP
+		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
+#else
 		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
+#endif
 	}
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const

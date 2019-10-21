@@ -356,7 +356,7 @@ namespace http {
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
 		{
-			i2p::data::BlindedPublicKey blinded (dest->GetIdentity ());
+			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
 			s << "<div class='slide'><label for='slide-b33'><b>Encrypted B33 address:</b></label>\r\n<input type='checkbox' id='slide-b33'/>\r\n<p class='content'>\r\n";
 			s << blinded.ToB33 () << ".b32.i2p<br>\r\n";
 			s << "</p>\r\n</div>\r\n";

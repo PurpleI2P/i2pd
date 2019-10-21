@@ -33,13 +33,14 @@ namespace client
 
 	struct Address
 	{
-		enum { eAddressIndentHash, eAddressBlindedPublicKey } addressType;
+		enum { eAddressIndentHash, eAddressBlindedPublicKey, eAddressInvalid } addressType;
 		i2p::data::IdentHash identHash;
 		std::shared_ptr<i2p::data::BlindedPublicKey> blindedPublicKey;
 
 		Address (const std::string& b32);	
 		Address (const i2p::data::IdentHash& hash);	
 		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
+		bool IsValid () const { return addressType != eAddressInvalid; };
 	};
 
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }

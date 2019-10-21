@@ -14,7 +14,7 @@ namespace data
 	{
 		public:
 
-			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity);
+			BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, bool clientAuth = false);
 			BlindedPublicKey (const std::string& b33); // from b33 without .b32.i2p			
 			std::string ToB33 () const;
 
@@ -22,6 +22,7 @@ namespace data
 			size_t GetPublicKeyLen () const { return m_PublicKey.size (); };
 			SigningKeyType GetSigType () const  { return m_SigType; };
 			SigningKeyType GetBlindedSigType () const  { return m_BlindedSigType; };
+			bool IsValid () const { return GetSigType (); }; // signature type 0 means invalid
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes
 			size_t GetBlindedKey (const char * date, uint8_t * blindedKey) const; // date is 8 chars "YYYYMMDD", return public key length  
@@ -38,6 +39,7 @@ namespace data
 
 			std::vector<uint8_t> m_PublicKey;
 			i2p::data::SigningKeyType m_SigType, m_BlindedSigType;
+			bool m_IsClientAuth = false;
 	};
 }
 }

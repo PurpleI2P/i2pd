@@ -6,11 +6,14 @@ TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
 
-# For now, disable UPnP which currently crashes on Stop() -- https://github.com/PurpleI2P/i2pd/issues/1387
-#DEFINES += USE_UPNP
-DEFINES -= USE_UPNP
+DEFINES += USE_UPNP
 
-debug: DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+CONFIG(debug, debug|release) {
+    message(Debug build)
+    DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+} else {
+    message(Release build)
+}
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/api.cpp \

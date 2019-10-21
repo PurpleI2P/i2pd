@@ -17,7 +17,7 @@ namespace client
 		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic),
 		m_PublishReplyToken (0), m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
 		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service),
-		m_LeaseSetType (DEFAULT_LEASESET_TYPE)
+		m_LeaseSetType (DEFAULT_LEASESET_TYPE), m_AuthType (i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE)
 	{
 		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -70,6 +70,19 @@ namespace client
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
 					m_LeaseSetType = std::stoi(it->second);
+				if (m_LeaseSetType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+				{
+					// authentication for encrypted LeaseSet
+					it = params->find (I2CP_PARAM_LEASESET_AUTH_TYPE);
+					if (it != params->end ())
+					{
+						auto authType = std::stoi (it->second);
+						if (authType >= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE && authType <= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
+							m_AuthType = authType;
+						else
+							LogPrint (eLogError, "Destination: Unknown auth type ", authType);
+					}
+				}
 				it = params->find (I2CP_PARAM_LEASESET_PRIV_KEY);
 				if (it != params->end ())
 				{
@@ -846,7 +859,7 @@ namespace client
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params), m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
-		m_ReadyChecker(GetService()), m_AuthType (i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE)
+		m_ReadyChecker(GetService())
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -880,25 +893,21 @@ namespace client
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
 					// authentication for encrypted LeaseSet
-					it = params->find (I2CP_PARAM_LEASESET_AUTH_TYPE);
-					m_AuthType = std::stoi (it->second);
-					if (m_AuthType > 0)
+					auto authType = GetAuthType ();
+					if (authType > 0)
 					{
 						m_AuthKeys = std::make_shared<std::vector<i2p::data::AuthPublicKey> >();
-						if (m_AuthType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_DH)
+						if (authType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_DH)
 							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_DH, params);	
-						else if (m_AuthType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
+						else if (authType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
 							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_PSK, params);	
 						else
-						{
-							LogPrint (eLogError, "Destination: Unexpected auth type ", m_AuthType);
-							m_AuthType = 0;
-						}
+							LogPrint (eLogError, "Destination: Unexpected auth type ", authType);
 						if (m_AuthKeys->size ())
 							LogPrint (eLogInfo, "Destination: ", m_AuthKeys->size (), " auth keys read");
 						else
 						{
-							LogPrint (eLogError, "Destination: No auth keys read for auth type ", m_AuthType);
+							LogPrint (eLogError, "Destination: No auth keys read for auth type ", authType);
 							m_AuthKeys = nullptr;	
 						}
 					}
@@ -1184,7 +1193,7 @@ namespace client
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, m_EncryptionKeyType, keyLen, m_EncryptionPublicKey, tunnels, IsPublic (), isPublishedEncrypted);
 			if (isPublishedEncrypted) // encrypt if type 5
-				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys, m_AuthType, m_AuthKeys);
+				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys, GetAuthType (), m_AuthKeys);
 			leaseSet = ls2;
 		}
 		SetLeaseSet (leaseSet);
