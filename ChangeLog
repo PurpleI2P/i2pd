@@ -1,6 +1,16 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.29.0] - 2019-10-21
+### Added
+- Client auth flag for b33 address
+### Changed
+- Remove incoming  NTCP2 session from pending list when established 
+- Handle errors for NTCP2 SessionConfrimed send
+### Fixed
+- Failure to start on Windows XP
+- SAM crash if invalid lookup address
+
 ## [2.28.0] - 2019-08-27
 ### Added
 - RAW datagrams in SAM
