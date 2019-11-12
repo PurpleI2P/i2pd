@@ -721,12 +721,7 @@ namespace i2p
 
 	uint32_t RouterContext::GetUptime () const
 	{
-#ifdef WIN32
-		// for compatibility with WinXP
-		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
-#else
 		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
-#endif
 	}
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const

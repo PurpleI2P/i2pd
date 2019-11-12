@@ -136,12 +136,8 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LastUpdateTime; // in seconds
-			bool m_AcceptsTunnels, m_IsFloodfill;
-#ifdef WIN32
-			uint64_t m_StartupTime = 0; // in seconds since epoch
-#else			
+			bool m_AcceptsTunnels, m_IsFloodfill;	
 			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
-#endif
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;
 			RouterStatus m_Status;
