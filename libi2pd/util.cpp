@@ -208,9 +208,6 @@ namespace net
 #endif
 
 		bool isXP = IsWindowsXPorLater();
-		{
-			#define inet_pton inet_pton_xp
-		}
 
 		if(localAddress.is_v4())
 		{
