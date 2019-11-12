@@ -27,12 +27,8 @@ namespace i2p
 	void RouterContext::Init ()
 	{
 		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
-#ifdef WIN32
-		// for compatibility with WinXP
-		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();	
-#else
 		m_StartupTime = std::chrono::steady_clock::now();
-#endif
+
 		if (!Load ())
 			CreateNewRouter ();
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
@@ -194,11 +190,11 @@ namespace i2p
 			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
 			{
 				if (!port && !address->port)
-				{	
+				{
 					// select random port only if address's port is not set
 					port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 					if (port == 9150) port = 9151; // Tor browser
-				}	
+				}
 				if (port) address->port = port;
 				address->cost = publish ? 3 : 14;
 				address->ntcp2->isPublished = publish;
@@ -438,14 +434,14 @@ namespace i2p
 			}
 		// remove NTCP or NTCP2 v4 address
 		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-		if (ntcp)		
+		if (ntcp)
 			PublishNTCPAddress (false);
 		else
 		{
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
 				PublishNTCP2Address (port, false, true);
-		}				
+		}
 		// update
 		UpdateRouterInfo ();
 	}
@@ -495,7 +491,7 @@ namespace i2p
 	void RouterContext::SetSupportsV6 (bool supportsV6)
 	{
 		if (supportsV6)
-		{	
+		{
 			m_RouterInfo.EnableV6 ();
 			// insert v6 addresses if necessary
 			bool foundSSU = false, foundNTCP = false, foundNTCP2 = false;
@@ -513,7 +509,7 @@ namespace i2p
 					}
 					else
 						foundNTCP = true;
-				}	
+				}
 				port = addr->port;
 			}
 			if (!port) i2p::config::GetOption("port", port);
@@ -525,7 +521,7 @@ namespace i2p
 				{
 					std::string host = "::1"; // TODO: read host
 					m_RouterInfo.AddSSUAddress (host.c_str (), port, GetIdentHash ());
-				}		
+				}
 			}
 			// NTCP2
 			if (!foundNTCP2)
@@ -534,11 +530,11 @@ namespace i2p
 				bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
 				if (ntcp2 && ntcp2Published)
 				{
-					std::string ntcp2Host; 
+					std::string ntcp2Host;
 					if (!i2p::config::IsDefault ("ntcp2.addressv6"))
 						i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
 					else
-						ntcp2Host = "::1";				 
+						ntcp2Host = "::1";
 					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 					if (!ntcp2Port) ntcp2Port = port;
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
@@ -550,10 +546,10 @@ namespace i2p
 				bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 				if (ntcp)
 				{
-					std::string host = "::1"; 
+					std::string host = "::1";
 					m_RouterInfo.AddNTCPAddress (host.c_str (), port);
 				}
-			}	
+			}
 		}
 		else
 			m_RouterInfo.DisableV6 ();

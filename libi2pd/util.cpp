@@ -22,7 +22,7 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-// inet_pton exists Windows since Vista, but XP haven't that function!
+// inet_pton exists Windows since Vista, but XP doesn't have that function!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp(int af, const char *src, void *dst)
 {
@@ -207,24 +207,20 @@ namespace net
 		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-		bool isXP = IsWindowsXPorLater();
+        typedef int (* IPN)(int af, const char *src, void *dst);
+		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
+        if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
 		if(localAddress.is_v4())
 		{
 			sockaddr_in inputAddress;
-			if (isXP)
-                inet_pton_xp(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
-            else
-                inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+            inetpton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
 		}
 		else if(localAddress.is_v6())
 		{
 			sockaddr_in6 inputAddress;
-			if (isXP)
-                 inet_pton_xp(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
-            else
-                inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+            inetpton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
 			return GetMTUWindowsIpv6(inputAddress, fallback);
 		} else {
 			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
