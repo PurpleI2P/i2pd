@@ -652,7 +652,7 @@ namespace transport
 				{
 					if (it->second.delayedMessages.size () > 0)
 					{
-						it->second.numAttempts = 0;
+					//	it->second.numAttempts = 0; // TODO: recognize if connect failed
 						ConnectToPeer (ident, it->second);
 					}	
 					else
