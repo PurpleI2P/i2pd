@@ -651,7 +651,10 @@ namespace transport
 				if (it->second.sessions.empty ()) // TODO: why?
 				{
 					if (it->second.delayedMessages.size () > 0)
+					{
+						it->second.numAttempts = 0;
 						ConnectToPeer (ident, it->second);
+					}	
 					else
 					{
 						std::unique_lock<std::mutex> l(m_PeersMutex);
