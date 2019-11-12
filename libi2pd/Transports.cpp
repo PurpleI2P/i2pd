@@ -647,12 +647,14 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				auto before = it->second.sessions.size ();
 				it->second.sessions.remove (session);
-				if (it->second.sessions.empty ()) // TODO: why?
+				if (it->second.sessions.empty ()) 
 				{
 					if (it->second.delayedMessages.size () > 0)
 					{
-					//	it->second.numAttempts = 0; // TODO: recognize if connect failed
+						if (before > 0) // we had an active session before
+							it->second.numAttempts = 0; // start over
 						ConnectToPeer (ident, it->second);
 					}	
 					else
