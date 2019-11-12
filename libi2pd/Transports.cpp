@@ -465,6 +465,7 @@ namespace transport
 				}
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
+			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
