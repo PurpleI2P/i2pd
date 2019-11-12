@@ -62,16 +62,21 @@ namespace net
 #ifdef WIN32
 	bool IsWindowsXPorLater()
 	{
-		OSVERSIONINFO osvi;
+	    static bool isRequested = false;
+	    static bool isXP = false;
+	    if (!isRequested)
+	    {
+	        // request
+            OSVERSIONINFO osvi;
 
-		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-		GetVersionEx(&osvi);
+            ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+            osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+            GetVersionEx(&osvi);
 
-		if (osvi.dwMajorVersion <= 5)
-			return true;
-		else
-			return false;
+            isXP = osvi.dwMajorVersion <= 5;
+            isRequested = true;
+        }
+        return isXP;
 	}
 
 	int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
@@ -202,7 +207,7 @@ namespace net
 		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-		if (IsWindowsXPorLater())
+		bool isXP = IsWindowsXPorLater();
 		{
 			#define inet_pton inet_pton_xp
 		}
@@ -210,13 +215,19 @@ namespace net
 		if(localAddress.is_v4())
 		{
 			sockaddr_in inputAddress;
-			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+			if (isXP)
+                inet_pton_xp(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+            else
+                inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
 		}
 		else if(localAddress.is_v6())
 		{
 			sockaddr_in6 inputAddress;
-			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+			if (isXP)
+                 inet_pton_xp(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+            else
+                inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
 			return GetMTUWindowsIpv6(inputAddress, fallback);
 		} else {
 			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
