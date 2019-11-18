@@ -1035,7 +1035,9 @@ namespace transport
 		
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: Couldn't send frame ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+				LogPrint (eLogWarning, "NTCP2: Couldn't send frame ", ecode.message ());
+			Terminate ();
 		}	
 		else
 		{	
@@ -1260,7 +1262,10 @@ namespace transport
 
 	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)
 	{
-		if (!session || !session->GetRemoteIdentity ()) return false;
+		if (!session) return false;
+		if (incoming)	
+			m_PendingIncomingSessions.remove (session);
+		if (!session->GetRemoteIdentity ()) return false;
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
 		auto it = m_NTCP2Sessions.find (ident);
 		if (it != m_NTCP2Sessions.end ())
@@ -1270,8 +1275,6 @@ namespace transport
 			return false;
 		}
 		m_NTCP2Sessions.insert (std::make_pair (ident, session));
-		if (incoming)	
-			m_PendingIncomingSessions.remove (session);
 		return true;
 	}
 
