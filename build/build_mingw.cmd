@@ -54,6 +54,14 @@ set bitness=64
 call :BUILDING
 echo.
 
+REM building for WinXP
+set "WD=C:\msys64-xp\usr\bin\"
+set MSYSTEM=MINGW32
+set bitness=32
+set "xSH=%WD%bash -lc"
+call :BUILDING_XP
+echo.
+
 del README.txt >> nul
 
 echo Build complete...
@@ -71,5 +79,11 @@ echo Build AESNI...
 %xSH% "make DEBUG=no USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip %FILELIST% && make clean" > build/build_win%bitness%_aesni_%tag%.log 2>&1
 echo Build without extensions...
 %xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip %FILELIST% && make clean" > build/build_win%bitness%_%tag%.log 2>&1
+goto EOF
+
+:BUILDING_XP
+%xSH% "make clean" >> nul
+echo Building i2pd %tag% for winxp...
+%xSH% "make DEBUG=no USE_UPNP=yes USE_WINXP_FLAGS=yes -j%threads% && zip -r9 build/i2pd_%tag%_winxp_mingw.zip %FILELIST% && make clean" > build/build_winxp_%tag%.log 2>&1
 
 :EOF
