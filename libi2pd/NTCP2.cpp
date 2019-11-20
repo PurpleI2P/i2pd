@@ -1345,15 +1345,19 @@ namespace transport
 				{
 					conn->ServerLogin ();
 					m_PendingIncomingSessions.push_back (conn);
+					conn = nullptr;
 				}
 			}
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
+		else
+			LogPrint (eLogError, "NTCP2: Accept error ", error.message ());
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-			conn = std::make_shared<NTCP2Session> (*this);
+			if (!conn) // connection is used
+				conn = std::make_shared<NTCP2Session> (*this);
 			m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
 				conn, std::placeholders::_1));
 		}
@@ -1409,13 +1413,13 @@ namespace transport
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{
-				if ((*it)->IsEstablished () || (*it)->IsTerminated ())
-					it = m_PendingIncomingSessions.erase (it); // established or terminated
-				else if ((*it)->IsTerminationTimeoutExpired (ts))
+				if ((*it)->IsEstablished () || (*it)->IsTerminationTimeoutExpired (ts))
 				{
 					(*it)->Terminate ();
-					it = m_PendingIncomingSessions.erase (it); // expired
+					it = m_PendingIncomingSessions.erase (it); // etsablished of expired
 				}
+				else if ((*it)->IsTerminated ())
+					it = m_PendingIncomingSessions.erase (it); // already terminated
 				else
 					it++;
 			}
