@@ -1356,8 +1356,10 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-			if (!conn) // connection is used
+			if (!conn) // connection is used, create new one
 				conn = std::make_shared<NTCP2Session> (*this);
+			else // reuse failed
+				conn->Close ();
 			m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
 				conn, std::placeholders::_1));
 		}

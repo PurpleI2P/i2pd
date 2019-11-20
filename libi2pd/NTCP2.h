@@ -133,6 +133,7 @@ namespace transport
 			void Terminate ();
 			void TerminateByTimeout ();
 			void Done ();
+			void Close () { m_Socket.close (); }; // for accept
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 
