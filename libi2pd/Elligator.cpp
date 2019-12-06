@@ -5,52 +5,60 @@ namespace i2p
 {
 namespace crypto
 {
-	static const uint8_t p_[32]= 
-	{
-		0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f
-	};
-
-	static const uint8_t n1_[32] = 
-	{
-		0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f
-	};
-
-	static const uint8_t n2_[32] = 
-	{
-		0xeb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f
-	};
-
-
 	static const uint8_t u_[32] = 
 	{
 		0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 
-	#define decode_bytes(x) { x = BN_new (); BN_bin2bn (x##_, 32, x); } // TODO: endianess
+	
 	Elligator2::Elligator2 ()
 	{
-		decode_bytes (p);
-		decode_bytes (n1);
-		decode_bytes (n2);	
-		decode_bytes (u);
-		
-		A = BN_new (); BN_set_word (A, 486662);
+		// TODO: share with Ed22519
+		p = BN_new ();
+		// 2^255-19
+		BN_set_bit (p, 255); // 2^255
+		BN_sub_word (p, 19);
+		p38 = BN_dup (p); BN_add_word (p38, 3); BN_div_word (p38, 8); // (p+3)/8
+		p12 = BN_dup (p); BN_sub_word (p12, 1); BN_div_word (p12, 2); // (p-1)/2
+		n1 = BN_dup (p); BN_sub_word (n1, 1); // p-1
+		n2 = BN_dup (p); BN_sub_word (n2, 2); // p-2
 
-		BN_CTX * ctx = BN_CTX_new ();
+		A = BN_new (); BN_set_word (A, 486662);
+		nA = BN_new (); BN_sub  (nA, p, A);
+
+		BN_CTX * ctx = BN_CTX_new ();	
+		// calculate sqrt(-1)		
+		sqrtn1 = BN_new ();
+		BN_mod_exp (sqrtn1, n1, p38, p, ctx); // (-1)^((p+3)/8)		
+		auto p14 = BN_dup (p); BN_sub_word (p14, 1); BN_div_word (p14, 4); // (p-1)/4
+		auto tmp = BN_new (); BN_set_word (tmp, 2);	
+		BN_mod_exp (tmp, tmp, p14, p, ctx); // 2^((p-1)/4
+		BN_mod_mul (sqrtn1, tmp, sqrtn1, p, ctx); // 2^((p-1)/4 * (-1)^((p+3)/8)
+		BN_free (p14); 
+		
+		u = BN_new (); BN_bin2bn (u_, 32, u); // TODO: endianess
 		iu = BN_new (); BN_mod_inverse (iu, u, p, ctx);	
+
+		// calculate d = -121665*inv(121666)
+		d = BN_new ();
+		BN_set_word (tmp, 121666);
+		BN_mod_inverse (tmp, tmp, p, ctx);
+		BN_set_word (d, 121665);
+		BN_set_negative (d, 1);
+		BN_mod_mul (d, d, tmp, p, ctx);
+		BN_free (tmp);
+		//printf ("%s\n", BN_bn2hex (d));
+
 		BN_CTX_free (ctx);
 	}
 
 	Elligator2::~Elligator2 ()
 	{
-		BN_free (p);
-		BN_free (n1);
-		BN_free (n2);
-		BN_free (A);
+		BN_free (p); BN_free (p38); BN_free (p12);
+		BN_free (n1);BN_free (n2); BN_free (sqrtn1);
+		BN_free (A); BN_free (nA);
+		BN_free (u); BN_free (iu); BN_free (d);
 	}
 
 	void Elligator2::Encode (const uint8_t * key, uint8_t * encoded) const
