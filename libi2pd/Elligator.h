@@ -19,9 +19,13 @@ namespace crypto
 
 			void Encode (const uint8_t * key, uint8_t * encoded) const;
 
+		private:	
+
+			void SquareRoot (const BIGNUM * x, BIGNUM * r, BN_CTX * ctx) const;
+			
 		private:
 
-			BIGNUM * p, * n1, * n2, * p38, * p12, * sqrtn1, * A, * nA, * u, * iu, * d;
+			BIGNUM * p, * p38, * p12, * p14, * sqrtn1, * A, * nA, * u, * iu;
 	};
 
 	std::unique_ptr<Elligator2>& GetElligator ();
