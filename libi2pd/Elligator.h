@@ -18,6 +18,7 @@ namespace crypto
 			~Elligator2 ();
 
 			void Encode (const uint8_t * key, uint8_t * encoded) const;
+			void Decode (const uint8_t * encoded, uint8_t * key) const;
 
 		private:	
 
