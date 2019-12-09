@@ -31,7 +31,7 @@ namespace crypto
 		BN_mod_inverse (tmp, tmp, q, ctx);
 		BN_set_word (d, 121665);
 		BN_set_negative (d, 1);
-		BN_mul (d, d, tmp, ctx);
+		BN_mod_mul (d, d, tmp, q, ctx);
 
 		// 2^((q-1)/4)
 		I = BN_new ();
