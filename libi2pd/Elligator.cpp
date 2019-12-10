@@ -40,8 +40,9 @@ namespace crypto
 		BN_free (u); BN_free (iu); 
 	}
 
-	void Elligator2::Encode (const uint8_t * key, uint8_t * encoded) const
+	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded) const
 	{
+		bool ret = true;
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 
@@ -56,27 +57,38 @@ namespace crypto
 		BIGNUM * xA = BN_CTX_get (ctx); BN_add (xA, x, A); // x + A
 		BN_sub (xA, p, xA); // p - (x + A)
 
-		BIGNUM * r = BN_CTX_get (ctx);
-		BN_mod_inverse (r, xA, p, ctx);	
-		BN_mod_mul (r, r, x, p, ctx);	
-		BN_mod_mul (r, r, iu, p, ctx);	
+		BIGNUM * uxxA = BN_CTX_get (ctx); // u*x*xA
+		BN_mod_mul (uxxA, u, x, p, ctx);
+		BN_mod_mul (uxxA, uxxA, xA, p, ctx);	
 		
-		SquareRoot (r, r, ctx);
-		bn2buf (r, encoded, 32);
-		
-		for (size_t i = 0; i < 16; i++) // To Little Endian
+		if (Legendre (uxxA, ctx) != -1)
 		{
-			uint8_t tmp = encoded[i];
-			encoded[i] = encoded[15 - i];
-			encoded[15 - i] = tmp;
+			BIGNUM * r = BN_CTX_get (ctx);
+			BN_mod_inverse (r, xA, p, ctx);	
+			BN_mod_mul (r, r, x, p, ctx);	
+			BN_mod_mul (r, r, iu, p, ctx);	
+		
+			SquareRoot (r, r, ctx);
+			bn2buf (r, encoded, 32);
+		
+			for (size_t i = 0; i < 16; i++) // To Little Endian
+			{
+				uint8_t tmp = encoded[i];
+				encoded[i] = encoded[15 - i];
+				encoded[15 - i] = tmp;
+			}
 		}
+		else
+			ret = false;
 
 		BN_CTX_end (ctx);	
 		BN_CTX_free (ctx);
+		return ret;
 	}
 
-	void Elligator2::Decode (const uint8_t * encoded, uint8_t * key) const
+	bool Elligator2::Decode (const uint8_t * encoded, uint8_t * key) const
 	{
+		bool ret = true;
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 
@@ -89,41 +101,47 @@ namespace crypto
 
 		BIGNUM * r = BN_CTX_get (ctx); BN_bin2bn (encoded1, 32, r);
 
-		// v=-A/(1+u*r^2)
-		BIGNUM * v = BN_CTX_get (ctx); BN_mod_sqr (v, r, p, ctx); 
-		BN_mod_mul (v, v, u, p, ctx);
-		BN_add_word (v, 1);
-		BN_mod_inverse (v, v, p, ctx);	
-		BN_mod_mul (v, v, nA, p, ctx);
-
-		BIGNUM * vpA = BN_CTX_get (ctx);
-		BN_add (vpA, v, A); // v + A
-		// t = v^3+A*v^2+v = v^2*(v+A)+v
-		BIGNUM * t = BN_CTX_get (ctx); BN_mod_sqr (t, v, p, ctx); 
-		BN_mod_mul (t, t, vpA, p, ctx);		
-		BN_mod_add (t, t, v, p, ctx);		
-
-		int legendre = 0; // TODO:
-		BIGNUM * x = BN_CTX_get (ctx);
-		if (legendre == 1)
-			BN_copy (x, v);
-		else
+		if (BN_cmp (r, p12) < 0) // r < (p-1)/2
 		{
-			BN_sub (x, p, v);
-			BN_mod_sub (x, x, A, p, ctx);
-		}	
+			// v = -A/(1+u*r^2)
+			BIGNUM * v = BN_CTX_get (ctx); BN_mod_sqr (v, r, p, ctx); 
+			BN_mod_mul (v, v, u, p, ctx);
+			BN_add_word (v, 1);
+			BN_mod_inverse (v, v, p, ctx);	
+			BN_mod_mul (v, v, nA, p, ctx);
+
+			BIGNUM * vpA = BN_CTX_get (ctx);
+			BN_add (vpA, v, A); // v + A
+			// t = v^3+A*v^2+v = v^2*(v+A)+v
+			BIGNUM * t = BN_CTX_get (ctx); BN_mod_sqr (t, v, p, ctx); 
+			BN_mod_mul (t, t, vpA, p, ctx);		
+			BN_mod_add (t, t, v, p, ctx);		
+
+			int legendre = Legendre (t, ctx);
+			BIGNUM * x = BN_CTX_get (ctx);
+			if (legendre == 1)
+				BN_copy (x, v);
+			else
+			{
+				BN_sub (x, p, v);
+				BN_mod_sub (x, x, A, p, ctx);
+			}	
 		
-		bn2buf (x, key, 32);	
-		for (size_t i = 0; i < 16; i++) // To Little Endian
-		{
-			uint8_t tmp = key[i];
-			key[i] = key[15 - i];
-			key[15 - i] = tmp;
+			bn2buf (x, key, 32);	
+			for (size_t i = 0; i < 16; i++) // To Little Endian
+			{
+				uint8_t tmp = key[i];
+				key[i] = key[15 - i];
+				key[15 - i] = tmp;
+			}
 		}
-
+		else
+			ret = false;
 
 		BN_CTX_end (ctx);	
 		BN_CTX_free (ctx);
+
+		return ret;
 	}
 
 	void Elligator2::SquareRoot (const BIGNUM * x, BIGNUM * r, BN_CTX * ctx) const
@@ -140,6 +158,18 @@ namespace crypto
 			BN_sub (r, p, r);
 	}	
 	
+	int Elligator2::Legendre (const BIGNUM * a, BN_CTX * ctx) const
+	{
+		// assume a < p, so don't check for a % p = 0
+		BIGNUM * r = BN_CTX_get (ctx);
+		BN_mod_exp (r, a, p12, p, ctx); // 	r = a^((p-1)/2) mod p
+		if (BN_is_word(r, 1)) 
+			return 1;
+        else if (BN_is_zero(r)) 
+			return 0;
+		return -1;
+	}
+
 	static std::unique_ptr<Elligator2> g_Elligator;
 	std::unique_ptr<Elligator2>& GetElligator ()
 	{
