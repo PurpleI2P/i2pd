@@ -100,7 +100,7 @@ namespace crypto
 
 		BIGNUM * r = BN_CTX_get (ctx); BN_bin2bn (encoded1, 32, r);
 
-		if (BN_cmp (r, p12) < 0) // r < (p-1)/2
+		if (BN_cmp (r, p12) <= 0) // r < (p-1)/2
 		{
 			// v = -A/(1+u*r^2)
 			BIGNUM * v = BN_CTX_get (ctx); BN_mod_sqr (v, r, p, ctx); 
