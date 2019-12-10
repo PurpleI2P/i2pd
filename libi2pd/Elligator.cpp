@@ -39,7 +39,7 @@ namespace crypto
 		BN_free (u); BN_free (iu); 
 	}
 
-	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded) const
+	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded, bool highY) const
 	{
 		bool ret = true;
 		BN_CTX * ctx = BN_CTX_new ();
@@ -63,8 +63,16 @@ namespace crypto
 		if (Legendre (uxxA, ctx) != -1)
 		{		
 			BIGNUM * r = BN_CTX_get (ctx);
-			BN_mod_inverse (r, xA, p, ctx);	
-			BN_mod_mul (r, r, x, p, ctx);	
+			if (highY)
+			{
+				BN_mod_inverse (r, x, p, ctx);
+				BN_mod_mul (r, r, xA, p, ctx);	
+			}
+			else
+			{
+				BN_mod_inverse (r, xA, p, ctx);	
+				BN_mod_mul (r, r, x, p, ctx);
+			}	
 			BN_mod_mul (r, r, iu, p, ctx);	
 		
 			SquareRoot (r, r, ctx);
