@@ -17,8 +17,8 @@ namespace crypto
 		p12 = BN_dup (p); BN_sub_word (p12, 1); BN_div_word (p12, 2); // (p-1)/2
 		p14 = BN_dup (p); BN_sub_word (p14, 1); BN_div_word (p14, 4); // (p-1)/4
 
-		auto A = BN_new (); BN_set_word (A, 486662);
-		nA = BN_new (); BN_sub  (nA, p, A);
+		A = BN_new (); BN_set_word (A, 486662);
+		nA = BN_new (); BN_sub (nA, p, A);
 
 		BN_CTX * ctx = BN_CTX_new ();	
 		// calculate sqrt(-1)		
@@ -28,8 +28,7 @@ namespace crypto
 		
 		u = BN_new (); BN_set_word (u, 2);
 		iu = BN_new (); BN_mod_inverse (iu, u, p, ctx);	
-		//printf ("%s\n", BN_bn2hex (iu));
-
+		
 		BN_CTX_free (ctx);
 	}
 
@@ -49,8 +48,8 @@ namespace crypto
 		uint8_t key1[32];	
 		for (size_t i = 0; i < 16; i++) // from Little Endian
 		{
-			key1[i] = key[15 - i];
-			key1[15 - i] = key[i];
+			key1[i] = key[31 - i];
+			key1[31 - i] = key[i];
 		}
 
 		BIGNUM * x = BN_CTX_get (ctx); BN_bin2bn (key1, 32, x);
@@ -62,7 +61,7 @@ namespace crypto
 		BN_mod_mul (uxxA, uxxA, xA, p, ctx);	
 		
 		if (Legendre (uxxA, ctx) != -1)
-		{
+		{		
 			BIGNUM * r = BN_CTX_get (ctx);
 			BN_mod_inverse (r, xA, p, ctx);	
 			BN_mod_mul (r, r, x, p, ctx);	
@@ -74,8 +73,8 @@ namespace crypto
 			for (size_t i = 0; i < 16; i++) // To Little Endian
 			{
 				uint8_t tmp = encoded[i];
-				encoded[i] = encoded[15 - i];
-				encoded[15 - i] = tmp;
+				encoded[i] = encoded[31 - i];
+				encoded[31 - i] = tmp;
 			}
 		}
 		else
@@ -95,8 +94,8 @@ namespace crypto
 		uint8_t encoded1[32];	
 		for (size_t i = 0; i < 16; i++) // from Little Endian
 		{
-			encoded1[i] = encoded[15 - i];
-			encoded1[15 - i] = encoded[i];
+			encoded1[i] = encoded[31 - i];
+			encoded1[31 - i] = encoded[i];
 		}
 
 		BIGNUM * r = BN_CTX_get (ctx); BN_bin2bn (encoded1, 32, r);
@@ -131,8 +130,8 @@ namespace crypto
 			for (size_t i = 0; i < 16; i++) // To Little Endian
 			{
 				uint8_t tmp = key[i];
-				key[i] = key[15 - i];
-				key[15 - i] = tmp;
+				key[i] = key[31 - i];
+				key[31 - i] = tmp;
 			}
 		}
 		else
