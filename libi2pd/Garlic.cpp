@@ -1,8 +1,10 @@
 #include <inttypes.h>
+#include <openssl/sha.h>
 #include "I2PEndian.h"
 #include <map>
 #include <string>
 #include "Crypto.h"
+#include "Elligator.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -433,6 +435,12 @@ namespace garlic
 			return;
 		}
 		buf += 4; // length
+		if (GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+		{
+			HandleECIESx25519 (buf, length - 4);	
+			return;
+		}	
+		// otherwise assume ElGamal/AES	
 		auto it = m_Tags.find (SessionTag(buf));
 		if (it != m_Tags.end ())
 		{
@@ -820,6 +828,34 @@ namespace garlic
 		for (auto  it: files)
 			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				 i2p::fs::Remove (it);
+	}
+
+	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
+	{
+		// KDF
+		// TODO : use precalculated hashes
+		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
+		uint8_t h[64], ck[32];
+		SHA256 ((const uint8_t *)protocolName, 40, h);
+		memcpy (ck, h, 32);
+		SHA256 (h, 32, h);				
+		// we are Bob
+		memcpy (h + 32, GetEncryptionPublicKey (), 32);
+		SHA256 (h, 64, h); // h = SHA256(h || bpk) 
+		
+		uint8_t aepk[32];
+		if (!i2p::crypto::GetElligator ()->Decode (buf, aepk))
+		{ 
+			LogPrint (eLogError, "Garlic: Can't decode elligator");
+			return;	
+		}
+		memcpy (h + 32, aepk, 32);
+		SHA256 (h, 64, h); // h = SHA256(h || aepk)
+
+		uint8_t sharedSecret[32], keyData[64];
+		Decrypt (aepk, sharedSecret, m_Ctx); // x25519
+		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
+		memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 
 	}
 }
 }

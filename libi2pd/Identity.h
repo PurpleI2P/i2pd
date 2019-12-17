@@ -227,6 +227,8 @@ namespace data
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
+			virtual CryptoKeyType GetEncryptionType () const { return GetIdentity ()->GetCryptoKeyType (); }; // override for LeaseSet
+			virtual const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ()->GetEncryptionPublicKey (); }; // override for LeaseSet
 	};
 }
 }

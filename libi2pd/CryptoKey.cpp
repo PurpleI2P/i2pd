@@ -1,7 +1,6 @@
 #include <string.h>
 #include "Log.h"
 #include "Gost.h"
-#include "Elligator.h"
 #include "CryptoKey.h"
 
 namespace i2p
@@ -148,11 +147,9 @@ namespace crypto
 	}
 
 
-	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * keyMaterial, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
 	{
-		uint8_t key[32];
-		if (!GetElligator ()->Decode (epub, key)) return false;
-		m_StaticKeys.Agree (key, keyMaterial);
+		m_StaticKeys.Agree (epub, sharedSecret);
 		return true; 
 	}
 

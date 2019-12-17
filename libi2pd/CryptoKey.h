@@ -125,8 +125,8 @@ namespace crypto
 
 			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv): m_StaticKeys (priv, nullptr) {};
 			~ECIESX25519AEADRatchetDecryptor () {};
-			bool Decrypt (const uint8_t * epub, uint8_t * keyMaterial, BN_CTX * ctx, bool zeroPadding); 
-			// take elligator encoded ephemeral pub (32 bytes), agree with static and return in keyMaterial (32 bytes)
+			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding); 
+			// agree with static and return in sharedSecret (32 bytes)
 			size_t GetPublicKeyLen () const { return 32; };
 
 		private:
