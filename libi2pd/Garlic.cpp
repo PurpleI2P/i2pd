@@ -849,6 +849,7 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Can't decode elligator");
 			return;	
 		}
+		buf += 32;
 		memcpy (h + 32, aepk, 32);
 		SHA256 (h, 64, h); // h = SHA256(h || aepk)
 
@@ -856,6 +857,16 @@ namespace garlic
 		Decrypt (aepk, sharedSecret, m_Ctx); // x25519
 		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 		memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 
+
+		// decrypt flags/static
+		uint8_t nonce[12], fs[32];
+		memset (nonce, 0, 12); // n = 0
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, h, 32, keyData + 32, nonce, fs, 32, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
+			return;
+		}
+		buf += 48; // 32 data + 16 poly
 	}
 }
 }
