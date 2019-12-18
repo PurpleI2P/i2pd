@@ -832,7 +832,7 @@ namespace garlic
 
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
-		// KDF
+		// KDF1
 		// TODO : use precalculated hashes
 		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
 		uint8_t h[64], ck[32];
@@ -849,7 +849,7 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Can't decode elligator");
 			return;	
 		}
-		buf += 32;
+		buf += 32; len -= 32;
 		memcpy (h + 32, aepk, 32);
 		SHA256 (h, 64, h); // h = SHA256(h || aepk)
 
@@ -866,7 +866,69 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
 			return;
 		}
-		buf += 48; // 32 data + 16 poly
+		memcpy (h + 32, buf, 32);
+		SHA256 (h, 64, h); // h = SHA256(h || ciphertext)
+		buf += 48; len -= 48; // 32 data + 16 poly
+		// decrypt payload
+		std::vector<uint8_t> payload (len + 32); uint8_t h1[32]; 
+		// KDF2 for payload
+		bool isStatic = !i2p::data::Tag<32> (fs).IsZero (); 
+		if (isStatic)
+		{
+			// static key, fs is apk
+			Decrypt (fs, sharedSecret, m_Ctx); // DH(bsk, apk)
+			i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
+			memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 	
+			memcpy (payload.data (), h, 32);
+			memcpy (payload.data () + 32, buf, len); // h || ciphertext
+			SHA256 (payload.data (), len + 32, h1); 
+		}
+		else // all zeros flags
+			htole64buf (nonce + 4, 1); // n = 1 
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, h, 32, keyData + 32, nonce, payload.data () + 32, len - 16, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
+			return;
+		}
+		if (isStatic) memcpy (h, h1, 32); // h = SHA256(h || ciphertext)
+		HandleECIESx25519Payload (payload.data () + 32, len - 16);
 	}
+
+	void GarlicDestination::HandleECIESx25519Payload (const uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		while (offset < len)
+		{
+			uint8_t blk = buf[offset];
+			offset++;
+			auto size = bufbe16toh (buf + offset);
+			offset += 2;
+			LogPrint (eLogDebug, "Garlic: Block type ", (int)blk, " of size ", size);
+			if (size > len)
+			{
+				LogPrint (eLogError, "Garlic: Unexpected block length ", size);
+				break;
+			}
+			switch (blk)
+			{
+				case eECIESx25519BlkGalicClove:
+					// TODO:
+				break;
+				case eECIESx25519BlkDateTime:
+					LogPrint (eLogDebug, "Garlic: datetime");
+				break;	
+				case eECIESx25519BlkOptions:
+					LogPrint (eLogDebug, "Garlic: options");
+				break;
+				case eECIESx25519BlkPadding:
+					LogPrint (eLogDebug, "NTCP2: padding");
+				break;
+				default:
+					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
+			}
+			offset += size;
+		}
+	}
+
 }
 }
