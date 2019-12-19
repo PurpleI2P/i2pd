@@ -146,6 +146,22 @@ namespace crypto
 		BN_free (x); BN_free (y);
 	}
 
+	ECIESX25519AEADRatchetEncryptor::ECIESX25519AEADRatchetEncryptor (const uint8_t * pub)
+	{
+		memcpy (m_PublicKey, pub, 32);
+	}	
+
+	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t * epriv, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
+	{
+		X25519Keys ep;
+		ep.SetPrivateKey (epriv);
+		ep.Agree (m_PublicKey, sharedSecret);
+	}
+
+	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv)
+	{
+		m_StaticKeys.SetPrivateKey (priv);
+	}
 
 	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
 	{

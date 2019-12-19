@@ -216,6 +216,7 @@ namespace data
 			virtual bool IsDestination () const = 0; // for garlic
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
+			virtual CryptoKeyType GetEncryptionType () const { return GetIdentity ()->GetCryptoKeyType (); }; // override in LeaseSet2
 	};
 
 	class LocalDestination

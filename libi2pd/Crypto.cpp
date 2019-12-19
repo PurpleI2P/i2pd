@@ -367,6 +367,18 @@ namespace crypto
 #endif
 	}
 
+	void X25519Keys::SetPrivateKey (const uint8_t * priv)
+	{
+#if OPENSSL_X25519		
+		if (m_Ctx) EVP_PKEY_CTX_free (m_Ctx);	
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
+		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
+#else
+		memcpy (m_PrivateKey, priv, 32);
+#endif		
+	}
+
 // ElGamal
 	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{

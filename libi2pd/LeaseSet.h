@@ -147,6 +147,7 @@ namespace data
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
+			CryptoKeyType GetEncryptionType () const { return m_EncryptionType; };
 
 		private:
 
@@ -167,6 +168,7 @@ namespace data
 			uint32_t m_PublishedTimestamp = 0;
 			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
+			CryptoKeyType m_EncryptionType = CRYPTO_KEY_TYPE_ELGAMAL;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
 
