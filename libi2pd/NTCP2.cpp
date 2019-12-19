@@ -441,23 +441,17 @@ namespace transport
 
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
-		uint8_t tempKey[32]; unsigned int len;
-		HMAC(EVP_sha256(), m_Establisher->GetCK (), 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(ck, zerolen)
-		static uint8_t one[1] =  { 1 };
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Kab, &len);  // k_ab = HMAC-SHA256(temp_key, byte(0x01)).
-		m_Kab[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_Kab, 33, m_Kba, &len);  // k_ba = HMAC-SHA256(temp_key, k_ab || byte(0x02))
-		static uint8_t ask[4] = { 'a', 's', 'k', 1 }, master[32];
-		HMAC(EVP_sha256(), tempKey, 32, ask, 4, master, &len); // ask_master = HMAC-SHA256(temp_key, "ask" || byte(0x01))
+		uint8_t k[64];
+		i2p::crypto::HKDF (m_Establisher->GetCK (), nullptr, 0, "", k); // k_ab, k_ba = HKDF(ck, zerolen)
+		memcpy (m_Kab, k, 32); memcpy (m_Kba, k + 32, 32);
+		uint8_t master[32];
+		i2p::crypto::HKDF (m_Establisher->GetCK (), nullptr, 0, "ask", master, 32); // ask_master = HKDF(ck, zerolen, info="ask")
 		uint8_t h[39];
 		memcpy (h, m_Establisher->GetH (), 32);
 		memcpy (h + 32, "siphash", 7);
-		HMAC(EVP_sha256(), master, 32, h, 39, tempKey, &len); // temp_key = HMAC-SHA256(ask_master, h || "siphash")
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, master, &len); // sip_master = HMAC-SHA256(temp_key, byte(0x01))  
-		HMAC(EVP_sha256(), master, 32, nullptr, 0, tempKey, &len); // temp_key = HMAC-SHA256(sip_master, zerolen)
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_Sipkeysab, &len); // sipkeys_ab = HMAC-SHA256(temp_key, byte(0x01)).
-		m_Sipkeysab[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_Sipkeysab, 33, m_Sipkeysba, &len); // sipkeys_ba = HMAC-SHA256(temp_key, sipkeys_ab || byte(0x02)) 
+		i2p::crypto::HKDF (master, h, 39, "", master, 32); // sip_master = HKDF(ask_master, h || "siphash")
+		i2p::crypto::HKDF (master, nullptr, 0, "", k, 64); // sipkeys_ab, sipkeys_ba = HKDF(sip_master, zerolen)
+		memcpy (m_Sipkeysab, k, 32); memcpy (m_Sipkeysba, k + 32, 32);	
 	}
 
 

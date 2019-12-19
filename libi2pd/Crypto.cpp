@@ -1259,18 +1259,29 @@ namespace crypto
 #endif
 	}
 
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out)
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, 
+		uint8_t * out, size_t outLen)
 	{
 #if OPENSSL_HKDF
-		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, NULL);
+		EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_HKDF, nullptr);
 		EVP_PKEY_derive_init (pctx);
 		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
-		EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
-		EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
+		if (key && keyLen)
+		{	
+			EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
+			EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
+		}	
+		else
+		{
+			// zerolen
+			EVP_PKEY_CTX_hkdf_mode (pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY);
+			uint8_t tempKey[32]; unsigned int len;
+			HMAC(EVP_sha256(), salt, 32, nullptr, 0, tempKey, &len);
+			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
+		}		
 		if (info.length () > 0)
 			EVP_PKEY_CTX_add1_hkdf_info (pctx, info.c_str (), info.length ());
-		size_t outlen = 64;
-		EVP_PKEY_derive (pctx, out, &outlen);
+		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
 #else
 		uint8_t prk[32]; unsigned int len;
@@ -1278,8 +1289,11 @@ namespace crypto
 		auto l = info.length ();
 		memcpy (out, info.c_str (), l); out[l] = 0x01;
 		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
-		memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
-		HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
+		if (outLen > 32) // 64
+		{	
+			memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
+			HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
+		}	
 #endif
 	}
 

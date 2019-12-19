@@ -296,7 +296,7 @@ namespace crypto
 
 // HKDF
 
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out); // salt - 32, out - 64, info <= 32 
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32 
 
 // init and terminate
 	void InitCrypto (bool precomputation);

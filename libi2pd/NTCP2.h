@@ -195,7 +195,7 @@ namespace transport
 
 			std::unique_ptr<NTCP2Establisher> m_Establisher;
 			// data phase
-			uint8_t m_Kab[33], m_Kba[32], m_Sipkeysab[33], m_Sipkeysba[32]; 
+			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32]; 
 			const uint8_t * m_SendKey, * m_ReceiveKey;
 #if OPENSSL_SIPHASH 
 			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
