@@ -450,7 +450,7 @@ namespace transport
 		memcpy (h, m_Establisher->GetH (), 32);
 		memcpy (h + 32, "siphash", 7);
 		i2p::crypto::HKDF (master, h, 39, "", master, 32); // sip_master = HKDF(ask_master, h || "siphash")
-		i2p::crypto::HKDF (master, nullptr, 0, "", k, 64); // sipkeys_ab, sipkeys_ba = HKDF(sip_master, zerolen)
+		i2p::crypto::HKDF (master, nullptr, 0, "", k); // sipkeys_ab, sipkeys_ba = HKDF(sip_master, zerolen)
 		memcpy (m_Sipkeysab, k, 32); memcpy (m_Sipkeysba, k + 32, 32);	
 	}
 
