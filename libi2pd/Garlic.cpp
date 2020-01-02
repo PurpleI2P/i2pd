@@ -435,13 +435,8 @@ namespace garlic
 			return;
 		}
 		buf += 4; // length
-		if (GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
-		{
-			HandleECIESx25519 (buf, length - 4);	
-			return;
-		}	
-		// otherwise assume ElGamal/AES	
 		auto it = m_Tags.find (SessionTag(buf));
+		// AES tag might be used even if encryption type is not ElGamal/AES
 		if (it != m_Tags.end ())
 		{
 			// tag found. Use AES
@@ -460,7 +455,13 @@ namespace garlic
 		}
 		else
 		{
-			// tag not found. Use ElGamal
+			// tag not found. Handle depending on encryption type
+			if (GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+			{
+				HandleECIESx25519 (buf, length - 4);	
+				return;
+			}	
+			// otherwise assume ElGamal/AES	
 			ElGamalBlock elGamal;
 			if (length >= 514 && Decrypt (buf, (uint8_t *)&elGamal, m_Ctx))
 			{
