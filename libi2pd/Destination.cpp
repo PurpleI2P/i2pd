@@ -353,7 +353,8 @@ namespace client
 
 	void LeaseSetDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msg));
+		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
+		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msgID));
 	}
 
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
@@ -366,7 +367,7 @@ namespace client
 			break;
 			case eI2NPDeliveryStatus:
 				// we assume tunnel tests non-encrypted
-				HandleDeliveryStatusMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+				HandleDeliveryStatusMessage (bufbe32toh (buf + I2NP_HEADER_SIZE + DELIVERY_STATUS_MSGID_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
@@ -511,9 +512,8 @@ namespace client
 			LogPrint (eLogWarning, "Destination: Request for ", key.ToBase64 (), " not found");
 	}
 
-	void LeaseSetDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
+	void LeaseSetDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
-		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
 		{
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed for ", GetIdentHash().ToBase32());
@@ -525,7 +525,7 @@ namespace client
 			shared_from_this (), std::placeholders::_1));
 		}
 		else
-			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);
+			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
 	}
 
 	void LeaseSetDestination::SetLeaseSetUpdated ()

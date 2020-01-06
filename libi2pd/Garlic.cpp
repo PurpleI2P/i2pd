@@ -723,9 +723,8 @@ namespace garlic
 		m_DeliveryStatusSessions[msgID] = session;
 	}
 
-	void GarlicDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
+	void GarlicDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
-		uint32_t msgID = bufbe32toh (msg->GetPayload ());
 		GarlicRoutingSessionPtr session;
 		{
 			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
@@ -757,7 +756,8 @@ namespace garlic
 
 	void GarlicDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		HandleDeliveryStatusMessage (msg);
+		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
+		HandleDeliveryStatusMessage (msgID);
 	}
 
 	void GarlicDestination::SaveTags ()

@@ -206,7 +206,7 @@ namespace garlic
 		protected:
 
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
-			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+			void HandleDeliveryStatusMessage (uint32_t msgID);
 
 			void SaveTags ();
 			void LoadTags ();
