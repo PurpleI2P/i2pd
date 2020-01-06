@@ -115,11 +115,16 @@ namespace i2p
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () { return nullptr; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const;
-			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 			// override GarlicDestination
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+
+		protected:
+
+			// implements GarlicDestination
+			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+			bool HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len) { return false; }; // not implemented	
 
 		private:
 

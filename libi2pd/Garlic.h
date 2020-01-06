@@ -205,6 +205,7 @@ namespace garlic
 		protected:
 
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from) = 0; // called from clove only
+			virtual bool HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len) = 0;
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void HandleDeliveryStatusMessage (uint32_t msgID);
 
@@ -220,6 +221,7 @@ namespace garlic
 			// ECIES-X25519-AEAD-Ratchet
 			void HandleECIESx25519 (const uint8_t * buf, size_t len);
 			void HandleECIESx25519Payload (const uint8_t * buf, size_t len);
+			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 		private:
 

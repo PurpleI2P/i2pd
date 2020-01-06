@@ -913,7 +913,7 @@ namespace garlic
 			switch (blk)
 			{
 				case eECIESx25519BlkGalicClove:
-					// TODO:
+					HandleECIESx25519GarlicClove (buf + offset, size);
 				break;
 				case eECIESx25519BlkDateTime:
 					LogPrint (eLogDebug, "Garlic: datetime");
@@ -931,5 +931,31 @@ namespace garlic
 		}
 	}
 
+	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
+	{
+		const uint8_t * buf1 = buf;	
+		uint8_t flag = buf[0]; buf++; // flag
+		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
+		switch (deliveryType)
+		{
+			case eGarlicDeliveryTypeDestination:
+				buf += 32; // TODO: check destination
+			// no break here
+			case eGarlicDeliveryTypeLocal:
+			{
+				uint8_t typeID = buf[0]; buf++; // typeid
+				buf += (4 + 4); // msgID + expiration
+				ptrdiff_t offset = buf - buf1;
+				if (offset <= (int)len)
+					HandleCloveI2NPMessage (typeID, buf, len - offset);
+				else
+					LogPrint (eLogError, "Garlic: clove is too long");
+				break;
+			}
+			//  TODO: tunnel
+			default:
+				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
+		}
+	}
 }
 }
