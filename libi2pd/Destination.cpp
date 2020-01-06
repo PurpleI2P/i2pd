@@ -360,24 +360,31 @@ namespace client
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
+		if (!HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE))
+			i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+	}
+
+	bool LeaseSetDestination::HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len)
+	{
 		switch (typeID)
 		{
 			case eI2NPData:
-				HandleDataMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDataMessage (payload, len);
 			break;
 			case eI2NPDeliveryStatus:
 				// we assume tunnel tests non-encrypted
-				HandleDeliveryStatusMessage (bufbe32toh (buf + I2NP_HEADER_SIZE + DELIVERY_STATUS_MSGID_OFFSET));
+				HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
-				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDatabaseStoreMessage (payload, len);
 			break;
 			case eI2NPDatabaseSearchReply:
-				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
 			default:
-				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+				return false;
 		}
+		return true;
 	}
 
 	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
