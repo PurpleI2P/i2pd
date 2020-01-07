@@ -357,11 +357,10 @@ namespace client
 		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msgID));
 	}
 
-	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
 		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
-		if (!HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE))
-			i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
 	}
 
 	bool LeaseSetDestination::HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len)
@@ -382,6 +381,7 @@ namespace client
 				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
 			default:
+				LogPrint (eLogWarning, "Destination: Unexpected I2NP message type ", typeID);
 				return false;
 		}
 		return true;

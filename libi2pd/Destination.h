@@ -131,7 +131,7 @@ namespace client
 		protected:
 
 			// implements GarlicDestination
-			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+			void HandleI2NPMessage (const uint8_t * buf, size_t len);
 			bool HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len);
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);

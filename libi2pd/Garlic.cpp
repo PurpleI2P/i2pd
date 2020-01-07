@@ -552,7 +552,7 @@ namespace garlic
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
 					}
-					HandleI2NPMessage (buf, len - offset, from);
+					HandleI2NPMessage (buf, len - offset);
 				break;
 				case eGarlicDeliveryTypeDestination:
 					LogPrint (eLogDebug, "Garlic: type destination");
@@ -563,7 +563,7 @@ namespace garlic
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
 					}
-					HandleI2NPMessage (buf, len - offset, from);
+					HandleI2NPMessage (buf, len - offset);
 				break;
 				case eGarlicDeliveryTypeTunnel:
 				{
