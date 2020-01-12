@@ -879,11 +879,14 @@ namespace client
 			if (it != params->end ())
 				m_EncryptionKeyType = std::stoi(it->second);
 		}		
-	
-		if (isPublic && m_EncryptionKeyType == GetIdentity ()->GetCryptoKeyType ()) // TODO: presist key type
+
+		memset (m_EncryptionPrivateKey, 0, 256); 
+		memset (m_EncryptionPublicKey, 0, 256);	
+		if (isPublic) 
 			PersistTemporaryKeys ();
 		else
 			i2p::data::PrivateKeys::GenerateCryptoKeyPair (m_EncryptionKeyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+			
 		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_EncryptionKeyType, m_EncryptionPrivateKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
@@ -1172,8 +1175,8 @@ namespace client
 		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.i2p");
 		memset (m_EncryptionPrivateKey, 0, 256);
 		memset (m_EncryptionPublicKey, 0, 256);	
-		i2p::data::PrivateKeys::GenerateCryptoKeyPair (GetIdentity ()->GetCryptoKeyType (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair (m_EncryptionKeyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		// TODO:: persist crypto key type
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {
 			f1.write ((char *)m_EncryptionPublicKey,  256);
