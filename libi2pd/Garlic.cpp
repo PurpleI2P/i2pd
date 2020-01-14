@@ -836,7 +836,7 @@ namespace garlic
 		// KDF1
 		// TODO : use precalculated hashes
 		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
-		uint8_t h[64], ck[32];
+		uint8_t h[80], ck[32];
 		SHA256 ((const uint8_t *)protocolName, 40, h);
 		memcpy (ck, h, 32);
 		SHA256 (h, 32, h);				
@@ -855,7 +855,7 @@ namespace garlic
 		SHA256 (h, 64, h); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32], keyData[64];
-		Decrypt (aepk, sharedSecret, m_Ctx); // x25519
+		Decrypt (aepk, sharedSecret, m_Ctx); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 		memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 
 
@@ -867,8 +867,8 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
 			return;
 		}
-		memcpy (h + 32, buf, 32);
-		SHA256 (h, 64, h); // h = SHA256(h || ciphertext)
+		memcpy (h + 32, buf, 48);
+		SHA256 (h, 80, h); // h = SHA256(h || ciphertext)
 		buf += 48; len -= 48; // 32 data + 16 poly
 		// decrypt payload
 		std::vector<uint8_t> payload (len + 32); uint8_t h1[32]; 
@@ -877,7 +877,7 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
-			Decrypt (fs, sharedSecret, m_Ctx); // DH(bsk, apk)
+			Decrypt (fs, sharedSecret, m_Ctx); // x25519(bsk, apk)
 			i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 			memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 	
 			memcpy (payload.data (), h, 32);
