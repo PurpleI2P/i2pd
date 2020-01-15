@@ -165,17 +165,6 @@ namespace garlic
 	//using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
 	typedef std::shared_ptr<GarlicRoutingSession> GarlicRoutingSessionPtr; // TODO: replace to using after switch to 4.8
 
-	enum ECIESx25519BlockType
-	{
-		eECIESx25519BlkDateTime = 0,
-		eECIESx25519BlkSessionID = 1, 
-		eECIESx25519BlkTermination = 4,
-		eECIESx25519BlkOptions = 5,
-		eECIESx25519BlkNextSessionKey = 7,
-		eECIESx25519BlkGalicClove = 11,
-		eECIESx25519BlkPadding = 254	
-	};	
-
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
@@ -220,8 +209,6 @@ namespace garlic
 
 			// ECIES-X25519-AEAD-Ratchet
 			void HandleECIESx25519 (const uint8_t * buf, size_t len);
-			void HandleECIESx25519Payload (const uint8_t * buf, size_t len);
-			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 		private:
 

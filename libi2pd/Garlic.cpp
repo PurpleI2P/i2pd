@@ -1,10 +1,8 @@
 #include <inttypes.h>
-#include <openssl/sha.h>
 #include "I2PEndian.h"
 #include <map>
 #include <string>
 #include "Crypto.h"
-#include "Elligator.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -13,6 +11,7 @@
 #include "Timestamp.h"
 #include "Log.h"
 #include "FS.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "Garlic.h"
 
 namespace i2p
@@ -833,129 +832,12 @@ namespace garlic
 
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
-		// KDF1
-		// TODO : use precalculated hashes
-		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
-		uint8_t h[80], ck[32];
-		SHA256 ((const uint8_t *)protocolName, 40, h);
-		memcpy (ck, h, 32);
-		SHA256 (h, 32, h);				
-		// we are Bob
-		memcpy (h + 32, GetEncryptionPublicKey (), 32);
-		SHA256 (h, 64, h); // h = SHA256(h || bpk) 
-		
-		uint8_t aepk[32];
-		if (!i2p::crypto::GetElligator ()->Decode (buf, aepk))
-		{ 
-			LogPrint (eLogError, "Garlic: Can't decode elligator");
-			return;	
-		}
-		buf += 32; len -= 32;
-		memcpy (h + 32, aepk, 32);
-		SHA256 (h, 64, h); // h = SHA256(h || aepk)
-
-		uint8_t sharedSecret[32], keyData[64];
-		Decrypt (aepk, sharedSecret, m_Ctx); // x25519(bsk, aepk)
-		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
-		memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 
-
-		// decrypt flags/static
-		uint8_t nonce[12], fs[32];
-		memset (nonce, 0, 12); // n = 0
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, h, 32, keyData + 32, nonce, fs, 32, false)) // decrypt
-		{
-			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
-			return;
-		}
-		memcpy (h + 32, buf, 48);
-		SHA256 (h, 80, h); // h = SHA256(h || ciphertext)
-		buf += 48; len -= 48; // 32 data + 16 poly
-		// decrypt payload
-		std::vector<uint8_t> payload (len + 32); uint8_t h1[32]; 
-		// KDF2 for payload
-		bool isStatic = !i2p::data::Tag<32> (fs).IsZero (); 
-		if (isStatic)
-		{
-			// static key, fs is apk
-			Decrypt (fs, sharedSecret, m_Ctx); // x25519(bsk, apk)
-			i2p::crypto::HKDF (ck, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
-			memcpy (ck, keyData, 32); // chainKey = keydata[0:31] 	
-			memcpy (payload.data (), h, 32);
-			memcpy (payload.data () + 32, buf, len); // h || ciphertext
-			SHA256 (payload.data (), len + 32, h1); 
-		}
-		else // all zeros flags
-			htole64buf (nonce + 4, 1); // n = 1 
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, h, 32, keyData + 32, nonce, payload.data () + 32, len - 16, false)) // decrypt
-		{
-			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
-			return;
-		}
-		if (isStatic) memcpy (h, h1, 32); // h = SHA256(h || ciphertext)
-		HandleECIESx25519Payload (payload.data () + 32, len - 16);
-	}
-
-	void GarlicDestination::HandleECIESx25519Payload (const uint8_t * buf, size_t len)
-	{
-		size_t offset = 0;
-		while (offset < len)
-		{
-			uint8_t blk = buf[offset];
-			offset++;
-			auto size = bufbe16toh (buf + offset);
-			offset += 2;
-			LogPrint (eLogDebug, "Garlic: Block type ", (int)blk, " of size ", size);
-			if (size > len)
-			{
-				LogPrint (eLogError, "Garlic: Unexpected block length ", size);
-				break;
-			}
-			switch (blk)
-			{
-				case eECIESx25519BlkGalicClove:
-					HandleECIESx25519GarlicClove (buf + offset, size);
-				break;
-				case eECIESx25519BlkDateTime:
-					LogPrint (eLogDebug, "Garlic: datetime");
-				break;	
-				case eECIESx25519BlkOptions:
-					LogPrint (eLogDebug, "Garlic: options");
-				break;
-				case eECIESx25519BlkPadding:
-					LogPrint (eLogDebug, "NTCP2: padding");
-				break;
-				default:
-					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
-			}
-			offset += size;
-		}
-	}
-
-	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
-	{
-		const uint8_t * buf1 = buf;	
-		uint8_t flag = buf[0]; buf++; // flag
-		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
-		switch (deliveryType)
-		{
-			case eGarlicDeliveryTypeDestination:
-				buf += 32; // TODO: check destination
-			// no break here
-			case eGarlicDeliveryTypeLocal:
-			{
-				uint8_t typeID = buf[0]; buf++; // typeid
-				buf += (4 + 4); // msgID + expiration
-				ptrdiff_t offset = buf - buf1;
-				if (offset <= (int)len)
-					HandleCloveI2NPMessage (typeID, buf, len - offset);
-				else
-					LogPrint (eLogError, "Garlic: clove is too long");
-				break;
-			}
-			//  TODO: tunnel
-			default:
-				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
-		}
+        ECIESX25519AEADRatchetSession session;
+        session.NewIncomingSession (*this, buf, len, 
+            [this](uint8_t typeID, const uint8_t * payload, size_t len) 
+            { 
+                HandleCloveI2NPMessage (typeID, payload,len); 
+            });
 	}
 }
 }
