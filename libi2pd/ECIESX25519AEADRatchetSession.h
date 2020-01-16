@@ -24,20 +24,19 @@ namespace garlic
     {
         public:
 
-            typedef std::function<void (uint8_t typeID, const uint8_t * payload, size_t len)> CloveI2NPMsgHandler;
+            typedef std::function<void (const uint8_t * buf, size_t len)> CloveHandler;
 
             ECIESX25519AEADRatchetSession ();
             ~ECIESX25519AEADRatchetSession ();
 
             bool NewIncomingSession (const i2p::data::LocalDestination& dest, const uint8_t * buf, size_t len, 
-                CloveI2NPMsgHandler handleCloveI2NPMsg);
+                CloveHandler handleClove);
 
         private:
 
             void MixHash (const uint8_t * buf, size_t len);
 
-            void HandlePayload (const uint8_t * buf, size_t len,  CloveI2NPMsgHandler& handleCloveI2NPMsg);
-            void HandleClove (const uint8_t * buf, size_t len,  CloveI2NPMsgHandler& handleCloveI2NPMsg);
+            void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
         private:
 

@@ -359,11 +359,11 @@ namespace client
 
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
-		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
+		I2NPMessageType typeID = (I2NPMessageType)(buf[I2NP_HEADER_TYPEID_OFFSET]);
 		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
 	}
 
-	bool LeaseSetDestination::HandleCloveI2NPMessage (uint8_t typeID, const uint8_t * payload, size_t len)
+	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len)
 	{
 		switch (typeID)
 		{

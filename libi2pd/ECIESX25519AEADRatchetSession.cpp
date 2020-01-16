@@ -5,7 +5,6 @@
 #include "Elligator.h"
 #include "Tag.h"
 #include "I2PEndian.h"
-#include "Garlic.h"
 #include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
@@ -36,7 +35,7 @@ namespace garlic
     }
 
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const i2p::data::LocalDestination& dest, 
-        const uint8_t * buf, size_t len,  CloveI2NPMsgHandler handleCloveI2NPMsg)
+        const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
         // we are Bob
         // KDF1
@@ -87,12 +86,12 @@ namespace garlic
 		}
 		if (isStatic) MixHash (buf, len); // h = SHA256(h || ciphertext)
             
-        HandlePayload (payload.data (), len - 16, handleCloveI2NPMsg);    
+        HandlePayload (payload.data (), len - 16, handleClove);    
 
         return true;
     }
 
-    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, CloveI2NPMsgHandler& handleCloveI2NPMsg)
+    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, CloveHandler& handleClove)
     {
         size_t offset = 0;
 		while (offset < len)
@@ -110,7 +109,7 @@ namespace garlic
 			switch (blk)
 			{
 				case eECIESx25519BlkGalicClove:
-					HandleClove (buf + offset, size, handleCloveI2NPMsg);
+					handleClove (buf + offset, size);
 				break;
 				case eECIESx25519BlkDateTime:
 					LogPrint (eLogDebug, "Garlic: datetime");
@@ -119,7 +118,7 @@ namespace garlic
 					LogPrint (eLogDebug, "Garlic: options");
 				break;
 				case eECIESx25519BlkPadding:
-					LogPrint (eLogDebug, "NTCP2: padding");
+					LogPrint (eLogDebug, "Garlic: padding");
 				break;
 				default:
 					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
@@ -127,33 +126,6 @@ namespace garlic
 			offset += size;
 		}
     }    
-
-    void ECIESX25519AEADRatchetSession::HandleClove (const uint8_t * buf, size_t len,  CloveI2NPMsgHandler& handleCloveI2NPMsg)
-    {   
-        const uint8_t * buf1 = buf;	
-		uint8_t flag = buf[0]; buf++; // flag
-		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
-		switch (deliveryType)
-		{
-			case eGarlicDeliveryTypeDestination:
-				buf += 32; // TODO: check destination
-			// no break here
-			case eGarlicDeliveryTypeLocal:
-			{
-				uint8_t typeID = buf[0]; buf++; // typeid
-				buf += (4 + 4); // msgID + expiration
-				ptrdiff_t offset = buf - buf1;
-				if (offset <= (int)len)
-					handleCloveI2NPMsg (typeID, buf, len - offset);
-				else
-					LogPrint (eLogError, "Garlic: clove is too long");
-				break;
-			}
-			//  TODO: tunnel
-			default:
-				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
-		} 
-    }
 }
 }
 

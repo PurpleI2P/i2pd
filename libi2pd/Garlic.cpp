@@ -833,11 +833,64 @@ namespace garlic
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
         ECIESX25519AEADRatchetSession session;
-        session.NewIncomingSession (*this, buf, len, 
-            [this](uint8_t typeID, const uint8_t * payload, size_t len) 
-            { 
-                HandleCloveI2NPMessage (typeID, payload,len); 
-            });
+        session.NewIncomingSession (*this, buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
+            this, std::placeholders::_1, std::placeholders::_2));
 	}
+
+    void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
+    {   
+        const uint8_t * buf1 = buf;	
+		uint8_t flag = buf[0]; buf++; // flag
+		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
+		switch (deliveryType)
+		{
+			case eGarlicDeliveryTypeDestination:
+                LogPrint (eLogDebug, "Garlic: type destination");
+				buf += 32; // TODO: check destination
+			// no break here
+			case eGarlicDeliveryTypeLocal:
+			{
+                LogPrint (eLogDebug, "Garlic: type local");
+				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
+				buf += (4 + 4); // msgID + expiration
+				ptrdiff_t offset = buf - buf1;
+				if (offset <= (int)len)
+					HandleCloveI2NPMessage (typeID, buf, len - offset);
+				else
+					LogPrint (eLogError, "Garlic: clove is too long");
+				break;
+			}
+			case eGarlicDeliveryTypeTunnel:
+            {
+                LogPrint (eLogDebug, "Garlic: type tunnel");
+				// gwHash and gwTunnel sequence is reverted
+				const uint8_t * gwHash = buf;
+				buf += 32;
+				ptrdiff_t offset = buf - buf1;
+				if (offset + 13 > (int)len)
+				{
+					LogPrint (eLogError, "Garlic: message is too short");
+					break;
+				}
+				uint32_t gwTunnel = bufbe32toh (buf); buf += 4; 
+                I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
+				buf += (4 + 4); // msgID + expiration
+                offset += 13;
+				if (GetTunnelPool ())
+                {
+                    auto tunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
+                    if (tunnel)
+					    tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset));
+					else
+					    LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
+                }
+				else
+					LogPrint (eLogError, "Garlic: Tunnel pool is not set for inbound tunnel");
+                break;
+            }
+			default:
+				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
+		} 
+    }
 }
 }
