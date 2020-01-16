@@ -116,6 +116,39 @@ namespace crypto
 	};
 
 	void CreateECIESGOSTR3410RandomKeys (uint8_t * priv, uint8_t * pub);
+
+// ECIES-X25519-AEAD-Ratchet
+
+	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor 
+	{
+		public:
+
+			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
+			~ECIESX25519AEADRatchetEncryptor () {};
+			void Encrypt (const uint8_t * epriv, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding);
+			// agree with ephemeral priv and return in sharedSecret (32 bytes) 
+
+		private:
+
+			uint8_t m_PublicKey[32];
+	};
+
+	class ECIESX25519AEADRatchetDecryptor: public CryptoKeyDecryptor
+	{
+		public:
+
+			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv);
+			~ECIESX25519AEADRatchetDecryptor () {};
+			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding); 
+			// agree with static and return in sharedSecret (32 bytes)
+			size_t GetPublicKeyLen () const { return 32; };
+
+		private:
+
+			X25519Keys m_StaticKeys;
+	};
+
+	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub);
 }
 }
 

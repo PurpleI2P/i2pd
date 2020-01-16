@@ -190,12 +190,13 @@ namespace garlic
 
 			virtual std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () = 0; // TODO
 			virtual std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const = 0;
-			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from) = 0;
 
 		protected:
 
+			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0; // called from clove only
+			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) = 0;
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
-			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+			void HandleDeliveryStatusMessage (uint32_t msgID);
 
 			void SaveTags ();
 			void LoadTags ();
@@ -205,6 +206,10 @@ namespace garlic
 			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
 				std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+
+			// ECIES-X25519-AEAD-Ratchet
+			void HandleECIESx25519 (const uint8_t * buf, size_t len);
+            void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 		private:
 

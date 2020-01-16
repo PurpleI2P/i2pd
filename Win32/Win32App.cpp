@@ -13,10 +13,6 @@
 #include "Win32App.h"
 #include <stdio.h>
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
-
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
 #define ID_CONSOLE 2002
@@ -39,6 +35,9 @@ namespace i2p
 namespace win32
 {
 	static DWORD GracefulShutdownEndtime = 0;
+	
+	typedef DWORD (* IPN)();
+	IPN GetTickCountLocal = (IPN)GetProcAddress (GetModuleHandle ("KERNEL32.dll"), "GetTickCount");
 
 	static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
 	{
@@ -53,7 +52,7 @@ namespace win32
 				ID_ACCEPT_TRANSIT, "Accept &transit");
 		else
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_DECLINE_TRANSIT, "Decline &transit");
-		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload configs");
+		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload tunnels config");
 		if (!i2p::util::DaemonWin32::Instance ().isGraceful)
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
 		else
@@ -161,7 +160,7 @@ namespace win32
 		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
 		if (GracefulShutdownEndtime != 0)
 		{
-			DWORD GracefulTimeLeft = (GracefulShutdownEndtime - GetTickCount()) / 1000;
+			DWORD GracefulTimeLeft = (GracefulShutdownEndtime - GetTickCountLocal()) / 1000;
 			s << "Graceful shutdown, time left: "; ShowUptime(s, GracefulTimeLeft);
 		}
 		else
@@ -239,7 +238,7 @@ namespace win32
 						i2p::context.SetAcceptsTunnels (false);
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
 						SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr); // check tunnels every second
-						GracefulShutdownEndtime = GetTickCount() + 10*60*1000;
+						GracefulShutdownEndtime = GetTickCountLocal() + 10*60*1000;
 						i2p::util::DaemonWin32::Instance ().isGraceful = true;
 						return 0;
 					}

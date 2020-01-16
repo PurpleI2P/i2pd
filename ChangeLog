@@ -10,6 +10,7 @@
 ### Fixed
 - Failure to start on Windows XP
 - SAM crash if invalid lookup address
+- Possible crash when UPnP enabled on shutdown
 
 ## [2.28.0] - 2019-08-27
 ### Added

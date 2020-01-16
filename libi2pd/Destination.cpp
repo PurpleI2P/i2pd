@@ -353,30 +353,38 @@ namespace client
 
 	void LeaseSetDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msg));
+		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
+		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msgID));
 	}
 
-	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
-		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
+		I2NPMessageType typeID = (I2NPMessageType)(buf[I2NP_HEADER_TYPEID_OFFSET]);
+		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+	}
+
+	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len)
+	{
 		switch (typeID)
 		{
 			case eI2NPData:
-				HandleDataMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDataMessage (payload, len);
 			break;
 			case eI2NPDeliveryStatus:
 				// we assume tunnel tests non-encrypted
-				HandleDeliveryStatusMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+				HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
-				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDatabaseStoreMessage (payload, len);
 			break;
 			case eI2NPDatabaseSearchReply:
-				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
 			default:
-				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len), from));
+				LogPrint (eLogWarning, "Destination: Unexpected I2NP message type ", typeID);
+				return false;
 		}
+		return true;
 	}
 
 	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
@@ -511,9 +519,8 @@ namespace client
 			LogPrint (eLogWarning, "Destination: Request for ", key.ToBase64 (), " not found");
 	}
 
-	void LeaseSetDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
+	void LeaseSetDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
-		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
 		{
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed for ", GetIdentHash().ToBase32());
@@ -525,7 +532,7 @@ namespace client
 			shared_from_this (), std::placeholders::_1));
 		}
 		else
-			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);
+			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
 	}
 
 	void LeaseSetDestination::SetLeaseSetUpdated ()
@@ -872,11 +879,14 @@ namespace client
 			if (it != params->end ())
 				m_EncryptionKeyType = std::stoi(it->second);
 		}		
-	
-		if (isPublic && m_EncryptionKeyType == GetIdentity ()->GetCryptoKeyType ()) // TODO: presist key type
+
+		memset (m_EncryptionPrivateKey, 0, 256); 
+		memset (m_EncryptionPublicKey, 0, 256);	
+		if (isPublic) 
 			PersistTemporaryKeys ();
 		else
 			i2p::data::PrivateKeys::GenerateCryptoKeyPair (m_EncryptionKeyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+			
 		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_EncryptionKeyType, m_EncryptionPrivateKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
@@ -1165,8 +1175,8 @@ namespace client
 		LogPrint (eLogInfo, "Destination: Creating new temporary keys of type for address ", ident, ".b32.i2p");
 		memset (m_EncryptionPrivateKey, 0, 256);
 		memset (m_EncryptionPublicKey, 0, 256);	
-		i2p::data::PrivateKeys::GenerateCryptoKeyPair (GetIdentity ()->GetCryptoKeyType (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair (m_EncryptionKeyType, m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		// TODO:: persist crypto key type
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {
 			f1.write ((char *)m_EncryptionPublicKey,  256);

@@ -82,6 +82,8 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
   "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
   "${LIBI2PD_SRC_DIR}/Blinding.cpp"
+  "${LIBI2PD_SRC_DIR}/Elligator.cpp"
+  "${LIBI2PD_SRC_DIR}/ECIESX25519AEADRatchetSession.cpp"    
 )
 
 if (WITH_WEBSOCKETS)

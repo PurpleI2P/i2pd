@@ -465,6 +465,7 @@ namespace transport
 				}
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
+			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
@@ -647,11 +648,16 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				auto before = it->second.sessions.size ();
 				it->second.sessions.remove (session);
-				if (it->second.sessions.empty ()) // TODO: why?
+				if (it->second.sessions.empty ()) 
 				{
 					if (it->second.delayedMessages.size () > 0)
+					{
+						if (before > 0) // we had an active session before
+							it->second.numAttempts = 0; // start over
 						ConnectToPeer (ident, it->second);
+					}	
 					else
 					{
 						std::unique_lock<std::mutex> l(m_PeersMutex);

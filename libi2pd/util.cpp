@@ -22,7 +22,7 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-// inet_pton exists Windows since Vista, but XP haven't that function!
+// inet_pton exists Windows since Vista, but XP doesn't have that function!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp(int af, const char *src, void *dst)
 {
@@ -62,16 +62,21 @@ namespace net
 #ifdef WIN32
 	bool IsWindowsXPorLater()
 	{
-		OSVERSIONINFO osvi;
+	    static bool isRequested = false;
+	    static bool isXP = false;
+	    if (!isRequested)
+	    {
+	        // request
+            OSVERSIONINFO osvi;
 
-		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-		GetVersionEx(&osvi);
+            ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+            osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+            GetVersionEx(&osvi);
 
-		if (osvi.dwMajorVersion <= 5)
-			return true;
-		else
-			return false;
+            isXP = osvi.dwMajorVersion <= 5;
+            isRequested = true;
+        }
+        return isXP;
 	}
 
 	int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
@@ -202,21 +207,20 @@ namespace net
 		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-		if (IsWindowsXPorLater())
-		{
-			#define inet_pton inet_pton_xp
-		}
+        typedef int (* IPN)(int af, const char *src, void *dst);
+		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
+        if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
 		if(localAddress.is_v4())
 		{
 			sockaddr_in inputAddress;
-			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+            inetpton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
 		}
 		else if(localAddress.is_v6())
 		{
 			sockaddr_in6 inputAddress;
-			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+            inetpton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
 			return GetMTUWindowsIpv6(inputAddress, fallback);
 		} else {
 			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
@@ -312,15 +316,14 @@ namespace net
 				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
 				{
 					// match
-					char * addr = new char[INET6_ADDRSTRLEN];
-					bzero(addr, INET6_ADDRSTRLEN);
+					char  addr[INET6_ADDRSTRLEN];
+					memset (addr, 0, INET6_ADDRSTRLEN);
 					if(af == AF_INET)
 						inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
 					else
 						inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
 					freeifaddrs(addrs);
 					std::string cur_ifaddr(addr);
-					delete[] addr;
 					return boost::asio::ip::address::from_string(cur_ifaddr);
 				}
 				cur = cur->ifa_next;

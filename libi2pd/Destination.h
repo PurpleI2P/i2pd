@@ -121,7 +121,6 @@ namespace client
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet ();
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
-			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
@@ -130,6 +129,10 @@ namespace client
 			void SetLeaseSetUpdated ();
 
 		protected:
+
+			// implements GarlicDestination
+			void HandleI2NPMessage (const uint8_t * buf, size_t len);
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
@@ -152,7 +155,7 @@ namespace client
 			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
-			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+			void HandleDeliveryStatusMessage (uint32_t msgID);
 
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey = nullptr);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
@@ -237,6 +240,8 @@ namespace client
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
+			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 
 		protected:
 
