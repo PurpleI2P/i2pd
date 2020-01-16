@@ -68,7 +68,8 @@ namespace garlic
 		m_Encryption.SetKey (m_SessionKey);
 	}
 
-	ElGamalAESSession::ElGamalAESSession (const uint8_t * sessionKey, const SessionTag& sessionTag)
+	ElGamalAESSession::ElGamalAESSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
+		m_NumTags(1)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
