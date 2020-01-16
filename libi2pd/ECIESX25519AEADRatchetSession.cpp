@@ -15,6 +15,7 @@ namespace garlic
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
         GarlicRoutingSession (owner, true)
     {
+        m_EphemeralKeys.GenerateKeys ();
         // TODO : use precalculated hashes
 		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
 		SHA256 ((const uint8_t *)protocolName, 40, m_H);
@@ -128,6 +129,41 @@ namespace garlic
 			offset += size;
 		}
     }    
+
+    bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+    {
+        // we are Alice, bpk is m_StaticKey
+        size_t offset = 0;
+        if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset))
+		{ 
+			LogPrint (eLogError, "Garlic: Can't encode elligator");
+			return false;	
+		}         
+        offset += 32;   
+
+        // KDF1
+        MixHash (m_StaticKey, 32); // h = SHA256(h || bpk) 
+        MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || aepk)          
+        uint8_t sharedSecret[32], keyData[64];
+		m_EphemeralKeys.Agree (m_StaticKey, nullptr); // x25519(aesk, bpk)
+		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
+		memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31]         
+        // encrypt static key section
+        uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (), 32, m_H, 32, keyData + 32, nonce, out + offset, 48, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
+			return false;
+		}
+        MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
+        offset += 48;
+        
+        // KDF2 
+        // TODO: // x25519 (ask, bpk)
+
+        return true;
+    }
 
     std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
     {

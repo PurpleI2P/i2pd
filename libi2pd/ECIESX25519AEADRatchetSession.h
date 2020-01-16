@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <functional>
 #include "Identity.h"
+#include "Crypto.h"
 #include "Garlic.h"
 
 namespace i2p
@@ -41,9 +42,12 @@ namespace garlic
 
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
+            bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+
         private:
 
             uint8_t m_H[32], m_CK[32], m_StaticKey[32];
+            i2p::crypto::X25519Keys m_EphemeralKeys;
     };
 }
 }
