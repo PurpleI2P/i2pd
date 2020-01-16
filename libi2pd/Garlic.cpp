@@ -457,7 +457,7 @@ namespace garlic
 			// tag not found. Handle depending on encryption type
 			if (GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
 			{
-				HandleECIESx25519 (buf, length - 4);	
+				HandleECIESx25519 (buf, length);	
 				return;
 			}	
 			// otherwise assume ElGamal/AES	
