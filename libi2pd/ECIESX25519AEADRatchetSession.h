@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <functional>
 #include "Identity.h"
+#include "Garlic.h"
 
 namespace i2p
 {
@@ -20,17 +21,18 @@ namespace garlic
 		eECIESx25519BlkPadding = 254	
 	};	
 
-    class ECIESX25519AEADRatchetSession
+    class ECIESX25519AEADRatchetSession: public GarlicRoutingSession
     {
         public:
 
             typedef std::function<void (const uint8_t * buf, size_t len)> CloveHandler;
 
-            ECIESX25519AEADRatchetSession ();
+            ECIESX25519AEADRatchetSession (GarlicDestination * owner);
             ~ECIESX25519AEADRatchetSession ();
 
-            bool NewIncomingSession (const i2p::data::LocalDestination& dest, const uint8_t * buf, size_t len, 
-                CloveHandler handleClove);
+            std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
+
+            bool NewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
 
         private:
 

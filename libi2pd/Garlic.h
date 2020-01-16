@@ -99,7 +99,7 @@ namespace garlic
 
 		public:
 
-			GarlicRoutingSession (GarlicDestination * owner, std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
+			GarlicRoutingSession (GarlicDestination * owner, bool attachLeaseSet);
 			GarlicRoutingSession ();
 			virtual ~GarlicRoutingSession ();
 			virtual std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg) = 0;
@@ -125,15 +125,11 @@ namespace garlic
             void SetLeaseSetUpdateStatus (LeaseSetUpdateStatus status) { m_LeaseSetUpdateStatus = status; }
             uint32_t GetLeaseSetUpdateMsgID () const { return m_LeaseSetUpdateMsgID; }
             void SetLeaseSetUpdateMsgID (uint32_t msgID) { m_LeaseSetUpdateMsgID = msgID; }
-
-            void SetLeaseSetSubmissionTime (uint64_t ts) { m_LeaseSetSubmissionTime = ts; }
-            bool IsDestination () const { return m_Destination ? m_Destination->IsDestination () : false; }       
-            const std::shared_ptr<const i2p::data::RoutingDestination>& GetDestination () const { return m_Destination; }
+            void SetLeaseSetSubmissionTime (uint64_t ts) { m_LeaseSetSubmissionTime = ts; }    
 
 		private:
 
 			GarlicDestination * m_Owner;
-			std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
 
 			LeaseSetUpdateStatus m_LeaseSetUpdateStatus;
 			uint32_t m_LeaseSetUpdateMsgID;
@@ -184,6 +180,8 @@ namespace garlic
 			UnconfirmedTags * GenerateSessionTags ();
     
         private:
+            
+            std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
 
             i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;

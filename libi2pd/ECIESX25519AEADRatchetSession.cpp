@@ -12,7 +12,8 @@ namespace i2p
 namespace garlic
 {
 
-    ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession ()
+    ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
+        GarlicRoutingSession (owner, true)
     {
         // TODO : use precalculated hashes
 		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
@@ -34,12 +35,12 @@ namespace garlic
 		SHA256_Final (m_H, &ctx);
     }
 
-    bool ECIESX25519AEADRatchetSession::NewIncomingSession (const i2p::data::LocalDestination& dest, 
-        const uint8_t * buf, size_t len,  CloveHandler handleClove)
+    bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
+        if (!GetOwner ()) return false;
         // we are Bob
         // KDF1
-        MixHash (dest.GetEncryptionPublicKey (), 32); // h = SHA256(h || bpk)    
+        MixHash (GetOwner ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || bpk)    
 
         uint8_t aepk[32]; // Alice's ephemeral key
 		if (!i2p::crypto::GetElligator ()->Decode (buf, aepk))
@@ -51,7 +52,7 @@ namespace garlic
         MixHash (aepk, 32); // h = SHA256(h || aepk)  
     
         uint8_t sharedSecret[32], keyData[64];
-		dest.Decrypt (aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 		memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31] 
 
@@ -73,7 +74,7 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
-			dest.Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 			memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31] 
 		}
@@ -126,6 +127,12 @@ namespace garlic
 			offset += size;
 		}
     }    
+
+    std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
+    {
+        // TODO:
+        return nullptr;
+    }
 }
 }
 
