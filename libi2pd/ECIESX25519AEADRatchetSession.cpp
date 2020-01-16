@@ -74,6 +74,7 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
+            memcpy (m_StaticKey, fs, 32);
 			GetOwner ()->Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
 			memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31] 

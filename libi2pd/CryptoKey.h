@@ -125,8 +125,8 @@ namespace crypto
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
 			~ECIESX25519AEADRatchetEncryptor () {};
-			void Encrypt (const uint8_t * epriv, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding);
-			// agree with ephemeral priv and return in sharedSecret (32 bytes) 
+			void Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool);
+            // copies m_PublicKey to pub
 
 		private:
 

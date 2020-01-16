@@ -33,6 +33,7 @@ namespace garlic
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
             bool NewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
+            const uint8_t * GetStaticKey () const { return m_StaticKey; };
 
         private:
 
@@ -42,7 +43,7 @@ namespace garlic
 
         private:
 
-            uint8_t m_H[32], m_CK[32];
+            uint8_t m_H[32], m_CK[32], m_StaticKey[32];
     };
 }
 }

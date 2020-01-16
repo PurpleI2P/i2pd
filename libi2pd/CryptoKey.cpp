@@ -151,11 +151,9 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 32);
 	}	
 
-	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t * epriv, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
+	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool)
 	{
-		X25519Keys ep;
-		ep.SetPrivateKey (epriv);
-		ep.Agree (m_PublicKey, sharedSecret);
+		memcpy (pub, m_PublicKey, 32);
 	}
 
 	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv)

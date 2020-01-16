@@ -655,21 +655,35 @@ namespace garlic
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-		 ElGamalAESSessionPtr session;
-		{
-			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			auto it = m_Sessions.find (destination->GetIdentHash ());
-			if (it != m_Sessions.end ())
-				session = it->second;
-		}
-		if (!session)
-		{
-			session = std::make_shared<ElGamalAESSession> (this, destination,
-				attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
-			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			m_Sessions[destination->GetIdentHash ()] = session;
-		}
-		return session;
+        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+        {
+            ECIESX25519AEADRatchetSessionPtr session;
+            uint8_t staticKey[32];
+            destination->Encrypt (nullptr, staticKey, nullptr); // we are supposed to get static key 
+            auto it = m_ECIESx25519Sessions.find (staticKey);
+			if (it != m_ECIESx25519Sessions.end ())
+		        session = it->second;
+            // TODO: Alice
+            return session;
+        }
+        else
+        {    
+		    ElGamalAESSessionPtr session;
+		    {
+			    std::unique_lock<std::mutex> l(m_SessionsMutex);
+			    auto it = m_Sessions.find (destination->GetIdentHash ());
+			    if (it != m_Sessions.end ())
+				    session = it->second;
+		    }
+		    if (!session)
+		    {
+			    session = std::make_shared<ElGamalAESSession> (this, destination,
+				    attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
+			    std::unique_lock<std::mutex> l(m_SessionsMutex);
+			    m_Sessions[destination->GetIdentHash ()] = session;
+		    }
+		    return session;
+        }
 	}
 
 	void GarlicDestination::CleanupExpiredTags ()
@@ -841,9 +855,14 @@ namespace garlic
 
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
-        ECIESX25519AEADRatchetSession session (this);
-        session.NewIncomingSession (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
-            this, std::placeholders::_1, std::placeholders::_2));
+        auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
+        if (session->NewIncomingSession (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
+            this, std::placeholders::_1, std::placeholders::_2)))
+        {
+            m_ECIESx25519Sessions.emplace (session->GetStaticKey (), session);
+        }
+        else
+             LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session");
 	}
 
     void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)

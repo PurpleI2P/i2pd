@@ -196,6 +196,9 @@ namespace garlic
     };
 	typedef std::shared_ptr<ElGamalAESSession> ElGamalAESSessionPtr; 
 
+    class ECIESX25519AEADRatchetSession;
+    typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;     
+
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
@@ -249,6 +252,7 @@ namespace garlic
 			int m_NumTags;
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
+            std::map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr > m_ECIESx25519Sessions; // static key -> session
 			// incoming
 			std::map<SessionTag, std::shared_ptr<AESDecryption> > m_Tags;
 			// DeliveryStatus
