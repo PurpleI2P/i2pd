@@ -4,6 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <functional>
+#include <vector>
 #include "Identity.h"
 #include "Crypto.h"
 #include "Garlic.h"
@@ -25,6 +26,12 @@ namespace garlic
 
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession
     {
+        enum SessionState
+        {
+            eSessionStateNew =0,
+            eSessionStateNewSessionReceived
+        };
+
         public:
 
             typedef std::function<void (const uint8_t * buf, size_t len)> CloveHandler;
@@ -45,11 +52,13 @@ namespace garlic
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+            std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
 
         private:
 
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
             i2p::crypto::X25519Keys m_EphemeralKeys;
+            SessionState m_State = eSessionStateNew;
     };
 }
 }

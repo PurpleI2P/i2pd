@@ -15,7 +15,6 @@ namespace garlic
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
         GarlicRoutingSession (owner, true)
     {
-        m_EphemeralKeys.GenerateKeys ();
         // TODO : use precalculated hashes
 		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
 		SHA256 ((const uint8_t *)protocolName, 40, m_H);
@@ -86,7 +85,8 @@ namespace garlic
 			return false;
 		}
 		if (isStatic) MixHash (buf, len); // h = SHA256(h || ciphertext)
-            
+        m_State = eSessionStateNewSessionReceived;            
+
         HandlePayload (payload.data (), len - 16, handleClove);    
 
         return true;
@@ -130,6 +130,7 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
+        m_EphemeralKeys.GenerateKeys ();    
         // we are Alice, bpk is m_RemoteStaticKey
         size_t offset = 0;
         if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset))
@@ -170,10 +171,44 @@ namespace garlic
     }
 
     std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
-    {
-        // TODO:
-        return nullptr;
+    { 
+        auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+        auto payload = CreatePayload (msg);  
+        size_t len = payload.size ();
+
+        switch (m_State)
+        {
+            case eSessionStateNew:
+                if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+                    return nullptr;
+                len += 96;
+            break;
+            default:
+                return nullptr;
+        }
+       
+        htobe32buf (m->GetPayload (), len);
+		m->len += len + 4;
+		m->FillI2NPMessageHeader (eI2NPGarlic);
+		return m;
     }
+
+    std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
+    {
+        uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+        std::vector<uint8_t> v(cloveSize + 3);
+        uint8_t * payload = v.data ();
+        payload[0] = eECIESx25519BlkGalicClove; // clove type
+        htobe16buf (payload + 1, cloveSize); // size        
+        payload[3] = 0; // flag and delivery instructions
+        payload[4] = msg->GetTypeID (); // I2NP msg type
+        htobe32buf (payload + 5, msg->GetMsgID ()); // msgID     
+        htobe32buf (payload + 9, msg->GetExpiration ()/1000); // expiration in seconds     
+        memcpy (payload + 13, msg->GetPayload (), msg->GetPayloadLength ());
+        return v;
+    }    
 }
 }
 
