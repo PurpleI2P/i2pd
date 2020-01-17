@@ -34,7 +34,16 @@ namespace garlic
 		SHA256_Update (&ctx, buf, len);
 		SHA256_Final (m_H, &ctx);
     }
-		
+	
+    void ECIESX25519AEADRatchetSession::DHInitialize (const uint8_t * rootKey, const uint8_t * k, uint8_t * nextRootKey, uint8_t * ck)
+    {
+        uint8_t keydata[64];
+        i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
+        memcpy (nextRootKey, keydata, 32); // nextRootKey = keydata[0:31]
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", ck); 
+        // ck = [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64)            
+    }
+	
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
         if (!GetOwner ()) return false;
@@ -165,8 +174,63 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
 		}
-		MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
+		MixHash (out + offset, 16); // h = SHA256(h || ciphertext)
 		
+        return true;
+    }
+
+    bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+    {
+        m_EphemeralKeys.GenerateKeys ();
+        // we are Bob
+        uint8_t tagsetKey[32], ck[64];
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
+        DHInitialize (m_CK, tagsetKey, tagsetKey, ck); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey), nextRootKey?
+        // Session Tag Ratchet
+        uint8_t keydata[64];
+        i2p::crypto::HKDF (ck, nullptr, 0, "STInitialization", keydata); // keydata = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
+        // sessTag_chainKey = keydata[0:31], SESSTAG_CONSTANT = keydata[32:63]        
+        i2p::crypto::HKDF (keydata, keydata + 32, 32, "SessionTagKeyGen", keydata); // keydata_0 = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+        // tag_0 = keydata_0[32:39]
+        uint8_t * tag = keydata + 32;        
+    
+        size_t offset = 0;
+        memcpy (out + offset, tag, 8);
+        offset += 8;
+        if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset)) // bepk
+		{ 
+			LogPrint (eLogError, "Garlic: Can't encode elligator");
+			return false;	
+		}         
+        offset += 32;      
+        // KDF for  Reply Key Section
+        MixHash (tag, 8); // h = SHA256(h || tag)
+        MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
+        uint8_t sharedSecret[32];      
+        m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, aepk)     
+        i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)       
+        uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+        // calulate hash for zero length
+		if (!i2p::crypto::AEADChaCha20Poly1305 (sharedSecret /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
+		{
+			LogPrint (eLogWarning, "Garlic: Reply key section AEAD encryption failed");
+			return false;
+		}
+        MixHash (out + offset, 16); // h = SHA256(h || ciphertext)    
+        out += 16;
+        // KDF for payload
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "STInitialization", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
+        // k_ab = keydata[0:31], k_ba = keydata[32:63]
+        // tagset_ab = DH_INITIALIZE(chainKey, k_ab), tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
+        // encrypt payload
+        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			return false;
+		}
+
         return true;
     }
 
@@ -184,6 +248,11 @@ namespace garlic
                 if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
                     return nullptr;
                 len += 96;
+            break;
+            case eSessionStateNewSessionReceived:
+                 if (!NewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+                    return nullptr;
+                 len += 72;   
             break;
             default:
                 return nullptr;

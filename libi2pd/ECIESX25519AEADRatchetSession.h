@@ -48,10 +48,12 @@ namespace garlic
         private:
 
             void MixHash (const uint8_t * buf, size_t len);
+            void DHInitialize (const uint8_t * rootKey, const uint8_t * k, uint8_t * nextRootKey, uint8_t * ck); // ck is 64 buytes
 
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+            bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
 
         private:
