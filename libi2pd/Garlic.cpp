@@ -664,7 +664,12 @@ namespace garlic
             auto it = m_ECIESx25519Sessions.find (staticKey);
 			if (it != m_ECIESx25519Sessions.end ())
 		        session = it->second;
-            // TODO: Alice
+            if (!session)
+			{
+				session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
+				session->SetRemoteStaticKey (staticKey);
+				m_ECIESx25519Sessions.emplace (staticKey, session);
+			}	
             return session;
         }
         else
@@ -860,7 +865,7 @@ namespace garlic
         if (session->NewIncomingSession (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
             this, std::placeholders::_1, std::placeholders::_2)))
         {
-            m_ECIESx25519Sessions.emplace (session->GetStaticKey (), session);
+            m_ECIESx25519Sessions.emplace (session->GetRemoteStaticKey (), session);
         }
         else
              LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session");

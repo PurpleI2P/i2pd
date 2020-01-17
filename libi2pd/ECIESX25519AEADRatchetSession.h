@@ -1,6 +1,7 @@
 #ifndef ECIES_X25519_AEAD_RATCHET_SESSION_H__
 #define ECIES_X25519_AEAD_RATCHET_SESSION_H__
 
+#include <string.h>
 #include <inttypes.h>
 #include <functional>
 #include "Identity.h"
@@ -34,7 +35,8 @@ namespace garlic
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
             bool NewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
-            const uint8_t * GetStaticKey () const { return m_StaticKey; };
+            const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
+			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
 
         private:
 
@@ -46,7 +48,7 @@ namespace garlic
 
         private:
 
-            uint8_t m_H[32], m_CK[32], m_StaticKey[32];
+            uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
             i2p::crypto::X25519Keys m_EphemeralKeys;
     };
 }

@@ -35,7 +35,7 @@ namespace garlic
 		SHA256_Update (&ctx, buf, len);
 		SHA256_Final (m_H, &ctx);
     }
-
+		
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
         if (!GetOwner ()) return false;
@@ -52,15 +52,14 @@ namespace garlic
         buf += 32; len -= 32;
         MixHash (aepk, 32); // h = SHA256(h || aepk)  
     
-        uint8_t sharedSecret[32], keyData[64];
+        uint8_t sharedSecret[32];
 		GetOwner ()->Decrypt (aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
-		memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31] 
-
+		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		
         // decrypt flags/static    
 		uint8_t nonce[12], fs[32];
 		memset (nonce, 0, 12); // n = 0
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, m_H, 32, keyData + 32, nonce, fs, 32, false)) // decrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, m_H, 32, m_CK + 32, nonce, fs, 32, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
 			return false;
@@ -75,14 +74,13 @@ namespace garlic
 		if (isStatic)
 		{
 			// static key, fs is apk
-            memcpy (m_StaticKey, fs, 32);
+            memcpy (m_RemoteStaticKey, fs, 32);
 			GetOwner ()->Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
-			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
-			memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31] 
+			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		}
 		else // all zeros flags
 			htole64buf (nonce + 4, 1); // n = 1 
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, keyData + 32, nonce, payload.data (), len - 16, false)) // decrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
 			return false;
@@ -132,7 +130,7 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
-        // we are Alice, bpk is m_StaticKey
+        // we are Alice, bpk is m_RemoteStaticKey
         size_t offset = 0;
         if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset))
 		{ 
@@ -142,26 +140,32 @@ namespace garlic
         offset += 32;   
 
         // KDF1
-        MixHash (m_StaticKey, 32); // h = SHA256(h || bpk) 
+        MixHash (m_RemoteStaticKey, 32); // h = SHA256(h || bpk) 
         MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || aepk)          
-        uint8_t sharedSecret[32], keyData[64];
-		m_EphemeralKeys.Agree (m_StaticKey, nullptr); // x25519(aesk, bpk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", keyData); // keydata = HKDF(chainKey, sharedSecret, "", 64)
-		memcpy (m_CK, keyData, 32); // chainKey = keydata[0:31]         
+        uint8_t sharedSecret[32];
+		m_EphemeralKeys.Agree (m_RemoteStaticKey, nullptr); // x25519(aesk, bpk)
+		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)    
         // encrypt static key section
         uint8_t nonce[12];
 		memset (nonce, 0, 12); // n = 0
-		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (), 32, m_H, 32, keyData + 32, nonce, out + offset, 48, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
 			return false;
 		}
         MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
         offset += 48;
-        
         // KDF2 
-        // TODO: // x25519 (ask, bpk)
-
+        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr); // x25519 (ask, bpk)
+		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		// encrypt payload
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			return false;
+		}
+		MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
+		
         return true;
     }
 
