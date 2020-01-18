@@ -41,15 +41,8 @@ namespace transport
 
 	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial)
 	{
-		// temp_key = HMAC-SHA256(ck, input_key_material)
-		uint8_t tempKey[32]; unsigned int len;
-		HMAC(EVP_sha256(), m_CK, 32, inputKeyMaterial, 32, tempKey, &len); 	
-		// ck = HMAC-SHA256(temp_key, byte(0x01)) 
-		static uint8_t one[1] =  { 1 };
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_CK, &len); 	
-		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
-		m_CK[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, m_K, &len); 	
+		i2p::crypto::HKDF (m_CK, inputKeyMaterial, 32, "", m_CK);
+		// ck is m_CK[0:31], k is m_CK[32:63]
 	}
 
 	void NTCP2Establisher::MixHash (const uint8_t * buf, size_t len)
@@ -181,7 +174,7 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_H, 32, m_K, nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
 	}
 
 	void NTCP2Establisher::CreateSessionCreatedMessage ()
@@ -204,7 +197,7 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_H, 32, m_K, nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
 
 	}
 
@@ -217,7 +210,7 @@ namespace transport
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);	
 
 		// part1 48 bytes  
-		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, m_H, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, GetH (), 32, GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
 
 	void NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
@@ -228,7 +221,7 @@ namespace transport
 		// encrypt m3p2, it must be filled in SessionRequest
 		KDF3Alice (); 
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
-		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2, m3p2Len, true); // encrypt 
+		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2, m3p2Len, true); // encrypt 
 		// update h again
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
 	}	
@@ -246,7 +239,7 @@ namespace transport
 		// verify MAC and decrypt options block (32 bytes), use m_H as AD
 		uint8_t nonce[12], options[16];
 		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, m_K, nonce, options, 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, GetH (), 32, GetK (), nonce, options, 16, false)) // decrypt
 		{
 			// options
 			if (options[0] && options[0] != i2p::context.GetNetID ())
@@ -301,7 +294,7 @@ namespace transport
 		uint8_t payload[16];
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, m_H, 32, m_K, nonce, payload, 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, GetH (), 32, GetK (), nonce, payload, 16, false)) // decrypt
 		{
 			// options		
 			paddingLen = bufbe16toh(payload + 2);
@@ -330,7 +323,7 @@ namespace transport
 		if (paddingLength > 0)
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);
 		
-		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, m_H, 32, m_K, nonce, m_RemoteStaticKey, 32, false)) // decrypt S
+		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, GetH (), 32, GetK (), nonce, m_RemoteStaticKey, 32, false)) // decrypt S
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
 			return false;
@@ -344,7 +337,7 @@ namespace transport
 		MixHash (m_SessionConfirmedBuffer, 48);		
 
 		KDF3Bob (); 
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
 		{
 			// caclulate new h again for KDF data
 			memcpy (m_SessionConfirmedBuffer + 16, m_H, 32); // h || ciphertext
