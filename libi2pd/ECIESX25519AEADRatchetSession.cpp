@@ -12,6 +12,29 @@ namespace i2p
 namespace garlic
 {
 
+    void RatchetTagSet::DHInitialize (const uint8_t * rootKey, const uint8_t * k)
+    {
+        // DH_INITIALIZE(rootKey, k)
+        uint8_t keydata[64];
+        i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
+        // nextRootKey = keydata[0:31]
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_CK); 
+        // ck = [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64) 
+    }
+
+    void RatchetTagSet::NextSessionTagRatchet ()
+    {
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "STInitialization", m_CK); // [ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
+        memcpy (m_SessTagConstant, m_CK + 32, 32);
+    }
+
+    const uint8_t * RatchetTagSet::GetNextSessionTag ()
+    {
+         i2p::crypto::HKDF (m_CK, m_SessTagConstant, 32, "SessionTagKeyGen", m_CK); // [ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+        return m_CK + 32;
+    }
+
+
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
         GarlicRoutingSession (owner, true)
     {
@@ -33,15 +56,6 @@ namespace garlic
 		SHA256_Update (&ctx, m_H, 32);
 		SHA256_Update (&ctx, buf, len);
 		SHA256_Final (m_H, &ctx);
-    }
-	
-    void ECIESX25519AEADRatchetSession::DHInitialize (const uint8_t * rootKey, const uint8_t * k, uint8_t * nextRootKey, uint8_t * ck)
-    {
-        uint8_t keydata[64];
-        i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
-        memcpy (nextRootKey, keydata, 32); // nextRootKey = keydata[0:31]
-        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", ck); 
-        // ck = [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64)            
     }
 	
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
@@ -183,16 +197,14 @@ namespace garlic
     {
         m_EphemeralKeys.GenerateKeys ();
         // we are Bob
-        uint8_t tagsetKey[32], ck[64];
+        uint8_t tagsetKey[32];    
         i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
-        DHInitialize (m_CK, tagsetKey, tagsetKey, ck); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey), nextRootKey?
+
         // Session Tag Ratchet
-        uint8_t keydata[64];
-        i2p::crypto::HKDF (ck, nullptr, 0, "STInitialization", keydata); // keydata = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
-        // sessTag_chainKey = keydata[0:31], SESSTAG_CONSTANT = keydata[32:63]        
-        i2p::crypto::HKDF (keydata, keydata + 32, 32, "SessionTagKeyGen", keydata); // keydata_0 = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
-        // tag_0 = keydata_0[32:39]
-        uint8_t * tag = keydata + 32;        
+        RatchetTagSet tagsetNsr;
+        tagsetNsr.DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
+        tagsetNsr.NextSessionTagRatchet ();
+        auto tag = tagsetNsr.GetNextSessionTag ();   
     
         size_t offset = 0;
         memcpy (out + offset, tag, 8);
@@ -220,9 +232,11 @@ namespace garlic
         MixHash (out + offset, 16); // h = SHA256(h || ciphertext)    
         out += 16;
         // KDF for payload
-        i2p::crypto::HKDF (m_CK, nullptr, 0, "STInitialization", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
+        uint8_t keydata[64];
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
         // k_ab = keydata[0:31], k_ba = keydata[32:63]
-        // tagset_ab = DH_INITIALIZE(chainKey, k_ab), tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+        m_TagsetAB.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+        m_TagsetBA.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt

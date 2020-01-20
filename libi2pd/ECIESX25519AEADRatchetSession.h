@@ -13,6 +13,19 @@ namespace i2p
 {
 namespace garlic
 {
+    class RatchetTagSet
+    {
+        public:
+            
+            void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
+            void NextSessionTagRatchet ();
+            const uint8_t * GetNextSessionTag ();
+
+        private:
+
+           uint8_t m_CK[64], m_SessTagConstant[32];   
+    };       
+
     enum ECIESx25519BlockType
 	{
 		eECIESx25519BlkDateTime = 0,
@@ -48,7 +61,6 @@ namespace garlic
         private:
 
             void MixHash (const uint8_t * buf, size_t len);
-            void DHInitialize (const uint8_t * rootKey, const uint8_t * k, uint8_t * nextRootKey, uint8_t * ck); // ck is 64 buytes
 
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
@@ -61,6 +73,7 @@ namespace garlic
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
+            RatchetTagSet m_TagsetAB, m_TagsetBA;
     };
 }
 }
