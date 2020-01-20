@@ -1,4 +1,5 @@
 #include <string.h>
+#include <utility>
 #include <vector>
 #include "Crypto.h"
 #include "Log.h"
@@ -12,7 +13,7 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner):
-		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr)
+		m_Owner (std::move(owner)), m_Receiver (nullptr), m_RawReceiver (nullptr)
 	{
 	}
 

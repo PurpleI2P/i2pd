@@ -132,7 +132,7 @@ namespace data
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
 			RouterInfo ();
-			RouterInfo (const std::string& fullPath);
+			RouterInfo (std::string fullPath);
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);

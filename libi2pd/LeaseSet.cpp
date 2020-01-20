@@ -1,4 +1,6 @@
 #include <string.h>
+
+#include <utility>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Log.h"
@@ -652,7 +654,7 @@ namespace data
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
-		m_ExpirationTime (0), m_Identity (identity)
+		m_ExpirationTime (0), m_Identity (std::move(identity))
 	{
 		int num = tunnels.size ();
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
@@ -689,7 +691,7 @@ namespace data
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
-		m_ExpirationTime (0), m_Identity (identity)
+		m_ExpirationTime (0), m_Identity (std::move(identity))
 	{
 		if (buf)
 		{

@@ -2,6 +2,7 @@
 #include "I2PEndian.h"
 #include <map>
 #include <string>
+#include <utility>
 #include "Crypto.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
@@ -61,7 +62,7 @@ namespace garlic
     ElGamalAESSession::ElGamalAESSession (GarlicDestination * owner,
 	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
         GarlicRoutingSession (owner, attachLeaseSet), 
-        m_Destination (destination), m_NumTags (numTags)
+        m_Destination (std::move(destination)), m_NumTags (numTags)
 	{
 		// create new session tags and session key
 		RAND_bytes (m_SessionKey, 32);
