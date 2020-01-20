@@ -14,8 +14,8 @@ namespace tunnel
 		m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0)
 	{
 		RAND_bytes (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
-		for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
-			if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
+		for (unsigned char & i : m_NonZeroRandomBuffer)
+			if (!i) i = 1;
 	}
 
 	TunnelGatewayBuffer::~TunnelGatewayBuffer ()

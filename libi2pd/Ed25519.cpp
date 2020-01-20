@@ -54,14 +54,14 @@ namespace crypto
 
 		// precalculate Bi256 table
 		Bi256Carry = { Bx, By };  // B
-		for (int i = 0; i < 32; i++)
+		for (auto & i : Bi256)
 		{
-			Bi256[i][0] = Bi256Carry; // first point
+			i[0] = Bi256Carry; // first point
 			for (int j = 1; j < 128; j++)
-				Bi256[i][j] = Sum (Bi256[i][j-1], Bi256[i][0], ctx); // (256+j+1)^i*B
-			Bi256Carry = Bi256[i][127];
+				i[j] = Sum (i[j-1], i[0], ctx); // (256+j+1)^i*B
+			Bi256Carry = i[127];
 			for (int j = 0; j < 128; j++) // add first point 128 more times
-				Bi256Carry = Sum (Bi256Carry, Bi256[i][0], ctx);
+				Bi256Carry = Sum (Bi256Carry, i[0], ctx);
 		}
 
 		BN_CTX_free (ctx);

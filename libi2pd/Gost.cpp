@@ -838,10 +838,10 @@ namespace crypto
 		{
 			GOST3411Block k = *this;
 			GOST3411Block res = k^m;
-			for (int i = 0; i < 12; i++)
+			for (const auto & i : C_)
 			{
 				res.F ();
-				k = k^C_[i];
+				k = k^i;
 				k.F ();
 				res = k^res;
 			}

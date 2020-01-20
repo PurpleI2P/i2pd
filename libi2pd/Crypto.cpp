@@ -188,10 +188,10 @@ namespace crypto
 	static void DestroyElggTable (BIGNUM * table[][255], int len)
 	{
 		for (int i = 0; i < len; i++)
-			for (int j = 0; j < 255; j++)
+			for (auto & j : table[i])
 			{
-				BN_free (table[i][j]);
-				table[i][j] = nullptr;
+				BN_free (j);
+				j = nullptr;
 			}
 		BN_MONT_CTX_free (g_MontCtx);
 	}
