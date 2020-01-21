@@ -58,6 +58,17 @@ namespace garlic
 		SHA256_Final (m_H, &ctx);
     }
 	
+    bool ECIESX25519AEADRatchetSession::GenerateEphemeralKeysAndEncode (uint8_t * buf)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            m_EphemeralKeys.GenerateKeys ();    
+            if (i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), buf))
+		        return true; // success
+        }         
+        return false;
+    }
+
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
         if (!GetOwner ()) return false;
@@ -152,11 +163,10 @@ namespace garlic
     }    
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
-    {
-        m_EphemeralKeys.GenerateKeys ();    
+    { 
         // we are Alice, bpk is m_RemoteStaticKey
         size_t offset = 0;
-        if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset))
+        if (!GenerateEphemeralKeysAndEncode (out + offset))
 		{ 
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;	
@@ -195,7 +205,6 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
-        m_EphemeralKeys.GenerateKeys ();
         // we are Bob
         uint8_t tagsetKey[32];    
         i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
@@ -209,7 +218,7 @@ namespace garlic
         size_t offset = 0;
         memcpy (out + offset, tag, 8);
         offset += 8;
-        if (!i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), out + offset)) // bepk
+        if (!GenerateEphemeralKeysAndEncode (out + offset)) // bepk
 		{ 
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;	
