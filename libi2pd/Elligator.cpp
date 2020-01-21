@@ -40,7 +40,7 @@ namespace crypto
 		BN_free (u); BN_free (iu); 
 	}
 
-	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded) const
+	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded, bool highY, bool random) const
     {
 		bool ret = true;
 		BN_CTX * ctx = BN_CTX_new ();
@@ -63,10 +63,13 @@ namespace crypto
 		
 		if (Legendre (uxxA, ctx) != -1)
 		{	
-            uint8_t randByte; // random highest bits and high y
-            RAND_bytes (&randByte, 1);
-            bool highY = randByte & 0x01;
-    	
+            uint8_t randByte = 0; // random highest bits and high y
+			if (random)
+			{	
+            	RAND_bytes (&randByte, 1);
+            	highY = randByte & 0x01;
+			}
+			
 			BIGNUM * r = BN_CTX_get (ctx);
 			if (highY)
 			{
@@ -82,8 +85,9 @@ namespace crypto
 		
 			SquareRoot (r, r, ctx);
 			bn2buf (r, encoded, 32);
-		
-            encoded[0] |= (randByte & 0xC0); // copy two highest bits from randByte
+
+			if (random)
+            	encoded[0] |= (randByte & 0xC0); // copy two highest bits from randByte
 			for (size_t i = 0; i < 16; i++) // To Little Endian
 			{
 				uint8_t tmp = encoded[i];

@@ -69,9 +69,9 @@ int main ()
 	uint8_t buf[32];
 	i2p::crypto::Elligator2 el;
 	// encoding tests
-	el.Encode (key, buf);
+	el.Encode (key, buf, false, false);
 	assert(memcmp (buf, encoded_key, 32) == 0);
-	el.Encode (key, buf, true); // with highY
+	el.Encode (key, buf, true, false); // with highY
 	assert(memcmp (buf, encoded_key_high_y, 32) == 0);
 	// decoding tests
 	el.Decode (encoded1, buf);
