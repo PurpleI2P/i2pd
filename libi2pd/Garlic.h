@@ -217,6 +217,7 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID);
+            void AddECIESx25519SessionTag (uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
@@ -252,9 +253,10 @@ namespace garlic
 			int m_NumTags;
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
-            std::map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr > m_ECIESx25519Sessions; // static key -> session
+            std::map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			// incoming
 			std::map<SessionTag, std::shared_ptr<AESDecryption> > m_Tags;
+            std::map<uint64_t, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::map<uint32_t, ElGamalAESSessionPtr> m_DeliveryStatusSessions; // msgID -> session

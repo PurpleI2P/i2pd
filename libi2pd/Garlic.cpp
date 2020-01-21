@@ -861,14 +861,32 @@ namespace garlic
 
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
-        auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
-        if (session->NewIncomingSession (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
-            this, std::placeholders::_1, std::placeholders::_2)))
+        auto handleClove = std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
+            this, std::placeholders::_1, std::placeholders::_2);
+        uint64_t tag;
+        memcpy (&tag, buf, 8);
+        auto it = m_ECIESx25519Tags.find (tag);
+		if (it != m_ECIESx25519Tags.end ())
         {
-            m_ECIESx25519Sessions.emplace (session->GetRemoteStaticKey (), session);
+            // TODO
+            auto session = it->second;
+            if (!session->NewOutgoingSessionReply (buf, len, handleClove))
+            {
+                LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session reply");
+                m_ECIESx25519Tags.erase (tag);
+                m_ECIESx25519Sessions.erase (session->GetRemoteStaticKey ());
+            }
         }
         else
-             LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session");
+        {
+            auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
+            if (session->NewIncomingSession (buf, len, handleClove))
+            {
+                m_ECIESx25519Sessions.emplace (session->GetRemoteStaticKey (), session);
+            }
+            else
+                 LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session");
+        }
 	}
 
     void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
@@ -925,6 +943,11 @@ namespace garlic
 			default:
 				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
 		} 
+    }
+
+    void GarlicDestination::AddECIESx25519SessionTag (uint64_t tag, ECIESX25519AEADRatchetSessionPtr session)
+    {
+        m_ECIESx25519Tags.emplace (tag, session);
     }
 }
 }

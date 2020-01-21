@@ -4,6 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <functional>
+#include <memory>
 #include <vector>
 #include "Identity.h"
 #include "Crypto.h"
@@ -19,11 +20,21 @@ namespace garlic
             
             void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
             void NextSessionTagRatchet ();
-            const uint8_t * GetNextSessionTag ();
+            uint64_t GetNextSessionTag ();
 
         private:
+        
+           union
+           {
+               uint64_t ll[8]; 
+               uint8_t buf[64];
 
-           uint8_t m_CK[64], m_SessTagConstant[32];   
+               const uint8_t * GetSessTagCK () const { return buf; }; // sessTag_chainKey = keydata[0:31]
+               const uint8_t * GetSessTagConstant () const { return buf + 32; }; // SESSTAG_CONSTANT = keydata[32:63] 
+               uint64_t GetTag () const { return ll[4]; }; // tag = keydata[32:39]            
+             
+           } m_KeyData;  
+           uint8_t m_SessTagConstant[32];   
     };       
 
     enum ECIESx25519BlockType
@@ -37,7 +48,7 @@ namespace garlic
 		eECIESx25519BlkPadding = 254	
 	};	
 
-    class ECIESX25519AEADRatchetSession: public GarlicRoutingSession
+    class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
         enum SessionState
         {
@@ -55,6 +66,7 @@ namespace garlic
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
             bool NewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
+            bool NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove);
             const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
 
@@ -62,6 +74,7 @@ namespace garlic
 
             void MixHash (const uint8_t * buf, size_t len);
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
+            uint64_t CreateNewSessionTag () const;
 
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 

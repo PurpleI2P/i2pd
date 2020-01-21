@@ -18,20 +18,20 @@ namespace garlic
         uint8_t keydata[64];
         i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
         // nextRootKey = keydata[0:31]
-        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_CK); 
-        // ck = [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64) 
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_KeyData.buf); 
+        // [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64) 
     }
 
     void RatchetTagSet::NextSessionTagRatchet ()
     {
-        i2p::crypto::HKDF (m_CK, nullptr, 0, "STInitialization", m_CK); // [ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
-        memcpy (m_SessTagConstant, m_CK + 32, 32);
+        i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), nullptr, 0, "STInitialization", m_KeyData.buf); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
+        memcpy (m_SessTagConstant, m_KeyData.GetSessTagConstant (), 32);
     }
 
-    const uint8_t * RatchetTagSet::GetNextSessionTag ()
+    uint64_t RatchetTagSet::GetNextSessionTag ()
     {
-         i2p::crypto::HKDF (m_CK, m_SessTagConstant, 32, "SessionTagKeyGen", m_CK); // [ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
-        return m_CK + 32;
+         i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+        return m_KeyData.GetTag ();
     }
 
 
@@ -60,13 +60,24 @@ namespace garlic
 	
     bool ECIESX25519AEADRatchetSession::GenerateEphemeralKeysAndEncode (uint8_t * buf)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 10; i++)
         {
             m_EphemeralKeys.GenerateKeys ();    
             if (i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), buf))
 		        return true; // success
         }         
         return false;
+    }
+
+    uint64_t ECIESX25519AEADRatchetSession::CreateNewSessionTag () const
+    {
+        uint8_t tagsetKey[32];    
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
+         // Session Tag Ratchet
+        RatchetTagSet tagsetNsr;
+        tagsetNsr.DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
+        tagsetNsr.NextSessionTagRatchet ();
+        return tagsetNsr.GetNextSessionTag ();   
     }
 
     bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
@@ -199,24 +210,20 @@ namespace garlic
 			return false;
 		}
 		MixHash (out + offset, 16); // h = SHA256(h || ciphertext)
-		
+
+        if (GetOwner ())
+            GetOwner ()->AddECIESx25519SessionTag (CreateNewSessionTag (), shared_from_this ());   		
+
         return true;
     }
 
     bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
         // we are Bob
-        uint8_t tagsetKey[32];    
-        i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
-
-        // Session Tag Ratchet
-        RatchetTagSet tagsetNsr;
-        tagsetNsr.DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
-        tagsetNsr.NextSessionTagRatchet ();
-        auto tag = tagsetNsr.GetNextSessionTag ();   
+        uint64_t tag = CreateNewSessionTag ();   
     
         size_t offset = 0;
-        memcpy (out + offset, tag, 8);
+        memcpy (out + offset, &tag, 8);
         offset += 8;
         if (!GenerateEphemeralKeysAndEncode (out + offset)) // bepk
 		{ 
@@ -225,7 +232,7 @@ namespace garlic
 		}         
         offset += 32;      
         // KDF for  Reply Key Section
-        MixHash (tag, 8); // h = SHA256(h || tag)
+        MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
         MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
         uint8_t sharedSecret[32];      
         m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, aepk)     
@@ -254,6 +261,12 @@ namespace garlic
 			return false;
 		}
 
+        return true;
+    }
+
+    bool ECIESX25519AEADRatchetSession::NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
+    {
+        // TODO    
         return true;
     }
 
