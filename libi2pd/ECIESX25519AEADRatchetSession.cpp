@@ -188,7 +188,7 @@ namespace garlic
         MixHash (m_RemoteStaticKey, 32); // h = SHA256(h || bpk) 
         MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || aepk)          
         uint8_t sharedSecret[32];
-		m_EphemeralKeys.Agree (m_RemoteStaticKey, nullptr); // x25519(aesk, bpk)
+		m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)    
         // encrypt static key section
         uint8_t nonce[12];
