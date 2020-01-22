@@ -181,14 +181,12 @@ namespace garlic
 		{ 
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;	
-		}      
-		uint8_t aepk[32];
-		i2p::crypto::GetElligator ()->Decode (out + offset, aepk); // decode back for h
+		} 
         offset += 32;   
 
         // KDF1
         MixHash (m_RemoteStaticKey, 32); // h = SHA256(h || bpk) 
-        MixHash (aepk, 32); // h = SHA256(h || aepk)          
+        MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || aepk)          
         uint8_t sharedSecret[32];
 		m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)    
@@ -231,13 +229,11 @@ namespace garlic
 		{ 
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;	
-		}        
-		uint8_t bepk[32];
-		i2p::crypto::GetElligator ()->Decode (out + offset, bepk); // decode back for h
+		}
         offset += 32;      
         // KDF for  Reply Key Section
         MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
-        MixHash (bepk, 32); // h = SHA256(h || bepk)
+        MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
         uint8_t sharedSecret[32];      
         m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, aepk)     
         i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)       

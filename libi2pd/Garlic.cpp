@@ -668,7 +668,6 @@ namespace garlic
 			{
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
 				session->SetRemoteStaticKey (staticKey);
-				m_ECIESx25519Sessions.emplace (staticKey, session);
 			}	
             return session;
         }
@@ -870,7 +869,9 @@ namespace garlic
         {
             // TODO
             auto session = it->second;
-            if (!session->NewOutgoingSessionReply (buf, len, handleClove))
+            if (session->NewOutgoingSessionReply (buf, len, handleClove))
+                m_ECIESx25519Sessions.emplace (session->GetRemoteStaticKey (), session);
+            else    
             {
                 LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session reply");
                 m_ECIESx25519Tags.erase (tag);
