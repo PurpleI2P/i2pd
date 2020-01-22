@@ -81,6 +81,7 @@ namespace garlic
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
+            size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 
         private:
 

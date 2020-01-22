@@ -302,18 +302,36 @@ namespace garlic
 
     std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
     {
-        uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-        std::vector<uint8_t> v(cloveSize + 3);
-        uint8_t * payload = v.data ();
-        payload[0] = eECIESx25519BlkGalicClove; // clove type
-        htobe16buf (payload + 1, cloveSize); // size        
-        payload[3] = 0; // flag and delivery instructions
-        payload[4] = msg->GetTypeID (); // I2NP msg type
-        htobe32buf (payload + 5, msg->GetMsgID ()); // msgID     
-        htobe32buf (payload + 9, msg->GetExpiration ()/1000); // expiration in seconds     
-        memcpy (payload + 13, msg->GetPayload (), msg->GetPayloadLength ());
+        size_t payloadLen = 0;
+        if (payloadLen) 
+            payloadLen += msg->GetPayloadLength () + 13;
+        auto leaseSet = CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ());
+        if (leaseSet)
+            payloadLen += leaseSet->GetPayloadLength () + 13;                
+        std::vector<uint8_t> v(payloadLen);
+        size_t offset = 0;
+        if (leaseSet)
+            offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
+        if (msg)    
+            offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
         return v;
-    }    
+    }   
+
+    size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
+    {
+        if (!msg) return 0;
+        uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+        if ((int)len < cloveSize + 3) return 0;
+        buf[0] = eECIESx25519BlkGalicClove; // clove type
+        htobe16buf (buf + 1, cloveSize); // size        
+        buf[3] = 0; // flag and delivery instructions
+        buf[4] = msg->GetTypeID (); // I2NP msg type
+        htobe32buf (buf + 5, msg->GetMsgID ()); // msgID     
+        htobe32buf (buf + 9, msg->GetExpiration ()/1000); // expiration in seconds     
+        memcpy (buf + 13, msg->GetPayload (), msg->GetPayloadLength ());
+        return cloveSize + 3;
+    }
+ 
 }
 }
 
