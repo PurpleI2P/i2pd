@@ -72,6 +72,7 @@ namespace garlic
 
         private:
 
+			void ResetKeys ();
             void MixHash (const uint8_t * buf, size_t len);
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
             uint64_t CreateNewSessionTag () const;

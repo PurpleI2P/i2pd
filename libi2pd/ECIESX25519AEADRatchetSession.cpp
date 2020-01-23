@@ -38,17 +38,22 @@ namespace garlic
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
         GarlicRoutingSession (owner, true)
     {
-        // TODO : use precalculated hashes
-		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
-		SHA256 ((const uint8_t *)protocolName, 40, m_H);
-		memcpy (m_CK, m_H, 32);
-		SHA256 (m_H, 32, m_H);
+    	ResetKeys ();
     }
 
     ECIESX25519AEADRatchetSession::~ECIESX25519AEADRatchetSession ()
     {
     }
 
+	void ECIESX25519AEADRatchetSession::ResetKeys ()
+	{
+		// TODO : use precalculated hashes
+		static const char protocolName[41] = "Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"; // 40 bytes
+		SHA256 ((const uint8_t *)protocolName, 40, m_H);
+		memcpy (m_CK, m_H, 32);
+		SHA256 (m_H, 32, m_H);
+	}	
+		
     void ECIESX25519AEADRatchetSession::MixHash (const uint8_t * buf, size_t len)
     {
         SHA256_CTX ctx;
@@ -175,6 +180,7 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     { 
+		ResetKeys ();
         // we are Alice, bpk is m_RemoteStaticKey
         size_t offset = 0;
         if (!GenerateEphemeralKeysAndEncode (out + offset))
@@ -266,7 +272,8 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
     {
-        // TODO    
+        // TODO  
+		LogPrint (eLogDebug, "Garlic: reply received");
         return true;
     }
 
@@ -303,7 +310,7 @@ namespace garlic
     std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
     {
         size_t payloadLen = 0;
-        if (payloadLen) 
+        if (msg) 
             payloadLen += msg->GetPayloadLength () + 13;
         auto leaseSet = CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ());
         if (leaseSet)
