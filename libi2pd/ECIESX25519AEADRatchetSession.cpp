@@ -5,6 +5,7 @@
 #include "Elligator.h"
 #include "Tag.h"
 #include "I2PEndian.h"
+#include "Timestamp.h"
 #include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
@@ -309,18 +310,32 @@ namespace garlic
 
     std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
     {
-        size_t payloadLen = 0;
+        size_t payloadLen = 7; // datatime 
         if (msg) 
             payloadLen += msg->GetPayloadLength () + 13;
         auto leaseSet = CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ());
         if (leaseSet)
-            payloadLen += leaseSet->GetPayloadLength () + 13;                
+            payloadLen += leaseSet->GetPayloadLength () + 13;   
+        uint8_t paddingSize;
+        RAND_bytes (&paddingSize, 1);
+        paddingSize &= 0x0F; paddingSize++; // 1 - 16
+        payloadLen += paddingSize;                 
         std::vector<uint8_t> v(payloadLen);
         size_t offset = 0;
+        // DateTime
+        v[offset] = eECIESx25519BlkDateTime; offset++;
+        htobe16buf (v.data () + offset, 4); offset += 2; 
+        htobe32buf (v.data () + offset, i2p::util::GetSecondsSinceEpoch ()); offset += 4;
+        // LeaseSet
         if (leaseSet)
             offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
+        // msg    
         if (msg)    
             offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
+        // padding
+        v[offset] = eECIESx25519BlkPadding; offset++; 
+        htobe16buf (v.data () + offset, paddingSize); offset += 2;
+        memset (v.data () + offset, 0, paddingSize); offset += paddingSize;    
         return v;
     }   
 
