@@ -2,7 +2,7 @@
 #define GARLIC_H__
 
 #include <inttypes.h>
-#include <map>
+#include <unordered_map>
 #include <list>
 #include <string>
 #include <thread>
@@ -252,14 +252,14 @@ namespace garlic
 			// outgoing sessions
 			int m_NumTags;
 			std::mutex m_SessionsMutex;
-			std::map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
-            std::map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
+			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
+            std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			// incoming
-			std::map<SessionTag, std::shared_ptr<AESDecryption> > m_Tags;
-            std::map<uint64_t, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Tags; // session tag -> session
+			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption> > m_Tags;
+            std::unordered_map<uint64_t, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
-			std::map<uint32_t, ElGamalAESSessionPtr> m_DeliveryStatusSessions; // msgID -> session
+			std::unordered_map<uint32_t, ElGamalAESSessionPtr> m_DeliveryStatusSessions; // msgID -> session
 
 		public:
 

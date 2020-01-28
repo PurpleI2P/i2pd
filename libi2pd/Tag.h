@@ -93,4 +93,16 @@ private:
 } // data
 } // i2p
 
+namespace std
+{
+    // hash for std::unordered_map
+    template<size_t sz> struct hash<i2p::data::Tag<sz> >
+    {
+        size_t operator()(const i2p::data::Tag<sz>& s) const 
+        {
+            return s.GetLL ()[0];
+        }
+    };    
+}
+
 #endif /* TAG_H__ */
