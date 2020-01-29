@@ -86,7 +86,7 @@ namespace garlic
         return tagsetNsr.GetNextSessionTag ();   
     }
 
-    bool ECIESX25519AEADRatchetSession::NewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
+    bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
     {
         if (!GetOwner ()) return false;
         // we are Bob
@@ -219,6 +219,7 @@ namespace garlic
 		}
 		MixHash (out + offset, 16); // h = SHA256(h || ciphertext)
 
+		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
             GetOwner ()->AddECIESx25519SessionTag (CreateNewSessionTag (), shared_from_this ());   		
 
@@ -272,7 +273,7 @@ namespace garlic
         return true;
     }
 
-    bool ECIESX25519AEADRatchetSession::NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
+    bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
     {
 		// we are Alice
 		LogPrint (eLogDebug, "Garlic: reply received");
@@ -322,6 +323,20 @@ namespace garlic
 
         return true;
     }
+
+	bool ECIESX25519AEADRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len, CloveHandler handleClove)
+	{
+		switch (m_State)
+		{
+			case eSessionStateNew:
+				return HandleNewIncomingSession (buf, len, handleClove);
+			case eSessionStateNewSessionSent:
+				return HandleNewOutgoingSessionReply (buf, len, handleClove);
+			default:
+				return false;
+		}
+		return true;
+	}
 
     std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
     { 

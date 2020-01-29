@@ -864,21 +864,18 @@ namespace garlic
             this, std::placeholders::_1, std::placeholders::_2);
         uint64_t tag;
         memcpy (&tag, buf, 8);
+		ECIESX25519AEADRatchetSessionPtr session;
         auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
-        {
-            // TODO
-            auto session = it->second;
-            if (!session->NewOutgoingSessionReply (buf, len, handleClove))
-                LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session reply");
-			 m_ECIESx25519Tags.erase (tag);
-        }
-        else
-        {
-            auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
-            if (!session->NewIncomingSession (buf, len, handleClove))
-                 LogPrint (eLogError, "Garlic: can't decrypt ECIES-X25519-AEAD-Ratchet new session");
-        }
+		{
+        	session = it->second;
+			m_ECIESx25519Tags.erase (tag);
+		}	
+		else
+			session = std::make_shared<ECIESX25519AEADRatchetSession> (this); // incoming
+		
+		if (!session->HandleNextMessage (buf, len, handleClove))
+        	LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 	}
 
     void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)

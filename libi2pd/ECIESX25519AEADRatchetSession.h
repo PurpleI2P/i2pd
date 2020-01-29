@@ -53,7 +53,8 @@ namespace garlic
         enum SessionState
         {
             eSessionStateNew =0,
-            eSessionStateNewSessionReceived
+            eSessionStateNewSessionReceived,
+			eSessionStateNewSessionSent
         };
 
         public:
@@ -63,10 +64,9 @@ namespace garlic
             ECIESX25519AEADRatchetSession (GarlicDestination * owner);
             ~ECIESX25519AEADRatchetSession ();
 
+			bool HandleNextMessage (const uint8_t * buf, size_t len, CloveHandler handleClove);
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
-            bool NewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
-            bool NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove);
             const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
 
@@ -77,6 +77,8 @@ namespace garlic
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
             uint64_t CreateNewSessionTag () const;
 
+			bool HandleNewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
+            bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove);
             void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
