@@ -137,6 +137,7 @@ namespace garlic
 		}
 		if (isStatic) MixHash (buf, len); // h = SHA256(h || ciphertext)
         m_State = eSessionStateNewSessionReceived;            
+		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 
         HandlePayload (payload.data (), len - 16, handleClove);    
 
@@ -273,8 +274,52 @@ namespace garlic
 
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
     {
-        // TODO  
+		// we are Alice
 		LogPrint (eLogDebug, "Garlic: reply received");
+		const uint8_t * tag = buf;
+		buf += 8; len -= 8; // tag
+        uint8_t bepk[32]; // Bob's ephemeral key
+		if (!i2p::crypto::GetElligator ()->Decode (buf, bepk))
+		{ 
+			LogPrint (eLogError, "Garlic: Can't decode elligator");
+			return false;	
+		} 
+		buf += 32; len -= 32;
+		// KDF for  Reply Key Section
+        MixHash (tag, 8); // h = SHA256(h || tag)
+        MixHash (bepk, 32); // h = SHA256(h || bepk)		
+		uint8_t sharedSecret[32];      
+        m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
+		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64) 
+		 uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+        // calulate hash for zero length
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 0, m_H, 32, m_CK + 32, nonce, sharedSecret/* can be anyting */, 0, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
+		{
+			LogPrint (eLogWarning, "Garlic: Reply key section AEAD decryption failed");
+			return false;
+		}
+		MixHash (buf, 16); // h = SHA256(h || ciphertext)  
+		buf += 16; len -= 16;
+		// KDF for payload
+        uint8_t keydata[64];
+        i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
+        // k_ab = keydata[0:31], k_ba = keydata[32:63]
+        m_TagsetAB.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+        m_TagsetBA.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
+		// decrypt payload
+		std::vector<uint8_t> payload (len - 16);
+        if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, keydata, nonce, payload.data (), len - 16, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
+			return false;
+		}
+	
+		// TODO: change state
+		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
+		HandlePayload (payload.data (), len - 16, handleClove); 
+
         return true;
     }
 

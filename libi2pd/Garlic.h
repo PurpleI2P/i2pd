@@ -218,6 +218,7 @@ namespace garlic
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID);
             void AddECIESx25519SessionTag (uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
+			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
