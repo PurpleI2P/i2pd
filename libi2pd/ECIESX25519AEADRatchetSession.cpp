@@ -379,7 +379,7 @@ namespace garlic
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
         paddingSize &= 0x0F; paddingSize++; // 1 - 16
-        payloadLen += paddingSize;                 
+        payloadLen += paddingSize + 3;                 
         std::vector<uint8_t> v(payloadLen);
         size_t offset = 0;
         // DateTime
@@ -395,7 +395,7 @@ namespace garlic
         // padding
         v[offset] = eECIESx25519BlkPadding; offset++; 
         htobe16buf (v.data () + offset, paddingSize); offset += 2;
-        memset (v.data () + offset, 0, paddingSize); offset += paddingSize;    
+        memset (v.data () + offset, 0, paddingSize); offset += paddingSize; 
         return v;
     }   
 
