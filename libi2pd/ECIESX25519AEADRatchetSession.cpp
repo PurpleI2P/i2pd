@@ -370,8 +370,8 @@ namespace garlic
     std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
     {
         size_t payloadLen = 7; // datatime 
-        if (msg) 
-            payloadLen += msg->GetPayloadLength () + 13;
+        if (msg && m_Destination) 
+            payloadLen += msg->GetPayloadLength () + 13 + 32;
         auto leaseSet = CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ());
         if (leaseSet)
             payloadLen += leaseSet->GetPayloadLength () + 13;   
@@ -389,8 +389,8 @@ namespace garlic
         if (leaseSet)
             offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
         // msg    
-        if (msg)    
-            offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
+        if (msg && m_Destination)    
+            offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
         // padding
         v[offset] = eECIESx25519BlkPadding; offset++; 
         htobe16buf (v.data () + offset, paddingSize); offset += 2;
@@ -398,18 +398,27 @@ namespace garlic
         return v;
     }   
 
-    size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
+    size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination)
     {
         if (!msg) return 0;
         uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+		if (isDestination) cloveSize += 32;
         if ((int)len < cloveSize + 3) return 0;
         buf[0] = eECIESx25519BlkGalicClove; // clove type
-        htobe16buf (buf + 1, cloveSize); // size        
-        buf[3] = 0; // flag and delivery instructions
-        buf[4] = msg->GetTypeID (); // I2NP msg type
-        htobe32buf (buf + 5, msg->GetMsgID ()); // msgID     
-        htobe32buf (buf + 9, msg->GetExpiration ()/1000); // expiration in seconds     
-        memcpy (buf + 13, msg->GetPayload (), msg->GetPayloadLength ());
+        htobe16buf (buf + 1, cloveSize); // size   
+		buf += 3;
+		if (isDestination)
+		{
+			*buf = (eGarlicDeliveryTypeDestination << 5);
+			memcpy (buf + 1, *m_Destination, 32); buf += 32;
+		}
+		else
+			*buf = 0; 
+		buf++;	// flag and delivery instructions
+        *buf = msg->GetTypeID (); // I2NP msg type
+        htobe32buf (buf + 1, msg->GetMsgID ()); // msgID     
+        htobe32buf (buf + 5, msg->GetExpiration ()/1000); // expiration in seconds     
+        memcpy (buf + 9, msg->GetPayload (), msg->GetPayloadLength ());
         return cloveSize + 3;
     }
  

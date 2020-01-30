@@ -70,6 +70,11 @@ namespace garlic
             const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
 
+			void SetDestination (const i2p::data::IdentHash& dest) // TODO:
+			{
+				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
+			}
+
         private:
 
 			void ResetKeys ();
@@ -84,7 +89,7 @@ namespace garlic
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
-            size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
+            size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
 
         private:
 
@@ -93,6 +98,7 @@ namespace garlic
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
             RatchetTagSet m_TagsetAB, m_TagsetBA;
+			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
     };
 }
 }

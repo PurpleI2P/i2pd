@@ -669,6 +669,7 @@ namespace garlic
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
 				session->SetRemoteStaticKey (staticKey);
 			}	
+			session->SetDestination (destination->GetIdentHash ()); // TODO: remove
             return session;
         }
         else
@@ -860,8 +861,6 @@ namespace garlic
 
 	void GarlicDestination::HandleECIESx25519 (const uint8_t * buf, size_t len)
 	{
-        auto handleClove = std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
-            this, std::placeholders::_1, std::placeholders::_2);
         uint64_t tag;
         memcpy (&tag, buf, 8);
 		ECIESX25519AEADRatchetSessionPtr session;
@@ -874,7 +873,8 @@ namespace garlic
 		else
 			session = std::make_shared<ECIESX25519AEADRatchetSession> (this); // incoming
 		
-		if (!session->HandleNextMessage (buf, len, handleClove))
+		if (!session->HandleNextMessage (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
+            this, std::placeholders::_1, std::placeholders::_2)))
         	LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 	}
 
