@@ -89,6 +89,7 @@ namespace garlic
         private:
 
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
+			uint8_t m_Aepk[32]; // Alice's ephemeral keys TODO: for incoming only
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
             RatchetTagSet m_TagsetAB, m_TagsetBA;

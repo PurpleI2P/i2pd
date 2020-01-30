@@ -92,18 +92,17 @@ namespace garlic
         // we are Bob
         // KDF1
         MixHash (GetOwner ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || bpk)    
-
-        uint8_t aepk[32]; // Alice's ephemeral key
-		if (!i2p::crypto::GetElligator ()->Decode (buf, aepk))
+		
+		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{ 
 			LogPrint (eLogError, "Garlic: Can't decode elligator");
 			return false;	
 		}
         buf += 32; len -= 32;
-        MixHash (aepk, 32); // h = SHA256(h || aepk)  
+        MixHash (m_Aepk, 32); // h = SHA256(h || aepk)  
     
         uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		
         // decrypt flags/static    
@@ -217,7 +216,7 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
 		}
-		MixHash (out + offset, 16); // h = SHA256(h || ciphertext)
+		MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
 
 		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
@@ -244,7 +243,7 @@ namespace garlic
         MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
         MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
         uint8_t sharedSecret[32];      
-        m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, aepk)     
+        m_EphemeralKeys.Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk) 
         i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)       
         uint8_t nonce[12];
 		memset (nonce, 0, 12); // n = 0
