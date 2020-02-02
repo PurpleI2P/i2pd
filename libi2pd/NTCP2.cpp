@@ -1,11 +1,9 @@
 /*
-* Copyright (c) 2013-2018, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
-*
-* Kovri go write your own code
 *
 */
 
@@ -1143,8 +1141,8 @@ namespace transport
 	}
 
 	NTCP2Server::NTCP2Server ():
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
-		m_TerminationTimer (m_Service)
+		RunnableServiceWithWork ("NTCP2"),
+		m_TerminationTimer (GetService ())
 	{
 	}
 
@@ -1155,10 +1153,9 @@ namespace transport
 
 	void NTCP2Server::Start ()
 	{
-		if (!m_IsRunning)
+		if (!IsRunning ())
 		{
-			m_IsRunning = true;
-			m_Thread = new std::thread (std::bind (&NTCP2Server::Run, this));
+			StartService ();
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
@@ -1169,7 +1166,7 @@ namespace transport
 					{
 						try
 						{
-							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
+							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
 						} 
 						catch ( std::exception & ex ) 
 						{
@@ -1183,7 +1180,7 @@ namespace transport
 					}
 					else if (address->host.is_v6() && context.SupportsV6 ())
 					{
-						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service));
+						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
 						{
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
@@ -1218,33 +1215,9 @@ namespace transport
 		}
 		m_NTCP2Sessions.clear ();
 
-		if (m_IsRunning)
-		{
-			m_IsRunning = false;
+		if (IsRunning ())
 			m_TerminationTimer.cancel ();
-			m_Service.stop ();
-			if (m_Thread)
-			{
-				m_Thread->join ();
-				delete m_Thread;
-				m_Thread = nullptr;
-			}
-		}
-	}
-
-	void NTCP2Server::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "NTCP2: runtime exception: ", ex.what ());
-			}
-		}
+		StopService ();
 	}
 
 	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)
@@ -1282,11 +1255,11 @@ namespace transport
 	void NTCP2Server::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn)
 	{
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", address ,":",  port);
-		m_Service.post([this, address, port, conn]() 
+		GetService ().post([this, address, port, conn]() 
 			{
 				if (this->AddNTCP2Session (conn))
 				{
-					auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
+					auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
 					auto timeout = NTCP2_CONNECT_TIMEOUT * 5;
 					conn->SetTerminationTimeout(timeout * 2);
 					timer->expires_from_now (boost::posix_time::seconds(timeout));

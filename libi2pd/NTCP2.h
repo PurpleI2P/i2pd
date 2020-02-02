@@ -1,11 +1,9 @@
 /*
-* Copyright (c) 2013-2018, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
-*
-* Kovri go write your own code
 *
 */
 #ifndef NTCP2_H__
@@ -218,7 +216,7 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 	};
 
-	class NTCP2Server
+	class NTCP2Server: public i2p::util::RunnableServiceWithWork
 	{
 		public:
 
@@ -231,14 +229,11 @@ namespace transport
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
 			std::shared_ptr<NTCP2Session> FindNTCP2Session (const i2p::data::IdentHash& ident);
-
-			boost::asio::io_service& GetService () { return m_Service; };
 		
 			void Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn);
 
 		private:
 
-			void Run ();
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 
@@ -250,10 +245,6 @@ namespace transport
 
 		private:
 
-			bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
 			boost::asio::deadline_timer m_TerminationTimer;
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 

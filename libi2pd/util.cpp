@@ -57,6 +57,45 @@ namespace i2p
 {
 namespace util
 {
+
+	void RunnableService::StartService ()
+	{
+		if (!m_IsRunning)
+		{
+			m_IsRunning = true;
+			m_Thread.reset (new std::thread (std::bind (& RunnableService::Run, this)));
+		}	
+	}
+	
+	void RunnableService::StopService ()
+	{
+		if (m_IsRunning)
+		{
+			m_IsRunning = false;
+			m_Service.stop ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				m_Thread = nullptr;
+			}
+		}
+	}	
+
+	void RunnableService::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, m_Name, ": runtime exception: ", ex.what ());
+			}
+		}
+	}	
+	
 namespace net
 {
 #ifdef WIN32
