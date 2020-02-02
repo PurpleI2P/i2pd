@@ -143,7 +143,7 @@ namespace util
 		private:
 
 			std::string m_Name;
-			bool m_IsRunning;
+			volatile bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_service m_Service;
 	};	

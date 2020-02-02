@@ -7,15 +7,15 @@
 #include "Timestamp.h"
 #include "NetDb.hpp"
 #include "Destination.h"
-#include "util.h"
 
 namespace i2p
 {
 namespace client
 {
-	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
-		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic),
-		m_PublishReplyToken (0), m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
+	LeaseSetDestination::LeaseSetDestination (boost::asio::io_service& service,
+	    bool isPublic, const std::map<std::string, std::string> * params):
+		m_Service (service), m_IsPublic (isPublic), m_PublishReplyToken (0), 
+		m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
 		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service),
 		m_LeaseSetType (DEFAULT_LEASESET_TYPE), m_AuthType (i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE)
 	{
@@ -123,77 +123,36 @@ namespace client
 
 	LeaseSetDestination::~LeaseSetDestination ()
 	{
-		if (m_IsRunning)
-			Stop ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);
 		for (auto& it: m_LeaseSetRequests)
 			it.second->Complete (nullptr);
 	}
 
-	void LeaseSetDestination::Run ()
+	void LeaseSetDestination::Start ()
 	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "Destination: runtime exception: ", ex.what ());
-			}
-		}
+		if (m_Nickname.empty ())
+			m_Nickname = i2p::data::GetIdentHashAbbreviation (GetIdentHash ()); // set default nickname
+		LoadTags ();
+		m_Pool->SetLocalDestination (shared_from_this ());
+		m_Pool->SetActive (true);
+		m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+		m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
+			shared_from_this (), std::placeholders::_1));
 	}
 
-	bool LeaseSetDestination::Start ()
+	void LeaseSetDestination::Stop ()
 	{
-		if (!m_IsRunning)
+		m_CleanupTimer.cancel ();
+		m_PublishConfirmationTimer.cancel ();
+		m_PublishVerificationTimer.cancel ();
+		if (m_Pool)
 		{
-			if (m_Nickname.empty ())
-				m_Nickname = i2p::data::GetIdentHashAbbreviation (GetIdentHash ()); // set default nickname
-			LoadTags ();
-			m_IsRunning = true;
-			m_Pool->SetLocalDestination (shared_from_this ());
-			m_Pool->SetActive (true);
-			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
-			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
-				shared_from_this (), std::placeholders::_1));
-			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
-
-			return true;
+			m_Pool->SetLocalDestination (nullptr);
+			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		}
-		else
-			return false;
-	}
-
-	bool LeaseSetDestination::Stop ()
-	{
-		if (m_IsRunning)
-		{
-			m_CleanupTimer.cancel ();
-			m_PublishConfirmationTimer.cancel ();
-			m_PublishVerificationTimer.cancel ();
-
-			m_IsRunning = false;
-			if (m_Pool)
-			{
-				m_Pool->SetLocalDestination (nullptr);
-				i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
-			}
-			m_Service.stop ();
-			if (m_Thread)
-			{
-				m_Thread->join ();
-				delete m_Thread;
-				m_Thread = 0;
-			}
-			SaveTags ();
-			CleanUp (); // GarlicDestination
-			return true;
-		}
-		else
-			return false;
+		SaveTags ();
+		CleanUp (); // GarlicDestination
 	}
 
 	bool LeaseSetDestination::Reconfigure(std::map<std::string, std::string> params)
@@ -864,7 +823,8 @@ namespace client
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
-		LeaseSetDestination (isPublic, params), m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
+		RunnableService ("Destination"), LeaseSetDestination (GetService (), isPublic, params), 
+		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
@@ -932,26 +892,28 @@ namespace client
 
 	ClientDestination::~ClientDestination ()
 	{
+		if (IsRunning ())
+			Stop ();	
 	}
 
-	bool ClientDestination::Start ()
+	void ClientDestination::Start ()
 	{
-		if (LeaseSetDestination::Start ())
+		if (!IsRunning ())
 		{
+			LeaseSetDestination::Start ();
 			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
 			m_StreamingDestination->Start ();
 			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
-			return true;
+			StartService ();
 		}
-		else
-			return false;
 	}
 
-	bool ClientDestination::Stop ()
+	void ClientDestination::Stop ()
 	{
-		if (LeaseSetDestination::Stop ())
+		if (IsRunning ())
 		{
+			LeaseSetDestination::Stop ();
 			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
 			//m_StreamingDestination->SetOwner (nullptr);
@@ -967,10 +929,8 @@ namespace client
 				delete m_DatagramDestination;
 				m_DatagramDestination = nullptr;
 			}
-			return true;
+			StopService ();
 		}
-		else
-			return false;
 	}
 
 #ifdef I2LUA

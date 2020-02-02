@@ -14,8 +14,8 @@ namespace client
 	{
 	public:
 		MatchedTunnelDestination(const i2p::data::PrivateKeys& keys, const std::string & remoteName, const std::map<std::string, std::string> * params = nullptr);
-		bool Start();
-		bool Stop();
+		void Start();
+		void Stop();
 
 		bool SelectPeers(i2p::tunnel::Path & peers, int hops, bool inbound);
 		bool OnBuildResult(const i2p::tunnel::Path & peers, bool inbound, i2p::tunnel::TunnelBuildResult result);

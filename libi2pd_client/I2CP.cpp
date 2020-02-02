@@ -24,10 +24,35 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
-		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity)
+		RunnableService ("I2CP"), LeaseSetDestination (GetService (), isPublic, &params), 
+		m_Owner (owner), m_Identity (identity)
 	{
 	}
 
+	I2CPDestination::~I2CPDestination ()
+	{
+		if (IsRunning ())
+			Stop ();
+	}	
+		
+	void I2CPDestination::Start ()
+	{
+		if (!IsRunning ())
+		{	
+			LeaseSetDestination::Start ();
+			StartService ();
+		}	
+	}
+		
+	void I2CPDestination::Stop ()
+	{
+		if (IsRunning ())
+		{	
+			LeaseSetDestination::Stop ();
+			StopService ();
+		}	
+	}	
+		
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
 	{
 		memcpy (m_EncryptionPrivateKey, key, 256);
