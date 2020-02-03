@@ -864,17 +864,18 @@ namespace garlic
         uint64_t tag;
         memcpy (&tag, buf, 8);
 		ECIESX25519AEADRatchetSessionPtr session;
+		int index = 0;	
         auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-        	session = it->second;
+        	session = it->second.session;
+			index = it->second.index;
 			m_ECIESx25519Tags.erase (tag);
 		}	
 		else
 			session = std::make_shared<ECIESX25519AEADRatchetSession> (this); // incoming
 		
-		if (!session->HandleNextMessage (buf, len, std::bind (&GarlicDestination::HandleECIESx25519GarlicClove,
-            this, std::placeholders::_1, std::placeholders::_2)))
+		if (!session->HandleNextMessage (buf, len, index))
         	LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 	}
 
@@ -934,9 +935,9 @@ namespace garlic
 		} 
     }
 
-    void GarlicDestination::AddECIESx25519SessionTag (uint64_t tag, ECIESX25519AEADRatchetSessionPtr session)
+    void GarlicDestination::AddECIESx25519SessionTag (uint64_t tag, int index, ECIESX25519AEADRatchetSessionPtr session)
     {
-        m_ECIESx25519Tags.emplace (tag, session);
+        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexSession{index, session});
     }
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)

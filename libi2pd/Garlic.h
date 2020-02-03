@@ -198,6 +198,11 @@ namespace garlic
 
     class ECIESX25519AEADRatchetSession;
     typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;     
+	struct ECIESX25519AEADRatchetIndexSession
+	{ 
+		int index; 
+		ECIESX25519AEADRatchetSessionPtr session; 
+	};
 
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
@@ -217,8 +222,9 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID);
-            void AddECIESx25519SessionTag (uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
+            void AddECIESx25519SessionTag (uint64_t tag, int index, ECIESX25519AEADRatchetSessionPtr session);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
+			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
@@ -245,7 +251,6 @@ namespace garlic
 
 			// ECIES-X25519-AEAD-Ratchet
 			void HandleECIESx25519 (const uint8_t * buf, size_t len);
-            void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -257,7 +262,7 @@ namespace garlic
             std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			// incoming
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
-            std::unordered_map<uint64_t, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Tags; // session tag -> session
+            std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexSession> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, ElGamalAESSessionPtr> m_DeliveryStatusSessions; // msgID -> session

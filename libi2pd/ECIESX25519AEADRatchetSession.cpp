@@ -86,7 +86,7 @@ namespace garlic
         return tagsetNsr.GetNextSessionTag ();   
     }
 
-    bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len,  CloveHandler handleClove)
+    bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
     {
         if (!GetOwner ()) return false;
         // we are Bob
@@ -138,12 +138,12 @@ namespace garlic
         m_State = eSessionStateNewSessionReceived;            
 		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 
-        HandlePayload (payload.data (), len - 16, handleClove);    
+        HandlePayload (payload.data (), len - 16);    
 
         return true;
     }
 
-    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, CloveHandler& handleClove)
+    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len)
     {
         size_t offset = 0;
 		while (offset < len)
@@ -161,7 +161,7 @@ namespace garlic
 			switch (blk)
 			{
 				case eECIESx25519BlkGalicClove:
-					handleClove (buf + offset, size);
+					GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size);
 				break;
 				case eECIESx25519BlkDateTime:
 					LogPrint (eLogDebug, "Garlic: datetime");
@@ -220,7 +220,7 @@ namespace garlic
 
 		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
-            GetOwner ()->AddECIESx25519SessionTag (CreateNewSessionTag (), shared_from_this ());   		
+            GetOwner ()->AddECIESx25519SessionTag (CreateNewSessionTag (), 0, shared_from_this ());   		
 
         return true;
     }
@@ -260,9 +260,12 @@ namespace garlic
         // KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
-        // k_ab = keydata[0:31], k_ba = keydata[32:63]
-        m_TagsetAB.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
-        m_TagsetBA.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+		memcpy (m_ReceiveKey, keydata, 32); // k_ab = keydata[0:31]
+		memcpy (m_SendKey, keydata + 32, 32);// k_ba = keydata[32:63]
+        m_ReceiveTagset.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+		m_ReceiveTagset.NextSessionTagRatchet ();
+        m_SendTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+		m_SendTagset.NextSessionTagRatchet ();	
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
@@ -270,11 +273,12 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
 		}
+		m_State = eSessionStateEstablished;
 
         return true;
     }
 
-    bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove)
+    bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len)
     {
 		// we are Alice
 		LogPrint (eLogDebug, "Garlic: reply received");
@@ -308,9 +312,12 @@ namespace garlic
 		// KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
-        // k_ab = keydata[0:31], k_ba = keydata[32:63]
-        m_TagsetAB.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
-        m_TagsetBA.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+        memcpy (m_SendKey, keydata, 32); // k_ab = keydata[0:31]
+		memcpy (m_ReceiveKey, keydata + 32, 32);// k_ba = keydata[32:63]
+        m_SendTagset.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+		m_SendTagset.NextSessionTagRatchet ();
+        m_ReceiveTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+		m_ReceiveTagset.NextSessionTagRatchet ();
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16);
@@ -320,21 +327,41 @@ namespace garlic
 			return false;
 		}
 	
-		// TODO: change state
+		m_State = eSessionStateEstablished;
 		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
-		HandlePayload (payload.data (), len - 16, handleClove); 
+		HandlePayload (payload.data (), len - 16); 
 
         return true;
     }
 
-	bool ECIESX25519AEADRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len, CloveHandler handleClove)
+	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (const uint8_t * buf, size_t len, int index)
+	{
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); 
+		htole64buf (nonce + 4, index); // tag's index
+		// ad = The session tag, 8 bytes
+		// ciphertext = ENCRYPT(k, n, payload, ad)
+		len -= 8; // tag 
+		std::vector<uint8_t> payload (len - 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, m_ReceiveKey, nonce, payload.data (), len - 16, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
+			return false;
+		}	
+		HandlePayload (payload.data (), len - 16); 
+		return true;
+	}
+
+	bool ECIESX25519AEADRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len, int index)
 	{
 		switch (m_State)
 		{
+			case eSessionStateEstablished:
+				return HandleExistingSessionMessage (buf, len, index);
 			case eSessionStateNew:
-				return HandleNewIncomingSession (buf, len, handleClove);
+				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
-				return HandleNewOutgoingSessionReply (buf, len, handleClove);
+				return HandleNewOutgoingSessionReply (buf, len);
 			default:
 				return false;
 		}
@@ -424,8 +451,7 @@ namespace garlic
         htobe32buf (buf + 5, msg->GetExpiration ()/1000); // expiration in seconds     
         memcpy (buf + 9, msg->GetPayload (), msg->GetPayloadLength ());
         return cloveSize + 3;
-    }
- 
+    } 
 }
 }
 

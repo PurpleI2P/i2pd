@@ -54,17 +54,16 @@ namespace garlic
         {
             eSessionStateNew =0,
             eSessionStateNewSessionReceived,
-			eSessionStateNewSessionSent
+			eSessionStateNewSessionSent,
+			eSessionStateEstablished		
         };
 
         public:
 
-            typedef std::function<void (const uint8_t * buf, size_t len)> CloveHandler;
-
             ECIESX25519AEADRatchetSession (GarlicDestination * owner);
             ~ECIESX25519AEADRatchetSession ();
 
-			bool HandleNextMessage (const uint8_t * buf, size_t len, CloveHandler handleClove);
+			bool HandleNextMessage (const uint8_t * buf, size_t len, int index = 0);
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 
             const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
@@ -82,9 +81,10 @@ namespace garlic
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
             uint64_t CreateNewSessionTag () const;
 
-			bool HandleNewIncomingSession (const uint8_t * buf, size_t len, CloveHandler handleClove);
-            bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len, CloveHandler handleClove);
-            void HandlePayload (const uint8_t * buf, size_t len,  CloveHandler& handleClove);
+			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
+            bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len);
+			bool HandleExistingSessionMessage (const uint8_t * buf, size_t len, int index);
+            void HandlePayload (const uint8_t * buf, size_t len);
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
@@ -97,7 +97,8 @@ namespace garlic
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys TODO: for incoming only
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
-            RatchetTagSet m_TagsetAB, m_TagsetBA;
+            RatchetTagSet m_SendTagset, m_ReceiveTagset;
+			uint8_t m_SendKey[32], m_ReceiveKey[32];
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
     };
 }
