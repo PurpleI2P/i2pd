@@ -324,7 +324,7 @@ namespace net
 
 	int GetMTU(const boost::asio::ip::address& localAddress)
 	{
-		const int fallback = 576; // fallback MTU
+		int fallback = localAddress.is_v6 () ? 1280 : 620; // fallback MTU
 
 #ifdef WIN32
 		return GetMTUWindows(localAddress, fallback);
