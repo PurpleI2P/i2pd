@@ -305,7 +305,7 @@ namespace client
 		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
-		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
+		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
@@ -347,7 +347,7 @@ namespace client
 			it->second->Start (); // make sure to start
 			return it->second;
 		}
-		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
+		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;
 		localDestination->Start ();

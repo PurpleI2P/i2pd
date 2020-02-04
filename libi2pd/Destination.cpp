@@ -822,11 +822,12 @@ namespace client
 		}
 	}
 
-	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
-		RunnableService ("Destination"), LeaseSetDestination (GetIOService (), isPublic, params), 
+	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
+		bool isPublic, const std::map<std::string, std::string> * params):
+		LeaseSetDestination (service, isPublic, params), 
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
-		m_ReadyChecker(GetService())
+		m_ReadyChecker(service)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
@@ -892,44 +893,34 @@ namespace client
 
 	ClientDestination::~ClientDestination ()
 	{
-		if (IsRunning ())
-			Stop ();	
 	}
 
 	void ClientDestination::Start ()
 	{
-		if (!IsRunning ())
-		{
-			LeaseSetDestination::Start ();
-			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
-			m_StreamingDestination->Start ();
-			for (auto& it: m_StreamingDestinationsByPorts)
-				it.second->Start ();
-			StartIOService ();
-		}
+		LeaseSetDestination::Start ();
+		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
+		m_StreamingDestination->Start ();
+		for (auto& it: m_StreamingDestinationsByPorts)
+			it.second->Start ();
 	}
 
 	void ClientDestination::Stop ()
 	{
-		if (IsRunning ())
+		LeaseSetDestination::Stop ();
+		m_ReadyChecker.cancel();
+		m_StreamingDestination->Stop ();
+		//m_StreamingDestination->SetOwner (nullptr);
+		m_StreamingDestination = nullptr;
+		for (auto& it: m_StreamingDestinationsByPorts)
 		{
-			LeaseSetDestination::Stop ();
-			m_ReadyChecker.cancel();
-			m_StreamingDestination->Stop ();
-			//m_StreamingDestination->SetOwner (nullptr);
-			m_StreamingDestination = nullptr;
-			for (auto& it: m_StreamingDestinationsByPorts)
-			{
-				it.second->Stop ();
-				//it.second->SetOwner (nullptr);
-			}
-			m_StreamingDestinationsByPorts.clear ();
-			if (m_DatagramDestination)
-			{
-				delete m_DatagramDestination;
-				m_DatagramDestination = nullptr;
-			}
-			StopIOService ();
+			it.second->Stop ();
+			//it.second->SetOwner (nullptr);
+		}
+		m_StreamingDestinationsByPorts.clear ();
+		if (m_DatagramDestination)
+		{
+			delete m_DatagramDestination;
+			m_DatagramDestination = nullptr;
 		}
 	}
 
@@ -1199,5 +1190,36 @@ namespace client
 			}	
 		}
 	}
+
+	RunnableClientDestination::RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
+		RunnableService ("Destination"), 
+		ClientDestination (GetIOService (), keys, isPublic, params)
+	{
+	}
+
+	RunnableClientDestination::~RunnableClientDestination ()
+	{
+		if (IsRunning ())
+			Stop ();
+	}	
+
+	void RunnableClientDestination::Start ()
+	{
+		if (!IsRunning ())
+		{
+			ClientDestination::Start ();
+			StartIOService ();
+		}
+	}
+
+	void RunnableClientDestination::Stop ()
+	{
+		if (IsRunning ())
+		{
+			ClientDestination::Stop ();
+			StopIOService ();
+		}
+	}
+
 }
 }

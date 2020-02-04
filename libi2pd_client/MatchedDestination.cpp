@@ -8,7 +8,7 @@ namespace i2p
 namespace client
 {
 	MatchedTunnelDestination::MatchedTunnelDestination(const i2p::data::PrivateKeys & keys, const std::string & remoteName, const std::map<std::string, std::string> * params)
-		: ClientDestination(keys, false, params),
+		: RunnableClientDestination(keys, false, params),
 			m_RemoteName(remoteName) {}
 
 

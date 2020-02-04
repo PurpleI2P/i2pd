@@ -192,7 +192,7 @@ namespace client
 			bool IsPerClientAuth () const { return m_AuthType > 0; };
 	};
 
-	class ClientDestination: private i2p::util::RunnableService, public LeaseSetDestination
+	class ClientDestination: public LeaseSetDestination
 	{
 		public:
 #ifdef I2LUA
@@ -203,11 +203,12 @@ namespace client
 			void Ready(ReadyPromise & p);
 #endif
 
-			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
+				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 
-			virtual void Start ();
-			virtual void Stop ();
+			void Start ();
+			void Stop ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
@@ -281,6 +282,18 @@ namespace client
 			// for HTTP only
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
 	};
+
+	class RunnableClientDestination: private i2p::util::RunnableService, public ClientDestination
+	{
+		public:
+
+			RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			~RunnableClientDestination ();			
+
+			void Start ();
+			void Stop ();
+	};
+
 }
 }
 
