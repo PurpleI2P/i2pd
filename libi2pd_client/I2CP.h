@@ -62,7 +62,7 @@ namespace client
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
 	class I2CPSession;
-	class I2CPDestination: public i2p::util::RunnableService, public LeaseSetDestination
+	class I2CPDestination: private i2p::util::RunnableService, public LeaseSetDestination
 	{
 		public:
 

@@ -102,6 +102,7 @@ namespace client
 			LeaseSetDestination (boost::asio::io_service& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
+			boost::asio::io_service& GetService () { return m_Service; };
 
 			virtual void Start ();
 			virtual void Stop ();
@@ -191,7 +192,7 @@ namespace client
 			bool IsPerClientAuth () const { return m_AuthType > 0; };
 	};
 
-	class ClientDestination: public i2p::util::RunnableService, public LeaseSetDestination
+	class ClientDestination: private i2p::util::RunnableService, public LeaseSetDestination
 	{
 		public:
 #ifdef I2LUA

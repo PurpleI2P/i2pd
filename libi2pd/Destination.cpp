@@ -823,7 +823,7 @@ namespace client
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
-		RunnableService ("Destination"), LeaseSetDestination (GetService (), isPublic, params), 
+		RunnableService ("Destination"), LeaseSetDestination (GetIOService (), isPublic, params), 
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
@@ -905,7 +905,7 @@ namespace client
 			m_StreamingDestination->Start ();
 			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
-			StartService ();
+			StartIOService ();
 		}
 	}
 
@@ -929,7 +929,7 @@ namespace client
 				delete m_DatagramDestination;
 				m_DatagramDestination = nullptr;
 			}
-			StopService ();
+			StopIOService ();
 		}
 	}
 

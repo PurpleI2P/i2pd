@@ -24,7 +24,7 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
-		RunnableService ("I2CP"), LeaseSetDestination (GetService (), isPublic, &params), 
+		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params), 
 		m_Owner (owner), m_Identity (identity)
 	{
 	}
@@ -40,7 +40,7 @@ namespace client
 		if (!IsRunning ())
 		{	
 			LeaseSetDestination::Start ();
-			StartService ();
+			StartIOService ();
 		}	
 	}
 		
@@ -49,7 +49,7 @@ namespace client
 		if (IsRunning ())
 		{	
 			LeaseSetDestination::Stop ();
-			StopService ();
+			StopIOService ();
 		}	
 	}	
 		

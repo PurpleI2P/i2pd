@@ -743,8 +743,8 @@ namespace client
 	}
 
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port))
+		RunnableService ("BOB"),
+		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port))
 	{
 		// command -> handler
 		m_CommandHandlers[BOB_COMMAND_ZAP] = &BOBCommandSession::ZapCommandHandler;
@@ -794,7 +794,8 @@ namespace client
 
 	BOBCommandChannel::~BOBCommandChannel ()
 	{
-		Stop ();
+		if (IsRunning ())	
+			Stop ();
 		for (const auto& it: m_Destinations)
 			delete it.second;
 	}
@@ -802,38 +803,15 @@ namespace client
 	void BOBCommandChannel::Start ()
 	{
 		Accept ();
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&BOBCommandChannel::Run, this));
+		StartIOService ();
 	}
 
 	void BOBCommandChannel::Stop ()
 	{
-		m_IsRunning = false;
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Acceptor.cancel ();
-		m_Service.stop ();
-		if (m_Thread)
-		{
-			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = nullptr;
-		}
-	}
-
-	void BOBCommandChannel::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "BOB: runtime exception: ", ex.what ());
-			}
-		}
+		StopIOService ();
 	}
 
 	void BOBCommandChannel::AddDestination (const std::string& name, BOBDestination * dest)

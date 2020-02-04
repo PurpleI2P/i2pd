@@ -9,6 +9,7 @@
 #include <mutex>
 #include <memory>
 #include <boost/asio.hpp>
+#include "util.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "Streaming.h"
@@ -174,7 +175,7 @@ namespace client
 		void CloseStreams ();
 	};
 
-	class SAMBridge
+	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:
 
@@ -184,7 +185,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return GetIOService (); };
 			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string	 means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
@@ -201,8 +202,6 @@ namespace client
 
 		private:
 
-			void Run ();
-
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<SAMSocket> socket);
 
@@ -211,9 +210,6 @@ namespace client
 
 		private:
 
-			bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;

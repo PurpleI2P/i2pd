@@ -344,8 +344,7 @@ namespace client
 		if (it != m_Destinations.end ())
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
-			if (!it->second->IsRunning ())
-				it->second->Start ();
+			it->second->Start (); // make sure to start
 			return it->second;
 		}
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);

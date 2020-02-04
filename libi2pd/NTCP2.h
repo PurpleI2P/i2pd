@@ -216,7 +216,7 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 	};
 
-	class NTCP2Server: public i2p::util::RunnableServiceWithWork
+	class NTCP2Server: private i2p::util::RunnableServiceWithWork
 	{
 		public:
 
@@ -225,6 +225,7 @@ namespace transport
 
 			void Start ();
 			void Stop ();
+			boost::asio::io_service& GetService () { return GetIOService (); };
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);

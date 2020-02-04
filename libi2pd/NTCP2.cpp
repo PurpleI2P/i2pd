@@ -1155,7 +1155,7 @@ namespace transport
 	{
 		if (!IsRunning ())
 		{
-			StartService ();
+			StartIOService ();
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
@@ -1217,7 +1217,7 @@ namespace transport
 
 		if (IsRunning ())
 			m_TerminationTimer.cancel ();
-		StopService ();
+		StopIOService ();
 	}
 
 	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)

@@ -1001,9 +1001,9 @@ namespace client
 	}
 
 	SAMBridge::SAMBridge (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
-		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint),
+		RunnableService ("SAM"),
+		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
+		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
 		m_SignatureTypes
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
@@ -1020,7 +1020,7 @@ namespace client
 
 	SAMBridge::~SAMBridge ()
 	{
-		if (m_IsRunning)
+		if (IsRunning ())
 			Stop ();
 	}
 
@@ -1028,14 +1028,11 @@ namespace client
 	{
 		Accept ();
 		ReceiveDatagram ();
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&SAMBridge::Run, this));
+		StartIOService ();
 	}
 
 	void SAMBridge::Stop ()
 	{
-		m_IsRunning = false;
-
 		try
 		{
 			m_Acceptor.cancel ();
@@ -1048,28 +1045,7 @@ namespace client
 		for (auto& it: m_Sessions)
 			it.second->CloseStreams ();
 		m_Sessions.clear ();
-		m_Service.stop ();
-		if (m_Thread)
-		{
-			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = nullptr;
-		}
-	}
-
-	void SAMBridge::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "SAM: runtime exception: ", ex.what ());
-			}
-		}
+		StopIOService ();
 	}
 
 	void SAMBridge::Accept ()

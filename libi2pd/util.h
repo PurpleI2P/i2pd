@@ -125,16 +125,16 @@ namespace util
 
 	class RunnableService
 	{
-		public:
+		protected:
 
 			RunnableService (const std::string& name): m_Name (name), m_IsRunning (false) {}
 			virtual ~RunnableService () {}
 
-			boost::asio::io_service& GetService () { return m_Service; }
+			boost::asio::io_service& GetIOService () { return m_Service; }
 			bool IsRunning () const { return m_IsRunning; };
 			
-			void StartService ();
-			void StopService ();
+			void StartIOService ();
+			void StopIOService ();
 
 		private:
 
@@ -150,10 +150,10 @@ namespace util
 
 	class RunnableServiceWithWork: public RunnableService
 	{
-		public:
+		protected:
 
 			RunnableServiceWithWork (const std::string& name): 
-				RunnableService (name), m_Work (GetService ()) {}		
+				RunnableService (name), m_Work (GetIOService ()) {}		
 			
 		private:
 

@@ -58,7 +58,7 @@ namespace i2p
 namespace util
 {
 
-	void RunnableService::StartService ()
+	void RunnableService::StartIOService ()
 	{
 		if (!m_IsRunning)
 		{
@@ -67,7 +67,7 @@ namespace util
 		}	
 	}
 	
-	void RunnableService::StopService ()
+	void RunnableService::StopIOService ()
 	{
 		if (m_IsRunning)
 		{
