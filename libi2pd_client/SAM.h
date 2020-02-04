@@ -179,7 +179,7 @@ namespace client
 	{
 		public:
 
-			SAMBridge (const std::string& address, int port);
+			SAMBridge (const std::string& address, int port, bool singleThread);
 			~SAMBridge ();
 
 			void Start ();
@@ -210,6 +210,7 @@ namespace client
 
 		private:
 
+			bool m_IsSingleThread;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;

@@ -1000,8 +1000,8 @@ namespace client
 		}
 	}
 
-	SAMBridge::SAMBridge (const std::string& address, int port):
-		RunnableService ("SAM"),
+	SAMBridge::SAMBridge (const std::string& address, int port, bool singleThread):
+		RunnableService ("SAM"), m_IsSingleThread (singleThread), 
 		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
 		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
 		m_SignatureTypes
@@ -1094,7 +1094,9 @@ namespace client
 		{
 			i2p::data::PrivateKeys keys;
 			if (!keys.FromBase64 (destination)) return nullptr;
-			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
+			localDestination = m_IsSingleThread ? 
+				i2p::client::context.CreateNewLocalDestination (GetIOService (), keys, true, params) :
+				i2p::client::context.CreateNewLocalDestination (keys, true, params);
 		}
 		else // transient
 		{
@@ -1122,7 +1124,9 @@ namespace client
 					}	
 				}	
 			}
-			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
+			localDestination = m_IsSingleThread ? 
+				i2p::client::context.CreateNewLocalDestination (GetIOService (), true, signatureType, cryptoType, params) :
+				i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
 		}
 		if (localDestination)
 		{

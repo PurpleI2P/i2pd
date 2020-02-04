@@ -53,14 +53,19 @@ namespace client
 
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
-		if (sam) {
+		if (sam) 
+		{
 			std::string samAddr; i2p::config::GetOption("sam.address", samAddr);
 			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
+			bool singleThread; i2p::config::GetOption("sam.singlethread",  singleThread);
 			LogPrint(eLogInfo, "Clients: starting SAM bridge at ", samAddr, ":", samPort);
-			try {
-			  m_SamBridge = new SAMBridge (samAddr, samPort);
-			  m_SamBridge->Start ();
-			} catch (std::exception& e) {
+			try 
+			{
+				m_SamBridge = new SAMBridge (samAddr, samPort, singleThread);
+			  	m_SamBridge->Start ();
+			} 
+			catch (std::exception& e) 
+			{
 			  LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
 			}
 		}
@@ -306,20 +311,33 @@ namespace client
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
-		std::unique_lock<std::mutex> l(m_DestinationsMutex);
-		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
-		localDestination->Start ();
+		AddLocalDestination (localDestination);
+		return localDestination;
+	}
+
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (
+		boost::asio::io_service& service, bool isPublic,
+		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
+		const std::map<std::string, std::string> * params)
+	{
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+		auto localDestination = std::make_shared<ClientDestination> (service, keys, isPublic, params);
+		AddLocalDestination (localDestination);
 		return localDestination;
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params)
 	{
-		MatchedTunnelDestination * cl = new MatchedTunnelDestination(keys, name, params);
-		auto localDestination = std::shared_ptr<ClientDestination>(cl);
+		auto localDestination = std::make_shared<MatchedTunnelDestination>(keys, name, params);
+		AddLocalDestination (localDestination);
+		return localDestination;
+	}
+
+	void ClientContext::AddLocalDestination (std::shared_ptr<ClientDestination> localDestination)
+	{
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
-		return localDestination;
 	}
 
 	void ClientContext::DeleteLocalDestination (std::shared_ptr<ClientDestination> destination)
@@ -348,9 +366,22 @@ namespace client
 			return it->second;
 		}
 		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
-		std::unique_lock<std::mutex> l(m_DestinationsMutex);
-		m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;
-		localDestination->Start ();
+		AddLocalDestination (localDestination);
+		return localDestination;
+	}
+
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_service& service,
+		const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params)
+	{
+		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());
+		if (it != m_Destinations.end ())
+		{
+			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
+			it->second->Start (); // make sure to start
+			return it->second;
+		}
+		auto localDestination = std::make_shared<ClientDestination> (service, keys, isPublic, params);
+		AddLocalDestination (localDestination);
 		return localDestination;
 	}
 
