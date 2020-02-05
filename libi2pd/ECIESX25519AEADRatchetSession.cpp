@@ -27,11 +27,13 @@ namespace garlic
     {
         i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), nullptr, 0, "STInitialization", m_KeyData.buf); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
         memcpy (m_SessTagConstant, m_KeyData.GetSessTagConstant (), 32);
+		m_NextIndex = 0;
     }
 
     uint64_t RatchetTagSet::GetNextSessionTag ()
     {
          i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+		m_NextIndex++;	
         return m_KeyData.GetTag ();
     }
 
@@ -64,6 +66,12 @@ namespace garlic
 		SHA256_Final (m_H, &ctx);
     }
 	
+	void ECIESX25519AEADRatchetSession::CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4); 
+		htole64buf (nonce + 4, seqn); 
+	}
+
     bool ECIESX25519AEADRatchetSession::GenerateEphemeralKeysAndEncode (uint8_t * buf)
     {
         for (int i = 0; i < 10; i++)
@@ -107,7 +115,7 @@ namespace garlic
 		
         // decrypt flags/static    
 		uint8_t nonce[12], fs[32];
-		memset (nonce, 0, 12); // n = 0
+		CreateNonce (0, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 32, m_H, 32, m_CK + 32, nonce, fs, 32, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD verification failed ");
@@ -128,7 +136,7 @@ namespace garlic
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		}
 		else // all zeros flags
-			htole64buf (nonce + 4, 1); // n = 1 
+			CreateNonce (1, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
@@ -199,7 +207,7 @@ namespace garlic
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)    
         // encrypt static key section
         uint8_t nonce[12];
-		memset (nonce, 0, 12); // n = 0
+		CreateNonce (0, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
@@ -220,7 +228,7 @@ namespace garlic
 
 		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
-            GetOwner ()->AddECIESx25519SessionTag (CreateNewSessionTag (), 0, shared_from_this ());   		
+            GetOwner ()->AddECIESx25519SessionTag (0, CreateNewSessionTag (), shared_from_this ());   		
 
         return true;
     }
@@ -248,7 +256,7 @@ namespace garlic
 		m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk) 
         i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)       
 		uint8_t nonce[12];
-		memset (nonce, 0, 12); // n = 0
+		CreateNonce (0, nonce);
         // calulate hash for zero length
 		if (!i2p::crypto::AEADChaCha20Poly1305 (sharedSecret /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
@@ -266,6 +274,9 @@ namespace garlic
 		m_ReceiveTagset.NextSessionTagRatchet ();
         m_SendTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset.NextSessionTagRatchet ();	
+		auto numTags = GetOwner ()->GetNumTags ();
+		for (int i = 0; i < numTags; i++)
+			GetOwner ()->AddECIESx25519SessionTag (m_ReceiveTagset.GetNextIndex (), m_ReceiveTagset.GetNextSessionTag (), shared_from_this ());
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
@@ -300,7 +311,7 @@ namespace garlic
 		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr); // x25519 (ask, bepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		uint8_t nonce[12];
-		memset (nonce, 0, 12); // n = 0
+		CreateNonce (0, nonce);
         // calulate hash for zero length
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, 0, m_H, 32, m_CK + 32, nonce, sharedSecret/* can be anyting */, 0, false)) // decrypt, DECRYPT(k, n, ZEROLEN, ad) verification only
 		{
@@ -318,6 +329,9 @@ namespace garlic
 		m_SendTagset.NextSessionTagRatchet ();
         m_ReceiveTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_ReceiveTagset.NextSessionTagRatchet ();
+		auto numTags = GetOwner ()->GetNumTags ();
+		for (int i = 0; i < numTags; i++)
+			GetOwner ()->AddECIESx25519SessionTag (m_ReceiveTagset.GetNextIndex (), m_ReceiveTagset.GetNextSessionTag (), shared_from_this ());
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16);
@@ -334,13 +348,26 @@ namespace garlic
         return true;
     }
 
+	bool ECIESX25519AEADRatchetSession::NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+	{
+		uint8_t nonce[12];
+		CreateNonce (m_SendTagset.GetNextIndex (), nonce); // tag's index
+		uint64_t tag = m_SendTagset.GetNextSessionTag ();
+		memcpy (out, &tag, 8);
+		// ad = The session tag, 8 bytes
+		// ciphertext = ENCRYPT(k, n, payload, ad)
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, out, 8, m_SendKey, nonce, out + 8, outLen - 8, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			return false;
+		}		
+		return true;
+	}
+
 	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (const uint8_t * buf, size_t len, int index)
 	{
 		uint8_t nonce[12];
-		memset (nonce, 0, 12); 
-		htole64buf (nonce + 4, index); // tag's index
-		// ad = The session tag, 8 bytes
-		// ciphertext = ENCRYPT(k, n, payload, ad)
+		CreateNonce (index, nonce); // tag's index
 		len -= 8; // tag 
 		std::vector<uint8_t> payload (len - 16);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, m_ReceiveKey, nonce, payload.data (), len - 16, false)) // decrypt
@@ -378,6 +405,11 @@ namespace garlic
 
         switch (m_State)
         {
+			case eSessionStateEstablished:
+				if (!NewExistingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+					return nullptr;
+				len += 24;
+			break;	
             case eSessionStateNew:
                 if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
                     return nullptr;

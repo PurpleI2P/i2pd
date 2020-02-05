@@ -213,6 +213,7 @@ namespace garlic
 
 			void CleanUp ();
 			void SetNumTags (int numTags) { m_NumTags = numTags; };
+			int GetNumTags () const { return m_NumTags; };
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
@@ -222,7 +223,7 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID);
-            void AddECIESx25519SessionTag (uint64_t tag, int index, ECIESX25519AEADRatchetSessionPtr session);
+            void AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 

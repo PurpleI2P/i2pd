@@ -21,6 +21,7 @@ namespace garlic
             void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
             void NextSessionTagRatchet ();
             uint64_t GetNextSessionTag ();
+			int GetNextIndex () const { return m_NextIndex; }; 
 
         private:
         
@@ -35,6 +36,7 @@ namespace garlic
              
            } m_KeyData;  
            uint8_t m_SessTagConstant[32];   
+		   int m_NextIndex;		
     };       
 
     enum ECIESx25519BlockType
@@ -78,6 +80,7 @@ namespace garlic
 
 			void ResetKeys ();
             void MixHash (const uint8_t * buf, size_t len);
+			void CreateNonce (uint64_t seqn, uint8_t * nonce);
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
             uint64_t CreateNewSessionTag () const;
 
@@ -88,6 +91,8 @@ namespace garlic
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+	
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
             size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
 

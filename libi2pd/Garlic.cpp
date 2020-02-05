@@ -418,6 +418,8 @@ namespace garlic
 		m_Sessions.clear ();
 		m_DeliveryStatusSessions.clear ();
 		m_Tags.clear ();
+		m_ECIESx25519Sessions.clear ();
+		m_ECIESx25519Tags.clear ();
 	}
 	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)
 	{
@@ -737,6 +739,7 @@ namespace garlic
 					++it;
 			}
 		}
+		// TODO: cleanup ECIESx25519
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
@@ -935,7 +938,7 @@ namespace garlic
 		} 
     }
 
-    void GarlicDestination::AddECIESx25519SessionTag (uint64_t tag, int index, ECIESX25519AEADRatchetSessionPtr session)
+    void GarlicDestination::AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session)
     {
         m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexSession{index, session});
     }
