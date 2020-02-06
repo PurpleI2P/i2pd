@@ -1042,9 +1042,12 @@ namespace client
 			LogPrint (eLogError, "SAM: runtime exception: ", ex.what ());
 		}
 
-		for (auto& it: m_Sessions)
-			it.second->CloseStreams ();
-		m_Sessions.clear ();
+		{
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			for (auto& it: m_Sessions)
+				it.second->CloseStreams ();
+			m_Sessions.clear ();
+		}
 		StopIOService ();
 	}
 
