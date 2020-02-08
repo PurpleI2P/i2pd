@@ -276,7 +276,11 @@ namespace garlic
 		m_SendTagset.NextSessionTagRatchet ();	
 		auto numTags = GetOwner ()->GetNumTags ();
 		for (int i = 0; i < numTags; i++)
-			GetOwner ()->AddECIESx25519SessionTag (m_ReceiveTagset.GetNextIndex (), m_ReceiveTagset.GetNextSessionTag (), shared_from_this ());
+		{
+			auto index = m_ReceiveTagset.GetNextIndex ();
+			uint64_t tag = m_ReceiveTagset.GetNextSessionTag ();
+			GetOwner ()->AddECIESx25519SessionTag (index, tag, shared_from_this ());
+		}	
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
@@ -331,7 +335,11 @@ namespace garlic
 		m_ReceiveTagset.NextSessionTagRatchet ();
 		auto numTags = GetOwner ()->GetNumTags ();
 		for (int i = 0; i < numTags; i++)
-			GetOwner ()->AddECIESx25519SessionTag (m_ReceiveTagset.GetNextIndex (), m_ReceiveTagset.GetNextSessionTag (), shared_from_this ());
+		{
+			auto index = m_ReceiveTagset.GetNextIndex ();
+			uint64_t tag = m_ReceiveTagset.GetNextSessionTag ();
+			GetOwner ()->AddECIESx25519SessionTag (index, tag, shared_from_this ());
+		}	
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16);
