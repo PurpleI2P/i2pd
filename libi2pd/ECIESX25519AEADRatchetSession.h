@@ -80,7 +80,7 @@ namespace garlic
 			{
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
-
+			
         private:
 
 			void ResetKeys ();
@@ -101,6 +101,8 @@ namespace garlic
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
             size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
 
+			void GenerateMoreReceiveTags (int numTags);
+			
         private:
 
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
@@ -108,6 +110,7 @@ namespace garlic
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
+			int m_NumReceiveTags = 0;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
     };
 }
