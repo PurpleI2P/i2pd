@@ -22,9 +22,14 @@ namespace garlic
             void NextSessionTagRatchet ();
             uint64_t GetNextSessionTag ();
 			int GetNextIndex () const { return m_NextIndex; }; 
+			const uint8_t * GetSymmKey (int index);
 
         private:
-        
+
+			void CalculateSymmKeyCK (int index);
+				
+		private:
+			
            union
            {
                uint64_t ll[8]; 
@@ -35,8 +40,8 @@ namespace garlic
                uint64_t GetTag () const { return ll[4]; }; // tag = keydata[32:39]            
              
            } m_KeyData;  
-           uint8_t m_SessTagConstant[32];   
-		   int m_NextIndex;		
+           uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64];   
+		   int m_NextIndex, m_NextSymmKeyIndex;		
     };       
 
     enum ECIESx25519BlockType
@@ -103,7 +108,6 @@ namespace garlic
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
-			uint8_t m_SendKey[32], m_ReceiveKey[32];
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
     };
 }
