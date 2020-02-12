@@ -25,7 +25,7 @@ namespace client
 
 	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
 		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params), 
-		m_Owner (owner), m_Identity (identity)
+		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ())
 	{
 	}
 
@@ -581,7 +581,10 @@ namespace client
 				}				
 				// TODO: support multiple keys
 				if (currentKey)
+				{
 					m_Destination->SetEncryptionPrivateKey (currentKey);
+					m_Destination->SetEncryptionType (currentKeyType);
+				}
 
 				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ()); 
 			}
