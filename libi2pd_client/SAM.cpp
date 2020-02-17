@@ -1161,6 +1161,15 @@ namespace client
 			session->localDestination->Release ();
 			session->localDestination->StopAcceptingStreams ();
 			session->CloseStreams ();
+			if (m_IsSingleThread)
+			{
+				auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
+				timer->expires_from_now (boost::posix_time::seconds(5)); // postpone destination clean for 5 seconds
+				timer->async_wait ([timer, session](const boost::system::error_code& ecode) 
+				{
+					// session's destructor is called here
+				});
+			}	
 		}
 	}
 
