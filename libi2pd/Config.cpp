@@ -191,9 +191,10 @@ namespace config {
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
 				"https://netdb.i2p2.no/,"
+			    "https://reseed.i2p2.no/,"
+			    "https://reseed2.i2p2.no/,"
 				// "https://us.reseed.i2p2.no:444/," // mamoth's shit
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
-				"https://download.xxlspeed.com/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
