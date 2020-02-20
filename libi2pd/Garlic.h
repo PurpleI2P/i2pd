@@ -202,6 +202,7 @@ namespace garlic
 	{ 
 		int index; 
 		ECIESX25519AEADRatchetSessionPtr session; 
+		uint64_t creationTime; // seconds since epoch
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination

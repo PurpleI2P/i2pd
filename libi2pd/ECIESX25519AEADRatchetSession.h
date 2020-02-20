@@ -55,6 +55,10 @@ namespace garlic
 		eECIESx25519BlkPadding = 254	
 	};	
 
+
+	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
+	const int ECIESX25519_EXPIRATION_TIMEOUT = 600; // in seconds
+
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
         enum SessionState
@@ -81,6 +85,9 @@ namespace garlic
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
 			
+			bool IsExpired (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; }
+			bool CanBeRestarted (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_RESTART_TIMEOUT; }
+
         private:
 
 			void ResetKeys ();
@@ -109,6 +116,7 @@ namespace garlic
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys TODO: for incoming only
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
+			uint64_t m_LastActivityTimestamp = 0; // incoming
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
 			int m_NumReceiveTags = 0;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 

@@ -739,7 +739,25 @@ namespace garlic
 					++it;
 			}
 		}
-		// TODO: cleanup ECIESx25519
+		// ECIESx25519
+		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
+		{
+			if (ts > it->second.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+				it = m_ECIESx25519Tags.erase (it);
+			else
+				++it;	
+		}
+
+		for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
+		{
+			if (it->second->IsExpired (ts))
+			{
+				it->second->SetOwner (nullptr);
+				it = m_ECIESx25519Sessions.erase (it);
+			}	
+			else
+				++it;
+		}
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
@@ -940,12 +958,24 @@ namespace garlic
 
     void GarlicDestination::AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session)
     {
-        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexSession{index, session});
+        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexSession{index, session, i2p::util::GetSecondsSinceEpoch ()});
     }
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)
 	{
-		m_ECIESx25519Sessions.emplace (staticKey, session);
+		i2p::data::Tag<32> staticKeyTag (staticKey);
+		auto it = m_ECIESx25519Sessions.find (staticKeyTag);
+		if (it != m_ECIESx25519Sessions.end ())
+		{	
+			if (it->second->CanBeRestarted (i2p::util::GetSecondsSinceEpoch ()))
+				m_ECIESx25519Sessions.erase (it);
+			else
+			{
+				LogPrint (eLogInfo, "Garlic:  ECIESx25519 session with static key ", staticKeyTag.ToBase64 (), " already exists");	
+				return;
+			}	
+		}
+		m_ECIESx25519Sessions.emplace (staticKeyTag, session);
 	}
 
 }

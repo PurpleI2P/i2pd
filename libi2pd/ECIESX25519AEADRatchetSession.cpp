@@ -401,6 +401,7 @@ namespace garlic
 
 	bool ECIESX25519AEADRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len, int index)
 	{
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		switch (m_State)
 		{
 			case eSessionStateEstablished:
