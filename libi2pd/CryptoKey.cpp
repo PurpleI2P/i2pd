@@ -14,6 +14,7 @@ namespace crypto
 
 	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{
+		if (!ctx) return;
 		ElGamalEncrypt (m_PublicKey, data, encrypted, ctx, zeroPadding);
 	}
 
@@ -24,6 +25,7 @@ namespace crypto
 
 	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
 	{
+		if (!ctx) return false;
 		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, zeroPadding);
 	}
 
