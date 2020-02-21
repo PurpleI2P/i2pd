@@ -658,7 +658,8 @@ namespace garlic
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET &&
+            GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
         {
             ECIESX25519AEADRatchetSessionPtr session;
             uint8_t staticKey[32];
