@@ -210,6 +210,9 @@ macx {
 	LIBS += $$BOOSTROOT/lib/libboost_filesystem.a
 	LIBS += $$BOOSTROOT/lib/libboost_program_options.a
 	LIBS += $$UPNPROOT/lib/libminiupnpc.a
+	LIBS += -Wl,-dead_strip
+	LIBS += -Wl,-dead_strip_dylibs
+	LIBS += -Wl,-bind_at_load
 }
 
 linux:!android {
