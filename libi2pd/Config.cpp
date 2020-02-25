@@ -131,6 +131,7 @@ namespace config {
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
 			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+			("sam.singlethread", value<bool>()->default_value(true),         "Sessions run in the SAM bridge's thread")
 		;
 
 		options_description bob("BOB options");
@@ -190,9 +191,10 @@ namespace config {
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
 				"https://netdb.i2p2.no/,"
+			    "https://reseed.i2p2.no/,"
+			    "https://reseed2.i2p2.no/,"
 				// "https://us.reseed.i2p2.no:444/," // mamoth's shit
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
-				"https://download.xxlspeed.com/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"

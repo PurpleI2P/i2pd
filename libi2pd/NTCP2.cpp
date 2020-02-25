@@ -1,11 +1,9 @@
 /*
-* Copyright (c) 2013-2018, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
-*
-* Kovri go write your own code
 *
 */
 
@@ -41,15 +39,8 @@ namespace transport
 
 	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial)
 	{
-		// temp_key = HMAC-SHA256(ck, input_key_material)
-		uint8_t tempKey[32]; unsigned int len;
-		HMAC(EVP_sha256(), m_CK, 32, inputKeyMaterial, 32, tempKey, &len); 	
-		// ck = HMAC-SHA256(temp_key, byte(0x01)) 
-		static uint8_t one[1] =  { 1 };
-		HMAC(EVP_sha256(), tempKey, 32, one, 1, m_CK, &len); 	
-		// derived = HMAC-SHA256(temp_key, ck || byte(0x02))
-		m_CK[32] = 2;
-		HMAC(EVP_sha256(), tempKey, 32, m_CK, 33, m_K, &len); 	
+		i2p::crypto::HKDF (m_CK, inputKeyMaterial, 32, "", m_CK);
+		// ck is m_CK[0:31], k is m_CK[32:63]
 	}
 
 	void NTCP2Establisher::MixHash (const uint8_t * buf, size_t len)
@@ -181,7 +172,7 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_H, 32, m_K, nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
 	}
 
 	void NTCP2Establisher::CreateSessionCreatedMessage ()
@@ -204,7 +195,7 @@ namespace transport
 		// sign and encrypt options, use m_H as AD			
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		i2p::crypto::AEADChaCha20Poly1305 (options, 16, m_H, 32, m_K, nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionCreatedBuffer + 32, 32, true); // encrypt
 
 	}
 
@@ -217,7 +208,7 @@ namespace transport
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);	
 
 		// part1 48 bytes  
-		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, m_H, 32, m_K, nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
+		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetNTCP2StaticPublicKey (), 32, GetH (), 32, GetK (), nonce, m_SessionConfirmedBuffer, 48, true); // encrypt
 	}
 
 	void NTCP2Establisher::CreateSessionConfirmedMessagePart2 (const uint8_t * nonce)
@@ -228,7 +219,7 @@ namespace transport
 		// encrypt m3p2, it must be filled in SessionRequest
 		KDF3Alice (); 
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
-		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2, m3p2Len, true); // encrypt 
+		i2p::crypto::AEADChaCha20Poly1305 (m3p2, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2, m3p2Len, true); // encrypt 
 		// update h again
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
 	}	
@@ -246,7 +237,7 @@ namespace transport
 		// verify MAC and decrypt options block (32 bytes), use m_H as AD
 		uint8_t nonce[12], options[16];
 		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, m_H, 32, m_K, nonce, options, 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionRequestBuffer + 32, 16, GetH (), 32, GetK (), nonce, options, 16, false)) // decrypt
 		{
 			// options
 			if (options[0] && options[0] != i2p::context.GetNetID ())
@@ -301,7 +292,7 @@ namespace transport
 		uint8_t payload[16];
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, m_H, 32, m_K, nonce, payload, 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionCreatedBuffer + 32, 16, GetH (), 32, GetK (), nonce, payload, 16, false)) // decrypt
 		{
 			// options		
 			paddingLen = bufbe16toh(payload + 2);
@@ -330,7 +321,7 @@ namespace transport
 		if (paddingLength > 0)
 			MixHash (m_SessionCreatedBuffer + 64, paddingLength);
 		
-		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, m_H, 32, m_K, nonce, m_RemoteStaticKey, 32, false)) // decrypt S
+		if (!i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer, 32, GetH (), 32, GetK (), nonce, m_RemoteStaticKey, 32, false)) // decrypt S
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part1 AEAD verification failed ");
 			return false;
@@ -344,7 +335,7 @@ namespace transport
 		MixHash (m_SessionConfirmedBuffer, 48);		
 
 		KDF3Bob (); 
-		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, m_H, 32, m_K, nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
+		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
 		{
 			// caclulate new h again for KDF data
 			memcpy (m_SessionConfirmedBuffer + 16, m_H, 32); // h || ciphertext
@@ -1150,8 +1141,8 @@ namespace transport
 	}
 
 	NTCP2Server::NTCP2Server ():
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
-		m_TerminationTimer (m_Service)
+		RunnableServiceWithWork ("NTCP2"),
+		m_TerminationTimer (GetService ())
 	{
 	}
 
@@ -1162,10 +1153,9 @@ namespace transport
 
 	void NTCP2Server::Start ()
 	{
-		if (!m_IsRunning)
+		if (!IsRunning ())
 		{
-			m_IsRunning = true;
-			m_Thread = new std::thread (std::bind (&NTCP2Server::Run, this));
+			StartIOService ();
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
@@ -1176,7 +1166,7 @@ namespace transport
 					{
 						try
 						{
-							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
+							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
 						} 
 						catch ( std::exception & ex ) 
 						{
@@ -1190,7 +1180,7 @@ namespace transport
 					}
 					else if (address->host.is_v6() && context.SupportsV6 ())
 					{
-						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (m_Service));
+						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
 						{
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
@@ -1225,33 +1215,9 @@ namespace transport
 		}
 		m_NTCP2Sessions.clear ();
 
-		if (m_IsRunning)
-		{
-			m_IsRunning = false;
+		if (IsRunning ())
 			m_TerminationTimer.cancel ();
-			m_Service.stop ();
-			if (m_Thread)
-			{
-				m_Thread->join ();
-				delete m_Thread;
-				m_Thread = nullptr;
-			}
-		}
-	}
-
-	void NTCP2Server::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "NTCP2: runtime exception: ", ex.what ());
-			}
-		}
+		StopIOService ();
 	}
 
 	bool NTCP2Server::AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming)
@@ -1289,11 +1255,11 @@ namespace transport
 	void NTCP2Server::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn)
 	{
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", address ,":",  port);
-		m_Service.post([this, address, port, conn]() 
+		GetService ().post([this, address, port, conn]() 
 			{
 				if (this->AddNTCP2Session (conn))
 				{
-					auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
+					auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
 					auto timeout = NTCP2_CONNECT_TIMEOUT * 5;
 					conn->SetTerminationTimeout(timeout * 2);
 					timer->expires_from_now (boost::posix_time::seconds(timeout));

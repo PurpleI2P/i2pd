@@ -1,11 +1,9 @@
 /*
-* Copyright (c) 2013-2018, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
-*
-* Kovri go write your own code
 *
 */
 #ifndef NTCP2_H__
@@ -85,7 +83,7 @@ namespace transport
 		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
 		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
 
-		const uint8_t * GetK () const { return m_K; };
+		const uint8_t * GetK () const { return m_CK + 32; };
 		const uint8_t * GetCK () const { return m_CK; };
 		const uint8_t * GetH () const { return m_H; };
 
@@ -114,7 +112,7 @@ namespace transport
 
 		i2p::crypto::X25519Keys m_EphemeralKeys;
 		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
-		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[33] /*ck*/, m_K[32] /*k*/;
+		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[64] /* [ck, k]*/;
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len; 
 
@@ -218,7 +216,7 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 	};
 
-	class NTCP2Server
+	class NTCP2Server: private i2p::util::RunnableServiceWithWork
 	{
 		public:
 
@@ -227,18 +225,16 @@ namespace transport
 
 			void Start ();
 			void Stop ();
+			boost::asio::io_service& GetService () { return GetIOService (); };
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
 			std::shared_ptr<NTCP2Session> FindNTCP2Session (const i2p::data::IdentHash& ident);
-
-			boost::asio::io_service& GetService () { return m_Service; };
 		
 			void Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn);
 
 		private:
 
-			void Run ();
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 
@@ -250,10 +246,6 @@ namespace transport
 
 		private:
 
-			bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
 			boost::asio::deadline_timer m_TerminationTimer;
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 

@@ -20,6 +20,7 @@
 #include "NetDb.hpp"
 #include "Streaming.h"
 #include "Datagram.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -98,18 +99,17 @@ namespace client
 
 		public:
 
-			LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			LeaseSetDestination (boost::asio::io_service& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~LeaseSetDestination ();
 			const std::string& GetNickname () const { return m_Nickname; };
+			boost::asio::io_service& GetService () { return m_Service; };
 
-			virtual bool Start ();
-			virtual bool Stop ();
+			virtual void Start ();
+			virtual void Stop ();
 
 			/** i2cp reconfigure */
 			virtual bool Reconfigure(std::map<std::string, std::string> i2cpOpts);
 		
-			bool IsRunning () const { return m_IsRunning; };
-			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
 			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
 			std::shared_ptr<i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
@@ -146,7 +146,6 @@ namespace client
 
 		private:
 
-			void Run ();
 			void UpdateLeaseSet ();
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSetMt ();
 			void Publish ();
@@ -165,9 +164,7 @@ namespace client
 
 		private:
 
-			volatile bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
+			boost::asio::io_service& m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
@@ -206,11 +203,12 @@ namespace client
 			void Ready(ReadyPromise & p);
 #endif
 
-			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
+				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 
-			virtual bool Start ();
-			virtual bool Stop ();
+			void Start ();
+			void Stop ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
@@ -284,6 +282,18 @@ namespace client
 			// for HTTP only
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
 	};
+
+	class RunnableClientDestination: private i2p::util::RunnableService, public ClientDestination
+	{
+		public:
+
+			RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			~RunnableClientDestination ();			
+
+			void Start ();
+			void Stop ();
+	};
+
 }
 }
 

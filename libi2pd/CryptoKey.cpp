@@ -14,6 +14,7 @@ namespace crypto
 
 	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{
+		if (!ctx) return;
 		ElGamalEncrypt (m_PublicKey, data, encrypted, ctx, zeroPadding);
 	}
 
@@ -24,6 +25,7 @@ namespace crypto
 
 	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
 	{
+		if (!ctx) return false;
 		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, zeroPadding);
 	}
 
@@ -151,11 +153,9 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 32);
 	}	
 
-	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t * epriv, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
+	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool)
 	{
-		X25519Keys ep;
-		ep.SetPrivateKey (epriv);
-		ep.Agree (m_PublicKey, sharedSecret);
+		memcpy (pub, m_PublicKey, 32);
 	}
 
 	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv)

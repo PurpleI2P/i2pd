@@ -8,7 +8,7 @@ namespace i2p
 namespace client
 {
 	MatchedTunnelDestination::MatchedTunnelDestination(const i2p::data::PrivateKeys & keys, const std::string & remoteName, const std::map<std::string, std::string> * params)
-		: ClientDestination(keys, false, params),
+		: RunnableClientDestination(keys, false, params),
 			m_RemoteName(remoteName) {}
 
 
@@ -45,29 +45,19 @@ namespace client
 	}
 
 
-	bool MatchedTunnelDestination::Start()
+	void MatchedTunnelDestination::Start()
 	{
-		if(ClientDestination::Start())
-		{
-			m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
-			GetTunnelPool()->SetCustomPeerSelector(this);
-			ResolveCurrentLeaseSet();
-			return true;
-		}
-		else
-			return false;
+		ClientDestination::Start();
+		m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
+		GetTunnelPool()->SetCustomPeerSelector(this);
+		ResolveCurrentLeaseSet();	
 	}
 
-	bool MatchedTunnelDestination::Stop()
+	void MatchedTunnelDestination::Stop()
 	{
-		if(ClientDestination::Stop())
-		{
-			if(m_ResolveTimer)
-				m_ResolveTimer->cancel();
-			return true;
-		}
-		else
-			return false;
+		ClientDestination::Stop();
+		if(m_ResolveTimer)
+			m_ResolveTimer->cancel();
 	}
 
 

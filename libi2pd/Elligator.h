@@ -17,7 +17,7 @@ namespace crypto
 			Elligator2 ();
 			~Elligator2 ();
 
-			bool Encode (const uint8_t * key, uint8_t * encoded, bool highY = false) const;
+			bool Encode (const uint8_t * key, uint8_t * encoded, bool highY = false, bool random = true) const;
 			bool Decode (const uint8_t * encoded, uint8_t * key) const;
 
 		private:	

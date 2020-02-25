@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <random>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Tunnel.h"
@@ -441,7 +442,7 @@ namespace tunnel
 		int size = m_ExplicitPeers->size ();
 		std::vector<int> peerIndicies;
 		for (int i = 0; i < size; i++) peerIndicies.push_back(i);
-		std::random_shuffle (peerIndicies.begin(), peerIndicies.end());
+		std::shuffle (peerIndicies.begin(), peerIndicies.end(), std::mt19937(std::random_device()()));
 
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
 		for (int i = 0; i < numHops; i++)

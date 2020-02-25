@@ -1000,10 +1000,10 @@ namespace client
 		}
 	}
 
-	SAMBridge::SAMBridge (const std::string& address, int port):
-		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
-		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint),
+	SAMBridge::SAMBridge (const std::string& address, int port, bool singleThread):
+		RunnableService ("SAM"), m_IsSingleThread (singleThread), 
+		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
+		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
 		m_SignatureTypes
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
@@ -1020,7 +1020,7 @@ namespace client
 
 	SAMBridge::~SAMBridge ()
 	{
-		if (m_IsRunning)
+		if (IsRunning ())
 			Stop ();
 	}
 
@@ -1028,14 +1028,11 @@ namespace client
 	{
 		Accept ();
 		ReceiveDatagram ();
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&SAMBridge::Run, this));
+		StartIOService ();
 	}
 
 	void SAMBridge::Stop ()
 	{
-		m_IsRunning = false;
-
 		try
 		{
 			m_Acceptor.cancel ();
@@ -1045,31 +1042,13 @@ namespace client
 			LogPrint (eLogError, "SAM: runtime exception: ", ex.what ());
 		}
 
-		for (auto& it: m_Sessions)
-			it.second->CloseStreams ();
-		m_Sessions.clear ();
-		m_Service.stop ();
-		if (m_Thread)
 		{
-			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = nullptr;
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			for (auto& it: m_Sessions)
+				it.second->CloseStreams ();
+			m_Sessions.clear ();
 		}
-	}
-
-	void SAMBridge::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "SAM: runtime exception: ", ex.what ());
-			}
-		}
+		StopIOService ();
 	}
 
 	void SAMBridge::Accept ()
@@ -1118,7 +1097,9 @@ namespace client
 		{
 			i2p::data::PrivateKeys keys;
 			if (!keys.FromBase64 (destination)) return nullptr;
-			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
+			localDestination = m_IsSingleThread ? 
+				i2p::client::context.CreateNewLocalDestination (GetIOService (), keys, true, params) :
+				i2p::client::context.CreateNewLocalDestination (keys, true, params);
 		}
 		else // transient
 		{
@@ -1146,7 +1127,9 @@ namespace client
 					}	
 				}	
 			}
-			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
+			localDestination = m_IsSingleThread ? 
+				i2p::client::context.CreateNewLocalDestination (GetIOService (), true, signatureType, cryptoType, params) :
+				i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
 		}
 		if (localDestination)
 		{
@@ -1178,6 +1161,15 @@ namespace client
 			session->localDestination->Release ();
 			session->localDestination->StopAcceptingStreams ();
 			session->CloseStreams ();
+			if (m_IsSingleThread)
+			{
+				auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());
+				timer->expires_from_now (boost::posix_time::seconds(5)); // postpone destination clean for 5 seconds
+				timer->async_wait ([timer, session](const boost::system::error_code& ecode) 
+				{
+					// session's destructor is called here
+				});
+			}	
 		}
 	}
 

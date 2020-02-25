@@ -86,13 +86,13 @@ namespace stream
 		LogPrint (eLogDebug, "Streaming: Stream deleted");
 	}
 
-	void Stream::Terminate ()
+	void Stream::Terminate () // shoudl be called from StreamingDestination::Stop only
 	{
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
 		//CleanUp (); /* Need to recheck - broke working on windows */
-		m_LocalDestination.DeleteStream (shared_from_this ());
+		//m_LocalDestination.DeleteStream (shared_from_this ());
 	}
 
 	void Stream::CleanUp ()
@@ -989,6 +989,8 @@ namespace stream
 		m_PendingIncomingStreams.clear ();
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			for (auto it: m_Streams)
+				it.second->Terminate ();		
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
 		}

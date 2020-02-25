@@ -136,8 +136,8 @@ namespace data
 	{
 		public:
 
-			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len,  bool storeLeases = true);
-			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr); // store type 5, called from local netdb only
+			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL);
+			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
 			uint32_t GetPublishedTimestamp () const { return m_PublishedTimestamp; };
 			bool IsPublic () const { return m_IsPublic; };
@@ -168,7 +168,7 @@ namespace data
 			uint32_t m_PublishedTimestamp = 0;
 			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
-			CryptoKeyType m_EncryptionType = CRYPTO_KEY_TYPE_ELGAMAL;
+			CryptoKeyType m_EncryptionType;
 			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> m_Encryptor; // for standardLS2
 	};
 

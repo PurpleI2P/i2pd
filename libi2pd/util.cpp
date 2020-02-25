@@ -57,6 +57,45 @@ namespace i2p
 {
 namespace util
 {
+
+	void RunnableService::StartIOService ()
+	{
+		if (!m_IsRunning)
+		{
+			m_IsRunning = true;
+			m_Thread.reset (new std::thread (std::bind (& RunnableService::Run, this)));
+		}	
+	}
+	
+	void RunnableService::StopIOService ()
+	{
+		if (m_IsRunning)
+		{
+			m_IsRunning = false;
+			m_Service.stop ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				m_Thread = nullptr;
+			}
+		}
+	}	
+
+	void RunnableService::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, m_Name, ": runtime exception: ", ex.what ());
+			}
+		}
+	}	
+	
 namespace net
 {
 #ifdef WIN32
@@ -285,7 +324,7 @@ namespace net
 
 	int GetMTU(const boost::asio::ip::address& localAddress)
 	{
-		const int fallback = 576; // fallback MTU
+		int fallback = localAddress.is_v6 () ? 1280 : 620; // fallback MTU
 
 #ifdef WIN32
 		return GetMTUWindows(localAddress, fallback);
