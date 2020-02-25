@@ -1,6 +1,22 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.30.0] - 2020-02-25
+### Added
+- Single threaded SAM
+- Experimental support of ECIES-X25519-AEAD-Ratchet crypto type
+### Changed
+- Minimal MTU size is 1280 for ipv6
+- Use unordered_map instead map for destination's sessions and tags list
+- Use std::shuffle instead std::random_shuffle
+- SAM is single threaded by default
+- Reseeds list
+### Fixed
+- Correct termination of streaming destination
+- Extra ',' in RouterInfo response in I2PControl
+- SAM crash on session termination
+- Storage for Android 10
+
 ## [2.29.0] - 2019-10-21
 ### Added
 - Client auth flag for b33 address
