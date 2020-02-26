@@ -55,7 +55,13 @@ cd build
 %endif
 %endif
 
+%if 0%{?mageia}
+pushd build
+%endif
 make %{?_smp_mflags}
+%if 0%{?mageia}
+popd
+%endif
 
 
 %install
