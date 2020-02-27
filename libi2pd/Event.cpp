@@ -5,10 +5,6 @@ namespace i2p
 {
 	namespace event
 	{
-#ifdef WITH_EVENTS
-		EventCore core;
-#endif
-
 		void EventCore::SetListener(EventListener * l)
 		{
 			m_listener = l;
@@ -44,18 +40,3 @@ namespace i2p
 		}
 	}
 }
-
-void QueueIntEvent(const std::string & type, const std::string & ident, uint64_t val)
-{
-#ifdef WITH_EVENTS
-	i2p::event::core.CollectEvent(type, ident, val);
-#endif
-}
-
-void EmitEvent(const EventType & e)
-{
-#if WITH_EVENTS
-	i2p::event::core.QueueEvent(e);
-#endif
-}
-

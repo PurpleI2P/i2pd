@@ -74,7 +74,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd_client/MatchedDestination.cpp \
     ../../libi2pd_client/SAM.cpp \
     ../../libi2pd_client/SOCKS.cpp \
-    ../../libi2pd_client/Websocket.cpp \
     ../../libi2pd_client/WebSocks.cpp \
     ../../daemon/Daemon.cpp \
     ../../daemon/HTTPServer.cpp \
@@ -161,7 +160,6 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd_client/MatchedDestination.h \
     ../../libi2pd_client/SAM.h \
     ../../libi2pd_client/SOCKS.h \
-    ../../libi2pd_client/Websocket.h \
     ../../libi2pd_client/WebSocks.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \

@@ -6,10 +6,6 @@
 #include "Transports.h"
 #include "Config.h"
 #include "HTTP.h"
-#ifdef WITH_EVENTS
-#include "Event.h"
-#include "util.h"
-#endif
 
 using namespace i2p::data;
 
@@ -346,9 +342,6 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
-#ifdef WITH_EVENTS
-		QueueIntEvent("transport.send", ident.ToBase64(), msgs.size());
-#endif
 		m_Service->post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}
 
@@ -597,9 +590,6 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-#ifdef WITH_EVENTS
-				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "false"}});
-#endif
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{
@@ -625,9 +615,6 @@ namespace transport
 					session->Done();
 					return;
 				}
-#ifdef WITH_EVENTS
-				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "true"}});
-#endif
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
@@ -642,9 +629,6 @@ namespace transport
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
 			auto ident = remoteIdentity->GetIdentHash ();
-#ifdef WITH_EVENTS
-			EmitEvent({{"type" , "transport.disconnected"}, {"ident", ident.ToBase64()}});
-#endif
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{

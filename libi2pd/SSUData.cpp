@@ -5,9 +5,6 @@
 #include "NetDb.hpp"
 #include "SSU.h"
 #include "SSUData.h"
-#ifdef WITH_EVENTS
-#include "Event.h"
-#endif
 
 namespace i2p
 {
@@ -241,9 +238,6 @@ namespace transport
 						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
 						if (!msg->IsExpired ())
 						{
-#ifdef WITH_EVENTS
-							QueueIntEvent("transport.recvmsg", m_Session.GetIdentHashBase64(), 1);
-#endif
 							m_Handler.PutNextMessage (msg);
 						}
 						else
