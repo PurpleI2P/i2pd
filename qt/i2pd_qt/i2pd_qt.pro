@@ -28,7 +28,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/Datagram.cpp \
     ../../libi2pd/Destination.cpp \
     ../../libi2pd/Ed25519.cpp \
-    ../../libi2pd/Event.cpp \
     ../../libi2pd/Family.cpp \
     ../../libi2pd/FS.cpp \
     ../../libi2pd/Garlic.cpp \
@@ -106,7 +105,6 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/Datagram.h \
     ../../libi2pd/Destination.h \
     ../../libi2pd/Ed25519.h \
-    ../../libi2pd/Event.h \
     ../../libi2pd/Family.h \
     ../../libi2pd/FS.h \
     ../../libi2pd/Garlic.h \
