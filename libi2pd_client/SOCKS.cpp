@@ -433,6 +433,7 @@ namespace proxy
 						break;
 						case CMD_UDP:
 							if (m_socksv == SOCKS5) break;
+							[[fallthrough]];
 						default:
 							LogPrint(eLogError, "SOCKS: invalid command: ", ((int)*sock_buff));
 							SocksRequestFailed(SOCKS5_GEN_FAIL);

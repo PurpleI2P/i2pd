@@ -911,7 +911,7 @@ namespace garlic
 			case eGarlicDeliveryTypeDestination:
                 LogPrint (eLogDebug, "Garlic: type destination");
 				buf += 32; // TODO: check destination
-			// no break here
+				[[fallthrough]]; // no break here
 			case eGarlicDeliveryTypeLocal:
 			{
                 LogPrint (eLogDebug, "Garlic: type local");

@@ -723,7 +723,7 @@ namespace data
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
-			// no break here
+				[[fallthrough]]; // no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
 			break;

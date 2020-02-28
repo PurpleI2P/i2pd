@@ -847,7 +847,7 @@ namespace stream
 					break;
 					case 2:
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
-						// no break here
+						[[fallthrough]]; // no break here
 					case 4:
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						UpdateCurrentRemoteLease (); // pick another lease
