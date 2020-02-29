@@ -338,7 +338,11 @@ namespace i2p
 		{
 			case low   : /* not set */; break;
 			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break; // 'P'
-			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth; [[fallthrough]]; //  no break here, extra + high means 'X'
+			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth; 
+	#if (__cplusplus >= 201703L) // C++ 17 or higher		
+			[[fallthrough]]; 
+	#endif		
+			//  no break here, extra + high means 'X'
 			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
 		}
 		m_RouterInfo.SetCaps (caps);

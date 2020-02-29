@@ -847,7 +847,10 @@ namespace stream
 					break;
 					case 2:
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
-						[[fallthrough]]; // no break here
+#if (__cplusplus >= 201703L) // C++ 17 or higher						
+						[[fallthrough]]; 
+#endif						
+						// no break here
 					case 4:
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						UpdateCurrentRemoteLease (); // pick another lease
