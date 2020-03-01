@@ -157,6 +157,7 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
+		std::string ntcp2proxy; i2p::config::GetOption("ntcp2proxy", ntcp2proxy);
 		i2p::http::URL proxyurl;
 		uint16_t softLimit, hardLimit, threads;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
@@ -196,13 +197,36 @@ namespace transport
 				LogPrint(eLogError, "Transports: invalid NTCP proxy url ", ntcpproxy);
 			return;
 		}
-		// create NTCP2. TODO: move to acceptor	
+		// create NTCP2. TODO: move to acceptor
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
-			m_NTCP2Server = new NTCP2Server ();
-			m_NTCP2Server->Start ();
-		}	
+			if(ntcp2proxy.size())
+			{
+				if(proxyurl.parse(ntcp2proxy))
+				{
+					if(proxyurl.schema == "socks" || proxyurl.schema == "http")
+					{
+						m_NTCP2Server = new NTCP2Server ();
+						NTCP2Server::ProxyType proxytype = NTCP2Server::eSocksProxy;
+
+						if (proxyurl.schema == "http")
+							proxytype = NTCP2Server::eHTTPProxy;
+
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+						m_NTCP2Server->Start();
+					}
+					else
+						LogPrint(eLogError, "Transports: unsupported NTCP2 proxy URL ", ntcp2proxy);
+				}
+				else
+					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
+				return;
+			}
+
+		//	m_NTCP2Server = new NTCP2Server ();
+		//	m_NTCP2Server->Start ();
+		}
 
 		// create acceptors
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
@@ -405,24 +429,36 @@ namespace transport
 	{
 		if (peer.router) // we have RI already
 		{
-			if (!peer.numAttempts) // NTCP2 
-			{
-				peer.numAttempts++;
-				if (m_NTCP2Server) // we support NTCP2
-				{
-					// NTCP2 have priority over NTCP
-					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address)
-					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
-						m_NTCP2Server->Connect (address->host, address->port, s);
-						return true;
-					}	
-				}	
-			}
+            if (!peer.numAttempts) // NTCP2
+            {
+                peer.numAttempts++;
+                if (m_NTCP2Server) // we support NTCP2
+                {
+                    // NTCP2 have priority over NTCP
+                    auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+                    if (address)
+                    {
+                        auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+
+                        if(m_NTCP2Server->UsingProxy())
+                        {
+                            NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
+                            std::string addr = address->host.to_string();
+
+                            if(address->host.is_v6())
+                                remote = NTCP2Server::eIP6Address;
+
+                            m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
+                        }
+                        else
+                            m_NTCP2Server->Connect (address->host, address->port, s);
+                        return true;
+                    }
+                }
+            }
 			if (peer.numAttempts == 1) // NTCP1
 			{
-				peer.numAttempts++;	
+				peer.numAttempts++;     
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
@@ -650,14 +686,14 @@ namespace transport
 			{
 				auto before = it->second.sessions.size ();
 				it->second.sessions.remove (session);
-				if (it->second.sessions.empty ()) 
+				if (it->second.sessions.empty ())
 				{
 					if (it->second.delayedMessages.size () > 0)
 					{
 						if (before > 0) // we had an active session before
 							it->second.numAttempts = 0; // start over
 						ConnectToPeer (ident, it->second);
-					}	
+					}
 					else
 					{
 						std::unique_lock<std::mutex> l(m_PeersMutex);
