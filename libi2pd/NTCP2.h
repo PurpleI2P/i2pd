@@ -274,11 +274,11 @@ namespace transport
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions;
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
-			ProxyType m_ProxyType;
+			ProxyType m_ProxyType =eNoProxy;
 			std::string m_ProxyAddress;
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
-			boost::asio::ip::tcp::endpoint * m_ProxyEndpoint;
+			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 
 		public:
 

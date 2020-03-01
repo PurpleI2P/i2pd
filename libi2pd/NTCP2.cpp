@@ -1175,16 +1175,18 @@ namespace transport
 		m_ProxyPort = port;
 	}
 
-		void NTCP2Server::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
+	void NTCP2Server::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
+	{
+		if (ecode)
 		{
-			if(ecode)
-			{
-				LogPrint(eLogWarning, "NTCP2: failed to connect to proxy ", ecode.message());
-				timer->cancel();
-				conn->Terminate();
-				return;
-			}
-			if(m_ProxyType == eSocksProxy)
+			LogPrint(eLogWarning, "NTCP2: failed to connect to proxy ", ecode.message());
+			timer->cancel();
+			conn->Terminate();
+			return;
+		}
+		switch (m_ProxyType)
+		{	
+			case eSocksProxy:
 			{
 				// TODO: support username/password auth etc
 				uint8_t buff[3] = {0x05, 0x01, 0x00};
@@ -1196,7 +1198,8 @@ namespace transport
 					}
 				});
 				uint8_t readbuff[2];
-				boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 2), [=](const boost::system::error_code & ec, std::size_t transferred)
+				boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 2), 
+				[=](const boost::system::error_code & ec, std::size_t transferred)
 				{
 					LogPrint(eLogError, "NTCP2:  ", transferred);
 					if(ec)
@@ -1226,71 +1229,73 @@ namespace transport
 					timer->cancel();
 					conn->Terminate();
 				});
+				break;
 			}
-		else if(m_ProxyType == eHTTPProxy)
-		{
-			i2p::http::HTTPReq req;
-			req.method = "CONNECT";
-			req.version ="HTTP/1.1";
-			if(addrtype == eIP6Address)
-				req.uri = "[" + host + "]:" + std::to_string(port);
-			else
-				req.uri = host + ":" + std::to_string(port);
-
-			boost::asio::streambuf writebuff;
-			std::ostream out(&writebuff);
-			out << req.to_string();
-
-			boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
-				(void) transferred;
-				if(ec)
-					LogPrint(eLogError, "NTCP2: http proxy write error ", ec.message());
-			});
-
-			boost::asio::streambuf * readbuff = new boost::asio::streambuf;
-			boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n", [=] (const boost::system::error_code & ec, std::size_t transferred) {
-				if(ec)
-				{
-					LogPrint(eLogError, "NTCP2: http proxy read error ", ec.message());
-					timer->cancel();
-					conn->Terminate();
-				}
+			case eHTTPProxy:
+			{
+				i2p::http::HTTPReq req;
+				req.method = "CONNECT";
+				req.version ="HTTP/1.1";
+				if(addrtype == eIP6Address)
+					req.uri = "[" + host + "]:" + std::to_string(port);
 				else
+					req.uri = host + ":" + std::to_string(port);
+
+				boost::asio::streambuf writebuff;
+				std::ostream out(&writebuff);
+				out << req.to_string();
+
+				boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
+					(void) transferred;
+					if(ec)
+						LogPrint(eLogError, "NTCP2: http proxy write error ", ec.message());
+				});
+
+				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
+				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n", 
+				[=] (const boost::system::error_code & ec, std::size_t transferred) 
 				{
-					readbuff->commit(transferred);
-					i2p::http::HTTPRes res;
-					if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
+					if(ec)
 					{
-						if(res.code == 200)
-						{
-							timer->cancel();
-							conn->ClientLogin();
-							delete readbuff;
-							return;
-						}
-						else
-						{
-							LogPrint(eLogError, "NTCP2: http proxy rejected request ", res.code);
-						}
+						LogPrint(eLogError, "NTCP2: http proxy read error ", ec.message());
+						timer->cancel();
+						conn->Terminate();
 					}
 					else
-						LogPrint(eLogError, "NTCP2: http proxy gave malformed response");
-					timer->cancel();
-					conn->Terminate();
-					delete readbuff;
-				}
-			});
-		}
-		else
-			LogPrint(eLogError, "NTCP2: unknown proxy type, invalid state");
+					{
+						readbuff->commit(transferred);
+						i2p::http::HTTPRes res;
+						if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
+						{
+							if(res.code == 200)
+							{
+								timer->cancel();
+								conn->ClientLogin();
+								delete readbuff;
+								return;
+							}
+							else
+							{
+								LogPrint(eLogError, "NTCP2: http proxy rejected request ", res.code);
+							}
+						}
+						else
+							LogPrint(eLogError, "NTCP2: http proxy gave malformed response");
+						timer->cancel();
+						conn->Terminate();
+						delete readbuff;
+					}
+				});
+				break;
+			}
+			default:
+				LogPrint(eLogError, "NTCP2: unknown proxy type, invalid state");
+		}					
 	}
 
 	void NTCP2Server::ConnectWithProxy (const std::string& host, uint16_t port, RemoteAddressType addrtype, std::shared_ptr<NTCP2Session> conn)
 	{
-		if(m_ProxyEndpoint == nullptr)
-		{
-			return;
-		}
+		if(!m_ProxyEndpoint) return
 		GetService().post([=]() {
 			if (this->AddNTCP2Session (conn))
 			{
@@ -1359,9 +1364,8 @@ namespace transport
 	}
 
 	NTCP2Server::NTCP2Server ():
-		RunnableServiceWithWork ("NTCP2"),
-		m_ProxyType(eNoProxy), m_Resolver(GetService ()), m_ProxyEndpoint(nullptr),
-		m_TerminationTimer (GetService ())
+		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
+		m_Resolver(GetService ())
 	{
 	}
 
@@ -1388,11 +1392,9 @@ namespace transport
 				}
 				else
 				{
-					m_ProxyEndpoint = new boost::asio::ip::tcp::endpoint(*itr);
+					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr));
 					if (m_ProxyEndpoint)
-					{
-						LogPrint(eLogError, "NTCP2: m_ProxyEndpoint %s", m_ProxyEndpoint);
-					}
+						LogPrint(eLogError, "NTCP2: m_ProxyEndpoint ", *m_ProxyEndpoint);
 				}
 			}
 			else
@@ -1461,11 +1463,7 @@ namespace transport
 		if (IsRunning ())
 		{
 			m_TerminationTimer.cancel ();
-			if(m_ProxyEndpoint)
-			{
-				delete m_ProxyEndpoint;
-				m_ProxyEndpoint = nullptr;
-			}
+			m_ProxyEndpoint = nullptr;
 		}
 		StopIOService ();
 	}
