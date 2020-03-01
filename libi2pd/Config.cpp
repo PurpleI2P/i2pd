@@ -60,8 +60,7 @@ namespace config {
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", value<bool>()->default_value(false),                      "Enable NTCP transport (default: disabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
-			("ntcp2proxy", value<std::string>()->default_value(""),           "Proxy URL for NTCP2 transport")
+			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")			
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -240,6 +239,7 @@ namespace config {
 			("ntcp2.published", value<bool>()->default_value(true), "Publish NTCP2 (default: enabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
+			("ntcp2.proxy", value<std::string>()->default_value(""), "Proxy URL for NTCP2 transport")
 		;
 
 		options_description nettime("Time sync options");

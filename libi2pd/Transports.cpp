@@ -157,7 +157,7 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
-		std::string ntcp2proxy; i2p::config::GetOption("ntcp2proxy", ntcp2proxy);
+		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
 		i2p::http::URL proxyurl;
 		uint16_t softLimit, hardLimit, threads;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
@@ -201,7 +201,7 @@ namespace transport
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
-			if(ntcp2proxy.size())
+			if(!ntcp2proxy.empty())
 			{
 				if(proxyurl.parse(ntcp2proxy))
 				{
@@ -223,9 +223,11 @@ namespace transport
 					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
 				return;
 			}
-
-		//	m_NTCP2Server = new NTCP2Server ();
-		//	m_NTCP2Server->Start ();
+			else
+			{	
+				m_NTCP2Server = new NTCP2Server ();
+				m_NTCP2Server->Start ();
+			}	
 		}
 
 		// create acceptors
