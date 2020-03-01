@@ -126,7 +126,6 @@ namespace transport
 	{
 		public:
 
-
 			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCP2Session ();
 			void Terminate ();

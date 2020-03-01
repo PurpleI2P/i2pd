@@ -27,7 +27,7 @@ namespace i2p
 	const size_t I2NP_SHORT_HEADER_SIZE = I2NP_SHORT_HEADER_EXPIRATION_OFFSET + 4;
 
 	// I2NP NTCP2 header
-	const size_t I2NP_NTCP2_HEADER_SIZE = I2NP_HEADER_EXPIRATION_OFFSET + 4;		
+	const size_t I2NP_NTCP2_HEADER_SIZE = I2NP_HEADER_EXPIRATION_OFFSET + 4;
 
 	// Tunnel Gateway header
 	const size_t TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET = 0;
@@ -75,7 +75,7 @@ namespace i2p
 
 	enum I2NPMessageType
 	{
-		eI2NPDummyMsg = 0,	
+		eI2NPDummyMsg = 0,
 		eI2NPDatabaseStore = 1,
 		eI2NPDatabaseLookup = 2,
 		eI2NPDatabaseSearchReply = 3,
@@ -209,7 +209,7 @@ namespace tunnel
 			SetExpiration (bufbe32toh (ntcp2 + I2NP_HEADER_EXPIRATION_OFFSET)*1000LL);
 			SetSize (len - offset - I2NP_HEADER_SIZE);
 			SetChks (0);
-		}	
+		}
 
 		void ToNTCP2 ()
 		{

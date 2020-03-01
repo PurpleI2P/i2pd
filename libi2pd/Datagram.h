@@ -32,68 +32,71 @@ namespace datagram
 	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE = 1000;
 	// milliseconds minimum time between path switches
 	const uint64_t DATAGRAM_SESSION_PATH_MIN_LIFETIME = 5 * 1000;
-  // max 64 messages buffered in send queue for each datagram session
-  const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
+	// max 64 messages buffered in send queue for each datagram session
+	const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
 
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
-	public:
-		DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination, const i2p::data::IdentHash & remoteIdent);
 
-		void Start ();
-		void Stop ();
+		public:
+
+			DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination, const i2p::data::IdentHash & remoteIdent);
+
+			void Start ();
+			void Stop ();
 
 
-    /** @brief ack the garlic routing path */
-    void Ack();
+			/** @brief ack the garlic routing path */
+			void Ack();
 
-		/** send an i2np message to remote endpoint for this session */
-		void SendMsg(std::shared_ptr<I2NPMessage> msg);
-		/** get the last time in milliseconds for when we used this datagram session */
-		uint64_t LastActivity() const { return m_LastUse; }
+			/** send an i2np message to remote endpoint for this session */
+			void SendMsg(std::shared_ptr<I2NPMessage> msg);
+			/** get the last time in milliseconds for when we used this datagram session */
+			uint64_t LastActivity() const { return m_LastUse; }
 
 		bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
-			
+
 		struct Info
 		{
 			std::shared_ptr<const i2p::data::IdentHash> IBGW;
 			std::shared_ptr<const i2p::data::IdentHash> OBEP;
 			const uint64_t activity;
 
-			Info() : IBGW(nullptr), OBEP(nullptr), activity(0) {}
-			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a) :
-				activity(a) {
-				if(ibgw) IBGW = std::make_shared<i2p::data::IdentHash>(ibgw);
-				else IBGW = nullptr;
-				if(obep) OBEP = std::make_shared<i2p::data::IdentHash>(obep);
-				else OBEP = nullptr;
-			}
-		};
+				Info() : IBGW(nullptr), OBEP(nullptr), activity(0) {}
+				Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a) :
+					activity(a) {
+					if(ibgw) IBGW = std::make_shared<i2p::data::IdentHash>(ibgw);
+					else IBGW = nullptr;
+					if(obep) OBEP = std::make_shared<i2p::data::IdentHash>(obep);
+					else OBEP = nullptr;
+				}
+			};
 
-		Info GetSessionInfo() const;
+			Info GetSessionInfo() const;
 
-	private:
+		private:
 
-    void FlushSendQueue();
-    void ScheduleFlushSendQueue();
+			void FlushSendQueue();
+			void ScheduleFlushSendQueue();
 
-    void HandleSend(std::shared_ptr<I2NPMessage> msg);
+			void HandleSend(std::shared_ptr<I2NPMessage> msg);
 
-    std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
+			std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
 
-    void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
+			void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
 
-	private:
-		std::shared_ptr<i2p::client::ClientDestination> m_LocalDestination;
-    i2p::data::IdentHash m_RemoteIdent;
-    std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
-    std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-    std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
-    std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
-    boost::asio::deadline_timer m_SendQueueTimer;
-    std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
-    uint64_t m_LastUse;
-    bool m_RequestingLS;
+		private:
+
+			std::shared_ptr<i2p::client::ClientDestination> m_LocalDestination;
+			i2p::data::IdentHash m_RemoteIdent;
+			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
+			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
+			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
+			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
+			boost::asio::deadline_timer m_SendQueueTimer;
+			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
+			uint64_t m_LastUse;
+			bool m_RequestingLS;
 	};
 
 	typedef std::shared_ptr<DatagramSession> DatagramSession_ptr;
@@ -104,17 +107,15 @@ namespace datagram
 		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
 		typedef std::function<void (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> RawReceiver;
 
-		
 		public:
 
-
-    		DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip);
+			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip);
 			~DatagramDestination ();
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void SendRawDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw = false);
-						
+
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
 			void ResetReceiver () { m_Receiver = nullptr; };
 
@@ -123,7 +124,7 @@ namespace datagram
 
 			void SetRawReceiver (const RawReceiver& receiver) { m_RawReceiver = receiver; };
 			void ResetRawReceiver () { m_RawReceiver = nullptr; };
-			
+
 			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
 
 			// clean up stale sessions
@@ -131,14 +132,14 @@ namespace datagram
 
 		private:
 
-    std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
+			std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const std::vector<std::pair<const uint8_t *, size_t> >& payloads, 
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
 				uint16_t fromPort, uint16_t toPort, bool isRaw = false, bool checksum = true);
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			
+
 			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
 

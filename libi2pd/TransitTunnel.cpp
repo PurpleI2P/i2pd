@@ -12,7 +12,7 @@ namespace i2p
 namespace tunnel
 {
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID,
-	    const uint8_t * nextIdent, uint32_t nextTunnelID,
+		const uint8_t * nextIdent, uint32_t nextTunnelID,
 		const uint8_t * layerKey,const uint8_t * ivKey):
 			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent)
 	{
@@ -88,7 +88,7 @@ namespace tunnel
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    const uint8_t * layerKey,const uint8_t * ivKey,
+		const uint8_t * layerKey,const uint8_t * ivKey,
 		bool isGateway, bool isEndpoint)
 	{
 		if (isEndpoint)

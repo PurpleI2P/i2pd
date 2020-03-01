@@ -27,8 +27,8 @@ namespace util
 		i2p::log::SetThrowFunction ([](const std::string& s)
 			{
 				MessageBox(0, TEXT(s.c_str ()), TEXT("i2pd"), MB_ICONERROR | MB_TASKMODAL | MB_OK );
-			});	
-		
+			});
+
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
 

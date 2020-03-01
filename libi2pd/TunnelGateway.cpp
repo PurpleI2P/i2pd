@@ -51,7 +51,7 @@ namespace tunnel
 		// create fragments
 		const std::shared_ptr<I2NPMessage> & msg = block.data;
 		size_t fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
-		
+
 		if (!messageCreated && fullMsgLen > m_RemainingSize) // check if we should complete previous message
 		{
 			size_t numFollowOnFragments = fullMsgLen / TUNNEL_DATA_MAX_PAYLOAD_SIZE;
@@ -172,7 +172,7 @@ namespace tunnel
 		SHA256(payload, size+16, hash);
 		memcpy (buf+20, hash, 4); // checksum
 		payload[-1] = 0; // zero
-		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1
+		ptrdiff_t paddingSize = payload - buf - 25; // 25 = 24 + 1
 		if (paddingSize > 0)
 		{
 			// non-zero padding
@@ -219,4 +219,3 @@ namespace tunnel
 	}
 }
 }
-

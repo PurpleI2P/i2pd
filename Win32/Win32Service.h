@@ -26,48 +26,48 @@
 
 class I2PService
 {
-public:
+	public:
 
-	I2PService(PSTR pszServiceName,
-		BOOL fCanStop = TRUE,
-		BOOL fCanShutdown = TRUE,
-		BOOL fCanPauseContinue = FALSE);
+		I2PService(PSTR pszServiceName,
+			BOOL fCanStop = TRUE,
+			BOOL fCanShutdown = TRUE,
+			BOOL fCanPauseContinue = FALSE);
 
-	virtual ~I2PService(void);
+		virtual ~I2PService(void);
 
-	static BOOL isService();
-	static BOOL Run(I2PService &service);
-	void Stop();
+		static BOOL isService();
+		static BOOL Run(I2PService &service);
+		void Stop();
 
-protected:
+	protected:
 
-	virtual void OnStart(DWORD dwArgc, PSTR *pszArgv);
-	virtual void OnStop();
-	virtual void OnPause();
-	virtual void OnContinue();
-	virtual void OnShutdown();
-	void SetServiceStatus(DWORD dwCurrentState,
-		DWORD dwWin32ExitCode = NO_ERROR,
-		DWORD dwWaitHint = 0);
+		virtual void OnStart(DWORD dwArgc, PSTR *pszArgv);
+		virtual void OnStop();
+		virtual void OnPause();
+		virtual void OnContinue();
+		virtual void OnShutdown();
+		void SetServiceStatus(DWORD dwCurrentState,
+			DWORD dwWin32ExitCode = NO_ERROR,
+			DWORD dwWaitHint = 0);
 
-private:
+	private:
 
-	static void WINAPI ServiceMain(DWORD dwArgc, LPSTR *lpszArgv);
-	static void WINAPI ServiceCtrlHandler(DWORD dwCtrl);
-	void WorkerThread();
-	void Start(DWORD dwArgc, PSTR *pszArgv);
-	void Pause();
-	void Continue();
-	void Shutdown();
-	static I2PService* s_service;
-	PSTR m_name;
-	SERVICE_STATUS m_status;
-	SERVICE_STATUS_HANDLE m_statusHandle;
+		static void WINAPI ServiceMain(DWORD dwArgc, LPSTR *lpszArgv);
+		static void WINAPI ServiceCtrlHandler(DWORD dwCtrl);
+		void WorkerThread();
+		void Start(DWORD dwArgc, PSTR *pszArgv);
+		void Pause();
+		void Continue();
+		void Shutdown();
+		static I2PService* s_service;
+		PSTR m_name;
+		SERVICE_STATUS m_status;
+		SERVICE_STATUS_HANDLE m_statusHandle;
 
-	BOOL m_fStopping;
-	HANDLE m_hStoppedEvent;
+		BOOL m_fStopping;
+		HANDLE m_hStoppedEvent;
 
-	std::thread* _worker;
+		std::thread* _worker;
 };
 
 void InstallService(
@@ -77,7 +77,7 @@ void InstallService(
 	PCSTR pszDependencies,
 	PCSTR pszAccount,
 	PCSTR pszPassword
-	);
+);
 
 void UninstallService(PCSTR pszServiceName);
 

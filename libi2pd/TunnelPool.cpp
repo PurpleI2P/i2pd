@@ -16,7 +16,6 @@ namespace i2p
 {
 namespace tunnel
 {
-
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true),
@@ -67,7 +66,8 @@ namespace tunnel
 		m_Tests.clear ();
 	}
 
-	bool TunnelPool::Reconfigure(int inHops, int outHops, int inQuant, int outQuant)	{
+	bool TunnelPool::Reconfigure(int inHops, int outHops, int inQuant, int outQuant)
+	{
 		if( inHops >= 0 && outHops >= 0 && inQuant > 0 && outQuant > 0)
 		{
 			m_NumInboundHops = inHops;
@@ -78,7 +78,7 @@ namespace tunnel
 		}
 		return false;
 	}
-	
+
 	void TunnelPool::TunnelCreated (std::shared_ptr<InboundTunnel> createdTunnel)
 	{
 		if (!m_IsActive) return;
@@ -180,8 +180,8 @@ namespace tunnel
 			{
 				if (it->IsEstablished () && it != excluded)
 				{
-						tunnel = it;
-						i++;
+					tunnel = it;
+					i++;
 				}
 				if (i > ind && tunnel) break;
 			}
@@ -411,7 +411,7 @@ namespace tunnel
 		{
 			std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
 			if (m_CustomPeerSelector)
-					return m_CustomPeerSelector->SelectPeers(peers, numHops, isInbound);
+				return m_CustomPeerSelector->SelectPeers(peers, numHops, isInbound);
 		}
 		// explicit peers in use
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);

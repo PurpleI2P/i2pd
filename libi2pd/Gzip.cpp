@@ -40,13 +40,13 @@ namespace data
 			{
 				LogPrint (eLogError, "Gzip: Incorrect length");
 				return 0;
-			}	
+			}
 			if (len > outLen) len = outLen;
 			memcpy (out, in + 15, len);
 			return len;
 		}
 		else
-		{	
+		{
 			if (m_IsDirty) inflateReset (&m_Inflator);
 			m_IsDirty = true;
 			m_Inflator.next_in = const_cast<uint8_t *>(in);
@@ -59,7 +59,7 @@ namespace data
 			// else
 			LogPrint (eLogError, "Gzip: Inflate error ", err);
 			return 0;
-		}	
+		}
 	}
 
 	void GzipInflator::Inflate (const uint8_t * in, size_t inLen, std::ostream& os)
@@ -126,7 +126,7 @@ namespace data
 		{
 			out[9] = 0xff; // OS is always unknown
 			return outLen - m_Deflator.avail_out;
-		}	
+		}
 		// else
 		LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
@@ -147,21 +147,21 @@ namespace data
 			auto flush = (it == bufs.back ()) ? Z_FINISH : Z_NO_FLUSH;
 			err = deflate (&m_Deflator, flush);
 			if (err)
-			{	
+			{
 				if (flush && err == Z_STREAM_END)
 				{
 					out[9] = 0xff; // OS is always unknown
 					return outLen - m_Deflator.avail_out;
-				}	
+				}
 				break;
 			}
 			offset = outLen - m_Deflator.avail_out;
-		}	
+		}
 		// else
 		LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
-	}	
-	
+	}
+
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
 	{
 		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
@@ -176,7 +176,7 @@ namespace data
 	}
 
 	size_t GzipNoCompression (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen)
-	{	
+	{
 		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
 		memcpy (out, gzipHeader, 11);
 		uint32_t crc = 0;
@@ -186,9 +186,9 @@ namespace data
 			len1 = len;
 			len += it.second;
 			if (outLen < len + 23) return 0;
-			memcpy (out + 15 + len1, it.first, it.second); 
+			memcpy (out + 15 + len1, it.first, it.second);
 			crc = crc32 (crc, it.first, it.second);
-		}	
+		}
 		if (len > 0xffff) return 0;
 		htole32buf (out + len + 15, crc);
 		htole32buf (out + len + 19, len);
@@ -196,6 +196,6 @@ namespace data
 		htole16buf (out + 13, 0xffff - len);
 		return len + 23;
 	}
-	
+
 } // data
 } // i2p

@@ -892,8 +892,8 @@ namespace http {
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
-			 std::bind(&HTTPConnection::HandleReceive, shared_from_this (),
-				 std::placeholders::_1, std::placeholders::_2));
+			std::bind(&HTTPConnection::HandleReceive, shared_from_this (),
+				std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)

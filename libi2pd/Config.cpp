@@ -242,7 +242,7 @@ namespace config {
 				"1.pool.ntp.org,"
 				"2.pool.ntp.org,"
 				"3.pool.ntp.org"
-			),  "Comma separated list of NTCP servers")
+			),                                                             "Comma separated list of NTCP servers")
 			("nettime.ntpsyncinterval", value<int>()->default_value(72),   "NTP sync interval in hours (default: 72)")
 		;
 

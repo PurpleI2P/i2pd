@@ -24,7 +24,7 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
-		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params), 
+		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ())
 	{
 	}
@@ -33,26 +33,26 @@ namespace client
 	{
 		if (IsRunning ())
 			Stop ();
-	}	
-		
+	}
+
 	void I2CPDestination::Start ()
 	{
 		if (!IsRunning ())
-		{	
+		{
 			LeaseSetDestination::Start ();
 			StartIOService ();
-		}	
+		}
 	}
-		
+
 	void I2CPDestination::Stop ()
 	{
 		if (IsRunning ())
-		{	
+		{
 			LeaseSetDestination::Stop ();
 			StopIOService ();
-		}	
-	}	
-		
+		}
+	}
+
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
 	{
 		memcpy (m_EncryptionPrivateKey, key, 256);
@@ -98,7 +98,7 @@ namespace client
 		auto ls = (storeType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) ?
 			std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (m_Identity, buf, len):
 			std::make_shared<i2p::data::LocalLeaseSet2> (storeType, m_Identity, buf, len);
-		ls->SetExpirationTime (m_LeaseSetExpirationTime);	
+		ls->SetExpirationTime (m_LeaseSetExpirationTime);
 		SetLeaseSet (ls);
 	}
 
@@ -221,7 +221,7 @@ namespace client
 			auto s = shared_from_this ();
 			m_Socket->async_read_some (boost::asio::buffer (m_Header, 1),
 				[s](const boost::system::error_code& ecode, std::size_t bytes_transferred)
-				    {
+					{
 						if (!ecode && bytes_transferred > 0 && s->m_Header[0] == I2CP_PROTOCOL_BYTE)
 							s->ReceiveHeader ();
 						else
@@ -247,15 +247,15 @@ namespace client
 			if (m_PayloadLen > 0)
 			{
 				if (m_PayloadLen <= I2CP_MAX_MESSAGE_LENGTH)
-				{	
+				{
 					m_Payload = new uint8_t[m_PayloadLen];
 					ReceivePayload ();
 				}
 				else
 				{
-					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen); 
+					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen);
 					Terminate ();
-				}	
+				}
 			}
 			else // no following payload
 			{
@@ -323,7 +323,7 @@ namespace client
 			memcpy (buf + I2CP_HEADER_SIZE, payload, len);
 			boost::asio::async_write (*socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
 			std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
-							std::placeholders::_1, std::placeholders::_2, buf));
+				std::placeholders::_1, std::placeholders::_2, buf));
 		}
 		else
 			LogPrint (eLogError, "I2CP: Can't write to the socket");
@@ -510,8 +510,8 @@ namespace client
 		}
 		else
 			LogPrint(eLogError, "I2CP: short message");
-		SendSessionStatusMessage (status); 
-	}	
+		SendSessionStatusMessage (status);
+	}
 
 	void I2CPSession::SendSessionStatusMessage (uint8_t status)
 	{
@@ -568,12 +568,12 @@ namespace client
 				{
 					LogPrint (eLogError, "I2CP: invalid LeaseSet2 of type ", storeType);
 					return;
-				}	
+				}
 				offset += ls.GetBufferLen ();
 				// private keys
 				int numPrivateKeys = buf[offset]; offset++;
 				uint16_t currentKeyType = 0;
-				const uint8_t * currentKey = nullptr;	
+				const uint8_t * currentKey = nullptr;
 				for (int i = 0; i < numPrivateKeys; i++)
 				{
 					if (offset + 4 > len) return;
@@ -586,7 +586,7 @@ namespace client
 						currentKey = buf + offset;
 					}
 					offset += keyLen;
-				}				
+				}
 				// TODO: support multiple keys
 				if (currentKey)
 				{
@@ -594,7 +594,7 @@ namespace client
 					m_Destination->SetEncryptionType (currentKeyType);
 				}
 
-				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ()); 
+				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ());
 			}
 		}
 		else
@@ -779,14 +779,14 @@ namespace client
 		memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
 		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
 		std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2, buf));
+			std::placeholders::_1, std::placeholders::_2, buf));
 	}
 
 	I2CPServer::I2CPServer (const std::string& interface, int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service,
 #ifdef ANDROID
-            I2CPSession::proto::endpoint(std::string (1, '\0') + interface)) // leading 0 for abstract address
+			I2CPSession::proto::endpoint(std::string (1, '\0') + interface)) // leading 0 for abstract address
 #else
 			I2CPSession::proto::endpoint(boost::asio::ip::address::from_string(interface), port))
 #endif
@@ -823,10 +823,10 @@ namespace client
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
 		{
-			auto sessions = m_Sessions; 
+			auto sessions = m_Sessions;
 			for (auto& it: sessions)
 				it.second->Stop ();
-		}	
+		}
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
@@ -899,4 +899,3 @@ namespace client
 	}
 }
 }
-

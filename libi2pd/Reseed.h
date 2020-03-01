@@ -21,7 +21,7 @@ namespace data
 
 			Reseeder();
 			~Reseeder();
-                        void Bootstrap ();
+			void Bootstrap ();
 			int ReseedFromServers ();
 			int ReseedFromSU3Url (const std::string& url);
 			int ProcessSU3File (const char * filename);

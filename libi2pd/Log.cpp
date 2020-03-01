@@ -110,18 +110,18 @@ namespace log {
 		}
 	}
 
-    std::string str_tolower(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(),
-                    // static_cast<int(*)(int)>(std::tolower)         // wrong
-                    // [](int c){ return std::tolower(c); }           // wrong
-                    // [](char c){ return std::tolower(c); }          // wrong
-                       [](unsigned char c){ return std::tolower(c); } // correct
-                      );
-        return s;
-    }
+	std::string str_tolower(std::string s) {
+		std::transform(s.begin(), s.end(), s.begin(),
+					// static_cast<int(*)(int)>(std::tolower)         // wrong
+					// [](int c){ return std::tolower(c); }           // wrong
+					// [](char c){ return std::tolower(c); }          // wrong
+					   [](unsigned char c){ return std::tolower(c); } // correct
+					);
+		return s;
+	}
 
-    void Log::SetLogLevel (const std::string& level_) {
-        std::string level=str_tolower(level_);
+	void Log::SetLogLevel (const std::string& level_) {
+		std::string level=str_tolower(level_);
 		if      (level == "none")  { m_MinLevel = eLogNone; }
 		else if (level == "error") { m_MinLevel = eLogError; }
 		else if (level == "warn")  { m_MinLevel = eLogWarning; }
@@ -240,7 +240,7 @@ namespace log {
 	static ThrowFunction g_ThrowFunction;
 	ThrowFunction GetThrowFunction () { return g_ThrowFunction; }
 	void SetThrowFunction (ThrowFunction f) { g_ThrowFunction = f; }
-		
+
 } // log
 } // i2p
 

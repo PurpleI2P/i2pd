@@ -52,18 +52,18 @@ namespace client
 
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
-		if (sam) 
+		if (sam)
 		{
 			std::string samAddr; i2p::config::GetOption("sam.address", samAddr);
 			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
-			bool singleThread; i2p::config::GetOption("sam.singlethread",  singleThread);
+			bool singleThread; i2p::config::GetOption("sam.singlethread", singleThread);
 			LogPrint(eLogInfo, "Clients: starting SAM bridge at ", samAddr, ":", samPort);
-			try 
+			try
 			{
 				m_SamBridge = new SAMBridge (samAddr, samPort, singleThread);
 				m_SamBridge->Start ();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
 				ThrowFatal ("Unable to start SAM bridge at ", samAddr, ":", samPort, ": ", e.what ());
@@ -76,12 +76,12 @@ namespace client
 			std::string bobAddr; i2p::config::GetOption("bob.address", bobAddr);
 			uint16_t    bobPort; i2p::config::GetOption("bob.port",    bobPort);
 			LogPrint(eLogInfo, "Clients: starting BOB command channel at ", bobAddr, ":", bobPort);
-			try 
+			try
 			{
 				m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
 				m_BOBCommandChannel->Start ();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
 				ThrowFatal ("Unable to start BOB bridge at ", bobAddr, ":", bobPort, ": ", e.what ());
@@ -95,12 +95,12 @@ namespace client
 			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
 			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
 			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
-			try 
+			try
 			{
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
 				m_I2CPServer->Start ();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in I2CP: ", e.what());
 				ThrowFatal ("Unable to start I2CP at ", i2cpAddr, ":", i2cpPort, ": ", e.what ());
@@ -407,13 +407,13 @@ namespace client
 	template<typename Section, typename Type>
 	std::string ClientContext::GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
 	{
-        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::to_string (value));
+		return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::to_string (value));
 	}
 
 	template<typename Section>
 	std::string ClientContext::GetI2CPStringOption (const Section& section, const std::string& name, const std::string& value) const
 	{
-        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), value);
+		return section.second.get (boost::property_tree::ptree::path_type (name, '/'), value);
 	}
 
 	template<typename Section>
@@ -423,13 +423,13 @@ namespace client
 		{
 			if (it.first.length () >= group.length () && !it.first.compare (0, group.length (), group))
 				options[it.first] = it.second.get_value ("");
-		}	
+		}
 	}
-	
+
 	template<typename Section>
 	void ClientContext::ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const
 	{
-		options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH,  DEFAULT_INBOUND_TUNNEL_LENGTH);
+		options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
 		options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
 		options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
@@ -528,10 +528,10 @@ namespace client
 			{
 				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
 				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT
-						|| type == I2P_TUNNELS_SECTION_TYPE_SOCKS
-						|| type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS
-						|| type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY
-						|| type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+					|| type == I2P_TUNNELS_SECTION_TYPE_SOCKS
+					|| type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS
+					|| type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY
+					|| type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 				{
 					// mandatory params
 					std::string dest;
@@ -640,9 +640,9 @@ namespace client
 					}
 				}
 				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
-								 || type == I2P_TUNNELS_SECTION_TYPE_HTTP
-								 || type == I2P_TUNNELS_SECTION_TYPE_IRC
-								 || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
+					|| type == I2P_TUNNELS_SECTION_TYPE_HTTP
+					|| type == I2P_TUNNELS_SECTION_TYPE_IRC
+					|| type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 				{
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -699,7 +699,7 @@ namespace client
 						continue;
 					}
 
-					std::shared_ptr<I2PServerTunnel>  serverTunnel;
+					std::shared_ptr<I2PServerTunnel> serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
 						serverTunnel = std::make_shared<I2PServerTunnelHTTP> (name, host, port, localDestination, hostOverride, inPort, gzip);
 					else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
@@ -745,7 +745,7 @@ namespace client
 							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
 						}
 						ins.first->second->isUpdated = true;
-						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
 					}
 
 				}
@@ -769,9 +769,9 @@ namespace client
 			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",          httpProxyKeys);
 			std::string httpProxyAddr;         i2p::config::GetOption("httpproxy.address",       httpProxyAddr);
 			uint16_t    httpProxyPort;         i2p::config::GetOption("httpproxy.port",          httpProxyPort);
-			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
@@ -786,12 +786,12 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
-			try 
+			try
 			{
 				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, httpAddresshelper, localDestination);
 				m_HttpProxy->Start();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 				ThrowFatal ("Unable to start HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort, ": ", e.what ());
@@ -826,13 +826,13 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
 			}
-			try 
+			try
 			{
 				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
 					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
 				ThrowFatal ("Unable to start SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort, ": ", e.what ());

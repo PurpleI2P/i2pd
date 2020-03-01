@@ -79,17 +79,17 @@ namespace http
 			std::string m_Hostname;
 	};
 
-    //all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
-    enum OutputFormatEnum { forWebConsole, forQtUi };
-    void ShowStatus (std::stringstream& s, bool includeHiddenContent, OutputFormatEnum outputFormat);
-    void ShowLocalDestinations (std::stringstream& s);
-    void ShowLeasesSets(std::stringstream& s);
-    void ShowTunnels (std::stringstream& s);
-    void ShowTransitTunnels (std::stringstream& s);
-    void ShowTransports (std::stringstream& s);
-    void ShowSAMSessions (std::stringstream& s);
-    void ShowI2PTunnels (std::stringstream& s);
-    void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
+	//all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
+	enum OutputFormatEnum { forWebConsole, forQtUi };
+	void ShowStatus (std::stringstream& s, bool includeHiddenContent, OutputFormatEnum outputFormat);
+	void ShowLocalDestinations (std::stringstream& s);
+	void ShowLeasesSets(std::stringstream& s);
+	void ShowTunnels (std::stringstream& s);
+	void ShowTransitTunnels (std::stringstream& s);
+	void ShowTransports (std::stringstream& s);
+	void ShowSAMSessions (std::stringstream& s);
+	void ShowI2PTunnels (std::stringstream& s);
+	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
 } // http
 } // i2p
 

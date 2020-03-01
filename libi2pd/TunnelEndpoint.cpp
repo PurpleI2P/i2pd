@@ -64,8 +64,7 @@ namespace tunnel
 							m.hash = i2p::data::IdentHash (fragment);
 							fragment += 32; // to hash
 						break;
-						default:
-							;
+						default: ;
 					}
 
 					bool isFragmented = flag & 0x08;

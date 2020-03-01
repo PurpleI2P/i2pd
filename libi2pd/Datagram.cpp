@@ -13,10 +13,10 @@ namespace datagram
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
 		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
-		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();	
-		m_From.resize (identityLen); 
-		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);	
-		m_Signature.resize (m_Owner->GetIdentity ()->GetSignatureLen ()); 
+		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();
+		m_From.resize (identityLen);
+		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);
+		m_Signature.resize (m_Owner->GetIdentity ()->GetSignatureLen ());
 	}
 
 	DatagramDestination::~DatagramDestination ()
@@ -36,7 +36,7 @@ namespace datagram
 			m_Owner->Sign (payload, len, m_Signature.data ());
 
 		auto session = ObtainSession(identity);
-		auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}}, 
+		auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
 			fromPort, toPort, false, !session->IsRatchets ()); // datagram
 		session->SendMsg(msg);
 	}
@@ -46,8 +46,8 @@ namespace datagram
 		auto session = ObtainSession(identity);
 		auto msg = CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ()); // raw
 		session->SendMsg(msg);
-	}	
-		
+	}
+
 	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)
 	{
 		i2p::data::IdentityEx identity;
@@ -86,8 +86,8 @@ namespace datagram
 			m_RawReceiver (fromPort, toPort, buf, len);
 		else
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for raw datagram");
-	}	
-		
+	}
+
 	DatagramDestination::Receiver DatagramDestination::FindReceiver(uint16_t port)
 	{
 		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
@@ -107,23 +107,22 @@ namespace datagram
 		{
 			if (isRaw)
 				HandleRawDatagram (fromPort, toPort, uncompressed, uncompressedLen);
-			else	
+			else
 				HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
-		}	
+		}
 		else
 			LogPrint (eLogWarning, "Datagram: decompression failed");
 	}
 
-		
 	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (
-	    const std::vector<std::pair<const uint8_t *, size_t> >& payloads, 
-	    uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
+		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
+		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
 		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
-			 i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
+			i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
@@ -186,7 +185,7 @@ namespace datagram
 	}
 
 	DatagramSession::DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination,
-																	 const i2p::data::IdentHash & remoteIdent) :
+		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
 		m_RemoteIdent(remoteIdent),
 		m_SendQueueTimer(localDestination->GetService()),
@@ -384,4 +383,3 @@ namespace datagram
 	}
 }
 }
-

@@ -155,9 +155,9 @@ namespace log {
 
 	typedef std::function<void (const std::string&)>  ThrowFunction;
 	ThrowFunction GetThrowFunction ();
-	void SetThrowFunction (ThrowFunction f);	
+	void SetThrowFunction (ThrowFunction f);
 } // log
-}
+} // i2p
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
@@ -203,7 +203,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 }
 
 /**
- * @brief Throw fatal error message with the list of arguments  
+ * @brief Throw fatal error message with the list of arguments
  * @param args Array of message parts
  */
 template<typename... TArgs>

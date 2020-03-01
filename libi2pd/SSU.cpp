@@ -45,15 +45,15 @@ namespace transport
 
 	void SSUServer::OpenSocket ()
 	{
-		try 
+		try
 		{
 			m_Socket.open (boost::asio::ip::udp::v4());
 			m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 			m_Socket.bind (m_Endpoint);
 			LogPrint (eLogInfo, "SSU: Start listening v4 port ", m_Endpoint.port());
-		} 
-		catch ( std::exception & ex ) 
+		}
+		catch ( std::exception & ex )
 		{
 			LogPrint (eLogError, "SSU: failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv4 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
@@ -62,7 +62,7 @@ namespace transport
 
 	void SSUServer::OpenSocketV6 ()
 	{
-		try 
+		try
 		{
 			m_SocketV6.open (boost::asio::ip::udp::v6());
 			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
@@ -70,8 +70,8 @@ namespace transport
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 			m_SocketV6.bind (m_EndpointV6);
 			LogPrint (eLogInfo, "SSU: Start listening v6 port ", m_EndpointV6.port());
-		} 
-		catch ( std::exception & ex ) 
+		}
+		catch ( std::exception & ex )
 		{
 			LogPrint (eLogError, "SSU: failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv6 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
@@ -184,7 +184,7 @@ namespace transport
 					m_Socket.close ();
 					OpenSocket ();
 					Receive ();
-				}	
+				}
 			}
 		}
 	}
@@ -359,10 +359,10 @@ namespace transport
 			{
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
-					if (session) 
-					{ 
-						session->FlushData (); 
-						session = nullptr; 
+					if (session)
+					{
+						session->FlushData ();
+						session = nullptr;
 					}
 					auto it = sessions->find (packet->from);
 					if (it != sessions->end ())
@@ -826,4 +826,3 @@ namespace transport
 	}
 }
 }
-

@@ -168,7 +168,7 @@ namespace client
 			{
 				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 					std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2),
+					std::placeholders::_1, std::placeholders::_2),
 					I2P_TUNNEL_CONNECTION_MAX_IDLE);
 			}
 			else // closed by peer
@@ -257,7 +257,7 @@ namespace client
 						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
 						{
 							/* close connection, if not Connection: (U|u)pgrade (for websocket) */
-							auto x = line.find("pgrade"); 
+							auto x = line.find("pgrade");
 							if (x != std::string::npos && std::tolower(line[x - 1]) == 'u')
 								m_OutHeader << line << "\r\n";
 							else
@@ -281,7 +281,7 @@ namespace client
 			if (endOfHeader)
 			{
 				if (!m_ConnectionSent) m_OutHeader << "Connection: close\r\n";
-				 if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
+				if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
 				m_OutHeader << "\r\n"; // end of header
 				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
@@ -462,7 +462,7 @@ namespace client
 	}
 
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-	std::shared_ptr<const Address> I2PClientTunnel::GetAddress () 
+	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
 		if (!m_Address)
 		{
@@ -477,7 +477,7 @@ namespace client
 	{
 		auto address = GetAddress ();
 		if (address)
-			return  std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
+			return std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
 		else
 			return nullptr;
 	}
@@ -826,7 +826,7 @@ namespace client
 		{
 			LogPrint(eLogError, "UDP Tunnel: ", m_RemoteDest, " not found");
 			return;
-		}			
+		}
 		m_RemoteIdent = new i2p::data::IdentHash;
 		*m_RemoteIdent = addr->identHash;
 		LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());

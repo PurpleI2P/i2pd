@@ -27,6 +27,7 @@ namespace client
 	class I2PControlService
 	{
 		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
+
 		public:
 
 			I2PControlService (const std::string& address, int port);

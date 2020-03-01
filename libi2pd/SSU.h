@@ -40,7 +40,7 @@ namespace transport
 		public:
 
 			SSUServer (int port);
-			SSUServer (const boost::asio::ip::address & addr, int port);			// ipv6 only constructor
+			SSUServer (const boost::asio::ip::address & addr, int port); // ipv6 only constructor
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -135,4 +135,3 @@ namespace transport
 }
 
 #endif
-

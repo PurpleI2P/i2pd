@@ -77,5 +77,4 @@ namespace worker
 }
 }
 
-
 #endif
