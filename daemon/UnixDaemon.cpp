@@ -196,5 +196,4 @@ namespace i2p
 		}
 	}
 }
-
 #endif

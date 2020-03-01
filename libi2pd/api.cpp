@@ -31,8 +31,8 @@ namespace api
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		i2p::crypto::InitCrypto (precomputation);
 
-        int netID; i2p::config::GetOption("netid", netID);
-        i2p::context.SetNetID (netID);
+		int netID; i2p::config::GetOption("netid", netID);
+		i2p::context.SetNetID (netID);
 
 		i2p::context.Init ();
 	}
@@ -133,4 +133,3 @@ namespace api
 	}
 }
 }
-

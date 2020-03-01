@@ -336,7 +336,7 @@ namespace transport
 			m_SignedData->Insert (payload, 4); // insert Alice's signed on time
 		payload += 4; // signed-on time
 		size_t paddingSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
-		paddingSize &= 0x0F;  // %16
+		paddingSize &= 0x0F; // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
 		// verify signature
@@ -934,7 +934,7 @@ namespace transport
 			for (const auto& it: msgs)
 				if (it)
 				{
-					if (it->GetLength () <= SSU_MAX_I2NP_MESSAGE_SIZE) 
+					if (it->GetLength () <= SSU_MAX_I2NP_MESSAGE_SIZE)
 						m_Data.Send (it);
 					else
 						LogPrint (eLogError, "SSU: I2NP message of size ", it->GetLength (), " can't be sent. Dropped");
@@ -1206,4 +1206,3 @@ namespace transport
 	}
 }
 }
-

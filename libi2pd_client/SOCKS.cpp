@@ -41,6 +41,7 @@ namespace proxy
 	class SOCKSHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<SOCKSHandler>
 	{
 		private:
+
 			enum state
 			{
 				GET_SOCKSV,
@@ -137,7 +138,7 @@ namespace proxy
 			void HandleUpstreamConnected(const boost::system::error_code & ecode,
 			boost::asio::ip::tcp::resolver::iterator itr);
 			void HandleUpstreamResolved(const boost::system::error_code & ecode,
-			boost::asio::ip::tcp::resolver::iterator itr);
+				boost::asio::ip::tcp::resolver::iterator itr);
 
 			boost::asio::ip::tcp::resolver m_proxy_resolver;
 			uint8_t m_sock_buff[socks_buffer_size];
@@ -165,6 +166,7 @@ namespace proxy
 			const uint16_t m_UpstreamProxyPort;
 
 		public:
+
 			SOCKSHandler(SOCKSServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock, const std::string & upstreamAddr, const uint16_t upstreamPort, const bool useUpstream) :
 				I2PServiceHandler(parent),
 				m_proxy_resolver(parent->GetService()),
@@ -652,8 +654,7 @@ namespace proxy
 		LogPrint(eLogDebug, "SOCKS: async upstream sock read");
 		if (m_upstreamSock) {
 			m_upstreamSock->async_read_some(boost::asio::buffer(m_upstream_response, SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE),
-				std::bind(&SOCKSHandler::HandleUpstreamSockRecv, shared_from_this(),
-				std::placeholders::_1, std::placeholders::_2));
+				std::bind(&SOCKSHandler::HandleUpstreamSockRecv, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError, "SOCKS: no upstream socket for read");
 			SocksRequestFailed(SOCKS5_GEN_FAIL);
@@ -773,7 +774,7 @@ namespace proxy
 	SOCKSServer::SOCKSServer(const std::string& name, const std::string& address, int port,
 		bool outEnable, const std::string& outAddress, uint16_t outPort,
 		std::shared_ptr<i2p::client::ClientDestination> localDestination) :
-		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()), m_Name (name)
+			TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()), m_Name (name)
 	{
 		m_UseUpstreamProxy = false;
 		if (outAddress.length() > 0 && outEnable)

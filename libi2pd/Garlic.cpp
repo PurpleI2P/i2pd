@@ -38,9 +38,9 @@ namespace garlic
 		if (!m_SharedRoutingPath) return nullptr;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		if (m_SharedRoutingPath->numTimesUsed >= ROUTING_PATH_MAX_NUM_TIMES_USED ||
-		    !m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
+			!m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
 			ts*1000LL > m_SharedRoutingPath->remoteLease->endDate ||
-		    ts > m_SharedRoutingPath->updateTime + ROUTING_PATH_EXPIRATION_TIMEOUT)
+			ts > m_SharedRoutingPath->updateTime + ROUTING_PATH_EXPIRATION_TIMEOUT)
 				m_SharedRoutingPath = nullptr;
 		if (m_SharedRoutingPath) m_SharedRoutingPath->numTimesUsed++;
 		return m_SharedRoutingPath;
@@ -68,7 +68,7 @@ namespace garlic
 			return true;
 		}
 		return false;
-	}	
+	}
 
 	void GarlicRoutingSession::CleanupUnconfirmedLeaseSet (uint64_t ts)
 	{
@@ -78,8 +78,8 @@ namespace garlic
 				GetOwner ()->RemoveDeliveryStatusSession (m_LeaseSetUpdateMsgID);
 			m_LeaseSetUpdateMsgID = 0;
 		}
-	}	
-		
+	}
+
 	std::shared_ptr<I2NPMessage> GarlicRoutingSession::CreateEncryptedDeliveryStatusMsg (uint32_t msgID)
 	{
 		auto msg = CreateDeliveryStatusMsg (msgID);
@@ -94,12 +94,12 @@ namespace garlic
 			msg = garlic.WrapSingleMessage (msg);
 		}
 		return msg;
-	}	
-		
-    ElGamalAESSession::ElGamalAESSession (GarlicDestination * owner,
-	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
-        GarlicRoutingSession (owner, attachLeaseSet), 
-        m_Destination (destination), m_NumTags (numTags)
+	}
+
+	ElGamalAESSession::ElGamalAESSession (GarlicDestination * owner,
+		std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
+		GarlicRoutingSession (owner, attachLeaseSet),
+		m_Destination (destination), m_NumTags (numTags)
 	{
 		// create new session tags and session key
 		RAND_bytes (m_SessionKey, 32);
@@ -115,7 +115,7 @@ namespace garlic
 		m_SessionTags.back ().creationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
-    std::shared_ptr<I2NPMessage> ElGamalAESSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
+	std::shared_ptr<I2NPMessage> ElGamalAESSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
 		auto m = NewI2NPMessage ();
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -181,7 +181,7 @@ namespace garlic
 		return m;
 	}
 
-    size_t ElGamalAESSession::CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg)
+	size_t ElGamalAESSession::CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg)
 	{
 		size_t blockSize = 0;
 		bool createNewTags = GetOwner () && m_NumTags && ((int)m_SessionTags.size () <= m_NumTags*2/3);
@@ -329,10 +329,10 @@ namespace garlic
 				// create msg
 				auto msg = CreateEncryptedDeliveryStatusMsg (msgID);
 				if (msg)
-				{	
+				{
 					memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
 					size += msg->GetLength ();
-				}	
+				}
 				// fill clove
 				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
 				uint32_t cloveID;
@@ -353,7 +353,7 @@ namespace garlic
 		return size;
 	}
 
-    ElGamalAESSession::UnconfirmedTags * ElGamalAESSession::GenerateSessionTags ()
+	ElGamalAESSession::UnconfirmedTags * ElGamalAESSession::GenerateSessionTags ()
 	{
 		auto tags = new UnconfirmedTags (m_NumTags);
 		tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
@@ -487,7 +487,7 @@ namespace garlic
 				LogPrint (eLogWarning, "Garlic: message length ", length, " is less than 32 bytes");
 		}
 		else
-		{	
+		{
 			bool found = false;
 			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
 			{
@@ -500,15 +500,15 @@ namespace garlic
 					found = true;
 					auto session = it1->second.tagset->GetSession ();
 					if (!session || !session->HandleNextMessage (buf, length, it1->second.tagset, it1->second.index))
-						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");	
+						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 					m_ECIESx25519Tags.erase (it1);
 				}
-			}	
- 
-			if (!found) // assume new session 
+			}
+
+			if (!found) // assume new session
 			{
-				// AES tag not found. Handle depending on encryption type		
-				// try ElGamal/AES first if leading block is 514	
+				// AES tag not found. Handle depending on encryption type
+				// try ElGamal/AES first if leading block is 514
 				ElGamalBlock elGamal;
 				if (mod == 2 && length >= 514 && SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) &&
 					Decrypt (buf, (uint8_t *)&elGamal, m_Ctx, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
@@ -521,16 +521,16 @@ namespace garlic
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
 				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
-				{	
-					// otherwise ECIESx25519	
+				{
+					// otherwise ECIESx25519
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
-        				LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
-				}	
+						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
+				}
 				else
-					LogPrint (eLogError, "Garlic: Failed to decrypt message");	
+					LogPrint (eLogError, "Garlic: Failed to decrypt message");
 			}
-		}	
+		}
 	}
 
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
@@ -703,41 +703,41 @@ namespace garlic
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET &&
-            SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
-        {
-            ECIESX25519AEADRatchetSessionPtr session;
-            uint8_t staticKey[32];
-            destination->Encrypt (nullptr, staticKey, nullptr); // we are supposed to get static key 
-            auto it = m_ECIESx25519Sessions.find (staticKey);
+		if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET &&
+			SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+		{
+			ECIESX25519AEADRatchetSessionPtr session;
+			uint8_t staticKey[32];
+			destination->Encrypt (nullptr, staticKey, nullptr); // we are supposed to get static key
+			auto it = m_ECIESx25519Sessions.find (staticKey);
 			if (it != m_ECIESx25519Sessions.end ())
-		        session = it->second;
-            if (!session)
+				session = it->second;
+			if (!session)
 			{
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
 				session->SetRemoteStaticKey (staticKey);
-			}	
+			}
 			session->SetDestination (destination->GetIdentHash ()); // TODO: remove
-            return session;
-        }
-        else
-        {    
-		    ElGamalAESSessionPtr session;
-		    {
-			    std::unique_lock<std::mutex> l(m_SessionsMutex);
-			    auto it = m_Sessions.find (destination->GetIdentHash ());
-			    if (it != m_Sessions.end ())
-				    session = it->second;
-		    }
-		    if (!session)
-		    {
-			    session = std::make_shared<ElGamalAESSession> (this, destination,
-				    attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
-			    std::unique_lock<std::mutex> l(m_SessionsMutex);
-			    m_Sessions[destination->GetIdentHash ()] = session;
-		    }
-		    return session;
-        }
+			return session;
+		}
+		else
+		{
+			ElGamalAESSessionPtr session;
+			{
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				auto it = m_Sessions.find (destination->GetIdentHash ());
+				if (it != m_Sessions.end ())
+					session = it->second;
+			}
+			if (!session)
+			{
+				session = std::make_shared<ElGamalAESSession> (this, destination,
+					attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				m_Sessions[destination->GetIdentHash ()] = session;
+			}
+			return session;
+		}
 	}
 
 	void GarlicDestination::CleanupExpiredTags ()
@@ -791,7 +791,7 @@ namespace garlic
 			if (it->second.tagset->IsExpired (ts) || ts > it->second.creationTime + ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				it = m_ECIESx25519Tags.erase (it);
 			else
-				++it;	
+				++it;
 		}
 
 		for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
@@ -800,7 +800,7 @@ namespace garlic
 			{
 				it->second->SetOwner (nullptr);
 				it = m_ECIESx25519Sessions.erase (it);
-			}	
+			}
 			else
 				++it;
 		}
@@ -925,28 +925,28 @@ namespace garlic
 		std::vector<std::string> files;
 		i2p::fs::ReadDir (i2p::fs::DataDirPath("tags"), files);
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto  it: files)
+		for (auto it: files)
 			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				 i2p::fs::Remove (it);
 	}
 
-    void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
-    {   
-        const uint8_t * buf1 = buf;	
+	void GarlicDestination::HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len)
+	{
+		const uint8_t * buf1 = buf;
 		uint8_t flag = buf[0]; buf++; // flag
 		GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
 		switch (deliveryType)
 		{
 			case eGarlicDeliveryTypeDestination:
-                LogPrint (eLogDebug, "Garlic: type destination");
+				LogPrint (eLogDebug, "Garlic: type destination");
 				buf += 32; // TODO: check destination
-#if (__cplusplus >= 201703L) // C++ 17 or higher				
-				[[fallthrough]]; 
-#endif				
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+				[[fallthrough]];
+#endif
 				// no break here
 			case eGarlicDeliveryTypeLocal:
 			{
-                LogPrint (eLogDebug, "Garlic: type local");
+				LogPrint (eLogDebug, "Garlic: type local");
 				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
 				buf += (4 + 4); // msgID + expiration
 				ptrdiff_t offset = buf - buf1;
@@ -957,8 +957,8 @@ namespace garlic
 				break;
 			}
 			case eGarlicDeliveryTypeTunnel:
-            {
-                LogPrint (eLogDebug, "Garlic: type tunnel");
+			{
+				LogPrint (eLogDebug, "Garlic: type tunnel");
 				// gwHash and gwTunnel sequence is reverted
 				const uint8_t * gwHash = buf;
 				buf += 32;
@@ -968,47 +968,47 @@ namespace garlic
 					LogPrint (eLogError, "Garlic: message is too short");
 					break;
 				}
-				uint32_t gwTunnel = bufbe32toh (buf); buf += 4; 
-                I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
+				uint32_t gwTunnel = bufbe32toh (buf); buf += 4;
+				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
 				buf += (4 + 4); // msgID + expiration
-                offset += 13;
+				offset += 13;
 				if (GetTunnelPool ())
-                {
-                    auto tunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
-                    if (tunnel)
-					    tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset));
+				{
+					auto tunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
+					if (tunnel)
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset));
 					else
-					    LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
-                }
+						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
+				}
 				else
 					LogPrint (eLogError, "Garlic: Tunnel pool is not set for inbound tunnel");
-                break;
-            }
+				break;
+			}
 			default:
 				LogPrint (eLogWarning, "Garlic: unexpected delivery type ", (int)deliveryType);
-		} 
-    }
+		}
+	}
 
-    void GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
-    {
+	void GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
+	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();
-        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset, i2p::util::GetSecondsSinceEpoch ()});
-    }
+		m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset, i2p::util::GetSecondsSinceEpoch ()});
+	}
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)
 	{
 		i2p::data::Tag<32> staticKeyTag (staticKey);
 		auto it = m_ECIESx25519Sessions.find (staticKeyTag);
 		if (it != m_ECIESx25519Sessions.end ())
-		{	
+		{
 			if (it->second->CanBeRestarted (i2p::util::GetSecondsSinceEpoch ()))
 				m_ECIESx25519Sessions.erase (it);
 			else
 			{
-				LogPrint (eLogInfo, "Garlic:  ECIESx25519 session with static key ", staticKeyTag.ToBase64 (), " already exists");	
+				LogPrint (eLogInfo, "Garlic:  ECIESx25519 session with static key ", staticKeyTag.ToBase64 (), " already exists");
 				return;
-			}	
+			}
 		}
 		m_ECIESx25519Sessions.emplace (staticKeyTag, session);
 	}
@@ -1020,7 +1020,7 @@ namespace garlic
 		{
 			it->second->SetOwner (nullptr);
 			m_ECIESx25519Sessions.erase (it);
-		}	
-	}	
+		}
+	}
 }
 }

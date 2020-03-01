@@ -114,7 +114,7 @@ namespace transport
 
 	void NTCP2Establisher::KDF2Bob ()
 	{
-		 KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
+		KeyDerivationFunction2 (m_SessionRequestBuffer, m_SessionRequestBufferLen, GetPub ());
 	}
 
 	void NTCP2Establisher::KDF3Alice ()
@@ -707,7 +707,7 @@ namespace transport
 					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
 					if (m_Server.AddNTCP2Session (shared_from_this (), true))
-					{	
+					{
 						Established ();
 						ReceiveLength ();
 					}
@@ -1200,7 +1200,7 @@ namespace transport
 								continue;
 							}
 
-							LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
+							LogPrint (eLogInfo, "NTCP2: Start listening v4 TCP port ", address->port);
 							auto conn = std::make_shared<NTCP2Session>(*this);
 							m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 						}
@@ -1218,8 +1218,8 @@ namespace transport
 								LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCP2Session> (*this);
 								m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
-							} 
-							catch ( std::exception & ex ) 
+							}
+							catch ( std::exception & ex )
 							{
 								LogPrint(eLogError, "NTCP2: failed to bind to v6 port ", address->port, ": ", ex.what());
 								ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
@@ -1485,7 +1485,7 @@ namespace transport
 						}
 					});
 				auto readbuff = std::make_shared<std::vector<uint8_t> >(2);
-				boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), 2), 
+				boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), 2),
 					[this, readbuff, timer, conn, host, port, addrtype](const boost::system::error_code & ec, std::size_t transferred)
 					{
 						if(ec)
@@ -1531,8 +1531,8 @@ namespace transport
 				std::ostream out(&writebuff);
 				out << req.to_string();
 
-				boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(), 
-					[](const boost::system::error_code & ec, std::size_t transferred) 
+				boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(),
+					[](const boost::system::error_code & ec, std::size_t transferred)
 					{
 						(void) transferred;
 						if(ec)
@@ -1540,8 +1540,8 @@ namespace transport
 					});
 
 				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
-				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n", 
-					[this, readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred) 
+				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n",
+					[this, readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
 					{
 						if(ec)
 						{

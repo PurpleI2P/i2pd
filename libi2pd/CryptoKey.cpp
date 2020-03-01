@@ -151,7 +151,7 @@ namespace crypto
 	ECIESX25519AEADRatchetEncryptor::ECIESX25519AEADRatchetEncryptor (const uint8_t * pub)
 	{
 		memcpy (m_PublicKey, pub, 32);
-	}	
+	}
 
 	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool)
 	{
@@ -166,16 +166,15 @@ namespace crypto
 	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
 	{
 		m_StaticKeys.Agree (epub, sharedSecret);
-		return true; 
+		return true;
 	}
 
 	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub)
 	{
 		X25519Keys k;
-		k.GenerateKeys ();		
+		k.GenerateKeys ();
 		k.GetPrivateKey (priv);
 		memcpy (pub, k.GetPublicKey (), 32);
 	}
 }
 }
-

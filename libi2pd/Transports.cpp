@@ -220,10 +220,10 @@ namespace transport
 				return;
 			}
 			else
-			{	
+			{
 				m_NTCP2Server = new NTCP2Server ();
 				m_NTCP2Server->Start ();
-			}	
+			}
 		}
 
 		// create acceptors
@@ -390,7 +390,7 @@ namespace transport
 			{
 				auto r = netdb.FindRouter (ident);
 				{
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
 						i2p::util::GetSecondsSinceEpoch (), {} })).first;
 				}
@@ -553,13 +553,13 @@ namespace transport
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
 				if (router)
-					m_SSUServer->CreateSession (router, true, isv4);	// peer test
+					m_SSUServer->CreateSession (router, true, isv4); // peer test
 				else
 				{
 					// if not peer test capable routers found pick any
 					router = i2p::data::netdb.GetRandomRouter ();
 					if (router && router->IsSSU ())
-						m_SSUServer->CreateSession (router);		// no peer test
+						m_SSUServer->CreateSession (router); // no peer test
 				}
 			}
 			if (i2p::context.SupportsV6 ())
@@ -574,7 +574,7 @@ namespace transport
 						if (addr)
 							m_SSUServer->GetServiceV6 ().post ([this, router, addr]
 							{
-								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);				
+								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
 							});
 					}
 				}
@@ -713,7 +713,7 @@ namespace transport
 					{
 						profile->TunnelNonReplied();
 					}
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}
 				else

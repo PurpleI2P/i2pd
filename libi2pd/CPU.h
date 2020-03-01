@@ -5,10 +5,10 @@ namespace i2p
 {
 namespace cpu
 {
-  extern bool aesni;
-  extern bool avx;
+	extern bool aesni;
+	extern bool avx;
 
-  void Detect();
+	void Detect();
 }
 }
 

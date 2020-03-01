@@ -75,10 +75,11 @@ namespace client
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr);
-			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service, 
-				const i2p::data::PrivateKeys& keys, bool isPublic = true, 
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service,
+				const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
-			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);
+			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys,
+				const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
 			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
@@ -114,7 +115,7 @@ namespace client
 			template<typename Visitor>
 			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
 
-			void CreateNewSharedLocalDestination (); 
+			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
 		private:
@@ -141,6 +142,7 @@ namespace client
 			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
 
 		public:
+
 			// for HTTP
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };

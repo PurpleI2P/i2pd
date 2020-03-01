@@ -132,34 +132,34 @@ namespace util
 
 			boost::asio::io_service& GetIOService () { return m_Service; }
 			bool IsRunning () const { return m_IsRunning; };
-			
+
 			void StartIOService ();
 			void StopIOService ();
 
 		private:
 
 			void Run ();
-				
+
 		private:
 
 			std::string m_Name;
 			volatile bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_service m_Service;
-	};	
+	};
 
 	class RunnableServiceWithWork: public RunnableService
 	{
 		protected:
 
-			RunnableServiceWithWork (const std::string& name): 
-				RunnableService (name), m_Work (GetIOService ()) {}		
-			
+			RunnableServiceWithWork (const std::string& name):
+				RunnableService (name), m_Work (GetIOService ()) {}
+
 		private:
 
 			boost::asio::io_service::work m_Work;
-	};	
-	
+	};
+
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);

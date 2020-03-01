@@ -13,9 +13,10 @@ namespace util
 	class Daemon_Singleton
 	{
 		public:
-            virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
-            virtual bool init(int argc, char* argv[]);
-            virtual bool start();
+
+			virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
+			virtual bool init(int argc, char* argv[]);
+			virtual bool start();
 			virtual bool stop();
 			virtual void run () {};
 
@@ -23,6 +24,7 @@ namespace util
 			bool running;
 
 		protected:
+
 			Daemon_Singleton();
 			virtual ~Daemon_Singleton();
 
@@ -39,6 +41,7 @@ namespace util
 	class DaemonQT: public i2p::util::Daemon_Singleton
 	{
 		public:
+
 			static DaemonQT& Instance()
 			{
 				static DaemonQT instance;
@@ -51,6 +54,7 @@ namespace util
 	class DaemonWin32 : public Daemon_Singleton
 	{
 		public:
+
 			static DaemonWin32& Instance()
 			{
 				static DaemonWin32 instance;
@@ -72,6 +76,7 @@ namespace util
 	class DaemonAndroid: public i2p::util::Daemon_Singleton
 	{
 		public:
+
 			static DaemonAndroid& Instance()
 			{
 				static DaemonAndroid instance;
@@ -83,6 +88,7 @@ namespace util
 	class DaemonLinux : public Daemon_Singleton
 	{
 		public:
+
 			static DaemonLinux& Instance()
 			{
 				static DaemonLinux instance;
@@ -94,10 +100,12 @@ namespace util
 			void run ();
 
 		private:
+
 			std::string pidfile;
 			int pidFH;
 
 		public:
+
 			int gracefulShutdownInterval; // in seconds
 	};
 #endif

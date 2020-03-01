@@ -216,10 +216,10 @@ namespace data
 					LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
 					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
-						m_Floodfills.remove (r);	
-					else	
+						m_Floodfills.remove (r);
+					else
 						m_Floodfills.push_back (r);
-				}	
+				}
 			}
 			else
 			{
@@ -390,7 +390,7 @@ namespace data
 			}
 		}
 
-                m_Reseeder->Bootstrap ();
+		m_Reseeder->Bootstrap ();
 	}
 
 	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)
@@ -532,12 +532,12 @@ namespace data
 		auto total = m_RouterInfos.size ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
-		auto uptime = i2p::context.GetUptime ();	
+		auto uptime = i2p::context.GetUptime ();
 		// routers don't expire if less than 90 or uptime is less than 1 hour
 		bool checkForExpiration = total > NETDB_MIN_ROUTERS && uptime > 600; // 10 minutes
 		if (checkForExpiration && uptime > 3600) // 1 hour
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
-					NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
+				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
 		for (auto& it: m_RouterInfos)
 		{
@@ -555,7 +555,7 @@ namespace data
 			// find & mark expired routers
 			if (it.second->UsesIntroducer ())
 			{
-				 if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
+				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
 					it.second->SetUnreachable (true);
 			}
@@ -873,7 +873,7 @@ namespace data
 		std::shared_ptr<I2NPMessage> replyMsg;
 		if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
 		{
-			LogPrint (eLogInfo, "NetDb: exploratory close to  ", key, " ", numExcluded, " excluded");
+			LogPrint (eLogInfo, "NetDb: exploratory close to ", key, " ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
 			for (int i = 0; i < numExcluded; i++)
 			{
@@ -894,7 +894,7 @@ namespace data
 		}
 		else
 		{
-			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
+			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP ||
 			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
 			{
 				auto router = FindRouter (ident);
@@ -907,7 +907,7 @@ namespace data
 				}
 			}
 
-			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
+			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP ||
 				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
 				auto leaseSet = FindLeaseSet (ident);
@@ -957,12 +957,12 @@ namespace data
 							replyMsg = i2p::garlic::WrapECIESX25519AEADRatchetMessage (replyMsg, sessionKey, tag);
 						}
 						else
-						{	
+						{
 							const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
 							i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
 							replyMsg = garlic.WrapSingleMessage (replyMsg);
-						}	
-						if (!replyMsg) 
+						}
+						if (!replyMsg)
 							LogPrint (eLogError, "NetDb: failed to wrap message");
 					}
 					else
@@ -1103,7 +1103,7 @@ namespace data
 			{
 				return !router->IsHidden () && router->IsSSUV6 ();
 			});
-	}		
+	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer () const
 	{

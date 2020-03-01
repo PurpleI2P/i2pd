@@ -14,6 +14,7 @@ namespace proxy
 	class SOCKSServer: public i2p::client::TCPIPAcceptor
 	{
 		public:
+
 			SOCKSServer(const std::string& name, const std::string& address, int port, bool outEnable, const std::string& outAddress, uint16_t outPort,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
 			~SOCKSServer() {};
@@ -21,6 +22,7 @@ namespace proxy
 			void SetUpstreamProxy(const std::string & addr, const uint16_t port);
 
 		protected:
+
 			// Implements TCPIPAcceptor
 			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			const char* GetName() { return m_Name.c_str (); }

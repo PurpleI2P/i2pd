@@ -28,12 +28,12 @@ namespace i2p
 namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
-	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60*60; // 1 hour, in seconds
-	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65*60;
-	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90*60; // 1.5 hours
-	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
-	const int NETDB_PUBLISH_INTERVAL = 60*40;
-	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0,9,36); // 0.9.36
+	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
+	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
+	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
+	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
+	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
+	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
@@ -63,13 +63,13 @@ namespace data
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);
-		void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);
+			void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);
 
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
-		
+
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
@@ -80,13 +80,13 @@ namespace data
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-      std::shared_ptr<const RouterInfo> GetRandomRouterInFamily(const std::string & fam) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily(const std::string & fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
-      /** set hidden mode, aka don't publish our RI to netdb and don't explore */
-      void SetHidden(bool hide);
+			/** set hidden mode, aka don't publish our RI to netdb and don't explore */
+			void SetHidden(bool hide);
 
 			void Reseed ();
 			Families& GetFamilies () { return m_Families; };
@@ -119,12 +119,13 @@ namespace data
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
-			void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
+			void ReseedFromFloodfill(const RouterInfo & ri, int numRouters = 40, int numFloodfills = 20);
 
 			std::shared_ptr<const RouterInfo> AddRouterInfo (const uint8_t * buf, int len, bool& updated);
 			std::shared_ptr<const RouterInfo> AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len, bool& updated);
-    		template<typename Filter>
-        	std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
+
+			template<typename Filter>
+			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
 
 		private:
 
@@ -150,12 +151,12 @@ namespace data
 
 			bool m_PersistProfiles;
 
-		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
-		std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
+			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
+			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
 
 
-      /** true if in hidden mode */
-      bool m_HiddenMode;
+			/** true if in hidden mode */
+			bool m_HiddenMode;
 	};
 
 	extern NetDb netdb;

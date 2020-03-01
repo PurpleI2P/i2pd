@@ -28,13 +28,13 @@
 #else
 #   define LEGACY_OPENSSL 0
 #   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
-#	   define OPENSSL_HKDF 1
-#	   define OPENSSL_EDDSA 1
-#	   define OPENSSL_X25519 1
-#	   define OPENSSL_SIPHASH 1
+#       define OPENSSL_HKDF 1
+#       define OPENSSL_EDDSA 1
+#       define OPENSSL_X25519 1
+#       define OPENSSL_SIPHASH 1
 #   endif
 #   if !defined OPENSSL_NO_CHACHA && !defined OPENSSL_NO_POLY1305 // some builds might not include them
-#	   define OPENSSL_AEAD_CHACHA20_POLY1305 1 
+#       define OPENSSL_AEAD_CHACHA20_POLY1305 1
 #   endif
 #endif
 
@@ -81,20 +81,20 @@ namespace crypto
 			const uint8_t * GetPublicKey () const { return m_PublicKey; };
 			void GetPrivateKey (uint8_t * priv) const;
 			void SetPrivateKey (const uint8_t * priv); // wihout calculating public
-			void Agree (const uint8_t * pub, uint8_t * shared);			
+			void Agree (const uint8_t * pub, uint8_t * shared);
 
 		private:
 
-			uint8_t m_PublicKey[32];		
+			uint8_t m_PublicKey[32];
 #if OPENSSL_X25519
 			EVP_PKEY_CTX * m_Ctx;
 			EVP_PKEY * m_Pkey;
-#else			
+#else
 			BN_CTX * m_Ctx;
 			uint8_t m_PrivateKey[32];
-#endif			
+#endif
 	};
-	
+
 	// ElGamal
 	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding = false);
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding = false);
@@ -117,15 +117,15 @@ namespace crypto
 		void operator^=(const ChipherBlock& other) // XOR
 		{
 			if (!(((size_t)buf | (size_t)other.buf) & 0x03)) // multiple of 4 ?
-			{	
+			{
 				for (int i = 0; i < 4; i++)
 					reinterpret_cast<uint32_t *>(buf)[i] ^= reinterpret_cast<const uint32_t *>(other.buf)[i];
-			}	
+			}
 			else
-			{	
+			{
 				for (int i = 0; i < 16; i++)
 					buf[i] ^= other.buf[i];
-			}					
+			}
 		}
 	};
 
@@ -297,7 +297,7 @@ namespace crypto
 
 // HKDF
 
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32 
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
 
 // init and terminate
 	void InitCrypto (bool precomputation);

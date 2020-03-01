@@ -25,7 +25,7 @@ namespace client
 	const uint8_t I2CP_PROTOCOL_BYTE = 0x2A;
 	const size_t I2CP_SESSION_BUFFER_SIZE = 4096;
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
-	
+
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
 	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;
@@ -69,10 +69,10 @@ namespace client
 
 			I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
 			~I2CPDestination ();
-			
+
 			void Start ();
 			void Stop ();
-			
+
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
@@ -82,7 +82,7 @@ namespace client
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
-			// TODO: implement GetEncryptionPublicKey 
+			// TODO: implement GetEncryptionPublicKey
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 		protected:
@@ -220,4 +220,3 @@ namespace client
 }
 
 #endif
-

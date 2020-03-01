@@ -87,7 +87,7 @@ namespace client
 
 			typedef boost::asio::ip::tcp::socket Socket_t;
 			SAMSocket (SAMBridge& owner);
-			~SAMSocket ();			
+			~SAMSocket ();
 
 			Socket_t& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
@@ -97,10 +97,11 @@ namespace client
 			void Terminate (const char* reason);
 
 			bool IsSession(const std::string & id) const;
-		
-		 private:
+
+		private:
+
 			void TerminateClose() { Terminate(nullptr); }
-		
+
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -137,7 +138,7 @@ namespace client
 
 			void HandleWriteI2PDataImmediate(const boost::system::error_code & ec, uint8_t * buff);
 			void HandleStreamSend(const boost::system::error_code & ec);
-		
+
 		private:
 
 			SAMBridge& m_Owner;
@@ -186,7 +187,7 @@ namespace client
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return GetIOService (); };
-			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string	 means transient
+			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
@@ -197,8 +198,8 @@ namespace client
 			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
 
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
-		
-			 bool ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const;
+
+			bool ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const;
 
 		private:
 

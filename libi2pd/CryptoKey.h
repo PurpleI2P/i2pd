@@ -45,7 +45,7 @@ namespace crypto
 			ElGamalDecryptor (const uint8_t * priv);
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 256; };
-			
+
 		private:
 
 			uint8_t m_PrivateKey[256];
@@ -76,7 +76,7 @@ namespace crypto
 			~ECIESP256Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 64; };
-			
+
 		private:
 
 			EC_GROUP * m_Curve;
@@ -109,7 +109,7 @@ namespace crypto
 			~ECIESGOSTR3410Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 64; };
-			
+
 		private:
 
 			BIGNUM * m_PrivateKey;
@@ -119,14 +119,14 @@ namespace crypto
 
 // ECIES-X25519-AEAD-Ratchet
 
-	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor 
+	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor
 	{
 		public:
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
 			~ECIESX25519AEADRatchetEncryptor () {};
 			void Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool);
-            // copies m_PublicKey to pub
+			// copies m_PublicKey to pub
 
 		private:
 
@@ -139,7 +139,7 @@ namespace crypto
 
 			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv);
 			~ECIESX25519AEADRatchetDecryptor () {};
-			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding); 
+			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding);
 			// agree with static and return in sharedSecret (32 bytes)
 			size_t GetPublicKeyLen () const { return 32; };
 
@@ -153,4 +153,3 @@ namespace crypto
 }
 
 #endif
-
