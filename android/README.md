@@ -1,6 +1,6 @@
 # how to compile?
 ## Install the gradle + NDK or use android-studio
-[![https://gradle.org/install/]](https://gradle.org/install/)
+[https://gradle.org/install/](https://gradle.org/install/)
 
 ## Install the depencies
 ```
