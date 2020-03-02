@@ -636,7 +636,4 @@ public class I2PDActivity extends Activity {
 		}
 		System.exit(0);
 	}
-	public String getI2pdpath(){
-		return this.i2pdpath;
-	}
 }
