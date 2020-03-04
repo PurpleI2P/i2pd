@@ -1128,6 +1128,15 @@ namespace stream
 		}
 	}
 
+	bool StreamingDestination::DeleteStream (uint32_t recvStreamID)
+	{
+		auto it = m_Streams.find (recvStreamID);
+		if (it == m_Streams.end ())
+			return false;
+		DeleteStream (it->second);
+		return true;
+	}	
+		
 	void StreamingDestination::SetAcceptor (const Acceptor& acceptor)
 	{
 		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet

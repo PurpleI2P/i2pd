@@ -1191,6 +1191,16 @@ namespace client
 		}
 	}
 
+	bool ClientDestination::DeleteStream (uint32_t recvStreamID)
+	{
+		if (m_StreamingDestination->DeleteStream (recvStreamID))
+			return true;
+		for (auto it: m_StreamingDestinationsByPorts)
+			if (it.second->DeleteStream (recvStreamID))
+				return true;
+		return false;
+	}	
+		
 	RunnableClientDestination::RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		RunnableService ("Destination"), 
 		ClientDestination (GetIOService (), keys, isPublic, params)

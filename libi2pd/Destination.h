@@ -281,6 +281,7 @@ namespace client
 
 			// for HTTP only
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
+			bool DeleteStream (uint32_t recvStreamID);
 	};
 
 	class RunnableClientDestination: private i2p::util::RunnableService, public ClientDestination
