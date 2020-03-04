@@ -180,7 +180,7 @@ namespace stream
 			int GetWindowSize () const { return m_WindowSize; };
 			int GetRTT () const { return m_RTT; };
 
-			void Terminate ();
+			void Terminate (bool deleteFromDestination = true);
 
 		private:
 
