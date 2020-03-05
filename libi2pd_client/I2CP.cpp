@@ -814,8 +814,11 @@ namespace client
 	{
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
-		for (auto& it: m_Sessions)
-			it.second->Stop ();
+		{
+			auto sessions = m_Sessions; 
+			for (auto& it: sessions)
+				it.second->Stop ();
+		}	
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
