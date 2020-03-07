@@ -22,11 +22,11 @@ namespace garlic
             void NextSessionTagRatchet ();
             uint64_t GetNextSessionTag ();
 			int GetNextIndex () const { return m_NextIndex; }; 
-			const uint8_t * GetSymmKey (int index);
+			void GetSymmKey (int index, uint8_t * key);
 
         private:
 
-			void CalculateSymmKeyCK (int index);
+			void CalculateSymmKeyCK (int index, uint8_t * key);
 				
 		private:
 			

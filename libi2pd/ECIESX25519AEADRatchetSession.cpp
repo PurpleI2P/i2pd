@@ -39,25 +39,28 @@ namespace garlic
         return m_KeyData.GetTag ();
     }
 
-	const uint8_t * RatchetTagSet::GetSymmKey (int index)
+	void RatchetTagSet::GetSymmKey (int index, uint8_t * key)
 	{
-		// TODO: store intermediate keys
-		if (m_NextSymmKeyIndex > 0 && index == m_NextSymmKeyIndex)
+		if (m_NextSymmKeyIndex > 0 && index >= m_NextSymmKeyIndex)
 		{	
-			i2p::crypto::HKDF (m_CurrentSymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK);
-			m_NextSymmKeyIndex++;
+			auto num = index + 1 - m_NextSymmKeyIndex;
+			for (int i = 0; i < num; i++)
+				i2p::crypto::HKDF (m_CurrentSymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK);
+			m_NextSymmKeyIndex += num;
+			memcpy (key, m_CurrentSymmKeyCK + 32, 32);
 		}
 		else
-			CalculateSymmKeyCK (index);		
-		return m_CurrentSymmKeyCK + 32;
+			CalculateSymmKeyCK (index, key);			
 	}	
 
-	void RatchetTagSet::CalculateSymmKeyCK (int index)
+	void RatchetTagSet::CalculateSymmKeyCK (int index, uint8_t * key)
 	{
-		i2p::crypto::HKDF (m_SymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK); // keydata_0 = HKDF(symmKey_ck, SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
+		// TODO: store intermediate keys	
+		uint8_t currentSymmKeyCK[64];
+		i2p::crypto::HKDF (m_SymmKeyCK, nullptr, 0, "SymmetricRatchet", currentSymmKeyCK); // keydata_0 = HKDF(symmKey_ck, SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
 		for (int i = 0; i < index; i++)
-			i2p::crypto::HKDF (m_CurrentSymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK); // keydata_n = HKDF(symmKey_chainKey_(n-1), SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
-		m_NextSymmKeyIndex = index + 1;
+			i2p::crypto::HKDF (currentSymmKeyCK, nullptr, 0, "SymmetricRatchet", currentSymmKeyCK); // keydata_n = HKDF(symmKey_chainKey_(n-1), SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
+		memcpy (key, currentSymmKeyCK + 32, 32);
 	}
 	
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
@@ -373,7 +376,9 @@ namespace garlic
 		memcpy (out, &tag, 8);
 		// ad = The session tag, 8 bytes
 		// ciphertext = ENCRYPT(k, n, payload, ad)
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, out, 8, m_SendTagset.GetSymmKey (index), nonce, out + 8, outLen - 8, true)) // encrypt
+		uint8_t key[32];
+		m_SendTagset.GetSymmKey (index, key);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, out, 8, key, nonce, out + 8, outLen - 8, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
@@ -387,7 +392,9 @@ namespace garlic
 		CreateNonce (index, nonce); // tag's index
 		len -= 8; // tag 
 		std::vector<uint8_t> payload (len - 16);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, m_ReceiveTagset.GetSymmKey (index), nonce, payload.data (), len - 16, false)) // decrypt
+		uint8_t key[32];
+		m_ReceiveTagset.GetSymmKey (index, key);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, key, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
