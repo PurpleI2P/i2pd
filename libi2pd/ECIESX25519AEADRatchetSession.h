@@ -107,6 +107,7 @@ namespace garlic
 	
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
             size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
+			size_t CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 
 			void GenerateMoreReceiveTags (int numTags);
 			

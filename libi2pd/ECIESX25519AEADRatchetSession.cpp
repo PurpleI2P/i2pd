@@ -6,6 +6,8 @@
 #include "Tag.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
+#include "Tunnel.h"
+#include "TunnelPool.h"
 #include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
@@ -460,12 +462,22 @@ namespace garlic
 
     std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
     {
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
         size_t payloadLen = 7; // datatime 
         if (msg && m_Destination) 
             payloadLen += msg->GetPayloadLength () + 13 + 32;
-        auto leaseSet = CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ());
-        if (leaseSet)
+        auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ()) : nullptr;
+		std::shared_ptr<I2NPMessage> deliveryStatus;
+		if (leaseSet)
+		{	
             payloadLen += leaseSet->GetPayloadLength () + 13;   
+			deliveryStatus = CreateEncryptedDeliveryStatusMsg (leaseSet->GetMsgID ());
+			payloadLen += deliveryStatus->GetPayloadLength () + 49; 
+			if (GetLeaseSetUpdateMsgID ()) GetOwner ()->RemoveDeliveryStatusSession (GetLeaseSetUpdateMsgID ()); // remove previous
+			SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
+			SetLeaseSetUpdateMsgID (leaseSet->GetMsgID ());
+			SetLeaseSetSubmissionTime (ts);
+		}	
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
         paddingSize &= 0x0F; paddingSize++; // 1 - 16
@@ -475,10 +487,13 @@ namespace garlic
         // DateTime
         v[offset] = eECIESx25519BlkDateTime; offset++;
         htobe16buf (v.data () + offset, 4); offset += 2; 
-        htobe32buf (v.data () + offset, i2p::util::GetSecondsSinceEpoch ()); offset += 4;
+        htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
         // LeaseSet
         if (leaseSet)
             offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
+		// DeliveryStatus
+		if (deliveryStatus)
+			offset += CreateDeliveryStatusClove (deliveryStatus, v.data () + offset, payloadLen - offset);
         // msg    
         if (msg && m_Destination)    
             offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
@@ -513,6 +528,38 @@ namespace garlic
         return cloveSize + 3;
     } 
 
+	size_t ECIESX25519AEADRatchetSession::CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
+    {
+		uint16_t cloveSize =  msg->GetPayloadLength () + 9 + 37 /* delivery instruction */;
+		if ((int)len < cloveSize + 3) return 0;
+		buf[0] = eECIESx25519BlkGalicClove; // clove type
+        htobe16buf (buf + 1, cloveSize); // size   
+		buf += 3;
+		if (GetOwner ())
+		{
+			auto inboundTunnel = GetOwner ()->GetTunnelPool ()->GetNextInboundTunnel ();
+			if (inboundTunnel)
+			{
+				// delivery instructions
+				*buf = eGarlicDeliveryTypeTunnel << 5; buf++; // delivery instructions flag tunnel
+				// hash and tunnelID sequence is reversed for Garlic
+				memcpy (buf, inboundTunnel->GetNextIdentHash (), 32); buf += 32;// To Hash
+				htobe32buf (buf, inboundTunnel->GetNextTunnelID ()); buf += 4;// tunnelID
+			}
+			else
+			{
+				LogPrint (eLogError, "Garlic: No inbound tunnels in the pool for DeliveryStatus");
+				return 0;
+			}	
+			htobe32buf (buf + 1, msg->GetMsgID ()); // msgID     
+        	htobe32buf (buf + 5, msg->GetExpiration ()/1000); // expiration in seconds     
+        	memcpy (buf + 9, msg->GetPayload (), msg->GetPayloadLength ());
+		}
+		else
+			return 0;
+		return cloveSize + 3;
+	}	
+		
 	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (int numTags)
 	{
 		for (int i = 0; i < numTags; i++)

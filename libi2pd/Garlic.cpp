@@ -58,6 +58,34 @@ namespace garlic
 		m_SharedRoutingPath = path;
 	}
 
+	bool GarlicRoutingSession::MessageConfirmed (uint32_t msgID)
+	{
+		if (msgID == GetLeaseSetUpdateMsgID ())
+		{
+			SetLeaseSetUpdateStatus (eLeaseSetUpToDate);
+			SetLeaseSetUpdateMsgID (0);
+			LogPrint (eLogInfo, "Garlic: LeaseSet update confirmed");
+			return true;
+		}
+		return false;
+	}	
+
+	std::shared_ptr<I2NPMessage> GarlicRoutingSession::CreateEncryptedDeliveryStatusMsg (uint32_t msgID)
+	{
+		auto msg = CreateDeliveryStatusMsg (msgID);
+		if (GetOwner ())
+		{
+			//encrypt
+			uint8_t key[32], tag[32];
+			RAND_bytes (key, 32); // random session key
+			RAND_bytes (tag, 32); // random session tag
+			GetOwner ()->SubmitSessionKey (key, tag);
+			ElGamalAESSession garlic (key, tag);
+			msg = garlic.WrapSingleMessage (msg);
+		}
+		return msg;
+	}	
+		
     ElGamalAESSession::ElGamalAESSession (GarlicDestination * owner,
 	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
         GarlicRoutingSession (owner, attachLeaseSet), 
@@ -289,19 +317,12 @@ namespace garlic
 				htobe32buf (buf + size, inboundTunnel->GetNextTunnelID ()); // tunnelID
 				size += 4;
 				// create msg
-				auto msg = CreateDeliveryStatusMsg (msgID);
-				if (GetOwner ())
-				{
-					//encrypt
-					uint8_t key[32], tag[32];
-					RAND_bytes (key, 32); // random session key
-					RAND_bytes (tag, 32); // random session tag
-					GetOwner ()->SubmitSessionKey (key, tag);
-					ElGamalAESSession garlic (key, tag);
-					msg = garlic.WrapSingleMessage (msg);
-				}
-				memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
-				size += msg->GetLength ();
+				auto msg = CreateEncryptedDeliveryStatusMsg (msgID);
+				if (msg)
+				{	
+					memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
+					size += msg->GetLength ();
+				}	
 				// fill clove
 				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
 				uint32_t cloveID;
@@ -334,17 +355,12 @@ namespace garlic
 		return tags;
 	}
 
-	void ElGamalAESSession::MessageConfirmed (uint32_t msgID)
+	bool ElGamalAESSession::MessageConfirmed (uint32_t msgID)
 	{
 		TagsConfirmed (msgID);
-		if (msgID == GetLeaseSetUpdateMsgID ())
-		{
-			SetLeaseSetUpdateStatus (eLeaseSetUpToDate);
-			SetLeaseSetUpdateMsgID (0);
-			LogPrint (eLogInfo, "Garlic: LeaseSet update confirmed");
-		}
-		else
+		if (!GarlicRoutingSession::MessageConfirmed (msgID))
 			CleanupExpiredTags ();
+		return true;
 	}
 
 	void ElGamalAESSession::TagsConfirmed (uint32_t msgID)
@@ -775,7 +791,7 @@ namespace garlic
 
 	void GarlicDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
-		 ElGamalAESSessionPtr session;
+		GarlicRoutingSessionPtr session;
 		{
 			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 			auto it = m_DeliveryStatusSessions.find (msgID);
