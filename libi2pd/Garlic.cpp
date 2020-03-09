@@ -810,8 +810,12 @@ namespace garlic
 
 	void GarlicDestination::SetLeaseSetUpdated ()
 	{
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
-		for (auto& it: m_Sessions)
+		{
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			for (auto& it: m_Sessions)
+				it.second->SetLeaseSetUpdated ();
+		}
+		for (auto& it: m_ECIESx25519Sessions)
 			it.second->SetLeaseSetUpdated ();
 	}
 
