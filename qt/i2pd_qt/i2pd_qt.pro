@@ -62,6 +62,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
+    ../../libi2pd/Elligator.cpp \
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \
@@ -89,7 +90,11 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
-    logviewermanager.cpp
+    logviewermanager.cpp \
+    DelayedSaveManager.cpp \
+    Saver.cpp \
+    DelayedSaveManagerImpl.cpp \
+    SaverImpl.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/api.h \
@@ -147,6 +152,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/TunnelPool.h \
     ../../libi2pd/util.h \
     ../../libi2pd/version.h \
+    ../../libi2pd/Elligator.h \
     ../../libi2pd_client/AddressBook.h \
     ../../libi2pd_client/BOB.h \
     ../../libi2pd_client/ClientContext.h \
@@ -175,7 +181,11 @@ HEADERS  += DaemonQT.h mainwindow.h \
     widgetlock.h \
     widgetlockregistry.h \
     i2pd.rc \
-    logviewermanager.h
+    logviewermanager.h \
+    DelayedSaveManager.h \
+    Saver.h \
+    DelayedSaveManagerImpl.h \
+    SaverImpl.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client

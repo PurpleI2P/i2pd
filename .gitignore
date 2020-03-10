@@ -264,3 +264,7 @@ qt/i2pd_qt/*.ui_*
 
 #unknown android stuff
 android/libs/
+
+#various logs
+*LOGS/
+
