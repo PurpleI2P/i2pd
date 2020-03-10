@@ -64,7 +64,7 @@ void TunnelPane::setupTunnelPane(
 
     //type
     {
-        const QString& type = tunnelConfig->getType();
+        //const QString& type = tunnelConfig->getType();
         QHBoxLayout * horizontalLayout_ = new QHBoxLayout();
         horizontalLayout_->setObjectName(QStringLiteral("horizontalLayout_"));
         typeLabel = new QLabel(gridLayoutWidget_2);
@@ -81,6 +81,11 @@ void TunnelPane::setupTunnelPane(
     }
 
     retranslateTunnelForm(*this);
+}
+
+void TunnelPane::deleteWidget() {
+    //gridLayoutWidget_2->deleteLater();
+    tunnelGroupBox->deleteLater();
 }
 
 void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex) {

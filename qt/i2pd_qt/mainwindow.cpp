@@ -1,11 +1,8 @@
-#include <fstream>
-#include <assert.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
 #include "ui_routercommandswidget.h"
 #include "ui_generalsettingswidget.h"
-#include <sstream>
 #include <QScrollBar>
 #include <QMessageBox>
 #include <QTimer>
@@ -29,17 +26,22 @@
 
 #include "logviewermanager.h"
 
+#include "DelayedSaveManagerImpl.h"
+#include "SaverImpl.h"
+
 std::string programOptionsWriterCurrentSection;
 
 MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent) :
     QMainWindow(parent)
     ,logStream(logStream_)
-#ifndef ANDROID
-    ,quitting(false)
-#endif
+    ,delayedSaveManagerPtr(new DelayedSaveManagerImpl())
+    ,dataSerial(DelayedSaveManagerImpl::INITIAL_DATA_SERIAL)
     ,wasSelectingAtStatusMainPage(false)
     ,showHiddenInfoStatusMainPage(false)
     ,logViewerManagerPtr(nullptr)
+#ifndef ANDROID
+    ,quitting(false)
+#endif
     ,ui(new Ui::MainWindow)
     ,statusButtonsUI(new Ui::StatusButtonsForm)
     ,routerCommandsUI(new Ui::routerCommandsWidget)
@@ -51,9 +53,14 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     ,datadir()
     ,confpath()
     ,tunconfpath()
+    ,tunnelConfigs()
     ,tunnelsPageUpdateListener(this)
+    ,saverPtr(new SaverImpl(this, &configItems, &tunnelConfigs))
 
 {
+    assert(delayedSaveManagerPtr!=nullptr);
+    assert(saverPtr!=nullptr);
+
     ui->setupUi(this);
     statusButtonsUI->setupUi(ui->statusButtonsPane);
     routerCommandsUI->setupUi(routerCommandsParent);
@@ -75,7 +82,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
     ui->stackedWidget->setCurrentIndex(0);
     ui->settingsScrollArea->resize(uiSettings->settingsContentsGridLayout->sizeHint().width()+10,380);
-    QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
+    //QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
     int w = 683;
     int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
@@ -270,7 +277,13 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     widgetlocks.add(new widgetlock(uiSettings->comboBox_httpPorxySignatureType,uiSettings->httpProxySignTypeComboEditPushButton));
     widgetlocks.add(new widgetlock(uiSettings->comboBox_socksProxySignatureType,uiSettings->socksProxySignTypeComboEditPushButton));
 
-    loadAllConfigs();
+    loadAllConfigs(saverPtr);
+
+    QObject::connect(saverPtr, SIGNAL(reloadTunnelsConfigAndUISignal(const QString)),
+                     this, SLOT(reloadTunnelsConfigAndUI_QString(const QString)));
+
+    delayedSaveManagerPtr->setSaver(saverPtr);
+    delayedSaveManagerPtr->start();
 
     QObject::connect(uiSettings->logDestinationComboBox, SIGNAL(currentIndexChanged(const QString &)),
                      this, SLOT(logDestinationComboBoxValueChanged(const QString &)));
@@ -292,7 +305,6 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
     QObject::connect(uiSettings->tunnelsConfigFileLineEdit, SIGNAL(textChanged(const QString &)),
                      this, SLOT(reloadTunnelsConfigAndUI()));
-
     QObject::connect(ui->addServerTunnelPushButton, SIGNAL(released()), this, SLOT(addServerTunnelPushButtonReleased()));
     QObject::connect(ui->addClientTunnelPushButton, SIGNAL(released()), this, SLOT(addClientTunnelPushButtonReleased()));
 
@@ -307,7 +319,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
     logViewerManagerPtr=new LogViewerManager(logStream_,ui->logViewerTextEdit,this);
     assert(logViewerManagerPtr!=nullptr);
-    onLoggingOptionsChange();
+    //onLoggingOptionsChange();
     //QMetaObject::connectSlotsByName(this);
 }
 
@@ -500,6 +512,8 @@ void MainWindow::handleQuitButton() {
     quitting=true;
 #endif
     close();
+    delayedSaveManagerPtr->appExiting();
+    qDebug("Performing quit");
     QApplication::instance()->quit();
 }
 
@@ -526,6 +540,7 @@ void MainWindow::handleGracefulQuitTimerEvent() {
     quitting=true;
 #endif
     close();
+    delayedSaveManagerPtr->appExiting();
     qDebug("Performing quit");
     QApplication::instance()->quit();
 }
@@ -534,6 +549,8 @@ MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
     delete statusPageUpdateTimer;
+    delete delayedSaveManagerPtr;
+    delete saverPtr;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->deleteLater();
@@ -594,7 +611,7 @@ NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
     return retValue;
 }
 
-void MainWindow::loadAllConfigs(){
+void MainWindow::loadAllConfigs(SaverImpl* saverPtr){
 
     //BORROWED FROM ??? //TODO move this code into single location
     std::string config;  i2p::config::GetOption("conf",    config);
@@ -635,6 +652,9 @@ void MainWindow::loadAllConfigs(){
     this->datadir = datadir.c_str();
     this->tunconfpath = tunConf.c_str();
 
+    saverPtr->setConfPath(this->confpath);
+    saverPtr->setTunnelsConfPath(this->tunconfpath);
+
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->loadFromConfigOption();
@@ -642,10 +662,40 @@ void MainWindow::loadAllConfigs(){
 
     ReadTunnelsConfig();
 
-    onLoggingOptionsChange();
+    //onLoggingOptionsChange();
 }
+
+void MainWindow::layoutTunnels() {
+
+    int height=0;
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(0,0,0,0);
+    for(std::map<std::string, TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
+        const std::string& name=it->first;
+        TunnelConfig* tunconf = it->second;
+        TunnelPane * tunnelPane=tunconf->getTunnelPane();
+        if(!tunnelPane)continue;
+        int h=tunnelPane->height();
+        height+=h;
+        //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+        //int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
+    }
+    //qDebug() << "tun.setting height:" << height;
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
+    /*QList<QWidget*> childWidgets = ui->tunnelsScrollAreaWidgetContents->findChildren<QWidget*>();
+    foreach(QWidget* widget, childWidgets)
+        widget->show();*/
+}
+
+void MainWindow::deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf) {
+    TunnelPane* tp = cnf->getTunnelPane();
+    if(!tp)return;
+    tunnelPanes.remove(tp);
+    tp->deleteWidget();
+    layoutTunnels();
+}
+
 /** returns false iff not valid items present and save was aborted */
-bool MainWindow::saveAllConfigs(){
+bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
@@ -653,7 +703,6 @@ bool MainWindow::saveAllConfigs(){
     daemonOption->optionValue=boost::any(false);
     serviceOption->optionValue=boost::any(false);
 
-    std::stringstream out;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         if(!item->isValid()){
@@ -661,27 +710,9 @@ bool MainWindow::saveAllConfigs(){
             return false;
         }
     }
+    delayedSaveManagerPtr->delayedSave(++dataSerial, focusOnTunnel, tunnelNameToFocus);
 
-    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
-        MainWindowItem* item = *it;
-        item->saveToStringStream(out);
-    }
-
-    using namespace std;
-
-
-    QString backup=confpath+"~";
-    if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    if(QFile::exists(confpath)) QFile::rename(confpath, backup);//TODO handle errors
-    ofstream outfile;
-    outfile.open(confpath.toStdString());//TODO handle errors
-    outfile << out.str().c_str();
-    outfile.close();
-
-    SaveTunnelsConfig();
-
-    onLoggingOptionsChange();
-
+    //onLoggingOptionsChange();
     return true;
 }
 
@@ -711,7 +742,7 @@ void MainWindow::updated() {
     adjustSizesAccordingToWrongLabel();
 
     applyTunnelsUiToConfigs();
-    saveAllConfigs();
+    saveAllConfigs(false);
 }
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
@@ -725,6 +756,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
             ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel, this);
+            tunconf->setTunnelPane(tunnelPane);
             int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
@@ -738,6 +770,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
             ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel, this);
+            tunconf->setTunnelPane(tunnelPane);
             int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
@@ -784,6 +817,10 @@ bool MainWindow::applyTunnelsUiToConfigs() {
     return true;
 }
 
+void MainWindow::reloadTunnelsConfigAndUI_QString(const QString tunnelNameToFocus) {
+    reloadTunnelsConfigAndUI(tunnelNameToFocus.toStdString());
+}
+
 void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
     deleteTunnelForms();
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
@@ -795,31 +832,6 @@ void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
     appendTunnelForms(tunnelNameToFocus);
 }
 
-void MainWindow::SaveTunnelsConfig() {
-    std::stringstream out;
-
-    for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
-        const std::string& name = it->first;
-        TunnelConfig* tunconf = it->second;
-        tunconf->saveHeaderToStringStream(out);
-        tunconf->saveToStringStream(out);
-        tunconf->saveI2CPParametersToStringStream(out);
-    }
-
-    using namespace std;
-
-    QString backup=tunconfpath+"~";
-    if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    if(QFile::exists(tunconfpath)) QFile::rename(tunconfpath, backup);//TODO handle errors
-    ofstream outfile;
-    outfile.open(tunconfpath.toStdString());//TODO handle errors
-    outfile << out.str().c_str();
-    outfile.close();
-
-    i2p::client::context.ReloadConfig();
-
-}
-
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string oldName, TunnelConfig* tunConf) {
     if(oldName!=tunConf->getName()) {
         //name has changed
@@ -827,7 +839,7 @@ void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string ol
         if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
         mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
     }
-    mainWindow->saveAllConfigs();
+    mainWindow->saveAllConfigs(true, tunConf->getName());
 }
 
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){
@@ -875,7 +887,8 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
         pageWithBackButton->show();
         textBrowser->hide();
         std::stringstream s;
-        i2p::http::ShowLocalDestination(s,str.toStdString());
+        std::string strstd = str.toStdString();
+        i2p::http::ShowLocalDestination(s,strstd,0);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
     }
 }

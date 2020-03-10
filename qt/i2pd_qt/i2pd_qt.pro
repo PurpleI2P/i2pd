@@ -91,7 +91,11 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     pagewithbackbutton.cpp \
     widgetlock.cpp \
     widgetlockregistry.cpp \
-    logviewermanager.cpp
+    logviewermanager.cpp \
+    DelayedSaveManager.cpp \
+    Saver.cpp \
+    DelayedSaveManagerImpl.cpp \
+    SaverImpl.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/api.h \
@@ -179,7 +183,11 @@ HEADERS  += DaemonQT.h mainwindow.h \
     widgetlock.h \
     widgetlockregistry.h \
     i2pd.rc \
-    logviewermanager.h
+    logviewermanager.h \
+    DelayedSaveManager.h \
+    Saver.h \
+    DelayedSaveManagerImpl.h \
+    SaverImpl.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
