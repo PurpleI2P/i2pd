@@ -24,10 +24,35 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
-		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity)
+		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params), 
+		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ())
 	{
 	}
 
+	I2CPDestination::~I2CPDestination ()
+	{
+		if (IsRunning ())
+			Stop ();
+	}	
+		
+	void I2CPDestination::Start ()
+	{
+		if (!IsRunning ())
+		{	
+			LeaseSetDestination::Start ();
+			StartIOService ();
+		}	
+	}
+		
+	void I2CPDestination::Stop ()
+	{
+		if (IsRunning ())
+		{	
+			LeaseSetDestination::Stop ();
+			StopIOService ();
+		}	
+	}	
+		
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
 	{
 		memcpy (m_EncryptionPrivateKey, key, 256);
@@ -556,7 +581,10 @@ namespace client
 				}				
 				// TODO: support multiple keys
 				if (currentKey)
+				{
 					m_Destination->SetEncryptionPrivateKey (currentKey);
+					m_Destination->SetEncryptionType (currentKeyType);
+				}
 
 				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ()); 
 			}
@@ -786,8 +814,11 @@ namespace client
 	{
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
-		for (auto& it: m_Sessions)
-			it.second->Stop ();
+		{
+			auto sessions = m_Sessions; 
+			for (auto& it: sessions)
+				it.second->Stop ();
+		}	
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)

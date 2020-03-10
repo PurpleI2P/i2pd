@@ -63,6 +63,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelPool.cpp \
     ../../libi2pd/util.cpp \
     ../../libi2pd/Elligator.cpp \
+    ../../libi2pd/ECIESX25519AEADRatchetSession.cpp \
     ../../libi2pd_client/AddressBook.cpp \
     ../../libi2pd_client/BOB.cpp \
     ../../libi2pd_client/ClientContext.cpp \
@@ -153,6 +154,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/util.h \
     ../../libi2pd/version.h \
     ../../libi2pd/Elligator.h \
+    ../../libi2pd/ECIESX25519AEADRatchetSession.h \
     ../../libi2pd_client/AddressBook.h \
     ../../libi2pd_client/BOB.h \
     ../../libi2pd_client/ClientContext.h \
@@ -216,6 +218,9 @@ macx {
 	LIBS += $$BOOSTROOT/lib/libboost_filesystem.a
 	LIBS += $$BOOSTROOT/lib/libboost_program_options.a
 	LIBS += $$UPNPROOT/lib/libminiupnpc.a
+	LIBS += -Wl,-dead_strip
+	LIBS += -Wl,-dead_strip_dylibs
+	LIBS += -Wl,-bind_at_load
 }
 
 linux:!android {

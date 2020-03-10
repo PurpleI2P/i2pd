@@ -30,8 +30,9 @@ android {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 29
         minSdkVersion 14
-        versionCode 2290
-        versionName "2.29.0"
+        versionCode 2300
+        versionName "2.30.0"
+        setProperty("archivesBaseName", archivesBaseName + "-" + versionName)
         ndk {
             abiFilters 'armeabi-v7a'
             abiFilters 'x86'
@@ -56,9 +57,10 @@ android {
     splits {
         abi {
             // change that to true if you need splitted apk
-            enable false
+            enable true
             reset()
-            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            //include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            include "armeabi-v7a", "x86"
             universalApk true
         }
     }
@@ -72,7 +74,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false
             signingConfig signingConfigs.orignal
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
         }
@@ -85,5 +87,18 @@ android {
     compileOptions {
         sourceCompatibility = '1.8'
         targetCompatibility = '1.8'
+    }
+}
+
+ext.abiCodes = ['armeabi-v7a':1, 'x86':2, 'arm64-v8a':3, 'x86_64':4]
+import com.android.build.OutputFile
+
+android.applicationVariants.all { variant ->
+    variant.outputs.each { output ->
+        def baseAbiVersionCode = project.ext.abiCodes.get(output.getFilter(OutputFile.ABI))
+
+        if (baseAbiVersionCode != null) {
+            output.versionCodeOverride = baseAbiVersionCode + variant.versionCode
+        }
     }
 }

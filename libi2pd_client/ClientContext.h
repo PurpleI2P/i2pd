@@ -68,8 +68,15 @@ namespace client
 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
 				const std::map<std::string, std::string> * params = nullptr); // used by SAM only
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service,
+				bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
+				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr);
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service, 
+				const i2p::data::PrivateKeys& keys, bool isPublic = true, 
+				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
 			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
@@ -107,6 +114,7 @@ namespace client
 			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
 
 			void CreateNewSharedLocalDestination (); 
+			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
 		private:
 

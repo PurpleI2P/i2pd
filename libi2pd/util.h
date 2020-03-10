@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <utility>
 #include <boost/asio.hpp>
 
@@ -122,6 +123,43 @@ namespace util
 			std::mutex m_Mutex;
 	};
 
+	class RunnableService
+	{
+		protected:
+
+			RunnableService (const std::string& name): m_Name (name), m_IsRunning (false) {}
+			virtual ~RunnableService () {}
+
+			boost::asio::io_service& GetIOService () { return m_Service; }
+			bool IsRunning () const { return m_IsRunning; };
+			
+			void StartIOService ();
+			void StopIOService ();
+
+		private:
+
+			void Run ();
+				
+		private:
+
+			std::string m_Name;
+			volatile bool m_IsRunning;
+			std::unique_ptr<std::thread> m_Thread;
+			boost::asio::io_service m_Service;
+	};	
+
+	class RunnableServiceWithWork: public RunnableService
+	{
+		protected:
+
+			RunnableServiceWithWork (const std::string& name): 
+				RunnableService (name), m_Work (GetIOService ()) {}		
+			
+		private:
+
+			boost::asio::io_service::work m_Work;
+	};	
+	
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);

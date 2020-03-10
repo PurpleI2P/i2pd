@@ -39,15 +39,23 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 // For future package update checking
 
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+
 import static android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS;
 
 public class I2PDActivity extends Activity {
+	private WebView webView;
+
 	private static final String TAG = "i2pdActvt";
 	private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
@@ -56,6 +64,7 @@ public class I2PDActivity extends Activity {
 	private TextView textView;
 	private boolean assetsCopied;
 	private String i2pdpath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/";
+	//private ConfigParser parser = new ConfigParser(i2pdpath); // TODO:
 
 	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 
@@ -262,6 +271,16 @@ public class I2PDActivity extends Activity {
 			case R.id.action_battery_otimizations:
 				onActionBatteryOptimizations();
 				return true;
+			case R.id.action_start_webview:
+				setContentView(R.layout.webview);
+				this.webView = (WebView) findViewById(R.id.webview1);
+				this.webView.setWebViewClient(new WebViewClient());
+
+				WebSettings webSettings = this.webView.getSettings();
+				webSettings.setBuiltInZoomControls(true);
+				webSettings.setJavaScriptEnabled(false);
+				this.webView.loadUrl("http://127.0.0.1:7070"); // TODO: instead 7070 I2Pd....HttpPort
+				break;
 		}
 
 		return super.onOptionsItemSelected(item);

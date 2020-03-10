@@ -58,14 +58,20 @@ const uint8_t key3[32] =
 	0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55
 };
 
+const uint8_t failed_key[32] =
+{
+    0xe6, 0xf6, 0x6f, 0xdf, 0x6e, 0x23, 0x0c, 0x60, 0x3c, 0x5e, 0x6e, 0x59, 0xa2, 0x54, 0xea, 0x14,
+	0x76, 0xa1, 0x3e, 0xb9, 0x51, 0x1b, 0x95, 0x49, 0x84, 0x67, 0x81, 0xe1, 0x2e, 0x52, 0x23, 0x0a
+};
+
 int main ()
 {
 	uint8_t buf[32];
 	i2p::crypto::Elligator2 el;
 	// encoding tests
-	el.Encode (key, buf);
+	el.Encode (key, buf, false, false);
 	assert(memcmp (buf, encoded_key, 32) == 0);
-	el.Encode (key, buf, true); // with highY
+	el.Encode (key, buf, true, false); // with highY
 	assert(memcmp (buf, encoded_key_high_y, 32) == 0);
 	// decoding tests
 	el.Decode (encoded1, buf);
@@ -74,4 +80,6 @@ int main ()
 	assert(memcmp (buf, key2, 32) == 0);
 	el.Decode (encoded3, buf);
 	assert(memcmp (buf, key3, 32) == 0);
+    // encoding fails
+    assert (!el.Encode (failed_key, buf));
 }

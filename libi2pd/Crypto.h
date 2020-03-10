@@ -27,8 +27,8 @@
 #   define X509_getm_notAfter X509_get_notAfter
 #else
 #   define LEGACY_OPENSSL 0
-#	define OPENSSL_HKDF 1
 #   if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
+#	   define OPENSSL_HKDF 1
 #	   define OPENSSL_EDDSA 1
 #	   define OPENSSL_X25519 1
 #	   define OPENSSL_SIPHASH 1

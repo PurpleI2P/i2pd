@@ -15,6 +15,7 @@
 #include <thread>
 #include <map>
 #include <boost/asio.hpp>
+#include "util.h"
 #include "Destination.h"
 
 namespace i2p
@@ -61,19 +62,25 @@ namespace client
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
 	class I2CPSession;
-	class I2CPDestination: public LeaseSetDestination
+	class I2CPDestination: private i2p::util::RunnableService, public LeaseSetDestination
 	{
 		public:
 
 			I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
-
+			~I2CPDestination ();
+			
+			void Start ();
+			void Stop ();
+			
 			void SetEncryptionPrivateKey (const uint8_t * key);
+			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
 			void LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len); // called from I2CPSession
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
+			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 		protected:
@@ -93,6 +100,7 @@ namespace client
 			std::shared_ptr<I2CPSession> m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
 			uint8_t m_EncryptionPrivateKey[256];
+			i2p::data::CryptoKeyType m_EncryptionKeyType;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LeaseSetExpirationTime;
 	};

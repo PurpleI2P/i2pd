@@ -394,13 +394,15 @@ namespace client
 
 	void I2PControlService::RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
+		bool first = true;
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			LogPrint (eLogDebug, "I2PControl: RouterInfo request: ", it->first);
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
 			{
-				if (it != params.begin ()) results << ",";
+				if (!first) results << ","; 
+				else first = false;		
 				(this->*(it1->second))(results);
 			}
 			else

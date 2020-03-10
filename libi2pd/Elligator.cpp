@@ -1,3 +1,4 @@
+#include <openssl/rand.h>
 #include "Crypto.h"
 #include "Elligator.h"
 
@@ -39,8 +40,8 @@ namespace crypto
 		BN_free (u); BN_free (iu); 
 	}
 
-	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded, bool highY) const
-	{
+	bool Elligator2::Encode (const uint8_t * key, uint8_t * encoded, bool highY, bool random) const
+    {
 		bool ret = true;
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
@@ -61,7 +62,14 @@ namespace crypto
 		BN_mod_mul (uxxA, uxxA, xA, p, ctx);	
 		
 		if (Legendre (uxxA, ctx) != -1)
-		{		
+		{	
+            uint8_t randByte = 0; // random highest bits and high y
+			if (random)
+			{	
+            	RAND_bytes (&randByte, 1);
+            	highY = randByte & 0x01;
+			}
+			
 			BIGNUM * r = BN_CTX_get (ctx);
 			if (highY)
 			{
@@ -77,7 +85,9 @@ namespace crypto
 		
 			SquareRoot (r, r, ctx);
 			bn2buf (r, encoded, 32);
-		
+
+			if (random)
+            	encoded[0] |= (randByte & 0xC0); // copy two highest bits from randByte
 			for (size_t i = 0; i < 16; i++) // To Little Endian
 			{
 				uint8_t tmp = encoded[i];
@@ -105,6 +115,7 @@ namespace crypto
 			encoded1[i] = encoded[31 - i];
 			encoded1[31 - i] = encoded[i];
 		}
+        encoded1[0] &= 0x3F; // drop two highest bits
 
 		BIGNUM * r = BN_CTX_get (ctx); BN_bin2bn (encoded1, 32, r);
 

@@ -35,6 +35,7 @@ namespace http
 			void HandlePage    (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
 			void HandleCommand (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
 			void SendReply     (HTTPRes & res, std::string & content);
+			uint32_t CreateToken ();
 
 		private:
 

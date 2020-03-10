@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <boost/asio.hpp>
+#include "util.h"
 #include "I2PTunnel.h"
 #include "I2PService.h"
 #include "Identity.h"
@@ -231,7 +232,7 @@ namespace client
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
-	class BOBCommandChannel
+	class BOBCommandChannel: private i2p::util::RunnableService
 	{
 		public:
 
@@ -241,22 +242,18 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return GetIOService (); };
 			void AddDestination (const std::string& name, BOBDestination * dest);
 			void DeleteDestination (const std::string& name);
 			BOBDestination * FindDestination (const std::string& name);
 
 		private:
 
-			void Run ();
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<BOBCommandSession> session);
 
 		private:
 
-			bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::map<std::string, BOBDestination *> m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;

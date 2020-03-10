@@ -10,12 +10,12 @@ namespace client
 	/**
 		 client tunnel that uses same OBEP as IBGW of each remote lease for a remote destination
 	 */
-	class MatchedTunnelDestination : public ClientDestination, public i2p::tunnel::ITunnelPeerSelector
+	class MatchedTunnelDestination : public RunnableClientDestination, public i2p::tunnel::ITunnelPeerSelector
 	{
 	public:
 		MatchedTunnelDestination(const i2p::data::PrivateKeys& keys, const std::string & remoteName, const std::map<std::string, std::string> * params = nullptr);
-		bool Start();
-		bool Stop();
+		void Start();
+		void Stop();
 
 		bool SelectPeers(i2p::tunnel::Path & peers, int hops, bool inbound);
 		bool OnBuildResult(const i2p::tunnel::Path & peers, bool inbound, i2p::tunnel::TunnelBuildResult result);

@@ -60,7 +60,7 @@ namespace config {
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", value<bool>()->default_value(false),                      "Enable NTCP transport (default: disabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
+			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")			
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -131,6 +131,7 @@ namespace config {
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
 			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+			("sam.singlethread", value<bool>()->default_value(true),         "Sessions run in the SAM bridge's thread")
 		;
 
 		options_description bob("BOB options");
@@ -190,9 +191,10 @@ namespace config {
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
 				"https://netdb.i2p2.no/,"
+			    "https://reseed.i2p2.no/,"
+			    "https://reseed2.i2p2.no/,"
 				// "https://us.reseed.i2p2.no:444/," // mamoth's shit
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
-				"https://download.xxlspeed.com/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
@@ -237,6 +239,7 @@ namespace config {
 			("ntcp2.published", value<bool>()->default_value(true), "Publish NTCP2 (default: enabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
+			("ntcp2.proxy", value<std::string>()->default_value(""), "Proxy URL for NTCP2 transport")
 		;
 
 		options_description nettime("Time sync options");
@@ -303,16 +306,16 @@ namespace config {
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
 			std::cout << m_OptionsDesc;
 			exit(EXIT_SUCCESS);
-		} 
+		}
 		else if (m_Options.count("version"))
 		{
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
-			std::cout << "Boost version "     
+			std::cout << "Boost version "
 					  << BOOST_VERSION / 100000     << "."  // maj. version
 					  << BOOST_VERSION / 100 % 1000 << "."  // min. version
 					  << BOOST_VERSION % 100                // patch version
 					  << std::endl;
-#if defined(OPENSSL_VERSION_TEXT) 
+#if defined(OPENSSL_VERSION_TEXT)
 			std::cout << OPENSSL_VERSION_TEXT << std::endl;
 #endif
 #if defined(LIBRESSL_VERSION_TEXT)

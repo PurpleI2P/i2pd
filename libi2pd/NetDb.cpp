@@ -950,7 +950,7 @@ namespace data
 					if (numTags)
 					{
 						const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
-						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
+						i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 						if(replyMsg == nullptr) LogPrint(eLogError, "NetDb: failed to wrap message");
 					}

@@ -251,18 +251,19 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases):
-		LeaseSet (storeLeases), m_StoreType (storeType)
+	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
+		LeaseSet (storeLeases), m_StoreType (storeType), m_EncryptionType (preferredCrypto)
 	{	
-		SetBuffer (buf, len);
+		SetBuffer (buf, len);	
 		if (storeType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 			ReadFromBufferEncrypted (buf, len, nullptr, nullptr);
 		else
 			ReadFromBuffer (buf, len);
 	}
 
-	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret):
-		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
+	LeaseSet2::LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, 
+		const uint8_t * secret, CryptoKeyType preferredCrypto):
+		LeaseSet (true), m_StoreType (NETDB_STORE_TYPE_ENCRYPTED_LEASESET2), m_EncryptionType (preferredCrypto)
 	{
 		ReadFromBufferEncrypted (buf, len, key, secret);
 	}
@@ -355,6 +356,8 @@ namespace data
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		if (offset + 1 >= len) return 0;
 		// key sections
+		CryptoKeyType preferredKeyType = m_EncryptionType;
+		bool preferredKeyFound = false;
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
@@ -362,15 +365,15 @@ namespace data
 			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2; 
 			if (offset + encryptionKeyLen >= len) return 0;
-			if (IsStoreLeases ()) // create encryptor with leases only
+			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
-				// we pick first valid key, higher key type has higher priority 4-1-0
-				// if two keys with of the same type, pick first
+				// we pick first valid key if preferred not found
 				auto encryptor = i2p::data::IdentityEx::CreateEncryptor (keyType, buf + offset);
-				if (encryptor && (!m_Encryptor || keyType > m_EncryptionType))
+				if (encryptor && (!m_Encryptor || keyType == preferredKeyType))
 				{
 					m_Encryptor = encryptor; // TODO: atomic
 					m_EncryptionType = keyType;
+					if (keyType == preferredKeyType) preferredKeyFound = true;
 				}
 			}
 			offset += encryptionKeyLen; 
