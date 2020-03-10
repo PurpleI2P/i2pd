@@ -664,6 +664,36 @@ void MainWindow::loadAllConfigs(SaverImpl* saverPtr){
 
     //onLoggingOptionsChange();
 }
+
+void MainWindow::layoutTunnels() {
+
+    int height=0;
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(0,0,0,0);
+    for(std::map<std::string, TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
+        const std::string& name=it->first;
+        TunnelConfig* tunconf = it->second;
+        TunnelPane * tunnelPane=tunconf->getTunnelPane();
+        if(!tunnelPane)continue;
+        int h=tunnelPane->height();
+        height+=h;
+        //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+        //int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
+    }
+    //qDebug() << "tun.setting height:" << height;
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
+    /*QList<QWidget*> childWidgets = ui->tunnelsScrollAreaWidgetContents->findChildren<QWidget*>();
+    foreach(QWidget* widget, childWidgets)
+        widget->show();*/
+}
+
+void MainWindow::deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf) {
+    TunnelPane* tp = cnf->getTunnelPane();
+    if(!tp)return;
+    tunnelPanes.remove(tp);
+    tp->deleteWidget();
+    layoutTunnels();
+}
+
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
@@ -681,6 +711,7 @@ bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocu
         }
     }
     delayedSaveManagerPtr->delayedSave(++dataSerial, focusOnTunnel, tunnelNameToFocus);
+
     //onLoggingOptionsChange();
     return true;
 }
@@ -725,6 +756,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
             ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel, this);
+            tunconf->setTunnelPane(tunnelPane);
             int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
@@ -738,6 +770,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
             ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel, this);
+            tunconf->setTunnelPane(tunnelPane);
             int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
@@ -854,7 +887,8 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
         pageWithBackButton->show();
         textBrowser->hide();
         std::stringstream s;
-        i2p::http::ShowLocalDestination(s,str.toStdString());
+        std::string strstd = str.toStdString();
+        i2p::http::ShowLocalDestination(s,strstd,0);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
     }
 }

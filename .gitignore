@@ -258,7 +258,7 @@ build/Makefile
 
 # qt 
 
-qt/i2pd_qt/*.ui.autosave
+qt/i2pd_qt/*.autosave
 qt/i2pd_qt/*.ui.bk*
 qt/i2pd_qt/*.ui_*
 
@@ -267,4 +267,6 @@ android/libs/
 
 #various logs
 *LOGS/
+
+qt/build-*.sh*
 

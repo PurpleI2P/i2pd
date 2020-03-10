@@ -18,7 +18,7 @@ public:
     virtual bool appExiting()=0;
 
     virtual bool needsFocusOnTunnel()=0;
-    virtual std::string getTunnelNameToFocus()=0;
+    virtual std::string& getTunnelNameToFocus()=0;
 };
 
 #endif // DELAYEDSAVEMANAGER_H

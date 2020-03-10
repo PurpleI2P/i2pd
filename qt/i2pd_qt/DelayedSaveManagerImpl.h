@@ -60,22 +60,22 @@ public:
     static TIMESTAMP_TYPE getTime();
 
     bool needsFocusOnTunnel();
-    std::string getTunnelNameToFocus();
+    std::string& getTunnelNameToFocus();
 
 private:
     Saver* saver;
     bool isSaverValid();
 
-    volatile DATA_SERIAL_TYPE lastDataSerialSeen;
+    DATA_SERIAL_TYPE lastDataSerialSeen;
 
     static constexpr TIMESTAMP_TYPE A_VERY_OBSOLETE_TIMESTAMP=DelayedSaveThread::A_VERY_OBSOLETE_TIMESTAMP;
     TIMESTAMP_TYPE lastSaveStartedTimestamp;
 
-    volatile bool exiting;
+    bool exiting;
     DelayedSaveThread* thread;
     void wakeThreadAndJoinThread();
 
-    volatile bool focusOnTunnel;
+    bool focusOnTunnel;
     std::string tunnelNameToFocus;
 };
 

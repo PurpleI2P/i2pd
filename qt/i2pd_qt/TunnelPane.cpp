@@ -83,6 +83,11 @@ void TunnelPane::setupTunnelPane(
     retranslateTunnelForm(*this);
 }
 
+void TunnelPane::deleteWidget() {
+    //gridLayoutWidget_2->deleteLater();
+    tunnelGroupBox->deleteLater();
+}
+
 void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex) {
     {
         //number of hops of an inbound tunnel

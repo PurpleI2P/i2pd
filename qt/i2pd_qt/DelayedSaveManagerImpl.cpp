@@ -21,10 +21,10 @@ bool DelayedSaveManagerImpl::isSaverValid() {
     return saver != nullptr;
 }
 
-void DelayedSaveManagerImpl::delayedSave(DATA_SERIAL_TYPE dataSerial, bool focusOnTunnel, std::string tunnelNameToFocus) {
+void DelayedSaveManagerImpl::delayedSave(DATA_SERIAL_TYPE dataSerial, bool focusOnTunnel, std::string tunnelNameToFocus_) {
     if(lastDataSerialSeen==dataSerial)return;
     this->focusOnTunnel = focusOnTunnel;
-    this->tunnelNameToFocus = tunnelNameToFocus;
+    tunnelNameToFocus = tunnelNameToFocus_;
     lastDataSerialSeen=dataSerial;
     assert(isSaverValid());
     TIMESTAMP_TYPE now = getTime();
@@ -135,6 +135,6 @@ bool DelayedSaveManagerImpl::needsFocusOnTunnel() {
     return focusOnTunnel;
 }
 
-std::string DelayedSaveManagerImpl::getTunnelNameToFocus() {
+std::string& DelayedSaveManagerImpl::getTunnelNameToFocus() {
     return tunnelNameToFocus;
 }

@@ -513,6 +513,7 @@ protected:
     NonGUIOptionItem* initNonGUIOption(ConfigOption option);
 
     void loadAllConfigs(SaverImpl* saverPtr);
+    void layoutTunnels();
 
 public slots:
     /** returns false iff not valid items present and save was aborted */
@@ -540,6 +541,7 @@ private:
 
     void appendTunnelForms(std::string tunnelNameToFocus);
     void deleteTunnelForms();
+    void deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf);
 
     template<typename Section, typename Type>
     std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
@@ -585,6 +587,7 @@ private:
         std::map<std::string,TunnelConfig*>::const_iterator it=tunnelConfigs.find(name);
         if(it!=tunnelConfigs.end()){
             TunnelConfig* tc=it->second;
+            deleteTunnelFromUI(name, tc);
             tunnelConfigs.erase(it);
             delete tc;
         }

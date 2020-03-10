@@ -40,6 +40,9 @@ public:
 
 class ClientTunnelConfig;
 class ServerTunnelConfig;
+
+class TunnelPane;
+
 class TunnelConfig {
     /*
     const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
@@ -54,6 +57,7 @@ class TunnelConfig {
     */
     QString type;
     std::string name;
+    TunnelPane* tunnelPane;
 public:
     TunnelConfig(std::string name_, QString& type_, I2CPParameters& i2cpParameters_):
         type(type_), name(name_), i2cpParameters(i2cpParameters_) {}
@@ -68,7 +72,8 @@ public:
     virtual void saveToStringStream(std::stringstream& out)=0;
     virtual ClientTunnelConfig* asClientTunnelConfig()=0;
     virtual ServerTunnelConfig* asServerTunnelConfig()=0;
-
+    void setTunnelPane(TunnelPane* tp){this->tunnelPane = tp;}
+    TunnelPane* getTunnelPane() {return tunnelPane;}
 private:
     I2CPParameters i2cpParameters;
 };
