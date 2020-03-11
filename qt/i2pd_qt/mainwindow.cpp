@@ -265,10 +265,6 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(      OPTION("trust","routers",[]{return "";}), uiSettings->lineEditTrustRouters);
     initCheckBox(       OPTION("trust","hidden",[]{return "false";}), uiSettings->checkBoxTrustHidden);
 
-    initCheckBox(       OPTION("websockets","enabled",[]{return "false";}), uiSettings->checkBoxWebsocketsEnable);
-    initIPAddressBox(   OPTION("websockets","address",[]{return "127.0.0.1";}), uiSettings->lineEdit_webSock_addr, tr("Websocket server -> IP address"));
-    initTCPPortBox(     OPTION("websockets","port",[]{return "7666";}), uiSettings->lineEdit_webSock_port, tr("Websocket server -> Port"));
-
 #   undef OPTION
 
     //widgetlocks.add(new widgetlock(widget,lockbtn));

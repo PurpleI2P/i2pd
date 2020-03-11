@@ -20,7 +20,6 @@ option(WITH_MESHNET "Build for cjdns test network" OFF)
 option(WITH_ADDRSANITIZER "Build with address sanitizer unix only" OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only" OFF)
 option(WITH_I2LUA "Build for i2lua" OFF)
-option(WITH_WEBSOCKETS "Build with websocket ui" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -75,7 +74,6 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/Signature.cpp"
   "${LIBI2PD_SRC_DIR}/Timestamp.cpp"
   "${LIBI2PD_SRC_DIR}/api.cpp"
-  "${LIBI2PD_SRC_DIR}/Event.cpp"
   "${LIBI2PD_SRC_DIR}/Gost.cpp"
   "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"
   "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
@@ -85,11 +83,6 @@ set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/Elligator.cpp"
   "${LIBI2PD_SRC_DIR}/ECIESX25519AEADRatchetSession.cpp"    
 )
-
-if (WITH_WEBSOCKETS)
-  add_definitions(-DWITH_EVENTS)
-  find_package(websocketpp REQUIRED)
-endif ()
 
 if (WIN32 OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
@@ -126,10 +119,6 @@ set (CLIENT_SRC
   "${LIBI2PD_CLIENT_SRC_DIR}/I2CP.cpp"
   "${LIBI2PD_CLIENT_SRC_DIR}/WebSocks.cpp"
 )
-
-if(WITH_WEBSOCKETS)
-  list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
-endif ()
 
 add_library(libi2pdclient ${CLIENT_SRC})
 set_target_properties(libi2pdclient PROPERTIES PREFIX "")
@@ -427,7 +416,6 @@ message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "  I2LUA            : ${WITH_I2LUA}")
-message(STATUS "  WEBSOCKETS       : ${WITH_WEBSOCKETS}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely

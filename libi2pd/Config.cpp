@@ -218,13 +218,6 @@ namespace config {
 			("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
 		;
 
-		options_description websocket("Websocket Options");
-		websocket.add_options()
-			("websockets.enabled", value<bool>()->default_value(false),              "Enable websocket server")
-			("websockets.address", value<std::string>()->default_value("127.0.0.1"), "Address to bind websocket server on")
-			("websockets.port", value<uint16_t>()->default_value(7666),              "Port to bind websocket server on")
-		;
-
 		options_description exploratory("Exploratory Options");
 		exploratory.add_options()
 			("exploratory.inbound.length", value<int>()->default_value(2),    "Exploratory inbound tunnel length")
@@ -275,7 +268,6 @@ namespace config {
 			.add(reseed)
 			.add(addressbook)
 			.add(trust)
-			.add(websocket)
 			.add(exploratory)
 			.add(ntcp2)
 			.add(nettime)

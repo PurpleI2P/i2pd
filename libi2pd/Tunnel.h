@@ -19,49 +19,11 @@
 #include "TunnelGateway.h"
 #include "TunnelBase.h"
 #include "I2NPProtocol.h"
-#include "Event.h"
 
 namespace i2p
 {
 namespace tunnel
 {
-
-  template<typename TunnelT>
-  static void EmitTunnelEvent(const std::string & ev, const TunnelT & t)
-  {
-#ifdef WITH_EVENTS
-    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}});
-#else
-		(void) ev;
-		(void) t;
-#endif
-  }
-
-  template<typename TunnelT, typename T>
-  static void EmitTunnelEvent(const std::string & ev, TunnelT * t, const T & val)
-  {
-#ifdef WITH_EVENTS
-    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", std::to_string(val)}, {"inbound", std::to_string(t->IsInbound())}});
-#else
-		(void) ev;
-		(void) t;
-		(void) val;
-#endif
-  }
-
-  template<typename TunnelT>
-  static void EmitTunnelEvent(const std::string & ev, TunnelT * t, const std::string & val)
-  {
-#ifdef WITH_EVENTS
-    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", val}, {"inbound", std::to_string(t->IsInbound())}});
-#else
-		(void) ev;
-		(void) t;
-		(void) val;
-#endif
-  }
-
-
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes
 	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute
 	const int TUNNEL_RECREATION_THRESHOLD = 90; // 1.5 minutes

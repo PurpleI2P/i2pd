@@ -37,7 +37,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_CRYPTO_TYPE[] = "cryptotype";
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
 	const char I2P_CLIENT_TUNNEL_MATCH_TUNNELS[] = "matchtunnels";
-  const char I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT[] = "connecttimeout";
+	const char I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT[] = "connecttimeout";
 	const char I2P_SERVER_TUNNEL_HOST[] = "host";
 	const char I2P_SERVER_TUNNEL_HOST_OVERRIDE[] = "hostoverride";
 	const char I2P_SERVER_TUNNEL_PORT[] = "port";

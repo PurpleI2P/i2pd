@@ -27,10 +27,6 @@ else
 	LD_DEBUG = -s
 endif
 
-ifeq ($(WEBSOCKETS),1)
-	NEEDED_CXXFLAGS += -DWITH_EVENTS
-endif
-
 ifneq (, $(findstring darwin, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
