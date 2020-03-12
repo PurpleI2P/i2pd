@@ -11,7 +11,7 @@ LIB_SRC = $(wildcard $(LIB_SRC_DIR)/*.cpp)
 
 #LIB_CLIENT_SRC = \
 #	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp MatchedDestination.cpp \
-#	SAM.cpp SOCKS.cpp HTTPProxy.cpp I2CP.cpp WebSocks.cpp
+#	SAM.cpp SOCKS.cpp HTTPProxy.cpp I2CP.cpp
 
 LIB_CLIENT_SRC = $(wildcard $(LIB_CLIENT_SRC_DIR)/*.cpp)
 

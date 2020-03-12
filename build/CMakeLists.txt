@@ -117,7 +117,6 @@ set (CLIENT_SRC
   "${LIBI2PD_CLIENT_SRC_DIR}/SOCKS.cpp"
   "${LIBI2PD_CLIENT_SRC_DIR}/HTTPProxy.cpp"
   "${LIBI2PD_CLIENT_SRC_DIR}/I2CP.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/WebSocks.cpp"
 )
 
 add_library(libi2pdclient ${CLIENT_SRC})

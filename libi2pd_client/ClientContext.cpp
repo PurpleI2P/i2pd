@@ -9,7 +9,6 @@
 #include "util.h"
 #include "ClientContext.h"
 #include "SOCKS.h"
-#include "WebSocks.h"
 #include "MatchedDestination.h"
 
 namespace i2p
@@ -598,10 +597,8 @@ namespace client
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
 						{
-							// websocks proxy
-							auto tun = std::make_shared<WebSocks>(address, port, localDestination);
-							clientTunnel = tun;
-							clientEndpoint = tun->GetLocalEndpoint();
+							LogPrint(eLogError, "Clients: I2P Client tunnel websocks is deprecated");
+							continue;
 						}
 						else
 						{
