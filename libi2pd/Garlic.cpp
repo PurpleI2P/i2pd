@@ -783,7 +783,7 @@ namespace garlic
 		m_DeliveryStatusSessions.erase (msgID);
 	}
 
-	void GarlicDestination::DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID)
+	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID)
 	{
 		std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 		m_DeliveryStatusSessions[msgID] = session;

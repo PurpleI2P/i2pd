@@ -477,6 +477,7 @@ namespace garlic
 			SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
 			SetLeaseSetUpdateMsgID (leaseSet->GetMsgID ());
 			SetLeaseSetSubmissionTime (ts);
+			GetOwner ()->DeliveryStatusSent (shared_from_this (), leaseSet->GetMsgID ());
 		}	
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
