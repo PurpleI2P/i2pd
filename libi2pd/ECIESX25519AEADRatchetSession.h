@@ -85,7 +85,7 @@ namespace garlic
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
 			
-			bool IsExpired (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; }
+			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_RESTART_TIMEOUT; }
 
         private:

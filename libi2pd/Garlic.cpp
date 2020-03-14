@@ -70,6 +70,16 @@ namespace garlic
 		return false;
 	}	
 
+	void GarlicRoutingSession::CleanupUnconfirmedLeaseSet (uint64_t ts)
+	{
+		if (m_LeaseSetUpdateMsgID && ts*1000LL > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
+		{
+			if (GetOwner ())
+				GetOwner ()->RemoveDeliveryStatusSession (m_LeaseSetUpdateMsgID);
+			m_LeaseSetUpdateMsgID = 0;
+		}
+	}	
+		
 	std::shared_ptr<I2NPMessage> GarlicRoutingSession::CreateEncryptedDeliveryStatusMsg (uint32_t msgID)
 	{
 		auto msg = CreateDeliveryStatusMsg (msgID);
@@ -390,12 +400,7 @@ namespace garlic
 				++it;
 		}
 		CleanupUnconfirmedTags ();
-		if (GetLeaseSetUpdateMsgID () && ts*1000LL > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)
-		{
-			if (GetOwner ())
-				GetOwner ()->RemoveDeliveryStatusSession (GetLeaseSetUpdateMsgID ());
-			SetLeaseSetUpdateMsgID (0);
-		}
+		CleanupUnconfirmedLeaseSet (ts);
 		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
 	}
 
@@ -767,7 +772,7 @@ namespace garlic
 
 		for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
 		{
-			if (it->second->IsExpired (ts))
+			if (it->second->CheckExpired (ts))
 			{
 				it->second->SetOwner (nullptr);
 				it = m_ECIESx25519Sessions.erase (it);

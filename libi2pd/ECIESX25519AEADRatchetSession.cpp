@@ -571,6 +571,12 @@ namespace garlic
 		}	
 		m_NumReceiveTags += numTags;	
 	}	
+
+	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)
+	{ 
+		CleanupUnconfirmedLeaseSet (ts);
+		return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; 
+	}	
 }
 }
 
