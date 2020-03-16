@@ -552,6 +552,7 @@ namespace garlic
 				LogPrint (eLogError, "Garlic: No inbound tunnels in the pool for DeliveryStatus");
 				return 0;
 			}	
+			*buf = msg->GetTypeID (); // I2NP msg type
 			htobe32buf (buf + 1, msg->GetMsgID ()); // msgID     
         	htobe32buf (buf + 5, msg->GetExpiration ()/1000); // expiration in seconds     
         	memcpy (buf + 9, msg->GetPayload (), msg->GetPayloadLength ());
