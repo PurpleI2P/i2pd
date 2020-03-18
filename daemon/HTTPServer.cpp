@@ -299,7 +299,7 @@ namespace http {
 			}
 			s << "</tbody></table>\r\n";
 		}
-		s << "</table>\r\n</div>\r\n</div>\r\n";
+		s << "</div>\r\n</div>\r\n";
 		if(outputFormat==OutputFormatEnum::forQtUi) {
 			s << "<br>";
 		}
