@@ -388,7 +388,7 @@ namespace client
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
-						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset, true, GetEncryptionType ()); // LeaseSet2
+						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset, true, GetPreferredCryptoType () ); // LeaseSet2
 					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
 					{
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
@@ -412,7 +412,7 @@ namespace client
 				auto it2 = m_LeaseSetRequests.find (key);
 				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedBlindedKey)
 				{
-					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? *m_LeaseSetPrivKey : nullptr, GetEncryptionType ());
+					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset, it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? *m_LeaseSetPrivKey : nullptr, GetPreferredCryptoType ());
 					if (ls2->IsValid ())
 					{
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
@@ -822,6 +822,13 @@ namespace client
 		}
 	}
 
+	i2p::data::CryptoKeyType LeaseSetDestination::GetPreferredCryptoType () const
+	{
+		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
+		    return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET;
+		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;   
+	}	
+		
 	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
 		bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (service, isPublic, params), 

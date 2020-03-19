@@ -126,7 +126,7 @@ namespace garlic
         if (!GetOwner ()) return false;
         // we are Bob
         // KDF1
-        MixHash (GetOwner ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || bpk)    
+        MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET), 32); // h = SHA256(h || bpk)    
 		
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{ 
@@ -235,7 +235,7 @@ namespace garlic
         // encrypt static key section
         uint8_t nonce[12];
 		CreateNonce (0, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
 			return false;

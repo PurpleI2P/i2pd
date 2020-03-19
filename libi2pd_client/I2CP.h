@@ -80,7 +80,8 @@ namespace client
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
-			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
+			// TODO: implement GetEncryptionPublicKey 
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 		protected:

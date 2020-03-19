@@ -488,7 +488,7 @@ namespace garlic
 		else
 		{
 			// tag not found. Handle depending on encryption type
-			if (GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
 			{
 				HandleECIESx25519 (buf, length);	
 				return;
@@ -680,7 +680,7 @@ namespace garlic
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
         if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET &&
-            GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET)
+            SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
         {
             ECIESX25519AEADRatchetSessionPtr session;
             uint8_t staticKey[32];
