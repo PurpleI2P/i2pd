@@ -97,6 +97,7 @@ namespace data
 			// called from LeaseSet2
 			LeaseSet (bool storeLeases);
 			void SetBuffer (const uint8_t * buf, size_t len);
+		  	void SetBufferLen (size_t len);
 			void SetIdentity (std::shared_ptr<const IdentityEx> identity) { m_Identity = identity; };
 			void SetExpirationTime (uint64_t t) { m_ExpirationTime = t; };
 			void SetIsValid (bool isValid) { m_IsValid = isValid; };

@@ -251,6 +251,13 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
+	void LeaseSet::SetBufferLen (size_t len)
+	{
+		if (len <= m_BufferLen) m_BufferLen = len;
+		else
+			LogPrint (eLogError, "LeaseSet2: actual buffer size ", len , " exceeds full buffer size ", m_BufferLen);
+	}	
+		
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
 		LeaseSet (storeLeases), m_StoreType (storeType), m_EncryptionType (preferredCrypto)
 	{	
@@ -331,6 +338,8 @@ namespace data
 				VerifySignature (identity, buf, len, offset);	
 			SetIsValid (verified);	
 		}
+		offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : identity->GetSignatureLen ();
+		SetBufferLen (offset);
 	}
 
 	template<typename Verifier>
@@ -536,6 +545,12 @@ namespace data
 			}
 			else
 				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+		}	
+		else
+		{
+			// we set actual length of encrypted buffer
+			offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : blindedVerifier->GetSignatureLen ();
+			SetBufferLen (offset);
 		}	
 	}
 
