@@ -271,11 +271,11 @@ namespace transport
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
-                if (m_IsNAT)
-                {
-                    m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
-                    m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
-                }
+		if (m_IsNAT)
+		{
+			m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+		}
 	}
 
 	void Transports::Stop ()
@@ -589,6 +589,7 @@ namespace transport
 		if (RoutesRestricted() || !i2p::context.SupportsV4 ()) return;
 		if (m_SSUServer)
 		{
+			LogPrint (eLogInfo, "Transports: Started peer test");
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -604,7 +605,7 @@ namespace transport
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Can't find routers for peer test");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test");
 		}
 	}
 

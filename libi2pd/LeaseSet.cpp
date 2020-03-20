@@ -159,7 +159,7 @@ namespace data
 			}
 		}
 		else
-			LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
+			LogPrint (eLogWarning, "LeaseSet: Lease is expired already");
 	}
 
 	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const
