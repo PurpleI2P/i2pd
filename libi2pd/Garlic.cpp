@@ -890,7 +890,7 @@ namespace garlic
 					m_Tags.insert (std::make_pair (SessionTag (tag, ts), decryption));
 				}
 				if (!m_Tags.empty ())
-					LogPrint (eLogInfo, "Garlic: " m_Tags.size (), " tags loaded for ", ident);
+					LogPrint (eLogInfo, "Garlic: ", m_Tags.size (), " tags loaded for ", ident);
 			}
 		}
 		i2p::fs::Remove (path);
