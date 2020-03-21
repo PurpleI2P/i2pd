@@ -572,7 +572,7 @@ namespace client
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
 					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
 					if (offset + keyLen > len) return;
-					if (keyType > currentKeyType)
+					if (!currentKey || keyType > currentKeyType)
 					{
 						currentKeyType = keyType;
 						currentKey = buf + offset;
