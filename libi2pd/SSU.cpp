@@ -160,6 +160,13 @@ namespace transport
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "SSU: receivers runtime exception: ", ex.what ());
+				if (m_IsRunning)
+				{
+					// restart socket
+					m_Socket.close ();
+					OpenSocket ();
+					Receive ();
+				}	
 			}
 		}
 	}
@@ -175,6 +182,12 @@ namespace transport
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "SSU: v6 receivers runtime exception: ", ex.what ());
+				if (m_IsRunning)
+				{
+					m_SocketV6.close ();
+					OpenSocketV6 ();
+					ReceiveV6 ();
+				}	
 			}
 		}
 	}
