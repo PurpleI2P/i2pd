@@ -246,8 +246,16 @@ namespace client
 			m_PayloadLen = bufbe32toh (m_Header + I2CP_HEADER_LENGTH_OFFSET);
 			if (m_PayloadLen > 0)
 			{
-				m_Payload = new uint8_t[m_PayloadLen];
-				ReceivePayload ();
+				if (m_PayloadLen <= I2CP_MAX_MESSAGE_LENGTH)
+				{	
+					m_Payload = new uint8_t[m_PayloadLen];
+					ReceivePayload ();
+				}
+				else
+				{
+					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen); 
+					Terminate ();
+				}	
 			}
 			else // no following payload
 			{
