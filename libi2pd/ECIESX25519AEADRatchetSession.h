@@ -119,7 +119,6 @@ namespace garlic
             SessionState m_State = eSessionStateNew;
 			uint64_t m_LastActivityTimestamp = 0; // incoming
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
-			int m_NumReceiveTags = 0;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
     };
 }

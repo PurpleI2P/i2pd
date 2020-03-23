@@ -402,8 +402,7 @@ namespace garlic
 			return false;
 		}	
 		HandlePayload (payload.data (), len - 16); 
-		if (m_NumReceiveTags > 0)m_NumReceiveTags--;
-		if (m_NumReceiveTags <= GetOwner ()->GetNumTags ()*2/3)
+		if (m_ReceiveTagset.GetNextIndex () - index <= GetOwner ()->GetNumTags ()*2/3)
 			GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());		
 		return true;
 	}
@@ -570,7 +569,6 @@ namespace garlic
 			uint64_t tag = m_ReceiveTagset.GetNextSessionTag ();
 			GetOwner ()->AddECIESx25519SessionTag (index, tag, shared_from_this ());
 		}	
-		m_NumReceiveTags += numTags;	
 	}	
 
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)
