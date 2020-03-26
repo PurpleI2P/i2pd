@@ -38,6 +38,7 @@ namespace garlic
     {
         i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
 		m_NextIndex++;	
+		if (m_NextIndex >= 65535) m_NextIndex = 0; // TODO: dirty hack, should create new tagset
         return m_KeyData.GetTag ();
     }
 
@@ -178,7 +179,7 @@ namespace garlic
         return true;
     }
 
-    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len)
+    void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, int index)
     {
         size_t offset = 0;
 		while (offset < len)
@@ -207,6 +208,12 @@ namespace garlic
 				case eECIESx25519BlkPadding:
 					LogPrint (eLogDebug, "Garlic: padding");
 				break;
+				case eECIESx25519BlkAckRequest:
+				{	
+					LogPrint (eLogDebug, "Garlic: ack request");
+					m_AckRequests.push_back ( {bufbe16toh (buf + offset), index});		
+					break;	
+				}		
 				default:
 					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
 			}
@@ -401,7 +408,7 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
 		}	
-		HandlePayload (payload.data (), len - 16); 
+		HandlePayload (payload.data (), len - 16, index); 
 		if (m_ReceiveTagset.GetNextIndex () - index <= GetOwner ()->GetNumTags ()*2/3)
 			GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());		
 		return true;
@@ -478,6 +485,8 @@ namespace garlic
 			SetLeaseSetSubmissionTime (ts);
 			GetOwner ()->DeliveryStatusSent (shared_from_this (), leaseSet->GetMsgID ());
 		}	
+		if (m_AckRequests.size () > 0)
+			payloadLen += m_AckRequests.size ()*4 + 3;
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
         paddingSize &= 0x0F; paddingSize++; // 1 - 16
@@ -497,6 +506,18 @@ namespace garlic
         // msg    
         if (msg && m_Destination)    
             offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
+		// ack
+		if (m_AckRequests.size () > 0)
+		{
+			v[offset] = eECIESx25519BlkAck; offset++;
+			htobe16buf (v.data () + offset, m_AckRequests.size ()*4); offset += 2;
+			for (auto& it: m_AckRequests)
+			{
+				htobe16buf (v.data () + offset, it.first); offset += 2;
+				htobe16buf (v.data () + offset, it.second); offset += 2;
+			}	
+			m_AckRequests.clear ();
+		}	
         // padding
         v[offset] = eECIESx25519BlkPadding; offset++; 
         htobe16buf (v.data () + offset, paddingSize); offset += 2;

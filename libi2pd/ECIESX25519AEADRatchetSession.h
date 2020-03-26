@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <list>
 #include "Identity.h"
 #include "Crypto.h"
 #include "Garlic.h"
@@ -51,6 +52,8 @@ namespace garlic
 		eECIESx25519BlkTermination = 4,
 		eECIESx25519BlkOptions = 5,
 		eECIESx25519BlkNextSessionKey = 7,
+		eECIESx25519BlkAck = 8,
+		eECIESx25519BlkAckRequest = 9,
 		eECIESx25519BlkGalicClove = 11,
 		eECIESx25519BlkPadding = 254	
 	};	
@@ -99,7 +102,7 @@ namespace garlic
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
             bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len);
 			bool HandleExistingSessionMessage (const uint8_t * buf, size_t len, int index);
-            void HandlePayload (const uint8_t * buf, size_t len);
+            void HandlePayload (const uint8_t * buf, size_t len, int index = 0);
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
@@ -120,6 +123,7 @@ namespace garlic
 			uint64_t m_LastActivityTimestamp = 0; // incoming
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
+			std::list<std::pair<uint16_t, int> > m_AckRequests; // (key_id, indeX)
     };
 }
 }
