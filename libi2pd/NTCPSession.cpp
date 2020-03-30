@@ -14,9 +14,6 @@
 #include "NTCPSession.h"
 #include "HTTP.h"
 #include "util.h"
-#ifdef WITH_EVENTS
-#include "Event.h"
-#endif
 
 using namespace i2p::crypto;
 
@@ -649,9 +646,6 @@ namespace transport
 			{
 				if (!m_NextMessage->IsExpired ())
 				{
-#ifdef WITH_EVENTS
-					QueueIntEvent("transport.recvmsg", GetIdentHashBase64(), 1);
-#endif
 					m_Handler.PutNextMessage (m_NextMessage);
 				}
 				else

@@ -9,8 +9,8 @@ APP_PLATFORM := android-14
 NDK_TOOLCHAIN_VERSION := clang
 APP_STL := c++_static
 
-# Enable c++11 extensions in source code
-APP_CPPFLAGS += -std=c++11 -fvisibility=default -fPIE
+# Enable c++17 extensions in source code
+APP_CPPFLAGS += -std=c++17 -fvisibility=default -fPIE
 
 APP_CPPFLAGS += -DANDROID_BINARY -DANDROID -D__ANDROID__ -DUSE_UPNP
 APP_LDFLAGS += -rdynamic -fPIE -pie
@@ -21,7 +21,7 @@ endif
 # Forcing debug optimization. Use `ndk-build NDK_DEBUG=1` instead.
 #APP_OPTIM  := debug
 
-# git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
+# git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git -b boost-1_72_0
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git

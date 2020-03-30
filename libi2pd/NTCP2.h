@@ -28,7 +28,7 @@ namespace i2p
 namespace transport
 {
 
-	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;	
+	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;
 	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
 
 	const int NTCP2_CONNECT_TIMEOUT = 5; // 5 seconds
@@ -36,7 +36,7 @@ namespace transport
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 
-	const int NTCP2_CLOCK_SKEW = 60; // in seconds	
+	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
 
 	enum NTCP2BlockType
@@ -46,8 +46,8 @@ namespace transport
 		eNTCP2BlkRouterInfo, // 2
 		eNTCP2BlkI2NPMessage, // 3
 		eNTCP2BlkTermination, // 4
-		eNTCP2BlkPadding = 254	
-	};	
+		eNTCP2BlkPadding = 254
+	};
 
 	enum NTCP2TerminationReason
 	{
@@ -69,16 +69,16 @@ namespace transport
 		eNTCP2RouterInfoSignatureVerificationFail, // 15
 		eNTCP2IncorrectSParameter, // 16
 		eNTCP2Banned, // 17
-	};		
-	
+	};
+
 	// RouterInfo flags
-	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;	
+	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
 
 	struct NTCP2Establisher
 	{
 		NTCP2Establisher ();
 		~NTCP2Establisher ();
-		
+
 		const uint8_t * GetPub () const { return m_EphemeralKeys.GetPublicKey (); };
 		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
 		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
@@ -114,19 +114,20 @@ namespace transport
 		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[64] /* [ck, k]*/;
 		i2p::data::IdentHash m_RemoteIdentHash;
-		uint16_t m3p2Len; 
+		uint16_t m3p2Len;
 
 		uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
 		size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 
-	};		
+	};
 
 	class NTCP2Server;
 	class NTCP2Session: public TransportSession, public std::enable_shared_from_this<NTCP2Session>
 	{
 		public:
 
-			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr); 
+
+			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCP2Session ();
 			void Terminate ();
 			void TerminateByTimeout ();
@@ -138,9 +139,9 @@ namespace transport
 			bool IsEstablished () const { return m_IsEstablished; };
 			bool IsTerminated () const { return m_IsTerminated; };
 
-			void ClientLogin (); // Alice 
+			void ClientLogin (); // Alice
 			void ServerLogin (); // Bob
-		
+
 			void SendLocalRouterInfo (); // after handshake
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 
@@ -193,15 +194,15 @@ namespace transport
 
 			std::unique_ptr<NTCP2Establisher> m_Establisher;
 			// data phase
-			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32]; 
+			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32];
 			const uint8_t * m_SendKey, * m_ReceiveKey;
-#if OPENSSL_SIPHASH 
+#if OPENSSL_SIPHASH
 			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
 			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
 #else
 			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;
 #endif
-			uint16_t m_NextReceivedLen; 
+			uint16_t m_NextReceivedLen;
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
 			union
 			{
@@ -220,6 +221,20 @@ namespace transport
 	{
 		public:
 
+			enum RemoteAddressType
+			{
+				eIP4Address,
+				eIP6Address,
+				eHostname
+			};
+
+			enum ProxyType
+			{
+				eNoProxy,
+				eSocksProxy,
+				eHTTPProxy
+			};
+
 			NTCP2Server ();
 			~NTCP2Server ();
 
@@ -230,15 +245,23 @@ namespace transport
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
 			std::shared_ptr<NTCP2Session> FindNTCP2Session (const i2p::data::IdentHash& ident);
-		
+
+			void ConnectWithProxy (const std::string& addr, uint16_t port, RemoteAddressType addrtype, std::shared_ptr<NTCP2Session> conn);
 			void Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCP2Session> conn);
+
+			void AfterSocksHandshake(std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype);
+
+
+			bool UsingProxy() const { return m_ProxyType != eNoProxy; };
+			void UseProxy(ProxyType proxy, const std::string & address, uint16_t port);
 
 		private:
 
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 
-			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);		
+			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
+			void HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType adddrtype);
 
 			// timer
 			void ScheduleTermination ();
@@ -248,8 +271,14 @@ namespace transport
 
 			boost::asio::deadline_timer m_TerminationTimer;
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
-			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions; 
+			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions;
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
+
+			ProxyType m_ProxyType =eNoProxy;
+			std::string m_ProxyAddress;
+			uint16_t m_ProxyPort;
+			boost::asio::ip::tcp::resolver m_Resolver;
+			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 
 		public:
 

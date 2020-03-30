@@ -161,6 +161,7 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
+			i2p::data::CryptoKeyType GetPreferredCryptoType () const;
 
 		private:
 
@@ -232,14 +233,14 @@ namespace client
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 
 			// datagram
-      i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-      i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+      		i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+      		i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
+			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const { return m_EncryptionPublicKey; };
 
 		protected:
 
@@ -281,6 +282,7 @@ namespace client
 
 			// for HTTP only
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
+			bool DeleteStream (uint32_t recvStreamID);
 	};
 
 	class RunnableClientDestination: private i2p::util::RunnableService, public ClientDestination

@@ -159,7 +159,7 @@ namespace data
 			}
 		}
 		else
-			LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
+			LogPrint (eLogWarning, "LeaseSet: Lease is expired already");
 	}
 
 	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const
@@ -251,6 +251,13 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 	}
 
+	void LeaseSet::SetBufferLen (size_t len)
+	{
+		if (len <= m_BufferLen) m_BufferLen = len;
+		else
+			LogPrint (eLogError, "LeaseSet2: actual buffer size ", len , " exceeds full buffer size ", m_BufferLen);
+	}	
+		
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
 		LeaseSet (storeLeases), m_StoreType (storeType), m_EncryptionType (preferredCrypto)
 	{	
@@ -331,6 +338,8 @@ namespace data
 				VerifySignature (identity, buf, len, offset);	
 			SetIsValid (verified);	
 		}
+		offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : identity->GetSignatureLen ();
+		SetBufferLen (offset);
 	}
 
 	template<typename Verifier>
@@ -536,6 +545,12 @@ namespace data
 			}
 			else
 				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+		}	
+		else
+		{
+			// we set actual length of encrypted buffer
+			offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : blindedVerifier->GetSignatureLen ();
+			SetBufferLen (offset);
 		}	
 	}
 
@@ -748,7 +763,7 @@ namespace data
 	}
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
-		uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
+		const KeySections& encryptionKeys, 
 		std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, 
 		bool isPublic, bool isPublishedEncrypted):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
@@ -757,8 +772,11 @@ namespace data
 		// assume standard LS2 
 		int num = tunnels.size ();
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
+		size_t keySectionsLen = 0;
+		for (const auto& it: encryptionKeys)
+			keySectionsLen += 2/*key type*/ + 2/*key len*/ + it.keyLen/*key*/;	
 		m_BufferLen = identity->GetFullLen () + 4/*published*/ + 2/*expires*/ + 2/*flag*/ + 2/*properties len*/ +
-			1/*num keys*/ + 2/*key type*/ + 2/*key len*/ + keyLen/*key*/ + 1/*num leases*/ + num*LEASE2_SIZE + keys.GetSignatureLen ();
+			1/*num keys*/ + keySectionsLen + 1/*num leases*/ + num*LEASE2_SIZE + keys.GetSignatureLen ();
 		uint16_t flags = 0;
 		if (keys.IsOfflineSignature ()) 
 		{
@@ -789,10 +807,13 @@ namespace data
 		}
 		htobe16buf (m_Buffer + offset, 0); offset += 2; // properties len
 		// keys	
-		m_Buffer[offset] = 1; offset++; // 1 key
-		htobe16buf (m_Buffer + offset, keyType); offset += 2; // key type 
-		htobe16buf (m_Buffer + offset, keyLen); offset += 2; // key len 	
-		memcpy (m_Buffer + offset, encryptionPublicKey, keyLen); offset += keyLen; // key
+		m_Buffer[offset] = encryptionKeys.size (); offset++; // 1 key
+		for (const auto& it: encryptionKeys)
+		{		
+			htobe16buf (m_Buffer + offset, it.keyType); offset += 2; // key type 
+			htobe16buf (m_Buffer + offset, it.keyLen); offset += 2; // key len 	
+			memcpy (m_Buffer + offset, it.encryptionPublicKey, it.keyLen); offset += it.keyLen; // key
+		}	
 		// leases
 		uint32_t expirationTime = 0; // in seconds
 		m_Buffer[offset] = num; offset++; // num leases

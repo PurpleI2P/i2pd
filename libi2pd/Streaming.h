@@ -180,7 +180,7 @@ namespace stream
 			int GetWindowSize () const { return m_WindowSize; };
 			int GetRTT () const { return m_RTT; };
 
-			void Terminate ();
+			void Terminate (bool deleteFromDestination = true);
 
 		private:
 
@@ -250,6 +250,7 @@ namespace stream
 
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void DeleteStream (std::shared_ptr<Stream> stream);
+			bool DeleteStream (uint32_t recvStreamID);
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };

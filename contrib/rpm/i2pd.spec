@@ -53,14 +53,22 @@ cd build
 %endif
 %endif
 
+%if 0%{?mageia} > 7
+pushd build
 make %{?_smp_mflags}
+popd
+%else
+make %{?_smp_mflags}
+%endif
 
 
 %install
-cd build
+pushd build
+
 %if 0%{?mageia}
-cd build
+pushd build
 %endif
+
 chrpath -d i2pd
 install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
 install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf

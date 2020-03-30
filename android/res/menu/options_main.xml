@@ -12,6 +12,10 @@
             android:id="@+id/action_graceful_stop"
             android:orderInCategory="98"
             android:title="@string/action_graceful_stop" />
+        <item
+            android:id="@+id/action_start_webview"
+            android:orderInCategory="97"
+            android:title="@string/action_start_webview" />
     </group>
     <group android:id="@+id/group_various" >
         <item

@@ -246,8 +246,16 @@ namespace client
 			m_PayloadLen = bufbe32toh (m_Header + I2CP_HEADER_LENGTH_OFFSET);
 			if (m_PayloadLen > 0)
 			{
-				m_Payload = new uint8_t[m_PayloadLen];
-				ReceivePayload ();
+				if (m_PayloadLen <= I2CP_MAX_MESSAGE_LENGTH)
+				{	
+					m_Payload = new uint8_t[m_PayloadLen];
+					ReceivePayload ();
+				}
+				else
+				{
+					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen); 
+					Terminate ();
+				}	
 			}
 			else // no following payload
 			{
@@ -572,7 +580,7 @@ namespace client
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
 					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
 					if (offset + keyLen > len) return;
-					if (keyType > currentKeyType)
+					if (!currentKey || keyType > currentKeyType)
 					{
 						currentKeyType = keyType;
 						currentKey = buf + offset;
@@ -814,8 +822,11 @@ namespace client
 	{
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
-		for (auto& it: m_Sessions)
-			it.second->Stop ();
+		{
+			auto sessions = m_Sessions; 
+			for (auto& it: sessions)
+				it.second->Stop ();
+		}	
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)

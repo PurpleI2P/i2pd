@@ -9,15 +9,15 @@ NDK_TOOLCHAIN_VERSION := clang
 #APP_STL := c++_shared
 APP_STL := c++_static
 
-# Enable c++11 extensions in source code
-APP_CPPFLAGS += -std=c++11 -fexceptions -frtti
+# Enable c++17 extensions in source code
+APP_CPPFLAGS += -std=c++17 -fexceptions -frtti
 
 APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
 endif
 
-# git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
+# git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git -b boost-1_72_0
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git

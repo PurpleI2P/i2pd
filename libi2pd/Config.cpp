@@ -60,7 +60,7 @@ namespace config {
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", value<bool>()->default_value(false),                      "Enable NTCP transport (default: disabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
+			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")			
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -218,13 +218,6 @@ namespace config {
 			("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
 		;
 
-		options_description websocket("Websocket Options");
-		websocket.add_options()
-			("websockets.enabled", value<bool>()->default_value(false),              "Enable websocket server")
-			("websockets.address", value<std::string>()->default_value("127.0.0.1"), "Address to bind websocket server on")
-			("websockets.port", value<uint16_t>()->default_value(7666),              "Port to bind websocket server on")
-		;
-
 		options_description exploratory("Exploratory Options");
 		exploratory.add_options()
 			("exploratory.inbound.length", value<int>()->default_value(2),    "Exploratory inbound tunnel length")
@@ -239,6 +232,7 @@ namespace config {
 			("ntcp2.published", value<bool>()->default_value(true), "Publish NTCP2 (default: enabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
+			("ntcp2.proxy", value<std::string>()->default_value(""), "Proxy URL for NTCP2 transport")
 		;
 
 		options_description nettime("Time sync options");
@@ -274,7 +268,6 @@ namespace config {
 			.add(reseed)
 			.add(addressbook)
 			.add(trust)
-			.add(websocket)
 			.add(exploratory)
 			.add(ntcp2)
 			.add(nettime)
@@ -305,16 +298,16 @@ namespace config {
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
 			std::cout << m_OptionsDesc;
 			exit(EXIT_SUCCESS);
-		} 
+		}
 		else if (m_Options.count("version"))
 		{
 			std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
-			std::cout << "Boost version "     
+			std::cout << "Boost version "
 					  << BOOST_VERSION / 100000     << "."  // maj. version
 					  << BOOST_VERSION / 100 % 1000 << "."  // min. version
 					  << BOOST_VERSION % 100                // patch version
 					  << std::endl;
-#if defined(OPENSSL_VERSION_TEXT) 
+#if defined(OPENSSL_VERSION_TEXT)
 			std::cout << OPENSSL_VERSION_TEXT << std::endl;
 #endif
 #if defined(LIBRESSL_VERSION_TEXT)

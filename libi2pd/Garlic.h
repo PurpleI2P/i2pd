@@ -104,7 +104,8 @@ namespace garlic
 			virtual ~GarlicRoutingSession ();
 			virtual std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg) = 0;
             virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession
-
+			virtual bool MessageConfirmed (uint32_t msgID);
+			
 			void SetLeaseSetUpdated ()
 			{
 				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated;
@@ -112,13 +113,14 @@ namespace garlic
 			bool IsLeaseSetNonConfirmed () const { return m_LeaseSetUpdateStatus == eLeaseSetSubmitted; };
 			bool IsLeaseSetUpdated () const { return m_LeaseSetUpdateStatus == eLeaseSetUpdated; };
 			uint64_t GetLeaseSetSubmissionTime () const { return m_LeaseSetSubmissionTime; }
-
+			void CleanupUnconfirmedLeaseSet (uint64_t ts);
+			
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
 
 			GarlicDestination * GetOwner () const { return m_Owner; }
 			void SetOwner (GarlicDestination * owner) { m_Owner = owner; }
-
+			
         protected:
     
             LeaseSetUpdateStatus GetLeaseSetUpdateStatus () const { return m_LeaseSetUpdateStatus; }
@@ -127,6 +129,8 @@ namespace garlic
             void SetLeaseSetUpdateMsgID (uint32_t msgID) { m_LeaseSetUpdateMsgID = msgID; }
             void SetLeaseSetSubmissionTime (uint64_t ts) { m_LeaseSetSubmissionTime = ts; }    
 
+			std::shared_ptr<I2NPMessage> CreateEncryptedDeliveryStatusMsg (uint32_t msgID);
+			
 		private:
 
 			GarlicDestination * m_Owner;
@@ -165,7 +169,7 @@ namespace garlic
 
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
         
-            void MessageConfirmed (uint32_t msgID);
+            bool MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left
 			bool CleanupUnconfirmedTags (); // returns true if something has been deleted
 
@@ -223,7 +227,7 @@ namespace garlic
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
-			void DeliveryStatusSent (ElGamalAESSessionPtr session, uint32_t msgID);
+			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
             void AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
@@ -267,7 +271,7 @@ namespace garlic
             std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexSession> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
-			std::unordered_map<uint32_t, ElGamalAESSessionPtr> m_DeliveryStatusSessions; // msgID -> session
+			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
 
 		public:
 

@@ -97,6 +97,7 @@ namespace data
 			// called from LeaseSet2
 			LeaseSet (bool storeLeases);
 			void SetBuffer (const uint8_t * buf, size_t len);
+		  	void SetBufferLen (size_t len);
 			void SetIdentity (std::shared_ptr<const IdentityEx> identity) { m_Identity = identity; };
 			void SetExpirationTime (uint64_t t) { m_ExpirationTime = t; };
 			void SetIsValid (bool isValid) { m_IsValid = isValid; };
@@ -231,8 +232,15 @@ namespace data
 	{
 		public:
 
+			struct KeySection
+			{
+				uint16_t keyType, keyLen;
+				const uint8_t * encryptionPublicKey;
+			};	
+			typedef std::vector<KeySection> KeySections;
+			
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys, 
-				uint16_t keyType, uint16_t keyLen, const uint8_t * encryptionPublicKey, 
+				const KeySections& encryptionKeys, 
 				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels, 
 				bool isPublic, bool isPublishedEncrypted = false);
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);	// from I2CP

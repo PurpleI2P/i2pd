@@ -5,9 +5,6 @@
 #include "NetDb.hpp"
 #include "SSU.h"
 #include "SSUData.h"
-#ifdef WITH_EVENTS
-#include "Event.h"
-#endif
 
 namespace i2p
 {
@@ -241,9 +238,6 @@ namespace transport
 						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
 						if (!msg->IsExpired ())
 						{
-#ifdef WITH_EVENTS
-							QueueIntEvent("transport.recvmsg", m_Session.GetIdentHashBase64(), 1);
-#endif
 							m_Handler.PutNextMessage (msg);
 						}
 						else
@@ -448,7 +442,7 @@ namespace transport
 								}
 								catch (boost::system::system_error& ec)
 								{
-									LogPrint (eLogWarning, "SSU: Can't resend data fragment ", ec.what ());
+									LogPrint (eLogWarning, "SSU: Can't resend message ", it->first, " data fragment: ", ec.what ());
 								}
 							}
 
@@ -458,7 +452,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogInfo, "SSU: message has not been ACKed after ", MAX_NUM_RESENDS, " attempts, deleted");
+						LogPrint (eLogInfo, "SSU: message ", it->first, " has not been ACKed after ", MAX_NUM_RESENDS, " attempts, deleted");
 						it = m_SentMessages.erase (it);
 					}
 				}
@@ -494,7 +488,7 @@ namespace transport
 			{
 				if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
 				{
-					LogPrint (eLogWarning, "SSU: message ", it->first, " was not completed  in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds, deleted");
+					LogPrint (eLogWarning, "SSU: message ", it->first, " was not completed in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds, deleted");
 					it = m_IncompleteMessages.erase (it);
 				}
 				else

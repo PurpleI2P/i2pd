@@ -24,7 +24,8 @@ namespace client
 {
 	const uint8_t I2CP_PROTOCOL_BYTE = 0x2A;
 	const size_t I2CP_SESSION_BUFFER_SIZE = 4096;
-
+	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
+	
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
 	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;
@@ -80,7 +81,8 @@ namespace client
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
-			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
+			// TODO: implement GetEncryptionPublicKey 
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 		protected:

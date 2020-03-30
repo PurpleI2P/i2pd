@@ -5,13 +5,13 @@
 #  SSUSession.cpp SSUData.cpp Streaming.cpp Identity.cpp TransitTunnel.cpp \
 #  Transports.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp TunnelGateway.cpp \
 #  Destination.cpp Base.cpp I2PEndian.cpp FS.cpp Config.cpp Family.cpp \
-#  Config.cpp HTTP.cpp Timestamp.cpp util.cpp api.cpp Event.cpp Gost.cpp
+#  Config.cpp HTTP.cpp Timestamp.cpp util.cpp api.cpp Gost.cpp
 
 LIB_SRC = $(wildcard $(LIB_SRC_DIR)/*.cpp)
 
 #LIB_CLIENT_SRC = \
 #	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp MatchedDestination.cpp \
-#	SAM.cpp SOCKS.cpp HTTPProxy.cpp I2CP.cpp WebSocks.cpp
+#	SAM.cpp SOCKS.cpp HTTPProxy.cpp I2CP.cpp
 
 LIB_CLIENT_SRC = $(wildcard $(LIB_CLIENT_SRC_DIR)/*.cpp)
 

@@ -86,13 +86,14 @@ namespace stream
 		LogPrint (eLogDebug, "Streaming: Stream deleted");
 	}
 
-	void Stream::Terminate () // shoudl be called from StreamingDestination::Stop only
+	void Stream::Terminate (bool deleteFromDestination) // shoudl be called from StreamingDestination::Stop only
 	{
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
 		//CleanUp (); /* Need to recheck - broke working on windows */
-		//m_LocalDestination.DeleteStream (shared_from_this ());
+		if (deleteFromDestination)
+			m_LocalDestination.DeleteStream (shared_from_this ());
 	}
 
 	void Stream::CleanUp ()
@@ -847,6 +848,9 @@ namespace stream
 					break;
 					case 2:
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
+#if (__cplusplus >= 201703L) // C++ 17 or higher						
+						[[fallthrough]]; 
+#endif						
 						// no break here
 					case 4:
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
@@ -990,7 +994,7 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			for (auto it: m_Streams)
-				it.second->Terminate ();		
+				it.second->Terminate (false); // we delete here		
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
 		}
@@ -1125,6 +1129,15 @@ namespace stream
 		}
 	}
 
+	bool StreamingDestination::DeleteStream (uint32_t recvStreamID)
+	{
+		auto it = m_Streams.find (recvStreamID);
+		if (it == m_Streams.end ())
+			return false;
+		DeleteStream (it->second);
+		return true;
+	}	
+		
 	void StreamingDestination::SetAcceptor (const Acceptor& acceptor)
 	{
 		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet
