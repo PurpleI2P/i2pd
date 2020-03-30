@@ -7,6 +7,7 @@
 #include <memory>
 #include <atomic>
 #include <vector>
+#include <mutex>
 #include "Base.h"
 #include "Signature.h"
 #include "CryptoKey.h"
@@ -125,8 +126,8 @@ namespace data
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
-			mutable std::atomic_bool m_IsVerifierCreated; // make sure we don't create twice
+			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
+			mutable std::mutex m_VerifierMutex;
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};
