@@ -123,7 +123,7 @@ namespace garlic
 			uint64_t m_LastActivityTimestamp = 0; // incoming
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
-			std::list<std::pair<uint16_t, int> > m_AckRequests; // (key_id, indeX)
+			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
     };
 }
 }

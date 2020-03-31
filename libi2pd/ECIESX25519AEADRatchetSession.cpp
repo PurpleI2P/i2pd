@@ -138,7 +138,7 @@ namespace garlic
         MixHash (m_Aepk, 32); // h = SHA256(h || aepk)  
     
         uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		
         // decrypt flags/static    
@@ -160,7 +160,7 @@ namespace garlic
 		{
 			// static key, fs is apk
             memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, apk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		}
 		else // all zeros flags
@@ -211,7 +211,7 @@ namespace garlic
 				case eECIESx25519BlkAckRequest:
 				{	
 					LogPrint (eLogDebug, "Garlic: ack request");
-					m_AckRequests.push_back ( {bufbe16toh (buf + offset), index});		
+					m_AckRequests.push_back ({0, index}); // TODO: use actual tagsetid		
 					break;	
 				}		
 				default:
@@ -250,7 +250,7 @@ namespace garlic
         MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
         offset += 48;
         // KDF2 
-        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr); // x25519 (ask, bpk)
+        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
@@ -339,7 +339,7 @@ namespace garlic
 		uint8_t sharedSecret[32];      
         m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32) 
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);

@@ -225,7 +225,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
