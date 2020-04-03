@@ -298,7 +298,8 @@ namespace garlic
 			return false;
 		}
         MixHash (out + offset, 16); // h = SHA256(h || ciphertext)    
-        out += 16;
+        offset += 16;
+		memcpy (m_NSRHeader, out, 56); // for possible next NSR
         // KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
@@ -308,18 +309,33 @@ namespace garlic
         m_SendTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset.NextSessionTagRatchet ();	
 		GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());
-        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
-        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
+        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset, len + 16, true)) // encrypt
 		{
-			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			LogPrint (eLogWarning, "Garlic: NSR payload section AEAD encryption failed");
 			return false;
 		}
-		m_State = eSessionStateEstablished;
+		m_State = eSessionStateNewSessionReplySent;
 		
         return true;
     }
 
+	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+    {
+        // we are Bob and sent NSR already
+		memcpy (out, m_NSRHeader, 56);
+		uint8_t nonce[12];
+		CreateNonce (0, nonce);
+		// encrypt payload
+        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + 56, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Next NSR payload section AEAD encryption failed");
+			return false;
+		}
+		return true;
+	}	
+		
     bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len)
     {
 		// we are Alice
@@ -419,6 +435,11 @@ namespace garlic
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		switch (m_State)
 		{
+			case eSessionStateNewSessionReplySent:
+				m_State = eSessionStateEstablished;
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+				[[fallthrough]]; 
+#endif				
 			case eSessionStateEstablished:
 				return HandleExistingSessionMessage (buf, len, index);
 			case eSessionStateNew:
@@ -456,6 +477,11 @@ namespace garlic
                     return nullptr;
                  len += 72;   
             break;
+			case eSessionStateNewSessionReplySent:
+				if (!NextNewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+                    return nullptr;
+                 len += 72;  
+			break;	
             default:
                 return nullptr;
         }
