@@ -94,10 +94,5 @@ namespace client
 		}
 		return true;
 	}
-
-	bool MatchedTunnelDestination::OnBuildResult(const i2p::tunnel::Path & path, bool inbound, i2p::tunnel::TunnelBuildResult result)
-	{
-		return true;
-	}
 }
 }

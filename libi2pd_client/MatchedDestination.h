@@ -18,7 +18,6 @@ namespace client
 		void Stop();
 
 		bool SelectPeers(i2p::tunnel::Path & peers, int hops, bool inbound);
-		bool OnBuildResult(const i2p::tunnel::Path & peers, bool inbound, i2p::tunnel::TunnelBuildResult result);
 
 	private:
 		void ResolveCurrentLeaseSet();

@@ -19,7 +19,6 @@ option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
 option(WITH_MESHNET "Build for cjdns test network" OFF)
 option(WITH_ADDRSANITIZER "Build with address sanitizer unix only" OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only" OFF)
-option(WITH_I2LUA "Build for i2lua" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -87,10 +86,6 @@ set (LIBI2PD_SRC
 if (WIN32 OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
-
-if (WITH_I2LUA)
-  add_definitions(-DI2LUA)
-endif()
 
 add_library(libi2pd ${LIBI2PD_SRC})
 set_target_properties(libi2pd PROPERTIES PREFIX "")
@@ -414,7 +409,6 @@ message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
-message(STATUS "  I2LUA            : ${WITH_I2LUA}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
