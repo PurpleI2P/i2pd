@@ -623,6 +623,41 @@ namespace garlic
 		CleanupUnconfirmedLeaseSet (ts);
 		return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; 
 	}	
+
+	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	{
+		auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0 
+		size_t offset = 0;
+		memcpy (buf + offset, &tag, 8); offset += 8;
+		auto payload = buf + offset;
+		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+		size_t len = cloveSize + 3;
+        payload[0] = eECIESx25519BlkGalicClove; // clove type
+        htobe16buf (payload + 1, cloveSize); // size   
+		payload += 3;
+		*payload = 0; payload++;	// flag and delivery instructions
+        *payload = msg->GetTypeID (); // I2NP msg type
+        htobe32buf (payload + 1, msg->GetMsgID ()); // msgID     
+        htobe32buf (payload + 5, msg->GetExpiration ()/1000); // expiration in seconds     
+        memcpy (payload + 9, msg->GetPayload (), msg->GetPayloadLength ());
+
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len, buf, 8, key, nonce, buf + offset, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			return nullptr;
+		}		
+		offset += len + 16;
+		
+		htobe32buf (m->GetPayload (), offset);
+		m->len += offset + 4;
+		m->FillI2NPMessageHeader (eI2NPGarlic);
+		return m;
+	}
+		
 }
 }
 

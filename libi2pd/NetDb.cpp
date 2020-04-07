@@ -15,8 +15,9 @@
 #include "NTCP2.h"
 #include "RouterContext.h"
 #include "Garlic.h"
-#include "NetDb.hpp"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "Config.h"
+#include "NetDb.hpp"
 
 using namespace i2p::transport;
 
@@ -949,10 +950,20 @@ namespace data
 					const uint8_t numTags = excluded[32];
 					if (numTags)
 					{
-						const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
-						i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
-						replyMsg = garlic.WrapSingleMessage (replyMsg);
-						if(replyMsg == nullptr) LogPrint(eLogError, "NetDb: failed to wrap message");
+						if (flag & DATABASE_LOOKUP_ECIES_FLAG)
+						{
+							uint64_t tag;
+							memcpy (&tag, excluded + 33, 8);
+							replyMsg = i2p::garlic::WrapECIESX25519AEADRatchetMessage (replyMsg, sessionKey, tag);
+						}
+						else
+						{	
+							const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
+							i2p::garlic::ElGamalAESSession garlic (sessionKey, sessionTag);
+							replyMsg = garlic.WrapSingleMessage (replyMsg);
+						}	
+						if (!replyMsg) 
+							LogPrint (eLogError, "NetDb: failed to wrap message");
 					}
 					else
 						LogPrint(eLogWarning, "NetDb: encrypted reply requested but no tags provided");
