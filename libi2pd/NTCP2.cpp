@@ -1262,7 +1262,11 @@ namespace transport
 		if (it != m_NTCP2Sessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP2: session to ", ident.ToBase64 (), " already exists");
-			return false;
+			if (incoming)
+				// replace by new session
+				it->second->Terminate ();
+			else
+				return false;
 		}
 		m_NTCP2Sessions.insert (std::make_pair (ident, session));
 		return true;
