@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <mutex>
 #include "Identity.h"
 #include "Crypto.h"
 #include "RouterInfo.h"
@@ -67,8 +68,16 @@ namespace transport
 
 			std::string GetIdentHashBase64() const { return m_RemoteIdentity ? m_RemoteIdentity->GetIdentHash().ToBase64() : ""; }
 
-			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () { return m_RemoteIdentity; };
-			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident) { m_RemoteIdentity = ident; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () 
+			{
+				std::lock_guard<std::mutex> l(m_RemoteIdentityMutex);
+				return m_RemoteIdentity; 
+			}
+			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident) 
+			{
+				std::lock_guard<std::mutex> l(m_RemoteIdentityMutex);
+				m_RemoteIdentity = ident; 
+			}
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
@@ -85,6 +94,7 @@ namespace transport
 		protected:
 
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
+			mutable std::mutex m_RemoteIdentityMutex;
 			std::shared_ptr<i2p::crypto::DHKeys> m_DHKeysPair; // X - for client and Y - for server
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			bool m_IsOutgoing;

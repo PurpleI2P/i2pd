@@ -706,9 +706,13 @@ namespace transport
 					// ready to communicate
 					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
 					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
-					m_Server.AddNTCP2Session (shared_from_this (), true);
-					Established ();
-					ReceiveLength ();
+					if (m_Server.AddNTCP2Session (shared_from_this (), true))
+					{	
+						Established ();
+						ReceiveLength ();
+					}
+					else
+						Terminate ();
 				}
 				else
 					Terminate ();
@@ -1258,8 +1262,11 @@ namespace transport
 		if (it != m_NTCP2Sessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP2: session to ", ident.ToBase64 (), " already exists");
-			session->Terminate();
-			return false;
+			if (incoming)
+				// replace by new session
+				it->second->Terminate ();
+			else
+				return false;
 		}
 		m_NTCP2Sessions.insert (std::make_pair (ident, session));
 		return true;
@@ -1301,6 +1308,8 @@ namespace transport
 					});
 					conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn, timer));
 				}
+				else
+					conn->Terminate ();
 			});
 	}
 

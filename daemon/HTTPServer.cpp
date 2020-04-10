@@ -1141,6 +1141,8 @@ namespace http {
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
 	{
 		reply.add_header("X-Frame-Options", "SAMEORIGIN");
+		reply.add_header("X-Content-Type-Options", "nosniff");
+		reply.add_header("X-XSS-Protection", "1; mode=block");
 		reply.add_header("Content-Type", "text/html");
 		reply.body = content;
 

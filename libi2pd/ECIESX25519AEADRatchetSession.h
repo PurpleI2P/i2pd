@@ -69,6 +69,7 @@ namespace garlic
             eSessionStateNew =0,
             eSessionStateNewSessionReceived,
 			eSessionStateNewSessionSent,
+			eSessionStateNewSessionReplySent,
 			eSessionStateEstablished		
         };
 
@@ -106,6 +107,7 @@ namespace garlic
 
             bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
             bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+			bool NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 	
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
@@ -117,14 +119,17 @@ namespace garlic
         private:
 
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
-			uint8_t m_Aepk[32]; // Alice's ephemeral keys TODO: for incoming only
+			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
+			uint8_t m_NSRHeader[56], m_NSRKey[32]; // new session reply, for incoming only
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
 			uint64_t m_LastActivityTimestamp = 0; // incoming
             RatchetTagSet m_SendTagset, m_ReceiveTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
-			std::list<std::pair<uint16_t, int> > m_AckRequests; // (key_id, indeX)
+			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
     };
+
+	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
 }
 }
 

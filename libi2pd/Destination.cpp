@@ -931,32 +931,6 @@ namespace client
 		}
 	}
 
-#ifdef I2LUA
-	void ClientDestination::Ready(ReadyPromise & p)
-	{
-		ScheduleCheckForReady(&p);
-	}
-
-	void ClientDestination::ScheduleCheckForReady(ReadyPromise * p)
-	{
-		// tick every 100ms
-		m_ReadyChecker.expires_from_now(boost::posix_time::milliseconds(100));
-		m_ReadyChecker.async_wait([&, p] (const boost::system::error_code & ecode) {
-			HandleCheckForReady(ecode, p);
-		});
-	}
-
-	void ClientDestination::HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p)
-	{
-		if(ecode) // error happened
-			p->set_value(nullptr);
-		else if(IsReady()) // we are ready
-			p->set_value(std::shared_ptr<ClientDestination>(this));
-		else // we are not ready
-			ScheduleCheckForReady(p);
-	}
-#endif
-
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
@@ -1173,7 +1147,7 @@ namespace client
 		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
 	}
 
-	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
 		if (m_Decryptor)
 			return m_Decryptor->Decrypt (encrypted, data, ctx, true);

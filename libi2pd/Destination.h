@@ -8,9 +8,6 @@
 #include <set>
 #include <string>
 #include <functional>
-#ifdef I2LUA
-#include <future>
-#endif
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -196,13 +193,6 @@ namespace client
 	class ClientDestination: public LeaseSetDestination
 	{
 		public:
-#ifdef I2LUA
-			// type for informing that a client destination is ready
-			typedef std::promise<std::shared_ptr<ClientDestination> > ReadyPromise;
-			// informs promise with shared_from_this() when this destination is ready to use
-			// if cancelled before ready, informs promise with nullptr
-			void Ready(ReadyPromise & p);
-#endif
 
 			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
 				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
@@ -237,7 +227,7 @@ namespace client
       		i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const { return m_EncryptionPublicKey; };
@@ -251,14 +241,10 @@ namespace client
 
 		private:
 
-			std::shared_ptr<ClientDestination> GetSharedFromThis ()
-			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }
+			std::shared_ptr<ClientDestination> GetSharedFromThis () {
+				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
+			}
 			void PersistTemporaryKeys ();
-#ifdef I2LUA
-			void ScheduleCheckForReady(ReadyPromise * p);
-			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
-#endif
-
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 		private:

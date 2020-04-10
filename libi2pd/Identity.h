@@ -7,6 +7,7 @@
 #include <memory>
 #include <atomic>
 #include <vector>
+#include <mutex>
 #include "Base.h"
 #include "Signature.h"
 #include "CryptoKey.h"
@@ -125,8 +126,8 @@ namespace data
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
-			mutable std::atomic_bool m_IsVerifierCreated; // make sure we don't create twice
+			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
+			mutable std::mutex m_VerifierMutex;
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};
@@ -224,7 +225,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

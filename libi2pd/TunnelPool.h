@@ -23,13 +23,6 @@ namespace tunnel
 	class InboundTunnel;
 	class OutboundTunnel;
 
-
-	enum TunnelBuildResult {
-		eBuildResultOkay, // tunnel was built okay
-		eBuildResultRejected, // tunnel build was explicitly rejected
-		eBuildResultTimeout // tunnel build timed out
-	};
-
 	typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
 	typedef std::vector<Peer> Path;
 
@@ -38,7 +31,6 @@ namespace tunnel
 	{
 		virtual ~ITunnelPeerSelector() {};
 		virtual bool SelectPeers(Path & peers, int hops, bool isInbound) = 0;
-		virtual bool OnBuildResult(const Path & peers, bool isInbound, TunnelBuildResult result) = 0;
 	};
 
 
@@ -97,8 +89,6 @@ namespace tunnel
 		/** @brief get the lowest latency tunnel in this tunnel pool regardless of latency requirements */
 		std::shared_ptr<InboundTunnel> GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude=nullptr) const;
 		std::shared_ptr<OutboundTunnel> GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude=nullptr) const;
-
-		void OnTunnelBuildResult(std::shared_ptr<Tunnel> tunnel, TunnelBuildResult result);
 
 		// for overriding tunnel peer selection
 		std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;

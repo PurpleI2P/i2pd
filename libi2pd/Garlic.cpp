@@ -495,7 +495,7 @@ namespace garlic
 			}	
 			// otherwise assume ElGamal/AES	
 			ElGamalBlock elGamal;
-			if (length >= 514 && Decrypt (buf, (uint8_t *)&elGamal, m_Ctx))
+			if (length >= 514 && Decrypt (buf, (uint8_t *)&elGamal, m_Ctx, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
 			{
 				auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes

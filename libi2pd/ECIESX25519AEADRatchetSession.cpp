@@ -138,7 +138,7 @@ namespace garlic
         MixHash (m_Aepk, 32); // h = SHA256(h || aepk)  
     
         uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		
         // decrypt flags/static    
@@ -160,7 +160,7 @@ namespace garlic
 		{
 			// static key, fs is apk
             memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr); // x25519(bsk, apk)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, apk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		}
 		else // all zeros flags
@@ -211,7 +211,7 @@ namespace garlic
 				case eECIESx25519BlkAckRequest:
 				{	
 					LogPrint (eLogDebug, "Garlic: ack request");
-					m_AckRequests.push_back ( {bufbe16toh (buf + offset), index});		
+					m_AckRequests.push_back ({0, index}); // TODO: use actual tagsetid		
 					break;	
 				}		
 				default:
@@ -250,7 +250,7 @@ namespace garlic
         MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
         offset += 48;
         // KDF2 
-        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr); // x25519 (ask, bpk)
+        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
@@ -298,7 +298,8 @@ namespace garlic
 			return false;
 		}
         MixHash (out + offset, 16); // h = SHA256(h || ciphertext)    
-        out += 16;
+        offset += 16;
+		memcpy (m_NSRHeader, out, 56); // for possible next NSR
         // KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
@@ -308,18 +309,33 @@ namespace garlic
         m_SendTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset.NextSessionTagRatchet ();	
 		GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());
-        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
+        i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
-        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, keydata, nonce, out + offset, len + 16, true)) // encrypt
+        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset, len + 16, true)) // encrypt
 		{
-			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			LogPrint (eLogWarning, "Garlic: NSR payload section AEAD encryption failed");
 			return false;
 		}
-		m_State = eSessionStateEstablished;
+		m_State = eSessionStateNewSessionReplySent;
 		
         return true;
     }
 
+	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+    {
+        // we are Bob and sent NSR already
+		memcpy (out, m_NSRHeader, 56);
+		uint8_t nonce[12];
+		CreateNonce (0, nonce);
+		// encrypt payload
+        if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + 56, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Next NSR payload section AEAD encryption failed");
+			return false;
+		}
+		return true;
+	}	
+		
     bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len)
     {
 		// we are Alice
@@ -339,7 +355,7 @@ namespace garlic
 		uint8_t sharedSecret[32];      
         m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32) 
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -419,6 +435,11 @@ namespace garlic
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		switch (m_State)
 		{
+			case eSessionStateNewSessionReplySent:
+				m_State = eSessionStateEstablished;
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+				[[fallthrough]]; 
+#endif				
 			case eSessionStateEstablished:
 				return HandleExistingSessionMessage (buf, len, index);
 			case eSessionStateNew:
@@ -456,6 +477,11 @@ namespace garlic
                     return nullptr;
                  len += 72;   
             break;
+			case eSessionStateNewSessionReplySent:
+				if (!NextNewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+                    return nullptr;
+                 len += 72;  
+			break;	
             default:
                 return nullptr;
         }
@@ -597,6 +623,41 @@ namespace garlic
 		CleanupUnconfirmedLeaseSet (ts);
 		return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; 
 	}	
+
+	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	{
+		auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0 
+		size_t offset = 0;
+		memcpy (buf + offset, &tag, 8); offset += 8;
+		auto payload = buf + offset;
+		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+		size_t len = cloveSize + 3;
+        payload[0] = eECIESx25519BlkGalicClove; // clove type
+        htobe16buf (payload + 1, cloveSize); // size   
+		payload += 3;
+		*payload = 0; payload++;	// flag and delivery instructions
+        *payload = msg->GetTypeID (); // I2NP msg type
+        htobe32buf (payload + 1, msg->GetMsgID ()); // msgID     
+        htobe32buf (payload + 5, msg->GetExpiration ()/1000); // expiration in seconds     
+        memcpy (payload + 9, msg->GetPayload (), msg->GetPayloadLength ());
+
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len, buf, 8, key, nonce, buf + offset, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
+			return nullptr;
+		}		
+		offset += len + 16;
+		
+		htobe32buf (m->GetPayload (), offset);
+		m->len += offset + 4;
+		m->FillI2NPMessageHeader (eI2NPGarlic);
+		return m;
+	}
+		
 }
 }
 
