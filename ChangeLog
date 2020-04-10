@@ -1,6 +1,25 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.31.0] - 2020-04-10
+### Added
+- NTCP2 HTTP proxy
+- Publish LeaseSet2 for I2CP destinations
+- Show status page on main activity for android
+- Handle ECIESFlag in DatabaseLookup at floodfill
+- C++17 features for eligible compilers
+### Changed
+- Droped Websockets and Lua support
+- Send DeliveryStatusMsg for LeaseSet for ECIES-X25519-AEAD-Ratchet
+- Keep sending new session reply until established for ECIES-X25519-AEAD-Ratchet
+- Updated SSU log messages
+- Security hardening headers in web console
+- Various QT changes
+### Fixed
+- NTCP2 socket descriptors leak
+- Race condition with router's identity in transport sessions
+- Not terminated streams remain forever
+
 ## [2.30.0] - 2020-02-25
 ### Added
 - Single threaded SAM

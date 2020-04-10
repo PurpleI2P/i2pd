@@ -1,3 +1,9 @@
+i2pd (2.31.0-1) unstable; urgency=medium
+
+  * updated to version 2.31.0
+
+ -- orignal <orignal@i2pmail.org>  Fri, 10 Apr 2020 16:00:00 +0000
+
 i2pd (2.30.0-1) unstable; urgency=medium
 
   * updated to version 2.30.0/0.9.45
