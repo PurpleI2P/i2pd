@@ -3,7 +3,7 @@
 
 ## [2.31.0] - 2020-04-10
 ### Added
-- NTCP2 HTTP proxy
+- NTCP2 through HTTP proxy
 - Publish LeaseSet2 for I2CP destinations
 - Show status page on main activity for android
 - Handle ECIESFlag in DatabaseLookup at floodfill
@@ -13,7 +13,9 @@
 - Send DeliveryStatusMsg for LeaseSet for ECIES-X25519-AEAD-Ratchet
 - Keep sending new session reply until established for ECIES-X25519-AEAD-Ratchet
 - Updated SSU log messages
+- Reopen SSU socket on exception
 - Security hardening headers in web console
+- Various web console changes
 - Various QT changes
 ### Fixed
 - NTCP2 socket descriptors leak
