@@ -5,9 +5,8 @@
     android:layout_height="fill_parent"
     tools:context=".I2PDActivity">
 
-<WebView
-	android:id="@+id/webview1"
-	android:layout_width="fill_parent"
-	android:layout_height="fill_parent"/>
-
-</LinearLayout> 
+    <WebView
+        android:id="@+id/webview1"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
+</LinearLayout>

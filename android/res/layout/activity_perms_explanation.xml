@@ -15,13 +15,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/horizontal_page_margin"
-        android:text="SD card write access is required to write the keys and other files to the I2PD folder on SD card."
-        />
+        android:text="@string/permRequired" />
 
     <Button
         android:id="@+id/button_ok"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="OK"
-        />
+        android:text="@string/ok" />
 </LinearLayout>

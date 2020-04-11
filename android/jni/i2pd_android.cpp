@@ -2,6 +2,7 @@
 #include "org_purplei2p_i2pd_I2PD_JNI.h"
 #include "DaemonAndroid.h"
 #include "RouterContext.h"
+#include "ClientContext.h"
 #include "Transports.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
@@ -59,6 +60,11 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopAcceptingTunnels
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startAcceptingTunnels
 	(JNIEnv *env, jclass clazz) {
 	i2p::context.SetAcceptsTunnels (true);
+}
+
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_reloadTunnelsConfigs
+	(JNIEnv *env, jclass clazz) {
+	i2p::client::context.ReloadConfig();
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
