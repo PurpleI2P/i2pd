@@ -3,11 +3,11 @@
 #include <windows.h>
 #include "Log.h"
 
-IUnknown *pUnknown = NULL;
-INetworkListManager *pNetworkListManager = NULL;
-IConnectionPointContainer *pCPContainer = NULL;
+IUnknown *pUnknown = nullptr;
+INetworkListManager *pNetworkListManager = nullptr;
+IConnectionPointContainer *pCPContainer = nullptr;
+IConnectionPoint *pConnectPoint = nullptr;
 DWORD Cookie = 0;
-IConnectionPoint *pConnectPoint = NULL;
 
 void SubscribeToEvents()
 {
@@ -20,10 +20,12 @@ void SubscribeToEvents()
 		Result = pUnknown->QueryInterface(IID_INetworkListManager, (void **)&pNetworkListManager);
 		if (SUCCEEDED(Result))
 		{
-			/* VARIANT_BOOL IsConnect = VARIANT_FALSE;
+			VARIANT_BOOL IsConnect = VARIANT_FALSE;
 			Result = pNetworkListManager->IsConnectedToInternet(&IsConnect);
-			if (SUCCEEDED(Result))
-				LogPrint(eLogInfo, "NetState: IsConnect Result:", IsConnect == VARIANT_TRUE ? "TRUE" : "FALSE"); */
+			if (SUCCEEDED(Result)) {
+				i2p::transport::transports.SetOnline (true);
+				LogPrint(eLogInfo, "NetState: current state: ", IsConnect == VARIANT_TRUE ? "connected" : "disconnected");
+			}
 
 			Result = pNetworkListManager->QueryInterface(IID_IConnectionPointContainer, (void **)&pCPContainer);
 			if (SUCCEEDED(Result))
@@ -35,7 +37,9 @@ void SubscribeToEvents()
 					Result = pConnectPoint->Advise((IUnknown *)NetEvent, &Cookie);
 					if (SUCCEEDED(Result))
 						LogPrint(eLogInfo, "NetState: Successfully subscribed to NetworkListManagerEvent messages");
-						} else
+					else
+						LogPrint(eLogError, "NetState: Unable to subscribe to NetworkListManagerEvent messages");
+				} else
 					LogPrint(eLogError, "NetState: Unable to find interface connection point");
 			} else
 				LogPrint(eLogError, "NetState: Unable to query NetworkListManager interface");
@@ -47,13 +51,28 @@ void SubscribeToEvents()
 
 void UnSubscribeFromEvents()
 {
-	// TODO - DETECT EVERY STAGE STATE and call functions depending it !!!
-	pConnectPoint->Unadvise(Cookie);
-	pConnectPoint->Release();
-	pCPContainer->Release();
-	pNetworkListManager->Release();
-	pUnknown->Release();
-	CoUninitialize();
+	try
+	{
+		if (pConnectPoint) {
+			pConnectPoint->Unadvise(Cookie);
+			pConnectPoint->Release();
+		}
+
+		if (pCPContainer)
+			pCPContainer->Release();
+
+		if (pNetworkListManager)
+			pNetworkListManager->Release();
+
+		if (pUnknown)
+			pUnknown->Release();
+
+		CoUninitialize();
+	}
+	catch (std::exception& ex)
+	{
+		LogPrint (eLogError, "NetState: received exception: ", ex.what ());
+	}
 }
 
 #endif // WINVER

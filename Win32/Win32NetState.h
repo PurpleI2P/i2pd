@@ -42,20 +42,28 @@ public:
 
 	virtual HRESULT STDMETHODCALLTYPE ConnectivityChanged(NLM_CONNECTIVITY newConnectivity)
 	{
-		if (newConnectivity == NLM_CONNECTIVITY_DISCONNECTED)
+		if (newConnectivity == NLM_CONNECTIVITY_DISCONNECTED) {
+			i2p::transport::transports.SetOnline (false);
 			LogPrint(eLogInfo, "NetState: disconnected from network");
+		}
 
-		if (((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV4_INTERNET) != 0)
+		if (((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV4_INTERNET) != 0) {
+			i2p::transport::transports.SetOnline (true);
 			LogPrint(eLogInfo, "NetState: connected to internet with IPv4 capability");
+		}
 
-		if (((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV6_INTERNET) != 0)
+		if (((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV6_INTERNET) != 0) {
+			i2p::transport::transports.SetOnline (true);
 			LogPrint(eLogInfo, "NetState: connected to internet with IPv6 capability");
+		}
 
 		if (
 			(((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV4_INTERNET) == 0) &&
 			(((int)newConnectivity & (int)NLM_CONNECTIVITY_IPV6_INTERNET) == 0)
-		)
+		) {
+			i2p::transport::transports.SetOnline (false);
 			LogPrint(eLogInfo, "NetState: connected without internet access");
+		}
 
 		return S_OK;
 	}
