@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <windows.h>
 #include <shellapi.h>
@@ -11,7 +12,7 @@
 #include "resource.h"
 #include "Daemon.h"
 #include "Win32App.h"
-#include <stdio.h>
+#include "Win32NetState.h"
 
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
@@ -35,7 +36,7 @@ namespace i2p
 namespace win32
 {
 	static DWORD GracefulShutdownEndtime = 0;
-	
+
 	typedef DWORD (* IPN)();
 	IPN GetTickCountLocal = (IPN)GetProcAddress (GetModuleHandle ("KERNEL32.dll"), "GetTickCount");
 
@@ -338,17 +339,17 @@ namespace win32
 						PostMessage (hWnd, WM_CLOSE, 0, 0); // exit
 						return 0;
 					}
-					case FRAME_UPDATE_TIMER:
-					{
-						InvalidateRect(hWnd, NULL, TRUE);
-						return 0;
-					}
 					case IDT_GRACEFUL_TUNNELCHECK_TIMER:
 					{
 						if (i2p::tunnel::tunnels.CountTransitTunnels() == 0)
 							PostMessage (hWnd, WM_CLOSE, 0, 0);
 						else
 							SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr);
+						return 0;
+					}
+					case FRAME_UPDATE_TIMER:
+					{
+						InvalidateRect(hWnd, NULL, TRUE);
 						return 0;
 					}
 				}
@@ -411,6 +412,7 @@ namespace win32
 			MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
 			return false;
 		}
+		SubscribeToEvents();
 		return true;
 	}
 
@@ -430,6 +432,7 @@ namespace win32
 		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
 		if (hWnd)
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_EXIT, 0), 0);
+		UnSubscribeFromEvents();
 		UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
 	}
 

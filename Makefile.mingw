@@ -27,6 +27,8 @@ LDLIBS += \
 	-lws2_32 \
 	-lgdi32 \
 	-liphlpapi \
+	-lole32 \
+	-luuid \
 	-lstdc++ \
 	-lpthread
 
