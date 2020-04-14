@@ -229,7 +229,12 @@ namespace client
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const { return m_EncryptionKeyType == keyType; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const 
+			{ 
+				return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET ? 
+					m_EncryptionKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET :
+					m_EncryptionKeyType < i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET; 
+			}
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const { return m_EncryptionPublicKey; };
 
 		protected:

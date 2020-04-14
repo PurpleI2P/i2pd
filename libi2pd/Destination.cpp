@@ -824,8 +824,8 @@ namespace client
 
 	i2p::data::CryptoKeyType LeaseSetDestination::GetPreferredCryptoType () const
 	{
-		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
-		    return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET;
+		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+		    return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET;
 		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;   
 	}	
 		

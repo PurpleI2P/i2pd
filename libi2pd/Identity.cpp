@@ -412,7 +412,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -672,7 +672,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			default:
@@ -754,7 +754,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:

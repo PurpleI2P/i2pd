@@ -466,8 +466,9 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: message length ", length, " exceeds I2NP message length ", msg->GetLength ());
 			return;
 		}
+		auto mod = length & 0x0f; // %16
 		buf += 4; // length
-		auto it = m_Tags.find (SessionTag(buf));
+		auto it = !mod ? m_Tags.find (SessionTag(buf)) : m_Tags.end (); // AES block is multiple of 16
 		// AES tag might be used even if encryption type is not ElGamal/AES
 		if (it != m_Tags.end ())
 		{
@@ -487,15 +488,11 @@ namespace garlic
 		}
 		else
 		{
-			// tag not found. Handle depending on encryption type
-			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
-			{
-				HandleECIESx25519 (buf, length);	
-				return;
-			}	
-			// otherwise assume ElGamal/AES	
+			// AES tag not found. Handle depending on encryption type		
+			// try ElGamal/AES first if leading block is 514	
 			ElGamalBlock elGamal;
-			if (length >= 514 && Decrypt (buf, (uint8_t *)&elGamal, m_Ctx, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
+			if (mod == 2 && length >= 514 && SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) &&
+			    Decrypt (buf, (uint8_t *)&elGamal, m_Ctx, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
 			{
 				auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
@@ -504,8 +501,11 @@ namespace garlic
 				decryption->Decrypt(buf + 514, length - 514, buf + 514);
 				HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 			}
+			else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+			// otherwise ECIESx25519	
+				HandleECIESx25519 (buf, length); // TODO: check tag first	
 			else
-				LogPrint (eLogError, "Garlic: Failed to decrypt message");
+				LogPrint (eLogError, "Garlic: Failed to decrypt message");	
 		}
 	}
 
@@ -679,8 +679,8 @@ namespace garlic
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET &&
-            SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET))
+        if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET &&
+            SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
         {
             ECIESX25519AEADRatchetSessionPtr session;
             uint8_t staticKey[32];

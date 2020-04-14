@@ -127,7 +127,7 @@ namespace garlic
         if (!GetOwner ()) return false;
         // we are Bob
         // KDF1
-        MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET), 32); // h = SHA256(h || bpk)    
+        MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET), 32); // h = SHA256(h || bpk)    
 		
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{ 
@@ -138,7 +138,7 @@ namespace garlic
         MixHash (m_Aepk, 32); // h = SHA256(h || aepk)  
     
         uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		
         // decrypt flags/static    
@@ -160,7 +160,7 @@ namespace garlic
 		{
 			// static key, fs is apk
             memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519(bsk, apk)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, apk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		}
 		else // all zeros flags
@@ -242,7 +242,7 @@ namespace garlic
         // encrypt static key section
         uint8_t nonce[12];
 		CreateNonce (0, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
 			return false;
@@ -250,7 +250,7 @@ namespace garlic
         MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
         offset += 48;
         // KDF2 
-        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bpk)
+        GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
@@ -355,7 +355,7 @@ namespace garlic
 		uint8_t sharedSecret[32];      
         m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32) 
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
