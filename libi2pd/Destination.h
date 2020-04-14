@@ -1,6 +1,7 @@
 #ifndef DESTINATION_H__
 #define DESTINATION_H__
 
+#include <string.h>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -192,6 +193,17 @@ namespace client
 
 	class ClientDestination: public LeaseSetDestination
 	{
+		struct EncryptionKey
+		{
+			uint8_t pub[256], priv[256];
+			i2p::data::CryptoKeyType keyType;
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> decryptor;
+
+			EncryptionKey (i2p::data::CryptoKeyType t):keyType(t) { memset (pub, 0, 256); memset (priv, 0, 256);	};
+			void GenerateKeys () { i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv, pub); };
+			void CreateDecryptor () { decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv); };
+		};	
+		
 		public:
 
 			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
@@ -229,13 +241,8 @@ namespace client
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const 
-			{ 
-				return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET ? 
-					m_EncryptionKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET :
-					m_EncryptionKeyType < i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET; 
-			}
-			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const { return m_EncryptionPublicKey; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const; 
+			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const;
 
 		protected:
 
@@ -249,15 +256,14 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
-			void PersistTemporaryKeys ();
+			void PersistTemporaryKeys (EncryptionKey * keys);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
-		private:
-
+		private:	
+			
 			i2p::data::PrivateKeys m_Keys;
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
-			i2p::data::CryptoKeyType m_EncryptionKeyType;
-			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
+			std::unique_ptr<EncryptionKey> m_StandardEncryptionKey;
+			std::unique_ptr<EncryptionKey> m_ECIESx25519EncryptionKey;
 
 			int m_StreamingAckDelay;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
