@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <cassert>
 #include <string>
+#include <set>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 #include "Crypto.h"
 #include "Log.h"
 #include "FS.h"
@@ -839,25 +842,46 @@ namespace client
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
 			SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // offline keys can be published with LS2 only
 
-		auto encryptionKeyType = GetIdentity ()->GetCryptoKeyType ();
 		// extract encryption type params for LS2
+		std::set<i2p::data::CryptoKeyType> encryptionKeyTypes;
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 && params)
 		{
 			auto it = params->find (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE);
 			if (it != params->end ())
-				encryptionKeyType = std::stoi(it->second);
+			{
+				// comma-separated values
+				std::vector<std::string> values;
+				boost::split(values, it->second, boost::is_any_of(","));
+				for (auto& it1: values)
+				{
+					try
+					{
+						encryptionKeyTypes.insert (std::stoi(it1));
+					}
+					catch (std::exception& ex)
+					{
+						LogPrint (eLogInfo, "Destination: Unexpected crypto type ", it1, ". ", ex.what ());
+						continue;
+					}	
+				}	
+			}	
 		}		
+		// if no param or valid crypto type use from identity	
+		if (encryptionKeyTypes.empty ()) encryptionKeyTypes.insert (GetIdentity ()->GetCryptoKeyType ());
 
-		auto encryptionKey = new EncryptionKey (encryptionKeyType);
-		if (isPublic) 
-			PersistTemporaryKeys (encryptionKey);
-		else
-			encryptionKey->GenerateKeys ();
-		encryptionKey->CreateDecryptor ();		
-		if (encryptionKeyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
-			m_ECIESx25519EncryptionKey.reset (encryptionKey);
-		else
-			m_StandardEncryptionKey.reset (encryptionKey);	
+		for (auto& it: encryptionKeyTypes)
+		{		
+			auto encryptionKey = new EncryptionKey (it);
+			if (isPublic) 
+				PersistTemporaryKeys (encryptionKey); // TODO:
+			else
+				encryptionKey->GenerateKeys ();
+			encryptionKey->CreateDecryptor ();		
+			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+				m_ECIESx25519EncryptionKey.reset (encryptionKey);
+			else
+				m_StandardEncryptionKey.reset (encryptionKey);	
+		}	
 			
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
