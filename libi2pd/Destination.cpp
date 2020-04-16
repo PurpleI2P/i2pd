@@ -867,13 +867,18 @@ namespace client
 			}	
 		}		
 		// if no param or valid crypto type use from identity	
-		if (encryptionKeyTypes.empty ()) encryptionKeyTypes.insert (GetIdentity ()->GetCryptoKeyType ());
+		bool isSingleKey = false;	
+		if (encryptionKeyTypes.empty ()) 
+		{
+			isSingleKey = true;
+			encryptionKeyTypes.insert (GetIdentity ()->GetCryptoKeyType ());
+		}	
 
 		for (auto& it: encryptionKeyTypes)
 		{		
 			auto encryptionKey = new EncryptionKey (it);
 			if (isPublic) 
-				PersistTemporaryKeys (encryptionKey); // TODO:
+				PersistTemporaryKeys (encryptionKey, isSingleKey);
 			else
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();		
@@ -1119,10 +1124,12 @@ namespace client
 		return ret;
 	}
 
-	void ClientDestination::PersistTemporaryKeys (EncryptionKey * keys)
+	void ClientDestination::PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey)
 	{
+		if (!keys) return;
 		std::string ident = GetIdentHash().ToBase32();
-		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
+		std::string path  = i2p::fs::DataDirPath("destinations", 
+			isSingleKey ? (ident + ".dat") : (ident + "." + std::to_string (keys->keyType) + ".dat"));
 		std::ifstream f(path, std::ifstream::binary);
 
 		if (f) {

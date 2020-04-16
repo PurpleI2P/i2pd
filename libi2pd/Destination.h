@@ -256,7 +256,7 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
-			void PersistTemporaryKeys (EncryptionKey * keys);
+			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 		private:	
