@@ -44,27 +44,36 @@ namespace garlic
 
 	void RatchetTagSet::GetSymmKey (int index, uint8_t * key)
 	{
-		if (m_NextSymmKeyIndex > 0 && index >= m_NextSymmKeyIndex)
+		if (index >= m_NextSymmKeyIndex)
 		{	
 			auto num = index + 1 - m_NextSymmKeyIndex;
+			if (!m_NextSymmKeyIndex)
+			{
+				i2p::crypto::HKDF (m_SymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK); // keydata_0 = HKDF(symmKey_ck, SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
+				m_NextSymmKeyIndex = 1;
+				num--;
+			}	
 			for (int i = 0; i < num; i++)
+			{	
 				i2p::crypto::HKDF (m_CurrentSymmKeyCK, nullptr, 0, "SymmetricRatchet", m_CurrentSymmKeyCK);
+				if (i < num - 1)
+					m_ItermediateSymmKeys.emplace (m_NextSymmKeyIndex + i, m_CurrentSymmKeyCK + 32);
+			}	
 			m_NextSymmKeyIndex += num;
 			memcpy (key, m_CurrentSymmKeyCK + 32, 32);
 		}
 		else
-			CalculateSymmKeyCK (index, key);			
+		{
+			auto it = m_ItermediateSymmKeys.find (index);
+			if (it != m_ItermediateSymmKeys.end ())
+			{	
+				memcpy (key, it->second, 32);
+				m_ItermediateSymmKeys.erase (it);
+			}	
+			else
+				LogPrint (eLogError, "Garlic: Missing symmetric key for index ", index);
+		}	
 	}	
-
-	void RatchetTagSet::CalculateSymmKeyCK (int index, uint8_t * key)
-	{
-		// TODO: store intermediate keys	
-		uint8_t currentSymmKeyCK[64];
-		i2p::crypto::HKDF (m_SymmKeyCK, nullptr, 0, "SymmetricRatchet", currentSymmKeyCK); // keydata_0 = HKDF(symmKey_ck, SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
-		for (int i = 0; i < index; i++)
-			i2p::crypto::HKDF (currentSymmKeyCK, nullptr, 0, "SymmetricRatchet", currentSymmKeyCK); // keydata_n = HKDF(symmKey_chainKey_(n-1), SYMMKEY_CONSTANT, "SymmetricRatchet", 64)
-		memcpy (key, currentSymmKeyCK + 32, 32);
-	}
 	
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
         GarlicRoutingSession (owner, true)

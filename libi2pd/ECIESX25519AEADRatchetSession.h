@@ -7,9 +7,11 @@
 #include <memory>
 #include <vector>
 #include <list>
+#include <unordered_map>
 #include "Identity.h"
 #include "Crypto.h"
 #include "Garlic.h"
+#include "Tag.h"
 
 namespace i2p
 {
@@ -24,10 +26,6 @@ namespace garlic
             uint64_t GetNextSessionTag ();
 			int GetNextIndex () const { return m_NextIndex; }; 
 			void GetSymmKey (int index, uint8_t * key);
-
-        private:
-
-			void CalculateSymmKeyCK (int index, uint8_t * key);
 				
 		private:
 			
@@ -42,7 +40,8 @@ namespace garlic
              
            } m_KeyData;  
            uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64];   
-		   int m_NextIndex, m_NextSymmKeyIndex;		
+		   int m_NextIndex, m_NextSymmKeyIndex;
+		   std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
     };       
 
     enum ECIESx25519BlockType
