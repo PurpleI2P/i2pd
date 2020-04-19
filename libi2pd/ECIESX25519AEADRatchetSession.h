@@ -74,7 +74,7 @@ namespace garlic
 
         public:
 
-            ECIESX25519AEADRatchetSession (GarlicDestination * owner);
+            ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
             ~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (const uint8_t * buf, size_t len, int index = 0);
@@ -109,7 +109,7 @@ namespace garlic
 			bool NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 	
-            std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg);
+            std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first);
             size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
 			size_t CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 

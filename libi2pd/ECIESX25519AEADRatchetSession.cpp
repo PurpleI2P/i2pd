@@ -75,8 +75,8 @@ namespace garlic
 		}	
 	}	
 	
-    ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner):
-        GarlicRoutingSession (owner, true)
+    ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
+        GarlicRoutingSession (owner, attachLeaseSet)
     {
     	ResetKeys ();
     }
@@ -217,6 +217,18 @@ namespace garlic
 				case eECIESx25519BlkPadding:
 					LogPrint (eLogDebug, "Garlic: padding");
 				break;
+				case eECIESx25519BlkAck:
+				{	
+					LogPrint (eLogDebug, "Garlic: ack");
+					int numAcks = size >> 2; // /4
+					auto offset1 = offset;	
+					for (auto i = 0; i < numAcks; i++)
+					{	
+						offset1 += 2; // tagsetid
+						MessageConfirmed (bufbe16toh (buf + offset1)); offset1 += 2; // N
+					}
+					break;
+				}		
 				case eECIESx25519BlkAckRequest:
 				{	
 					LogPrint (eLogDebug, "Garlic: ack request");
@@ -398,6 +410,10 @@ namespace garlic
 		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		HandlePayload (payload.data (), len - 16); 
 
+		// we have received reply to NS with LeaseSet in it
+		SetLeaseSetUpdateStatus (eLeaseSetUpToDate);
+		SetLeaseSetUpdateMsgID (0);
+		
         return true;
     }
 
@@ -466,7 +482,7 @@ namespace garlic
         auto m = NewI2NPMessage ();
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
-        auto payload = CreatePayload (msg);  
+        auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);  
         size_t len = payload.size ();
 
         switch (m_State)
@@ -501,24 +517,25 @@ namespace garlic
 		return m;
     }
 
-    std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg)
+    std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first)
     {
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
-        size_t payloadLen = 7; // datatime 
+        size_t payloadLen = 0; 
+		if (first) payloadLen += 7;// datatime 
         if (msg && m_Destination) 
             payloadLen += msg->GetPayloadLength () + 13 + 32;
         auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ()) : nullptr;
-		std::shared_ptr<I2NPMessage> deliveryStatus;
 		if (leaseSet)
 		{	
             payloadLen += leaseSet->GetPayloadLength () + 13;   
-			deliveryStatus = CreateEncryptedDeliveryStatusMsg (leaseSet->GetMsgID ());
-			payloadLen += deliveryStatus->GetPayloadLength () + 49; 
-			if (GetLeaseSetUpdateMsgID ()) GetOwner ()->RemoveDeliveryStatusSession (GetLeaseSetUpdateMsgID ()); // remove previous
-			SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
-			SetLeaseSetUpdateMsgID (leaseSet->GetMsgID ());
-			SetLeaseSetSubmissionTime (ts);
-			GetOwner ()->DeliveryStatusSent (shared_from_this (), leaseSet->GetMsgID ());
+			if (!first) 
+			{
+				// ack request
+				SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
+				SetLeaseSetUpdateMsgID (m_SendTagset.GetNextIndex ());
+				SetLeaseSetSubmissionTime (ts);
+				payloadLen += 4; 
+			}	
 		}	
 		if (m_AckRequests.size () > 0)
 			payloadLen += m_AckRequests.size ()*4 + 3;
@@ -529,16 +546,25 @@ namespace garlic
         std::vector<uint8_t> v(payloadLen);
         size_t offset = 0;
         // DateTime
-        v[offset] = eECIESx25519BlkDateTime; offset++;
-        htobe16buf (v.data () + offset, 4); offset += 2; 
-        htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
+		if (first)
+		{	
+		    v[offset] = eECIESx25519BlkDateTime; offset++;
+		    htobe16buf (v.data () + offset, 4); offset += 2; 
+		    htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
+		}	
         // LeaseSet
         if (leaseSet)
+		{	
             offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
-		// DeliveryStatus
-		if (deliveryStatus)
-			offset += CreateDeliveryStatusClove (deliveryStatus, v.data () + offset, payloadLen - offset);
-        // msg    
+			if (!first)
+			{	
+				// ack request
+				v[offset] = eECIESx25519BlkAckRequest; offset++;
+				htobe16buf (v.data () + offset, 1); offset += 2;
+				v[offset] = 0; offset++; // flags
+			}	
+		}	
+		// msg    
         if (msg && m_Destination)    
             offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
 		// ack

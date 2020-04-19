@@ -690,7 +690,7 @@ namespace garlic
 		        session = it->second;
             if (!session)
 			{
-				session = std::make_shared<ECIESX25519AEADRatchetSession> (this);
+				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
 				session->SetRemoteStaticKey (staticKey);
 			}	
 			session->SetDestination (destination->GetIdentHash ()); // TODO: remove
@@ -920,7 +920,7 @@ namespace garlic
 			m_ECIESx25519Tags.erase (tag);
 		}	
 		else
-			session = std::make_shared<ECIESX25519AEADRatchetSession> (this); // incoming
+			session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
 		
 		if (!session->HandleNextMessage (buf, len, index))
         	LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
