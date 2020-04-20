@@ -255,9 +255,6 @@ namespace garlic
 				std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
-			// ECIES-X25519-AEAD-Ratchet
-			void HandleECIESx25519 (const uint8_t * buf, size_t len);
-
 		private:
 
 			BN_CTX * m_Ctx; // incoming
