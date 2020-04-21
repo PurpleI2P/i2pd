@@ -944,7 +944,7 @@ namespace data
 			if (replyTunnelID)
 			{
 				// encryption might be used though tunnel only
-				if (flag & DATABASE_LOOKUP_ENCRYPTION_FLAG) // encrypted reply requested
+				if (flag & (DATABASE_LOOKUP_ENCRYPTION_FLAG | DATABASE_LOOKUP_ECIES_FLAG)) // encrypted reply requested
 				{
 					const uint8_t * sessionKey = excluded;
 					const uint8_t numTags = excluded[32];
