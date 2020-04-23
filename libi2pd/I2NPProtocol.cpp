@@ -166,7 +166,7 @@ namespace i2p
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
-		auto m = cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ();
+		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, dest, 32); // key
 		buf += 32;
@@ -178,6 +178,11 @@ namespace i2p
 		buf += 4;
 
 		// excluded
+		if (cnt > 512)
+		{
+			LogPrint (eLogWarning,  "I2NP: Too many peers to exclude ", cnt, " for DatabaseLookup");
+			cnt = 0;
+		}	
 		htobe16buf (buf, cnt);
 		buf += 2;
 		if (cnt > 0)
@@ -190,7 +195,7 @@ namespace i2p
 		}
 		// encryption
 		memcpy (buf, replyKey, 32);
-		buf[32] = uint8_t( 1 ); // 1 tag
+		buf[32] = 1; // 1 tag
 		memcpy (buf + 33, replyTag, 32);
 		buf += 65;
 
