@@ -498,7 +498,8 @@ namespace garlic
 				if (it1 != m_ECIESx25519Tags.end ())
 				{
 					found = true;
-					if (!it1->second.session->HandleNextMessage (buf, length, it1->second.index))
+					auto session = it1->second.tagset->GetSession ();
+					if (!session || !session->HandleNextMessage (buf, length, it1->second.index))
 						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");	
 					m_ECIESx25519Tags.erase (it1);
 				}
@@ -988,9 +989,11 @@ namespace garlic
 		} 
     }
 
-    void GarlicDestination::AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session)
+    void GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
     {
-        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexSession{index, session, i2p::util::GetSecondsSinceEpoch ()});
+		auto index = tagset->GetNextIndex ();
+		uint64_t tag = tagset->GetNextSessionTag ();
+        m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset, i2p::util::GetSecondsSinceEpoch ()});
     }
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)

@@ -120,15 +120,15 @@ namespace garlic
         return false;
     }
 
-    uint64_t ECIESX25519AEADRatchetSession::CreateNewSessionTag () const
+    std::shared_ptr<RatchetTagSet> ECIESX25519AEADRatchetSession::CreateNewSessionTagset ()
     {
         uint8_t tagsetKey[32];    
         i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
          // Session Tag Ratchet
-        RatchetTagSet tagsetNsr;
-        tagsetNsr.DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
-        tagsetNsr.NextSessionTagRatchet ();
-        return tagsetNsr.GetNextSessionTag ();   
+        auto tagsetNsr = std::make_shared<RatchetTagSet>(shared_from_this ());
+        tagsetNsr->DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
+        tagsetNsr->NextSessionTagRatchet ();
+        return tagsetNsr;   
     }
 
     bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
@@ -283,7 +283,7 @@ namespace garlic
 
 		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
-            GetOwner ()->AddECIESx25519SessionTag (0, CreateNewSessionTag (), shared_from_this ());   		
+            GetOwner ()->AddECIESx25519SessionNextTag (CreateNewSessionTagset ());   		
 
         return true;
     }
@@ -291,7 +291,7 @@ namespace garlic
     bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
         // we are Bob
-        uint64_t tag = CreateNewSessionTag ();   
+        uint64_t tag = CreateNewSessionTagset ()->GetNextSessionTag ();   
     
         size_t offset = 0;
         memcpy (out + offset, &tag, 8);
@@ -325,10 +325,12 @@ namespace garlic
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
 		// k_ab = keydata[0:31], k_ba = keydata[32:63]
-        m_ReceiveTagset.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
-		m_ReceiveTagset.NextSessionTagRatchet ();
-        m_SendTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
-		m_SendTagset.NextSessionTagRatchet ();	
+		m_ReceiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+        m_ReceiveTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+		m_ReceiveTagset->NextSessionTagRatchet ();
+		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+        m_SendTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+		m_SendTagset->NextSessionTagRatchet ();	
 		GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
@@ -392,10 +394,12 @@ namespace garlic
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
         // k_ab = keydata[0:31], k_ba = keydata[32:63]
-        m_SendTagset.DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
-		m_SendTagset.NextSessionTagRatchet ();
-        m_ReceiveTagset.DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
-		m_ReceiveTagset.NextSessionTagRatchet ();
+		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+        m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+		m_SendTagset->NextSessionTagRatchet ();
+		m_ReceiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+        m_ReceiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+		m_ReceiveTagset->NextSessionTagRatchet ();
 		GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
@@ -420,14 +424,14 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		uint8_t nonce[12];
-		auto index = m_SendTagset.GetNextIndex ();
+		auto index = m_SendTagset->GetNextIndex ();
 		CreateNonce (index, nonce); // tag's index
-		uint64_t tag = m_SendTagset.GetNextSessionTag ();
+		uint64_t tag = m_SendTagset->GetNextSessionTag ();
 		memcpy (out, &tag, 8);
 		// ad = The session tag, 8 bytes
 		// ciphertext = ENCRYPT(k, n, payload, ad)
 		uint8_t key[32];
-		m_SendTagset.GetSymmKey (index, key);
+		m_SendTagset->GetSymmKey (index, key);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, out, 8, key, nonce, out + 8, outLen - 8, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
@@ -443,14 +447,14 @@ namespace garlic
 		len -= 8; // tag 
 		std::vector<uint8_t> payload (len - 16);
 		uint8_t key[32];
-		m_ReceiveTagset.GetSymmKey (index, key);
+		m_ReceiveTagset->GetSymmKey (index, key);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, key, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
 		}	
 		HandlePayload (payload.data (), len - 16, index); 
-		if (m_ReceiveTagset.GetNextIndex () - index <= GetOwner ()->GetNumTags ()*2/3)
+		if (m_ReceiveTagset->GetNextIndex () - index <= GetOwner ()->GetNumTags ()*2/3)
 			GenerateMoreReceiveTags (GetOwner ()->GetNumTags ());		
 		return true;
 	}
@@ -532,7 +536,7 @@ namespace garlic
 			{
 				// ack request
 				SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
-				SetLeaseSetUpdateMsgID (m_SendTagset.GetNextIndex ());
+				SetLeaseSetUpdateMsgID (m_SendTagset->GetNextIndex ());
 				SetLeaseSetSubmissionTime (ts);
 				payloadLen += 4; 
 			}	
@@ -646,11 +650,7 @@ namespace garlic
 	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (int numTags)
 	{
 		for (int i = 0; i < numTags; i++)
-		{
-			auto index = m_ReceiveTagset.GetNextIndex ();
-			uint64_t tag = m_ReceiveTagset.GetNextSessionTag ();
-			GetOwner ()->AddECIESx25519SessionTag (index, tag, shared_from_this ());
-		}	
+			GetOwner ()->AddECIESx25519SessionNextTag (m_ReceiveTagset);
 	}	
 
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)

@@ -17,16 +17,21 @@ namespace i2p
 {
 namespace garlic
 {
+	class ECIESX25519AEADRatchetSession;
     class RatchetTagSet
     {
         public:
-            
+
+			RatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};	
+			
             void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
             void NextSessionTagRatchet ();
             uint64_t GetNextSessionTag ();
 			int GetNextIndex () const { return m_NextIndex; }; 
 			void GetSymmKey (int index, uint8_t * key);
-				
+
+			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
+			
 		private:
 			
            union
@@ -42,6 +47,7 @@ namespace garlic
            uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64];   
 		   int m_NextIndex, m_NextSymmKeyIndex;
 		   std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
+		   std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
     };       
 
     enum ECIESx25519BlockType
@@ -97,7 +103,7 @@ namespace garlic
             void MixHash (const uint8_t * buf, size_t len);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
             bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
-            uint64_t CreateNewSessionTag () const;
+			std::shared_ptr<RatchetTagSet> CreateNewSessionTagset ();
 
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
             bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len);
@@ -123,7 +129,7 @@ namespace garlic
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
 			uint64_t m_LastActivityTimestamp = 0; // incoming
-            RatchetTagSet m_SendTagset, m_ReceiveTagset;
+            std::shared_ptr<RatchetTagSet> m_SendTagset, m_ReceiveTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
     };

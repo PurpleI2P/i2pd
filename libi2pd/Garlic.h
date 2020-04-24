@@ -201,11 +201,13 @@ namespace garlic
 	typedef std::shared_ptr<ElGamalAESSession> ElGamalAESSessionPtr; 
 
     class ECIESX25519AEADRatchetSession;
-    typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;     
-	struct ECIESX25519AEADRatchetIndexSession
+    typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;  
+	class RatchetTagSet;
+	typedef std::shared_ptr<RatchetTagSet> RatchetTagSetPtr;
+	struct ECIESX25519AEADRatchetIndexTagset
 	{ 
 		int index; 
-		ECIESX25519AEADRatchetSessionPtr session; 
+		RatchetTagSetPtr tagset; 
 		uint64_t creationTime; // seconds since epoch
 	};
 
@@ -228,7 +230,7 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
-            void AddECIESx25519SessionTag (int index, uint64_t tag, ECIESX25519AEADRatchetSessionPtr session);
+            void AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
@@ -265,7 +267,7 @@ namespace garlic
             std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			// incoming
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
-            std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexSession> m_ECIESx25519Tags; // session tag -> session
+            std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
