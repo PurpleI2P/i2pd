@@ -499,7 +499,7 @@ namespace garlic
 				{
 					found = true;
 					auto session = it1->second.tagset->GetSession ();
-					if (!session || !session->HandleNextMessage (buf, length, it1->second.index))
+					if (!session || !session->HandleNextMessage (buf, length, it1->second.tagset, it1->second.index))
 						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");	
 					m_ECIESx25519Tags.erase (it1);
 				}
@@ -524,7 +524,7 @@ namespace garlic
 				{	
 					// otherwise ECIESx25519	
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
-					if (!session->HandleNextMessage (buf, length, 0))
+					if (!session->HandleNextMessage (buf, length, nullptr, 0))
         				LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 				}	
 				else
