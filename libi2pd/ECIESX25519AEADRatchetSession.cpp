@@ -258,18 +258,23 @@ namespace garlic
 			uint16_t keyID = bufbe16toh (buf); buf += 2; // keyID
 			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 			{
-				i2p::crypto::X25519Keys k;
-				k.GenerateKeys ();
+				m_IsReverseKeyRequested = true;
+				if (!m_NextReceiveKey)
+					m_NextReceiveKey.reset (new i2p::crypto::X25519Keys ());
+				else
+				{
+					if (keyID == m_ReceiveKeyID) return;
+					else m_ReceiveKeyID++; // TODO
+				}		
+				m_NextReceiveKey->GenerateKeys ();
 				uint8_t sharedSecret[32], tagsetKey[32];
-				k.Agree (buf, sharedSecret);
+				m_NextReceiveKey->Agree (buf, sharedSecret);
 				i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
 				auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
 				newTagset->SetTagSetID (1 + keyID + m_ReceiveKeyID); 
 				newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey); 
 				newTagset->NextSessionTagRatchet ();
-				GenerateMoreReceiveTags (newTagset, GetOwner ()->GetNumTags ());
-				m_ReverseKeys.push_back ({m_ReceiveKeyID, k.GetPublicKey ()});
-				m_ReceiveKeyID++;
+				GenerateMoreReceiveTags (newTagset, GetOwner ()->GetNumTags ());		
 				LogPrint (eLogDebug, "Garlic: next receive tagset ", newTagset->GetTagSetID (), " created");
 			}
 			else
@@ -580,8 +585,8 @@ namespace garlic
 		}	
 		if (m_AckRequests.size () > 0)
 			payloadLen += m_AckRequests.size ()*4 + 3;
-		if (m_ReverseKeys.size () > 0)
-			payloadLen += m_ReverseKeys.size ()*(3 + 35);
+		if (m_IsReverseKeyRequested)
+			payloadLen += 3 + 35;
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
         paddingSize &= 0x0F; paddingSize++; // 1 - 16
@@ -623,16 +628,14 @@ namespace garlic
 			m_AckRequests.clear ();
 		}	
 		// next keys
-		if (m_ReverseKeys.size () > 0)
+		if (m_IsReverseKeyRequested)
 		{
-			for (auto& it: m_ReverseKeys)
-			{
-				v[offset] = eECIESx25519BlkNextKey; offset++;
-				htobe16buf (v.data () + offset, 35); offset += 2;
-				v[offset] = ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG | ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG; offset++; // flag
-				htobe16buf (v.data () + offset, it.first); offset += 2; // keyid
-				memcpy (v.data () + offset, it.second, 32); offset += 32; // public key
-			}	
+			v[offset] = eECIESx25519BlkNextKey; offset++;
+			htobe16buf (v.data () + offset, 35); offset += 2;
+			v[offset] = ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG | ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG; offset++; // flag
+			htobe16buf (v.data () + offset, m_ReceiveKeyID); offset += 2; // keyid
+			memcpy (v.data () + offset, m_NextReceiveKey->GetPublicKey (), 32); offset += 32; // public key
+			m_IsReverseKeyRequested = false;
 		}	
         // padding
         v[offset] = eECIESx25519BlkPadding; offset++; 

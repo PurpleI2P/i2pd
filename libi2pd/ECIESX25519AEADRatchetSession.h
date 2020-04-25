@@ -138,10 +138,11 @@ namespace garlic
             SessionState m_State = eSessionStateNew;
 			uint64_t m_LastActivityTimestamp = 0; // incoming
             std::shared_ptr<RatchetTagSet> m_SendTagset;
-			int m_SendKeyID = 0, m_ReceiveKeyID = 0;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
-			std::list<std::pair<uint16_t, i2p::data::Tag<32> > > m_ReverseKeys; // (keyid, public key) 
+			int m_SendKeyID = 0, m_ReceiveKeyID = 0;
+			bool m_IsReverseKeyRequested = false;
+			std::unique_ptr<i2p::crypto::X25519Keys> m_NextReceiveKey;
      };
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
