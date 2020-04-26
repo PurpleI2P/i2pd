@@ -318,12 +318,7 @@ namespace i2p
 	{
 		if (maxNumTransitTunnels > 0 && g_MaxNumTransitTunnels != maxNumTransitTunnels)
 		{
-			if (maxNumTransitTunnels <= 65535) {
-				LogPrint (eLogDebug, "I2NP: Max number of transit tunnels set to ", maxNumTransitTunnels);
-			} else {
-				LogPrint (eLogWarning, "I2NP: Requested number of transit tunnels exceeds 65535, limited");
-				maxNumTransitTunnels = 65535;
-			}
+			LogPrint (eLogDebug, "I2NP: Max number of transit tunnels set to ", maxNumTransitTunnels);
 			g_MaxNumTransitTunnels = maxNumTransitTunnels;
 		}
 	}
