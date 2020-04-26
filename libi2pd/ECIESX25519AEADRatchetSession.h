@@ -73,6 +73,7 @@ namespace garlic
 	
 	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
 	const int ECIESX25519_EXPIRATION_TIMEOUT = 600; // in seconds
+	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 60000; // number of tags we request new tagset after
 
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
@@ -90,7 +91,7 @@ namespace garlic
 			int keyID = 0;
 			i2p::crypto::X25519Keys key;
 			uint8_t remote[32]; // last remote public key
-			bool newKey;
+			bool newKey = true;
 		};	
 		
         public:
@@ -136,6 +137,7 @@ namespace garlic
 			size_t CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 
 			void GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags);
+			void NewNextSendRatchet ();
 			
         private:
 
@@ -148,9 +150,8 @@ namespace garlic
             std::shared_ptr<RatchetTagSet> m_SendTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
-			int m_SendKeyID = 0, m_ReceiveKeyID = 0;
-			bool m_SendReverseKey = false;
-			std::unique_ptr<DHRatchet> m_NextReceiveRatchet;
+			bool m_SendReverseKey = false, m_SendForwardKey = false;
+			std::unique_ptr<DHRatchet> m_NextReceiveRatchet, m_NextSendRatchet;
      };
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
