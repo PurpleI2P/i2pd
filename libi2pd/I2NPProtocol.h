@@ -285,6 +285,7 @@ namespace tunnel
 
 	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 2500;
 	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
+	uint16_t GetMaxNumTransitTunnels ();
 }
 
 #endif

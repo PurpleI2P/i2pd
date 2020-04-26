@@ -54,7 +54,7 @@ namespace http {
 		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
 		"  a, .slide label { text-decoration: none; color: #894C84; }\r\n"
 		"  a:hover, .slide label:hover { color: #FAFAFA; background: #894C84; }\r\n"
-		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none; color: initial; width: 1.5em;}\r\n"
+		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none; color: initial; padding: 0 5px; }\r\n"
 		"  .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
 		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 60em; }\r\n"
 		"  .left  { float: left; position: absolute; }\r\n"
@@ -93,6 +93,7 @@ namespace http {
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";
 	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
+	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
@@ -580,14 +581,25 @@ namespace http {
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
 #endif
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n<br>\r\n";
 
-		s << "<br>\r\n<b>Logging level</b><br>\r\n";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">[none]</a> ";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">[error]</a> ";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">[warn]</a> ";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">[info]</a> ";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">[debug]</a><br>\r\n";
+		s << "<small><b>Note:</b> any action done here are not persistent and not changes your config files.</small>\r\n<br>\r\n";
+
+		s << "<b>Logging level</b><br>\r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
+
+		uint16_t maxTunnels = GetMaxNumTransitTunnels ();
+		s << "<b>Transit tunnels limit</b><br>\r\n";
+		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
+		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
+		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
+		s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
+		s << "  <button type=\"submit\">Change</button>\r\n";
+		s << "</form>\r\n<br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -1124,6 +1136,19 @@ namespace http {
 			redirect = "5; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
+		}
+		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
+		{
+			uint32_t limit = std::stoul(params["limit"], nullptr);
+			if (limit > 0 && limit <= 65535)
+				SetMaxNumTransitTunnels (limit);
+			else {
+				s << "<b>ERROR</b>:&nbsp;Transit tunnels count must not exceed 65535<br><br>\r\n";
+				s << "<a href=\"" << webroot << "?page=commands\">Back to commands list</a><br>\r\n";
+				s << "<p>You will be redirected back in 5 seconds</b>";
+				res.add_header("Refresh", redirect.c_str());
+				return;
+			}
 		}
 		else
 		{

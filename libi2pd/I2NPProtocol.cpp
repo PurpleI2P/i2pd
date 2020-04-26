@@ -316,11 +316,21 @@ namespace i2p
 	static uint16_t g_MaxNumTransitTunnels = DEFAULT_MAX_NUM_TRANSIT_TUNNELS; // TODO:
 	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
 	{
-		if (maxNumTransitTunnels > 0 && maxNumTransitTunnels <= 10000 && g_MaxNumTransitTunnels != maxNumTransitTunnels)
+		if (maxNumTransitTunnels > 0 && g_MaxNumTransitTunnels != maxNumTransitTunnels)
 		{
-			LogPrint (eLogDebug, "I2NP: Max number of  transit tunnels set to ", maxNumTransitTunnels);
+			if (maxNumTransitTunnels <= 65535) {
+				LogPrint (eLogDebug, "I2NP: Max number of transit tunnels set to ", maxNumTransitTunnels);
+			} else {
+				LogPrint (eLogWarning, "I2NP: Requested number of transit tunnels exceeds 65535, limited");
+				maxNumTransitTunnels = 65535;
+			}
 			g_MaxNumTransitTunnels = maxNumTransitTunnels;
 		}
+	}
+
+	uint16_t GetMaxNumTransitTunnels ()
+	{
+		return g_MaxNumTransitTunnels;
 	}
 
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
