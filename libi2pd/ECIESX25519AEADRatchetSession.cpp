@@ -256,29 +256,40 @@ namespace garlic
 		else
 		{
 			uint16_t keyID = bufbe16toh (buf); buf += 2; // keyID
-			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
-			{
-				m_IsReverseKeyRequested = true;
-				if (!m_NextReceiveKey)
-					m_NextReceiveKey.reset (new i2p::crypto::X25519Keys ());
-				else
-				{
-					if (keyID == m_ReceiveKeyID) return;
-					else m_ReceiveKeyID++; // TODO
-				}		
-				m_NextReceiveKey->GenerateKeys ();
-				uint8_t sharedSecret[32], tagsetKey[32];
-				m_NextReceiveKey->Agree (buf, sharedSecret);
-				i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
-				auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
-				newTagset->SetTagSetID (1 + keyID + m_ReceiveKeyID); 
-				newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey); 
-				newTagset->NextSessionTagRatchet ();
-				GenerateMoreReceiveTags (newTagset, GetOwner ()->GetNumTags ());		
-				LogPrint (eLogDebug, "Garlic: next receive tagset ", newTagset->GetTagSetID (), " created");
-			}
+			bool newKey = flag & ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
+			m_SendReverseKey = true;
+			if (!m_NextReceiveRatchet)
+				m_NextReceiveRatchet.reset (new DHRatchet ());
 			else
-				LogPrint (eLogWarning, "Garlic: Missing next key");
+			{	
+				if (keyID == m_NextReceiveRatchet->keyID && newKey == m_NextReceiveRatchet->newKey) 
+				{
+					LogPrint (eLogDebug, "Garlic: Duplicate ", newKey ? "new" : "old", " key ", keyID, " received");
+					return;
+				}	
+				m_NextReceiveRatchet->keyID = keyID;
+			}
+			int tagsetID = 2*keyID;
+			if (newKey)
+			{	
+				m_NextReceiveRatchet->key.GenerateKeys ();
+				m_NextReceiveRatchet->newKey = true;
+				tagsetID++;
+			}	
+			else
+				m_NextReceiveRatchet->newKey = false;
+			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
+				memcpy (m_NextReceiveRatchet->remote, buf, 32);
+			
+			uint8_t sharedSecret[32], tagsetKey[32];
+			m_NextReceiveRatchet->key.Agree (m_NextReceiveRatchet->remote, sharedSecret);
+			i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
+			auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());	
+			newTagset->SetTagSetID (tagsetID); 
+			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey); 
+			newTagset->NextSessionTagRatchet ();
+			GenerateMoreReceiveTags (newTagset, GetOwner ()->GetNumTags ());		
+			LogPrint (eLogDebug, "Garlic: next receive tagset ", tagsetID, " created");
 		}	
 	}	
 		
@@ -585,8 +596,11 @@ namespace garlic
 		}	
 		if (m_AckRequests.size () > 0)
 			payloadLen += m_AckRequests.size ()*4 + 3;
-		if (m_IsReverseKeyRequested)
-			payloadLen += 3 + 35;
+		if (m_SendReverseKey)
+		{	
+			payloadLen += 6;
+			if (m_NextReceiveRatchet->newKey) payloadLen += 32;
+		}	
         uint8_t paddingSize;
         RAND_bytes (&paddingSize, 1);
         paddingSize &= 0x0F; paddingSize++; // 1 - 16
@@ -628,14 +642,25 @@ namespace garlic
 			m_AckRequests.clear ();
 		}	
 		// next keys
-		if (m_IsReverseKeyRequested)
+		if (m_SendReverseKey)
 		{
 			v[offset] = eECIESx25519BlkNextKey; offset++;
-			htobe16buf (v.data () + offset, 35); offset += 2;
-			v[offset] = ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG | ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG; offset++; // flag
-			htobe16buf (v.data () + offset, m_ReceiveKeyID); offset += 2; // keyid
-			memcpy (v.data () + offset, m_NextReceiveKey->GetPublicKey (), 32); offset += 32; // public key
-			m_IsReverseKeyRequested = false;
+			htobe16buf (v.data () + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
+			v[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG; 
+			int keyID = m_NextReceiveRatchet->keyID - 1;
+			if (m_NextReceiveRatchet->newKey) 
+			{	
+				v[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
+				keyID++;
+			}	
+			offset++; // flag
+			htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
+			if (m_NextReceiveRatchet->newKey)
+			{	
+				memcpy (v.data () + offset, m_NextReceiveRatchet->key.GetPublicKey (), 32); 
+				offset += 32; // public key
+			}	
+			m_SendReverseKey = false;
 		}	
         // padding
         v[offset] = eECIESx25519BlkPadding; offset++; 

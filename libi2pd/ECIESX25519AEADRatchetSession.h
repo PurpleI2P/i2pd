@@ -85,6 +85,14 @@ namespace garlic
 			eSessionStateEstablished		
         };
 
+		struct DHRatchet
+		{
+			int keyID = 0;
+			i2p::crypto::X25519Keys key;
+			uint8_t remote[32]; // last remote public key
+			bool newKey;
+		};	
+		
         public:
 
             ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
@@ -141,8 +149,8 @@ namespace garlic
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
 			int m_SendKeyID = 0, m_ReceiveKeyID = 0;
-			bool m_IsReverseKeyRequested = false;
-			std::unique_ptr<i2p::crypto::X25519Keys> m_NextReceiveKey;
+			bool m_SendReverseKey = false;
+			std::unique_ptr<DHRatchet> m_NextReceiveRatchet;
      };
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
