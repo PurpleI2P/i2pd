@@ -255,12 +255,12 @@ namespace garlic
 		uint8_t flag = buf[0]; buf++; // flag
 		if (flag & ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG)
 		{
-			if (!m_NextSendRatchet) return;
+			if (!m_SendForwardKey || !m_NextSendRatchet) return;
 			uint16_t keyID = bufbe16toh (buf); buf += 2; // keyID
 			if (((!m_NextSendRatchet->newKey || !m_NextSendRatchet->keyID) && keyID == m_NextSendRatchet->keyID) ||
 			    (m_NextSendRatchet->newKey && keyID == m_NextSendRatchet->keyID -1))
 			{
-				if (flag & ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG)
+				if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 					memcpy (m_NextSendRatchet->remote, buf, 32);
 				uint8_t sharedSecret[32], tagsetKey[32];
 				m_NextSendRatchet->key.Agree (m_NextSendRatchet->remote, sharedSecret);
@@ -318,22 +318,23 @@ namespace garlic
 
 	void ECIESX25519AEADRatchetSession::NewNextSendRatchet ()
 	{
-		auto newTagset = new DHRatchet ();
 		if (m_NextSendRatchet)
 		{
-			newTagset->keyID = m_NextSendRatchet->keyID;
-			if (!newTagset->newKey || !newTagset->keyID)
+			if (!m_NextSendRatchet->newKey || !m_NextSendRatchet->keyID)
 			{
-				newTagset->keyID++;
-				newTagset->newKey = true;
+				m_NextSendRatchet->keyID++;
+				m_NextSendRatchet->newKey = true;
 			}	
 			else
-				newTagset->newKey = false;
+				m_NextSendRatchet->newKey = false;
 		}	
-		if (newTagset->newKey)
-			newTagset->key.GenerateKeys ();
-		m_NextSendRatchet.reset (newTagset);
+		else
+			m_NextSendRatchet.reset (new DHRatchet ());
+		if (m_NextSendRatchet->newKey)
+			m_NextSendRatchet->key.GenerateKeys ();
+		
 		m_SendForwardKey = true;
+		LogPrint (eLogDebug, "Garlic: new send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
 	}	
 		
     bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
