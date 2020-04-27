@@ -490,6 +490,7 @@ namespace client
 			{
 				for (auto& it: files)
 				{
+					if (it.substr(it.size() - 5) != ".conf") continue; // skip files which not ends with ".conf"
 					LogPrint(eLogDebug, "Clients: tunnels extra config file: ", it);
 					ReadTunnels (it, numClientTunnels, numServerTunnels);
 				}
