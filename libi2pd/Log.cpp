@@ -199,7 +199,6 @@ namespace log {
 	void Log::SendTo (const std::string& path)
 	{
 		if (m_LogStream) m_LogStream = nullptr; // close previous
-		if (m_MinLevel == eLogNone) return;
 		auto flags = std::ofstream::out | std::ofstream::app;
 		auto os = std::make_shared<std::ofstream> (path, flags);
 		if (os->is_open ())
