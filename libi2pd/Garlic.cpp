@@ -788,7 +788,7 @@ namespace garlic
 		// ECIESx25519
 		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
 		{
-			if (ts > it->second.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+			if (ts > it->second.creationTime + ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				it = m_ECIESx25519Tags.erase (it);
 			else
 				++it;	

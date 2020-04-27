@@ -311,7 +311,7 @@ namespace garlic
 			newTagset->SetTagSetID (tagsetID); 
 			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey); 
 			newTagset->NextSessionTagRatchet ();
-			GenerateMoreReceiveTags (newTagset, GetOwner ()->GetNumTags ());		
+			GenerateMoreReceiveTags (newTagset, ECIESX25519_MAX_NUM_GENERATED_TAGS);		
 			LogPrint (eLogDebug, "Garlic: next receive tagset ", tagsetID, " created");
 		}	
 	}	
@@ -426,7 +426,7 @@ namespace garlic
 		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
         m_SendTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset->NextSessionTagRatchet ();	
-		GenerateMoreReceiveTags (receiveTagset, GetOwner ()->GetNumTags ());
+		GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
         // encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset, len + 16, true)) // encrypt
@@ -495,7 +495,7 @@ namespace garlic
 		auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
         receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		receiveTagset->NextSessionTagRatchet ();
-		GenerateMoreReceiveTags (receiveTagset, GetOwner ()->GetNumTags ());
+		GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16);
@@ -552,8 +552,11 @@ namespace garlic
 			return false;
 		}	
 		HandlePayload (payload.data (), len - 16, receiveTagset, index); 
-		if (receiveTagset->GetNextIndex () - index <= GetOwner ()->GetNumTags ()*2/3)
-			GenerateMoreReceiveTags (receiveTagset, GetOwner ()->GetNumTags ());		
+		int moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
+		if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
+		moreTags -= (receiveTagset->GetNextIndex () - index); 
+		if (moreTags > 0)
+			GenerateMoreReceiveTags (receiveTagset, moreTags);		
 		return true;
 	}
 

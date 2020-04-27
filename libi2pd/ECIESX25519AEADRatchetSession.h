@@ -72,9 +72,12 @@ namespace garlic
 	const uint8_t ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG = 0x04;
 	
 	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
-	const int ECIESX25519_EXPIRATION_TIMEOUT = 600; // in seconds
-	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 60000; // number of tags we request new tagset after
-
+	const int ECIESX25519_EXPIRATION_TIMEOUT = 480; // in seconds
+	const int ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT = 600; // in seconds
+	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 1024; // number of tags we request new tagset after
+	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
+	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
+	
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
         enum SessionState
