@@ -378,7 +378,7 @@ namespace garlic
 
 		m_State = eSessionStateNewSessionSent;
         if (GetOwner ())
-            GetOwner ()->AddECIESx25519SessionNextTag (CreateNewSessionTagset ());   		
+			GenerateMoreReceiveTags (CreateNewSessionTagset (), ECIESX25519_NSR_NUM_GENERATED_TAGS);
 
         return true;
     }

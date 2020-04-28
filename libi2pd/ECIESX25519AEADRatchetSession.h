@@ -77,6 +77,7 @@ namespace garlic
 	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 1024; // number of tags we request new tagset after
 	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
 	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
+	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
 	
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
