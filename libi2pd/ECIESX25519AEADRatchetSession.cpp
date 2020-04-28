@@ -386,7 +386,8 @@ namespace garlic
     bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
         // we are Bob
-        uint64_t tag = CreateNewSessionTagset ()->GetNextSessionTag ();   
+		m_NSRTagset = CreateNewSessionTagset ();
+        uint64_t tag = m_NSRTagset->GetNextSessionTag ();   
     
         size_t offset = 0;
         memcpy (out + offset, &tag, 8);
@@ -396,6 +397,8 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;	
 		}
+		memcpy (m_NSREncodedKey, out + offset, 56); // for possible next NSR
+		memcpy (m_NSRH, m_H, 32);
         offset += 32;      
         // KDF for  Reply Key Section
         MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
@@ -408,14 +411,13 @@ namespace garlic
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
         // calulate hash for zero length
-		if (!i2p::crypto::AEADChaCha20Poly1305 (sharedSecret /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
+		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + offset, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
 		{
 			LogPrint (eLogWarning, "Garlic: Reply key section AEAD encryption failed");
 			return false;
 		}
         MixHash (out + offset, 16); // h = SHA256(h || ciphertext)    
         offset += 16;
-		memcpy (m_NSRHeader, out, 56); // for possible next NSR
         // KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
@@ -442,9 +444,21 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
     {
         // we are Bob and sent NSR already
-		memcpy (out, m_NSRHeader, 56);
+		uint64_t tag = m_NSRTagset->GetNextSessionTag ();  // next tag
+        memcpy (out, &tag, 8);
+		memcpy (out + 8, m_NSREncodedKey, 32);
+		// recalculte h with new tag
+		memcpy (m_H, m_NSRH, 32);
+		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
+        MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t nonce[12];
-		CreateNonce (0, nonce);
+		CreateNonce (0, nonce);	
+		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + 40, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
+		{
+			LogPrint (eLogWarning, "Garlic: Reply key section AEAD encryption failed");
+			return false;
+		}
+		MixHash (out + 40, 16); // h = SHA256(h || ciphertext)    
 		// encrypt payload
         if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + 56, len + 16, true)) // encrypt
 		{
@@ -568,6 +582,7 @@ namespace garlic
 		{
 			case eSessionStateNewSessionReplySent:
 				m_State = eSessionStateEstablished;
+				m_NSRTagset = nullptr;
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]]; 
 #endif				

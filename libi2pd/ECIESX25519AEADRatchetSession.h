@@ -147,11 +147,11 @@ namespace garlic
 
             uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
-			uint8_t m_NSRHeader[56], m_NSRKey[32]; // new session reply, for incoming only
+			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
             i2p::crypto::X25519Keys m_EphemeralKeys;
             SessionState m_State = eSessionStateNew;
 			uint64_t m_LastActivityTimestamp = 0; // incoming
-            std::shared_ptr<RatchetTagSet> m_SendTagset;
+            std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it 
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
 			bool m_SendReverseKey = false, m_SendForwardKey = false;
