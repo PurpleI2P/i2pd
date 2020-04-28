@@ -65,6 +65,10 @@ public class DaemonSingleton {
 		}
 	}
 
+	public synchronized int GetTransitTunnelsCount() {
+		return I2PD_JNI.GetTransitTunnelsCount();
+	}
+
 	private volatile boolean startedOkay;
 
 	public enum State {

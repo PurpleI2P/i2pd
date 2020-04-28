@@ -74,7 +74,7 @@ public class I2PDActivity extends Activity {
 			processAssets();
 			runOnUiThread(() -> {
 				try {
-					if (textView==null)
+					if (textView == null)
 						return;
 					Throwable tr = daemon.getLastThrowable();
 					if (tr!=null) {
@@ -128,7 +128,7 @@ public class I2PDActivity extends Activity {
 		doBindService();
 
 		final Timer gracefulQuitTimer = getGracefulQuitTimer();
-		if (gracefulQuitTimer!=null) {
+		if (gracefulQuitTimer != null) {
 			long gracefulStopAtMillis;
 			synchronized (graceStartedMillis_LOCK) {
 				gracefulStopAtMillis = graceStartedMillis + GRACEFUL_DELAY_MILLIS;
@@ -373,6 +373,11 @@ public class I2PDActivity extends Activity {
 		if (gracefulQuitTimerOld != null)
 			gracefulQuitTimerOld.cancel();
 
+		if(daemon.GetTransitTunnelsCount() <= 0) { // no tunnels left
+			Log.d(TAG, "no transit tunnels left, stopping");
+			i2pdStop();
+		}
+
 		final Timer gracefulQuitTimer = new Timer(true);
 		setGracefulQuitTimer(gracefulQuitTimer);
 		gracefulQuitTimer.schedule(new TimerTask() {
@@ -480,7 +485,7 @@ public class I2PDActivity extends Activity {
 	private void deleteRecursive(File fileOrDirectory) {
 		if (fileOrDirectory.isDirectory()) {
 			File[] files = fileOrDirectory.listFiles();
-			if (files!=null) {
+			if (files != null) {
 				for (File child : files) {
 					deleteRecursive(child);
 				}

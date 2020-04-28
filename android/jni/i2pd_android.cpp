@@ -4,6 +4,7 @@
 #include "RouterContext.h"
 #include "ClientContext.h"
 #include "Transports.h"
+#include "Tunnel.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 	(JNIEnv *env, jclass clazz) {
@@ -97,4 +98,9 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_setDataDir
 
 	// Set DataDir
 	i2p::android::SetDataDir(dataDir);
+}
+
+JNIEXPORT jint JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_GetTransitTunnelsCount
+	(JNIEnv *env, jclass clazz) {
+	return i2p::tunnel::tunnels.CountTransitTunnels();
 }

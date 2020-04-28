@@ -22,6 +22,8 @@ public class I2PD_JNI {
 
 	public static native void setDataDir(String jdataDir);
 
+	public static native int GetTransitTunnelsCount();
+
 	public static void loadLibraries() {
 		//System.loadLibrary("c++_shared");
 		System.loadLibrary("i2pd");
