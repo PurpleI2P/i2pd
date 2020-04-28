@@ -35,11 +35,11 @@ namespace config {
 			("version",                                                       "Show i2pd version")
 			("conf", value<std::string>()->default_value(""),                 "Path to main i2pd config file (default: try ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)")
 			("tunconf", value<std::string>()->default_value(""),              "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)")
-			("tunnelsdir", value<std::string>()->default_value(""),   "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
+			("tunnelsdir", value<std::string>()->default_value(""),           "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
-			("loglevel", value<std::string>()->default_value("info"),         "Set the minimal level of log messages (debug, info, warn, error, none)")
+			("loglevel", value<std::string>()->default_value("warn"),         "Set the minimal level of log messages (debug, info, warn, error, none)")
 			("logclftime", bool_switch()->default_value(false),               "Write full CLF-formatted date and time to log (default: disabled, write only time)")
 			("family", value<std::string>()->default_value(""),               "Specify a family, router belongs to")
 			("datadir", value<std::string>()->default_value(""),              "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
@@ -88,7 +88,7 @@ namespace config {
 			("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
-			("http.webroot", value<std::string>()->default_value("/"),            "WebUI root path (default: / )")
+			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -131,7 +131,7 @@ namespace config {
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
 			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
-			("sam.singlethread", value<bool>()->default_value(true),         "Sessions run in the SAM bridge's thread")
+			("sam.singlethread", value<bool>()->default_value(true),          "Sessions run in the SAM bridge's thread")
 		;
 
 		options_description bob("BOB options");
@@ -191,15 +191,15 @@ namespace config {
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
 				"https://netdb.i2p2.no/,"
-			    "https://reseed.i2p2.no/,"
-			    "https://reseed2.i2p2.no/,"
+				"https://reseed.i2p2.no/,"
+				"https://reseed2.i2p2.no/,"
 				// "https://us.reseed.i2p2.no:444/," // mamoth's shit
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
-                "https://i2p.novg.net/"
+				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 		;
 
@@ -228,29 +228,29 @@ namespace config {
 
 		options_description ntcp2("NTCP2 Options");
 		ntcp2.add_options()
-			("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
-			("ntcp2.published", value<bool>()->default_value(true), "Publish NTCP2 (default: enabled)")
-			("ntcp2.port", value<uint16_t>()->default_value(0), "Port to listen for incoming NTCP2 connections (default: auto)")
+			("ntcp2.enabled", value<bool>()->default_value(true),          "Enable NTCP2 (default: enabled)")
+			("ntcp2.published", value<bool>()->default_value(true),        "Publish NTCP2 (default: enabled)")
+			("ntcp2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming NTCP2 connections (default: auto)")
 			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
-			("ntcp2.proxy", value<std::string>()->default_value(""), "Proxy URL for NTCP2 transport")
+			("ntcp2.proxy", value<std::string>()->default_value(""),       "Proxy URL for NTCP2 transport")
 		;
 
 		options_description nettime("Time sync options");
 		nettime.add_options()
-			("nettime.enabled", value<bool>()->default_value(false), "Disable time sync (default: disabled)")
+			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")
 			("nettime.ntpservers", value<std::string>()->default_value(
 				"0.pool.ntp.org,"
 				"1.pool.ntp.org,"
 				"2.pool.ntp.org,"
 				"3.pool.ntp.org"
 			),  "Comma separated list of NTCP servers")
-			("nettime.ntpsyncinterval", value<int>()->default_value(72),  "NTP sync interval in hours (default: 72)")
+			("nettime.ntpsyncinterval", value<int>()->default_value(72),   "NTP sync interval in hours (default: 72)")
 		;
 
 		options_description persist("Network information persisting options");
 		persist.add_options()
-			("persist.profiles", value<bool>()->default_value(true), "Persist peer profiles (default: true)")
-			("persist.addressbook", value<bool>()->default_value(true), "Persist full addresses (default: true)")
+			("persist.profiles", value<bool>()->default_value(true),       "Persist peer profiles (default: true)")
+			("persist.addressbook", value<bool>()->default_value(true),    "Persist full addresses (default: true)")
 		;
 
 		m_OptionsDesc
