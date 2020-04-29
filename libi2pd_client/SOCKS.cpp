@@ -135,9 +135,9 @@ namespace proxy
 		void HandleUpstreamSockSend(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 		void HandleUpstreamSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 		void HandleUpstreamConnected(const boost::system::error_code & ecode,
-																 boost::asio::ip::tcp::resolver::iterator itr);
+			boost::asio::ip::tcp::resolver::iterator itr);
 		void HandleUpstreamResolved(const boost::system::error_code & ecode,
-																boost::asio::ip::tcp::resolver::iterator itr);
+			boost::asio::ip::tcp::resolver::iterator itr);
 
 		boost::asio::ip::tcp::resolver m_proxy_resolver;
 		uint8_t m_sock_buff[socks_buffer_size];
@@ -184,8 +184,8 @@ namespace proxy
 		LogPrint(eLogDebug, "SOCKS: async sock read");
 		if (m_sock) {
 			m_sock->async_receive(boost::asio::buffer(m_sock_buff, socks_buffer_size),
-						std::bind(&SOCKSHandler::HandleSockRecv, shared_from_this(),
-								std::placeholders::_1, std::placeholders::_2));
+				std::bind(&SOCKSHandler::HandleSockRecv, shared_from_this(),
+				std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError,"SOCKS: no socket for read");
 		}
@@ -219,8 +219,8 @@ namespace proxy
 		assert(error >= SOCKS4_OK);
 		m_response[0] = '\x00'; //Version
 		m_response[1] = error; //Response code
-		htobe16buf(m_response+2,port); //Port
-		htobe32buf(m_response+4,ip); //IP
+		htobe16buf(m_response + 2, port); //Port
+		htobe32buf(m_response + 4, ip); //IP
 		return boost::asio::const_buffers_1(m_response,8);
 	}
 
@@ -236,20 +236,23 @@ namespace proxy
 		{
 			case ADDR_IPV4:
 				size = 10;
-				htobe32buf(m_response+4,addr.ip);
+				htobe32buf(m_response + 4, addr.ip);
 				break;
 			case ADDR_IPV6:
 				size = 22;
-				memcpy(m_response+4,addr.ipv6, 16);
+				memcpy(m_response + 4, addr.ipv6, 16);
 				break;
 			case ADDR_DNS:
-				size = 7+addr.dns.size;
+				size = 7 + addr.dns.size;
 				m_response[4] = addr.dns.size;
-				memcpy(m_response+5,addr.dns.value, addr.dns.size);
+				memcpy(m_response + 5, addr.dns.value, addr.dns.size);
+				// replace type to IPv4 for support socks5 clients
+				// without domain name resolving support (like netcat)
+				m_response[3] = ADDR_IPV4;
 				break;
 		}
-		htobe16buf(m_response+size-2,port); //Port
-		return boost::asio::const_buffers_1(m_response,size);
+		htobe16buf(m_response + size - 2, port); //Port
+		return boost::asio::const_buffers_1(m_response, size);
 	}
 
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateUpstreamRequest()
@@ -259,7 +262,7 @@ namespace proxy
 		// SOCKS 4a
 		m_upstream_request[0] = '\x04'; //version
 		m_upstream_request[1] = m_cmd;
-		htobe16buf(m_upstream_request+2, m_port);
+		htobe16buf(m_upstream_request + 2, m_port);
 		m_upstream_request[4] = 0;
 		m_upstream_request[5] = 0;
 		m_upstream_request[6] = 0;
@@ -270,7 +273,7 @@ namespace proxy
 		m_upstream_request[10] = 'p';
 		m_upstream_request[11] = 'd';
 		m_upstream_request[12] = 0;
-		upstreamRequestSize +=	13;
+		upstreamRequestSize += 13;
 		if (m_address.dns.size <= max_socks_hostname_size - ( upstreamRequestSize + 1) ) {
 			// bounds check okay
 			memcpy(m_upstream_request + upstreamRequestSize, m_address.dns.value, m_address.dns.size);
@@ -285,21 +288,19 @@ namespace proxy
 
 	bool SOCKSHandler::Socks5ChooseAuth()
 	{
-		m_response[0] = '\x05'; //Version
-		m_response[1] = m_authchosen; //Response code
-		boost::asio::const_buffers_1 response(m_response,2);
+		m_response[0] = '\x05'; // Version
+		m_response[1] = m_authchosen; // Response code
+		boost::asio::const_buffers_1 response(m_response, 2);
 		if (m_authchosen == AUTH_UNACCEPTABLE)
 		{
 			LogPrint(eLogWarning, "SOCKS: v5 authentication negotiation failed");
-			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed,
-												shared_from_this(), std::placeholders::_1));
+			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed, shared_from_this(), std::placeholders::_1));
 			return false;
 		}
 		else
 		{
 			LogPrint(eLogDebug, "SOCKS: v5 choosing authentication method: ", m_authchosen);
-			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksResponse,
-												shared_from_this(), std::placeholders::_1));
+			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksResponse, shared_from_this(), std::placeholders::_1));
 			return true;
 		}
 	}
@@ -313,7 +314,7 @@ namespace proxy
 		{
 			case SOCKS4:
 				LogPrint(eLogWarning, "SOCKS: v4 request failed: ", error);
-				if (error < SOCKS4_OK) error = SOCKS4_FAIL; //Transparently map SOCKS5 errors
+				if (error < SOCKS4_OK) error = SOCKS4_FAIL; // Transparently map SOCKS5 errors
 				response = GenerateSOCKS4Response(error, m_4aip, m_port);
 			break;
 			case SOCKS5:
@@ -322,13 +323,13 @@ namespace proxy
 			break;
 		}
 		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed,
-											shared_from_this(), std::placeholders::_1));
+			shared_from_this(), std::placeholders::_1));
 	}
 
 	void SOCKSHandler::SocksRequestSuccess()
 	{
 		boost::asio::const_buffers_1 response(nullptr,0);
-		//TODO: this should depend on things like the command type and callbacks may change
+		// TODO: this should depend on things like the command type and callbacks may change
 		switch (m_socksv)
 		{
 			case SOCKS4:
@@ -339,12 +340,11 @@ namespace proxy
 				LogPrint(eLogInfo, "SOCKS: v5 connection success");
 				auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
 				address ad; ad.dns.FromString(s);
-				//HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
+				// HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
 				response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream->GetRecvStreamID());
 			break;
 		}
-		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone,
-											shared_from_this(), std::placeholders::_1));
+		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone, shared_from_this(), std::placeholders::_1));
 	}
 
 	void SOCKSHandler::EnterState(SOCKSHandler::state nstate, uint8_t parseleft) {
@@ -366,12 +366,12 @@ namespace proxy
 	{
 		if ( m_cmd != CMD_CONNECT )
 		{
-			//TODO: we need to support binds and other shit!
+			// TODO: we need to support binds and other shit!
 			LogPrint(eLogError, "SOCKS: unsupported command: ", m_cmd);
 			SocksRequestFailed(SOCKS5_CMD_UNSUP);
 			return false;
 		}
-		//TODO: we may want to support other address types!
+		// TODO: we may want to support other address types!
 		if ( m_addrtype != ADDR_DNS )
 		{
 			switch (m_socksv)
@@ -433,9 +433,9 @@ namespace proxy
 						break;
 						case CMD_UDP:
 							if (m_socksv == SOCKS5) break;
-#if (__cplusplus >= 201703L) // C++ 17 or higher							
+#if (__cplusplus >= 201703L) // C++ 17 or higher
 							[[fallthrough]];
-#endif							
+#endif
 						default:
 							LogPrint(eLogError, "SOCKS: invalid command: ", ((int)*sock_buff));
 							SocksRequestFailed(SOCKS5_GEN_FAIL);
@@ -652,8 +652,8 @@ namespace proxy
 		LogPrint(eLogDebug, "SOCKS: async upstream sock read");
 		if (m_upstreamSock) {
 			m_upstreamSock->async_read_some(boost::asio::buffer(m_upstream_response, SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE),
-																		std::bind(&SOCKSHandler::HandleUpstreamSockRecv, shared_from_this(),
-																							std::placeholders::_1, std::placeholders::_2));
+				std::bind(&SOCKSHandler::HandleUpstreamSockRecv, shared_from_this(),
+				std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError, "SOCKS: no upstream socket for read");
 			SocksRequestFailed(SOCKS5_GEN_FAIL);
@@ -735,8 +735,7 @@ namespace proxy
 		LogPrint(eLogInfo, "SOCKS: negotiating with upstream proxy");
 		EnterState(UPSTREAM_HANDSHAKE);
 		if (m_upstreamSock) {
-			boost::asio::write(*m_upstreamSock,
-												 GenerateUpstreamRequest());
+			boost::asio::write(*m_upstreamSock, GenerateUpstreamRequest());
 			AsyncUpstreamSockRead();
 		} else {
 			LogPrint(eLogError, "SOCKS: no upstream socket to send handshake to");
