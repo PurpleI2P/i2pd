@@ -149,20 +149,13 @@ namespace data
 				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
 				if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
 				(*ret.first)->isUpdated = true;
-				// check if lease's gateway is in our netDb
-				if (!netdb.FindRouter (lease.tunnelGateway))
-				{
-					// if not found request it
-					LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
-					netdb.RequestDestination (lease.tunnelGateway);
-				}
 			}
 		}
 		else
 			LogPrint (eLogWarning, "LeaseSet: Lease is expired already");
 	}
 
-	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const
+	uint64_t LeaseSet::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const
 	{
 		if (!m_Identity) return 0;
 		size_t size = m_Identity->GetFullLen ();
@@ -187,7 +180,7 @@ namespace data
 
 	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
 	{
-		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
+		return ExtractExpirationTimestamp (buf, len) > (m_ExpirationTime ? m_ExpirationTime : ExtractExpirationTimestamp (m_Buffer, m_BufferLen));
 	}
 
 	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
@@ -281,6 +274,12 @@ namespace data
 		if (GetStoreType () != NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 			ReadFromBuffer (buf, len, false, verifySignature);	
 		// TODO: implement encrypted
+	}
+
+	bool LeaseSet2::IsNewer (const uint8_t * buf, size_t len) const
+	{
+		uint64_t expiration;
+		return ExtractPublishedTimestamp (buf, len, expiration) > m_PublishedTimestamp;
 	}
 		
 	void LeaseSet2::ReadFromBuffer (const uint8_t * buf, size_t len, bool readIdentity, bool verifySignature)
@@ -640,7 +639,14 @@ namespace data
 			encryptor->Encrypt (data, encrypted, ctx, true);	
 	}
 
-	uint64_t LeaseSet2::ExtractTimestamp (const uint8_t * buf, size_t len) const
+	uint64_t LeaseSet2::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const
+	{
+		uint64_t expiration = 0;
+		ExtractPublishedTimestamp (buf, len, expiration);
+		return expiration;
+	}
+
+	uint64_t LeaseSet2::ExtractPublishedTimestamp (const uint8_t * buf, size_t len, uint64_t& expiration) const
 	{
 		if (len < 8) return 0;	
 		if (m_StoreType == NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
@@ -655,7 +661,8 @@ namespace data
 			offset += blindedKeyLen;
 			uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; 
 			uint16_t expires = bufbe16toh (buf + offset); offset += 2; 
-			return (timestamp + expires)* 1000LL;
+			expiration = (timestamp + expires)* 1000LL;
+			return timestamp;
 		}
 		else
 		{
@@ -665,10 +672,11 @@ namespace data
 			if (offset + 6 >= len) return 0;
 			uint32_t timestamp = bufbe32toh (buf + offset); offset += 4; 
 			uint16_t expires = bufbe16toh (buf + offset); offset += 2; 
-			return (timestamp + expires)* 1000LL;
+			expiration = (timestamp + expires)* 1000LL;
+			return timestamp;
 		}
-	}
-
+	}	
+		
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
 		m_ExpirationTime (0), m_Identity (identity)
 	{

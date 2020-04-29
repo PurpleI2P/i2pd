@@ -63,14 +63,14 @@ namespace data
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
 			virtual ~LeaseSet () { delete[] m_EncryptionKey; delete[] m_Buffer; };
 			virtual void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
-			bool IsNewer (const uint8_t * buf, size_t len) const;
+			virtual bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };
 			bool IsValid () const { return m_IsValid; };
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
-      const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true)  const;
+      		const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true)  const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
@@ -106,7 +106,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (bool readIdentity = true, bool verifySignature = true);
-			virtual uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // returns max expiration time
+			virtual uint64_t ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const; // returns max expiration time
 
 		private:
 
@@ -145,6 +145,7 @@ namespace data
 			bool IsPublishedEncrypted () const { return m_IsPublishedEncrypted; };
 			std::shared_ptr<const i2p::crypto::Verifier> GetTransientVerifier () const { return m_TransientVerifier; };
 			void Update (const uint8_t * buf, size_t len, bool verifySignature);
+			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			// implements RoutingDestination
 			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
@@ -160,7 +161,8 @@ namespace data
 			template<typename Verifier>
 			bool VerifySignature (Verifier& verifier, const uint8_t * buf, size_t len, size_t signatureOffset);
 
-			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const;
+			uint64_t ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const;
+			uint64_t ExtractPublishedTimestamp (const uint8_t * buf, size_t len, uint64_t& expiration) const;
 			size_t ExtractClientAuthData (const uint8_t * buf, size_t len, const uint8_t * secret, const uint8_t * subcredential, uint8_t * authCookie) const; // subcredential is subcredential + timestamp, return length of autData without flag
 
 		private:
