@@ -167,7 +167,7 @@ namespace i2p
 			sigaction(SIGABRT, &sa, 0);
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
-			sigaction(SIGPIPE, &sa, 0);			
+			sigaction(SIGPIPE, &sa, 0);
 
 			return Daemon_Singleton::start();
 		}
@@ -175,7 +175,6 @@ namespace i2p
 		bool DaemonLinux::stop()
 		{
 			i2p::fs::Remove(pidfile);
-
 			return Daemon_Singleton::stop();
 		}
 

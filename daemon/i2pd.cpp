@@ -7,18 +7,18 @@ namespace i2p
 {
 namespace qt
 {
-    int RunQT (int argc, char* argv[]);
+	int RunQT (int argc, char* argv[]);
 }
 }
 int main( int argc, char* argv[] )
 {
-    return i2p::qt::RunQT (argc, argv);
+	return i2p::qt::RunQT (argc, argv);
 }
 
 #else
 int main( int argc, char* argv[] )
 {
-    if (Daemon.init(argc, argv))
+	if (Daemon.init(argc, argv))
 	{
 		if (Daemon.start())
 			Daemon.run ();
