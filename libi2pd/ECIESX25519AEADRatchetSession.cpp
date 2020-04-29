@@ -482,13 +482,18 @@ namespace garlic
 		} 
 		buf += 32; len -= 32;
 		// KDF for  Reply Key Section
+		uint8_t h[32]; memcpy (h, m_H, 32); // save m_H
         MixHash (tag, 8); // h = SHA256(h || tag)
         MixHash (bepk, 32); // h = SHA256(h || bepk)		
 		uint8_t sharedSecret[32];      
-        m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32) 
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		if (m_State == eSessionStateNewSessionSent)
+		{	
+			// only fist time, we assume ephemeral keys the same
+		    m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)  
+			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32) 
+			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
+			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		}	
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
         // calulate hash for zero length
@@ -502,14 +507,17 @@ namespace garlic
 		// KDF for payload
         uint8_t keydata[64];
         i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
-        // k_ab = keydata[0:31], k_ba = keydata[32:63]
-		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
-        m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
-		m_SendTagset->NextSessionTagRatchet ();
-		auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
-        receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
-		receiveTagset->NextSessionTagRatchet ();
-		GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
+		if (m_State == eSessionStateNewSessionSent)
+		{	
+		    // k_ab = keydata[0:31], k_ba = keydata[32:63]
+			m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		    m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
+			m_SendTagset->NextSessionTagRatchet ();
+			auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		    receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
+			receiveTagset->NextSessionTagRatchet ();
+			GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
+		}	
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
 		std::vector<uint8_t> payload (len - 16);
@@ -518,9 +526,13 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
 		}
-	
-		m_State = eSessionStateEstablished;
-		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
+
+		if (m_State == eSessionStateNewSessionSent)
+		{	
+			m_State = eSessionStateEstablished;
+			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
+		}
+		memcpy (m_H, h, 32); // restore m_H 
 		HandlePayload (payload.data (), len - 16, nullptr, 0); 
 
 		// we have received reply to NS with LeaseSet in it
@@ -587,7 +599,15 @@ namespace garlic
 				[[fallthrough]]; 
 #endif				
 			case eSessionStateEstablished:
-				return HandleExistingSessionMessage (buf, len, receiveTagset, index);
+				if (HandleExistingSessionMessage (buf, len, receiveTagset, index)) return true;
+				if (index < ECIESX25519_NSR_NUM_GENERATED_TAGS)
+				{	
+					// check NSR just in case
+					LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
+					return HandleNewOutgoingSessionReply (buf, len);
+				}  
+				else
+					return false;
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
