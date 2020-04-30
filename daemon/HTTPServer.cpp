@@ -399,28 +399,36 @@ namespace http {
 			}
 		}
 		s << "<br>\r\n";
-		s << "<b>Tags</b><br>Incoming: <i>" << dest->GetNumIncomingTags () << "</i><br>";
+
+		s << "<b>Tags</b><br>\r\nIncoming: <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
 		if (!dest->GetSessions ().empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
 			for (const auto& it: dest->GetSessions ()) {
 				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
-				out_tags = out_tags + it.second->GetNumOutgoingTags ();
+				out_tags += it.second->GetNumOutgoingTags ();
 			}
 			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n"
 			  << "<div class='content'>\r\n<table><tbody><thead><th>Destination</th><th>Amount</th></thead>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
-		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
-		if (numECIESx25519Tags > 0)
-			s << "Incoming ECIESx25519: <i>" << numECIESx25519Tags << "</i><br>";
-		if (!dest->GetECIESx25519Sessions ().empty ())
-		{
-			s << "<br>\r\n<b>ECIESx25519Tags sessions</b><br>";
-			for (const auto& it: dest->GetECIESx25519Sessions  ()) 
-				s << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) 
-					<< " " << it.second->GetState () << "<br>\r\n";
-		}	
 		s << "<br>\r\n";
+
+		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
+		if (numECIESx25519Tags > 0) {
+			s << "<b>ECIESx25519</b><br>\r\nIncoming Tags: <i>" << numECIESx25519Tags << "</i><br>\r\n";
+			if (!dest->GetECIESx25519Sessions ().empty ())
+			{
+				std::stringstream tmp_s; uint32_t ecies_sessions = 0;
+				for (const auto& it: dest->GetECIESx25519Sessions ()) {
+					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
+					ecies_sessions++;
+				}
+				s << "<div class='slide'><label for='slide-ecies-sessions'>Tags sessions: <i>" << ecies_sessions << "</i></label>\r\n<input type='checkbox' id='slide-ecies-sessions'/>\r\n"
+				  << "<div class='content'>\r\n<table><tbody><thead><th>Destination</th><th>Status</th></thead>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			} else
+				s << "Tags sessions: <i>0</i><br>\r\n";
+			s << "<br>\r\n";
+		}
 	}
 
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token)
