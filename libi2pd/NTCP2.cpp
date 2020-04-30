@@ -1148,7 +1148,7 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-		m_Resolver(GetService ()), m_ProxyType(eNoProxy), m_ProxyEndpoint(nullptr)
+		m_Resolver(GetService ()), m_ProxyType(eNoProxy)
 	{
 	}
 
@@ -1412,7 +1412,7 @@ namespace transport
 				if ((*it)->IsEstablished () || (*it)->IsTerminationTimeoutExpired (ts))
 				{
 					(*it)->Terminate ();
-					it = m_PendingIncomingSessions.erase (it); // etsablished of expired
+					it = m_PendingIncomingSessions.erase (it); // established of expired
 				}
 				else if ((*it)->IsTerminated ())
 					it = m_PendingIncomingSessions.erase (it); // already terminated
