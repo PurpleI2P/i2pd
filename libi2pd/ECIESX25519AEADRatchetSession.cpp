@@ -600,14 +600,11 @@ namespace garlic
 #endif				
 			case eSessionStateEstablished:
 				if (HandleExistingSessionMessage (buf, len, receiveTagset, index)) return true;
-				if (index < ECIESX25519_NSR_NUM_GENERATED_TAGS)
-				{	
-					// check NSR just in case
-					LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
-					return HandleNewOutgoingSessionReply (buf, len);
-				}  
-				else
-					return false;
+				// check NSR just in case
+				LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
+				if (receiveTagset->GetNextIndex () - index < ECIESX25519_NSR_NUM_GENERATED_TAGS/2)
+					GenerateMoreReceiveTags (receiveTagset, ECIESX25519_NSR_NUM_GENERATED_TAGS);
+				return HandleNewOutgoingSessionReply (buf, len);
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
@@ -620,12 +617,12 @@ namespace garlic
 
     std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
     { 
-        auto m = NewI2NPMessage ();
-		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
-		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
         auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);  
         size_t len = payload.size ();
-
+		auto m = NewI2NPMessage (len + 100); // 96 + 4
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		
         switch (m_State)
         {
 			case eSessionStateEstablished:
