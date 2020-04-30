@@ -276,7 +276,9 @@ namespace garlic
 
 			// for HTTP only
 			size_t GetNumIncomingTags () const { return m_Tags.size (); }
+			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size (); }
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
+			const decltype(m_ECIESx25519Sessions)& GetECIESx25519Sessions () const { return m_ECIESx25519Sessions; }
 	};
 
 	void CleanUpTagsFiles ();

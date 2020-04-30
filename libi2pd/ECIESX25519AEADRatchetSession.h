@@ -156,6 +156,15 @@ namespace garlic
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
 			bool m_SendReverseKey = false, m_SendForwardKey = false;
 			std::unique_ptr<DHRatchet> m_NextReceiveRatchet, m_NextSendRatchet;
+
+		public:
+
+			// for HTTP only
+			int GetState () const { return (int)m_State; }
+			i2p::data::IdentHash GetDestination () const
+			{
+				return m_Destination ? *m_Destination : i2p::data::IdentHash ();
+			}	
      };
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);

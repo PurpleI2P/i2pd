@@ -22,6 +22,7 @@
 #include "HTTPServer.h"
 #include "Daemon.h"
 #include "util.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #ifdef WIN32_APP
 #include "Win32/Win32App.h"
 #endif
@@ -409,6 +410,16 @@ namespace http {
 			  << "<div class='content'>\r\n<table><tbody><thead><th>Destination</th><th>Amount</th></thead>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
+		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
+		if (numECIESx25519Tags > 0)
+			s << "Incoming ECIESx25519: <i>" << numECIESx25519Tags << "</i><br>";
+		if (!dest->GetECIESx25519Sessions ().empty ())
+		{
+			s << "<br>\r\n<b>ECIESx25519Tags sessions</b><br>";
+			for (const auto& it: dest->GetECIESx25519Sessions  ()) 
+				s << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) 
+					<< " " << it.second->GetState () << "<br>\r\n";
+		}	
 		s << "<br>\r\n";
 	}
 
