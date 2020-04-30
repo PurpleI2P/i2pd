@@ -1148,7 +1148,7 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-		m_Resolver(GetService ()), m_ProxyType(eNoProxy)
+		 m_ProxyType(eNoProxy), m_Resolver(GetService ())
 	{
 	}
 
