@@ -58,9 +58,9 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", value<bool>()->default_value(false),                      "Enable NTCP transport (default: disabled)")
+			("ntcp", value<bool>()->default_value(false),                     "Enable NTCP transport (default: disabled)")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")			
+			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -97,7 +97,8 @@ namespace config {
 			("httpproxy.address", value<std::string>()->default_value("127.0.0.1"),   "HTTP Proxy listen address")
 			("httpproxy.port", value<uint16_t>()->default_value(4444),                "HTTP Proxy listen port")
 			("httpproxy.keys", value<std::string>()->default_value(""),               "File to persist HTTP Proxy keys")
-			("httpproxy.signaturetype", value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
+			("httpproxy.signaturetype", value<i2p::data::SigningKeyType>()->
+				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),      "Signature type for new keys. 7 (EdDSA) by default")
 			("httpproxy.inbound.length", value<std::string>()->default_value("3"),    "HTTP proxy inbound tunnel length")
 			("httpproxy.outbound.length", value<std::string>()->default_value("3"),   "HTTP proxy outbound tunnel length")
 			("httpproxy.inbound.quantity", value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")
@@ -114,7 +115,8 @@ namespace config {
 			("socksproxy.address", value<std::string>()->default_value("127.0.0.1"),   "SOCKS Proxy listen address")
 			("socksproxy.port", value<uint16_t>()->default_value(4447),                "SOCKS Proxy listen port")
 			("socksproxy.keys", value<std::string>()->default_value(""),               "File to persist SOCKS Proxy keys")
-			("socksproxy.signaturetype", value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
+			("socksproxy.signaturetype", value<i2p::data::SigningKeyType>()->
+				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),       "Signature type for new keys. 7 (EdDSA) by default")
 			("socksproxy.inbound.length", value<std::string>()->default_value("3"),    "SOCKS proxy inbound tunnel length")
 			("socksproxy.outbound.length", value<std::string>()->default_value("3"),   "SOCKS proxy outbound tunnel length")
 			("socksproxy.inbound.quantity", value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")

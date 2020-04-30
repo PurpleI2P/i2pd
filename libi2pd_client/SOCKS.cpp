@@ -118,7 +118,7 @@ namespace proxy
 			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
 			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
-		boost::asio::const_buffers_1 GenerateUpstreamRequest();
+			boost::asio::const_buffers_1 GenerateUpstreamRequest();
 			bool Socks5ChooseAuth();
 			void SocksRequestFailed(errTypes error);
 			void SocksRequestSuccess();
@@ -128,27 +128,27 @@ namespace proxy
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			void ForwardSOCKS();
 
-		void SocksUpstreamSuccess();
-		void AsyncUpstreamSockRead();
-		void SendUpstreamRequest();
+			void SocksUpstreamSuccess();
+			void AsyncUpstreamSockRead();
+			void SendUpstreamRequest();
 			void HandleUpstreamData(uint8_t * buff, std::size_t len);
-		void HandleUpstreamSockSend(const boost::system::error_code & ecode, std::size_t bytes_transfered);
-		void HandleUpstreamSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
-		void HandleUpstreamConnected(const boost::system::error_code & ecode,
+			void HandleUpstreamSockSend(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void HandleUpstreamSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void HandleUpstreamConnected(const boost::system::error_code & ecode,
 			boost::asio::ip::tcp::resolver::iterator itr);
-		void HandleUpstreamResolved(const boost::system::error_code & ecode,
+			void HandleUpstreamResolved(const boost::system::error_code & ecode,
 			boost::asio::ip::tcp::resolver::iterator itr);
 
-		boost::asio::ip::tcp::resolver m_proxy_resolver;
-		uint8_t m_sock_buff[socks_buffer_size];
-		std::shared_ptr<boost::asio::ip::tcp::socket> m_sock, m_upstreamSock;
+			boost::asio::ip::tcp::resolver m_proxy_resolver;
+			uint8_t m_sock_buff[socks_buffer_size];
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock, m_upstreamSock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
 			uint8_t *m_remaining_data; //Data left to be sent
 			uint8_t *m_remaining_upstream_data; //upstream data left to be forwarded
 			uint8_t m_response[7+max_socks_hostname_size];
-		uint8_t m_upstream_response[SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE];
-		uint8_t m_upstream_request[14+max_socks_hostname_size];
-		std::size_t m_upstream_response_len;
+			uint8_t m_upstream_response[SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE];
+			uint8_t m_upstream_request[14+max_socks_hostname_size];
+			std::size_t m_upstream_response_len;
 			address m_address; //Address
 			std::size_t m_remaining_data_len; //Size of the data left to be sent
 			uint32_t m_4aip; //Used in 4a requests
@@ -161,11 +161,11 @@ namespace proxy
 			cmdTypes m_cmd; // Command requested
 			state m_state;
 			const bool m_UseUpstreamProxy; // do we want to use the upstream proxy for non i2p addresses?
-		const std::string m_UpstreamProxyAddress;
-		const uint16_t m_UpstreamProxyPort;
+			const std::string m_UpstreamProxyAddress;
+			const uint16_t m_UpstreamProxyPort;
 
 		public:
-		SOCKSHandler(SOCKSServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock, const std::string & upstreamAddr, const uint16_t upstreamPort, const bool useUpstream) :
+			SOCKSHandler(SOCKSServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock, const std::string & upstreamAddr, const uint16_t upstreamPort, const bool useUpstream) :
 				I2PServiceHandler(parent),
 				m_proxy_resolver(parent->GetService()),
 				m_sock(sock), m_stream(nullptr),
@@ -226,7 +226,7 @@ namespace proxy
 
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type, const SOCKSHandler::address &addr, uint16_t port)
 	{
-		size_t size = 6;
+		size_t size = 6; // header + port
 		assert(error <= SOCKS5_ADDR_UNSUP);
 		m_response[0] = '\x05'; //Version
 		m_response[1] = error; //Response code
@@ -235,15 +235,15 @@ namespace proxy
 		switch (type)
 		{
 			case ADDR_IPV4:
-				size = 10;
+				size += 4;
 				htobe32buf(m_response + 4, addr.ip);
 				break;
 			case ADDR_IPV6:
-				size = 22;
+				size += 16;
 				memcpy(m_response + 4, addr.ipv6, 16);
 				break;
 			case ADDR_DNS:
-				size = 7 + addr.dns.size;
+				size += (1 + addr.dns.size); /* name length + domain name */
 				m_response[4] = addr.dns.size;
 				memcpy(m_response + 5, addr.dns.value, addr.dns.size);
 				// replace type to IPv4 for support socks5 clients

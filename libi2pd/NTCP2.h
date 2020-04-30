@@ -274,7 +274,7 @@ namespace transport
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions;
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
-			ProxyType m_ProxyType =eNoProxy;
+			ProxyType m_ProxyType;
 			std::string m_ProxyAddress;
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;

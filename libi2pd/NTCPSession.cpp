@@ -1193,7 +1193,6 @@ namespace transport
 
 	void NTCPServer::AfterSocksHandshake(std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
 	{
-
 		// build request
 		size_t sz = 0;
 		uint8_t buff[256];

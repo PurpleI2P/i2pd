@@ -176,7 +176,7 @@ namespace transport
 
 					if (proxyurl.schema == "http")
 						proxytype = NTCPServer::eHTTPProxy;
-					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 					m_NTCPServer->Start();
 					if(!m_NTCPServer->NetworkIsReady())
 					{
@@ -194,7 +194,7 @@ namespace transport
 			return;
 		}
 		// create NTCP2. TODO: move to acceptor
-		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
 			if(!ntcp2proxy.empty())
@@ -209,7 +209,7 @@ namespace transport
 						if (proxyurl.schema == "http")
 							proxytype = NTCP2Server::eHTTPProxy;
 
-						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 						m_NTCP2Server->Start();
 					}
 					else
@@ -424,36 +424,36 @@ namespace transport
 	{
 		if (peer.router) // we have RI already
 		{
-            if (!peer.numAttempts) // NTCP2
-            {
-                peer.numAttempts++;
-                if (m_NTCP2Server) // we support NTCP2
-                {
-                    // NTCP2 have priority over NTCP
-                    auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-                    if (address)
-                    {
-                        auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+			if (!peer.numAttempts) // NTCP2
+			{
+				peer.numAttempts++;
+				if (m_NTCP2Server) // we support NTCP2
+				{
+					// NTCP2 have priority over NTCP
+					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
-                        if(m_NTCP2Server->UsingProxy())
-                        {
-                            NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
-                            std::string addr = address->host.to_string();
+						if(m_NTCP2Server->UsingProxy())
+						{
+							NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
+							std::string addr = address->host.to_string();
 
-                            if(address->host.is_v6())
-                                remote = NTCP2Server::eIP6Address;
+							if(address->host.is_v6())
+								remote = NTCP2Server::eIP6Address;
 
-                            m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
-                        }
-                        else
-                            m_NTCP2Server->Connect (address->host, address->port, s);
-                        return true;
-                    }
-                }
-            }
+							m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
+						}
+						else
+							m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}
+				}
+			}
 			if (peer.numAttempts == 1) // NTCP1
 			{
-				peer.numAttempts++;     
+				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
