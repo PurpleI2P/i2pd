@@ -78,6 +78,12 @@ namespace garlic
 				LogPrint (eLogError, "Garlic: Missing symmetric key for index ", index);
 		}	
 	}	
+
+	void RatchetTagSet::Expire ()
+	{
+		if (!m_ExpirationTimestamp)
+			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
+	}	
 	
     ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
         GarlicRoutingSession (owner, attachLeaseSet)
@@ -311,7 +317,8 @@ namespace garlic
 			newTagset->SetTagSetID (tagsetID); 
 			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey); 
 			newTagset->NextSessionTagRatchet ();
-			GenerateMoreReceiveTags (newTagset, ECIESX25519_MAX_NUM_GENERATED_TAGS);		
+			GenerateMoreReceiveTags (newTagset, ECIESX25519_MAX_NUM_GENERATED_TAGS);	
+			receiveTagset->Expire ();
 			LogPrint (eLogDebug, "Garlic: next receive tagset ", tagsetID, " created");
 		}	
 	}	
@@ -608,6 +615,7 @@ namespace garlic
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
+				receiveTagset->Expire (); // NSR tagset
 				return HandleNewOutgoingSessionReply (buf, len);
 			default:
 				return false;

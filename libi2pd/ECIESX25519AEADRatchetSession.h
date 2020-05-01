@@ -17,6 +17,15 @@ namespace i2p
 {
 namespace garlic
 {
+	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
+	const int ECIESX25519_EXPIRATION_TIMEOUT = 480; // in seconds
+	const int ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT = 600; // in seconds
+	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // 180
+	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 1024; // number of tags we request new tagset after
+	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
+	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
+	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
+	
 	class ECIESX25519AEADRatchetSession;
     class RatchetTagSet
     {
@@ -34,6 +43,9 @@ namespace garlic
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
+
+			void Expire ();
+			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
 			
 		private:
 			
@@ -52,6 +64,7 @@ namespace garlic
 		   std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
 		   std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
 		   int m_TagSetID = 0;	
+		   uint64_t m_ExpirationTimestamp = 0;	
     };       
 
     enum ECIESx25519BlockType
@@ -70,14 +83,6 @@ namespace garlic
 	const uint8_t ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG = 0x01;
 	const uint8_t ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG = 0x02;
 	const uint8_t ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG = 0x04;
-	
-	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
-	const int ECIESX25519_EXPIRATION_TIMEOUT = 480; // in seconds
-	const int ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT = 600; // in seconds
-	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 1024; // number of tags we request new tagset after
-	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
-	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
-	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
 	
     class ECIESX25519AEADRatchetSession: public GarlicRoutingSession, public std::enable_shared_from_this<ECIESX25519AEADRatchetSession>
     {
