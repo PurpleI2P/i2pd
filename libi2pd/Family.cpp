@@ -113,9 +113,9 @@ namespace data
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident,
 		const char * signature, const char * key)
 	{
-		uint8_t buf[50], signatureBuf[64];
+		uint8_t buf[100], signatureBuf[64];
 		size_t len = family.length (), signatureLen = strlen (signature);
-		if (len + 32 > 50)
+		if (len + 32 > 100)
 		{
 			LogPrint (eLogError, "Family: ", family, " is too long");
 			return false;
