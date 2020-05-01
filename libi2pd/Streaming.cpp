@@ -505,7 +505,7 @@ namespace stream
 					memset (signature, 0, signatureLen); // zeroes for now
 					size += signatureLen; // signature
 					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-					size += m_SendBuffer.Get (packet + size, STREAMING_MTU - size); // payload
+					size += m_SendBuffer.Get (packet + size, STREAMING_MTU); // payload
 					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 				}
 				else
@@ -515,7 +515,7 @@ namespace stream
 					size += 2; // flags
 					htobuf16 (packet + size, 0); // no options
 					size += 2; // options size
-					size += m_SendBuffer.Get(packet + size, STREAMING_MTU - size); // payload
+					size += m_SendBuffer.Get(packet + size, STREAMING_MTU); // payload
 				}
 				p->len = size;
 				packets.push_back (p);
