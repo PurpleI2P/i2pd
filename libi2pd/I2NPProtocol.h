@@ -218,7 +218,7 @@ namespace tunnel
 			memcpy (ntcp2 + I2NP_HEADER_TYPEID_OFFSET, GetHeader () + I2NP_HEADER_TYPEID_OFFSET, 5); // typeid + msgid
 		}
 
-		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);
+		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0, bool checksum = true);
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
 	};

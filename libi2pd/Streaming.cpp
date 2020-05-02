@@ -756,7 +756,8 @@ namespace stream
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
 			{
-				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength (), m_Port));
+				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
+					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeTunnel,
@@ -1207,9 +1208,10 @@ namespace stream
 			DeletePacket (uncompressed);
 	}
 
-	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort)
+	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
+		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
 	{
-		auto msg = NewI2NPShortMessage ();
+		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		if (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
 			m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
 		else
@@ -1225,7 +1227,7 @@ namespace stream
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 			msg->len += size;
-			msg->FillI2NPMessageHeader (eI2NPData);
+			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
 		}
 		else
 			msg = nullptr;
