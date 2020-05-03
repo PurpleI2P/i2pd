@@ -107,7 +107,10 @@ namespace data
 		m_Deflator.avail_out = outLen;
 		int err;
 		if ((err = deflate (&m_Deflator, Z_FINISH)) == Z_STREAM_END)
+		{
+			out[9] = 0xff; // OS is always unknown
 			return outLen - m_Deflator.avail_out;
+		}	
 		// else
 		LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
@@ -115,7 +118,7 @@ namespace data
 
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
 	{
-		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x03, 0x01 };
+		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01 };
 		if (outLen < (size_t)inLen + 23) return 0;
 		memcpy (out, gzipHeader, 11);
 		htole16buf (out + 11, inLen);
