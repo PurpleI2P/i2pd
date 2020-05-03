@@ -10,6 +10,7 @@
 #include <string.h> /* memset */
 #include <iostream>
 #include "Log.h"
+#include "I2PEndian.h"
 #include "Gzip.h"
 
 namespace i2p
@@ -111,5 +112,19 @@ namespace data
 		LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
 	}
+
+	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
+	{
+		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x03, 0x01 };
+		if (outLen < (size_t)inLen + 23) return 0;
+		memcpy (out, gzipHeader, 11);
+		htole16buf (out + 11, inLen);
+		htole16buf (out + 13, 0xffff - inLen);
+		memcpy (out + 15, in, inLen);
+		htole32buf (out + inLen + 15, crc32 (0, in, inLen));
+		htole32buf (out + inLen + 19, inLen);
+		return inLen + 23;
+	}
+	
 } // data
 } // i2p

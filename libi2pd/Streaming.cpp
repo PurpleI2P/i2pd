@@ -1212,14 +1212,12 @@ namespace stream
 		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
 	{
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
-		if (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
-		else
-			m_Deflator.SetCompressionLevel (Z_DEFAULT_COMPRESSION);
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
-		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+		size_t size = (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)?
+			i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len):
+			m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
