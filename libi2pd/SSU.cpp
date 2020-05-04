@@ -53,6 +53,9 @@ namespace transport
 			LogPrint (eLogInfo, "SSU: Start listening v4 port ", m_Endpoint.port());
 		} catch ( std::exception & ex ) {
 			LogPrint (eLogError, "SSU: failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
+#ifdef WIN32_APP
+			ShowMessageBox (eLogError, "Unable to start IPv4 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
+#endif
 		}
 	}
 
@@ -67,6 +70,9 @@ namespace transport
 			LogPrint (eLogInfo, "SSU: Start listening v6 port ", m_EndpointV6.port());
 		} catch ( std::exception & ex ) {
 			LogPrint (eLogError, "SSU: failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
+#ifdef WIN32_APP
+			ShowMessageBox (eLogError, "Unable to start IPv6 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
+#endif
 		}
 	}
 
@@ -197,7 +203,7 @@ namespace transport
 					m_SocketV6.close ();
 					OpenSocketV6 ();
 					ReceiveV6 ();
-				}	
+				}
 			}
 		}
 	}
@@ -580,7 +586,7 @@ namespace transport
 			{
 				return session->GetState () == eSessionStateEstablished && session != excluded;
 			}
-								);
+		);
 	}
 
 	template<typename Filter>
@@ -604,7 +610,7 @@ namespace transport
 			{
 				return session->GetState () == eSessionStateEstablished && session != excluded;
 			}
-								);
+		);
 	}
 
 	std::set<SSUSession *> SSUServer::FindIntroducers (int maxNumIntroducers)
@@ -620,7 +626,7 @@ namespace transport
 						session->GetState () == eSessionStateEstablished &&
 						ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
 				}
-											);
+			);
 			if (session)
 			{
 				ret.insert (session.get ());

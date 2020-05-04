@@ -23,6 +23,11 @@
 #include <syslog.h>
 #endif
 
+#ifdef WIN32_APP
+#include <windows.h>
+#include "Win32/Win32App.h"
+#endif
+
 enum LogLevel
 {
 	eLogNone = 0,
@@ -196,5 +201,43 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);
 }
+
+#ifdef WIN32_APP
+/**
+ * @brief Show message box for user with message in it
+ * @param level Message level (eLogError, eLogInfo, ...)
+ * @param args Array of message parts
+ */
+template<typename... TArgs>
+void ShowMessageBox (LogLevel level, TArgs&&... args) noexcept
+{
+	// fold message to single string
+	std::stringstream ss("");
+
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+	(LogPrint (ss, std::forward<TArgs>(args)), ...);
+#else
+	LogPrint (ss, std::forward<TArgs>(args)...);
+#endif
+
+	HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+	if (!hWnd) hWnd = NULL;
+
+	UINT uType;
+	switch (level) {
+		case eLogError   :
+		case eLogWarning :
+			uType = MB_ICONWARNING;
+			break;
+		case eLogNone    :
+		case eLogInfo    :
+		case eLogDebug   :
+		default          :
+			uType = MB_ICONINFORMATION;
+			break;
+	}
+	MessageBox( hWnd, TEXT(ss.str ().c_str ()), TEXT("i2pd"), uType | MB_TASKMODAL | MB_OK );
+}
+#endif // WIN32_APP
 
 #endif // LOG_H__

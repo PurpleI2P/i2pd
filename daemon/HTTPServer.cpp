@@ -1227,14 +1227,10 @@ namespace http {
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
 
-		try {
-			m_IsRunning = true;
-			m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
-			m_Acceptor.listen ();
-			Accept ();
-		} catch (std::exception& ex) {
-			LogPrint (eLogError, "HTTPServer: failed to start webconsole: ", ex.what ());
-		}
+		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
+		m_Acceptor.listen ();
+		Accept ();
+		m_IsRunning = true;
 	}
 
 	void HTTPServer::Stop ()

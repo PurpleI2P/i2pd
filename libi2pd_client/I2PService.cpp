@@ -84,7 +84,7 @@ namespace client
 			auto itr = m_ReadyCallbacks.begin();
 			while(itr != m_ReadyCallbacks.end())
 			{
-			    if(itr->second != NEVER_TIMES_OUT && now >= itr->second)
+				if(itr->second != NEVER_TIMES_OUT && now >= itr->second)
 				{
 					itr->first(boost::asio::error::timed_out);
 					itr = m_ReadyCallbacks.erase(itr);
@@ -94,9 +94,9 @@ namespace client
 			}
 		}
 		if(!ec && m_ReadyCallbacks.size())
-		    TriggerReadyCheckTimer();
+			TriggerReadyCheckTimer();
 		else
-		    m_ReadyTimerTriggered = false;
+			m_ReadyTimerTriggered = false;
 	}
 
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
@@ -118,7 +118,7 @@ namespace client
 			AddReadyCallback([this, streamRequestComplete, address, port] (const boost::system::error_code & ec) {
 					if(ec)
 					{
-						LogPrint(eLogWarning, "I2PService::CeateStream() ", ec.message());
+						LogPrint(eLogWarning, "I2PService::CreateStream() ", ec.message());
 						streamRequestComplete(nullptr);
 					}
 					else
@@ -285,12 +285,8 @@ namespace client
 		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
 		// update the local end point in case port has been set zero and got updated now
 		m_LocalEndpoint = m_Acceptor->local_endpoint();
-		try {
-			m_Acceptor->listen ();
-			Accept ();
-		} catch (std::exception& ex) {
-			LogPrint (eLogError, "I2PService: failed to start ", GetName(), " acceptor: ", ex.what ());
-		}
+		m_Acceptor->listen ();
+		Accept ();
 	}
 
 	void TCPIPAcceptor::Stop ()

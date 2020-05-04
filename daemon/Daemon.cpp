@@ -71,18 +71,13 @@ namespace i2p
 			i2p::fs::Init();
 
 			datadir = i2p::fs::GetDataDir();
-			// TODO: drop old name detection in v2.8.0
+
 			if (config == "")
 			{
-				config = i2p::fs::DataDirPath("i2p.conf");
-				if (i2p::fs::Exists (config)) {
-					LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
-				} else {
-					config = i2p::fs::DataDirPath("i2pd.conf");
-					if (!i2p::fs::Exists (config)) {
-						// use i2pd.conf only if exists
-						config = ""; /* reset */
-					}
+				config = i2p::fs::DataDirPath("i2pd.conf");
+				if (!i2p::fs::Exists (config)) {
+					// use i2pd.conf only if exists
+					config = ""; /* reset */
 				}
 			}
 
@@ -265,7 +260,7 @@ namespace i2p
 					restricted = idents.size() > 0;
 				}
 				if(!restricted)
-					LogPrint(eLogError, "Daemon: no trusted routers of families specififed");
+					LogPrint(eLogError, "Daemon: no trusted routers of families specified");
 			}
 
 			bool hidden; i2p::config::GetOption("trust.hidden", hidden);
@@ -318,9 +313,16 @@ namespace i2p
 			if (http) {
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 				uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
-				d.httpServer->Start();
+				LogPrint(eLogInfo, "Daemon: starting webconsole at ", httpAddr, ":", httpPort);
+				try {
+					d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
+					d.httpServer->Start();
+				} catch (std::exception& ex) {
+					LogPrint (eLogError, "Daemon: failed to start webconsole: ", ex.what ());
+#ifdef WIN32_APP
+					ShowMessageBox (eLogError, "Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
+#endif
+				}
 			}
 
 
@@ -336,8 +338,15 @@ namespace i2p
 				std::string i2pcpAddr; i2p::config::GetOption("i2pcontrol.address", i2pcpAddr);
 				uint16_t    i2pcpPort; i2p::config::GetOption("i2pcontrol.port",    i2pcpPort);
 				LogPrint(eLogInfo, "Daemon: starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
-				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
-				d.m_I2PControlService->Start ();
+				try {
+					d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
+					d.m_I2PControlService->Start ();
+				} catch (std::exception& ex) {
+					LogPrint (eLogError, "Daemon: failed to start I2PControl: ", ex.what ());
+#ifdef WIN32_APP
+					ShowMessageBox (eLogError, "Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
+#endif
+				}
 			}
 			return true;
 		}

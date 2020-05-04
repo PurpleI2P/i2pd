@@ -58,14 +58,14 @@ namespace client
 			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
 			bool singleThread; i2p::config::GetOption("sam.singlethread",  singleThread);
 			LogPrint(eLogInfo, "Clients: starting SAM bridge at ", samAddr, ":", samPort);
-			try 
-			{
+			try {
 				m_SamBridge = new SAMBridge (samAddr, samPort, singleThread);
-			  	m_SamBridge->Start ();
-			} 
-			catch (std::exception& e) 
-			{
-			  LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
+				m_SamBridge->Start ();
+			} catch (std::exception& e) {
+				LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start SAM bridge at ", samAddr, ":", samPort, ": ", e.what ());
+#endif
 			}
 		}
 
@@ -76,10 +76,13 @@ namespace client
 			uint16_t    bobPort; i2p::config::GetOption("bob.port",    bobPort);
 			LogPrint(eLogInfo, "Clients: starting BOB command channel at ", bobAddr, ":", bobPort);
 			try {
-			  m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
-			  m_BOBCommandChannel->Start ();
+				m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
+				m_BOBCommandChannel->Start ();
 			} catch (std::exception& e) {
-			  LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
+				LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start BOB bridge at ", bobAddr, ":", bobPort, ": ", e.what ());
+#endif
 			}
 		}
 
@@ -90,14 +93,14 @@ namespace client
 			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
 			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
 			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
-			try
-			{
+			try {
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
 				m_I2CPServer->Start ();
-			}
-			catch (std::exception& e)
-			{
+			} catch (std::exception& e) {
 				LogPrint(eLogError, "Clients: Exception in I2CP: ", e.what());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start I2CP at ", i2cpAddr, ":", i2cpPort, ": ", e.what ());
+#endif
 			}
 		}
 
@@ -501,16 +504,12 @@ namespace client
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
 
-
 	void ClientContext::ReadTunnels (const std::string& tunConf, int& numClientTunnels, int& numServerTunnels)
 	{
 		boost::property_tree::ptree pt;
-		try
-		{
+		try {
 			boost::property_tree::read_ini (tunConf, pt);
-		}
-		catch (std::exception& ex)
-		{
+		} catch (std::exception& ex) {
 			LogPrint (eLogWarning, "Clients: Can't read ", tunConf, ": ", ex.what ());
 			return;
 		}
@@ -565,14 +564,11 @@ namespace client
 						// TODO: hostnames
 						boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
 						if (!localDestination)
-						{
 							localDestination = m_SharedLocalDestination;
-						}
+
 						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort);
 						if(m_ClientForwards.insert(std::make_pair(end, clientTunnel)).second)
-						{
 							clientTunnel->Start();
-						}
 						else
 							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
 
@@ -598,7 +594,10 @@ namespace client
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
 						{
-							LogPrint(eLogError, "Clients: I2P Client tunnel websocks is deprecated");
+							LogPrint(eLogWarning, "Clients: I2P Client tunnel websocks is deprecated, not starting ", name, " tunnel");
+#ifdef WIN32_APP
+							ShowMessageBox (eLogWarning, "Skipped websocks tunnel ", name, " because it's support is discontinued.");
+#endif
 							continue;
 						}
 						else
@@ -608,6 +607,7 @@ namespace client
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}
+
 						uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);
 						if(timeout)
 						{
@@ -657,8 +657,8 @@ namespace client
 
 					// I2CP
 					std::map<std::string, std::string> options;
-					ReadI2CPOptions (section, options);	
-					
+					ReadI2CPOptions (section, options);
+
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
@@ -745,12 +745,14 @@ namespace client
 
 				}
 				else
-					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);
-
+					LogPrint (eLogWarning, "Clients: Unknown section type = ", type, " of ", name, " in ", tunConf);
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "Clients: Can't read tunnel ", name, " params: ", ex.what ());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start tunnel ", name, ": ", ex.what ());
+#endif
 			}
 		}
 	}
@@ -761,12 +763,12 @@ namespace client
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
 		if (httproxy)
 		{
-			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
-			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
-			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
-			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
-			std::string httpOutProxyURL; i2p::config::GetOption("httpproxy.outproxy",     httpOutProxyURL);
-			bool httpAddresshelper; i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
+			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",          httpProxyKeys);
+			std::string httpProxyAddr;         i2p::config::GetOption("httpproxy.address",       httpProxyAddr);
+			uint16_t    httpProxyPort;         i2p::config::GetOption("httpproxy.port",          httpProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
+			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
+			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
 			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
@@ -781,14 +783,14 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
-			try
-			{
+			try {
 				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, httpAddresshelper, localDestination);
 				m_HttpProxy->Start();
-			}
-			catch (std::exception& e)
-			{
+			} catch (std::exception& e) {
 				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort, ": ", e.what ());
+#endif
 			}
 		}
 	}
@@ -799,13 +801,13 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
-			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",     socksProxyKeys);
-			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address",  socksProxyAddr);
-			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",     socksProxyPort);
-			bool socksOutProxy; i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
-			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
-			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
-			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
+			std::string socksProxyKeys;        i2p::config::GetOption("socksproxy.keys",             socksProxyKeys);
+			std::string socksProxyAddr;        i2p::config::GetOption("socksproxy.address",          socksProxyAddr);
+			uint16_t    socksProxyPort;        i2p::config::GetOption("socksproxy.port",             socksProxyPort);
+			bool        socksOutProxy;         i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
+			std::string socksOutProxyAddr;     i2p::config::GetOption("socksproxy.outproxy",         socksOutProxyAddr);
+			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (socksProxyKeys.length () > 0)
 			{
@@ -820,15 +822,15 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
 			}
-			try
-			{
+			try {
 				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
 					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
-			}
-			catch (std::exception& e)
-			{
+			} catch (std::exception& e) {
 				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+#ifdef WIN32_APP
+				ShowMessageBox (eLogError, "Unable to start SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort, ": ", e.what ());
+#endif
 			}
 		}
 	}
