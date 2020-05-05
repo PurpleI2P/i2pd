@@ -201,36 +201,27 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	log.Append(msg);
 }
 
-#ifdef WIN32_APP
+
 /**
- * @brief Show message box for user with message in it
- * @param level Message level (eLogError, eLogInfo, ...)
+ * @brief Throw fatal error message with the list of arguments  
  * @param args Array of message parts
  */
 template<typename... TArgs>
-void ShowMessageBox (LogLevel level, TArgs&&... args) noexcept
+void ThrowFatal (TArgs&&... args) noexcept
 {
 	// fold message to single string
 	std::stringstream ss("");
-
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 	(LogPrint (ss, std::forward<TArgs>(args)), ...);
 #else
 	LogPrint (ss, std::forward<TArgs>(args)...);
 #endif
 
-	UINT uType;
-	switch (level) 
-	{
-		case eLogError   :
-		case eLogWarning :
-			uType = MB_ICONWARNING;
-			break;
-		default          :
-			uType = MB_ICONINFORMATION;
-	}
-	MessageBox(0, TEXT(ss.str ().c_str ()), TEXT("i2pd"), uType | MB_TASKMODAL | MB_OK );
+#ifdef WIN32_APP	
+	MessageBox(0, TEXT(ss.str ().c_str ()), TEXT("i2pd"), MB_ICONERROR | MB_TASKMODAL | MB_OK );
+#else
+	std::cout << ss.str ();
+#endif 	
 }
-#endif // WIN32_APP
 
 #endif // LOG_H__

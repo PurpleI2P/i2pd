@@ -821,12 +821,12 @@ namespace transport
 							{
 								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
 								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
-							} catch ( std::exception & ex ) {
+							} 
+							catch ( std::exception & ex ) 
+							{
 								/** fail to bind ip4 */
 								LogPrint(eLogError, "NTCP: Failed to bind to v4 port ", address->port, ": ", ex.what());
-#ifdef WIN32_APP
-								ShowMessageBox (eLogError, "Unable to start IPv4 NTCP transport at port ", address->port, ": ", ex.what ());
-#endif
+								ThrowFatal ("Unable to start IPv4 NTCP transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 
@@ -848,11 +848,11 @@ namespace transport
 								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession> (*this);
 								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
-							} catch ( std::exception & ex ) {
+							} 
+							catch ( std::exception & ex ) 
+							{
 								LogPrint(eLogError, "NTCP: failed to bind to v6 port ", address->port, ": ", ex.what());
-#ifdef WIN32_APP
-								ShowMessageBox (eLogError, "Unable to start IPv6 NTCP transport at port ", address->port, ": ", ex.what ());
-#endif
+								ThrowFatal (eLogError, "Unable to start IPv6 NTCP transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 						}

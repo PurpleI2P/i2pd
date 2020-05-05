@@ -1196,9 +1196,7 @@ namespace transport
 							catch ( std::exception & ex )
 							{
 								LogPrint(eLogError, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
-#ifdef WIN32_APP
-								ShowMessageBox (eLogError, "Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
-#endif
+								ThrowFatal ("Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 
@@ -1220,11 +1218,11 @@ namespace transport
 								LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCP2Session> (*this);
 								m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
-							} catch ( std::exception & ex ) {
+							} 
+							catch ( std::exception & ex ) 
+							{
 								LogPrint(eLogError, "NTCP2: failed to bind to v6 port ", address->port, ": ", ex.what());
-#ifdef WIN32_APP
-								ShowMessageBox (eLogError, "Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
-#endif
+								ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 						}
