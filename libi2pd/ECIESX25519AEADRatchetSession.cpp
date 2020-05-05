@@ -223,16 +223,8 @@ namespace garlic
 			switch (blk)
 			{
 				case eECIESx25519BlkGalicClove:
-					GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size);
-				break;
-				case eECIESx25519BlkDateTime:
-					LogPrint (eLogDebug, "Garlic: datetime");
-				break;	
-				case eECIESx25519BlkOptions:
-					LogPrint (eLogDebug, "Garlic: options");
-				break;
-				case eECIESx25519BlkPadding:
-					LogPrint (eLogDebug, "Garlic: padding");
+					if (GetOwner ())
+						GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size);
 				break;
 				case eECIESx25519BlkNextKey:
 					LogPrint (eLogDebug, "Garlic: next key");	
@@ -256,6 +248,21 @@ namespace garlic
 					m_AckRequests.push_back ({receiveTagset->GetTagSetID (), index});		
 					break;	
 				}	
+				case eECIESx25519BlkTermination:
+					LogPrint (eLogDebug, "Garlic: termination");
+					if (GetOwner ())
+						GetOwner ()->RemoveECIESx25519Session (m_RemoteStaticKey);
+					if (receiveTagset) receiveTagset->Expire ();
+				break;	
+				case eECIESx25519BlkDateTime:
+					LogPrint (eLogDebug, "Garlic: datetime");
+				break;	
+				case eECIESx25519BlkOptions:
+					LogPrint (eLogDebug, "Garlic: options");
+				break;
+				case eECIESx25519BlkPadding:
+					LogPrint (eLogDebug, "Garlic: padding");
+				break;	
 				default:
 					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
 			}
@@ -852,7 +859,7 @@ namespace garlic
 		CleanupUnconfirmedLeaseSet (ts);
 		return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT; 
 	}	
-
+		
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
 		auto m = NewI2NPMessage ();

@@ -1013,5 +1013,14 @@ namespace garlic
 		m_ECIESx25519Sessions.emplace (staticKeyTag, session);
 	}
 
+	void GarlicDestination::RemoveECIESx25519Session (const uint8_t * staticKey)
+	{
+		auto it = m_ECIESx25519Sessions.find (staticKey);
+		if (it != m_ECIESx25519Sessions.end ())
+		{
+			it->second->SetOwner (nullptr);
+			m_ECIESx25519Sessions.erase (it);
+		}	
+	}	
 }
 }

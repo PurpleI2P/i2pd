@@ -233,6 +233,7 @@ namespace garlic
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
             void AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
+			void RemoveECIESx25519Session (const uint8_t * staticKey);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
