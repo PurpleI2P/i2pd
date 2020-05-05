@@ -314,14 +314,15 @@ namespace i2p
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 				uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 				LogPrint(eLogInfo, "Daemon: starting webconsole at ", httpAddr, ":", httpPort);
-				try {
+				try 
+				{
 					d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
 					d.httpServer->Start();
-				} catch (std::exception& ex) {
+				} 
+				catch (std::exception& ex) 
+				{
 					LogPrint (eLogError, "Daemon: failed to start webconsole: ", ex.what ());
-#ifdef WIN32_APP
-					ShowMessageBox (eLogError, "Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
-#endif
+					ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
 				}
 			}
 
@@ -338,14 +339,15 @@ namespace i2p
 				std::string i2pcpAddr; i2p::config::GetOption("i2pcontrol.address", i2pcpAddr);
 				uint16_t    i2pcpPort; i2p::config::GetOption("i2pcontrol.port",    i2pcpPort);
 				LogPrint(eLogInfo, "Daemon: starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
-				try {
+				try 
+				{
 					d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 					d.m_I2PControlService->Start ();
-				} catch (std::exception& ex) {
+				} 
+				catch (std::exception& ex) 
+				{
 					LogPrint (eLogError, "Daemon: failed to start I2PControl: ", ex.what ());
-#ifdef WIN32_APP
-					ShowMessageBox (eLogError, "Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
-#endif
+					ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 				}
 			}
 			return true;
