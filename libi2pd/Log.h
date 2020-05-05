@@ -24,8 +24,7 @@
 #endif
 
 #ifdef WIN32_APP
-#include <windows.h>
-#include "Win32/Win32App.h"
+#include <windows.h> // TODO: move away to win32app
 #endif
 
 enum LogLevel
@@ -220,23 +219,17 @@ void ShowMessageBox (LogLevel level, TArgs&&... args) noexcept
 	LogPrint (ss, std::forward<TArgs>(args)...);
 #endif
 
-	HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
-	if (!hWnd) hWnd = NULL;
-
 	UINT uType;
-	switch (level) {
+	switch (level) 
+	{
 		case eLogError   :
 		case eLogWarning :
 			uType = MB_ICONWARNING;
 			break;
-		case eLogNone    :
-		case eLogInfo    :
-		case eLogDebug   :
 		default          :
 			uType = MB_ICONINFORMATION;
-			break;
 	}
-	MessageBox( hWnd, TEXT(ss.str ().c_str ()), TEXT("i2pd"), uType | MB_TASKMODAL | MB_OK );
+	MessageBox(0, TEXT(ss.str ().c_str ()), TEXT("i2pd"), uType | MB_TASKMODAL | MB_OK );
 }
 #endif // WIN32_APP
 
