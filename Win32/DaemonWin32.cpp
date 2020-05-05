@@ -8,6 +8,7 @@
 #ifdef _WIN32
 #include "Win32/Win32Service.h"
 #ifdef WIN32_APP
+#include <windows.h>
 #include "Win32/Win32App.h"
 #endif
 
@@ -23,6 +24,11 @@ namespace util
 		setlocale(LC_ALL, "Russian");
 		setlocale(LC_TIME, "C");
 
+		i2p::log::SetThrowFunction ([](const std::string& s)
+			{
+				MessageBox(0, TEXT(s.c_str ()), TEXT("i2pd"), MB_ICONERROR | MB_TASKMODAL | MB_OK );
+			});	
+		
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
 

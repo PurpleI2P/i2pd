@@ -236,5 +236,11 @@ namespace log {
 	Log & Logger() {
 		return logger;
 	}
+
+	static ThrowFunction g_ThrowFunction;
+	ThrowFunction GetThrowFunction () { return g_ThrowFunction; }
+	void SetThrowFunction (ThrowFunction f) { g_ThrowFunction = f; }
+		
 } // log
 } // i2p
+

@@ -17,14 +17,11 @@
 #include <chrono>
 #include <memory>
 #include <thread>
+#include <functional>
 #include "Queue.h"
 
 #ifndef _WIN32
 #include <syslog.h>
-#endif
-
-#ifdef WIN32_APP
-#include <windows.h> // TODO: move away to win32app
 #endif
 
 enum LogLevel
@@ -155,6 +152,10 @@ namespace log {
 	};
 
 	Log & Logger();
+
+	typedef std::function<void (const std::string&)>  ThrowFunction;
+	ThrowFunction GetThrowFunction ();
+	void SetThrowFunction (ThrowFunction f);	
 } // log
 }
 
@@ -201,7 +202,6 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	log.Append(msg);
 }
 
-
 /**
  * @brief Throw fatal error message with the list of arguments  
  * @param args Array of message parts
@@ -209,6 +209,8 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 template<typename... TArgs>
 void ThrowFatal (TArgs&&... args) noexcept
 {
+	auto f = i2p::log::GetThrowFunction ();
+	if (!f) return;
 	// fold message to single string
 	std::stringstream ss("");
 #if (__cplusplus >= 201703L) // C++ 17 or higher
@@ -216,12 +218,7 @@ void ThrowFatal (TArgs&&... args) noexcept
 #else
 	LogPrint (ss, std::forward<TArgs>(args)...);
 #endif
-
-#ifdef WIN32_APP	
-	MessageBox(0, TEXT(ss.str ().c_str ()), TEXT("i2pd"), MB_ICONERROR | MB_TASKMODAL | MB_OK );
-#else
-	std::cout << ss.str ();
-#endif 	
+	f (ss.str ());
 }
 
 #endif // LOG_H__
