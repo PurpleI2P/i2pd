@@ -415,10 +415,8 @@ namespace client
 				auto it2 = m_LeaseSetRequests.find (key);
 				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedBlindedKey)
 				{
-					const uint8_t * secret = nullptr;
-					if (m_LeaseSetPrivKey) secret = *m_LeaseSetPrivKey; // m_LeaseSetPrivKey ? *m_LeaseSetPrivKey: nullptr invokes copy contructor
 					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
-						it2->second->requestedBlindedKey, secret, GetPreferredCryptoType ());
+						it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
 					if (ls2->IsValid ())
 					{
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
