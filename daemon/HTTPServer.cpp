@@ -1227,10 +1227,10 @@ namespace http {
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
 
-		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
+		m_IsRunning = true;
+		m_Thread.reset (new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();
-		m_IsRunning = true;
 	}
 
 	void HTTPServer::Stop ()
