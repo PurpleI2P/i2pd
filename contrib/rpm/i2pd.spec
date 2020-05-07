@@ -1,6 +1,6 @@
 Name:           i2pd
 Version:        2.31.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd-git
 
@@ -22,6 +22,7 @@ BuildRequires:  openssl-devel
 BuildRequires:  miniupnpc-devel
 BuildRequires:  systemd-units
 
+Requires:	logrotate
 Requires:	systemd
 Requires(pre):  %{_sbindir}/useradd %{_sbindir}/groupadd
 
@@ -71,8 +72,9 @@ pushd build
 
 chrpath -d i2pd
 install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
-install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
-install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
 install -d -m 755 %{buildroot}%{_datadir}/i2pd
 install -d -m 755 %{buildroot}%{_datadir}/i2pd/tunnels.conf.d
 %{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
@@ -107,15 +109,19 @@ getent passwd i2pd >/dev/null || \
 %doc LICENSE README.md
 %{_sbindir}/i2pd
 %{_datadir}/i2pd/certificates
-%config(noreplace) %{_sysconfdir}/i2pd/*
+%config(noreplace) %{_sysconfdir}/i2pd/*.conf
 %config(noreplace) %{_sysconfdir}/i2pd/tunnels.conf.d/*
 /%{_unitdir}/i2pd.service
 %dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
 %{_sharedstatedir}/i2pd/certificates
+%{_sysconfdir}/logrotate.d/i2pd
 
 
 %changelog
+* Thu May 7 2020 Anatolii Vorona <vorona.tolik@gmail.com> - 2.31.0-2
+- added RPM logrotate config
+
 * Fri Apr 10 2020 orignal <i2porignal@yandex.ru> - 2.31.0
 - update to 2.31.0
 
