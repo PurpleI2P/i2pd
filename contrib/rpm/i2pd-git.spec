@@ -78,8 +78,8 @@ chrpath -d i2pd
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.d/README %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d/README
-%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
-%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
 %{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
@@ -121,7 +121,7 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Thu May 7 2020 Anatolii Vorona <vorona.tolik@gmail.com> - 2.31.0-2
+* Thu May 7 2020 Anatolii Vorona <vorona.tolik@gmail.com> - 2.31.0-3
 - added RPM logrotate config
 
 * Fri Apr 10 2020 orignal <i2porignal@yandex.ru> - 2.31.0
