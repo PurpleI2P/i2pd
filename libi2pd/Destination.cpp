@@ -845,7 +845,8 @@ namespace client
 
 		// extract encryption type params for LS2
 		std::set<i2p::data::CryptoKeyType> encryptionKeyTypes;
-		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 && params)
+		if ((GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2 ||
+		   GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) && params)
 		{
 			auto it = params->find (I2CP_PARAM_LEASESET_ENCRYPTION_TYPE);
 			if (it != params->end ())
