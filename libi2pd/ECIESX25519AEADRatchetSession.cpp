@@ -178,8 +178,6 @@ namespace garlic
 		MixHash (buf, 48); // h = SHA256(h || ciphertext)
 		buf += 48; len -= 48; // 32 data + 16 poly
 
-        // decrypt payload
-		std::vector<uint8_t> payload (len - 16);
 		// KDF2 for payload
 		bool isStatic = !i2p::data::Tag<32> (fs).IsZero (); 
 		if (isStatic)
@@ -191,6 +189,9 @@ namespace garlic
 		}
 		else // all zeros flags
 			CreateNonce (1, nonce);
+		
+		// decrypt payload
+		std::vector<uint8_t> payload (len - 16); // we must save original ciphertext
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
@@ -489,7 +490,7 @@ namespace garlic
 		return true;
 	}	
 		
-    bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len)
+    bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (uint8_t * buf, size_t len)
     {
 		// we are Alice
 		LogPrint (eLogDebug, "Garlic: reply received");
@@ -541,8 +542,7 @@ namespace garlic
 		}	
         i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)		
 		// decrypt payload
-		std::vector<uint8_t> payload (len - 16);
-        if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, keydata, nonce, payload.data (), len - 16, false)) // decrypt
+        if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, keydata, nonce, buf, len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
@@ -554,7 +554,7 @@ namespace garlic
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}
 		memcpy (m_H, h, 32); // restore m_H 
-		HandlePayload (payload.data (), len - 16, nullptr, 0); 
+		HandlePayload (buf, len - 16, nullptr, 0); 
 
 		// we have received reply to NS with LeaseSet in it
 		SetLeaseSetUpdateStatus (eLeaseSetUpToDate);
@@ -584,21 +584,21 @@ namespace garlic
 		return true;
 	}
 
-	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (const uint8_t * buf, size_t len, 
+	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (uint8_t * buf, size_t len, 
 		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
 	{
 		uint8_t nonce[12];
 		CreateNonce (index, nonce); // tag's index
 		len -= 8; // tag 
-		std::vector<uint8_t> payload (len - 16);
+		uint8_t * payload = buf + 8;
 		uint8_t key[32];
 		receiveTagset->GetSymmKey (index, key);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 8, len - 16, buf, 8, key, nonce, payload.data (), len - 16, false)) // decrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 16, buf, 8, key, nonce, payload, len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD decryption failed");
 			return false;
 		}	
-		HandlePayload (payload.data (), len - 16, receiveTagset, index); 
+		HandlePayload (payload, len - 16, receiveTagset, index); 
 		int moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
 		if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
 		moreTags -= (receiveTagset->GetNextIndex () - index); 
@@ -607,7 +607,7 @@ namespace garlic
 		return true;
 	}
 
-	bool ECIESX25519AEADRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len, 
+	bool ECIESX25519AEADRatchetSession::HandleNextMessage (uint8_t * buf, size_t len, 
 		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
 	{
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();

@@ -108,7 +108,7 @@ namespace garlic
             ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
             ~ECIESX25519AEADRatchetSession ();
 
-			bool HandleNextMessage (const uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index = 0);
+			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index = 0);
             std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			
             const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
@@ -133,8 +133,8 @@ namespace garlic
 			std::shared_ptr<RatchetTagSet> CreateNewSessionTagset ();
 
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
-            bool HandleNewOutgoingSessionReply (const uint8_t * buf, size_t len);
-			bool HandleExistingSessionMessage (const uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index);
+            bool HandleNewOutgoingSessionReply (uint8_t * buf, size_t len);
+			bool HandleExistingSessionMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index);
             void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset, int index);
 			void HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset);
 			
