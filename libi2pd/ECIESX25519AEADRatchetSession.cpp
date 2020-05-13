@@ -684,10 +684,10 @@ namespace garlic
 		if (first) payloadLen += 7;// datatime 
         if (msg && m_Destination) 
             payloadLen += msg->GetPayloadLength () + 13 + 32;
-        auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? CreateDatabaseStoreMsg (GetOwner ()->GetLeaseSet ()) : nullptr;
+        auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? GetOwner ()->GetLeaseSet () : nullptr;
 		if (leaseSet)
 		{	
-            payloadLen += leaseSet->GetPayloadLength () + 13;   
+            payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;   
 			if (!first) 
 			{
 				// ack request
@@ -725,7 +725,7 @@ namespace garlic
         // LeaseSet
         if (leaseSet)
 		{	
-            offset += CreateGarlicClove (leaseSet, v.data () + offset, payloadLen - offset);
+            offset += CreateLeaseSetClove (leaseSet, ts, v.data () + offset, payloadLen - offset);
 			if (!first)
 			{	
 				// ack request
@@ -815,38 +815,31 @@ namespace garlic
         return cloveSize + 3;
     } 
 
-	size_t ECIESX25519AEADRatchetSession::CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
+	size_t ECIESX25519AEADRatchetSession::CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len)
     {
-		uint16_t cloveSize =  msg->GetPayloadLength () + 9 + 37 /* delivery instruction */;
+		if (!ls || ls->GetStoreType () != i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
+		{
+			LogPrint (eLogError, "Garlic: Incorrect LeasetSet type to send");
+			return 0;
+		}	
+		uint16_t cloveSize = 1 + 9 + DATABASE_STORE_HEADER_SIZE + ls->GetBufferLen (); // to local
 		if ((int)len < cloveSize + 3) return 0;
 		buf[0] = eECIESx25519BlkGalicClove; // clove type
         htobe16buf (buf + 1, cloveSize); // size   
 		buf += 3;
-		if (GetOwner ())
-		{
-			auto inboundTunnel = GetOwner ()->GetTunnelPool ()->GetNextInboundTunnel ();
-			if (inboundTunnel)
-			{
-				// delivery instructions
-				*buf = eGarlicDeliveryTypeTunnel << 5; buf++; // delivery instructions flag tunnel
-				// hash and tunnelID sequence is reversed for Garlic
-				memcpy (buf, inboundTunnel->GetNextIdentHash (), 32); buf += 32;// To Hash
-				htobe32buf (buf, inboundTunnel->GetNextTunnelID ()); buf += 4;// tunnelID
-			}
-			else
-			{
-				LogPrint (eLogError, "Garlic: No inbound tunnels in the pool for DeliveryStatus");
-				return 0;
-			}	
-			*buf = msg->GetTypeID (); // I2NP msg type
-			htobe32buf (buf + 1, msg->GetMsgID ()); // msgID     
-        	htobe32buf (buf + 5, msg->GetExpiration ()/1000); // expiration in seconds     
-        	memcpy (buf + 9, msg->GetPayload (), msg->GetPayloadLength ());
-		}
-		else
-			return 0;
+		*buf = 0; buf++; // flag and delivery instructions
+		*buf = eI2NPDatabaseStore; buf++; // I2NP msg type
+		RAND_bytes (buf, 4); buf += 4; // msgID
+		htobe32buf (buf, (ts + I2NP_MESSAGE_EXPIRATION_TIMEOUT)/1000); buf += 4; // expiration	
+		// payload
+		memcpy (buf + DATABASE_STORE_KEY_OFFSET, ls->GetStoreHash (), 32);
+		buf[DATABASE_STORE_TYPE_OFFSET] = i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2;
+		memset (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0, 4); // replyToken = 0	
+		buf += DATABASE_STORE_HEADER_SIZE;
+		memcpy (buf, ls->GetBuffer (), ls->GetBufferLen ());
+
 		return cloveSize + 3;
-	}	
+	}
 		
 	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags)
 	{

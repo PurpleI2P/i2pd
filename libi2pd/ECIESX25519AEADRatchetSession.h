@@ -145,8 +145,8 @@ namespace garlic
 	
             std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first);
             size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination = false);
-			size_t CreateDeliveryStatusClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
-
+			size_t CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len);
+			
 			void GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags);
 			void NewNextSendRatchet ();
 			
