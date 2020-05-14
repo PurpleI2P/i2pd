@@ -69,15 +69,15 @@ namespace client
 		return ourIP;
 	}
 
+#ifdef __linux__
 	static void MapToLoopback(const std::shared_ptr<boost::asio::ip::tcp::socket> & sock, const i2p::data::IdentHash & addr)
 	{
-
 		// bind to 127.x.x.x address
 		// where x.x.x are first three bytes from ident
 		auto ourIP = GetLoopbackAddressFor(addr);
 		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
-
 	}
+#endif
 
 	void I2PTunnelConnection::Connect (bool isUniqueLocal)
 	{

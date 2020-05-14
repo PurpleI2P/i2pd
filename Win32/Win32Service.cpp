@@ -4,7 +4,7 @@
 
 #include "Win32Service.h"
 #include <assert.h>
-#include <strsafe.h>
+//#include <strsafe.h>
 #include <windows.h>
 
 #include "Daemon.h"
