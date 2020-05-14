@@ -7,7 +7,7 @@ project("i2pd")
 #set(CMAKE_VERBOSE_MAKEFILE on)
 
 # Win32 build with cmake is not supported
-if(WIN32 or MSVC or MSYS or MINGW)
+if(WIN32 OR MSVC OR MSYS OR MINGW)
   message(SEND_ERROR "cmake build for windows is not supported. Please use MSYS2 with makefiles in project root.")
 endif()
 
