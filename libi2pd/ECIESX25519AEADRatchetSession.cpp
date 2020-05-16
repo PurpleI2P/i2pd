@@ -641,6 +641,7 @@ namespace garlic
     { 
         auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);  
         size_t len = payload.size ();
+		if (!len) return nullptr;
 		auto m = NewI2NPMessage (len + 100); // 96 + 4
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
@@ -708,11 +709,14 @@ namespace garlic
 		{
 			payloadLen += 6;
 			if (m_NextSendRatchet->newKey) payloadLen += 32;
+		}
+		uint8_t paddingSize = 0;
+		if (payloadLen)
+		{	
+		    RAND_bytes (&paddingSize, 1);
+		    paddingSize &= 0x0F; paddingSize++; // 1 - 16
+		    payloadLen += paddingSize + 3;   
 		}	
-        uint8_t paddingSize;
-        RAND_bytes (&paddingSize, 1);
-        paddingSize &= 0x0F; paddingSize++; // 1 - 16
-        payloadLen += paddingSize + 3;                 
         std::vector<uint8_t> v(payloadLen);
         size_t offset = 0;
         // DateTime
@@ -785,9 +789,12 @@ namespace garlic
 			}	
 		}	
         // padding
-        v[offset] = eECIESx25519BlkPadding; offset++; 
-        htobe16buf (v.data () + offset, paddingSize); offset += 2;
-        memset (v.data () + offset, 0, paddingSize); offset += paddingSize; 
+		if (paddingSize)
+		{                
+		    v[offset] = eECIESx25519BlkPadding; offset++; 
+		    htobe16buf (v.data () + offset, paddingSize); offset += 2;
+		    memset (v.data () + offset, 0, paddingSize); offset += paddingSize;
+		}	
         return v;
     }   
 

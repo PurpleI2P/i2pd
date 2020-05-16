@@ -247,6 +247,8 @@ namespace datagram
 		auto path = GetSharedRoutingPath();
 		if(path)
 			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
+		if (m_RoutingSession && m_RoutingSession->IsRatchets ())
+			SendMsg (nullptr); // send empty message in case if we have some data to send
 	}
 
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetSharedRoutingPath ()
@@ -352,14 +354,14 @@ namespace datagram
 
 	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
 	{
-	  m_SendQueue.push_back(msg);
+		if (msg || m_SendQueue.empty ())
+			m_SendQueue.push_back(msg);
 		// flush queue right away if full
 		if(m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) FlushSendQueue();
 	}
 
 	void DatagramSession::FlushSendQueue ()
 	{
-
 		std::vector<i2p::tunnel::TunnelMessageBlock> send;
 		auto routingPath = GetSharedRoutingPath();
 		// if we don't have a routing path we will drop all queued messages
@@ -368,7 +370,8 @@ namespace datagram
 			for (const auto & msg : m_SendQueue)
 			{
 				auto m = m_RoutingSession->WrapSingleMessage(msg);
-				send.push_back(i2p::tunnel::TunnelMessageBlock{i2p::tunnel::eDeliveryTypeTunnel,routingPath->remoteLease->tunnelGateway, routingPath->remoteLease->tunnelID, m});
+				if (m)
+					send.push_back(i2p::tunnel::TunnelMessageBlock{i2p::tunnel::eDeliveryTypeTunnel,routingPath->remoteLease->tunnelGateway, routingPath->remoteLease->tunnelID, m});
 			}
 			routingPath->outboundTunnel->SendTunnelDataMsg(send);
 		}
