@@ -24,34 +24,32 @@ namespace datagram
 	void DatagramDestination::SendDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
 		auto owner = m_Owner;
-		std::vector<uint8_t> v(MAX_DATAGRAM_SIZE);
-		uint8_t * buf = v.data();
-		auto localIdentity =  m_Owner->GetIdentity ();		
-		auto identityLen = localIdentity->ToBuffer (buf, MAX_DATAGRAM_SIZE);
-		uint8_t * signature = buf + identityLen;
+		auto localIdentity = m_Owner->GetIdentity ();		
+		auto identityLen = localIdentity->GetFullLen ();
 		auto signatureLen = localIdentity->GetSignatureLen ();
-		uint8_t * buf1 = signature + signatureLen;
 		size_t headerLen = identityLen + signatureLen;
-
-		memcpy (buf1, payload, len);
+		
+		std::vector<uint8_t> header(headerLen);	
+		localIdentity->ToBuffer (header.data (), identityLen);
+		uint8_t * signature = header.data () + identityLen;
 		if (localIdentity->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];
-			SHA256(buf1, len, hash);
+			SHA256(payload, len, hash);
 			owner->Sign (hash, 32, signature);
 		}
 		else
-			owner->Sign (buf1, len, signature);
+			owner->Sign (payload, len, signature);
 
-		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort);
 		auto session = ObtainSession(identity);
+		auto msg = CreateDataMessage ({{header.data (), headerLen}, {payload, len}}, fromPort, toPort, false, !session->IsRatchets ()); // datagram
 		session->SendMsg(msg);
 	}
 
 	void DatagramDestination::SendRawDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		auto msg = CreateDataMessage (payload, len, fromPort, toPort, true); // raw
 		auto session = ObtainSession(identity);
+		auto msg = CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ()); // raw
 		session->SendMsg(msg);
 	}	
 		
@@ -122,12 +120,14 @@ namespace datagram
 	}
 
 		
-	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort, bool isRaw)
+	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (
+	    const std::vector<std::pair<const uint8_t *, size_t> >& payloads, 
+	    uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
-		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+		size_t size = m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
@@ -135,7 +135,7 @@ namespace datagram
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = isRaw ? i2p::client::PROTOCOL_TYPE_RAW : i2p::client::PROTOCOL_TYPE_DATAGRAM; // raw or datagram protocol
 			msg->len += size + 4;
-			msg->FillI2NPMessageHeader (eI2NPData);
+			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
 		}
 		else
 			msg = nullptr;
@@ -247,7 +247,7 @@ namespace datagram
 		auto path = GetSharedRoutingPath();
 		if(path)
 			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
-		if (m_RoutingSession && m_RoutingSession->IsRatchets ())
+		if (IsRatchets ())
 			SendMsg (nullptr); // send empty message in case if we have some data to send
 	}
 

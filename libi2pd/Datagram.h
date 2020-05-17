@@ -51,6 +51,8 @@ namespace datagram
 		/** get the last time in milliseconds for when we used this datagram session */
 		uint64_t LastActivity() const { return m_LastUse; }
 
+		bool IsRatchets () const { return m_RoutingSession && m_RoutingSession->IsRatchets (); }
+			
 		struct Info
 		{
 			std::shared_ptr<const i2p::data::IdentHash> IBGW;
@@ -130,7 +132,8 @@ namespace datagram
 
     std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort, bool isRaw = false);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const std::vector<std::pair<const uint8_t *, size_t> >& payloads, 
+				uint16_t fromPort, uint16_t toPort, bool isRaw = false, bool checksum = true);
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);

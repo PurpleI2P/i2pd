@@ -116,6 +116,36 @@ namespace data
 		return 0;
 	}
 
+	size_t GzipDeflator::Deflate (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen)
+	{
+		if (m_IsDirty) deflateReset (&m_Deflator);
+		m_IsDirty = true;
+		size_t offset = 0;
+		int err;
+		for (const auto& it: bufs)
+		{
+			m_Deflator.next_in = const_cast<uint8_t *>(it.first);
+			m_Deflator.avail_in = it.second;
+			m_Deflator.next_out = out + offset;
+			m_Deflator.avail_out = outLen - offset;
+			auto flush = (it == bufs.back ()) ? Z_FINISH : Z_NO_FLUSH;
+			err = deflate (&m_Deflator, flush);
+			if (err)
+			{	
+				if (flush && err == Z_STREAM_END)
+				{
+					out[9] = 0xff; // OS is always unknown
+					return outLen - m_Deflator.avail_out;
+				}	
+				break;
+			}
+			offset = outLen - m_Deflator.avail_out;
+		}	
+		// else
+		LogPrint (eLogError, "Gzip: Deflate error ", err);
+		return 0;
+	}	
+	
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
 	{
 		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01 };

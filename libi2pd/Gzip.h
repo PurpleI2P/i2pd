@@ -2,6 +2,7 @@
 #define GZIP_H__
 
 #include <zlib.h>
+#include <vector>
 
 namespace i2p 
 {
@@ -34,6 +35,7 @@ namespace data
 
 			void SetCompressionLevel (int level);
 			size_t Deflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen);
+			size_t Deflate (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen);
 
 		private:
 
