@@ -26,6 +26,9 @@ namespace garlic
 	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
 	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
 	
+	const size_t ECIESX25519_OPTIMAL_PAYLOAD_SIZE = 1912;  // 1912 = 1956 /* to fit 2 tunnel messages */ 
+	// - 16 /* I2NP header */ - 16 /* poly hash */ - 8 /* tag */ - 4 /* garlic length */
+	
 	class ECIESX25519AEADRatchetSession;
     class RatchetTagSet
     {
