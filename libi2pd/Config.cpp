@@ -192,15 +192,12 @@ namespace config {
 			("reseed.urls", value<std::string>()->default_value(
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
-				"https://netdb.i2p2.no/,"
 				"https://reseed.i2p2.no/,"
-				"https://reseed2.i2p2.no/,"
-				// "https://us.reseed.i2p2.no:444/," // mamoth's shit
-				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
+			    "https://reseed.i2pgit.org/,"                                                				
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 		;
