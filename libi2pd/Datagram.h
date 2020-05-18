@@ -107,7 +107,7 @@ namespace datagram
 		public:
 
 
-    DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
+    		DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip);
 			~DatagramDestination ();
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
@@ -146,6 +146,7 @@ namespace datagram
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
 			Receiver m_Receiver; // default
 			RawReceiver m_RawReceiver; // default
+			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, DatagramSession_ptr > m_Sessions;
 			std::mutex m_ReceiversMutex;

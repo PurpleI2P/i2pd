@@ -696,7 +696,7 @@ namespace client
 	}
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port) :
+		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip) :
 		m_IsUniqueLocal(true),
 		m_Name(name),
 		m_LocalAddress(localAddress),
@@ -704,7 +704,7 @@ namespace client
 	{
 		m_LocalDest = localDestination;
 		m_LocalDest->Start();
-		auto dgram = m_LocalDest->CreateDatagramDestination();
+		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 	}
 
@@ -745,7 +745,7 @@ namespace client
 	I2PUDPClientTunnel::I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest,
 		boost::asio::ip::udp::endpoint localEndpoint,
 		std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		uint16_t remotePort) :
+		uint16_t remotePort, bool gzip) :
 		m_Name(name),
 		m_RemoteDest(remoteDest),
 		m_LocalDest(localDestination),
@@ -756,7 +756,7 @@ namespace client
 		RemotePort(remotePort),
 		m_cancel_resolve(false)
 	{
-		auto dgram = m_LocalDest->CreateDatagramDestination();
+		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,

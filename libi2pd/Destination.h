@@ -236,7 +236,7 @@ namespace client
 
 			// datagram
       		i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-      		i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+      		i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
 
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;

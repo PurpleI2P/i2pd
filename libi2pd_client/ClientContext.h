@@ -33,6 +33,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+	const char I2P_CLIENT_TUNNEL_GZIP[] = "gzip";
 	const char I2P_CLIENT_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_CLIENT_TUNNEL_CRYPTO_TYPE[] = "cryptotype";
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";

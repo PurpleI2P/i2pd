@@ -569,7 +569,8 @@ namespace client
 						if (!localDestination)
 							localDestination = m_SharedLocalDestination;
 
-						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort);
+						bool gzip = section.second.get (I2P_CLIENT_TUNNEL_GZIP, true);
+						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort, gzip);
 						if(m_ClientForwards.insert(std::make_pair(end, clientTunnel)).second)
 							clientTunnel->Start();
 						else
@@ -672,7 +673,7 @@ namespace client
 						// TODO: hostnames
 						auto localAddress = boost::asio::ip::address::from_string(address);
 						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
-						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port);
+						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port, gzip);
 						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: disabling loopback address mapping");

@@ -198,7 +198,7 @@ namespace client
 			I2PUDPServerTunnel(const std::string & name,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination,
 				boost::asio::ip::address localAddress,
-				boost::asio::ip::udp::endpoint forwardTo, uint16_t port);
+				boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip);
 			~I2PUDPServerTunnel();
 			/** expire stale udp conversations */
 			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
@@ -228,7 +228,7 @@ namespace client
 		public:
 			I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest,
 				boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				uint16_t remotePort);
+				uint16_t remotePort, bool gzip);
 			~I2PUDPClientTunnel();
 			void Start();
 			const char * GetName() const { return m_Name.c_str(); }

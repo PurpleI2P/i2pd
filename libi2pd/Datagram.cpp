@@ -11,8 +11,8 @@ namespace i2p
 {
 namespace datagram
 {
-	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner):
-		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr)
+	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
+		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
 	}
 
@@ -127,6 +127,7 @@ namespace datagram
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
+		m_Deflator.SetCompressionLevel (m_Gzip ? Z_DEFAULT_COMPRESSION : Z_NO_COMPRESSION);
 		size_t size = m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len);
 		if (size)
 		{
