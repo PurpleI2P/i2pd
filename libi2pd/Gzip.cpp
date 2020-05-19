@@ -32,18 +32,34 @@ namespace data
 
 	size_t GzipInflator::Inflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen)
 	{
-		if (m_IsDirty) inflateReset (&m_Inflator);
-		m_IsDirty = true;
-		m_Inflator.next_in = const_cast<uint8_t *>(in);
-		m_Inflator.avail_in = inLen;
-		m_Inflator.next_out = out;
-		m_Inflator.avail_out = outLen;
-		int err;
-		if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END)
-			return outLen - m_Inflator.avail_out;
-		// else
-		LogPrint (eLogError, "Gzip: Inflate error ", err);
-		return 0;
+		if (inLen < 23) return 0;
+		if (in[10] == 0x01) // non compressed
+		{
+			size_t len = bufle16toh (in + 11);
+			if (len + 23 < inLen)
+			{
+				LogPrint (eLogError, "Gzip: Incorrect length");
+				return 0;
+			}	
+			if (len > outLen) len = outLen;
+			memcpy (out, in + 15, len);
+			return len;
+		}
+		else
+		{	
+			if (m_IsDirty) inflateReset (&m_Inflator);
+			m_IsDirty = true;
+			m_Inflator.next_in = const_cast<uint8_t *>(in);
+			m_Inflator.avail_in = inLen;
+			m_Inflator.next_out = out;
+			m_Inflator.avail_out = outLen;
+			int err;
+			if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END)
+				return outLen - m_Inflator.avail_out;
+			// else
+			LogPrint (eLogError, "Gzip: Inflate error ", err);
+			return 0;
+		}	
 	}
 
 	void GzipInflator::Inflate (const uint8_t * in, size_t inLen, std::ostream& os)
@@ -148,7 +164,7 @@ namespace data
 	
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen)
 	{
-		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01 };
+		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
 		if (outLen < (size_t)inLen + 23) return 0;
 		memcpy (out, gzipHeader, 11);
 		htole16buf (out + 11, inLen);
