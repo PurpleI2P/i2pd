@@ -41,6 +41,7 @@ namespace stream
 	const uint16_t PACKET_FLAG_OFFLINE_SIGNATURE = 0x0800;
 
 	const size_t STREAMING_MTU = 1730;
+	const size_t STREAMING_MTU_RATCHETS = 1812;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
 	const int MAX_NUM_RESEND_ATTEMPTS = 6;
@@ -234,6 +235,7 @@ namespace stream
 			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
+			size_t m_MTU;
 	};
 
 	class StreamingDestination: public std::enable_shared_from_this<StreamingDestination>

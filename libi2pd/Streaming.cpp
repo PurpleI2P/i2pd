@@ -63,7 +63,7 @@ namespace stream
 		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -75,7 +75,7 @@ namespace stream
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE),
 		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -473,6 +473,12 @@ namespace stream
 				{
 					//  initial packet
 					m_Status = eStreamStatusOpen;
+					if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
+					if (m_RemoteLeaseSet)
+					{	
+						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+						m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+					}	
 					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
 						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
 					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
@@ -486,7 +492,7 @@ namespace stream
 					size += 2; // options size
 					m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
 					size += identityLen; // from
-					htobe16buf (packet + size, STREAMING_MTU);
+					htobe16buf (packet + size, m_MTU);
 					size += 2; // max packet size
 					if (isOfflineSignature)
 					{
@@ -498,7 +504,7 @@ namespace stream
 					memset (signature, 0, signatureLen); // zeroes for now
 					size += signatureLen; // signature
 					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-					size += m_SendBuffer.Get (packet + size, STREAMING_MTU); // payload
+					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
 					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 				}
 				else
@@ -508,7 +514,7 @@ namespace stream
 					size += 2; // flags
 					htobuf16 (packet + size, 0); // no options
 					size += 2; // options size
-					size += m_SendBuffer.Get(packet + size, STREAMING_MTU); // payload
+					size += m_SendBuffer.Get(packet + size, m_MTU); // payload
 				}
 				p->len = size;
 				packets.push_back (p);
