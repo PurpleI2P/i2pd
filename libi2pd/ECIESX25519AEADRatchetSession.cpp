@@ -716,12 +716,18 @@ namespace garlic
 		uint8_t paddingSize = 0;
 		if (payloadLen)
 		{	
-			// don't create padding if we are close to optimal size
-			if (first || payloadLen + 19 <= ECIESX25519_OPTIMAL_PAYLOAD_SIZE || payloadLen > ECIESX25519_OPTIMAL_PAYLOAD_SIZE)
-			{	
+			int delta = (int)ECIESX25519_OPTIMAL_PAYLOAD_SIZE - (int)payloadLen;
+			if (delta < 0 || delta > 3) // don't create padding if we are close to optimal size
+			{
 				RAND_bytes (&paddingSize, 1);
-				paddingSize &= 0x0F; paddingSize++; // 1 - 16
-				payloadLen += paddingSize + 3;   
+				paddingSize &= 0x0F; // 0 - 15
+				if (delta > 3)
+				{	
+					delta -= 3;
+					if (paddingSize >= delta) paddingSize %= delta; 
+				}	
+				paddingSize++;
+				payloadLen += paddingSize + 3;  
 			}	
 		}	
         std::vector<uint8_t> v(payloadLen);
