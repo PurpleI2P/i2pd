@@ -685,7 +685,10 @@ namespace garlic
 		if (first) payloadLen += 7;// datatime 
         if (msg && m_Destination) 
             payloadLen += msg->GetPayloadLength () + 13 + 32;
-        auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? GetOwner ()->GetLeaseSet () : nullptr;
+		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
+			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && 
+		    	ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
+			GetOwner ()->GetLeaseSet () : nullptr;
 		if (leaseSet)
 		{	
             payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;   
