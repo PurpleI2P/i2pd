@@ -19,6 +19,7 @@
   /etc/nsswitch.conf r,
   /etc/resolv.conf r,
   /run/resolvconf/resolv.conf r,
+  /run/systemd/resolve/resolv.conf r,
   /run/systemd/resolve/stub-resolv.conf r,
 
   # path specific (feel free to modify if you have another paths)
