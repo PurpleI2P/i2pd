@@ -127,8 +127,8 @@ namespace datagram
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
-		m_Deflator.SetCompressionLevel (m_Gzip ? Z_DEFAULT_COMPRESSION : Z_NO_COMPRESSION);
-		size_t size = m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len);
+		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
+			 i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length

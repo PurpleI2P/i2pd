@@ -174,6 +174,28 @@ namespace data
 		htole32buf (out + inLen + 19, inLen);
 		return inLen + 23;
 	}
+
+	size_t GzipNoCompression (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen)
+	{	
+		static const uint8_t gzipHeader[11] = { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01 };
+		memcpy (out, gzipHeader, 11);
+		uint32_t crc = 0;
+		size_t len = 0, len1;
+		for (const auto& it: bufs)
+		{
+			len1 = len;
+			len += it.second;
+			if (outLen < len + 23) return 0;
+			memcpy (out + 15 + len1, it.first, it.second); 
+			crc = crc32 (crc, it.first, it.second);
+		}	
+		if (len > 0xffff) return 0;
+		htole32buf (out + len + 15, crc);
+		htole32buf (out + len + 19, len);
+		htole16buf (out + 11, len);
+		htole16buf (out + 13, 0xffff - len);
+		return len + 23;
+	}
 	
 } // data
 } // i2p

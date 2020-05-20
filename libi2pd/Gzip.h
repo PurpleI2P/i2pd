@@ -44,6 +44,7 @@ namespace data
 	};
 
 	size_t GzipNoCompression (const uint8_t * in, uint16_t inLen, uint8_t * out, size_t outLen); // for < 64K
+	size_t GzipNoCompression (const std::vector<std::pair<const uint8_t *, size_t> >& bufs, uint8_t * out, size_t outLen); // for total size < 64K
 		
 } // data
 } // i2p
