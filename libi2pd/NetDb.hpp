@@ -21,6 +21,7 @@
 #include "Reseed.h"
 #include "NetDbRequests.h"
 #include "Family.h"
+#include "version.h"
 
 namespace i2p
 {
@@ -32,6 +33,7 @@ namespace data
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90*60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
 	const int NETDB_PUBLISH_INTERVAL = 60*40;
+	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0,9,36); // 0.9.36
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;

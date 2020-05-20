@@ -27,7 +27,7 @@ namespace data
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false),
-		m_SupportedTransports (0), m_Caps (0)
+		m_SupportedTransports (0), m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
@@ -35,7 +35,8 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
+		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), 
+		m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		if (len <= MAX_RI_BUFFER_SIZE)
@@ -340,6 +341,21 @@ namespace data
 			// extract caps
 			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
+			// extract version
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_VERSION))
+			{
+				m_Version = 0;
+				char * ch = value;
+				while (*ch)
+				{
+					if (*ch >= '0' && *ch <= '9')
+					{	
+						m_Version *= 10; 
+						m_Version += (*ch - '0');
+					}		
+					ch++;
+				}	
+			}	
 			// check netId
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != i2p::context.GetNetID ())
 			{

@@ -1121,7 +1121,8 @@ namespace data
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					router->IsCompatible (*compatibleWith) &&
-					(router->GetCaps () & RouterInfo::eHighBandwidth);
+					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
+					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION;
 			});
 	}
 

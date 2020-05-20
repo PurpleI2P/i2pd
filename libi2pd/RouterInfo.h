@@ -19,6 +19,7 @@ namespace data
 	const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
 	const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";
 	const char ROUTER_INFO_PROPERTY_NETID[] = "netId";
+	const char ROUTER_INFO_PROPERTY_VERSION[] = "router.version";
 	const char ROUTER_INFO_PROPERTY_FAMILY[] = "family";
 	const char ROUTER_INFO_PROPERTY_FAMILY_SIG[] = "family.sig";
 
@@ -142,6 +143,7 @@ namespace data
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
+			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
@@ -235,6 +237,7 @@ namespace data
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;
+			int m_Version;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};
 }
