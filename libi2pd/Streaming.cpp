@@ -408,11 +408,14 @@ namespace stream
 			else
 				break;
 		}
-		if (m_SentPackets.empty ())
-			m_ResendTimer.cancel ();
 		if (acknowledged)
 		{
+			bool isPreviousResend = m_NumResendAttempts > 0;
 			m_NumResendAttempts = 0;
+			if (m_SentPackets.empty ())
+				m_ResendTimer.cancel ();
+			else if (isPreviousResend) // resend outstanding
+				HandleResendTimer (boost::system::error_code ()); // no error
 			SendBuffer ();
 		}
 		if (m_Status == eStreamStatusClosed)
