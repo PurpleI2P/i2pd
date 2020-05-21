@@ -824,6 +824,8 @@ namespace stream
 			}
 
 			// collect packets to resend
+			int maxNumPackets = (m_WindowSize >> 1); // /2
+			if (maxNumPackets < WINDOW_SIZE) maxNumPackets = WINDOW_SIZE;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
@@ -832,6 +834,8 @@ namespace stream
 				{
 					it->sendTime = ts;
 					packets.push_back (it);
+					maxNumPackets--;
+					if (maxNumPackets <= 0) break;
 				}
 			}
 
@@ -843,7 +847,7 @@ namespace stream
 				switch (m_NumResendAttempts)
 				{
 					case 1: // congesion avoidance
-						m_WindowSize /= 2;
+						m_WindowSize >>= 1; // /2
 						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 					break;
 					case 2:
