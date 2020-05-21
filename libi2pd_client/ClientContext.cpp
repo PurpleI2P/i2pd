@@ -468,6 +468,10 @@ namespace client
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_TYPE, value))
+			options[I2CP_PARAM_LEASESET_TYPE] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, value))
+			options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = value;
 	}
 
 	void ClientContext::ReadTunnels ()
