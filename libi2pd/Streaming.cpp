@@ -408,14 +408,11 @@ namespace stream
 			else
 				break;
 		}
+		if (m_SentPackets.empty ())
+			m_ResendTimer.cancel ();
 		if (acknowledged)
 		{
-			bool isPreviousResend = m_NumResendAttempts > 0;
 			m_NumResendAttempts = 0;
-			if (m_SentPackets.empty ())
-				m_ResendTimer.cancel ();
-			else if (isPreviousResend) // resend outstanding
-				HandleResendTimer (boost::system::error_code ()); // no error
 			SendBuffer ();
 		}
 		if (m_Status == eStreamStatusClosed)
@@ -827,8 +824,6 @@ namespace stream
 			}
 
 			// collect packets to resend
-			int maxNumPackets = (m_WindowSize >> 1); // /2
-			if (maxNumPackets < WINDOW_SIZE) maxNumPackets = WINDOW_SIZE;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
@@ -837,8 +832,6 @@ namespace stream
 				{
 					it->sendTime = ts;
 					packets.push_back (it);
-					maxNumPackets--;
-					if (maxNumPackets <= 0) break;
 				}
 			}
 
