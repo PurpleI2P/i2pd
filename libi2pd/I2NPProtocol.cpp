@@ -249,9 +249,7 @@ namespace i2p
 		uint8_t * sizePtr = buf;
 		buf += 2;
 		m->len += (buf - payload); // payload size
-		i2p::data::GzipDeflator deflator;
-		deflator.SetCompressionLevel (Z_BEST_COMPRESSION);
-		size_t size = deflator.Deflate (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
+		size_t size = i2p::data::GzipNoCompression (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
 		if (size)
 		{
 			htobe16buf (sizePtr, size); // size
