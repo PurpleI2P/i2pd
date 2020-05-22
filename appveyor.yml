@@ -26,11 +26,12 @@ install:
 #- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 - c:\msys64\usr\bin\bash -l "build/appveyor-msys2-upgrade.bash"
 
-- c:\msys64\usr\bin\bash -lc "pacman -Suuy --noconfirm ${MSYS_PACKAGES}"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Suuy"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -S ${MSYS_PACKAGES}"
 
 build_script:
 - echo MSYSTEM = %MSYSTEM%, bitness = %MSYS_BITNESS%
-- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j2"
+- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j3"
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
 
 test: off
