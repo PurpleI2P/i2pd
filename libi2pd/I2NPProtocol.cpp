@@ -257,7 +257,14 @@ namespace i2p
 		uint8_t * sizePtr = buf;
 		buf += 2;
 		m->len += (buf - payload); // payload size
-		size_t size = i2p::data::GzipNoCompression (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
+		size_t size = 0;
+		if (router->GetBufferLen () + (buf - payload) <= 940) // fits one tunnel message
+			size = i2p::data::GzipNoCompression (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
+		else
+		{
+			i2p::data::GzipDeflator deflator;
+			size = deflator.Deflate (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
+		}		
 		if (size)
 		{
 			htobe16buf (sizePtr, size); // size
