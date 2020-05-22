@@ -1,5 +1,4 @@
 #include <string.h>
-#include <vector>
 #include "Crypto.h"
 #include "Log.h"
 #include "TunnelBase.h"
@@ -14,6 +13,10 @@ namespace datagram
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
 		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
+		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();	
+		m_From.resize (identityLen); 
+		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);	
+		m_Signature.resize (m_Owner->GetIdentity ()->GetSignatureLen ()); 
 	}
 
 	DatagramDestination::~DatagramDestination ()
@@ -23,26 +26,18 @@ namespace datagram
 
 	void DatagramDestination::SendDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		auto owner = m_Owner;
-		auto localIdentity = m_Owner->GetIdentity ();		
-		auto identityLen = localIdentity->GetFullLen ();
-		auto signatureLen = localIdentity->GetSignatureLen ();
-		size_t headerLen = identityLen + signatureLen;
-		
-		std::vector<uint8_t> header(headerLen);	
-		localIdentity->ToBuffer (header.data (), identityLen);
-		uint8_t * signature = header.data () + identityLen;
-		if (localIdentity->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];
 			SHA256(payload, len, hash);
-			owner->Sign (hash, 32, signature);
+			m_Owner->Sign (hash, 32, m_Signature.data ());
 		}
 		else
-			owner->Sign (payload, len, signature);
+			m_Owner->Sign (payload, len, m_Signature.data ());
 
 		auto session = ObtainSession(identity);
-		auto msg = CreateDataMessage ({{header.data (), headerLen}, {payload, len}}, fromPort, toPort, false, !session->IsRatchets ()); // datagram
+		auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}}, 
+			fromPort, toPort, false, !session->IsRatchets ()); // datagram
 		session->SendMsg(msg);
 	}
 

@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <map>
+#include <vector>
 #include "Base.h"
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -154,6 +155,7 @@ namespace datagram
 
 			i2p::data::GzipInflator m_Inflator;
 			i2p::data::GzipDeflator m_Deflator;
+			std::vector<uint8_t> m_From, m_Signature;
 	};
 }
 }
