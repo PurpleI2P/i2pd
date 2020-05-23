@@ -256,9 +256,6 @@ namespace proxy
 				size += (1 + addr.dns.size); /* name length + domain name */
 				m_response[4] = addr.dns.size;
 				memcpy(m_response + 5, addr.dns.value, addr.dns.size);
-				// replace type to IPv4 for support socks5 clients
-				// without domain name resolving support (like netcat)
-				m_response[3] = ADDR_IPV4;
 				break;
 		}
 		htobe16buf(m_response + size - 2, port); //Port
