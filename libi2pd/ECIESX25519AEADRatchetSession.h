@@ -131,7 +131,7 @@ namespace garlic
 			}
 
 			bool CheckExpired (uint64_t ts); // true is expired
-			bool CanBeRestarted (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_RESTART_TIMEOUT; }
+			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
 
 			bool IsRatchets () const { return true; };
 
@@ -168,7 +168,7 @@ namespace garlic
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			i2p::crypto::X25519Keys m_EphemeralKeys;
 			SessionState m_State = eSessionStateNew;
-			uint64_t m_LastActivityTimestamp = 0; // incoming
+			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0; // incoming
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)

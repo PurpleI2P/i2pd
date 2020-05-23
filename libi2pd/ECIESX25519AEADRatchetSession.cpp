@@ -467,7 +467,8 @@ namespace garlic
 			return false;
 		}
 		m_State = eSessionStateNewSessionReplySent;
-
+		m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		
 		return true;
 	}
 
@@ -559,6 +560,7 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			m_State = eSessionStateEstablished;
+			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}
 		memcpy (m_H, h, 32); // restore m_H
