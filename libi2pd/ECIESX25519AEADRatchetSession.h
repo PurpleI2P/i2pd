@@ -25,8 +25,9 @@ namespace i2p
 {
 namespace garlic
 {
-	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second of inactivity we should restart after
+	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second since session creation we can restart session after
 	const int ECIESX25519_EXPIRATION_TIMEOUT = 480; // in seconds
+	const int ECIESX25519_INACTIVITY_TIMEOUT = 90; // number of second we receive nothing and should restart if we can
 	const int ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT = 600; // in seconds
 	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // 180
 	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 4096; // number of tags we request new tagset after
@@ -132,7 +133,8 @@ namespace garlic
 
 			bool CheckExpired (uint64_t ts); // true is expired
 			bool CanBeRestarted (uint64_t ts) const { return ts > m_SessionCreatedTimestamp + ECIESX25519_RESTART_TIMEOUT; }
-
+			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
+			
 			bool IsRatchets () const { return true; };
 
 		private:

@@ -256,7 +256,8 @@ namespace datagram
 
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetSharedRoutingPath ()
 	{
-		if(!m_RoutingSession) {
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
+		{
 			if(!m_RemoteLeaseSet) {
 				m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
 			}

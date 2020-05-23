@@ -719,7 +719,14 @@ namespace garlic
 			destination->Encrypt (nullptr, staticKey, nullptr); // we are supposed to get static key
 			auto it = m_ECIESx25519Sessions.find (staticKey);
 			if (it != m_ECIESx25519Sessions.end ())
+			{	
 				session = it->second;
+				if (session->IsInactive (i2p::util::GetSecondsSinceEpoch ()))
+				{
+					LogPrint (eLogDebug, "Garlic: session restarted");
+					session = nullptr;
+				}	
+			}	
 			if (!session)
 			{
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
@@ -1011,7 +1018,10 @@ namespace garlic
 		if (it != m_ECIESx25519Sessions.end ())
 		{
 			if (it->second->CanBeRestarted (i2p::util::GetSecondsSinceEpoch ()))
+			{	
+				it->second->SetOwner (nullptr); // detach
 				m_ECIESx25519Sessions.erase (it);
+			}	
 			else
 			{
 				LogPrint (eLogInfo, "Garlic:  ECIESx25519 session with static key ", staticKeyTag.ToBase64 (), " already exists");
