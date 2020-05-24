@@ -107,6 +107,8 @@ namespace config {
 			("httpproxy.latency.max", value<std::string>()->default_value("0"),       "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""),           "HTTP proxy upstream out proxy url")
 			("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
+			("httpproxy.i2cp.leaseSetType", value<std::string>()->default_value("1"), "Local destination's LeaseSet type")
+			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0"), "Local destination's LeaseSet encryption type")
 		;
 
 		options_description socksproxy("SOCKS Proxy options");
@@ -126,6 +128,8 @@ namespace config {
 			("socksproxy.outproxy.enabled", value<bool>()->default_value(false),       "Enable or disable SOCKS outproxy")
 			("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
 			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
+			("socksproxy.i2cp.leaseSetType", value<std::string>()->default_value("1"), "Local destination's LeaseSet type")
+			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0"), "Local destination's LeaseSet encryption type")
 		;
 
 		options_description sam("SAM bridge options");
