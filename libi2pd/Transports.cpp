@@ -389,7 +389,7 @@ namespace transport
 			m_LoopbackHandler.Flush ();
 			return;
 		}
-		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
+		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -421,7 +421,8 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size exceeds ", MAX_NUM_DELAYED_MESSAGES);
+				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",  
+					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
 			}

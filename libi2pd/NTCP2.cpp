@@ -1135,7 +1135,8 @@ namespace transport
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
-			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
+			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size to ", 
+			   	GetIdentHashBase64(), " exceeds ",  NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
 	}
