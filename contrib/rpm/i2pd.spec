@@ -119,6 +119,10 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon May 25 2020 r4sas <r4sas@i2pmail.org> - 2.32.0
+- update to 2.32.0
+- updated systemd service file (#1394)
+
 * Thu May 7 2020 Anatolii Vorona <vorona.tolik@gmail.com> - 2.31.0-3
 - added RPM logrotate config
 

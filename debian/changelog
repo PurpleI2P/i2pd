@@ -1,3 +1,12 @@
+i2pd (2.32.0-1) unstable; urgency=high
+
+  * updated to version 2.32.0/0.9.46
+  * updated systemd service file (see #1394)
+  * updated apparmor profile (see 9318388007cff0495b4b360d0480f4fc1219a9dc)
+  * updated logrotate config and moved it to contrib
+
+ -- r4sas <r4sas@i2pmail.org>  Mon, 25 May 2020 12:45:00 +0000
+
 i2pd (2.31.0-1) unstable; urgency=medium
 
   * updated to version 2.31.0

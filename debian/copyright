@@ -3,7 +3,7 @@ Upstream-Name: i2pd
 Source: https://github.com/PurpleI2P
 
 Files: *
-Copyright: 2013-2017 PurpleI2P
+Copyright: 2013-2020 PurpleI2P
 License: BSD-3-clause
 
 Files: qt/i2pd_qt/android/src/org/kde/necessitas/ministro/IMinistro.aidl
@@ -16,8 +16,8 @@ License: BSD-2-Clause
 Files: debian/*
 Copyright: 2013-2015 Kill Your TV <killyourtv@i2pmail.org>
            2014-2016 hagen <hagen@i2pmail.org>
-           2016-2017 R4SAS <r4sas@i2pmail.org>
-           2017-2018 Yangfl <mmyangfl@gmail.com>
+           2016-2020 R4SAS <r4sas@i2pmail.org>
+           2017-2020 Yangfl <mmyangfl@gmail.com>
 License: GPL-2+
 
 License: BSD-3-clause
