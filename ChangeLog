@@ -11,6 +11,7 @@
 - Show ECIES-X25519-AEAD-Ratchet sessions and tags on the web console
 - Simplified implementation of gzip for no compression mode
 - Allow ECIES-X25519-AEAD-Ratchet session restart after 2 minutes
+- Added logrotate config for rpm package
 ### Changed
 - Select peers for client tunnels among routers >= 0.9.36
 - Check ECIES flag for encrypted lookup reply
@@ -20,10 +21,14 @@
 - Stop as soon as no more transit tunnels during graceful shutdown for Android
 - RouterInfo gzip compression level depends on size
 - Send response to received datagram from ECIES-X25519-AEAD-Ratchet session
+- Update webconsole functional
+- Increased max transit tunnels limit
 - Reseeds list
+- Dropped windows support in cmake
 ### Fixed
-- Correct timestamp check for LeaseSet2 
-- Encrypted leaseset without authentication 
+- Correct timestamp check for LeaseSet2
+- Encrypted leaseset without authentication
+- Change SOCKS proxy connection response for clients without socks5h support (#1336)
 
 ## [2.31.0] - 2020-04-10
 ### Added
@@ -66,7 +71,7 @@
 ### Added
 - Client auth flag for b33 address
 ### Changed
-- Remove incoming  NTCP2 session from pending list when established 
+- Remove incoming  NTCP2 session from pending list when established
 - Handle errors for NTCP2 SessionConfrimed send
 ### Fixed
 - Failure to start on Windows XP
@@ -115,7 +120,7 @@
 ## [2.25.0] - 2019-05-09
 ### Added
 - Create, publish and handle encrypted LeaseSet2
-- Support of b33 addresses 
+- Support of b33 addresses
 - RedDSA key blinding
 - .b32.i2p addresses in jump links
 - ntcp2.addressv6 parameter
@@ -147,7 +152,7 @@
 - Correct SAM response for invalid key
 - SAM crash on termination for Windows
 - Race condition for publishing
- 
+
 ## [2.23.0] - 2019-01-21
 ### Added
 - Standard LeaseSet2 support
@@ -206,7 +211,7 @@
 - NTCP2 is enabled by default
 - Show lease's expiration time in readable format in the web console
 ### Fixed
-- Correct names for transports in the web console 
+- Correct names for transports in the web console
 
 ## [2.19.0] - 2018-06-26
 ### Added
