@@ -227,38 +227,50 @@ namespace proxy
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(SOCKSHandler::errTypes error, uint32_t ip, uint16_t port)
 	{
 		assert(error >= SOCKS4_OK);
-		m_response[0] = '\x00'; //Version
-		m_response[1] = error; //Response code
-		htobe16buf(m_response + 2, port); //Port
-		htobe32buf(m_response + 4, ip); //IP
+		m_response[0] = '\x00';           // version
+		m_response[1] = error;            // response code
+		htobe16buf(m_response + 2, port); // port
+		htobe32buf(m_response + 4, ip);   // IP
 		return boost::asio::const_buffers_1(m_response,8);
 	}
 
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type, const SOCKSHandler::address &addr, uint16_t port)
 	{
-		size_t size = 6; // header + port
+		size_t size = 6;        // header + port
 		assert(error <= SOCKS5_ADDR_UNSUP);
-		m_response[0] = '\x05'; //Version
-		m_response[1] = error; //Response code
-		m_response[2] = '\x00'; //RSV
-		m_response[3] = type; //Address type
+		m_response[0] = '\x05'; // version
+		m_response[1] = error;  // response code
+		m_response[2] = '\x00'; // reserved
+		m_response[3] = type;   // address type
 		switch (type)
 		{
 			case ADDR_IPV4:
 				size += 4;
 				htobe32buf(m_response + 4, addr.ip);
+				htobe16buf(m_response + size - 2, port);
 				break;
 			case ADDR_IPV6:
 				size += 16;
 				memcpy(m_response + 4, addr.ipv6, 16);
+				htobe16buf(m_response + size - 2, port);
 				break;
 			case ADDR_DNS:
-				size += (1 + addr.dns.size); /* name length + domain name */
-				m_response[4] = addr.dns.size;
-				memcpy(m_response + 5, addr.dns.value, addr.dns.size);
+				std::string address(addr.dns.value, addr.dns.size);
+				if(address.substr(addr.dns.size - 4, 4) == ".i2p") // overwrite if requested address inside I2P
+				{
+					m_response[3] = ADDR_IPV4;
+					size += 4;
+					memset(m_response + 4, 0, 6); // six HEX zeros
+				}
+				else
+				{
+					size += (1 + addr.dns.size); /* name length + resolved address */
+					m_response[4] = addr.dns.size;
+					memcpy(m_response + 5, addr.dns.value, addr.dns.size);
+					htobe16buf(m_response + size - 2, port);
+				}
 				break;
 		}
-		htobe16buf(m_response + size - 2, port); //Port
 		return boost::asio::const_buffers_1(m_response, size);
 	}
 
