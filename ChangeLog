@@ -1,6 +1,30 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.32.0] - 2020-05-25
+### Added
+- Multiple encryption types for local destinations
+- Next key and tagset for ECIES-X25519-AEAD-Ratchet
+- NTCP2 through SOCKS proxy
+- Throw error message if any port to bind is occupied
+- gzip parameter for UDP tunnels
+- Show ECIES-X25519-AEAD-Ratchet sessions and tags on the web console
+- Simplified implementation of gzip for no compression mode
+- Allow ECIES-X25519-AEAD-Ratchet session restart after 2 minutes
+### Changed
+- Select peers for client tunnels among routers >= 0.9.36
+- Check ECIES flag for encrypted lookup reply
+- Streaming MTU size 1812 for ECIES-X25519-AEAD-Ratchet
+- Don't calculate checksum for Data message send through ECIES-X25519-AEAD-Ratchet
+- Catch network connectivity status for Windows
+- Stop as soon as no more transit tunnels during graceful shutdown for Android
+- RouterInfo gzip compression level depends on size
+- Send response to received datagram from ECIES-X25519-AEAD-Ratchet session
+- Reseeds list
+### Fixed
+- Correct timestamp check for LeaseSet2 
+- Encrypted leaseset without authentication 
+
 ## [2.31.0] - 2020-04-10
 ### Added
 - NTCP2 through HTTP proxy
