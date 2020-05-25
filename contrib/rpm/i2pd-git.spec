@@ -1,7 +1,7 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:           i2pd-git
-Version:        2.31.0
+Version:        2.32.0
 Release:        git%{git_hash}%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd
@@ -111,6 +111,8 @@ getent passwd i2pd >/dev/null || \
 %doc LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf contrib/tunnels.d
 %{_sbindir}/i2pd
 %config(noreplace) %{_sysconfdir}/i2pd/*.conf
+%config(noreplace) %{_sysconfdir}/i2pd/tunnels.conf.d/*
+%{_sysconfdir}/i2pd/subscriptions.txt
 %{_unitdir}/i2pd.service
 %{_mandir}/man1/i2pd.1*
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
