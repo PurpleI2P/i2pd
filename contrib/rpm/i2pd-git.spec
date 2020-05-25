@@ -10,7 +10,7 @@ License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
 Source0:        https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
-%if 0%{?rhel}  == 7
+%if 0%{?rhel} == 7
 BuildRequires:  cmake3
 %else
 BuildRequires:  cmake
@@ -24,8 +24,8 @@ BuildRequires:  openssl-devel
 BuildRequires:  miniupnpc-devel
 BuildRequires:  systemd-units
 
-Requires:	logrotate
-Requires:	systemd
+Requires: logrotate
+Requires: systemd
 Requires(pre):  %{_sbindir}/useradd %{_sbindir}/groupadd
 
 %description
@@ -74,17 +74,18 @@ pushd build
 
 chrpath -d i2pd
 %{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
+%{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
+%{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd/tunnels.conf.d
+%{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
+%{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
-%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.d/README %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d/README
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
 %{__install} -D -m 644 %{_builddir}/%{name}-%{version}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
-%{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
-%{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
-%{__install} -d -m 755 %{buildroot}%{_datadir}/%{name}
-%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/%{name}/certificates
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/tunnels.d/ %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
@@ -117,7 +118,7 @@ getent passwd i2pd >/dev/null || \
 %{_mandir}/man1/i2pd.1*
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
 %dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
-%{_datadir}/%{name}/certificates
+%{_datadir}/i2pd/certificates
 %{_sharedstatedir}/i2pd/certificates
 %{_sysconfdir}/logrotate.d/i2pd
 
