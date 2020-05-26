@@ -612,7 +612,7 @@ namespace garlic
 		int moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
 		if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
 		moreTags -= (receiveTagset->GetNextIndex () - index);
-		if (moreTags > 0)
+		if (moreTags > 0 && GetOwner ())
 			GenerateMoreReceiveTags (receiveTagset, moreTags);
 		return true;
 	}
