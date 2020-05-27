@@ -221,6 +221,14 @@ namespace config {
 			("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
 		;
 
+		// Save deprecated websocket options for compatibility
+		options_description websocket("Websocket Options");
+		websocket.add_options()
+			("websockets.enabled", value<bool>()->default_value(false),     "Deprecated option")
+			("websockets.address", value<std::string>()->default_value(""), "Deprecated option")
+			("websockets.port", value<uint16_t>()->default_value(0),        "Deprecated option")
+		;
+
 		options_description exploratory("Exploratory Options");
 		exploratory.add_options()
 			("exploratory.inbound.length", value<int>()->default_value(2),    "Exploratory inbound tunnel length")
@@ -271,6 +279,7 @@ namespace config {
 			.add(reseed)
 			.add(addressbook)
 			.add(trust)
+			.add(websocket) // deprecated
 			.add(exploratory)
 			.add(ntcp2)
 			.add(nettime)
