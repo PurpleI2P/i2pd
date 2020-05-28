@@ -187,7 +187,7 @@ namespace data
 
 	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
 	{
-		return ExtractExpirationTimestamp (buf, len) > (m_ExpirationTime ? m_ExpirationTime : ExtractExpirationTimestamp (m_Buffer, m_BufferLen));
+		return ExtractExpirationTimestamp (buf, len) > ExtractExpirationTimestamp (m_Buffer, m_BufferLen);
 	}
 
 	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
