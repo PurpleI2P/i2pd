@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
@@ -113,9 +121,9 @@ namespace data
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident,
 		const char * signature, const char * key)
 	{
-		uint8_t buf[50], signatureBuf[64];
+		uint8_t buf[100], signatureBuf[64];
 		size_t len = family.length (), signatureLen = strlen (signature);
-		if (len + 32 > 50)
+		if (len + 32 > 100)
 		{
 			LogPrint (eLogError, "Family: ", family, " is too long");
 			return false;
@@ -179,4 +187,3 @@ namespace data
 	}
 }
 }
-

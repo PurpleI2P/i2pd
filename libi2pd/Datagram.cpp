@@ -1,5 +1,12 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
-#include <vector>
 #include "Crypto.h"
 #include "Log.h"
 #include "TunnelBase.h"
@@ -11,9 +18,13 @@ namespace i2p
 {
 namespace datagram
 {
-	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner):
-		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr)
+	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
+		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
+		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();
+		m_From.resize (identityLen);
+		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);
+		m_Signature.resize (m_Owner->GetIdentity ()->GetSignatureLen ());
 	}
 
 	DatagramDestination::~DatagramDestination ()
@@ -23,38 +34,28 @@ namespace datagram
 
 	void DatagramDestination::SendDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		auto owner = m_Owner;
-		std::vector<uint8_t> v(MAX_DATAGRAM_SIZE);
-		uint8_t * buf = v.data();
-		auto localIdentity =  m_Owner->GetIdentity ();		
-		auto identityLen = localIdentity->ToBuffer (buf, MAX_DATAGRAM_SIZE);
-		uint8_t * signature = buf + identityLen;
-		auto signatureLen = localIdentity->GetSignatureLen ();
-		uint8_t * buf1 = signature + signatureLen;
-		size_t headerLen = identityLen + signatureLen;
-
-		memcpy (buf1, payload, len);
-		if (localIdentity->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];
-			SHA256(buf1, len, hash);
-			owner->Sign (hash, 32, signature);
+			SHA256(payload, len, hash);
+			m_Owner->Sign (hash, 32, m_Signature.data ());
 		}
 		else
-			owner->Sign (buf1, len, signature);
+			m_Owner->Sign (payload, len, m_Signature.data ());
 
-		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort);
 		auto session = ObtainSession(identity);
+		auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
+			fromPort, toPort, false, !session->IsRatchets ()); // datagram
 		session->SendMsg(msg);
 	}
 
 	void DatagramDestination::SendRawDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		auto msg = CreateDataMessage (payload, len, fromPort, toPort, true); // raw
 		auto session = ObtainSession(identity);
+		auto msg = CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ()); // raw
 		session->SendMsg(msg);
-	}	
-		
+	}
+
 	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)
 	{
 		i2p::data::IdentityEx identity;
@@ -93,8 +94,8 @@ namespace datagram
 			m_RawReceiver (fromPort, toPort, buf, len);
 		else
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for raw datagram");
-	}	
-		
+	}
+
 	DatagramDestination::Receiver DatagramDestination::FindReceiver(uint16_t port)
 	{
 		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
@@ -114,20 +115,22 @@ namespace datagram
 		{
 			if (isRaw)
 				HandleRawDatagram (fromPort, toPort, uncompressed, uncompressedLen);
-			else	
+			else
 				HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
-		}	
+		}
 		else
 			LogPrint (eLogWarning, "Datagram: decompression failed");
 	}
 
-		
-	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort, bool isRaw)
+	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (
+		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
+		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
-		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
+			i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
@@ -135,7 +138,7 @@ namespace datagram
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = isRaw ? i2p::client::PROTOCOL_TYPE_RAW : i2p::client::PROTOCOL_TYPE_DATAGRAM; // raw or datagram protocol
 			msg->len += size + 4;
-			msg->FillI2NPMessageHeader (eI2NPData);
+			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
 		}
 		else
 			msg = nullptr;
@@ -190,7 +193,7 @@ namespace datagram
 	}
 
 	DatagramSession::DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination,
-																	 const i2p::data::IdentHash & remoteIdent) :
+		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
 		m_RemoteIdent(remoteIdent),
 		m_SendQueueTimer(localDestination->GetService()),
@@ -247,11 +250,14 @@ namespace datagram
 		auto path = GetSharedRoutingPath();
 		if(path)
 			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
+		if (IsRatchets ())
+			SendMsg (nullptr); // send empty message in case if we have some data to send
 	}
 
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetSharedRoutingPath ()
 	{
-		if(!m_RoutingSession) {
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
+		{
 			if(!m_RemoteLeaseSet) {
 				m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
 			}
@@ -352,14 +358,14 @@ namespace datagram
 
 	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
 	{
-	  m_SendQueue.push_back(msg);
+		if (msg || m_SendQueue.empty ())
+			m_SendQueue.push_back(msg);
 		// flush queue right away if full
 		if(m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) FlushSendQueue();
 	}
 
 	void DatagramSession::FlushSendQueue ()
 	{
-
 		std::vector<i2p::tunnel::TunnelMessageBlock> send;
 		auto routingPath = GetSharedRoutingPath();
 		// if we don't have a routing path we will drop all queued messages
@@ -368,7 +374,8 @@ namespace datagram
 			for (const auto & msg : m_SendQueue)
 			{
 				auto m = m_RoutingSession->WrapSingleMessage(msg);
-				send.push_back(i2p::tunnel::TunnelMessageBlock{i2p::tunnel::eDeliveryTypeTunnel,routingPath->remoteLease->tunnelGateway, routingPath->remoteLease->tunnelID, m});
+				if (m)
+					send.push_back(i2p::tunnel::TunnelMessageBlock{i2p::tunnel::eDeliveryTypeTunnel,routingPath->remoteLease->tunnelGateway, routingPath->remoteLease->tunnelID, m});
 			}
 			routingPath->outboundTunnel->SendTunnelDataMsg(send);
 		}
@@ -385,4 +392,3 @@ namespace datagram
 	}
 }
 }
-

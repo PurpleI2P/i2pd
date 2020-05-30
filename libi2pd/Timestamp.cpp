@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <time.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -24,26 +32,26 @@ namespace util
 	static uint64_t GetLocalMillisecondsSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::milliseconds>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
+			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
 	static uint32_t GetLocalHoursSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::hours>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
+			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
 	static uint64_t GetLocalSecondsSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::seconds>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
+			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
 	static int64_t g_TimeOffset = 0; // in seconds
 
 	static void SyncTimeWithNTP (const std::string& address)
 	{
-		LogPrint (eLogInfo,  "Timestamp: NTP request to ", address);
+		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
 		boost::asio::io_service service;
 		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
@@ -148,11 +156,11 @@ namespace util
 	}
 
 	void NTPTimeSync::Sync ()
-	{	
+	{
 		if (m_NTPServersList.size () > 0)
 			SyncTimeWithNTP (m_NTPServersList[rand () % m_NTPServersList.size ()]);
 		else
-			m_IsRunning = false;	
+			m_IsRunning = false;
 
 		if (m_IsRunning)
 		{
@@ -200,4 +208,3 @@ namespace util
 	}
 }
 }
-

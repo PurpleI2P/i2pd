@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef HTTP_SERVER_H__
 #define HTTP_SERVER_H__
 
@@ -79,17 +87,17 @@ namespace http
 			std::string m_Hostname;
 	};
 
-    //all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
-    enum OutputFormatEnum { forWebConsole, forQtUi };
-    void ShowStatus (std::stringstream& s, bool includeHiddenContent, OutputFormatEnum outputFormat);
-    void ShowLocalDestinations (std::stringstream& s);
-    void ShowLeasesSets(std::stringstream& s);
-    void ShowTunnels (std::stringstream& s);
-    void ShowTransitTunnels (std::stringstream& s);
-    void ShowTransports (std::stringstream& s);
-    void ShowSAMSessions (std::stringstream& s);
-    void ShowI2PTunnels (std::stringstream& s);
-    void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
+	//all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
+	enum OutputFormatEnum { forWebConsole, forQtUi };
+	void ShowStatus (std::stringstream& s, bool includeHiddenContent, OutputFormatEnum outputFormat);
+	void ShowLocalDestinations (std::stringstream& s);
+	void ShowLeasesSets(std::stringstream& s);
+	void ShowTunnels (std::stringstream& s);
+	void ShowTransitTunnels (std::stringstream& s);
+	void ShowTransports (std::stringstream& s);
+	void ShowSAMSessions (std::stringstream& s);
+	void ShowI2PTunnels (std::stringstream& s);
+	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
 } // http
 } // i2p
 

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
@@ -176,7 +184,7 @@ namespace transport
 
 					if (proxyurl.schema == "http")
 						proxytype = NTCPServer::eHTTPProxy;
-					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 					m_NTCPServer->Start();
 					if(!m_NTCPServer->NetworkIsReady())
 					{
@@ -194,7 +202,7 @@ namespace transport
 			return;
 		}
 		// create NTCP2. TODO: move to acceptor
-		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
 			if(!ntcp2proxy.empty())
@@ -209,7 +217,7 @@ namespace transport
 						if (proxyurl.schema == "http")
 							proxytype = NTCP2Server::eHTTPProxy;
 
-						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 						m_NTCP2Server->Start();
 					}
 					else
@@ -220,10 +228,10 @@ namespace transport
 				return;
 			}
 			else
-			{	
+			{
 				m_NTCP2Server = new NTCP2Server ();
 				m_NTCP2Server->Start ();
-			}	
+			}
 		}
 
 		// create acceptors
@@ -381,7 +389,7 @@ namespace transport
 			m_LoopbackHandler.Flush ();
 			return;
 		}
-		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
+		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -390,7 +398,7 @@ namespace transport
 			{
 				auto r = netdb.FindRouter (ident);
 				{
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
 						i2p::util::GetSecondsSinceEpoch (), {} })).first;
 				}
@@ -413,7 +421,8 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size exceeds ", MAX_NUM_DELAYED_MESSAGES);
+				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",  
+					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
 			}
@@ -424,36 +433,36 @@ namespace transport
 	{
 		if (peer.router) // we have RI already
 		{
-            if (!peer.numAttempts) // NTCP2
-            {
-                peer.numAttempts++;
-                if (m_NTCP2Server) // we support NTCP2
-                {
-                    // NTCP2 have priority over NTCP
-                    auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-                    if (address)
-                    {
-                        auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+			if (!peer.numAttempts) // NTCP2
+			{
+				peer.numAttempts++;
+				if (m_NTCP2Server) // we support NTCP2
+				{
+					// NTCP2 have priority over NTCP
+					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
-                        if(m_NTCP2Server->UsingProxy())
-                        {
-                            NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
-                            std::string addr = address->host.to_string();
+						if(m_NTCP2Server->UsingProxy())
+						{
+							NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
+							std::string addr = address->host.to_string();
 
-                            if(address->host.is_v6())
-                                remote = NTCP2Server::eIP6Address;
+							if(address->host.is_v6())
+								remote = NTCP2Server::eIP6Address;
 
-                            m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
-                        }
-                        else
-                            m_NTCP2Server->Connect (address->host, address->port, s);
-                        return true;
-                    }
-                }
-            }
+							m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
+						}
+						else
+							m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}
+				}
+			}
 			if (peer.numAttempts == 1) // NTCP1
 			{
-				peer.numAttempts++;     
+				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
@@ -553,13 +562,13 @@ namespace transport
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
 				if (router)
-					m_SSUServer->CreateSession (router, true, isv4);	// peer test
+					m_SSUServer->CreateSession (router, true, isv4); // peer test
 				else
 				{
 					// if not peer test capable routers found pick any
 					router = i2p::data::netdb.GetRandomRouter ();
 					if (router && router->IsSSU ())
-						m_SSUServer->CreateSession (router);		// no peer test
+						m_SSUServer->CreateSession (router); // no peer test
 				}
 			}
 			if (i2p::context.SupportsV6 ())
@@ -574,7 +583,7 @@ namespace transport
 						if (addr)
 							m_SSUServer->GetServiceV6 ().post ([this, router, addr]
 							{
-								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);				
+								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
 							});
 					}
 				}
@@ -713,7 +722,7 @@ namespace transport
 					{
 						profile->TunnelNonReplied();
 					}
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}
 				else

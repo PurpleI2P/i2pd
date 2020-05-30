@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include "Log.h"
 #include "ClientContext.h"
@@ -50,10 +58,10 @@ namespace client
 	void BOBI2PInboundTunnel::ReceiveAddress (std::shared_ptr<AddressReceiver> receiver)
 	{
 		receiver->socket->async_read_some (boost::asio::buffer(
-				receiver->buffer + receiver->bufferOffset,
-				BOB_COMMAND_BUFFER_SIZE - receiver->bufferOffset),
+			receiver->buffer + receiver->bufferOffset,
+			BOB_COMMAND_BUFFER_SIZE - receiver->bufferOffset),
 			std::bind(&BOBI2PInboundTunnel::HandleReceivedAddress, this,
-				std::placeholders::_1, std::placeholders::_2, receiver));
+			std::placeholders::_1, std::placeholders::_2, receiver));
 	}
 
 	void BOBI2PInboundTunnel::HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
@@ -255,7 +263,7 @@ namespace client
 			std::bind(&BOBCommandSession::HandleReceivedLine, shared_from_this(),
 				std::placeholders::_1, std::placeholders::_2));
 	}
-	
+
 	void BOBCommandSession::HandleReceivedLine(const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if(ecode)
@@ -267,14 +275,14 @@ namespace client
 		else
 		{
 			std::string line;
-			
+
 			std::istream is(&m_ReceiveBuffer);
 			std::getline(is, line);
-			
+
 			std::string command, operand;
 			std::istringstream iss(line);
 			iss >> command >> operand;
-			
+
 			// process command
 			auto& handlers = m_Owner.GetCommandHandlers();
 			auto it = handlers.find(command);
@@ -346,7 +354,7 @@ namespace client
 		std::ostream os(&m_SendBuffer);
 		os << data << std::endl;
 	}
-	
+
 	void BOBCommandSession::BuildStatusLine(bool currentTunnel, BOBDestination *dest, std::string &out)
 	{
 		// helper lambdas
@@ -355,7 +363,7 @@ namespace client
 		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
 		const auto destReady = [](const BOBDestination * const dest) { return dest->GetLocalDestination()->IsReady(); };
 		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
-		
+
 		// tunnel info
 		const std::string nickname = currentTunnel ? m_Nickname : dest->GetNickname();
 		const bool quiet = currentTunnel ? m_IsQuiet : dest->GetQuiet();
@@ -367,7 +375,7 @@ namespace client
 		const bool starting = destExists(dest) && !destReady(dest);
 		const bool running = destExists(dest) && destReady(dest);
 		const bool stopping = false;
-		
+
 		// build line
 		std::stringstream ss;
 		ss	<< "DATA "
@@ -433,11 +441,11 @@ namespace client
 				return;
 			}
 		}
-		
+
 		if (!m_CurrentDestination)
 		{
 			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options), // deleted in clear command
-													   m_Nickname, m_InHost, m_OutHost, m_InPort, m_OutPort, m_IsQuiet);
+				m_Nickname, m_InHost, m_OutHost, m_InPort, m_OutPort, m_IsQuiet);
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}
 		if (m_InPort)
@@ -613,25 +621,24 @@ namespace client
 		}
 		auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
 		if (addr->IsIdentHash ())
-		{	
+		{
 			// we might have leaseset already
 			auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
 			if (leaseSet)
-			{	
+			{
 				SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
 				return;
 			}
 		}
 		// trying to request
-		auto s = shared_from_this ();	
-		auto requstCallback = 
-			[s](std::shared_ptr<i2p::data::LeaseSet> ls)
-				{
-					if (ls)
-						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
-					else
-						s->SendReplyError ("LeaseSet Not found");
-				};
+		auto s = shared_from_this ();
+		auto requstCallback = [s](std::shared_ptr<i2p::data::LeaseSet> ls)
+			{
+				if (ls)
+					s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+				else
+					s->SendReplyError ("LeaseSet Not found");
+			};
 		if (addr->IsIdentHash ())
 			localDestination->RequestDestination (addr->identHash, requstCallback);
 		else
@@ -794,7 +801,7 @@ namespace client
 
 	BOBCommandChannel::~BOBCommandChannel ()
 	{
-		if (IsRunning ())	
+		if (IsRunning ())
 			Stop ();
 		for (const auto& it: m_Destinations)
 			delete it.second;
@@ -856,8 +863,7 @@ namespace client
 			session->SendVersion ();
 		}
 		else
-			LogPrint (eLogError, "BOB: accept error: ",  ecode.message ());
+			LogPrint (eLogError, "BOB: accept error: ", ecode.message ());
 	}
 }
 }
-

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef BOB_H__
 #define BOB_H__
 
@@ -39,7 +47,7 @@ namespace client
 	const char BOB_COMMAND_OPTION[] = "option";
 	const char BOB_COMMAND_STATUS[] = "status";
 	const char BOB_COMMAND_HELP[] = "help";
-	
+
 	const char BOB_HELP_ZAP[] = "zap - Shuts down BOB.";
 	const char BOB_HELP_QUIT[] = "quit - Quits this session with BOB.";
 	const char BOB_HELP_START[] = "start - Starts the current nicknamed tunnel.";
@@ -75,15 +83,15 @@ namespace client
 
 	class BOBI2PInboundTunnel: public BOBI2PTunnel
 	{
-			struct AddressReceiver
-			{
-				std::shared_ptr<boost::asio::ip::tcp::socket> socket;
-				char buffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
-				uint8_t * data; // pointer to buffer
-				size_t dataLen, bufferOffset;
+		struct AddressReceiver
+		{
+			std::shared_ptr<boost::asio::ip::tcp::socket> socket;
+			char buffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
+			uint8_t * data; // pointer to buffer
+			size_t dataLen, bufferOffset;
 
-				AddressReceiver (): data (nullptr), dataLen (0), bufferOffset (0) {};
-			};
+			AddressReceiver (): data (nullptr), dataLen (0), bufferOffset (0) {};
+		};
 
 		public:
 
@@ -115,7 +123,7 @@ namespace client
 	{
 		public:
 
-			 BOBI2POutboundTunnel (const std::string& outhost, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
+			BOBI2POutboundTunnel (const std::string& outhost, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
 
 			void Start ();
 			void Stop ();
@@ -162,7 +170,7 @@ namespace client
 			std::shared_ptr<ClientDestination> m_LocalDestination;
 			BOBI2POutboundTunnel * m_OutboundTunnel;
 			BOBI2PInboundTunnel * m_InboundTunnel;
-			
+
 			std::string m_Nickname;
 			std::string m_InHost, m_OutHost;
 			int m_InPort, m_OutPort;
@@ -215,14 +223,14 @@ namespace client
 			void SendReplyOK (const char * msg = nullptr);
 			void SendReplyError (const char * msg);
 			void SendRaw (const char * data);
-			
+
 			void BuildStatusLine(bool currentTunnel, BOBDestination *destination, std::string &out);
 
 		private:
 
 			BOBCommandChannel& m_Owner;
 			boost::asio::ip::tcp::socket m_Socket;
-            boost::asio::streambuf m_ReceiveBuffer, m_SendBuffer;
+			boost::asio::streambuf m_ReceiveBuffer, m_SendBuffer;
 			bool m_IsOpen, m_IsQuiet, m_IsActive;
 			std::string m_Nickname, m_InHost, m_OutHost;
 			int m_InPort, m_OutPort;
@@ -269,4 +277,3 @@ namespace client
 }
 
 #endif
-

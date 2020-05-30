@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string>
 #include <map>
 #include "Config.h"
@@ -31,8 +39,8 @@ namespace api
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		i2p::crypto::InitCrypto (precomputation);
 
-        int netID; i2p::config::GetOption("netid", netID);
-        i2p::context.SetNetID (netID);
+		int netID; i2p::config::GetOption("netid", netID);
+		i2p::context.SetNetID (netID);
 
 		i2p::context.Init ();
 	}
@@ -133,4 +141,3 @@ namespace api
 	}
 }
 }
-

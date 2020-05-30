@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef TRANSPORT_SESSION_H__
 #define TRANSPORT_SESSION_H__
 
@@ -68,15 +76,15 @@ namespace transport
 
 			std::string GetIdentHashBase64() const { return m_RemoteIdentity ? m_RemoteIdentity->GetIdentHash().ToBase64() : ""; }
 
-			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () 
+			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity ()
 			{
 				std::lock_guard<std::mutex> l(m_RemoteIdentityMutex);
-				return m_RemoteIdentity; 
+				return m_RemoteIdentity;
 			}
-			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident) 
+			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident)
 			{
 				std::lock_guard<std::mutex> l(m_RemoteIdentityMutex);
-				m_RemoteIdentity = ident; 
+				m_RemoteIdentity = ident;
 			}
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };

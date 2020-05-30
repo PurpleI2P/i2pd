@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <cassert>
 #include "Base.h"
 #include "Log.h"
@@ -69,15 +77,15 @@ namespace client
 		return ourIP;
 	}
 
+#ifdef __linux__
 	static void MapToLoopback(const std::shared_ptr<boost::asio::ip::tcp::socket> & sock, const i2p::data::IdentHash & addr)
 	{
-
 		// bind to 127.x.x.x address
 		// where x.x.x are first three bytes from ident
 		auto ourIP = GetLoopbackAddressFor(addr);
 		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
-
 	}
+#endif
 
 	void I2PTunnelConnection::Connect (bool isUniqueLocal)
 	{
@@ -168,7 +176,7 @@ namespace client
 			{
 				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 					std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2),
+					std::placeholders::_1, std::placeholders::_2),
 					I2P_TUNNEL_CONNECTION_MAX_IDLE);
 			}
 			else // closed by peer
@@ -257,7 +265,7 @@ namespace client
 						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
 						{
 							/* close connection, if not Connection: (U|u)pgrade (for websocket) */
-							auto x = line.find("pgrade"); 
+							auto x = line.find("pgrade");
 							if (x != std::string::npos && std::tolower(line[x - 1]) == 'u')
 								m_OutHeader << line << "\r\n";
 							else
@@ -281,7 +289,7 @@ namespace client
 			if (endOfHeader)
 			{
 				if (!m_ConnectionSent) m_OutHeader << "Connection: close\r\n";
-				 if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
+				if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
 				m_OutHeader << "\r\n"; // end of header
 				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
@@ -389,7 +397,7 @@ namespace client
 	}
 
 
-	/* This handler tries to stablish a connection with the desired server and dies if it fails to do so */
+	/* This handler tries to establish a connection with the desired server and dies if it fails to do so */
 	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
 	{
 		public:
@@ -462,7 +470,7 @@ namespace client
 	}
 
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-	std::shared_ptr<const Address> I2PClientTunnel::GetAddress () 
+	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
 		if (!m_Address)
 		{
@@ -477,7 +485,7 @@ namespace client
 	{
 		auto address = GetAddress ();
 		if (address)
-			return  std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
+			return std::make_shared<I2PClientTunnelHandler>(this, address, m_DestinationPort, socket);
 		else
 			return nullptr;
 	}
@@ -696,7 +704,7 @@ namespace client
 	}
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port) :
+		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip) :
 		m_IsUniqueLocal(true),
 		m_Name(name),
 		m_LocalAddress(localAddress),
@@ -704,7 +712,7 @@ namespace client
 	{
 		m_LocalDest = localDestination;
 		m_LocalDest->Start();
-		auto dgram = m_LocalDest->CreateDatagramDestination();
+		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 	}
 
@@ -745,7 +753,7 @@ namespace client
 	I2PUDPClientTunnel::I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest,
 		boost::asio::ip::udp::endpoint localEndpoint,
 		std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		uint16_t remotePort) :
+		uint16_t remotePort, bool gzip) :
 		m_Name(name),
 		m_RemoteDest(remoteDest),
 		m_LocalDest(localDestination),
@@ -756,7 +764,7 @@ namespace client
 		RemotePort(remotePort),
 		m_cancel_resolve(false)
 	{
-		auto dgram = m_LocalDest->CreateDatagramDestination();
+		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,
@@ -826,7 +834,7 @@ namespace client
 		{
 			LogPrint(eLogError, "UDP Tunnel: ", m_RemoteDest, " not found");
 			return;
-		}			
+		}
 		m_RemoteIdent = new i2p::data::IdentHash;
 		*m_RemoteIdent = addr->identHash;
 		LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());

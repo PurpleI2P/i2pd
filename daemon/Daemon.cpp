@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <thread>
 #include <memory>
 
@@ -71,18 +79,13 @@ namespace i2p
 			i2p::fs::Init();
 
 			datadir = i2p::fs::GetDataDir();
-			// TODO: drop old name detection in v2.8.0
+
 			if (config == "")
 			{
-				config = i2p::fs::DataDirPath("i2p.conf");
-				if (i2p::fs::Exists (config)) {
-					LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
-				} else {
-					config = i2p::fs::DataDirPath("i2pd.conf");
-					if (!i2p::fs::Exists (config)) {
-						// use i2pd.conf only if exists
-						config = ""; /* reset */
-					}
+				config = i2p::fs::DataDirPath("i2pd.conf");
+				if (!i2p::fs::Exists (config)) {
+					// use i2pd.conf only if exists
+					config = ""; /* reset */
 				}
 			}
 
@@ -132,8 +135,8 @@ namespace i2p
 			i2p::context.SetNetID (netID);
 			i2p::context.Init ();
 
-			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
-			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
+			bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+			bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 #ifdef MESHNET
 			// manual override for meshnet
 			ipv4 = false;
@@ -148,8 +151,8 @@ namespace i2p
 			i2p::context.SetSupportsV6 (ipv6);
 			i2p::context.SetSupportsV4 (ipv4);
 
-			bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-			i2p::context.PublishNTCPAddress (ntcp, !ipv6);  
+			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+			i2p::context.PublishNTCPAddress (ntcp, !ipv6);
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
 			{
@@ -177,10 +180,13 @@ namespace i2p
 			SetMaxNumTransitTunnels (transitTunnels);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-			if (isFloodfill) {
+			if (isFloodfill)
+			{
 				LogPrint(eLogInfo, "Daemon: router will be floodfill");
 				i2p::context.SetFloodfill (true);
-			}	else {
+			}
+			else
+			{
 				i2p::context.SetFloodfill (false);
 			}
 
@@ -248,7 +254,8 @@ namespace i2p
 					i2p::transport::transports.RestrictRoutesToFamilies(fams);
 					restricted  = fams.size() > 0;
 				}
-				if (routers.length() > 0) {
+				if (routers.length() > 0)
+				{
 					std::set<i2p::data::IdentHash> idents;
 					size_t pos = 0, comma;
 					do
@@ -265,7 +272,7 @@ namespace i2p
 					restricted = idents.size() > 0;
 				}
 				if(!restricted)
-					LogPrint(eLogError, "Daemon: no trusted routers of families specififed");
+					LogPrint(eLogError, "Daemon: no trusted routers of families specified");
 			}
 
 			bool hidden; i2p::config::GetOption("trust.hidden", hidden);
@@ -284,7 +291,8 @@ namespace i2p
 			i2p::data::netdb.Start();
 
 			bool upnp; i2p::config::GetOption("upnp.enabled", upnp);
-			if (upnp) {
+			if (upnp)
+			{
 				d.UPnP = std::unique_ptr<i2p::transport::UPnP>(new i2p::transport::UPnP);
 				d.UPnP->Start ();
 			}
@@ -297,15 +305,15 @@ namespace i2p
 			}
 
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
-			bool ssu; i2p::config::GetOption("ssu", ssu);
+			bool ssu;  i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
 			if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
 			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 
 			i2p::transport::transports.Start(ntcp, ssu);
-			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2()) 
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
 				LogPrint(eLogInfo, "Daemon: Transports started");
-			else 
+			else
 			{
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
@@ -315,14 +323,22 @@ namespace i2p
 			}
 
 			bool http; i2p::config::GetOption("http.enabled", http);
-			if (http) {
+			if (http)
+			{
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-				uint16_t    httpPort; i2p::config::GetOption("http.port",		 httpPort);
-				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
-				d.httpServer->Start();
+				uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
+				LogPrint(eLogInfo, "Daemon: starting webconsole at ", httpAddr, ":", httpPort);
+				try
+				{
+					d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
+					d.httpServer->Start();
+				}
+				catch (std::exception& ex)
+				{
+					LogPrint (eLogError, "Daemon: failed to start webconsole: ", ex.what ());
+					ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
+				}
 			}
-
 
 			LogPrint(eLogInfo, "Daemon: starting Tunnels");
 			i2p::tunnel::tunnels.Start();
@@ -336,8 +352,16 @@ namespace i2p
 				std::string i2pcpAddr; i2p::config::GetOption("i2pcontrol.address", i2pcpAddr);
 				uint16_t    i2pcpPort; i2p::config::GetOption("i2pcontrol.port",    i2pcpPort);
 				LogPrint(eLogInfo, "Daemon: starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
-				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
-				d.m_I2PControlService->Start ();
+				try
+				{
+					d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
+					d.m_I2PControlService->Start ();
+				}
+				catch (std::exception& ex)
+				{
+					LogPrint (eLogError, "Daemon: failed to start I2PControl: ", ex.what ());
+					ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
+				}
 			}
 			return true;
 		}
@@ -350,7 +374,7 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: stopping Tunnels");
 			i2p::tunnel::tunnels.Stop();
 
-			if (d.UPnP) 
+			if (d.UPnP)
 			{
 				d.UPnP->Stop ();
 				d.UPnP = nullptr;

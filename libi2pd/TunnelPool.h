@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef TUNNEL_POOL__
 #define TUNNEL_POOL__
 
@@ -75,23 +83,23 @@ namespace tunnel
 
 			/** i2cp reconfigure */
 			bool Reconfigure(int inboundHops, int outboundHops, int inboundQuant, int outboundQuant);
-    
+
 			void SetCustomPeerSelector(ITunnelPeerSelector * selector);
 			void UnsetCustomPeerSelector();
 			bool HasCustomPeerSelector();
 
-		/** @brief make this tunnel pool yield tunnels that fit latency range [min, max] */
-		void RequireLatency(uint64_t min, uint64_t max) { m_MinLatency = min; m_MaxLatency = max; }
+			/** @brief make this tunnel pool yield tunnels that fit latency range [min, max] */
+			void RequireLatency(uint64_t min, uint64_t max) { m_MinLatency = min; m_MaxLatency = max; }
 
-		/** @brief return true if this tunnel pool has a latency requirement */
-		bool HasLatencyRequirement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
+			/** @brief return true if this tunnel pool has a latency requirement */
+			bool HasLatencyRequirement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
 
-		/** @brief get the lowest latency tunnel in this tunnel pool regardless of latency requirements */
-		std::shared_ptr<InboundTunnel> GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude=nullptr) const;
-		std::shared_ptr<OutboundTunnel> GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude=nullptr) const;
+			/** @brief get the lowest latency tunnel in this tunnel pool regardless of latency requirements */
+			std::shared_ptr<InboundTunnel> GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude = nullptr) const;
+			std::shared_ptr<OutboundTunnel> GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude = nullptr) const;
 
-		// for overriding tunnel peer selection
-		std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
+			// for overriding tunnel peer selection
+			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
 
 		private:
 
@@ -118,8 +126,8 @@ namespace tunnel
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;
 
-		uint64_t m_MinLatency=0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
-		uint64_t m_MaxLatency=0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
+			uint64_t m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
+			uint64_t m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
 
 		public:
 

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef CLIENT_CONTEXT_H__
 #define CLIENT_CONTEXT_H__
 
@@ -33,6 +41,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+	const char I2P_CLIENT_TUNNEL_GZIP[] = "gzip";
 	const char I2P_CLIENT_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_CLIENT_TUNNEL_CRYPTO_TYPE[] = "cryptotype";
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
@@ -74,10 +83,11 @@ namespace client
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr);
-			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service, 
-				const i2p::data::PrivateKeys& keys, bool isPublic = true, 
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (boost::asio::io_service& service,
+				const i2p::data::PrivateKeys& keys, bool isPublic = true,
 				const std::map<std::string, std::string> * params = nullptr); // same as previous but on external io_service
-			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);
+			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys,
+				const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
 			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
@@ -113,7 +123,7 @@ namespace client
 			template<typename Visitor>
 			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
 
-			void CreateNewSharedLocalDestination (); 
+			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
 
 		private:
@@ -140,6 +150,7 @@ namespace client
 			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
 
 		public:
+
 			// for HTTP
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };

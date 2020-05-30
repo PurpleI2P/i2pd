@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Log.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
@@ -14,8 +22,8 @@ namespace data
 		std::shared_ptr<I2NPMessage> msg;
 		if(replyTunnel)
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
-			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory,
-		    &m_ExcludedPeers);
+				replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory,
+				&m_ExcludedPeers);
 		else
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg(m_Destination, i2p::context.GetIdentHash(), 0, m_IsExploratory, &m_ExcludedPeers);
 		if(router)
@@ -158,4 +166,3 @@ namespace data
 	}
 }
 }
-

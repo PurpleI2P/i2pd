@@ -1,17 +1,15 @@
-diff --git a/Makefile b/Makefile
-index bdadfe0..2f71eec 100644
---- a/Makefile
-+++ b/Makefile
-@@ -9,10 +9,10 @@ DEPS := obj/make.dep
-
+Index: i2pd/Makefile
+===================================================================
+--- i2pd.orig/Makefile
++++ i2pd/Makefile
+@@ -13,8 +13,8 @@ DAEMON_SRC_DIR := daemon
+ 
  include filelist.mk
-
+ 
 -USE_AESNI	:= yes
-+USE_AESNI	:= no
 -USE_AVX		:= yes
++USE_AESNI	:= no
 +USE_AVX		:= no
  USE_STATIC	:= no
  USE_MESHNET	:= no
  USE_UPNP	:= no
- DEBUG		:= yes
- 

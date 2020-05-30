@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Crypto.h"
 #include "Log.h"
 #include "RouterInfo.h"
@@ -34,7 +42,7 @@ namespace stream
 			else
 			{
 				// partially
-				rem =  len - offset;
+				rem = len - offset;
 				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), len - offset);
 				nextBuffer->offset += (len - offset);
 				offset = len; // break
@@ -60,10 +68,10 @@ namespace stream
 		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1),
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service),
-		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
+		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -73,9 +81,9 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1),
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE),
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_WindowSize (MIN_WINDOW_SIZE),
 		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -228,7 +236,7 @@ namespace stream
 			Terminate ();
 			return;
 		}
-		
+
 		packet->offset = packet->GetPayload () - packet->buf;
 		if (packet->GetLength () > 0)
 		{
@@ -258,7 +266,7 @@ namespace stream
 	bool Stream::ProcessOptions (uint16_t flags, Packet * packet)
 	{
 		const uint8_t * optionData = packet->GetOptionData ();
-		size_t optionSize = packet->GetOptionSize ();	
+		size_t optionSize = packet->GetOptionSize ();
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 			optionData += 2;
 
@@ -269,7 +277,7 @@ namespace stream
 				m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, optionSize);
 			if (m_RemoteIdentity->IsRSA ())
 			{
-				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), "  Discarded");
+				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " Discarded");
 				return false;
 			}
 			optionData += m_RemoteIdentity->GetFullLen ();
@@ -306,11 +314,11 @@ namespace stream
 				size_t offset = 0;
 				m_TransientVerifier = i2p::data::ProcessOfflineSignature (m_RemoteIdentity, optionData, optionSize - (optionData - packet->GetOptionData ()), offset);
 				optionData += offset;
-				if (!m_TransientVerifier) 
+				if (!m_TransientVerifier)
 				{
 					LogPrint (eLogError, "Streaming: offline signature failed");
 					return false;
-				}				
+				}
 			}
 		}
 
@@ -322,7 +330,7 @@ namespace stream
 			{
 				memcpy (signature, optionData, signatureLen);
 				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-				bool verified = m_TransientVerifier ? 
+				bool verified = m_TransientVerifier ?
 					m_TransientVerifier->Verify (packet->GetBuffer (), packet->GetLength (), signature) :
 					m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature);
 				if (!verified)
@@ -340,7 +348,7 @@ namespace stream
 				return false;
 			}
 		}
-		return true;	
+		return true;
 	}
 
 	void Stream::ProcessAck (Packet * packet)
@@ -423,15 +431,8 @@ namespace stream
 
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
-		size_t sent = len;
-		while(len > MAX_PACKET_SIZE)
-		{
-			AsyncSend (buf, MAX_PACKET_SIZE, nullptr);
-			buf += MAX_PACKET_SIZE;
-			len -= MAX_PACKET_SIZE;
-		}
 		AsyncSend (buf, len, nullptr);
-		return sent;
+		return len;
 	}
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
@@ -442,7 +443,7 @@ namespace stream
 			m_SendBuffer.Add (buf, len, handler);
 		}
 		else if (handler)
-			 handler(boost::system::error_code ());
+			handler(boost::system::error_code ());
 		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
 	}
 
@@ -478,8 +479,14 @@ namespace stream
 				size++; // resend delay
 				if (m_Status == eStreamStatusNew)
 				{
-					//  initial packet
+					// initial packet
 					m_Status = eStreamStatusOpen;
+					if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
+					if (m_RemoteLeaseSet)
+					{
+						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+						m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+					}
 					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
 						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
 					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
@@ -489,11 +496,11 @@ namespace stream
 					size += 2; // flags
 					size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
 					size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
-					uint8_t * optionsSize = packet + size; // set options size later	
+					uint8_t * optionsSize = packet + size; // set options size later
 					size += 2; // options size
 					m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
 					size += identityLen; // from
-					htobe16buf (packet + size, STREAMING_MTU);
+					htobe16buf (packet + size, m_MTU);
 					size += 2; // max packet size
 					if (isOfflineSignature)
 					{
@@ -505,7 +512,7 @@ namespace stream
 					memset (signature, 0, signatureLen); // zeroes for now
 					size += signatureLen; // signature
 					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-					size += m_SendBuffer.Get (packet + size, STREAMING_MTU - size); // payload
+					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
 					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 				}
 				else
@@ -515,7 +522,7 @@ namespace stream
 					size += 2; // flags
 					htobuf16 (packet + size, 0); // no options
 					size += 2; // options size
-					size += m_SendBuffer.Get(packet + size, STREAMING_MTU - size); // payload
+					size += m_SendBuffer.Get(packet + size, m_MTU); // payload
 				}
 				p->len = size;
 				packets.push_back (p);
@@ -655,7 +662,7 @@ namespace stream
 		size += 4; // receiveStreamID
 		htobe32buf (packet + size, m_SequenceNumber++);
 		size += 4; // sequenceNum
-		htobe32buf (packet + size, m_LastReceivedSequenceNumber >= 0 ?  m_LastReceivedSequenceNumber : 0);
+		htobe32buf (packet + size, m_LastReceivedSequenceNumber >= 0 ? m_LastReceivedSequenceNumber : 0);
 		size += 4; // ack Through
 		packet[size] = 0;
 		size++; // NACK count
@@ -749,14 +756,15 @@ namespace stream
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate || // excluded from LeaseSet
-		    ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+			ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
 			UpdateCurrentRemoteLease (true);
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
 			{
-				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength (), m_Port));
+				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
+					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeTunnel,
@@ -785,7 +793,7 @@ namespace stream
 				if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASET_CONFIRMATION_TIMEOUT)
 				{
 					// LeaseSet was not confirmed, should try other tunnels
-					LogPrint (eLogWarning, "Streaming: LeaseSet was not confirmed in ", i2p::garlic::LEASET_CONFIRMATION_TIMEOUT,  " milliseconds. Trying to resubmit");
+					LogPrint (eLogWarning, "Streaming: LeaseSet was not confirmed in ", i2p::garlic::LEASET_CONFIRMATION_TIMEOUT, " milliseconds. Trying to resubmit");
 					m_RoutingSession->SetSharedRoutingPath (nullptr);
 					m_CurrentOutboundTunnel = nullptr;
 					m_CurrentRemoteLease = nullptr;
@@ -843,14 +851,14 @@ namespace stream
 				switch (m_NumResendAttempts)
 				{
 					case 1: // congesion avoidance
-						m_WindowSize /= 2;
+						m_WindowSize >>= 1; // /2
 						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 					break;
 					case 2:
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
-#if (__cplusplus >= 201703L) // C++ 17 or higher						
-						[[fallthrough]]; 
-#endif						
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+						[[fallthrough]];
+#endif
 						// no break here
 					case 4:
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
@@ -911,7 +919,7 @@ namespace stream
 				// LeaseSet updated
 				m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
 				m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
-			}	
+			}
 		}
 		if (m_RemoteLeaseSet)
 		{
@@ -926,7 +934,7 @@ namespace stream
 					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
 						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
 				else
-					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); 
+					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ());
 				leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // then with threshold
 			}
 			if (!leases.empty ())
@@ -994,7 +1002,7 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			for (auto it: m_Streams)
-				it.second->Terminate (false); // we delete here		
+				it.second->Terminate (false); // we delete here
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
 		}
@@ -1136,8 +1144,8 @@ namespace stream
 			return false;
 		DeleteStream (it->second);
 		return true;
-	}	
-		
+	}
+
 	void StreamingDestination::SetAcceptor (const Acceptor& acceptor)
 	{
 		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet
@@ -1164,7 +1172,7 @@ namespace stream
 		m_Owner->GetService ().post([acceptor, this](void)
 			{
 				if (!m_PendingIncomingStreams.empty ())
-                {
+				{
 					acceptor (m_PendingIncomingStreams.front ());
 					m_PendingIncomingStreams.pop_front ();
 					if (m_PendingIncomingStreams.empty ())
@@ -1207,17 +1215,16 @@ namespace stream
 			DeletePacket (uncompressed);
 	}
 
-	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort)
+	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
+		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
 	{
-		auto msg = NewI2NPShortMessage ();
-		if (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
-		else
-			m_Deflator.SetCompressionLevel (Z_DEFAULT_COMPRESSION);
+		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
-		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+		size_t size = (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)?
+			i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len):
+			m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
@@ -1225,7 +1232,7 @@ namespace stream
 			htobe16buf (buf + 6, toPort); // destination port
 			buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 			msg->len += size;
-			msg->FillI2NPMessageHeader (eI2NPData);
+			msg->FillI2NPMessageHeader (eI2NPData, 0, checksum);
 		}
 		else
 			msg = nullptr;

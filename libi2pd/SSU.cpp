@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <boost/bind.hpp>
 #include "Log.h"
@@ -45,19 +53,37 @@ namespace transport
 
 	void SSUServer::OpenSocket ()
 	{
-		m_Socket.open (boost::asio::ip::udp::v4());
-		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
-		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
-		m_Socket.bind (m_Endpoint);
+		try
+		{
+			m_Socket.open (boost::asio::ip::udp::v4());
+			m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
+			m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
+			m_Socket.bind (m_Endpoint);
+			LogPrint (eLogInfo, "SSU: Start listening v4 port ", m_Endpoint.port());
+		}
+		catch ( std::exception & ex )
+		{
+			LogPrint (eLogError, "SSU: failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
+			ThrowFatal ("Unable to start IPv4 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
+		}
 	}
 
 	void SSUServer::OpenSocketV6 ()
 	{
-		m_SocketV6.open (boost::asio::ip::udp::v6());
-		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
-		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
-		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
-		m_SocketV6.bind (m_EndpointV6);
+		try
+		{
+			m_SocketV6.open (boost::asio::ip::udp::v6());
+			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
+			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
+			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
+			m_SocketV6.bind (m_EndpointV6);
+			LogPrint (eLogInfo, "SSU: Start listening v6 port ", m_EndpointV6.port());
+		}
+		catch ( std::exception & ex )
+		{
+			LogPrint (eLogError, "SSU: failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
+			ThrowFatal ("Unable to start IPv6 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
+		}
 	}
 
 	void SSUServer::Start ()
@@ -166,7 +192,7 @@ namespace transport
 					m_Socket.close ();
 					OpenSocket ();
 					Receive ();
-				}	
+				}
 			}
 		}
 	}
@@ -187,7 +213,7 @@ namespace transport
 					m_SocketV6.close ();
 					OpenSocketV6 ();
 					ReceiveV6 ();
-				}	
+				}
 			}
 		}
 	}
@@ -341,10 +367,10 @@ namespace transport
 			{
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
-					if (session) 
-					{ 
-						session->FlushData (); 
-						session = nullptr; 
+					if (session)
+					{
+						session->FlushData ();
+						session = nullptr;
 					}
 					auto it = sessions->find (packet->from);
 					if (it != sessions->end ())
@@ -570,7 +596,7 @@ namespace transport
 			{
 				return session->GetState () == eSessionStateEstablished && session != excluded;
 			}
-								);
+		);
 	}
 
 	template<typename Filter>
@@ -594,7 +620,7 @@ namespace transport
 			{
 				return session->GetState () == eSessionStateEstablished && session != excluded;
 			}
-								);
+		);
 	}
 
 	std::set<SSUSession *> SSUServer::FindIntroducers (int maxNumIntroducers)
@@ -610,7 +636,7 @@ namespace transport
 						session->GetState () == eSessionStateEstablished &&
 						ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
 				}
-											);
+			);
 			if (session)
 			{
 				ret.insert (session.get ());
@@ -808,4 +834,3 @@ namespace transport
 	}
 }
 }
-

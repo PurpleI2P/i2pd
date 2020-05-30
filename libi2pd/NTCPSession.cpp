@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <stdlib.h>
 #include <future>
@@ -26,7 +34,7 @@ namespace transport
 	{
 		std::shared_ptr<NTCPSession> session;
 	};
-	
+
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
 		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
@@ -468,7 +476,7 @@ namespace transport
 			LogPrint (eLogError, "NTCP: Phase 4 read error: ", ecode.message (), ". Check your clock");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				 // this router doesn't like us
+				// this router doesn't like us
 				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);
 				Terminate ();
 			}
@@ -736,12 +744,10 @@ namespace transport
 		}
 	}
 
-
 	void NTCPSession::SendTimeSyncMessage ()
 	{
 		Send (nullptr);
 	}
-
 
 	void NTCPSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
@@ -820,9 +826,13 @@ namespace transport
 							try
 							{
 								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
-							} catch ( std::exception & ex ) {
+								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
+							}
+							catch ( std::exception & ex )
+							{
 								/** fail to bind ip4 */
-								LogPrint(eLogError, "NTCP: Failed to bind to ip4 port ",address->port, ex.what());
+								LogPrint(eLogError, "NTCP: Failed to bind to v4 port ", address->port, ": ", ex.what());
+								ThrowFatal ("Unable to start IPv4 NTCP transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 
@@ -841,11 +851,14 @@ namespace transport
 								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 								m_NTCPV6Acceptor->listen ();
 
-								LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
+								LogPrint (eLogInfo, "NTCP: Start listening v6 TCP port ", address->port);
 								auto conn = std::make_shared<NTCPSession> (*this);
 								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
-							} catch ( std::exception & ex ) {
-								LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+							}
+							catch ( std::exception & ex )
+							{
+								LogPrint(eLogError, "NTCP: failed to bind to v6 port ", address->port, ": ", ex.what());
+								ThrowFatal (eLogError, "Unable to start IPv6 NTCP transport at port ", address->port, ": ", ex.what ());
 								continue;
 							}
 						}
@@ -896,7 +909,6 @@ namespace transport
 			}
 		}
 	}
-
 
 	void NTCPServer::Run ()
 	{
@@ -1193,7 +1205,6 @@ namespace transport
 
 	void NTCPServer::AfterSocksHandshake(std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
 	{
-
 		// build request
 		size_t sz = 0;
 		uint8_t buff[256];

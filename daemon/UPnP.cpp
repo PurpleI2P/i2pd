@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
@@ -80,10 +88,10 @@ namespace transport
 	void UPnP::Discover ()
 	{
 		bool isError;
-        int err;
+		int err;
 
 #if ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
-        err = UPNPDISCOVER_SUCCESS;
+		err = UPNPDISCOVER_SUCCESS;
 
 #if (MINIUPNPC_API_VERSION >= 14)
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0, 0, 2, &err);
@@ -92,9 +100,9 @@ namespace transport
 #endif
 
 		isError = err != UPNPDISCOVER_SUCCESS;
-#else  // MINIUPNPC_API_VERSION >= 8
-        err = 0;
-        m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
+#else // MINIUPNPC_API_VERSION >= 8
+		err = 0;
+		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
 		isError = m_Devlist == NULL;
 #endif // MINIUPNPC_API_VERSION >= 8
 		{
@@ -105,15 +113,15 @@ namespace transport
 
 		if (isError)
 		{
-            LogPrint (eLogError, "UPnP: unable to discover Internet Gateway Devices: error ", err);
+			LogPrint (eLogError, "UPnP: unable to discover Internet Gateway Devices: error ", err);
 			return;
 		}
 
 		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
-        m_upnpUrlsInitialized=err!=0;
+		m_upnpUrlsInitialized = err != 0;
 		if (err == UPNP_IGD_VALID_CONNECTED)
 		{
-            err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
+			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
 			if(err != UPNPCOMMAND_SUCCESS)
 			{
 				LogPrint (eLogError, "UPnP: unable to get external address: error ", err);
@@ -124,14 +132,14 @@ namespace transport
 				LogPrint (eLogError, "UPnP: found Internet Gateway Device ", m_upnpUrls.controlURL);
 				if (!m_externalIPAddress[0])
 				{
-                    LogPrint (eLogError, "UPnP: found Internet Gateway Device doesn't know our external address");
+					LogPrint (eLogError, "UPnP: found Internet Gateway Device doesn't know our external address");
 					return;
 				}
 			}
 		}
 		else
 		{
-            LogPrint (eLogError, "UPnP: unable to find valid Internet Gateway Device: error ", err);
+			LogPrint (eLogError, "UPnP: unable to find valid Internet Gateway Device: error ", err);
 			return;
 		}
 
@@ -182,7 +190,7 @@ namespace transport
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
 		if (err != UPNPCOMMAND_SUCCESS) // if mapping not found
 		{
-            LogPrint (eLogDebug, "UPnP: possibly port ", strPort, " is not forwarded: return code ", err);
+			LogPrint (eLogDebug, "UPnP: possibly port ", strPort, " is not forwarded: return code ", err);
 
 #if ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
 			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL, NULL);
@@ -202,7 +210,7 @@ namespace transport
 		}
 		else
 		{
-            LogPrint (eLogDebug, "UPnP: external forward from ", m_NetworkAddr, ":", strPort, " exists on current Internet Gateway Device");
+			LogPrint (eLogDebug, "UPnP: external forward from ", m_NetworkAddr, ":", strPort, " exists on current Internet Gateway Device");
 			return;
 		}
 	}
@@ -219,14 +227,14 @@ namespace transport
 
 	void UPnP::CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address)
 	{
-        if(!m_upnpUrlsInitialized) {
-            return;
-        }
+		if(!m_upnpUrlsInitialized) {
+			return;
+		}
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int err = UPNPCOMMAND_SUCCESS;
-		
+
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
-        if (err == UPNPCOMMAND_SUCCESS)
+		if (err == UPNPCOMMAND_SUCCESS)
 		{
 			err = UPNP_DeletePortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), NULL);
 			LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", err);
@@ -237,11 +245,11 @@ namespace transport
 	{
 		freeUPNPDevlist (m_Devlist);
 		m_Devlist = 0;
-        if(m_upnpUrlsInitialized){
-            FreeUPNPUrls (&m_upnpUrls);
-            m_upnpUrlsInitialized=false;
-        }
-    }
+		if(m_upnpUrlsInitialized){
+			FreeUPNPUrls (&m_upnpUrls);
+			m_upnpUrlsInitialized=false;
+		}
+	}
 
 	std::string UPnP::GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address)
 	{

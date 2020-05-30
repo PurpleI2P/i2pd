@@ -2,6 +2,7 @@
 [![Snapcraft release](https://snapcraft.io/i2pd/badge.svg)](https://snapcraft.io/i2pd)
 [![License](https://img.shields.io/github/license/PurpleI2P/i2pd.svg)](https://github.com/PurpleI2P/i2pd/blob/openssl/LICENSE)
 [![Packaging status](https://repology.org/badge/tiny-repos/i2pd.svg)](https://repology.org/project/i2pd/versions)
+[![Docker Pulls](https://img.shields.io/docker/pulls/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd)
 
 i2pd
 ====
@@ -68,7 +69,7 @@ Build instructions:
   * Alpine, ArchLinux, openSUSE, Gentoo, Debian, Ubuntu, etc.
 * Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
 * Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* Docker image - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=i2pd)](https://hub.docker.com/r/meeh/i2pd/builds/)
+* Docker image - [![Build Status](https://img.shields.io/docker/cloud/build/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd/builds/)
 * Snap - [![Snap Status](https://build.snapcraft.io/badge/PurpleI2P/i2pd-snap.svg)](https://build.snapcraft.io/user/PurpleI2P/i2pd-snap)
 * FreeBSD
 * Android

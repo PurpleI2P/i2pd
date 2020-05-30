@@ -1,31 +1,32 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
-Name:           i2pd-git
-Version:        2.30.0
-Release:        git%{git_hash}%{?dist}
-Summary:        I2P router written in C++
-Conflicts:      i2pd
+Name:          i2pd-git
+Version:       2.32.0
+Release:       git%{git_hash}%{?dist}
+Summary:       I2P router written in C++
+Conflicts:     i2pd
 
-License:        BSD
-URL:            https://github.com/PurpleI2P/i2pd
-Source0:        https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
+License:       BSD
+URL:           https://github.com/PurpleI2P/i2pd
+Source0:       https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
-%if 0%{?rhel}  == 7
-BuildRequires:  cmake3
+%if 0%{?rhel} == 7
+BuildRequires: cmake3
 %else
-BuildRequires:  cmake
+BuildRequires: cmake
 %endif
 
-BuildRequires:  chrpath
-BuildRequires:  gcc-c++
-BuildRequires:  zlib-devel
-BuildRequires:  boost-devel
-BuildRequires:  openssl-devel
-BuildRequires:  miniupnpc-devel
-BuildRequires:  systemd-units
+BuildRequires: chrpath
+BuildRequires: gcc-c++
+BuildRequires: zlib-devel
+BuildRequires: boost-devel
+BuildRequires: openssl-devel
+BuildRequires: miniupnpc-devel
+BuildRequires: systemd-units
 
-Requires:	systemd
-Requires(pre):  %{_sbindir}/useradd %{_sbindir}/groupadd
+Requires:      logrotate
+Requires:      systemd
+Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
 
 %description
 C++ implementation of I2P.
@@ -73,16 +74,17 @@ pushd build
 
 chrpath -d i2pd
 %{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
-%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
-%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
-%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
-%{__install} -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.d/README %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d/README
-%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
-%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
+%{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
-%{__install} -d -m 755 %{buildroot}%{_datadir}/%{name}
-%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/%{name}/certificates
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/contrib/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+%{__install} -D -m 644 %{_builddir}/%{name}-%{version}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/tunnels.d/ %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
@@ -108,16 +110,30 @@ getent passwd i2pd >/dev/null || \
 %files
 %doc LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf contrib/tunnels.d
 %{_sbindir}/i2pd
-%config(noreplace) %{_sysconfdir}/i2pd/*
+%config(noreplace) %{_sysconfdir}/i2pd/*.conf
+%config(noreplace) %{_sysconfdir}/i2pd/tunnels.conf.d/*.conf
+%config %{_sysconfdir}/i2pd/subscriptions.txt
+%doc %{_sysconfdir}/i2pd/tunnels.conf.d/README
+%{_sysconfdir}/logrotate.d/i2pd
 %{_unitdir}/i2pd.service
 %{_mandir}/man1/i2pd.1*
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
 %dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
-%{_datadir}/%{name}/certificates
+%{_datadir}/i2pd/certificates
 %{_sharedstatedir}/i2pd/certificates
 
 
 %changelog
+* Mon May 25 2020 r4sas <r4sas@i2pmail.org> - 2.32.0
+- update to 2.32.0
+- updated systemd service file (#1394)
+
+* Thu May 7 2020 Anatolii Vorona <vorona.tolik@gmail.com> - 2.31.0-3
+- added RPM logrotate config
+
+* Fri Apr 10 2020 orignal <i2porignal@yandex.ru> - 2.31.0
+- update to 2.31.0
+
 * Tue Feb 25 2020 orignal <i2porignal@yandex.ru> - 2.30.0
 - update to 2.30.0
 

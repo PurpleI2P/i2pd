@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef TRANSPORTS_H__
 #define TRANSPORTS_H__
 
@@ -103,7 +111,7 @@ namespace transport
 			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };
 			uint64_t GetTotalTransitTransmittedBytes () const { return m_TotalTransitTransmittedBytes; }
 			void UpdateTotalTransitTransmittedBytes (uint32_t add) { m_TotalTransitTransmittedBytes += add; };
-			uint32_t GetInBandwidth  () const { return m_InBandwidth; };
+			uint32_t GetInBandwidth () const { return m_InBandwidth; };
 			uint32_t GetOutBandwidth () const { return m_OutBandwidth; };
 			uint32_t GetTransitBandwidth () const { return m_TransitBandwidth; };
 			bool IsBandwidthExceeded () const;
@@ -111,16 +119,16 @@ namespace transport
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
 
-    /** get a trusted first hop for restricted routes */
-    std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
-    /** do we want to use restricted routes? */
-    bool RoutesRestricted() const;
-    /** restrict routes to use only these router families for first hops */
-    void RestrictRoutesToFamilies(std::set<std::string> families);
-    /** restrict routes to use only these routers for first hops */
-    void RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers);
+			/** get a trusted first hop for restricted routes */
+			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
+			/** do we want to use restricted routes? */
+			bool RoutesRestricted() const;
+			/** restrict routes to use only these router families for first hops */
+			void RestrictRoutesToFamilies(std::set<std::string> families);
+			/** restrict routes to use only these routers for first hops */
+			void RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers);
 
-    bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
+			bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
 
 			void PeerTest ();
 

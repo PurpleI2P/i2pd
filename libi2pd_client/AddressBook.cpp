@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <inttypes.h>
 #include <string>
@@ -31,7 +39,7 @@ namespace client
 			std::string etagsPath, indexPath, localPath;
 
 		public:
-			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") 
+			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32")
 			{
 				i2p::config::GetOption("persist.addressbook", m_IsPersist);
 			}
@@ -77,10 +85,10 @@ namespace client
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
-		if (!m_IsPersist) 
+		if (!m_IsPersist)
 		{
 			LogPrint(eLogDebug, "Addressbook: Persistence is disabled");
-			return nullptr;	
+			return nullptr;
 		}
 		std::string filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
@@ -121,7 +129,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
-		if (!m_IsPersist) return;	
+		if (!m_IsPersist) return;
 		storage.Remove( ident.ToBase32() );
 	}
 
@@ -189,7 +197,7 @@ namespace client
 		}
 
 		for (const auto& it: addresses)
-		{	
+		{
 			f << it.first << ",";
 			if (it.second->IsIdentHash ())
 				f << it.second->identHash.ToBase32 ();
@@ -251,12 +259,12 @@ namespace client
 			if (blindedPublicKey->IsValid ())
 				addressType = eAddressBlindedPublicKey;
 		}
-	}	
+	}
 
 	Address::Address (const i2p::data::IdentHash& hash)
 	{
 		addressType = eAddressIndentHash;
-		identHash = hash;	
+		identHash = hash;
 	}
 
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
@@ -322,7 +330,7 @@ namespace client
 	{
 		auto pos = address.find(".b32.i2p");
 		if (pos != std::string::npos)
-		{			
+		{
 			auto addr = std::make_shared<const Address>(address.substr (0, pos));
 			return addr->IsValid () ? addr : nullptr;
 		}
@@ -333,10 +341,10 @@ namespace client
 			{
 				auto addr = FindAddress (address);
 				if (!addr)
-					 LookupAddress (address); // TODO:	
+					 LookupAddress (address); // TODO:
 				return addr;
-			}	
-		}	
+			}
+		}
 		// if not .b32 we assume full base64 address
 		i2p::data::IdentityEx dest;
 		if (!dest.FromBase64 (address))
@@ -359,10 +367,10 @@ namespace client
 		{
 			m_Addresses[address] = std::make_shared<Address>(jump.substr (0, pos));
 			LogPrint (eLogInfo, "Addressbook: added ", address," -> ", jump);
-		}	
+		}
 		else
-		{	
-			// assume base64	
+		{
+			// assume base64
 			auto ident = std::make_shared<i2p::data::IdentityEx>();
 			if (ident->FromBase64 (jump))
 			{
@@ -487,18 +495,18 @@ namespace client
 				LogPrint (eLogWarning, "Addressbook: subscriptions.txt usage is deprecated, use config file instead");
 			}
 			else if (!i2p::config::IsDefault("addressbook.subscriptions"))
-                        {
-                            // using config file items
-                            std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
-                            std::vector<std::string> subsList;
-                            boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
+			{
+				// using config file items
+				std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
+				std::vector<std::string> subsList;
+				boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
 
-                            for (size_t i = 0; i < subsList.size (); i++)
-                            {
-                                    m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, subsList[i]));
-                            }
-                            LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
-                        }
+				for (size_t i = 0; i < subsList.size (); i++)
+				{
+					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, subsList[i]));
+				}
+				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
+			}
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
@@ -515,7 +523,7 @@ namespace client
 			if (dot != std::string::npos)
 			{
 				auto domain = it.first.substr (dot + 1);
-				auto it1 = m_Addresses.find (domain);  // find domain in our addressbook
+				auto it1 = m_Addresses.find (domain); // find domain in our addressbook
 				if (it1 != m_Addresses.end () && it1->second->IsIdentHash ())
 				{
 					auto dest = context.FindLocalDestination (it1->second->identHash);
@@ -610,7 +618,7 @@ namespace client
 				{
 					// download it from default subscription
 					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
-                                        std::string defaultSubURL; i2p::config::GetOption("addressbook.defaulturl", defaultSubURL);
+					std::string defaultSubURL; i2p::config::GetOption("addressbook.defaulturl", defaultSubURL);
 					if (!m_DefaultSubscription)
 						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, defaultSubURL);
 					m_IsDownloading = true;
@@ -743,13 +751,13 @@ namespace client
 		i2p::http::URL url;
 		// must be run in separate thread
 		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link);
-		if (!url.parse(m_Link)) 
+		if (!url.parse(m_Link))
 		{
 			LogPrint(eLogError, "Addressbook: failed to parse url: ", m_Link);
 			return false;
 		}
 		auto addr = m_Book.GetAddress (url.host);
-		if (!addr || !addr->IsIdentHash ())	
+		if (!addr || !addr->IsIdentHash ())
 		{
 			LogPrint (eLogError, "Addressbook: Can't resolve ", url.host);
 			return false;
@@ -802,7 +810,7 @@ namespace client
 		/* convert url to relative */
 		url.schema = "";
 		url.host   = "";
-		req.uri  = url.to_string();
+		req.uri    = url.to_string();
 		auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, dest_port);
 		std::string request = req.to_string();
 		stream->Send ((const uint8_t *) request.data(), request.length());
@@ -920,7 +928,7 @@ namespace client
 		{
 			auto datagram = m_LocalDestination->GetDatagramDestination ();
 			if (datagram)
-			    datagram->ResetReceiver (ADDRESS_RESOLVER_DATAGRAM_PORT);
+				datagram->ResetReceiver (ADDRESS_RESOLVER_DATAGRAM_PORT);
 		}
 	}
 

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef ROUTER_INFO_H__
 #define ROUTER_INFO_H__
 
@@ -19,6 +27,7 @@ namespace data
 	const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
 	const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";
 	const char ROUTER_INFO_PROPERTY_NETID[] = "netId";
+	const char ROUTER_INFO_PROPERTY_VERSION[] = "router.version";
 	const char ROUTER_INFO_PROPERTY_FAMILY[] = "family";
 	const char ROUTER_INFO_PROPERTY_FAMILY_SIG[] = "family.sig";
 
@@ -142,6 +151,7 @@ namespace data
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
+			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
@@ -201,8 +211,8 @@ namespace data
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
-		/** return true if we are in a router family and the signature is valid */
-		bool IsFamily(const std::string & fam) const;
+			/** return true if we are in a router family and the signature is valid */
+			bool IsFamily(const std::string & fam) const;
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
@@ -235,6 +245,7 @@ namespace data
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;
+			int m_Version;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};
 }

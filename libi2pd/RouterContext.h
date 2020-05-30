@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef ROUTER_CONTEXT_H__
 #define ROUTER_CONTEXT_H__
 
@@ -15,7 +23,7 @@ namespace i2p
 {
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
-	const char NTCP2_KEYS[] = "ntcp2.keys";	
+	const char NTCP2_KEYS[] = "ntcp2.keys";
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 
 	enum RouterStatus
@@ -36,12 +44,12 @@ namespace i2p
 	{
 		private:
 
-			struct NTCP2PrivateKeys 
+			struct NTCP2PrivateKeys
 			{
 				uint8_t staticPublicKey[32];
 				uint8_t staticPrivateKey[32];
 				uint8_t iv[16];
-			};			
+			};
 
 		public:
 
@@ -63,7 +71,7 @@ namespace i2p
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
-			i2p::crypto::X25519Keys& GetStaticKeys (); 
+			i2p::crypto::X25519Keys& GetStaticKeys ();
 
 			uint32_t GetUptime () const; // in seconds
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
@@ -77,7 +85,7 @@ namespace i2p
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 
-			void UpdatePort (int port); // called from Daemon	
+			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			void PublishNTCP2Address (int port, bool publish = true, bool v4only = false);
 			void UpdateNTCP2Address (bool enable);
@@ -124,7 +132,7 @@ namespace i2p
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) { return false; }; // not implemented	
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) { return false; }; // not implemented
 
 		private:
 
@@ -141,7 +149,7 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LastUpdateTime; // in seconds
-			bool m_AcceptsTunnels, m_IsFloodfill;	
+			bool m_AcceptsTunnels, m_IsFloodfill;
 			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;

@@ -1,8 +1,18 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <jni.h>
 #include "org_purplei2p_i2pd_I2PD_JNI.h"
 #include "DaemonAndroid.h"
 #include "RouterContext.h"
+#include "ClientContext.h"
 #include "Transports.h"
+#include "Tunnel.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 	(JNIEnv *env, jclass clazz) {
@@ -61,6 +71,11 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startAcceptingTunnels
 	i2p::context.SetAcceptsTunnels (true);
 }
 
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_reloadTunnelsConfigs
+	(JNIEnv *env, jclass clazz) {
+	i2p::client::context.ReloadConfig();
+}
+
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
 	(JNIEnv *env, jclass clazz, jboolean isConnected) {
 	bool isConnectedBool = (bool) isConnected;
@@ -91,4 +106,9 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_setDataDir
 
 	// Set DataDir
 	i2p::android::SetDataDir(dataDir);
+}
+
+JNIEXPORT jint JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_GetTransitTunnelsCount
+	(JNIEnv *env, jclass clazz) {
+	return i2p::tunnel::tunnels.CountTransitTunnels();
 }

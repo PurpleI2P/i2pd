@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <cstdlib>
 #include <string>
 #include <boost/asio.hpp>
@@ -64,9 +72,9 @@ namespace util
 		{
 			m_IsRunning = true;
 			m_Thread.reset (new std::thread (std::bind (& RunnableService::Run, this)));
-		}	
+		}
 	}
-	
+
 	void RunnableService::StopIOService ()
 	{
 		if (m_IsRunning)
@@ -79,7 +87,7 @@ namespace util
 				m_Thread = nullptr;
 			}
 		}
-	}	
+	}
 
 	void RunnableService::Run ()
 	{
@@ -94,28 +102,28 @@ namespace util
 				LogPrint (eLogError, m_Name, ": runtime exception: ", ex.what ());
 			}
 		}
-	}	
-	
+	}
+
 namespace net
 {
 #ifdef WIN32
 	bool IsWindowsXPorLater()
 	{
-	    static bool isRequested = false;
-	    static bool isXP = false;
-	    if (!isRequested)
-	    {
-	        // request
-            OSVERSIONINFO osvi;
+		static bool isRequested = false;
+		static bool isXP = false;
+		if (!isRequested)
+		{
+			// request
+			OSVERSIONINFO osvi;
 
-            ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-            osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-            GetVersionEx(&osvi);
+			ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+			osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+			GetVersionEx(&osvi);
 
-            isXP = osvi.dwMajorVersion <= 5;
-            isRequested = true;
-        }
-        return isXP;
+			isXP = osvi.dwMajorVersion <= 5;
+			isRequested = true;
+		}
+		return isXP;
 	}
 
 	int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
@@ -246,22 +254,24 @@ namespace net
 		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-        typedef int (* IPN)(int af, const char *src, void *dst);
+		typedef int (* IPN)(int af, const char *src, void *dst);
 		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
-        if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
+		if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
 		if(localAddress.is_v4())
 		{
 			sockaddr_in inputAddress;
-            inetpton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+			inetpton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
 		}
 		else if(localAddress.is_v6())
 		{
 			sockaddr_in6 inputAddress;
-            inetpton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+			inetpton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
 			return GetMTUWindowsIpv6(inputAddress, fallback);
-		} else {
+		}
+		else
+		{
 			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
 			return fallback;
 		}
@@ -355,7 +365,7 @@ namespace net
 				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
 				{
 					// match
-					char  addr[INET6_ADDRSTRLEN];
+					char addr[INET6_ADDRSTRLEN];
 					memset (addr, 0, INET6_ADDRSTRLEN);
 					if(af == AF_INET)
 						inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
@@ -379,7 +389,6 @@ namespace net
 			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
 		}
 		return boost::asio::ip::address::from_string(fallback);
-
 #endif
 	}
 }

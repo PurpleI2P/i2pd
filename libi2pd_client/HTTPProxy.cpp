@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2019, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -191,7 +191,7 @@ namespace proxy {
 		res.body = ss.str();
 		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
-					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
 	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL & url, std::string & b64, bool & confirm)
@@ -406,7 +406,7 @@ namespace proxy {
 	void HTTPReqHandler::ForwardToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: forward to upstream");
-		// build http requset
+		// build http request
 
 		m_ClientRequestURL = m_RequestURL;
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
@@ -458,7 +458,7 @@ namespace proxy {
 			if (!m_ProxyURL.port) m_ProxyURL.port = 9050; // default to tor default if not specified
 			boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
 			m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
-						m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamSocksProxyConnect, this, std::placeholders::_1));
+				m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamSocksProxyConnect, this, std::placeholders::_1));
 			}));
 		}
 		else
@@ -562,14 +562,16 @@ namespace proxy {
 		if(m_ClientRequest.method == "CONNECT") {
 			m_ClientResponse.code = 200;
 			m_send_buf = m_ClientResponse.to_string();
-			boost::asio::async_write(*m_sock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred) {
+			boost::asio::async_write(*m_sock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred)
+				{
 					if(ec) GenericProxyError("socks proxy error", ec.message().c_str());
 					else HandoverToUpstreamProxy();
 				});
 		} else {
 			m_send_buf = m_ClientRequestBuffer.str();
 			LogPrint(eLogDebug, "HTTPProxy: send ", m_send_buf.size(), " bytes");
-			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&](const boost::system::error_code & ec, std::size_t transferred) {
+			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&](const boost::system::error_code & ec, std::size_t transferred)
+				{
 					if(ec) GenericProxyError("failed to send request to upstream", ec.message().c_str());
 					else HandoverToUpstreamProxy();
 				});

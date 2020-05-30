@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef ADDRESS_BOOK_H__
 #define ADDRESS_BOOK_H__
 
@@ -37,8 +45,8 @@ namespace client
 		i2p::data::IdentHash identHash;
 		std::shared_ptr<i2p::data::BlindedPublicKey> blindedPublicKey;
 
-		Address (const std::string& b32);	
-		Address (const i2p::data::IdentHash& hash);	
+		Address (const std::string& b32);
+		Address (const i2p::data::IdentHash& hash);
 		bool IsIdentHash () const { return addressType == eAddressIndentHash; };
 		bool IsValid () const { return addressType != eAddressInvalid; };
 	};
@@ -160,5 +168,3 @@ namespace client
 }
 
 #endif
-
-

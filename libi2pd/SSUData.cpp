@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include "Log.h"
@@ -496,7 +504,7 @@ namespace transport
 			}
 			// decay
 			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES ||
-			    i2p::util::GetSecondsSinceEpoch () > m_LastMessageReceivedTime + DECAY_INTERVAL)
+				i2p::util::GetSecondsSinceEpoch () > m_LastMessageReceivedTime + DECAY_INTERVAL)
 				m_ReceivedMessages.clear ();
 
 			ScheduleIncompleteMessagesCleanup ();
@@ -504,4 +512,3 @@ namespace transport
 	}
 }
 }
-

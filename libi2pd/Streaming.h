@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef STREAMING_H__
 #define STREAMING_H__
 
@@ -41,6 +49,7 @@ namespace stream
 	const uint16_t PACKET_FLAG_OFFLINE_SIGNATURE = 0x0800;
 
 	const size_t STREAMING_MTU = 1730;
+	const size_t STREAMING_MTU_RATCHETS = 1812;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
 	const int MAX_NUM_RESEND_ATTEMPTS = 6;
@@ -234,6 +243,7 @@ namespace stream
 			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
+			size_t m_MTU;
 	};
 
 	class StreamingDestination: public std::enable_shared_from_this<StreamingDestination>
@@ -255,19 +265,17 @@ namespace stream
 			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
 			void AcceptOnce (const Acceptor& acceptor);
+			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true);
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
-
-
-			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 
 		private:
 
@@ -289,6 +297,7 @@ namespace stream
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
+			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 
 		public:
 
