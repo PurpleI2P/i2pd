@@ -1,6 +1,6 @@
 Name:          i2pd
-Version:       2.32.0
-Release:       2%{?dist}
+Version:       2.32.1
+Release:       1%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd-git
 
@@ -122,6 +122,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Tue Jun 02 2020 r4sas <r4sas@i2pmail.org> - 2.32.1
+- update to 2.32.1
+
 * Mon May 25 2020 r4sas <r4sas@i2pmail.org> - 2.32.0
 - update to 2.32.0
 - updated systemd service file (#1394)

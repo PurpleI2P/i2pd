@@ -1,3 +1,9 @@
+i2pd (2.32.1-1) unstable; urgency=high
+
+  * updated to version 2.32.1
+
+ -- r4sas <r4sas@i2pmail.org>  Tue, 02 Jun 2020 16:30:00 +0000
+
 i2pd (2.32.0-1) unstable; urgency=high
 
   * updated to version 2.32.0/0.9.46
