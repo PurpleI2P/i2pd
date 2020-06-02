@@ -1,6 +1,14 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.32.1] - 2020-06-02
+### Added
+- Read explicit peers in tunnels config
+### Fixed
+- Generation of tags for detached sessions
+- Non-updating LeaseSet1
+- Start when deprecated websocket options present in i2pd.conf
+
 ## [2.32.0] - 2020-05-25
 ### Added
 - Multiple encryption types for local destinations
