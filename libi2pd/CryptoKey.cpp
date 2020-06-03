@@ -168,7 +168,7 @@ namespace crypto
 
 	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic)
 	{
-		m_StaticKeys.SetPrivateKey (priv);
+		m_StaticKeys.SetPrivateKey (priv, calculatePublic);
 	}
 
 	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
