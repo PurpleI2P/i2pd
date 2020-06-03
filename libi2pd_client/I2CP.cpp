@@ -55,12 +55,18 @@ namespace client
 
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
 	{
-		memcpy (m_EncryptionPrivateKey, key, 256);
-		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_Identity->GetCryptoKeyType (), m_EncryptionPrivateKey);
+		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_Identity->GetCryptoKeyType (), key);
 	}
 
+	void I2CPDestination::SetECIESx25519EncryptionPrivateKey (const uint8_t * key)
+	{
+		m_ECIESx25519Decryptor = std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key, true); // calculate public
+	}	
+		
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
+		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET && m_ECIESx25519Decryptor)
+			return m_ECIESx25519Decryptor->Decrypt (encrypted, data, ctx, true);
 		if (m_Decryptor)
 			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
 		else
@@ -68,6 +74,19 @@ namespace client
 		return false;
 	}
 
+	const uint8_t * I2CPDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
+	{
+		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET && m_ECIESx25519Decryptor)
+			return m_ECIESx25519Decryptor->GetPubicKey ();
+		return nullptr;
+	}	
+
+	bool I2CPDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const 
+	{ 
+		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET ? (bool)m_ECIESx25519Decryptor : m_EncryptionKeyType == keyType; 
+	}
+	
+		
 	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
@@ -77,7 +96,8 @@ namespace client
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
-		i2p::data::LocalLeaseSet ls (m_Identity, m_EncryptionPrivateKey, tunnels); // we don't care about encryption key
+		uint8_t priv[256] = {0};
+		i2p::data::LocalLeaseSet ls (m_Identity, priv, tunnels); // we don't care about encryption key, we need leases only
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
 		leases[-1] = tunnels.size ();
@@ -572,28 +592,22 @@ namespace client
 				offset += ls.GetBufferLen ();
 				// private keys
 				int numPrivateKeys = buf[offset]; offset++;
-				uint16_t currentKeyType = 0;
-				const uint8_t * currentKey = nullptr;
 				for (int i = 0; i < numPrivateKeys; i++)
 				{
 					if (offset + 4 > len) return;
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
 					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
 					if (offset + keyLen > len) return;
-					if (!currentKey || keyType > currentKeyType)
+					if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+						m_Destination->SetECIESx25519EncryptionPrivateKey (buf + offset);
+					else
 					{
-						currentKeyType = keyType;
-						currentKey = buf + offset;
+						m_Destination->SetEncryptionType (keyType);	
+						m_Destination->SetEncryptionPrivateKey (buf + offset);
 					}
 					offset += keyLen;
 				}
-				// TODO: support multiple keys
-				if (currentKey)
-				{
-					m_Destination->SetEncryptionPrivateKey (currentKey);
-					m_Destination->SetEncryptionType (currentKeyType);
-				}
-
+	
 				m_Destination->LeaseSet2Created (storeType, ls.GetBuffer (), ls.GetBufferLen ());
 			}
 		}

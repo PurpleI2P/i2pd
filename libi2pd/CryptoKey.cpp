@@ -166,7 +166,7 @@ namespace crypto
 		memcpy (pub, m_PublicKey, 32);
 	}
 
-	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv)
+	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic)
 	{
 		m_StaticKeys.SetPrivateKey (priv);
 	}
