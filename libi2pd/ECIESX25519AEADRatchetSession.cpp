@@ -150,7 +150,8 @@ namespace garlic
 		uint8_t tagsetKey[32];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
 		// Session Tag Ratchet
-		auto tagsetNsr = std::make_shared<RatchetTagSet>(shared_from_this ());
+		auto tagsetNsr = (m_State == eSessionStateNewSessionReceived) ? std::make_shared<RatchetTagSet>(shared_from_this ()):
+			std::make_shared<NSRatchetTagSet>(shared_from_this ());
 		tagsetNsr->DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
 		tagsetNsr->NextSessionTagRatchet ();
 		return tagsetNsr;
@@ -416,8 +417,8 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
-		m_NSRTagset = CreateNewSessionTagset ();
-		uint64_t tag = m_NSRTagset->GetNextSessionTag ();
+		m_NSRSendTagset = CreateNewSessionTagset ();
+		uint64_t tag = m_NSRSendTagset->GetNextSessionTag ();
 
 		size_t offset = 0;
 		memcpy (out + offset, &tag, 8);
@@ -475,7 +476,7 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob and sent NSR already
-		uint64_t tag = m_NSRTagset->GetNextSessionTag (); // next tag
+		uint64_t tag = m_NSRSendTagset->GetNextSessionTag (); // next tag
 		memcpy (out, &tag, 8);
 		memcpy (out + 8, m_NSREncodedKey, 32);
 		// recalculate h with new tag
@@ -625,7 +626,7 @@ namespace garlic
 		{
 			case eSessionStateNewSessionReplySent:
 				m_State = eSessionStateEstablished;
-				m_NSRTagset = nullptr;
+				m_NSRSendTagset = nullptr;
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
 #endif

@@ -79,6 +79,18 @@ namespace garlic
 			uint64_t m_ExpirationTimestamp = 0;
 	};
 
+	class NSRatchetTagSet: public RatchetTagSet
+	{
+		public:
+			
+			NSRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session):
+				RatchetTagSet (session), m_DummySession (session) {};
+			
+		private:
+
+			std::shared_ptr<ECIESX25519AEADRatchetSession> m_DummySession; // we need a strong pointer for NS
+	};	
+	
 	enum ECIESx25519BlockType
 	{
 		eECIESx25519BlkDateTime    = 0,
@@ -171,7 +183,7 @@ namespace garlic
 			i2p::crypto::X25519Keys m_EphemeralKeys;
 			SessionState m_State = eSessionStateNew;
 			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0; // incoming
-			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRTagset;
+			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
 			bool m_SendReverseKey = false, m_SendForwardKey = false;
