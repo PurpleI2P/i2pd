@@ -892,7 +892,11 @@ namespace client
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
 			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+			{	
 				m_ECIESx25519EncryptionKey.reset (encryptionKey);
+				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Rathets must use LeaseSet2 
+			}	
 			else
 				m_StandardEncryptionKey.reset (encryptionKey);
 		}
