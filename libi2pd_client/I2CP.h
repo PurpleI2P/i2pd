@@ -105,6 +105,7 @@ namespace client
 			i2p::data::CryptoKeyType m_EncryptionKeyType;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor; // standard
 			std::shared_ptr<i2p::crypto::ECIESX25519AEADRatchetDecryptor> m_ECIESx25519Decryptor;
+			uint8_t m_ECIESx25519PrivateKey[32];
 			uint64_t m_LeaseSetExpirationTime;
 	};
 

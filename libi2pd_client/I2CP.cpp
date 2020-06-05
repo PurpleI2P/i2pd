@@ -60,7 +60,11 @@ namespace client
 
 	void I2CPDestination::SetECIESx25519EncryptionPrivateKey (const uint8_t * key)
 	{
-		m_ECIESx25519Decryptor = std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key, true); // calculate public
+		if (!m_ECIESx25519Decryptor || memcmp (m_ECIESx25519PrivateKey, key, 32)) // new key?
+		{	
+			m_ECIESx25519Decryptor = std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key, true); // calculate public
+			memcpy (m_ECIESx25519PrivateKey, key, 32);
+		}	
 	}	
 		
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
