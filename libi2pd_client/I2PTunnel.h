@@ -276,7 +276,7 @@ namespace client
 			void TryResolving();
 			const std::string m_Name;
 			std::mutex m_SessionsMutex;
-			std::map<uint16_t, UDPConvo > m_Sessions; // maps i2p port -> local udp convo
+			std::unordered_map<uint16_t, std::shared_ptr<UDPConvo> > m_Sessions; // maps i2p port -> local udp convo
 			const std::string m_RemoteDest;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
@@ -285,8 +285,9 @@ namespace client
 			boost::asio::ip::udp::socket m_LocalSocket;
 			boost::asio::ip::udp::endpoint m_RecvEndpoint;
 			uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
-			uint16_t RemotePort;
+			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
+			std::shared_ptr<UDPConvo> m_LastSession;
 	};
 
 	class I2PServerTunnel: public I2PService

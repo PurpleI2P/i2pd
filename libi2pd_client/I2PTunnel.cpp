@@ -634,7 +634,7 @@ namespace client
 		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
 		std::vector<uint16_t> removePorts;
 		for (const auto & s : m_Sessions) {
-			if (now - s.second.second >= delta)
+			if (now - s.second->second >= delta)
 				removePorts.push_back(s.first);
 		}
 		for(auto port : removePorts) {
@@ -761,7 +761,7 @@ namespace client
 		m_RemoteIdent(nullptr),
 		m_ResolveThread(nullptr),
 		m_LocalSocket(localDestination->GetService(), localEndpoint),
-		RemotePort(remotePort),
+		RemotePort(remotePort), m_LastPort (0),
 		m_cancel_resolve(false)
 	{
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
@@ -796,16 +796,24 @@ namespace client
 			return; // drop, remote not resolved
 		}
 		auto remotePort = m_RecvEndpoint.port();
-		auto itr = m_Sessions.find(remotePort);
-		if (itr == m_Sessions.end()) {
-			// track new udp convo
-			m_Sessions[remotePort] = {boost::asio::ip::udp::endpoint(m_RecvEndpoint), 0};
-		}
+		if (!m_LastPort || m_LastPort != remotePort)
+		{	
+			auto itr = m_Sessions.find(remotePort);
+			if (itr != m_Sessions.end()) 
+				m_LastSession = itr->second;
+			else	
+			{
+				m_LastSession = std::make_shared<UDPConvo>(boost::asio::ip::udp::endpoint(m_RecvEndpoint), 0);
+				m_Sessions.emplace (remotePort, m_LastSession);
+			}	
+			m_LastPort = remotePort;
+		}	
 		// send off to remote i2p destination
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
 		// mark convo as active
-		m_Sessions[remotePort].second = i2p::util::GetMillisecondsSinceEpoch();
+		if (m_LastSession)
+			m_LastSession->second = i2p::util::GetMillisecondsSinceEpoch();
 		RecvFromLocal();
 	}
 
@@ -851,9 +859,9 @@ namespace client
 				// found convo
 				if (len > 0) {
 					LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32());
-					m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second.first);
+					m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second->first);
 					// mark convo as active
-					itr->second.second = i2p::util::GetMillisecondsSinceEpoch();
+					itr->second->second = i2p::util::GetMillisecondsSinceEpoch();
 				}
 			}
 			else
