@@ -56,6 +56,11 @@ namespace datagram
 		session->SendMsg(msg);
 	}
 
+	void DatagramDestination::FlushSendQueue (const i2p::data::IdentHash & ident)
+	{
+		 ObtainSession(ident)->FlushSendQueue ();
+	}	
+		
 	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)
 	{
 		i2p::data::IdentityEx identity;
@@ -366,6 +371,7 @@ namespace datagram
 
 	void DatagramSession::FlushSendQueue ()
 	{
+		if (m_SendQueue.empty ()) return;
 		std::vector<i2p::tunnel::TunnelMessageBlock> send;
 		auto routingPath = GetSharedRoutingPath();
 		// if we don't have a routing path we will drop all queued messages
@@ -380,7 +386,6 @@ namespace datagram
 			routingPath->outboundTunnel->SendTunnelDataMsg(send);
 		}
 		m_SendQueue.clear();
-		ScheduleFlushSendQueue();
 	}
 
 	void DatagramSession::ScheduleFlushSendQueue()
@@ -388,7 +393,12 @@ namespace datagram
 		boost::posix_time::milliseconds dlt(10);
 		m_SendQueueTimer.expires_from_now(dlt);
 		auto self = shared_from_this();
-		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) { if(ec) return; self->FlushSendQueue(); });
+		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) 
+			{ 
+				if(ec) return; 
+				self->FlushSendQueue(); 
+				self->ScheduleFlushSendQueue();
+			});
 	}
 }
 }

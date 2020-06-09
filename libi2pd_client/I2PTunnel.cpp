@@ -811,6 +811,24 @@ namespace client
 		// send off to remote i2p destination
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
+		size_t numPackets = 0;
+		while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
+		{	
+			boost::system::error_code ec;
+			size_t moreBytes = m_LocalSocket.available(ec);
+			if (ec || !moreBytes) break;
+			transferred = m_LocalSocket.receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU), m_RecvEndpoint, 0, ec);
+			remotePort = m_RecvEndpoint.port();
+			// TODO: check remotePort
+			m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);			
+			numPackets++;
+		}	
+		if (numPackets)
+		{	
+			LogPrint(eLogDebug, "UDP Client: sent ", numPackets, " more packets to ", m_RemoteIdent->ToBase32());
+			m_LocalDest->GetDatagramDestination()->FlushSendQueue (*m_RemoteIdent);
+		}	
+		
 		// mark convo as active
 		if (m_LastSession)
 			m_LastSession->second = i2p::util::GetMillisecondsSinceEpoch();
