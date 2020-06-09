@@ -34,31 +34,48 @@ namespace datagram
 
 	void DatagramDestination::SendDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
-		{
-			uint8_t hash[32];
-			SHA256(payload, len, hash);
-			m_Owner->Sign (hash, 32, m_Signature.data ());
-		}
-		else
-			m_Owner->Sign (payload, len, m_Signature.data ());
-
-		auto session = ObtainSession(identity);
-		auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
-			fromPort, toPort, false, !session->IsRatchets ()); // datagram
-		session->SendMsg(msg);
+		SendDatagram (ObtainSession(identity), payload, len, fromPort, toPort);
 	}
 
 	void DatagramDestination::SendRawDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		auto session = ObtainSession(identity);
-		auto msg = CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ()); // raw
-		session->SendMsg(msg);
+		SendRawDatagram (ObtainSession(identity), payload, len, fromPort, toPort);
 	}
 
-	void DatagramDestination::FlushSendQueue (const i2p::data::IdentHash & ident)
+	std::shared_ptr<DatagramSession> DatagramDestination::GetSession(const i2p::data::IdentHash & ident)
 	{
-		 ObtainSession(ident)->FlushSendQueue ();
+		return ObtainSession(ident);
+	}	
+		
+	void DatagramDestination::SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
+	{
+		if (session)
+		{
+			if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+			{
+				uint8_t hash[32];
+				SHA256(payload, len, hash);
+				m_Owner->Sign (hash, 32, m_Signature.data ());
+			}
+			else
+				m_Owner->Sign (payload, len, m_Signature.data ());
+
+			auto msg = CreateDataMessage ({{m_From.data (), m_From.size ()}, {m_Signature.data (), m_Signature.size ()}, {payload, len}},
+				fromPort, toPort, false, !session->IsRatchets ()); // datagram
+			session->SendMsg(msg);
+		}	
+	}	
+
+	void DatagramDestination::SendRawDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
+	{
+		if (session)
+			session->SendMsg(CreateDataMessage ({{payload, len}}, fromPort, toPort, true, !session->IsRatchets ())); // raw
+	}
+		
+	void DatagramDestination::FlushSendQueue (std::shared_ptr<DatagramSession> session)
+	{
+		if (session)
+			session->FlushSendQueue ();
 	}	
 		
 	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)

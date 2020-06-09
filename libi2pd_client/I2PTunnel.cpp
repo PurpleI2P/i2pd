@@ -810,7 +810,8 @@ namespace client
 		}	
 		// send off to remote i2p destination
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
-		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
+		auto session = m_LocalDest->GetDatagramDestination()->GetSession (*m_RemoteIdent);
+		m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		size_t numPackets = 0;
 		while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
 		{	
@@ -820,14 +821,12 @@ namespace client
 			transferred = m_LocalSocket.receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU), m_RecvEndpoint, 0, ec);
 			remotePort = m_RecvEndpoint.port();
 			// TODO: check remotePort
-			m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);			
+			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);			
 			numPackets++;
 		}	
 		if (numPackets)
-		{	
 			LogPrint(eLogDebug, "UDP Client: sent ", numPackets, " more packets to ", m_RemoteIdent->ToBase32());
-			m_LocalDest->GetDatagramDestination()->FlushSendQueue (*m_RemoteIdent);
-		}	
+		m_LocalDest->GetDatagramDestination()->FlushSendQueue (session);
 		
 		// mark convo as active
 		if (m_LastSession)
