@@ -611,12 +611,23 @@ namespace client
 
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
-		std::lock_guard<std::mutex> lock(m_SessionsMutex);
-		auto session = ObtainUDPSession(from, toPort, fromPort);
-		session->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
-		session->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+		{
+			std::lock_guard<std::mutex> lock(m_SessionsMutex);
+			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
+		}
+		m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
+		m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
 	}
 
+	void I2PUDPServerTunnel::HandleRecvFromI2PRaw (uint16_t, uint16_t, const uint8_t * buf, size_t len)
+	{
+		if (m_LastSession)
+		{
+			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
+			m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+		}	
+	}	
+		
 	void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
@@ -714,6 +725,7 @@ namespace client
 		m_LocalDest->Start();
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+		dgram->SetRawReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));	
 	}
 
 	I2PUDPServerTunnel::~I2PUDPServerTunnel()
@@ -821,7 +833,7 @@ namespace client
 			transferred = m_LocalSocket.receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU), m_RecvEndpoint, 0, ec);
 			remotePort = m_RecvEndpoint.port();
 			// TODO: check remotePort
-			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);			
+			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);			
 			numPackets++;
 		}	
 		if (numPackets)
