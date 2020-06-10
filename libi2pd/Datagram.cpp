@@ -34,12 +34,16 @@ namespace datagram
 
 	void DatagramDestination::SendDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		SendDatagram (ObtainSession(identity), payload, len, fromPort, toPort);
+		auto session = ObtainSession(identity);
+		SendDatagram (session, payload, len, fromPort, toPort);
+		FlushSendQueue (session);
 	}
 
 	void DatagramDestination::SendRawDatagramTo(const uint8_t * payload, size_t len, const i2p::data::IdentHash & identity, uint16_t fromPort, uint16_t toPort)
 	{
-		SendRawDatagram (ObtainSession(identity), payload, len, fromPort, toPort);
+		auto session = ObtainSession(identity);
+		SendRawDatagram (session, payload, len, fromPort, toPort);
+		FlushSendQueue (session);
 	}
 
 	std::shared_ptr<DatagramSession> DatagramDestination::GetSession(const i2p::data::IdentHash & ident)
@@ -218,7 +222,6 @@ namespace datagram
 		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
 		m_RemoteIdent(remoteIdent),
-		m_SendQueueTimer(localDestination->GetService()),
 		m_RequestingLS(false)
 	{
 	}
@@ -226,12 +229,10 @@ namespace datagram
 	void DatagramSession::Start ()
 	{
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch ();
-		ScheduleFlushSendQueue();
 	}
 
 	void DatagramSession::Stop ()
 	{
-		m_SendQueueTimer.cancel ();
 	}
 
 	void DatagramSession::SendMsg(std::shared_ptr<I2NPMessage> msg)
@@ -383,7 +384,7 @@ namespace datagram
 		if (msg || m_SendQueue.empty ())
 			m_SendQueue.push_back(msg);
 		// flush queue right away if full
-		if(m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) FlushSendQueue();
+		if(!msg || m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) FlushSendQueue();
 	}
 
 	void DatagramSession::FlushSendQueue ()
@@ -403,19 +404,6 @@ namespace datagram
 			routingPath->outboundTunnel->SendTunnelDataMsg(send);
 		}
 		m_SendQueue.clear();
-	}
-
-	void DatagramSession::ScheduleFlushSendQueue()
-	{
-		boost::posix_time::milliseconds dlt(10);
-		m_SendQueueTimer.expires_from_now(dlt);
-		auto self = shared_from_this();
-		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) 
-			{ 
-				if(ec) return; 
-				self->FlushSendQueue(); 
-				self->ScheduleFlushSendQueue();
-			});
 	}
 }
 }

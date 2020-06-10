@@ -85,8 +85,6 @@ namespace datagram
 
 		private:
 
-			void ScheduleFlushSendQueue();
-
 			void HandleSend(std::shared_ptr<I2NPMessage> msg);
 
 			std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
@@ -101,7 +99,6 @@ namespace datagram
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
-			boost::asio::deadline_timer m_SendQueueTimer;
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_LastUse;
 			bool m_RequestingLS;
