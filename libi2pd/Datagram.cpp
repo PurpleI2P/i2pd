@@ -152,7 +152,7 @@ namespace datagram
 		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
 		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
-		auto msg = NewI2NPMessage ();
+		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
 		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
@@ -239,9 +239,11 @@ namespace datagram
 	{
 		// we used this session
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch();
-		// schedule send
-		auto self = shared_from_this();
-		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, self, msg));
+		if (msg || m_SendQueue.empty ())
+			m_SendQueue.push_back(msg);
+		// flush queue right away if full
+		if (!msg || m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) 
+			FlushSendQueue();
 	}
 
 	DatagramSession::Info DatagramSession::GetSessionInfo() const
@@ -377,14 +379,6 @@ namespace datagram
 		uint64_t oldExpire = 0;
 		if(m_RemoteLeaseSet) oldExpire = m_RemoteLeaseSet->GetExpirationTime();
 		if(ls && ls->GetExpirationTime() > oldExpire) m_RemoteLeaseSet = ls;
-	}
-
-	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
-	{
-		if (msg || m_SendQueue.empty ())
-			m_SendQueue.push_back(msg);
-		// flush queue right away if full
-		if(!msg || m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE) FlushSendQueue();
 	}
 
 	void DatagramSession::FlushSendQueue ()
