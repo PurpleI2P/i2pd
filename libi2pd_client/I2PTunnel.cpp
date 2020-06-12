@@ -692,6 +692,7 @@ namespace client
 		LocalPort(ourPort),
 		RemotePort(theirPort)
 	{
+		IPSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
 		memcpy(Identity, to->data(), 32);
 		Receive();
 	}
@@ -791,6 +792,8 @@ namespace client
 		RemotePort(remotePort), m_LastPort (0),
 		m_cancel_resolve(false)
 	{
+		m_LocalSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
+
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
