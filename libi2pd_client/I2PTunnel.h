@@ -275,7 +275,11 @@ namespace client
 			void RecvFromLocal();
 			void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleRecvFromI2PRaw(uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();
+
+		private:
+			
 			const std::string m_Name;
 			std::mutex m_SessionsMutex;
 			std::unordered_map<uint16_t, std::shared_ptr<UDPConvo> > m_Sessions; // maps i2p port -> local udp convo
