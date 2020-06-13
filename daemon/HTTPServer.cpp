@@ -63,23 +63,40 @@ namespace http {
 		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
 		"  a, .slide label { text-decoration: none; color: #894C84; }\r\n"
 		"  a:hover, .slide label:hover { color: #FAFAFA; background: #894C84; }\r\n"
-		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none; color: initial; padding: 0 5px; }\r\n"
-		"  .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
-		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 60em; }\r\n"
-		"  .left  { float: left; position: absolute; }\r\n"
-		"  .right { float: left; font-size: 1em; margin-left: 13em; max-width: 46em; overflow: auto; }\r\n"
+		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
+		"    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
+		"  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
+		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 56em; }\r\n"
+		"  .menu { float: left; } .menu a { display: block; padding: 2px; }\r\n"
+		"  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 46em; overflow: auto; }\r\n"
 		"  .tunnel.established { color: #56B734; }\r\n"
 		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
 		"  .tunnel.failed      { color: #D33F3F; }\r\n"
 		"  .tunnel.building    { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { display: table; border-collapse: collapse; text-align: center; }\r\n"
-		"  table.extaddr { text-align: left; }\r\n  table.services { width: 100%; }"
+		"  table.extaddr { text-align: left; } table.services { width: 100%; }\r\n"
 		"  .streamdest { width: 120px; max-width: 240px; overflow: hidden; text-overflow: ellipsis;}\r\n"
 		"  .slide div.content, .slide [type='checkbox'] { display: none; }\r\n"
 		"  .slide [type='checkbox']:checked ~ div.content { display: block; margin-top: 0; padding: 0; }\r\n"
 		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
 		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
+		"  @media screen and (max-width: 980px) {\r\n" /* adaptive style */
+		"    .menu { width: 100%; display: block; float: none; position: unset; font-size: 24px;\r\n"
+		"      text-align: center; }\r\n"
+		"    .content { float: none; margin: 0; margin-top: 16px; max-width: 100%; width: 100%; font-size: 1.2em;\r\n"
+		"      text-align: center; line-height: 28px; }\r\n"
+		"    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
+		"    .header { margin: 0.5em 0; } small {display: block}\r\n"
+		"    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
+		"      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
+		"    input { width: 35%; height: 50px; text-align: center; /* margin-top: 15px; */ padding: 5px;\r\n"
+		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 35px; }\r\n"
+		"    textarea { width: -webkit-fill-available; height: auto; padding:5px; border:2px solid #ccc;\r\n"
+		"      -webkit-border-radius: 5px; border-radius: 5px; font-size: 22px; }\r\n"
+		"    button[type=submit] { padding: 5px 15px; background: #ccc; border: 0 none; cursor: pointer;\r\n"
+		"      -webkit-border-radius: 5px; border-radius: 5px; position: relative; height: 50px; display: -webkit-inline-box; margin-top: 25px; }\r\n"
+		"  }\r\n" /* adaptive style */
 		"</style>\r\n";
 
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
@@ -181,30 +198,31 @@ namespace http {
 #else
 			"  <meta charset=\"windows-1251\">\r\n"
 #endif
+			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
 			<< cssStyles <<
 			"</head>\r\n";
 		s <<
 			"<body>\r\n"
-			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
-			"<div class=wrapper>\r\n"
-			"<div class=left>\r\n"
-			"  <a href=\"" << webroot << "\">Main page</a><br>\r\n<br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n";
+			"<div class=\"header\"><b>i2pd</b> webconsole</div>\r\n"
+			"<div class=\"wrapper\">\r\n"
+			"<div class=\"menu\">\r\n"
+			"  <a href=\"" << webroot << "\">Main page</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a>\r\n";
 		if (i2p::context.IsFloodfill ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">LeaseSets</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">LeaseSets</a>\r\n";
 		s <<
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n";
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a>\r\n";
 		s <<
 			"</div>\r\n"
-			"<div class=right>";
+			"<div class=\"content\">";
 	}
 
 	static void ShowPageTail (std::stringstream& s)
@@ -416,7 +434,7 @@ namespace http {
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
 			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n"
-			  << "<div class='content'>\r\n<table><tbody><thead><th>Destination</th><th>Amount</th></thead>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			  << "<div class='content'>\r\n<table>\r\n<thead><th>Destination</th><th>Amount</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
 		s << "<br>\r\n";
@@ -432,7 +450,7 @@ namespace http {
 					ecies_sessions++;
 				}
 				s << "<div class='slide'><label for='slide-ecies-sessions'>Tags sessions: <i>" << ecies_sessions << "</i></label>\r\n<input type='checkbox' id='slide-ecies-sessions'/>\r\n"
-				  << "<div class='content'>\r\n<table><tbody><thead><th>Destination</th><th>Status</th></thead>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				  << "<div class='content'>\r\n<table>\r\n<thead><th>Destination</th><th>Status</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
 				s << "Tags sessions: <i>0</i><br>\r\n";
 			s << "<br>\r\n";
