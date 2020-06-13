@@ -281,94 +281,82 @@ namespace datagram
 
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetSharedRoutingPath ()
 	{
-		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
+		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ())
 		{
-			if(!m_RemoteLeaseSet) {
-				m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
-			}
-			if(!m_RemoteLeaseSet) {
-				// no remote lease set
-				if(!m_RequestingLS) {
+			m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
+			if (!m_RemoteLeaseSet)
+			{
+				if(!m_RequestingLS) 
+				{
 					m_RequestingLS = true;
 					m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
 				}
 				return nullptr;
-			}
+			}	
+		}	
+
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
 			m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
-		}
+		
 		auto path = m_RoutingSession->GetSharedRoutingPath();
-		if(path) {
-			if (m_CurrentOutboundTunnel && !m_CurrentOutboundTunnel->IsEstablished()) {
+		if (path) 
+		{
+			if (path->outboundTunnel && !path->outboundTunnel->IsEstablished ())
 				// bad outbound tunnel, switch outbound tunnel
-				m_CurrentOutboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(m_CurrentOutboundTunnel);
-				path->outboundTunnel = m_CurrentOutboundTunnel;
-			}
-			if(m_CurrentRemoteLease && m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
+				path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(path->outboundTunnel);
+			
+			if (path->remoteLease && path->remoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) 
+			{
 				// bad lease, switch to next one
-				if(m_RemoteLeaseSet && m_RemoteLeaseSet->IsExpired())
-					m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
-				if(m_RemoteLeaseSet) {
-					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding([&](const i2p::data::Lease& l) -> bool {
-							return l.tunnelID == m_CurrentRemoteLease->tunnelID;
-					});
+				if (m_RemoteLeaseSet) 
+				{
+					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding(
+						[&](const i2p::data::Lease& l) -> bool 
+						{
+							return l.tunnelID == path->remoteLease->tunnelID;
+						});
 					auto sz = ls.size();
-					if (sz) {
+					if (sz) 
+					{
 						auto idx = rand() % sz;
-						m_CurrentRemoteLease = ls[idx];
+						path->remoteLease = ls[idx];
 					}
-				} else {
+					else
+						path->remoteLease = nullptr;
+				} 
+				else 
 					// no remote lease set?
 					LogPrint(eLogWarning, "DatagramSession: no cached remote lease set for ", m_RemoteIdent.ToBase32());
-				}
-				path->remoteLease = m_CurrentRemoteLease;
 			}
-		} else {
+		} 
+		else 
+		{
 			// no current path, make one
 			path = std::make_shared<i2p::garlic::GarlicRoutingPath>();
-			// switch outbound tunnel if bad
-			if(m_CurrentOutboundTunnel == nullptr || ! m_CurrentOutboundTunnel->IsEstablished()) {
-				m_CurrentOutboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(m_CurrentOutboundTunnel);
-			}
-			// switch lease if bad
-			if(m_CurrentRemoteLease && m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
-				if(!m_RemoteLeaseSet) {
-					m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
-				}
-				if(m_RemoteLeaseSet) {
-					// pick random next good lease
-					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding([&] (const i2p::data::Lease & l) -> bool {
-							if(m_CurrentRemoteLease)
-								return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway;
-							return false;
-					});
-					auto sz = ls.size();
-					if(sz) {
-						auto idx = rand() % sz;
-						m_CurrentRemoteLease = ls[idx];
-					}
-				} else {
-					// no remote lease set currently, bail
-					LogPrint(eLogWarning, "DatagramSession: no remote lease set found for ", m_RemoteIdent.ToBase32());
-					return nullptr;
-				}
-			} else if (!m_CurrentRemoteLease) {
-				if(!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
-				if (m_RemoteLeaseSet)
+			path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel();
+			
+			if (m_RemoteLeaseSet) 
+			{
+				// pick random next good lease
+				auto ls = m_RemoteLeaseSet->GetNonExpiredLeases();
+				auto sz = ls.size();
+				if (sz) 
 				{
-					auto ls = m_RemoteLeaseSet->GetNonExpiredLeases();
-					auto sz = ls.size();
-					if (sz) {
-						auto idx = rand() % sz;
-						m_CurrentRemoteLease = ls[idx];
-					}
+					auto idx = rand() % sz;
+					path->remoteLease = ls[idx];
 				}
+				
+			
+			} 
+			else 
+			{
+				// no remote lease set currently, bail
+				LogPrint(eLogWarning, "DatagramSession: no remote lease set found for ", m_RemoteIdent.ToBase32());
+				return nullptr;
 			}
-			path->outboundTunnel = m_CurrentOutboundTunnel;
-			path->remoteLease = m_CurrentRemoteLease;
 			m_RoutingSession->SetSharedRoutingPath(path);
 		}
 		return path;
-
 	}
 
 	void DatagramSession::HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls)
