@@ -66,7 +66,7 @@ namespace http {
 		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
 		"    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
 		"  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
-		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 56em; }\r\n"
+		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 58em; }\r\n"
 		"  .menu { float: left; } .menu a { display: block; padding: 2px; }\r\n"
 		"  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 46em; overflow: auto; }\r\n"
 		"  .tunnel.established { color: #56B734; }\r\n"
@@ -77,8 +77,8 @@ namespace http {
 		"  table { display: table; border-collapse: collapse; text-align: center; }\r\n"
 		"  table.extaddr { text-align: left; } table.services { width: 100%; }\r\n"
 		"  .streamdest { width: 120px; max-width: 240px; overflow: hidden; text-overflow: ellipsis;}\r\n"
-		"  .slide div.content, .slide [type='checkbox'] { display: none; }\r\n"
-		"  .slide [type='checkbox']:checked ~ div.content { display: block; margin-top: 0; padding: 0; }\r\n"
+		"  .slide div.slidecontent, .slide [type=\"checkbox\"] { display: none; }\r\n"
+		"  .slide [type=\"checkbox\"]:checked ~ div.slidecontent { display: block; margin-top: 0; padding: 0; }\r\n"
 		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
 		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
 		"  @media screen and (max-width: 980px) {\r\n" /* adaptive style */
@@ -284,7 +284,7 @@ namespace http {
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
 		if((outputFormat==OutputFormatEnum::forWebConsole)||!includeHiddenContent) {
-			s << "<label for='slide-info'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide-info'/>\r\n<div class='content'>\r\n";
+			s << "<label for=\"slide-info\">Hidden content. Press on text to see.</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
 		}
 		if(includeHiddenContent) {
 			s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
@@ -391,7 +391,7 @@ namespace http {
 		if (dest->IsEncryptedLeaseSet ())
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
-			s << "<div class='slide'><label for='slide-b33'><b>Encrypted B33 address:</b></label>\r\n<input type='checkbox' id='slide-b33'/>\r\n<div class='content'>\r\n";
+			s << "<div class='slide'><label for='slide-b33'><b>Encrypted B33 address:</b></label>\r\n<input type=\"checkbox\" id=\"slide-b33\" />\r\n<div class=\"slidecontent\">\r\n";
 			s << blinded.ToB33 () << ".b32.i2p<br>\r\n";
 			s << "</div>\r\n</div>\r\n";
 		}
@@ -399,7 +399,7 @@ namespace http {
 		if(dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets ()
-			  << "</i></label>\r\n<input type='checkbox' id='slide-lease'/>\r\n<div class='content'>\r\n<table><thead><th>Address</th><th>Type</th><th>EncType</th></thead><tbody>";
+			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>Address</th><th>Type</th><th>EncType</th></thead><tbody>";
 			for(auto& it: dest->GetLeaseSets ())
 				s << "<tr><td>" << it.first.ToBase32 () << "</td><td>" << (int)it.second->GetStoreType () << "</td><td>" << (int)it.second->GetEncryptionType () <<"</td></tr>\r\n";
 			s << "</tbody></table>\r\n</div>\r\n</div>\r\n<br>\r\n";
@@ -433,8 +433,8 @@ namespace http {
 				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n"
-			  << "<div class='content'>\r\n<table>\r\n<thead><th>Destination</th><th>Amount</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
+			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Amount</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
 		s << "<br>\r\n";
@@ -449,8 +449,8 @@ namespace http {
 					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
 					ecies_sessions++;
 				}
-				s << "<div class='slide'><label for='slide-ecies-sessions'>Tags sessions: <i>" << ecies_sessions << "</i></label>\r\n<input type='checkbox' id='slide-ecies-sessions'/>\r\n"
-				  << "<div class='content'>\r\n<table>\r\n<thead><th>Destination</th><th>Status</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				s << "<div class='slide'><label for='slide-ecies-sessions'>Tags sessions: <i>" << ecies_sessions << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
+				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Status</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
 				s << "Tags sessions: <i>0</i><br>\r\n";
 			s << "<br>\r\n";
@@ -549,7 +549,7 @@ namespace http {
 					if (!ls->IsValid())
 						s << "<div class='invalid'>!! Invalid !! </div>\r\n";
 					s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
-					s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<div class='content'>\r\n";
+					s << "<input type=\"checkbox\" id=\"slide" << (counter++) << "\" />\r\n<div class=\"slidecontent\">\r\n";
 					s << "<b>Store type:</b> " << (int)storeType << "<br>\r\n";
 					s << "<b>Expires:</b> " << ConvertTime(ls->GetExpirationTime()) << "<br>\r\n";
 					if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET || storeType == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
@@ -700,13 +700,13 @@ namespace http {
 		if (!tmp_s.str ().empty ())
 		{
 			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name
-			  << "</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_" << boost::algorithm::to_lower_copy(name) << "'/>\r\n<div class='content'>"
+			  << "</b> ( " << cnt << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "\" />\r\n<div class=\"slidecontent\">"
 			  << tmp_s.str () << "</div>\r\n</div>\r\n";
 		}
 		if (!tmp_s6.str ().empty ())
 		{
 			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name
-			  << "v6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_" << boost::algorithm::to_lower_copy(name) << "v6'/>\r\n<div class='content'>"
+			  << "v6</b> ( " << cnt6 << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n<div class=\"slidecontent\">"
 			  << tmp_s6.str () << "</div>\r\n</div>\r\n";
 		}
 	}
@@ -734,7 +734,7 @@ namespace http {
 			auto sessions = ssuServer->GetSessions ();
 			if (!sessions.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu'/>\r\n<div class='content'>";
+				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssu\" />\r\n<div class=\"slidecontent\">";
 				for (const auto& it: sessions)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -751,7 +751,7 @@ namespace http {
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssuv6'/>\r\n<div class='content'>";
+				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssuv6\" />\r\n<div class=\"slidecontent\">";
 				for (const auto& it: sessions6)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
