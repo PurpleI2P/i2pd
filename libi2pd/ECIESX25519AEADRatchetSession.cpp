@@ -341,7 +341,8 @@ namespace garlic
 			newTagset->SetTagSetID (tagsetID);
 			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey);
 			newTagset->NextSessionTagRatchet ();
-			GenerateMoreReceiveTags (newTagset, ECIESX25519_MAX_NUM_GENERATED_TAGS);
+			GenerateMoreReceiveTags (newTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
+				GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MAX_NUM_GENERATED_TAGS);
 			receiveTagset->Expire ();
 			LogPrint (eLogDebug, "Garlic: next receive tagset ", tagsetID, " created");
 		}
@@ -459,7 +460,8 @@ namespace garlic
 		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
 		m_SendTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset->NextSessionTagRatchet ();
-		GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
+		GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
+			GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MIN_NUM_GENERATED_TAGS);
 		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", m_NSRKey, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_NSRKey, nonce, out + offset, len + 16, true)) // encrypt
@@ -548,7 +550,8 @@ namespace garlic
 			auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
 			receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 			receiveTagset->NextSessionTagRatchet ();
-			GenerateMoreReceiveTags (receiveTagset, ECIESX25519_MIN_NUM_GENERATED_TAGS);
+			GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
+				GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MIN_NUM_GENERATED_TAGS);
 		}
 		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "AttachPayloadKDF", keydata, 32); // k = HKDF(k_ba, ZEROLEN, "AttachPayloadKDF", 32)
 		// decrypt payload
@@ -610,11 +613,23 @@ namespace garlic
 			return false;
 		}
 		HandlePayload (payload, len - 16, receiveTagset, index);
-		int moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
-		if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
-		moreTags -= (receiveTagset->GetNextIndex () - index);
-		if (moreTags > 0 && GetOwner ())
-			GenerateMoreReceiveTags (receiveTagset, moreTags);
+		if (GetOwner ())
+		{	
+			int moreTags = 0;
+			if (GetOwner ()->GetNumRatchetInboundTags () > 0) // override in settings?
+			{
+				if (receiveTagset->GetNextIndex () - index < GetOwner ()->GetNumRatchetInboundTags ()/2)
+					moreTags = GetOwner ()->GetNumRatchetInboundTags ();
+			}
+			else
+			{	
+				moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
+				if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
+				moreTags -= (receiveTagset->GetNextIndex () - index);
+			}	
+			if (moreTags > 0)
+				GenerateMoreReceiveTags (receiveTagset, moreTags);
+		}	
 		return true;
 	}
 

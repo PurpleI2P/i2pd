@@ -232,6 +232,8 @@ namespace garlic
 			void CleanUp ();
 			void SetNumTags (int numTags) { m_NumTags = numTags; };
 			int GetNumTags () const { return m_NumTags; };
+			void SetNumRatchetInboundTags (int numTags) { m_NumRatchetInboundTags = numTags; };
+			int GetNumRatchetInboundTags () const { return m_NumRatchetInboundTags; };
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
@@ -278,6 +280,7 @@ namespace garlic
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			// incoming
+			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
 			// DeliveryStatus

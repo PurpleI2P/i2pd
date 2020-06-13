@@ -56,6 +56,9 @@ namespace client
 				if (it != params->end ())
 					numTags = std::stoi(it->second);
 				LogPrint (eLogInfo, "Destination: parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
+				it = params->find (I2CP_PARAM_RATCHET_INBOUND_TAGS);
+				if (it != params->end ())
+					SetNumRatchetInboundTags (std::stoi(it->second));
 				it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
 				if (it != params->end ())
 				{

@@ -57,6 +57,8 @@ namespace client
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
+	const char I2CP_PARAM_RATCHET_INBOUND_TAGS[] = "crypto.ratchet.inboundTags";
+	const char I2CP_PARAM_RATCHET_OUTBOUND_TAGS[] = "crypto.ratchet.outboundTags"; // not used yet
 	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
 	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
 	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";

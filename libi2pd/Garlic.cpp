@@ -432,7 +432,8 @@ namespace garlic
 		return ret;
 	}
 
-	GarlicDestination::GarlicDestination (): m_NumTags (32) // 32 tags by default
+	GarlicDestination::GarlicDestination (): m_NumTags (32), // 32 tags by default
+		m_NumRatchetInboundTags (0) // 0 means standard
 	{
 		m_Ctx = BN_CTX_new ();
 	}
