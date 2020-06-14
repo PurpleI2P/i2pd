@@ -188,7 +188,8 @@ namespace garlic
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
 			bool m_SendReverseKey = false, m_SendForwardKey = false;
 			std::unique_ptr<DHRatchet> m_NextReceiveRatchet, m_NextSendRatchet;
-
+			uint8_t m_PaddingSizes[32], m_NextPaddingSize;
+			
 		public:
 
 			// for HTTP only

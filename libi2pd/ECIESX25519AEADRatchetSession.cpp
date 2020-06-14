@@ -96,6 +96,7 @@ namespace garlic
 	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
 		GarlicRoutingSession (owner, attachLeaseSet)
 	{
+		RAND_bytes (m_PaddingSizes, 32); m_NextPaddingSize = 0;
 		ResetKeys ();
 	}
 
@@ -745,8 +746,12 @@ namespace garlic
 			int delta = (int)ECIESX25519_OPTIMAL_PAYLOAD_SIZE - (int)payloadLen;
 			if (delta < 0 || delta > 3) // don't create padding if we are close to optimal size
 			{
-				RAND_bytes (&paddingSize, 1);
-				paddingSize &= 0x0F; // 0 - 15
+				paddingSize = m_PaddingSizes[m_NextPaddingSize++] & 0x0F; // 0 - 15
+				if (m_NextPaddingSize >= 32)
+				{
+					RAND_bytes (m_PaddingSizes, 32); 
+					m_NextPaddingSize = 0;
+				}	
 				if (delta > 3)
 				{
 					delta -= 3;
