@@ -36,7 +36,7 @@ RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib
     && cd /usr/local/bin \
     && strip i2pd \
     && rm -fr /tmp/build && apk --no-cache --purge del build-dependendencies build-base fortify-headers boost-dev zlib-dev openssl-dev \
-    boost-python3 python3 gdbm boost-unit_test_framework boost-python2 linux-headers boost-prg_exec_monitor \
+    boost-python3 python3 gdbm boost-unit_test_framework linux-headers boost-prg_exec_monitor \
     boost-serialization boost-wave boost-wserialization boost-math boost-graph boost-regex git pcre2 \
     libtool g++ gcc
 
