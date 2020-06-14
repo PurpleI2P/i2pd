@@ -4,34 +4,22 @@
 #
 #include <tunables/global>
 
-/usr/sbin/i2pd {
+profile i2pd /{usr/,}sbin/i2pd {
   #include <abstractions/base>
-
-  network inet dgram,
-  network inet stream,
-  network inet6 dgram,
-  network inet6 stream,
-  network netlink raw,
-
-  /etc/gai.conf r,
-  /etc/host.conf r,
-  /etc/hosts r,
-  /etc/nsswitch.conf r,
-  /etc/resolv.conf r,
-  /run/resolvconf/resolv.conf r,
-  /run/systemd/resolve/resolv.conf r,
-  /run/systemd/resolve/stub-resolv.conf r,
+  #include <abstractions/openssl>
+  #include <abstractions/nameservice>
 
   # path specific (feel free to modify if you have another paths)
   /etc/i2pd/** r,
-  /run/i2pd/i2pd.pid rwk,
   /var/lib/i2pd/** rw,
   /var/log/i2pd/i2pd.log w,
-  /var/run/i2pd/i2pd.pid rwk,
-  /usr/sbin/i2pd mr,
-  /usr/share/i2pd/** r,
+  /{var/,}run/i2pd/i2pd.pid rwk,
+  /{usr/,}sbin/i2pd mr,
+  @{system_share_dirs}/i2pd/** r,
 
   # user homedir (if started not by init.d or systemd)
   owner @{HOME}/.i2pd/   rw,
   owner @{HOME}/.i2pd/** rwk,
+
+  #include if exists <local/usr.sbin.i2pd>
 }
