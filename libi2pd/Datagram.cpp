@@ -296,7 +296,23 @@ namespace datagram
 		}	
 
 		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
-			m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
+		{
+			bool found = false;
+			for (auto& it: m_PendingRoutingSessions)
+				if (it->GetOwner ()) // found established session
+				{
+					m_RoutingSession = it;
+					m_PendingRoutingSessions.clear ();
+					found = true;
+					break;
+				}		
+			if (!found)
+			{	
+				m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
+				if (!m_RoutingSession->GetOwner ())
+					m_PendingRoutingSessions.push_back (m_RoutingSession);
+			}	
+		}	
 		
 		auto path = m_RoutingSession->GetSharedRoutingPath();
 		if (path) 
@@ -345,8 +361,6 @@ namespace datagram
 					auto idx = rand() % sz;
 					path->remoteLease = ls[idx];
 				}
-				
-			
 			} 
 			else 
 			{

@@ -95,6 +95,7 @@ namespace datagram
 			i2p::data::IdentHash m_RemoteIdent;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
+			std::vector<std::shared_ptr<i2p::garlic::GarlicRoutingSession> > m_PendingRoutingSessions;
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_LastUse;
 			bool m_RequestingLS;
