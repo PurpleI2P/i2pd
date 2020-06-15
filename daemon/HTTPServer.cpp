@@ -69,6 +69,7 @@ namespace http {
 		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 58em; }\r\n"
 		"  .menu { float: left; } .menu a, .commands a { display: block; }\r\n"
 		"  .listitem { display: block; font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
+		"  .tableitem { font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
 		"  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 46em; overflow: auto; }\r\n"
 		"  .tunnel.established { color: #56B734; } .tunnel.expiring { color: #D3AE3F; }\r\n"
 		"  .tunnel.failed { color: #D33F3F; } .tunnel.building { color: #434343; }\r\n"
@@ -172,7 +173,7 @@ namespace http {
 			default: state = "unknown"; break;
 		}
 		s << "<span class=\"tunnel " << state << "\"> " << state << ((explr) ? " (exploratory)" : "") << "</span>, ";
-		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
+		s << " " << (int) (bytes / 1024) << "&nbsp;KiB\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -389,7 +390,7 @@ namespace http {
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest)
 	{
-		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"11\" wrap=\"on\">";
+		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\" wrap=\"on\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
 		{
@@ -402,29 +403,34 @@ namespace http {
 		if(dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets ()
-			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>Address</th><th>Type</th><th>EncType</th></thead><tbody>";
+			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>Address</th><th>Type</th><th>EncType</th></thead><tbody class=\"tableitem\">";
 			for(auto& it: dest->GetLeaseSets ())
 				s << "<tr><td>" << it.first.ToBase32 () << "</td><td>" << (int)it.second->GetStoreType () << "</td><td>" << (int)it.second->GetEncryptionType () <<"</td></tr>\r\n";
 			s << "</tbody></table>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		} else
 			s << "<b>LeaseSets:</b> <i>0</i><br>\r\n<br>\r\n";
+
 		auto pool = dest->GetTunnelPool ();
 		if (pool)
 		{
-			s << "<b>Inbound tunnels:</b><br>\r\n";
+			s << "<b>Inbound tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetInboundTunnels ()) {
+				s << "<div class=\"listitem\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << "ms )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
+				s << "</div>\r\n";
 			}
 			s << "<br>\r\n";
-			s << "<b>Outbound tunnels:</b><br>\r\n";
+			s << "<b>Outbound tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetOutboundTunnels ()) {
+				s << "<div class=\"listitem\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << "ms )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
+				s << "</div>\r\n";
 			}
 		}
 		s << "<br>\r\n";
@@ -437,7 +443,7 @@ namespace http {
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
 			s << "<div class='slide'><label for='slide-tags'>Outgoing: <i>" << out_tags << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
-			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Amount</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Amount</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << "Outgoing: <i>0</i><br>\r\n";
 		s << "<br>\r\n";
@@ -453,7 +459,7 @@ namespace http {
 					ecies_sessions++;
 				}
 				s << "<div class='slide'><label for='slide-ecies-sessions'>Tags sessions: <i>" << ecies_sessions << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
-				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Status</th></thead>\r\n<tbody>\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>Destination</th><th>Status</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
 				s << "Tags sessions: <i>0</i><br>\r\n";
 			s << "<br>\r\n";
@@ -483,11 +489,12 @@ namespace http {
 			s << "<th>RTT</th>";
 			s << "<th>Window</th>";
 			s << "<th>Status</th>";
-			s << "</tr>\r\n</thead>\r\n<tbody>\r\n";
+			s << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
 
 			for (const auto& it: dest->GetAllStreams ())
 			{
 				auto streamDest = i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ());
+				std::string streamDestShort = streamDest.substr(0,12) + "&hellip;.b32.i2p";
 				s << "<tr>";
 				s << "<td>" << it->GetRecvStreamID () << "</td>";
 				if (it->GetRecvStreamID ()) {
@@ -496,7 +503,7 @@ namespace http {
 				} else {
 					s << "<td \\>";
 				}
-				s << "<td class=\"streamdest\" title=\"" << streamDest << "\">" << streamDest << "</td>";
+				s << "<td class=\"streamdest\" title=\"" << streamDest << "\">" << streamDestShort << "</td>";
 				s << "<td>" << it->GetNumSentBytes () << "</td>";
 				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
 				s << "<td>" << it->GetSendQueueSize () << "</td>";
@@ -531,7 +538,7 @@ namespace http {
 	{
 		if (i2p::data::netdb.GetNumLeaseSets ())
 		{
-			s << "<b>LeaseSets:</b><br>\r\n<br>\r\n";
+			s << "<b>LeaseSets:</b><br>\r\n<div class=\"list\">\r\n";
 			int counter = 1;
 			// for each lease set
 			i2p::data::netdb.VisitLeaseSets(
@@ -545,13 +552,13 @@ namespace http {
 					else
 						ls.reset (new i2p::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 					if (!ls) return;
-					s << "<div class='leaseset";
+					s << "<div class=\"leaseset listitem";
 					if (ls->IsExpired())
 						s << " expired"; // additional css class for expired
-					s << "'>\r\n";
+					s << "\">\r\n";
 					if (!ls->IsValid())
-						s << "<div class='invalid'>!! Invalid !! </div>\r\n";
-					s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
+						s << "<div class=\"invalid\">!! Invalid !! </div>\r\n";
+					s << "<div class=\"slide\"><label for=\"slide" << counter << "\">" << dest.ToBase32() << "</label>\r\n";
 					s << "<input type=\"checkbox\" id=\"slide" << (counter++) << "\" />\r\n<div class=\"slidecontent\">\r\n";
 					s << "<b>Store type:</b> " << (int)storeType << "<br>\r\n";
 					s << "<b>Expires:</b> " << ConvertTime(ls->GetExpirationTime()) << "<br>\r\n";
@@ -922,7 +929,7 @@ namespace http {
 
 	std::string ConvertTime (uint64_t time)
 	{
-		ldiv_t divTime = ldiv(time,1000);
+		lldiv_t divTime = lldiv(time, 1000);
 		time_t t = divTime.quot;
 		struct tm *tm = localtime(&t);
 		char date[128];
