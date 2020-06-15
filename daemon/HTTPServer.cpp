@@ -67,35 +67,36 @@ namespace http {
 		"    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
 		"  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
 		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 58em; }\r\n"
-		"  .menu { float: left; } .menu a { display: block; padding: 2px; }\r\n"
+		"  .menu { float: left; } .menu a, .commands a { display: block; }\r\n"
+		"  .listitem { display: block; font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
 		"  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 46em; overflow: auto; }\r\n"
-		"  .tunnel.established { color: #56B734; }\r\n"
-		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
-		"  .tunnel.failed      { color: #D33F3F; }\r\n"
-		"  .tunnel.building    { color: #434343; }\r\n"
+		"  .tunnel.established { color: #56B734; } .tunnel.expiring { color: #D3AE3F; }\r\n"
+		"  .tunnel.failed { color: #D33F3F; } .tunnel.building { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { display: table; border-collapse: collapse; text-align: center; }\r\n"
 		"  table.extaddr { text-align: left; } table.services { width: 100%; }\r\n"
+		"  textarea { word-break: break-all; }\r\n"
 		"  .streamdest { width: 120px; max-width: 240px; overflow: hidden; text-overflow: ellipsis;}\r\n"
 		"  .slide div.slidecontent, .slide [type=\"checkbox\"] { display: none; }\r\n"
 		"  .slide [type=\"checkbox\"]:checked ~ div.slidecontent { display: block; margin-top: 0; padding: 0; }\r\n"
 		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
 		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
 		"  @media screen and (max-width: 980px) {\r\n" /* adaptive style */
-		"    .menu { width: 100%; display: block; float: none; position: unset; font-size: 24px;\r\n"
+		"    .menu { width: 100%; display: block; float: none; position: unset; font-size: 16px;\r\n"
 		"      text-align: center; }\r\n"
-		"    .content { float: none; margin: 0; margin-top: 16px; max-width: 100%; width: 100%; font-size: 1.2em;\r\n"
-		"      text-align: center; line-height: 28px; }\r\n"
+		"    .menu a, .commands a { padding: 2px; }\r\n"
+		"    .content { float: none; margin: 0; margin-top: 16px; max-width: 100%; width: 100%;\r\n"
+		"      text-align: center; }\r\n"
 		"    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
-		"    .header { margin: 0.5em 0; } small {display: block}\r\n"
+		"    .header { margin: unset; font-size: 1.5em; } small {display: block}\r\n"
 		"    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
 		"      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
-		"    input { width: 35%; height: 50px; text-align: center; /* margin-top: 15px; */ padding: 5px;\r\n"
-		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 35px; }\r\n"
+		"    input { width: 35%; text-align: center; padding: 5px;\r\n"
+		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 24px; }\r\n"
 		"    textarea { width: -webkit-fill-available; height: auto; padding:5px; border:2px solid #ccc;\r\n"
-		"      -webkit-border-radius: 5px; border-radius: 5px; font-size: 22px; }\r\n"
+		"      -webkit-border-radius: 5px; border-radius: 5px; font-size: 12px; }\r\n"
 		"    button[type=submit] { padding: 5px 15px; background: #ccc; border: 0 none; cursor: pointer;\r\n"
-		"      -webkit-border-radius: 5px; border-radius: 5px; position: relative; height: 50px; display: -webkit-inline-box; margin-top: 25px; }\r\n"
+		"      -webkit-border-radius: 5px; border-radius: 5px; position: relative; height: 36px; display: -webkit-inline-box; margin-top: 10px; }\r\n"
 		"  }\r\n" /* adaptive style */
 		"</style>\r\n";
 
@@ -228,7 +229,7 @@ namespace http {
 	static void ShowPageTail (std::stringstream& s)
 	{
 		s <<
-			"</div></div>\r\n"
+			"</div>\r\n</div>\r\n"
 			"</body>\r\n"
 			"</html>\r\n";
 	}
@@ -358,18 +359,19 @@ namespace http {
 	void ShowLocalDestinations (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
+		s << "<b>Local Destinations:</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
-			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n" << std::endl;
 		}
+		s << "</div>\r\n";
 
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
-			s << "<br><b>I2CP Local Destinations:</b><br>\r\n<br>\r\n";
+			s << "<br><b>I2CP Local Destinations:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: i2cpServer->GetSessions ())
 			{
 				auto dest = it.second->GetDestination ();
@@ -377,10 +379,11 @@ namespace http {
 				{
 					auto ident = dest->GetIdentHash ();
 					auto& name = dest->GetNickname ();
-					s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
-					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"<br>\r\n" << std::endl;
+					s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
+					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"</div>\r\n" << std::endl;
 				}
 			}
+			s << "</div>\r\n";
 		}
 	}
 
@@ -581,54 +584,59 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
-		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
+		s << "<b>Tunnels:</b><br>\r\n";
+		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n<br>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
-		s << "<b>Inbound tunnels:</b><br>\r\n";
+		s << "<b>Inbound tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+			s << "<div class=\"listitem\">";
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
+			s << "</div>\r\n";
 		}
-		s << "<br>\r\n";
-		s << "<b>Outbound tunnels:</b><br>\r\n";
+		s << "</div>\r\n<br>\r\n";
+		s << "<b>Outbound tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+			s << "<div class=\"listitem\">";
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
+			s << "</div>\r\n";
 		}
-		s << "<br>\r\n";
+		s << "</div>\r\n";
 	}
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		/* commands */
-		s << "<b>Router Commands</b><br>\r\n<br>\r\n";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
+		s << "<b>Router Commands</b><br>\r\n<br>\r\n<div class=\"commands\">\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a>\r\n";
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (Daemon.gracefulShutdownInterval)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a>\r\n";
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
 #elif defined(WIN32_APP)
 		if (i2p::util::DaemonWin32::Instance().isGraceful)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a>\r\n";
 #endif
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n<br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a>\r\n";
+		s << "</div>";
 
-		s << "<small><b>Note:</b> any action done here are not persistent and not changes your config files.</small>\r\n<br>\r\n";
+		s << "<br>\r\n<small><b>Note:</b> any action done here are not persistent and not changes your config files.</small>\r\n<br>\r\n";
 
 		s << "<b>Logging level</b><br>\r\n";
 		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
@@ -651,17 +659,19 @@ namespace http {
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
+			s << "<b>Transit tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
+				s << "<div class=\"listitem\">\r\n";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
 					s << it->GetTunnelID () << " &#8658; ";
 				else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
 					s << " &#8658; " << it->GetTunnelID ();
 				else
 					s << " &#8658; " << it->GetTunnelID () << " &#8658; ";
-				s << " " << it->GetNumTransmittedBytes () << "<br>\r\n";
+				s << " " << it->GetNumTransmittedBytes () << "</div>\r\n";
 			}
+			s << "</div>\r\n";
 		}
 		else
 		{
@@ -677,43 +687,44 @@ namespace http {
 		{
 			if (it.second && it.second->IsEstablished () && !it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
 			{
-				// incoming connection doesn't have remote RI
+				tmp_s << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				tmp_s << "<br>\r\n" << std::endl;
+				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
 			if (it.second && it.second->IsEstablished () && it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
 			{
+				tmp_s6 << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< "[" << it.second->GetSocket ().remote_endpoint().address ().to_string () << "]";
 				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				tmp_s6 << "<br>\r\n" << std::endl;
+				tmp_s6 << "</div>\r\n" << std::endl;
 				cnt6++;
 			}
 		}
 		if (!tmp_s.str ().empty ())
 		{
 			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name
-			  << "</b> ( " << cnt << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "\" />\r\n<div class=\"slidecontent\">"
+			  << "</b> ( " << cnt << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "\" />\r\n<div class=\"slidecontent list\">"
 			  << tmp_s.str () << "</div>\r\n</div>\r\n";
 		}
 		if (!tmp_s6.str ().empty ())
 		{
 			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name
-			  << "v6</b> ( " << cnt6 << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n<div class=\"slidecontent\">"
+			  << "v6</b> ( " << cnt6 << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n<div class=\"slidecontent list\">"
 			  << tmp_s6.str () << "</div>\r\n</div>\r\n";
 		}
 	}
 
 	void ShowTransports (std::stringstream& s)
 	{
-		s << "<b>Transports:</b><br>\r\n<br>\r\n";
+		s << "<b>Transports:</b><br>\r\n";
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer ();
 		if (ntcpServer)
 		{
@@ -734,9 +745,10 @@ namespace http {
 			auto sessions = ssuServer->GetSessions ();
 			if (!sessions.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssu\" />\r\n<div class=\"slidecontent\">";
+				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssu\" />\r\n<div class=\"slidecontent list\">";
 				for (const auto& it: sessions)
 				{
+					s << "<div class=\"listitem\">\r\n";
 					auto endpoint = it.second->GetRemoteEndpoint ();
 					if (it.second->IsOutgoing ()) s << " &#8658; ";
 					s << endpoint.address ().to_string () << ":" << endpoint.port ();
@@ -744,16 +756,17 @@ namespace http {
 					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 					if (it.second->GetRelayTag ())
 						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "<br>\r\n" << std::endl;
+					s << "</div>\r\n" << std::endl;
 				}
 				s << "</div>\r\n</div>\r\n";
 			}
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssuv6\" />\r\n<div class=\"slidecontent\">";
+				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssuv6\" />\r\n<div class=\"slidecontent list\">";
 				for (const auto& it: sessions6)
 				{
+					s << "<div class=\"listitem\">\r\n";
 					auto endpoint = it.second->GetRemoteEndpoint ();
 					if (it.second->IsOutgoing ()) s << " &#8658; ";
 					s << "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
@@ -761,7 +774,7 @@ namespace http {
 					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 					if (it.second->GetRelayTag ())
 						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "<br>\r\n" << std::endl;
+					s << "</div>\r\n" << std::endl;
 				}
 				s << "</div>\r\n</div>\r\n";
 			}
@@ -780,13 +793,14 @@ namespace http {
 
 		if(sam->GetSessions ().size ())
 		{
-			s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
+			s << "<b>SAM Sessions:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
 			{
 				auto& name = it.second->localDestination->GetNickname ();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
-				s << name << " (" << it.first << ")</a><br>\r\n" << std::endl;
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
+				s << name << " (" << it.first << ")</a></div>\r\n" << std::endl;
 			}
+			s << "</div>\r\n";
 		}
 		else
 			s << "<b>SAM Sessions:</b> no sessions currently running.<br>\r\n";
@@ -794,25 +808,28 @@ namespace http {
 
 	static void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
 			ShowError(s, "SAM disabled");
 			return;
 		}
+
 		auto session = sam->FindSession (id);
 		if (!session) {
 			ShowError(s, "SAM session not found");
 			return;
 		}
+
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		s << "<b>SAM Session:</b><br>\r\n<div class=\"list\">\r\n";
 		auto& ident = session->localDestination->GetIdentHash();
-		s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
+		s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n";
 		s << "<br>\r\n";
-		s << "<b>Streams:</b><br>\r\n";
+		s << "<b>Streams:</b><br>\r\n<div class=\"list\">\r\n";
 		for (const auto& it: sam->ListSockets(id))
 		{
+			s << "<div class=\"listitem\">";
 			switch (it->GetSocketType ())
 			{
 				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
@@ -821,78 +838,85 @@ namespace http {
 				default: s << "unknown"; break;
 			}
 			s << " [" << it->GetSocket ().remote_endpoint() << "]";
-			s << "<br>\r\n";
+			s << "</div>\r\n";
 		}
+		s << "</div>\r\n";
 	}
 
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
+		s << "<b>Client Tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << it.second->GetName () << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "<br>\r\n"<< std::endl;
+			s << "</div>\r\n"<< std::endl;
 		}
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
 		if (httpProxy)
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "HTTP Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "<br>\r\n"<< std::endl;
+			s << "</div>\r\n"<< std::endl;
 		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
 		if (socksProxy)
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "SOCKS Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "<br>\r\n"<< std::endl;
+			s << "</div>\r\n"<< std::endl;
 		}
+		s << "</div>\r\n";
+
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
-			s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
+			s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: serverTunnels)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8658; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
-				s << "</a><br>\r\n"<< std::endl;
+				s << "</a></div>\r\n"<< std::endl;
 			}
+			s << "</div>\r\n";
 		}
+
 		auto& clientForwards = i2p::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
 		{
-			s << "<br>\r\n<b>Client Forwards:</b><br>\r\n<br>\r\n";
+			s << "<br>\r\n<b>Client Forwards:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-				s << "<br>\r\n"<< std::endl;
+				s << "</div>\r\n"<< std::endl;
 			}
+			s << "</div>\r\n";
 		}
 		auto& serverForwards = i2p::client::context.GetServerForwards ();
 		if (!serverForwards.empty ())
 		{
-			s << "<br>\r\n<b>Server Forwards:</b><br>\r\n<br>\r\n";
+			s << "<br>\r\n<b>Server Forwards:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-				s << "<br>\r\n"<< std::endl;
+				s << "</div>\r\n"<< std::endl;
 			}
+			s << "</div>\r\n";
 		}
 	}
 
