@@ -611,7 +611,7 @@ namespace client
 
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
-		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0])
+		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || fromPort != m_LastSession->RemotePort)
 		{
 			std::lock_guard<std::mutex> lock(m_SessionsMutex);
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
@@ -659,7 +659,7 @@ namespace client
 		auto ih = from.GetIdentHash();
 		for (auto & s : m_Sessions )
 		{
-			if (s->Identity.GetLL()[0] == ih.GetLL()[0])
+			if (s->Identity.GetLL()[0] == ih.GetLL()[0] && remotePort == s->RemotePort)
 			{
 				/** found existing session */
 				LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
