@@ -318,8 +318,12 @@ namespace datagram
 		if (path) 
 		{
 			if (path->outboundTunnel && !path->outboundTunnel->IsEstablished ())
+			{	
 				// bad outbound tunnel, switch outbound tunnel
 				path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(path->outboundTunnel);
+				if (!path->outboundTunnel)
+					m_RoutingSession->SetSharedRoutingPath (nullptr);
+			}	
 			
 			if (path->remoteLease && path->remoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) 
 			{
@@ -338,11 +342,14 @@ namespace datagram
 						path->remoteLease = ls[idx];
 					}
 					else
-						path->remoteLease = nullptr;
+						m_RoutingSession->SetSharedRoutingPath (nullptr);
 				} 
 				else 
+				{	
 					// no remote lease set?
 					LogPrint(eLogWarning, "DatagramSession: no cached remote lease set for ", m_RemoteIdent.ToBase32());
+					m_RoutingSession->SetSharedRoutingPath (nullptr);
+				}	
 			}
 		} 
 		else 
@@ -350,7 +357,8 @@ namespace datagram
 			// no current path, make one
 			path = std::make_shared<i2p::garlic::GarlicRoutingPath>();
 			path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel();
-			
+			if (!path->outboundTunnel) return nullptr;
+				
 			if (m_RemoteLeaseSet) 
 			{
 				// pick random next good lease
@@ -361,6 +369,8 @@ namespace datagram
 					auto idx = rand() % sz;
 					path->remoteLease = ls[idx];
 				}
+				else
+					return nullptr;
 			} 
 			else 
 			{
