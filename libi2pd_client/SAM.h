@@ -134,7 +134,7 @@ namespace client
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
-			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote);
+			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote, std::shared_ptr<SAMSession> session = nullptr);
 			void HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet);
 			void SendNamingLookupReply (std::shared_ptr<const i2p::data::IdentityEx> identity);
 			void HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name);
