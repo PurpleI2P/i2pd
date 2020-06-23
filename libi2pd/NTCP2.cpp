@@ -1305,7 +1305,8 @@ namespace transport
 						if (ecode != boost::asio::error::operation_aborted)
 						{
 							LogPrint (eLogInfo, "NTCP2: Not connected in ", timeout, " seconds");
-							//i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+							if (conn->GetRemoteIdentity ())
+								i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 							conn->Terminate ();
 						}
 					});

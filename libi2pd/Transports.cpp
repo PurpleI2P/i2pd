@@ -440,7 +440,7 @@ namespace transport
 				{
 					// NTCP2 have priority over NTCP
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address)
+					if (address  && !peer.router->IsUnreachable ())
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
