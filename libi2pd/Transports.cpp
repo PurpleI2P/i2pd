@@ -431,6 +431,8 @@ namespace transport
 
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
 	{
+		if (!peer.router) // reconnect
+			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
 			if (!peer.numAttempts) // NTCP2
@@ -638,6 +640,7 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				it->second.router = nullptr; // we don't need RouterInfo after successive connect
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{
