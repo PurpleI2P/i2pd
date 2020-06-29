@@ -13,7 +13,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <queue>
 #include <string>
@@ -157,7 +157,7 @@ namespace transport
 			SSUServer * m_SSUServer;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
-			std::map<i2p::data::IdentHash, Peer> m_Peers;
+			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
