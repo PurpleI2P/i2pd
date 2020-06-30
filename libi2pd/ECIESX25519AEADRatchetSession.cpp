@@ -391,7 +391,7 @@ namespace garlic
 		else
 			m_NextSendRatchet.reset (new DHRatchet ());
 		if (m_NextSendRatchet->newKey)
-			m_NextSendRatchet->key->GenerateKeys ();
+			m_NextSendRatchet->key = i2p::transport::transports.GetNextX25519KeysPair ();
 
 		m_SendForwardKey = true;
 		LogPrint (eLogDebug, "Garlic: new send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
