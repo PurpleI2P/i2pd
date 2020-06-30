@@ -16,6 +16,7 @@
 #include "Timestamp.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
+#include "Transports.h"
 #include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
@@ -137,12 +138,38 @@ namespace garlic
 
 	bool ECIESX25519AEADRatchetSession::GenerateEphemeralKeysAndEncode (uint8_t * buf)
 	{
+		bool ineligible = false;
+		while (!ineligible)
+		{	
+			m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+			ineligible = m_EphemeralKeys->IsElligatorIneligible ();
+			if (!ineligible) // we haven't tried it yet
+			{	
+				if (i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys->GetPublicKey (), buf))
+					return true; // success
+				// otherwise return back
+				m_EphemeralKeys->SetElligatorIneligible ();
+				i2p::transport::transports.ReuseX25519KeysPair (m_EphemeralKeys);
+			}
+			else
+				i2p::transport::transports.ReuseX25519KeysPair (m_EphemeralKeys);
+		}	
+		// we still didn't find elligator eligible pair
 		for (int i = 0; i < 10; i++)
 		{
-			m_EphemeralKeys.GenerateKeys ();
-			if (i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys.GetPublicKey (), buf))
+			// create new
+			m_EphemeralKeys = std::make_shared<i2p::crypto::X25519Keys>();
+			m_EphemeralKeys->GenerateKeys ();
+			if (i2p::crypto::GetElligator ()->Encode (m_EphemeralKeys->GetPublicKey (), buf))
 				return true; // success
+			else
+			{
+				// let NTCP2 use it
+				m_EphemeralKeys->SetElligatorIneligible ();
+				i2p::transport::transports.ReuseX25519KeysPair (m_EphemeralKeys);
+			}	
 		}
+		LogPrint (eLogError, "Garlic: Can't generate elligator eligible x25519 keys");
 		return false;
 	}
 
@@ -294,7 +321,7 @@ namespace garlic
 				if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 					memcpy (m_NextSendRatchet->remote, buf, 32);
 				uint8_t sharedSecret[32], tagsetKey[32];
-				m_NextSendRatchet->key.Agree (m_NextSendRatchet->remote, sharedSecret);
+				m_NextSendRatchet->key->Agree (m_NextSendRatchet->remote, sharedSecret);
 				i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
 				auto newTagset = std::make_shared<RatchetTagSet> (shared_from_this ());
 				newTagset->SetTagSetID (1 + m_NextSendRatchet->keyID + keyID);
@@ -326,7 +353,7 @@ namespace garlic
 			int tagsetID = 2*keyID;
 			if (newKey)
 			{
-				m_NextReceiveRatchet->key.GenerateKeys ();
+				m_NextReceiveRatchet->key = i2p::transport::transports.GetNextX25519KeysPair ();
 				m_NextReceiveRatchet->newKey = true;
 				tagsetID++;
 			}
@@ -336,7 +363,7 @@ namespace garlic
 				memcpy (m_NextReceiveRatchet->remote, buf, 32);
 
 			uint8_t sharedSecret[32], tagsetKey[32];
-			m_NextReceiveRatchet->key.Agree (m_NextReceiveRatchet->remote, sharedSecret);
+			m_NextReceiveRatchet->key->Agree (m_NextReceiveRatchet->remote, sharedSecret);
 			i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
 			auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
 			newTagset->SetTagSetID (tagsetID);
@@ -364,7 +391,7 @@ namespace garlic
 		else
 			m_NextSendRatchet.reset (new DHRatchet ());
 		if (m_NextSendRatchet->newKey)
-			m_NextSendRatchet->key.GenerateKeys ();
+			m_NextSendRatchet->key->GenerateKeys ();
 
 		m_SendForwardKey = true;
 		LogPrint (eLogDebug, "Garlic: new send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
@@ -384,9 +411,9 @@ namespace garlic
 
 		// KDF1
 		MixHash (m_RemoteStaticKey, 32); // h = SHA256(h || bpk)
-		MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || aepk)
+		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		// encrypt static key section
 		uint8_t nonce[12];
@@ -435,11 +462,11 @@ namespace garlic
 		offset += 32;
 		// KDF for Reply Key Section
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
-		MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
+		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys.Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk)
+		m_EphemeralKeys->Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32)
-		m_EphemeralKeys.Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk)
+		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk)
 		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -485,7 +512,7 @@ namespace garlic
 		// recalculate h with new tag
 		memcpy (m_H, m_NSRH, 32);
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
-		MixHash (m_EphemeralKeys.GetPublicKey (), 32); // h = SHA256(h || bepk)
+		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (nonce /* can be anything */, 0, m_H, 32, m_CK + 32, nonce, out + 40, 16, true)) // encrypt, ciphertext = ENCRYPT(k, n, ZEROLEN, ad)
@@ -524,7 +551,7 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			// only fist time, we assume ephemeral keys the same
-			m_EphemeralKeys.Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
+			m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32)
 			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
 			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
@@ -565,6 +592,7 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			m_State = eSessionStateEstablished;
+			m_EphemeralKeys = nullptr;
 			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}
@@ -643,6 +671,7 @@ namespace garlic
 			case eSessionStateNewSessionReplySent:
 				m_State = eSessionStateEstablished;
 				m_NSRSendTagset = nullptr;
+				m_EphemeralKeys = nullptr;
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
 #endif
@@ -813,7 +842,7 @@ namespace garlic
 			htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
 			if (m_NextReceiveRatchet->newKey)
 			{
-				memcpy (v.data () + offset, m_NextReceiveRatchet->key.GetPublicKey (), 32);
+				memcpy (v.data () + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
 				offset += 32; // public key
 			}
 			m_SendReverseKey = false;
@@ -828,7 +857,7 @@ namespace garlic
 			htobe16buf (v.data () + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
 			if (m_NextSendRatchet->newKey)
 			{
-				memcpy (v.data () + offset, m_NextSendRatchet->key.GetPublicKey (), 32);
+				memcpy (v.data () + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
 				offset += 32; // public key
 			}
 		}

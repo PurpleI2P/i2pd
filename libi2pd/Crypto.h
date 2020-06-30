@@ -91,6 +91,9 @@ namespace crypto
 			void SetPrivateKey (const uint8_t * priv, bool calculatePublic = false);
 			void Agree (const uint8_t * pub, uint8_t * shared);
 
+			bool IsElligatorIneligible () const { return m_IsElligatorIneligible; }
+			void SetElligatorIneligible () { m_IsElligatorIneligible = true; }
+			
 		private:
 
 			uint8_t m_PublicKey[32];
@@ -101,6 +104,7 @@ namespace crypto
 			BN_CTX * m_Ctx;
 			uint8_t m_PrivateKey[32];
 #endif
+			bool m_IsElligatorIneligible = false; // true if definitly ineligible
 	};
 
 	// ElGamal

@@ -122,7 +122,7 @@ namespace garlic
 		struct DHRatchet
 		{
 			int keyID = 0;
-			i2p::crypto::X25519Keys key;
+			std::shared_ptr<i2p::crypto::X25519Keys> key;
 			uint8_t remote[32]; // last remote public key
 			bool newKey = true;
 		};
@@ -180,7 +180,7 @@ namespace garlic
 			uint8_t m_H[32], m_CK[64] /* [chainkey, key] */, m_RemoteStaticKey[32];
 			uint8_t m_Aepk[32]; // Alice's ephemeral keys, for incoming only
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
-			i2p::crypto::X25519Keys m_EphemeralKeys;
+			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			SessionState m_State = eSessionStateNew;
 			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0; // incoming
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
