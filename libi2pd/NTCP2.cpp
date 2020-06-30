@@ -83,7 +83,7 @@ namespace transport
 
 	void NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
+		KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 
 	void NTCP2Establisher::KDF1Bob ()
@@ -102,7 +102,7 @@ namespace transport
 
 		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys.Agree (GetRemotePub (), inputKeyMaterial);
+		m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial);
 
 		MixKey (inputKeyMaterial);
 	}
@@ -127,13 +127,13 @@ namespace transport
 	void NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys.Agree (m_RemoteStaticKey, inputKeyMaterial);
+		m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial);
 		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
 	{
-		m_EphemeralKeys.GenerateKeys ();
+		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 	}
 
 	void NTCP2Establisher::CreateSessionRequestMessage ()
