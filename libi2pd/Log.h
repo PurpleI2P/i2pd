@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -17,6 +17,7 @@
 #include <chrono>
 #include <memory>
 #include <thread>
+#include <functional>
 #include "Queue.h"
 
 #ifndef _WIN32
@@ -151,8 +152,12 @@ namespace log {
 	};
 
 	Log & Logger();
+
+	typedef std::function<void (const std::string&)>  ThrowFunction;
+	ThrowFunction GetThrowFunction ();
+	void SetThrowFunction (ThrowFunction f);
 } // log
-}
+} // i2p
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
@@ -195,6 +200,25 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);
+}
+
+/**
+ * @brief Throw fatal error message with the list of arguments
+ * @param args Array of message parts
+ */
+template<typename... TArgs>
+void ThrowFatal (TArgs&&... args) noexcept
+{
+	auto f = i2p::log::GetThrowFunction ();
+	if (!f) return;
+	// fold message to single string
+	std::stringstream ss("");
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+	(LogPrint (ss, std::forward<TArgs>(args)), ...);
+#else
+	LogPrint (ss, std::forward<TArgs>(args)...);
+#endif
+	f (ss.str ());
 }
 
 #endif // LOG_H__

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
@@ -6,10 +14,6 @@
 #include "Transports.h"
 #include "Config.h"
 #include "HTTP.h"
-#ifdef WITH_EVENTS
-#include "Event.h"
-#include "util.h"
-#endif
 
 using namespace i2p::data;
 
@@ -17,23 +21,27 @@ namespace i2p
 {
 namespace transport
 {
-	DHKeysPairSupplier::DHKeysPairSupplier (int size):
+	template<typename Keys>
+	EphemeralKeysSupplier<Keys>::EphemeralKeysSupplier (int size):
 		m_QueueSize (size), m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 
-	DHKeysPairSupplier::~DHKeysPairSupplier ()
+	template<typename Keys>	
+	EphemeralKeysSupplier<Keys>::~EphemeralKeysSupplier ()
 	{
 		Stop ();
 	}
 
-	void DHKeysPairSupplier::Start ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Start ()
 	{
 		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&DHKeysPairSupplier::Run, this));
+		m_Thread = new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this));
 	}
 
-	void DHKeysPairSupplier::Stop ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Stop ()
 	{
 		{
 			std::unique_lock<std::mutex> l(m_AcquiredMutex);
@@ -48,19 +56,20 @@ namespace transport
 		}
 	}
 
-	void DHKeysPairSupplier::Run ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Run ()
 	{
 		while (m_IsRunning)
 		{
 			int num, total = 0;
 			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 10)
 			{
-				CreateDHKeysPairs (num);
+				CreateEphemeralKeys (num);
 				total += num;
 			}
 			if (total >= 10)
 			{
-				LogPrint (eLogWarning, "Transports: ", total, " DH keys generated at the time");
+				LogPrint (eLogWarning, "Transports: ", total, " ephemeral keys generated at the time");
 				std::this_thread::sleep_for (std::chrono::seconds(1)); // take a break
 			}
 			else
@@ -72,24 +81,26 @@ namespace transport
 		}
 	}
 
-	void DHKeysPairSupplier::CreateDHKeysPairs (int num)
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::CreateEphemeralKeys (int num)
 	{
 		if (num > 0)
 		{
 			for (int i = 0; i < num; i++)
 			{
-				auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+				auto pair = std::make_shared<Keys> ();
 				pair->GenerateKeys ();
-				std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+				std::unique_lock<std::mutex> l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
 	}
 
-	std::shared_ptr<i2p::crypto::DHKeys> DHKeysPairSupplier::Acquire ()
+	template<typename Keys>	
+	std::shared_ptr<Keys> EphemeralKeysSupplier<Keys>::Acquire ()
 	{
 		{
-			std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+			std::unique_lock<std::mutex> l(m_AcquiredMutex);
 			if (!m_Queue.empty ())
 			{
 				auto pair = m_Queue.front ();
@@ -99,12 +110,13 @@ namespace transport
 			}
 		}
 		// queue is empty, create new
-		auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+		auto pair = std::make_shared<Keys> ();
 		pair->GenerateKeys ();
 		return pair;
 	}
 
-	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Return (std::shared_ptr<Keys> pair)
 	{
 		if (pair)
 		{
@@ -122,7 +134,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_DHKeysPairSupplier (5), // 5 pre-generated keys
+		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -154,10 +166,11 @@ namespace transport
 
 		i2p::config::GetOption("nat", m_IsNAT);
 		m_DHKeysPairSupplier.Start ();
+		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
-		std::string ntcp2proxy; i2p::config::GetOption("ntcp2proxy", ntcp2proxy);
+		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
 		i2p::http::URL proxyurl;
 		uint16_t softLimit, hardLimit, threads;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
@@ -180,7 +193,7 @@ namespace transport
 
 					if (proxyurl.schema == "http")
 						proxytype = NTCPServer::eHTTPProxy;
-					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 					m_NTCPServer->Start();
 					if(!m_NTCPServer->NetworkIsReady())
 					{
@@ -198,10 +211,10 @@ namespace transport
 			return;
 		}
 		// create NTCP2. TODO: move to acceptor
-		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
-			if(ntcp2proxy.size())
+			if(!ntcp2proxy.empty())
 			{
 				if(proxyurl.parse(ntcp2proxy))
 				{
@@ -213,7 +226,7 @@ namespace transport
 						if (proxyurl.schema == "http")
 							proxytype = NTCP2Server::eHTTPProxy;
 
-						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
 						m_NTCP2Server->Start();
 					}
 					else
@@ -223,9 +236,11 @@ namespace transport
 					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
 				return;
 			}
-
-		//	m_NTCP2Server = new NTCP2Server ();
-		//	m_NTCP2Server->Start ();
+			else
+			{
+				m_NTCP2Server = new NTCP2Server ();
+				m_NTCP2Server->Start ();
+			}
 		}
 
 		// create acceptors
@@ -273,11 +288,11 @@ namespace transport
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
-                if (m_IsNAT)
-                {
-                    m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
-                    m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
-                }
+		if (m_IsNAT)
+		{
+			m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+		}
 	}
 
 	void Transports::Stop ()
@@ -306,6 +321,7 @@ namespace transport
 		}
 
 		m_DHKeysPairSupplier.Stop ();
+		m_X25519KeysPairSupplier.Stop ();
 		m_IsRunning = false;
 		if (m_Service) m_Service->stop ();
 		if (m_Thread)
@@ -370,9 +386,6 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
-#ifdef WITH_EVENTS
-		QueueIntEvent("transport.send", ident.ToBase64(), msgs.size());
-#endif
 		m_Service->post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}
 
@@ -386,7 +399,7 @@ namespace transport
 			m_LoopbackHandler.Flush ();
 			return;
 		}
-		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
+		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -395,7 +408,7 @@ namespace transport
 			{
 				auto r = netdb.FindRouter (ident);
 				{
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
 						i2p::util::GetSecondsSinceEpoch (), {} })).first;
 				}
@@ -418,7 +431,8 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size exceeds ", MAX_NUM_DELAYED_MESSAGES);
+				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",  
+					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
 			}
@@ -427,38 +441,40 @@ namespace transport
 
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
 	{
+		if (!peer.router) // reconnect
+			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
-            if (!peer.numAttempts) // NTCP2
-            {
-                peer.numAttempts++;
-                if (m_NTCP2Server) // we support NTCP2
-                {
-                    // NTCP2 have priority over NTCP
-                    auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-                    if (address)
-                    {
-                        auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+			if (!peer.numAttempts) // NTCP2
+			{
+				peer.numAttempts++;
+				if (m_NTCP2Server) // we support NTCP2
+				{
+					// NTCP2 have priority over NTCP
+					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+					if (address  && !peer.router->IsUnreachable ())
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
-                        if(m_NTCP2Server->UsingProxy())
-                        {
-                            NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
-                            std::string addr = address->host.to_string();
+						if(m_NTCP2Server->UsingProxy())
+						{
+							NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
+							std::string addr = address->host.to_string();
 
-                            if(address->host.is_v6())
-                                remote = NTCP2Server::eIP6Address;
+							if(address->host.is_v6())
+								remote = NTCP2Server::eIP6Address;
 
-                            m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
-                        }
-                        else
-                            m_NTCP2Server->Connect (address->host, address->port, s);
-                        return true;
-                    }
-                }
-            }
+							m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
+						}
+						else
+							m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}
+				}
+			}
 			if (peer.numAttempts == 1) // NTCP1
 			{
-				peer.numAttempts++;     
+				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address && m_NTCPServer)
 				{
@@ -558,13 +574,13 @@ namespace transport
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
 				if (router)
-					m_SSUServer->CreateSession (router, true, isv4);	// peer test
+					m_SSUServer->CreateSession (router, true, isv4); // peer test
 				else
 				{
 					// if not peer test capable routers found pick any
 					router = i2p::data::netdb.GetRandomRouter ();
 					if (router && router->IsSSU ())
-						m_SSUServer->CreateSession (router);		// no peer test
+						m_SSUServer->CreateSession (router); // no peer test
 				}
 			}
 			if (i2p::context.SupportsV6 ())
@@ -579,7 +595,7 @@ namespace transport
 						if (addr)
 							m_SSUServer->GetServiceV6 ().post ([this, router, addr]
 							{
-								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);				
+								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
 							});
 					}
 				}
@@ -594,6 +610,7 @@ namespace transport
 		if (RoutesRestricted() || !i2p::context.SupportsV4 ()) return;
 		if (m_SSUServer)
 		{
+			LogPrint (eLogInfo, "Transports: Started peer test");
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -609,7 +626,7 @@ namespace transport
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Can't find routers for peer test");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test");
 		}
 	}
 
@@ -623,6 +640,16 @@ namespace transport
 		m_DHKeysPairSupplier.Return (pair);
 	}
 
+	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()
+	{
+		return m_X25519KeysPairSupplier.Acquire ();
+	}
+
+	void Transports::ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair)
+	{
+		m_X25519KeysPairSupplier.Return (pair);
+	}
+		
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service->post([session, this]()
@@ -633,9 +660,7 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-#ifdef WITH_EVENTS
-				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "false"}});
-#endif
+				it->second.router = nullptr; // we don't need RouterInfo after successive connect
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{
@@ -661,9 +686,6 @@ namespace transport
 					session->Done();
 					return;
 				}
-#ifdef WITH_EVENTS
-				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "true"}});
-#endif
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
@@ -678,9 +700,6 @@ namespace transport
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
 			auto ident = remoteIdentity->GetIdentHash ();
-#ifdef WITH_EVENTS
-			EmitEvent({{"type" , "transport.disconnected"}, {"ident", ident.ToBase64()}});
-#endif
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -726,7 +745,7 @@ namespace transport
 					{
 						profile->TunnelNonReplied();
 					}
-					std::unique_lock<std::mutex>	l(m_PeersMutex);
+					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}
 				else

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef ED25519_H__
 #define ED25519_H__
 
@@ -86,10 +94,10 @@ namespace crypto
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const;
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
 			void SignRedDSA (const uint8_t * privateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, uint8_t * signature) const;
-			
+
 			static void ExpandPrivateKey (const uint8_t * key, uint8_t * expandedKey); // key - 32 bytes, expandedKey - 64 bytes
 			void CreateRedDSAPrivateKey (uint8_t * priv); // priv is 32 bytes
-			
+
 		private:
 
 			EDDSAPoint Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const;
@@ -97,8 +105,8 @@ namespace crypto
 			EDDSAPoint Mul (const EDDSAPoint& p, const BIGNUM * e, BN_CTX * ctx) const;
 			EDDSAPoint MulB (const uint8_t * e, BN_CTX * ctx) const; // B*e, e is 32 bytes Little Endian
 			EDDSAPoint Normalize (const EDDSAPoint& p, BN_CTX * ctx) const;
-			
-			bool IsOnCurve (const EDDSAPoint& p, BN_CTX * ctx) const;	
+
+			bool IsOnCurve (const EDDSAPoint& p, BN_CTX * ctx) const;
 			BIGNUM * RecoverX (const BIGNUM * y, BN_CTX * ctx) const;
 			EDDSAPoint DecodePoint (const uint8_t * buf, BN_CTX * ctx) const;
 			void EncodePoint (const EDDSAPoint& p, uint8_t * buf) const;
@@ -109,7 +117,7 @@ namespace crypto
 
 #if !OPENSSL_X25519
 			// for x25519
-			BIGNUM * ScalarMul (const BIGNUM * p, const BIGNUM * e, BN_CTX * ctx) const; 
+			BIGNUM * ScalarMul (const BIGNUM * p, const BIGNUM * e, BN_CTX * ctx) const;
 #endif
 
 		private:
@@ -121,13 +129,11 @@ namespace crypto
 			// if j > 128 we use 256 - j and carry 1 to next byte
 			// Bi256[0][0] = B, base point
 			EDDSAPoint Bi256Carry; // Bi256[32][0]
-	};		
+	};
 
 	std::unique_ptr<Ed25519>& GetEd25519 ();
 
 }
 }
 
-
 #endif
-

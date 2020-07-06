@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef CRYPTO_KEY_H__
 #define CRYPTO_KEY_H__
 
@@ -45,7 +53,7 @@ namespace crypto
 			ElGamalDecryptor (const uint8_t * priv);
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 256; };
-			
+
 		private:
 
 			uint8_t m_PrivateKey[256];
@@ -76,7 +84,7 @@ namespace crypto
 			~ECIESP256Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 64; };
-			
+
 		private:
 
 			EC_GROUP * m_Curve;
@@ -109,7 +117,7 @@ namespace crypto
 			~ECIESGOSTR3410Decryptor ();
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 			size_t GetPublicKeyLen () const { return 64; };
-			
+
 		private:
 
 			BIGNUM * m_PrivateKey;
@@ -119,14 +127,14 @@ namespace crypto
 
 // ECIES-X25519-AEAD-Ratchet
 
-	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor 
+	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor
 	{
 		public:
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
 			~ECIESX25519AEADRatchetEncryptor () {};
 			void Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool);
-            // copies m_PublicKey to pub
+			// copies m_PublicKey to pub
 
 		private:
 
@@ -137,11 +145,12 @@ namespace crypto
 	{
 		public:
 
-			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv);
+			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic = false);
 			~ECIESX25519AEADRatchetDecryptor () {};
-			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding); 
+			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding);
 			// agree with static and return in sharedSecret (32 bytes)
 			size_t GetPublicKeyLen () const { return 32; };
+			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); };
 
 		private:
 
@@ -153,4 +162,3 @@ namespace crypto
 }
 
 #endif
-

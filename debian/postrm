@@ -6,7 +6,7 @@ if [ "$1" = "purge" ]; then
 	rm -rf /etc/i2pd
 	rm -rf /var/lib/i2pd
 	rm -rf /var/log/i2pd
-	rm -rf /var/run/i2pd
+	rm -rf /run/i2pd
 fi
 
 #DEBHELPER#

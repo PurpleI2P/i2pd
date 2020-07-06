@@ -15,13 +15,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/horizontal_page_margin"
-        android:visibility="gone"
-        />
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/button_request_write_ext_storage_perms"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Retry requesting the SD card write permissions"
-        android:visibility="gone"/>
+        android:text="@string/retryPermRequest"
+        android:visibility="gone" />
 </LinearLayout>

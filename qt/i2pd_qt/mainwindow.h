@@ -62,6 +62,12 @@
 #include "widgetlockregistry.h"
 #include "widgetlock.h"
 
+#include "DelayedSaveManager.h"
+#include "DelayedSaveManagerImpl.h"
+#include "SaverImpl.h"
+
+class SaverImpl;
+
 class LogViewerManager;
 
 template<typename ValueType>
@@ -373,10 +379,14 @@ using namespace i2p::qt;
 
 class Controller;
 
+class DelayedSaveManagerImpl;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 private:
     std::shared_ptr<std::iostream> logStream;
+    DelayedSaveManagerImpl* delayedSaveManagerPtr;
+    DelayedSaveManager::DATA_SERIAL_TYPE dataSerial;
 public:
     explicit MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent=nullptr);
     ~MainWindow();
@@ -502,16 +512,17 @@ protected:
     void initStringBox(ConfigOption option, QLineEdit* lineEdit);
     NonGUIOptionItem* initNonGUIOption(ConfigOption option);
 
-    void loadAllConfigs();
+    void loadAllConfigs(SaverImpl* saverPtr);
+    void layoutTunnels();
 
 public slots:
     /** returns false iff not valid items present and save was aborted */
-    bool saveAllConfigs();
-    void SaveTunnelsConfig();
+    bool saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus="");
     void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus);
 
     //focus none
     void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
+    void reloadTunnelsConfigAndUI_QString(const QString tunnelNameToFocus);
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
 
@@ -530,6 +541,7 @@ private:
 
     void appendTunnelForms(std::string tunnelNameToFocus);
     void deleteTunnelForms();
+    void deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf);
 
     template<typename Section, typename Type>
     std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
@@ -575,11 +587,11 @@ private:
         std::map<std::string,TunnelConfig*>::const_iterator it=tunnelConfigs.find(name);
         if(it!=tunnelConfigs.end()){
             TunnelConfig* tc=it->second;
+            deleteTunnelFromUI(name, tc);
             tunnelConfigs.erase(it);
             delete tc;
         }
-        saveAllConfigs();
-        reloadTunnelsConfigAndUI("");
+        saveAllConfigs(false);
     }
 
     std::string GenerateNewTunnelName() {
@@ -614,8 +626,7 @@ private:
                                                       destinationPort,
                                                       sigType);
 
-        saveAllConfigs();
-        reloadTunnelsConfigAndUI(name);
+        saveAllConfigs(true, name);
     }
 
     void CreateDefaultServerTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
@@ -651,8 +662,7 @@ private:
                                                   isUniqueLocal);
 
 
-        saveAllConfigs();
-        reloadTunnelsConfigAndUI(name);
+        saveAllConfigs(true, name);
     }
 
     void ReadTunnelsConfig() //TODO deduplicate the code with ClientContext.cpp::ReadTunnels ()
@@ -793,7 +803,9 @@ private:
 
     TunnelsPageUpdateListenerMainWindowImpl tunnelsPageUpdateListener;
 
-    void onLoggingOptionsChange() {}
+    //void onLoggingOptionsChange() {}
+
+    SaverImpl* saverPtr;
 };
 
 #endif // MAINWINDOW_H

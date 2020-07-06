@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef __UPNP_H__
 #define __UPNP_H__
 
@@ -33,41 +41,41 @@ namespace transport
 	{
 		public:
 
-		UPnP ();
-		~UPnP ();
-		void Close ();
+			UPnP ();
+			~UPnP ();
+			void Close ();
 
-		void Start ();
-		void Stop ();
-
-		private:
-
-		void Discover ();
-		int  CheckMapping (const char* port, const char* type);
-		void PortMapping ();
-		void TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
-		void CloseMapping ();
-		void CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
-
-		void Run ();
-		std::string GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+			void Start ();
+			void Stop ();
 
 		private:
 
-		bool m_IsRunning;
-		std::unique_ptr<std::thread> m_Thread;
-		std::condition_variable m_Started;
-		std::mutex m_StartedMutex;
-		boost::asio::io_service m_Service;
-		boost::asio::deadline_timer m_Timer;
-        bool m_upnpUrlsInitialized=false;
-		struct UPNPUrls m_upnpUrls;
-		struct IGDdatas m_upnpData;
+			void Discover ();
+			int  CheckMapping (const char* port, const char* type);
+			void PortMapping ();
+			void TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+			void CloseMapping ();
+			void CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
 
-		// For miniupnpc
-		struct UPNPDev * m_Devlist = 0;
-		char m_NetworkAddr[64];
-		char m_externalIPAddress[40];
+			void Run ();
+			std::string GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+
+		private:
+
+			bool m_IsRunning;
+			std::unique_ptr<std::thread> m_Thread;
+			std::condition_variable m_Started;
+			std::mutex m_StartedMutex;
+			boost::asio::io_service m_Service;
+			boost::asio::deadline_timer m_Timer;
+			bool m_upnpUrlsInitialized = false;
+			struct UPNPUrls m_upnpUrls;
+			struct IGDdatas m_upnpData;
+
+			// For miniupnpc
+			struct UPNPDev * m_Devlist = 0;
+			char m_NetworkAddr[64];
+			char m_externalIPAddress[40];
 	};
 }
 }
@@ -79,10 +87,10 @@ namespace transport {
 	class UPnP {
 		public:
 
-		UPnP () {};
-		~UPnP () {};
-		void Start () { LogPrint(eLogWarning, "UPnP: this module was disabled at compile-time"); }
-		void Stop () {};
+			UPnP () {};
+			~UPnP () {};
+			void Start () { LogPrint(eLogWarning, "UPnP: this module was disabled at compile-time"); }
+			void Stop () {};
 	};
 }
 }

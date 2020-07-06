@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef SIGNATURE_H__
 #define SIGNATURE_H__
 
@@ -46,9 +54,9 @@ namespace crypto
 			{
 				m_PublicKey = CreateDSA ();
 			}
-			
+
 			void SetPublicKey (const uint8_t * signingKey)
-			{	
+			{
 				DSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL), NULL);
 			}
 
@@ -163,9 +171,9 @@ namespace crypto
 			{
 				m_PublicKey = EC_KEY_new_by_curve_name (curve);
 			}
-			
+
 			void SetPublicKey (const uint8_t * signingKey)
-			{	
+			{
 				BIGNUM * x = BN_bin2bn (signingKey, keyLen/2, NULL);
 				BIGNUM * y = BN_bin2bn (signingKey + keyLen/2, keyLen/2, NULL);
 				EC_KEY_set_public_key_affine_coordinates (m_PublicKey, x, y);
@@ -287,7 +295,7 @@ namespace crypto
 			EDDSA25519Verifier ();
 			void SetPublicKey (const uint8_t * signingKey);
 			~EDDSA25519Verifier ();
-			
+
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
 			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
@@ -298,10 +306,10 @@ namespace crypto
 #if OPENSSL_EDDSA
 			EVP_PKEY * m_Pkey;
 			EVP_MD_CTX * m_MDCtx;
-#else			
+#else
 			EDDSAPoint m_PublicKey;
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
-#endif			
+#endif
 	};
 
 	class EDDSA25519SignerCompat: public Signer
@@ -311,17 +319,17 @@ namespace crypto
 			EDDSA25519SignerCompat (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr);
 			// we pass signingPublicKey to check if it matches private key
 			~EDDSA25519SignerCompat ();
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
 
 		private:
-		
+
 			uint8_t m_ExpandedPrivateKey[64];
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
 
-#if OPENSSL_EDDSA	
+#if OPENSSL_EDDSA
 	class EDDSA25519Signer: public Signer
 	{
 		public:
@@ -329,23 +337,23 @@ namespace crypto
 			EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr);
 			// we pass signingPublicKey to check if it matches private key
 			~EDDSA25519Signer ();
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 		private:
 			EVP_PKEY * m_Pkey;
-			EVP_MD_CTX * m_MDCtx;	
+			EVP_MD_CTX * m_MDCtx;
 			EDDSA25519SignerCompat * m_Fallback;
 	};
 #else
 
 	typedef EDDSA25519SignerCompat EDDSA25519Signer;
-	
-#endif	
-	
+
+#endif
+
 	inline void CreateEDDSA25519RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-#if OPENSSL_EDDSA	
+#if OPENSSL_EDDSA
 		EVP_PKEY *pkey = NULL;
 		EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id (EVP_PKEY_ED25519, NULL);
 		EVP_PKEY_keygen_init (pctx);
@@ -355,12 +363,12 @@ namespace crypto
 		EVP_PKEY_get_raw_public_key (pkey, signingPublicKey, &len);
 		len = EDDSA25519_PRIVATE_KEY_LENGTH;
 		EVP_PKEY_get_raw_private_key (pkey, signingPrivateKey, &len);
-		EVP_PKEY_free (pkey);	
-#else		
+		EVP_PKEY_free (pkey);
+#else
 		RAND_bytes (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
 		EDDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
-#endif		
+#endif
 	}
 
 
@@ -399,18 +407,18 @@ namespace crypto
 			GOSTR3410Verifier (GOSTR3410ParamSet paramSet):
 				m_ParamSet (paramSet), m_PublicKey (nullptr)
 			{
-			}		
+			}
 
-			void SetPublicKey (const uint8_t * signingKey)	
+			void SetPublicKey (const uint8_t * signingKey)
 			{
 				BIGNUM * x = BN_bin2bn (signingKey, GetPublicKeyLen ()/2, NULL);
 				BIGNUM * y = BN_bin2bn (signingKey + GetPublicKeyLen ()/2, GetPublicKeyLen ()/2, NULL);
 				m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
 				BN_free (x); BN_free (y);
 			}
-			~GOSTR3410Verifier () 
-			{ 
-				if (m_PublicKey) EC_POINT_free (m_PublicKey); 
+			~GOSTR3410Verifier ()
+			{
+				if (m_PublicKey) EC_POINT_free (m_PublicKey);
 			}
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
@@ -501,18 +509,18 @@ namespace crypto
 				auto publicKey = GetEd25519 ()->GeneratePublicKey (m_PrivateKey, ctx);
 				GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, ctx);
 				BN_CTX_free (ctx);
-			}	
+			}
 			~RedDSA25519Signer () {};
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
-				GetEd25519 ()->SignRedDSA (m_PrivateKey, m_PublicKeyEncoded, buf, len, signature);	
+				GetEd25519 ()->SignRedDSA (m_PrivateKey, m_PublicKeyEncoded, buf, len, signature);
 			}
-			
+
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; }; // for keys creation
 
 		private:
-		
+
 			uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
@@ -521,10 +529,9 @@ namespace crypto
 	{
 		GetEd25519 ()->CreateRedDSAPrivateKey (signingPrivateKey);
 		RedDSA25519Signer signer (signingPrivateKey);
-		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);	
+		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
 }
 }
 
 #endif
-

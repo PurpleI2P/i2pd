@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Daemon.h"
 
 #ifndef _WIN32
@@ -167,7 +175,7 @@ namespace i2p
 			sigaction(SIGABRT, &sa, 0);
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
-			sigaction(SIGPIPE, &sa, 0);			
+			sigaction(SIGPIPE, &sa, 0);
 
 			return Daemon_Singleton::start();
 		}
@@ -175,7 +183,6 @@ namespace i2p
 		bool DaemonLinux::stop()
 		{
 			i2p::fs::Remove(pidfile);
-
 			return Daemon_Singleton::stop();
 		}
 
@@ -197,5 +204,4 @@ namespace i2p
 		}
 	}
 }
-
 #endif

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef IDENTITY_H__
 #define IDENTITY_H__
 
@@ -7,6 +15,7 @@
 #include <memory>
 #include <atomic>
 #include <vector>
+#include <mutex>
 #include "Base.h"
 #include "Signature.h"
 #include "CryptoKey.h"
@@ -55,7 +64,7 @@ namespace data
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 1;
-	const uint16_t CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET = 4; 	
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET = 4;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST = 65280; // TODO: remove later
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC = 65281; // TODO: use GOST R 34.11 instead SHA256 and GOST 28147-89 instead AES
 
@@ -114,7 +123,7 @@ namespace data
 			void RecalculateIdentHash(uint8_t * buff=nullptr);
 
 			static i2p::crypto::Verifier * CreateVerifier (SigningKeyType keyType);
-			static std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (CryptoKeyType keyType, const uint8_t * key);			
+			static std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (CryptoKeyType keyType, const uint8_t * key);
 
 		private:
 
@@ -125,8 +134,8 @@ namespace data
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
-			mutable std::atomic_bool m_IsVerifierCreated; // make sure we don't create twice
+			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
+			mutable std::mutex m_VerifierMutex;
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};
@@ -147,7 +156,7 @@ namespace data
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
 			size_t GetSignatureLen () const; // might not match identity
 			bool IsOfflineSignature () const { return m_TransientSignatureLen > 0; };
-    		uint8_t * GetPadding();
+			uint8_t * GetPadding();
 			void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
@@ -162,12 +171,12 @@ namespace data
 
 			static std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key);
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
-			static void GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub); 
+			static void GenerateSigningKeyPair (SigningKeyType type, uint8_t * priv, uint8_t * pub);
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 			static i2p::crypto::Signer * CreateSigner (SigningKeyType keyType, const uint8_t * priv);
 
 			// offline keys
-			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const; 
+			PrivateKeys CreateOfflineKeys (SigningKeyType type, uint32_t expires) const;
 			const std::vector<uint8_t>& GetOfflineSignature () const { return m_OfflineSignature; };
 
 		private:
@@ -203,7 +212,7 @@ namespace data
 	IdentHash CreateRoutingKey (const IdentHash& ident);
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2);
 
-	// destination for delivery instuctions
+	// destination for delivery instructions
 	class RoutingDestination
 	{
 		public:
@@ -224,15 +233,14 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
-			virtual CryptoKeyType GetEncryptionType () const { return GetIdentity ()->GetCryptoKeyType (); }; // override for LeaseSet
-			virtual const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ()->GetEncryptionPublicKey (); }; // override for LeaseSet
+			virtual bool SupportsEncryptionType (CryptoKeyType keyType) const { return GetIdentity ()->GetCryptoKeyType () == keyType; }; // override for LeaseSet
+			virtual const uint8_t * GetEncryptionPublicKey (CryptoKeyType keyType) const { return GetIdentity ()->GetEncryptionPublicKey (); }; // override for LeaseSet
 	};
 }
 }
-
 
 #endif

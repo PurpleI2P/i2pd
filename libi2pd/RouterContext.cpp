@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <fstream>
 #include <openssl/rand.h>
 #include "Config.h"
@@ -338,10 +346,10 @@ namespace i2p
 		{
 			case low   : /* not set */; break;
 			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break; // 'P'
-			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth; 
-	#if (__cplusplus >= 201703L) // C++ 17 or higher		
-			[[fallthrough]]; 
-	#endif		
+			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth;
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+			[[fallthrough]];
+#endif
 			//  no break here, extra + high means 'X'
 			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
 		}
@@ -724,7 +732,7 @@ namespace i2p
 		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
 	}
 
-	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, true) : false;
 	}

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2019, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include "Crypto.h"
 #include "I2PEndian.h"
@@ -51,14 +59,14 @@ namespace tunnel
 		// create fragments
 		const std::shared_ptr<I2NPMessage> & msg = block.data;
 		size_t fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
-		
+
 		if (!messageCreated && fullMsgLen > m_RemainingSize) // check if we should complete previous message
 		{
 			size_t numFollowOnFragments = fullMsgLen / TUNNEL_DATA_MAX_PAYLOAD_SIZE;
 			// length of bytes doesn't fit full tunnel message
 			// every follow-on fragment adds 7 bytes
 			size_t nonFit = (fullMsgLen + numFollowOnFragments*7) % TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-			if (!nonFit || nonFit > m_RemainingSize)
+			if (!nonFit || nonFit > m_RemainingSize || m_RemainingSize < fullMsgLen/5)
 			{
 				CompleteCurrentTunnelDataMessage ();
 				CreateCurrentTunnelDataMessage ();
@@ -172,7 +180,7 @@ namespace tunnel
 		SHA256(payload, size+16, hash);
 		memcpy (buf+20, hash, 4); // checksum
 		payload[-1] = 0; // zero
-		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1
+		ptrdiff_t paddingSize = payload - buf - 25; // 25 = 24 + 1
 		if (paddingSize > 0)
 		{
 			// non-zero padding
@@ -219,4 +227,3 @@ namespace tunnel
 	}
 }
 }
-

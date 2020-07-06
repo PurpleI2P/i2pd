@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <openssl/sha.h>
 #include "Log.h"
 #include "Crypto.h"
@@ -121,7 +129,7 @@ namespace crypto
 		return passed;
 	}
 
-	void Ed25519::Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, 
+	void Ed25519::Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded,
 		const uint8_t * buf, size_t len, uint8_t * signature) const
 	{
 		BN_CTX * bnCtx = BN_CTX_new ();
@@ -153,7 +161,7 @@ namespace crypto
 		BN_CTX_free (bnCtx);
 	}
 
-	void Ed25519::SignRedDSA (const uint8_t * privateKey, const uint8_t * publicKeyEncoded, 
+	void Ed25519::SignRedDSA (const uint8_t * privateKey, const uint8_t * publicKeyEncoded,
 		const uint8_t * buf, size_t len, uint8_t * signature) const
 	{
 		BN_CTX * bnCtx = BN_CTX_new ();
@@ -164,16 +172,16 @@ namespace crypto
 		SHA512_CTX ctx;
 		SHA512_Init (&ctx);
 		SHA512_Update (&ctx, T, 80);
-		SHA512_Update (&ctx, publicKeyEncoded, 32); 
+		SHA512_Update (&ctx, publicKeyEncoded, 32);
 		SHA512_Update (&ctx, buf, len); // data
 		uint8_t digest[64];
 		SHA512_Final (digest, &ctx);
-		BIGNUM * r = DecodeBN<64> (digest); 
-		BN_mod (r, r, l, bnCtx); // % l	
+		BIGNUM * r = DecodeBN<64> (digest);
+		BN_mod (r, r, l, bnCtx); // % l
 		EncodeBN (r, digest, 32);
 		// calculate R
 		uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
-		EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R); 
+		EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R);
 		// calculate S
 		SHA512_Init (&ctx);
 		SHA512_Update (&ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
@@ -182,7 +190,7 @@ namespace crypto
 		SHA512_Final (digest, &ctx);
 		BIGNUM * h = DecodeBN<64> (digest);
 		// S = (r + h*a) % l
-		BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (privateKey); 
+		BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (privateKey);
 		BN_mod_mul (h, h, a, l, bnCtx); // %l
 		BN_mod_add (h, h, r, l, bnCtx); // %l
 		memcpy (signature, R, EDDSA25519_SIGNATURE_LENGTH/2);
@@ -190,7 +198,7 @@ namespace crypto
 		BN_free (r); BN_free (h); BN_free (a);
 		BN_CTX_free (bnCtx);
 	}
-	
+
 	EDDSAPoint Ed25519::Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const
 	{
 		// x3 = (x1*y2+y1*x2)*(z1*z2-d*t1*t2)
@@ -467,7 +475,7 @@ namespace crypto
 			--bits;
 			auto k_t = BN_is_bit_set(k, bits) ? 1 : 0;
 			swap ^= k_t;
-			if (swap) 
+			if (swap)
 			{
 				std::swap (x2, x3);
 				std::swap (z2, z3);
@@ -492,7 +500,7 @@ namespace crypto
 			BN_mod_mul(z3, x1, z2, q, ctx);
 			BN_mod_mul(z2, tmp1, tmp0, q, ctx);
 		}
-		if (swap) 
+		if (swap)
 		{
 			std::swap (x2, x3);
 			std::swap (z2, z3);
@@ -533,9 +541,9 @@ namespace crypto
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		// calculate alpha = seed mod l
-		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian 
+		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian
 		BN_mod (alpha, alpha, l, ctx); // % l
-		uint8_t priv[32];	
+		uint8_t priv[32];
 		EncodeBN (alpha, priv, 32); // back to Little Endian
 		BN_free (alpha);
 		// A' = BLIND_PUBKEY(A, alpha) = A + DERIVE_PUBLIC(alpha)
@@ -548,16 +556,16 @@ namespace crypto
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		// calculate alpha = seed mod l
-		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian 
+		BIGNUM * alpha = DecodeBN<64> (seed); // seed is in Little Endian
 		BN_mod (alpha, alpha, l, ctx); // % l
-		BIGNUM * p = DecodeBN<32> (priv); // priv is in Little Endian 
+		BIGNUM * p = DecodeBN<32> (priv); // priv is in Little Endian
 		BN_add (alpha, alpha, p); // alpha = alpha + priv
-		// a' = BLIND_PRIVKEY(a, alpha) = (a + alpha) mod L	
+		// a' = BLIND_PRIVKEY(a, alpha) = (a + alpha) mod L
 		BN_mod (alpha, alpha, l, ctx); // % l
 		EncodeBN (alpha, blindedPriv, 32);
-		// A' = DERIVE_PUBLIC(a') 	
+		// A' = DERIVE_PUBLIC(a')
 		auto A1 = MulB (blindedPriv, ctx);
-		EncodePublicKey (A1, blindedPub, ctx); 
+		EncodePublicKey (A1, blindedPub, ctx);
 		BN_free (alpha); BN_free (p);
 		BN_CTX_free (ctx);
 	}
@@ -574,14 +582,14 @@ namespace crypto
 	{
 		uint8_t seed[32];
 		RAND_bytes (seed, 32);
-		BIGNUM * p = DecodeBN<32> (seed); 	
+		BIGNUM * p = DecodeBN<32> (seed);
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_mod (p, p, l, ctx); // % l
-		EncodeBN (p, priv, 32); 
+		EncodeBN (p, priv, 32);
 		BN_CTX_free (ctx);
 		BN_free (p);
-	}	
-	
+	}
+
 	static std::unique_ptr<Ed25519> g_Ed25519;
 	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{
@@ -597,4 +605,3 @@ namespace crypto
 	}
 }
 }
-

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "MatchedDestination.h"
 #include "Log.h"
 #include "ClientContext.h"
@@ -14,10 +22,10 @@ namespace client
 
 	void MatchedTunnelDestination::ResolveCurrentLeaseSet()
 	{
-		auto addr = i2p::client::context.GetAddressBook().GetAddress (m_RemoteName);	
+		auto addr = i2p::client::context.GetAddressBook().GetAddress (m_RemoteName);
 		if(addr && addr->IsIdentHash ())
 		{
-			m_RemoteIdent = addr->identHash;	
+			m_RemoteIdent = addr->identHash;
 			auto ls = FindLeaseSet(m_RemoteIdent);
 			if(ls)
 				HandleFoundCurrentLeaseSet(ls);
@@ -39,7 +47,7 @@ namespace client
 		{
 			m_ResolveTimer->expires_from_now(boost::posix_time::seconds(1));
 			m_ResolveTimer->async_wait([&](const boost::system::error_code & ec) {
-					if(!ec)	ResolveCurrentLeaseSet();
+				if(!ec)	ResolveCurrentLeaseSet();
 			});
 		}
 	}
@@ -50,7 +58,7 @@ namespace client
 		ClientDestination::Start();
 		m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
 		GetTunnelPool()->SetCustomPeerSelector(this);
-		ResolveCurrentLeaseSet();	
+		ResolveCurrentLeaseSet();
 	}
 
 	void MatchedTunnelDestination::Stop()
@@ -92,11 +100,6 @@ namespace client
 					LogPrint(eLogWarning, "Destination: could not find proper IBGW for matched outbound tunnel");
 			}
 		}
-		return true;
-	}
-
-	bool MatchedTunnelDestination::OnBuildResult(const i2p::tunnel::Path & path, bool inbound, i2p::tunnel::TunnelBuildResult result)
-	{
 		return true;
 	}
 }

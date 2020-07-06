@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <fstream>
 #include <sstream>
@@ -32,73 +40,76 @@ namespace data
 	{
 	}
 
-        /** @brief tries to bootstrap into I2P network (from local files and servers, with respect of options)
-         */
-        void Reseeder::Bootstrap ()
-        {
-            std::string su3FileName; i2p::config::GetOption("reseed.file", su3FileName);
-            std::string zipFileName; i2p::config::GetOption("reseed.zipfile", zipFileName);
+	/**
+	 @brief tries to bootstrap into I2P network (from local files and servers, with respect of options)
+	 */
+	void Reseeder::Bootstrap ()
+	{
+		std::string su3FileName; i2p::config::GetOption("reseed.file", su3FileName);
+		std::string zipFileName; i2p::config::GetOption("reseed.zipfile", zipFileName);
 
-            if (su3FileName.length() > 0) // bootstrap from SU3 file or URL
-            {
-                int num;
-                if (su3FileName.length() > 8 && su3FileName.substr(0, 8) == "https://")
-                {
-                    num = ReseedFromSU3Url (su3FileName); // from https URL
-                }
-                else
-                {
-                    num = ProcessSU3File (su3FileName.c_str ());
-                }
-                if (num == 0)
-                    LogPrint (eLogWarning, "Reseed: failed to reseed from ", su3FileName);
-            }
-            else if (zipFileName.length() > 0) // bootstrap from ZIP file
-            {
-                int num = ProcessZIPFile (zipFileName.c_str ());
-                if (num == 0)
-                    LogPrint (eLogWarning, "Reseed: failed to reseed from ", zipFileName);
-            }
-            else // bootstrap from reseed servers
-            {
-                int num = ReseedFromServers ();
-                if (num == 0)
-                    LogPrint (eLogWarning, "Reseed: failed to reseed from servers");
-            }
-        }
+		if (su3FileName.length() > 0) // bootstrap from SU3 file or URL
+		{
+			int num;
+			if (su3FileName.length() > 8 && su3FileName.substr(0, 8) == "https://")
+			{
+				num = ReseedFromSU3Url (su3FileName); // from https URL
+			}
+			else
+			{
+				num = ProcessSU3File (su3FileName.c_str ());
+			}
+			if (num == 0)
+				LogPrint (eLogWarning, "Reseed: failed to reseed from ", su3FileName);
+		}
+		else if (zipFileName.length() > 0) // bootstrap from ZIP file
+		{
+			int num = ProcessZIPFile (zipFileName.c_str ());
+			if (num == 0)
+				LogPrint (eLogWarning, "Reseed: failed to reseed from ", zipFileName);
+		}
+		else // bootstrap from reseed servers
+		{
+			int num = ReseedFromServers ();
+			if (num == 0)
+				LogPrint (eLogWarning, "Reseed: failed to reseed from servers");
+		}
+	}
 
-        /** @brief bootstrap from random server, retry 10 times
-         *  @return number of entries added to netDb
-         */
+	/**
+	 * @brief bootstrap from random server, retry 10 times
+	 * @return number of entries added to netDb
+	 */
 	int Reseeder::ReseedFromServers ()
 	{
 		std::string reseedURLs; i2p::config::GetOption("reseed.urls", reseedURLs);
-                std::vector<std::string> httpsReseedHostList;
-                boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
+		std::vector<std::string> httpsReseedHostList;
+		boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
 
-                if (reseedURLs.length () == 0)
-                {
-                    LogPrint (eLogWarning, "Reseed: No reseed servers specified");
-                    return 0;
-                }
+		if (reseedURLs.length () == 0)
+		{
+			LogPrint (eLogWarning, "Reseed: No reseed servers specified");
+			return 0;
+		}
 
-                int reseedRetries = 0;
-                while (reseedRetries < 10)
-                {
-                    auto ind = rand () % httpsReseedHostList.size ();
-                    std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
-                    auto num = ReseedFromSU3Url (reseedUrl);
-                    if (num > 0) return num; // success
-                    reseedRetries++;
-                }
-                LogPrint (eLogWarning, "Reseed: failed to reseed from servers after 10 attempts");
-                return 0;
+		int reseedRetries = 0;
+		while (reseedRetries < 10)
+		{
+			auto ind = rand () % httpsReseedHostList.size ();
+			std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
+			auto num = ReseedFromSU3Url (reseedUrl);
+			if (num > 0) return num; // success
+			reseedRetries++;
+		}
+		LogPrint (eLogWarning, "Reseed: failed to reseed from servers after 10 attempts");
+		return 0;
 	}
 
-        /** @brief bootstrap from HTTPS URL with SU3 file
-         *  @param url
-         *  @return number of entries added to netDb
-         */
+	/**
+	 * @brief bootstrap from HTTPS URL with SU3 file
+	 * @param url
+	 * @return number of entries added to netDb
+	 */
 	int Reseeder::ReseedFromSU3Url (const std::string& url)
 	{
 		LogPrint (eLogInfo, "Reseed: Downloading SU3 from ", url);
@@ -702,4 +713,3 @@ namespace data
 	}
 }
 }
-

@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Log.h"
@@ -34,12 +42,11 @@ namespace data
 	}
 
 	IdentityEx::IdentityEx ():
-		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 	}
 
-	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType):
-		m_IsVerifierCreated (false)
+	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
 		memcpy (m_StandardIdentity.publicKey, publicKey, 256); // publicKey in awlays assumed 256 regardless actual size, padding must be taken care of
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
@@ -141,19 +148,19 @@ namespace data
 	}
 
 	IdentityEx::IdentityEx (const uint8_t * buf, size_t len):
-		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		FromBuffer (buf, len);
 	}
 
 	IdentityEx::IdentityEx (const IdentityEx& other):
-		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		*this = other;
 	}
 
 	IdentityEx::IdentityEx (const Identity& standard):
-		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		*this = standard;
 	}
@@ -161,6 +168,7 @@ namespace data
 	IdentityEx::~IdentityEx ()
 	{
 		delete[] m_ExtendedBuffer;
+		delete m_Verifier;
 	}
 
 	IdentityEx& IdentityEx::operator=(const IdentityEx& other)
@@ -178,8 +186,8 @@ namespace data
 		else
 			m_ExtendedBuffer = nullptr;
 
+		delete m_Verifier;
 		m_Verifier = nullptr;
-		m_IsVerifierCreated = false;
 
 		return *this;
 	}
@@ -193,8 +201,8 @@ namespace data
 		m_ExtendedBuffer = nullptr;
 		m_ExtendedLen = 0;
 
+		delete m_Verifier;
 		m_Verifier = nullptr;
-		m_IsVerifierCreated = false;
 
 		return *this;
 	}
@@ -233,6 +241,7 @@ namespace data
 		}
 		SHA256(buf, GetFullLen (), m_IdentHash);
 
+		delete m_Verifier;
 		m_Verifier = nullptr;
 
 		return GetFullLen ();
@@ -355,7 +364,7 @@ namespace data
 		}
 		return nullptr;
 	}
-		
+
 	void IdentityEx::CreateVerifier () const
 	{
 		if (m_Verifier) return; // don't create again
@@ -368,46 +377,40 @@ namespace data
 			else
 			{
 				// for P521
-				uint8_t * signingKey = new uint8_t[keyLen];	
+				uint8_t * signingKey = new uint8_t[keyLen];
 				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = keyLen - 128; 
+				size_t excessLen = keyLen - 128;
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
 				verifier->SetPublicKey (signingKey);
-				delete[] signingKey;	
-			}		
-		}	
-		UpdateVerifier (verifier); 
+				delete[] signingKey;
+			}
+		}
+		UpdateVerifier (verifier);
 	}
 
 	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
 	{
-		if (!m_Verifier)
+		bool del = false;
 		{
-			auto created = m_IsVerifierCreated.exchange (true);
-			if (!created)
-				m_Verifier.reset (verifier);
+			std::lock_guard<std::mutex> l(m_VerifierMutex);
+			if (!m_Verifier)
+				m_Verifier = verifier;
 			else
-			{
-				delete verifier;
-				int count = 0;
-				while (!m_Verifier && count < 500) // 5 seconds
-				{
-					std::this_thread::sleep_for (std::chrono::milliseconds(10));
-					count++;
-				}
-				if (!m_Verifier)
-					LogPrint (eLogError, "Identity: couldn't get verifier in 5 seconds");
-			}
+				del = true;
 		}
-		else
+		if (del)
 			delete verifier;
 	}
 
 	void IdentityEx::DropVerifier () const
 	{
-		// TODO: potential race condition with Verify
-		m_IsVerifierCreated = false;
-		m_Verifier = nullptr;
+		i2p::crypto::Verifier * verifier;
+		{
+			std::lock_guard<std::mutex> l(m_VerifierMutex);
+			verifier = m_Verifier;
+			m_Verifier = nullptr;
+		}
+		delete verifier;
 	}
 
 	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (CryptoKeyType keyType, const uint8_t * key)
@@ -417,7 +420,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -431,7 +434,7 @@ namespace data
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)keyType);
 		};
 		return nullptr;
-	}		
+	}
 
 	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (const uint8_t * key) const
 	{
@@ -465,9 +468,9 @@ namespace data
 		return *this;
 	}
 
-	size_t PrivateKeys::GetFullLen () const 
-	{ 
-		size_t ret = m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); 
+	size_t PrivateKeys::GetFullLen () const
+	{
+		size_t ret = m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
 			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
 		return ret;
@@ -488,7 +491,7 @@ namespace data
 		// check if signing private key is all zeros
 		bool allzeros = true;
 		for (size_t i = 0; i < signingPrivateKeySize; i++)
-			if (m_SigningPrivateKey[i]) 
+			if (m_SigningPrivateKey[i])
 			{
 				allzeros = false;
 				break;
@@ -505,7 +508,7 @@ namespace data
 			if (keyLen + ret > len) return 0;
 			transientVerifier->SetPublicKey (buf + ret); ret += keyLen;
 			if (m_Public->GetSignatureLen () + ret > len) return 0;
-			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret)) 
+			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret))
 			{
 				LogPrint (eLogError, "Identity: offline signature verification failed");
 				return 0;
@@ -516,7 +519,7 @@ namespace data
 			size_t offlineInfoLen = buf + ret - offlineInfo;
 			m_OfflineSignature.resize (offlineInfoLen);
 			memcpy (m_OfflineSignature.data (), offlineInfo, offlineInfoLen);
-			// override signing private key 
+			// override signing private key
 			m_TransientSigningPrivateKeyLen = transientVerifier->GetPrivateKeyLen ();
 			if (m_TransientSigningPrivateKeyLen + ret > len || m_TransientSigningPrivateKeyLen > 128) return 0;
 			memcpy (m_SigningPrivateKey, buf + ret, m_TransientSigningPrivateKeyLen);
@@ -591,10 +594,10 @@ namespace data
 		else
 			CreateSigner (m_Public->GetSigningKeyType ());
 	}
-	
+
 	void PrivateKeys::CreateSigner (SigningKeyType keyType) const
 	{
-		if (m_Signer) return;	
+		if (m_Signer) return;
 		if (keyType == SIGNING_KEY_TYPE_DSA_SHA1)
 			m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
 		else if (keyType == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 && !IsOfflineSignature ())
@@ -604,7 +607,7 @@ namespace data
 			// public key is not required
 			auto signer = CreateSigner (keyType, m_SigningPrivateKey);
 			if (signer) m_Signer.reset (signer);
-		}	
+		}
 	}
 
 	i2p::crypto::Signer * PrivateKeys::CreateSigner (SigningKeyType keyType, const uint8_t * priv)
@@ -635,8 +638,8 @@ namespace data
 				return new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, priv);
 			break;
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
-				return new i2p::crypto::RedDSA25519Signer (priv); 
-			break;	
+				return new i2p::crypto::RedDSA25519Signer (priv);
+			break;
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}
@@ -677,7 +680,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			default:
@@ -724,8 +727,8 @@ namespace data
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Creating EdDSA");
 #if (__cplusplus >= 201703L) // C++ 17 or higher
-				[[fallthrough]]; 
-#endif				
+				[[fallthrough]];
+#endif
 				// no break here
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				i2p::crypto::CreateEDDSA25519RandomKeys (priv, pub);
@@ -738,7 +741,7 @@ namespace data
 			break;
 			case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::CreateRedDSA25519RandomKeys (priv, pub);
-			break;	
+			break;
 			default:
 				LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 				i2p::crypto::CreateDSARandomKeys (priv, pub); // DSA-SHA1
@@ -759,7 +762,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RARCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:
@@ -770,7 +773,7 @@ namespace data
 	PrivateKeys PrivateKeys::CreateOfflineKeys (SigningKeyType type, uint32_t expires) const
 	{
 		PrivateKeys keys (*this);
-		std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));		
+		std::unique_ptr<i2p::crypto::Verifier> verifier (IdentityEx::CreateVerifier (type));
 		if (verifier)
 		{
 			size_t pubKeyLen = verifier->GetPublicKeyLen ();
@@ -780,7 +783,7 @@ namespace data
 			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
 			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
 			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public  key
-			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature	
+			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature
 			// recreate signer
 			keys.m_Signer = nullptr;
 			keys.CreateSigner (type);

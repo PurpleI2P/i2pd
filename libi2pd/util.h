@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef UTIL_H
 #define UTIL_H
 
@@ -132,34 +140,34 @@ namespace util
 
 			boost::asio::io_service& GetIOService () { return m_Service; }
 			bool IsRunning () const { return m_IsRunning; };
-			
+
 			void StartIOService ();
 			void StopIOService ();
 
 		private:
 
 			void Run ();
-				
+
 		private:
 
 			std::string m_Name;
 			volatile bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_service m_Service;
-	};	
+	};
 
 	class RunnableServiceWithWork: public RunnableService
 	{
 		protected:
 
-			RunnableServiceWithWork (const std::string& name): 
-				RunnableService (name), m_Work (GetIOService ()) {}		
-			
+			RunnableServiceWithWork (const std::string& name):
+				RunnableService (name), m_Work (GetIOService ()) {}
+
 		private:
 
 			boost::asio::io_service::work m_Work;
-	};	
-	
+	};
+
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);

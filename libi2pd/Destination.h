@@ -1,6 +1,15 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef DESTINATION_H__
 #define DESTINATION_H__
 
+#include <string.h>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -8,9 +17,6 @@
 #include <set>
 #include <string>
 #include <functional>
-#ifdef I2LUA
-#include <future>
-#endif
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -51,16 +57,18 @@ namespace client
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
+	const char I2CP_PARAM_RATCHET_INBOUND_TAGS[] = "crypto.ratchet.inboundTags";
+	const char I2CP_PARAM_RATCHET_OUTBOUND_TAGS[] = "crypto.ratchet.outboundTags"; // not used yet
 	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
 	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
 	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";
-	const int DEFAULT_LEASESET_TYPE = 1;		
+	const int DEFAULT_LEASESET_TYPE = 1;
 	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
 	const char I2CP_PARAM_LEASESET_PRIV_KEY[] = "i2cp.leaseSetPrivKey"; // PSK decryption key, base64
 	const char I2CP_PARAM_LEASESET_AUTH_TYPE[] = "i2cp.leaseSetAuthType";
 	const char I2CP_PARAM_LEASESET_CLIENT_DH[] = "i2cp.leaseSetClient.dh"; // group of i2cp.leaseSetClient.dh.nnn
 	const char I2CP_PARAM_LEASESET_CLIENT_PSK[] = "i2cp.leaseSetClient.psk"; // group of i2cp.leaseSetClient.psk.nnn
-	
+
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
 	const int DEFAULT_MIN_TUNNEL_LATENCY = 0;
@@ -96,7 +104,6 @@ namespace client
 			}
 		};
 
-
 		public:
 
 			LeaseSetDestination (boost::asio::io_service& service, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
@@ -109,12 +116,12 @@ namespace client
 
 			/** i2cp reconfigure */
 			virtual bool Reconfigure(std::map<std::string, std::string> i2cpOpts);
-		
+
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
 			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
 			std::shared_ptr<i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
-			bool RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey>  dest, RequestComplete requestComplete = nullptr); 
+			bool RequestDestinationWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, RequestComplete requestComplete = nullptr);
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest, bool notify = true);
 			void CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, bool notify = true);
 
@@ -157,10 +164,11 @@ namespace client
 			void HandleDeliveryStatusMessage (uint32_t msgID);
 
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey = nullptr);
-			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
+			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
+			i2p::data::CryptoKeyType GetPreferredCryptoType () const;
 
 		private:
 
@@ -194,16 +202,20 @@ namespace client
 
 	class ClientDestination: public LeaseSetDestination
 	{
-		public:
-#ifdef I2LUA
-			// type for informing that a client destination is ready
-			typedef std::promise<std::shared_ptr<ClientDestination> > ReadyPromise;
-			// informs promise with shared_from_this() when this destination is ready to use
-			// if cancelled before ready, informs promise with nullptr
-			void Ready(ReadyPromise & p);
-#endif
+		struct EncryptionKey
+		{
+			uint8_t pub[256], priv[256];
+			i2p::data::CryptoKeyType keyType;
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> decryptor;
 
-			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, 
+			EncryptionKey (i2p::data::CryptoKeyType t):keyType(t) { memset (pub, 0, 256); memset (priv, 0, 256);	};
+			void GenerateKeys () { i2p::data::PrivateKeys::GenerateCryptoKeyPair (keyType, priv, pub); };
+			void CreateDecryptor () { decryptor = i2p::data::PrivateKeys::CreateDecryptor (keyType, priv); };
+		};
+
+		public:
+
+			ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
 				bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 
@@ -232,14 +244,14 @@ namespace client
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 
 			// datagram
-      i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-      i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			i2p::data::CryptoKeyType GetEncryptionType () const { return m_EncryptionKeyType; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
+			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const;
 
 		protected:
 
@@ -250,22 +262,17 @@ namespace client
 
 		private:
 
-			std::shared_ptr<ClientDestination> GetSharedFromThis ()
-			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }
-			void PersistTemporaryKeys ();
-#ifdef I2LUA
-			void ScheduleCheckForReady(ReadyPromise * p);
-			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
-#endif
-
+			std::shared_ptr<ClientDestination> GetSharedFromThis () {
+				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
+			}
+			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
-			i2p::data::CryptoKeyType m_EncryptionKeyType;
-			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
+			std::unique_ptr<EncryptionKey> m_StandardEncryptionKey;
+			std::unique_ptr<EncryptionKey> m_ECIESx25519EncryptionKey;
 
 			int m_StreamingAckDelay;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
@@ -275,12 +282,13 @@ namespace client
 
 			boost::asio::deadline_timer m_ReadyChecker;
 
-			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys; // we don't need them for I2CP  
+			std::shared_ptr<std::vector<i2p::data::AuthPublicKey> > m_AuthKeys; // we don't need them for I2CP
 
 		public:
 
 			// for HTTP only
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
+			bool DeleteStream (uint32_t recvStreamID);
 	};
 
 	class RunnableClientDestination: private i2p::util::RunnableService, public ClientDestination
@@ -288,7 +296,7 @@ namespace client
 		public:
 
 			RunnableClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
-			~RunnableClientDestination ();			
+			~RunnableClientDestination ();
 
 			void Start ();
 			void Stop ();

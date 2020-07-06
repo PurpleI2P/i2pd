@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include "Log.h"
 #include "Gost.h"
@@ -151,31 +159,30 @@ namespace crypto
 	ECIESX25519AEADRatchetEncryptor::ECIESX25519AEADRatchetEncryptor (const uint8_t * pub)
 	{
 		memcpy (m_PublicKey, pub, 32);
-	}	
+	}
 
 	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool)
 	{
 		memcpy (pub, m_PublicKey, 32);
 	}
 
-	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv)
+	ECIESX25519AEADRatchetDecryptor::ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic)
 	{
-		m_StaticKeys.SetPrivateKey (priv);
+		m_StaticKeys.SetPrivateKey (priv, calculatePublic);
 	}
 
 	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
 	{
 		m_StaticKeys.Agree (epub, sharedSecret);
-		return true; 
+		return true;
 	}
 
 	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub)
 	{
 		X25519Keys k;
-		k.GenerateKeys ();		
+		k.GenerateKeys ();
 		k.GetPrivateKey (priv);
 		memcpy (pub, k.GetPublicKey (), 32);
 	}
 }
 }
-

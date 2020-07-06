@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef I2PENDIAN_H__
 #define I2PENDIAN_H__
 #include <inttypes.h>
@@ -126,6 +134,21 @@ inline void htole32buf(void *buf, uint32_t big32)
 inline void htole64buf(void *buf, uint64_t big64)
 {
 	htobuf64(buf, htole64(big64));
+}
+
+inline uint16_t bufle16toh(const void *buf)
+{
+	return le16toh(buf16toh(buf));
+}
+
+inline uint32_t bufle32toh(const void *buf)
+{
+	return le32toh(buf32toh(buf));
+}
+
+inline uint64_t bufle64toh(const void *buf)
+{
+	return le64toh(buf64toh(buf));
 }
 
 #endif // I2PENDIAN_H__

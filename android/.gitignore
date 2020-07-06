@@ -4,6 +4,7 @@ bin
 libs
 log*
 obj
+.cxx
 .gradle
 .idea
 .externalNativeBuild
@@ -14,3 +15,4 @@ android.iml
 build
 *.iml
 *.local
+*.jks

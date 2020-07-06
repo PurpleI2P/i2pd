@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef SSU_SESSION_H__
 #define SSU_SESSION_H__
 
@@ -28,7 +36,7 @@ namespace transport
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU_CLOCK_SKEW = 60; // in seconds
-	const size_t SSU_MAX_I2NP_MESSAGE_SIZE = 32768;	
+	const size_t SSU_MAX_I2NP_MESSAGE_SIZE = 32768;
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -81,12 +89,12 @@ namespace transport
 			void Done ();
 			void Failed ();
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-			
+
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
 
-			SessionState GetState () const  { return m_State; };
+			SessionState GetState () const { return m_State; };
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 
@@ -158,10 +166,7 @@ namespace transport
 			std::unique_ptr<SignedData> m_SignedData; // we need it for SessionConfirmed only
 			std::map<uint32_t, std::shared_ptr<const i2p::data::RouterInfo> > m_RelayRequests; // nonce->Charlie
 	};
-
-
 }
 }
 
 #endif
-

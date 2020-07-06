@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include <string>
 #include <vector>
@@ -286,14 +294,14 @@ namespace crypto
 #if OPENSSL_X25519
 		m_Ctx = EVP_PKEY_CTX_new_id (NID_X25519, NULL);
 		m_Pkey = nullptr;
-#else		
+#else
 		m_Ctx = BN_CTX_new ();
-#endif		
-	}	
+#endif
+	}
 
 	X25519Keys::X25519Keys (const uint8_t * priv, const uint8_t * pub)
 	{
-#if OPENSSL_X25519		
+#if OPENSSL_X25519
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
 		if (pub)
@@ -302,33 +310,33 @@ namespace crypto
 		{
 			size_t len = 32;
 			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
-		}		
+		}
 #else
-		m_Ctx = BN_CTX_new ();	
+		m_Ctx = BN_CTX_new ();
 		memcpy (m_PrivateKey, priv, 32);
 		if (pub)
 			memcpy (m_PublicKey, pub, 32);
 		else
 			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
-#endif		
-	}	
-	
+#endif
+	}
+
 	X25519Keys::~X25519Keys ()
 	{
 #if OPENSSL_X25519
 		EVP_PKEY_CTX_free (m_Ctx);
-		if (m_Pkey) EVP_PKEY_free (m_Pkey);	
-#else				
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+#else
 		BN_CTX_free (m_Ctx);
-#endif		
-	}	
+#endif
+	}
 
 	void X25519Keys::GenerateKeys ()
 	{
 #if OPENSSL_X25519
 		if (m_Pkey)
-		{ 
-			EVP_PKEY_free (m_Pkey);	
+		{
+			EVP_PKEY_free (m_Pkey);
 			m_Pkey = nullptr;
 		}
 		EVP_PKEY_keygen_init (m_Ctx);
@@ -337,26 +345,26 @@ namespace crypto
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL); // TODO: do we really need to re-create m_Ctx?
 		size_t len = 32;
 		EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
-#else		
+#else
 		RAND_bytes (m_PrivateKey, 32);
 		GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
-#endif		
-	}	
+#endif
+	}
 
 	void X25519Keys::Agree (const uint8_t * pub, uint8_t * shared)
 	{
-#if OPENSSL_X25519		
+#if OPENSSL_X25519
 		EVP_PKEY_derive_init (m_Ctx);
 		auto pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_X25519, NULL, pub, 32);
 		EVP_PKEY_derive_set_peer (m_Ctx, pkey);
 		size_t len = 32;
 		EVP_PKEY_derive (m_Ctx, shared, &len);
 		EVP_PKEY_free (pkey);
-#else		
+#else
 		GetEd25519 ()->ScalarMul (pub, m_PrivateKey, shared, m_Ctx);
-#endif		
-	}		
-	
+#endif
+	}
+
 	void X25519Keys::GetPrivateKey (uint8_t * priv) const
 	{
 #if OPENSSL_X25519
@@ -367,16 +375,23 @@ namespace crypto
 #endif
 	}
 
-	void X25519Keys::SetPrivateKey (const uint8_t * priv)
+	void X25519Keys::SetPrivateKey (const uint8_t * priv, bool calculatePublic)
 	{
-#if OPENSSL_X25519		
-		if (m_Ctx) EVP_PKEY_CTX_free (m_Ctx);	
+#if OPENSSL_X25519
+		if (m_Ctx) EVP_PKEY_CTX_free (m_Ctx);
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
+		if (calculatePublic)
+		{
+			size_t len = 32;
+			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
+		}	
 #else
 		memcpy (m_PrivateKey, priv, 32);
-#endif		
+		if (calculatePublic)
+			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
+#endif
 	}
 
 // ElGamal
@@ -681,12 +696,12 @@ namespace crypto
 
 // AES
 #ifdef __AES__
-        #ifdef ARM64AES
-                void init_aesenc(void){
+	#ifdef ARM64AES
+	void init_aesenc(void){
 			// TODO: Implementation
-		}
+	}
 
-        #endif
+	#endif
 
 	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
@@ -883,7 +898,6 @@ namespace crypto
 			AES_set_decrypt_key (key, 256, &m_Key);
 		}
 	}
-
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
@@ -1139,10 +1153,10 @@ namespace crypto
 		}
 
 		EVP_CIPHER_CTX_free (ctx);
-#else		
+#else
 		chacha::Chacha20State state;
 		// generate one time poly key
-		chacha::Chacha20Init (state, nonce, key, 0);	
+		chacha::Chacha20Init (state, nonce, key, 0);
 		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
 		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
@@ -1158,7 +1172,7 @@ namespace crypto
 			{
 				// padding1
 				rem = 16 - rem;
-				polyHash.Update (padding, rem);	
+				polyHash.Update (padding, rem);
 			}
 		}
 		// encrypt/decrypt data and add to hash
@@ -1174,20 +1188,20 @@ namespace crypto
 		{
 			polyHash.Update (buf, msgLen); // before decryption
 			chacha::Chacha20Encrypt (state, buf, msgLen); // decrypt
-		}	
+		}
 
 		auto rem = msgLen & 0x0F; // %16
 		if (rem)
 		{
 			// padding2
 			rem = 16 - rem;
-			polyHash.Update (padding, rem);		
+			polyHash.Update (padding, rem);
 		}
 		// adLen and msgLen
 		htole64buf (padding, adLen);
 		htole64buf (padding + 8, msgLen);
-		polyHash.Update (padding, 16);	
-		
+		polyHash.Update (padding, 16);
+
 		if (encrypt)
 			// calculate Poly1305 tag and write in after encrypted data
 			polyHash.Finish ((uint64_t *)(buf + msgLen));
@@ -1195,7 +1209,7 @@ namespace crypto
 		{
 			uint64_t tag[4];
 			// calculate Poly1305 tag
-			polyHash.Finish (tag);	
+			polyHash.Finish (tag);
 			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
 		}
 #endif
@@ -1211,20 +1225,20 @@ namespace crypto
 		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
 		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
 		EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
-		for (const auto& it: bufs)	
+		for (const auto& it: bufs)
 			EVP_EncryptUpdate(ctx, it.first, &outlen, it.first, it.second);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
 		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
 		EVP_CIPHER_CTX_free (ctx);
-#else		
+#else
 		chacha::Chacha20State state;
 		// generate one time poly key
-		chacha::Chacha20Init (state, nonce, key, 0);	
+		chacha::Chacha20Init (state, nonce, key, 0);
 		uint64_t polyKey[8];
 		memset(polyKey, 0, sizeof(polyKey));
 		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
 		Poly1305 polyHash (polyKey);
-		// encrypt buffers	
+		// encrypt buffers
 		Chacha20SetCounter (state, 1);
 		size_t size = 0;
 		for (const auto& it: bufs)
@@ -1234,22 +1248,22 @@ namespace crypto
 			size += it.second;
 		}
 		// padding
-		uint8_t padding[16]; 
+		uint8_t padding[16];
 		memset (padding, 0, 16);
 		auto rem = size & 0x0F; // %16
 		if (rem)
 		{
 			// padding2
 			rem = 16 - rem;
-			polyHash.Update (padding, rem);		
+			polyHash.Update (padding, rem);
 		}
 		// adLen and msgLen
 		// adLen is always zero
 		htole64buf (padding + 8, size);
-		polyHash.Update (padding, 16);	
+		polyHash.Update (padding, 16);
 		// MAC
-		polyHash.Finish ((uint64_t *)mac);	
-#endif		
+		polyHash.Finish ((uint64_t *)mac);
+#endif
 	}
 
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
@@ -1265,13 +1279,13 @@ namespace crypto
 		EVP_CIPHER_CTX_free (ctx);
 #else
 		chacha::Chacha20State state;
-		chacha::Chacha20Init (state, nonce, key, 1);	
+		chacha::Chacha20Init (state, nonce, key, 1);
 		if (out != msg) memcpy (out, msg, msgLen);
 		chacha::Chacha20Encrypt (state, out, msgLen);
 #endif
 	}
 
-	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, 
+	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info,
 		uint8_t * out, size_t outLen)
 	{
 #if OPENSSL_HKDF
@@ -1279,10 +1293,10 @@ namespace crypto
 		EVP_PKEY_derive_init (pctx);
 		EVP_PKEY_CTX_set_hkdf_md (pctx, EVP_sha256());
 		if (key && keyLen)
-		{	
+		{
 			EVP_PKEY_CTX_set1_hkdf_salt (pctx, salt, 32);
 			EVP_PKEY_CTX_set1_hkdf_key (pctx, key, keyLen);
-		}	
+		}
 		else
 		{
 			// zerolen
@@ -1290,22 +1304,22 @@ namespace crypto
 			uint8_t tempKey[32]; unsigned int len;
 			HMAC(EVP_sha256(), salt, 32, nullptr, 0, tempKey, &len);
 			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
-		}		
+		}
 		if (info.length () > 0)
 			EVP_PKEY_CTX_add1_hkdf_info (pctx, info.c_str (), info.length ());
 		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
 #else
 		uint8_t prk[32]; unsigned int len;
-		HMAC(EVP_sha256(), salt, 32, key, keyLen, prk, &len); 
+		HMAC(EVP_sha256(), salt, 32, key, keyLen, prk, &len);
 		auto l = info.length ();
 		memcpy (out, info.c_str (), l); out[l] = 0x01;
 		HMAC(EVP_sha256(), prk, 32, out, l + 1, out, &len);
 		if (outLen > 32) // 64
-		{	
+		{
 			memcpy (out + 32, info.c_str (), l); out[l + 32] = 0x02;
-			HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len); 
-		}	
+			HMAC(EVP_sha256(), prk, 32, out, l + 33, out + 32, &len);
+		}
 #endif
 	}
 
@@ -1323,10 +1337,10 @@ namespace crypto
 		}
 	}*/
 
-	
+
 	void InitCrypto (bool precomputation)
 	{
-		i2p::cpu::Detect ();	
+		i2p::cpu::Detect ();
 #if LEGACY_OPENSSL
 		SSL_library_init ();
 #endif
@@ -1364,4 +1378,3 @@ namespace crypto
 	}
 }
 }
-

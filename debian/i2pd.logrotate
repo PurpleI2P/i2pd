@@ -1,9 +1,1 @@
-/var/log/i2pd/i2pd.log {
-        rotate 6
-        daily
-        missingok
-        notifempty
-        compress
-        delaycompress
-        copytruncate
-}
+../contrib/i2pd.logrotate

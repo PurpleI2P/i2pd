@@ -79,7 +79,7 @@ namespace transport
 		NTCP2Establisher ();
 		~NTCP2Establisher ();
 
-		const uint8_t * GetPub () const { return m_EphemeralKeys.GetPublicKey (); };
+		const uint8_t * GetPub () const { return m_EphemeralKeys->GetPublicKey (); };
 		const uint8_t * GetRemotePub () const { return m_RemoteEphemeralPublicKey; }; // Y for Alice and X for Bob
 		uint8_t * GetRemotePub () { return m_RemoteEphemeralPublicKey; }; // to set
 
@@ -110,7 +110,7 @@ namespace transport
 		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
 
-		i2p::crypto::X25519Keys m_EphemeralKeys;
+		std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
 		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[64] /* [ck, k]*/;
 		i2p::data::IdentHash m_RemoteIdentHash;
@@ -125,7 +125,6 @@ namespace transport
 	class NTCP2Session: public TransportSession, public std::enable_shared_from_this<NTCP2Session>
 	{
 		public:
-
 
 			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCP2Session ();
@@ -274,7 +273,7 @@ namespace transport
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions;
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
-			ProxyType m_ProxyType =eNoProxy;
+			ProxyType m_ProxyType;
 			std::string m_ProxyAddress;
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;

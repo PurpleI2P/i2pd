@@ -16,9 +16,13 @@ public class I2PD_JNI {
 
 	public static native void startAcceptingTunnels();
 
+	public static native void reloadTunnelsConfigs();
+
 	public static native void onNetworkStateChanged(boolean isConnected);
 
 	public static native void setDataDir(String jdataDir);
+
+	public static native int GetTransitTunnelsCount();
 
 	public static void loadLibraries() {
 		//System.loadLibrary("c++_shared");

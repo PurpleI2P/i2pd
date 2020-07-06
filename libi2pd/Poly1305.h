@@ -1,9 +1,9 @@
 /**
-   This code is licensed under the MCGSI Public License
-   Copyright 2018 Jeff Becker
-
-   Kovri go write your own code
-
+ * This code is licensed under the MCGSI Public License
+ * Copyright 2018 Jeff Becker
+ *
+ * Kovri go write your own code
+ *
  */
 #ifndef LIBI2PD_POLY1305_H
 #define LIBI2PD_POLY1305_H
@@ -11,7 +11,7 @@
 #include <cstring>
 #include "Crypto.h"
 
-#if !OPENSSL_AEAD_CHACHA20_POLY1305 
+#if !OPENSSL_AEAD_CHACHA20_POLY1305
 namespace i2p
 {
 namespace crypto
@@ -24,7 +24,6 @@ namespace crypto
 
 	namespace poly1305
 	{
-
 		struct LongBlock
 		{
 			unsigned long data[17];
@@ -252,8 +251,8 @@ namespace crypto
 		poly1305::LongBlock m_HR;
 		uint8_t m_Final;
 	};
-	void Poly1305HMAC(uint64_t * out, const uint64_t * key, const uint8_t * buf, std::size_t sz);
 
+	void Poly1305HMAC(uint64_t * out, const uint64_t * key, const uint8_t * buf, std::size_t sz);
 }
 }
 #endif

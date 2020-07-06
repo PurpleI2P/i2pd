@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2020, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -110,18 +110,18 @@ namespace log {
 		}
 	}
 
-    std::string str_tolower(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(),
-                    // static_cast<int(*)(int)>(std::tolower)         // wrong
-                    // [](int c){ return std::tolower(c); }           // wrong
-                    // [](char c){ return std::tolower(c); }          // wrong
-                       [](unsigned char c){ return std::tolower(c); } // correct
-                      );
-        return s;
-    }
+	std::string str_tolower(std::string s) {
+		std::transform(s.begin(), s.end(), s.begin(),
+					// static_cast<int(*)(int)>(std::tolower)         // wrong
+					// [](int c){ return std::tolower(c); }           // wrong
+					// [](char c){ return std::tolower(c); }          // wrong
+					   [](unsigned char c){ return std::tolower(c); } // correct
+					);
+		return s;
+	}
 
-    void Log::SetLogLevel (const std::string& level_) {
-        std::string level=str_tolower(level_);
+	void Log::SetLogLevel (const std::string& level_) {
+		std::string level=str_tolower(level_);
 		if      (level == "none")  { m_MinLevel = eLogNone; }
 		else if (level == "error") { m_MinLevel = eLogError; }
 		else if (level == "warn")  { m_MinLevel = eLogWarning; }
@@ -199,7 +199,6 @@ namespace log {
 	void Log::SendTo (const std::string& path)
 	{
 		if (m_LogStream) m_LogStream = nullptr; // close previous
-		if (m_MinLevel == eLogNone) return;
 		auto flags = std::ofstream::out | std::ofstream::app;
 		auto os = std::make_shared<std::ofstream> (path, flags);
 		if (os->is_open ())
@@ -237,5 +236,11 @@ namespace log {
 	Log & Logger() {
 		return logger;
 	}
+
+	static ThrowFunction g_ThrowFunction;
+	ThrowFunction GetThrowFunction () { return g_ThrowFunction; }
+	void SetThrowFunction (ThrowFunction f) { g_ThrowFunction = f; }
+
 } // log
 } // i2p
+

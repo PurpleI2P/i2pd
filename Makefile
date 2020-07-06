@@ -27,10 +27,6 @@ else
 	LD_DEBUG = -s
 endif
 
-ifeq ($(WEBSOCKETS),1)
-	NEEDED_CXXFLAGS += -DWITH_EVENTS
-endif
-
 ifneq (, $(findstring darwin, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
@@ -45,7 +41,7 @@ else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
 else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
-	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
+	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp Win32/Win32NetState.cpp
 	include Makefile.mingw
 else # not supported
 	$(error Not supported platform)

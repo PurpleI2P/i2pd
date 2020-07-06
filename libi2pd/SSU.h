@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef SSU_H__
 #define SSU_H__
 
@@ -40,7 +48,7 @@ namespace transport
 		public:
 
 			SSUServer (int port);
-			SSUServer (const boost::asio::ip::address & addr, int port);			// ipv6 only constructor
+			SSUServer (const boost::asio::ip::address & addr, int port); // ipv6 only constructor
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -135,4 +143,3 @@ namespace transport
 }
 
 #endif
-

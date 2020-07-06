@@ -41,6 +41,8 @@ public:
     virtual ServerTunnelPane* asServerTunnelPane()=0;
     virtual ClientTunnelPane* asClientTunnelPane()=0;
 
+    void deleteWidget();
+
 protected:
     MainWindow* mainWindow;
     QWidget * wrongInputPane;

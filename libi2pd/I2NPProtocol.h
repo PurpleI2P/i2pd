@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef I2NP_PROTOCOL_H__
 #define I2NP_PROTOCOL_H__
 
@@ -27,7 +35,7 @@ namespace i2p
 	const size_t I2NP_SHORT_HEADER_SIZE = I2NP_SHORT_HEADER_EXPIRATION_OFFSET + 4;
 
 	// I2NP NTCP2 header
-	const size_t I2NP_NTCP2_HEADER_SIZE = I2NP_HEADER_EXPIRATION_OFFSET + 4;		
+	const size_t I2NP_NTCP2_HEADER_SIZE = I2NP_HEADER_EXPIRATION_OFFSET + 4;
 
 	// Tunnel Gateway header
 	const size_t TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET = 0;
@@ -75,7 +83,7 @@ namespace i2p
 
 	enum I2NPMessageType
 	{
-		eI2NPDummyMsg = 0,	
+		eI2NPDummyMsg = 0,
 		eI2NPDatabaseStore = 1,
 		eI2NPDatabaseLookup = 2,
 		eI2NPDatabaseSearchReply = 3,
@@ -95,6 +103,7 @@ namespace i2p
 	// DatabaseLookup flags
 	const uint8_t DATABASE_LOOKUP_DELIVERY_FLAG = 0x01;
 	const uint8_t DATABASE_LOOKUP_ENCRYPTION_FLAG = 0x02;
+	const uint8_t DATABASE_LOOKUP_ECIES_FLAG = 0x10;
 	const uint8_t DATABASE_LOOKUP_TYPE_FLAGS_MASK = 0x0C;
 	const uint8_t DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP = 0;
 	const uint8_t DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP = 0x04; // 0100
@@ -208,7 +217,7 @@ namespace tunnel
 			SetExpiration (bufbe32toh (ntcp2 + I2NP_HEADER_EXPIRATION_OFFSET)*1000LL);
 			SetSize (len - offset - I2NP_HEADER_SIZE);
 			SetChks (0);
-		}	
+		}
 
 		void ToNTCP2 ()
 		{
@@ -217,7 +226,7 @@ namespace tunnel
 			memcpy (ntcp2 + I2NP_HEADER_TYPEID_OFFSET, GetHeader () + I2NP_HEADER_TYPEID_OFFSET, 5); // typeid + msgid
 		}
 
-		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);
+		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0, bool checksum = true);
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
 	};
@@ -284,6 +293,7 @@ namespace tunnel
 
 	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 2500;
 	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
+	uint16_t GetMaxNumTransitTunnels ();
 }
 
 #endif

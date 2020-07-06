@@ -1,6 +1,64 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.32.1] - 2020-06-02
+### Added
+- Read explicit peers in tunnels config
+### Fixed
+- Generation of tags for detached sessions
+- Non-updating LeaseSet1
+- Start when deprecated websocket options present in i2pd.conf
+
+## [2.32.0] - 2020-05-25
+### Added
+- Multiple encryption types for local destinations
+- Next key and tagset for ECIES-X25519-AEAD-Ratchet
+- NTCP2 through SOCKS proxy
+- Throw error message if any port to bind is occupied
+- gzip parameter for UDP tunnels
+- Show ECIES-X25519-AEAD-Ratchet sessions and tags on the web console
+- Simplified implementation of gzip for no compression mode
+- Allow ECIES-X25519-AEAD-Ratchet session restart after 2 minutes
+- Added logrotate config for rpm package
+### Changed
+- Select peers for client tunnels among routers >= 0.9.36
+- Check ECIES flag for encrypted lookup reply
+- Streaming MTU size 1812 for ECIES-X25519-AEAD-Ratchet
+- Don't calculate checksum for Data message send through ECIES-X25519-AEAD-Ratchet
+- Catch network connectivity status for Windows
+- Stop as soon as no more transit tunnels during graceful shutdown for Android
+- RouterInfo gzip compression level depends on size
+- Send response to received datagram from ECIES-X25519-AEAD-Ratchet session
+- Update webconsole functional
+- Increased max transit tunnels limit
+- Reseeds list
+- Dropped windows support in cmake
+### Fixed
+- Correct timestamp check for LeaseSet2
+- Encrypted leaseset without authentication
+- Change SOCKS proxy connection response for clients without socks5h support (#1336)
+
+## [2.31.0] - 2020-04-10
+### Added
+- NTCP2 through HTTP proxy
+- Publish LeaseSet2 for I2CP destinations
+- Show status page on main activity for android
+- Handle ECIESFlag in DatabaseLookup at floodfill
+- C++17 features for eligible compilers
+### Changed
+- Droped Websockets and Lua support
+- Send DeliveryStatusMsg for LeaseSet for ECIES-X25519-AEAD-Ratchet
+- Keep sending new session reply until established for ECIES-X25519-AEAD-Ratchet
+- Updated SSU log messages
+- Reopen SSU socket on exception
+- Security hardening headers in web console
+- Various web console changes
+- Various QT changes
+### Fixed
+- NTCP2 socket descriptors leak
+- Race condition with router's identity in transport sessions
+- Not terminated streams remain forever
+
 ## [2.30.0] - 2020-02-25
 ### Added
 - Single threaded SAM
@@ -21,7 +79,7 @@
 ### Added
 - Client auth flag for b33 address
 ### Changed
-- Remove incoming  NTCP2 session from pending list when established 
+- Remove incoming  NTCP2 session from pending list when established
 - Handle errors for NTCP2 SessionConfrimed send
 ### Fixed
 - Failure to start on Windows XP
@@ -70,7 +128,7 @@
 ## [2.25.0] - 2019-05-09
 ### Added
 - Create, publish and handle encrypted LeaseSet2
-- Support of b33 addresses 
+- Support of b33 addresses
 - RedDSA key blinding
 - .b32.i2p addresses in jump links
 - ntcp2.addressv6 parameter
@@ -102,7 +160,7 @@
 - Correct SAM response for invalid key
 - SAM crash on termination for Windows
 - Race condition for publishing
- 
+
 ## [2.23.0] - 2019-01-21
 ### Added
 - Standard LeaseSet2 support
@@ -161,7 +219,7 @@
 - NTCP2 is enabled by default
 - Show lease's expiration time in readable format in the web console
 ### Fixed
-- Correct names for transports in the web console 
+- Correct names for transports in the web console
 
 ## [2.19.0] - 2018-06-26
 ### Added

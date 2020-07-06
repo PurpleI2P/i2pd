@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2020, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef GOST_H__
 #define GOST_H__
 
@@ -13,11 +21,11 @@ namespace crypto
 
 	enum GOSTR3410ParamSet
 	{
-		eGOSTR3410CryptoProA = 0,   // 1.2.643.2.2.35.1
+		eGOSTR3410CryptoProA = 0,  // 1.2.643.2.2.35.1
 		// XchA = A, XchB = C
-		//eGOSTR3410CryptoProXchA,    // 1.2.643.2.2.36.0
-		//eGOSTR3410CryptoProXchB,	// 1.2.643.2.2.36.1
-		eGOSTR3410TC26A512,		// 1.2.643.7.1.2.1.2.1
+		//eGOSTR3410CryptoProXchA, // 1.2.643.2.2.36.0
+		//eGOSTR3410CryptoProXchB, // 1.2.643.2.2.36.1
+		eGOSTR3410TC26A512,        // 1.2.643.7.1.2.1.2.1
 		eGOSTR3410NumParamSets
 	};
 
