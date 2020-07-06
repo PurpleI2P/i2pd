@@ -663,6 +663,8 @@ namespace client
 					// optional params
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+					if(accessList == "")
+						accessList=section.second.get (I2P_SERVER_TUNNEL_WHITE_LIST, "");
 					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
