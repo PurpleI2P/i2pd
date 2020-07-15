@@ -27,7 +27,8 @@ namespace garlic
 {
 	const int ECIESX25519_RESTART_TIMEOUT = 120; // number of second since session creation we can restart session after
 	const int ECIESX25519_EXPIRATION_TIMEOUT = 480; // in seconds
-	const int ECIESX25519_INACTIVITY_TIMEOUT = 90; // number of second we receive nothing and should restart if we can
+	const int ECIESX25519_INACTIVITY_TIMEOUT = 90; // number of seconds we receive nothing and should restart if we can
+	const int ECIESX25519_SEND_INACTIVITY_TIMEOUT = 5000; // number of milliseconds we can send empty(pyaload only) packet after 
 	const int ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT = 600; // in seconds
 	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // 180
 	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 4096; // number of tags we request new tagset after
@@ -148,6 +149,7 @@ namespace garlic
 			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
 			
 			bool IsRatchets () const { return true; };
+			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
 
 		private:
 
@@ -182,7 +184,8 @@ namespace garlic
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			SessionState m_State = eSessionStateNew;
-			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0; // incoming
+			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0, // incoming
+				m_LastSentTimestamp = 0; // in milliseconds
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
