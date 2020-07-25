@@ -708,9 +708,12 @@ namespace client
 		if(!ecode)
 		{
 			LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-			LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+			auto ts = i2p::util::GetMillisecondsSinceEpoch();
 			auto session = m_Destination->GetSession (Identity);
-			m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort);
+			if (ts > LastActivity + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
+				m_Destination->SendDatagram(session, m_Buffer, len, LocalPort, RemotePort);
+			else
+				m_Destination->SendRawDatagram(session, m_Buffer, len, LocalPort, RemotePort);
 			size_t numPackets = 0;
 			while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
 			{	
@@ -724,6 +727,7 @@ namespace client
 			if (numPackets > 0)
 				LogPrint(eLogDebug, "UDPSession: forward more ", numPackets, "packets B from ", FromEndpoint);
 			m_Destination->FlushSendQueue (session);
+			LastActivity = ts;
 			Receive();
 		} 
 		else
@@ -841,9 +845,13 @@ namespace client
 			m_LastPort = remotePort;
 		}	
 		// send off to remote i2p destination
+		auto ts = i2p::util::GetMillisecondsSinceEpoch();
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		auto session = m_LocalDest->GetDatagramDestination()->GetSession (*m_RemoteIdent);
-		m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
+		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)		
+			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
+		else
+			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		size_t numPackets = 0;
 		while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
 		{	
@@ -862,7 +870,7 @@ namespace client
 		
 		// mark convo as active
 		if (m_LastSession)
-			m_LastSession->second = i2p::util::GetMillisecondsSinceEpoch();
+			m_LastSession->second = ts;
 		RecvFromLocal();
 	}
 

@@ -165,7 +165,8 @@ namespace client
 
 	/** 2 minute timeout for udp sessions */
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
-
+	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds	
+	
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
 
