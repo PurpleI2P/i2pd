@@ -739,8 +739,11 @@ namespace garlic
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
 		if (first) payloadLen += 7;// datatime
-		if (msg && m_Destination)
-			payloadLen += msg->GetPayloadLength () + 13 + 32;
+		if (msg)
+		{	
+			payloadLen += msg->GetPayloadLength () + 13;
+			if (m_Destination) payloadLen += 32;
+		}	
 		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
 			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted &&
 				ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
@@ -816,7 +819,7 @@ namespace garlic
 			}
 			// msg
 			if (msg && m_Destination)
-				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
+				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
 			{
@@ -875,16 +878,16 @@ namespace garlic
 		return v;
 	}
 
-	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination)
+	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
 	{
 		if (!msg) return 0;
 		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-		if (isDestination) cloveSize += 32;
+		if (m_Destination) cloveSize += 32;
 		if ((int)len < cloveSize + 3) return 0;
 		buf[0] = eECIESx25519BlkGalicClove; // clove type
 		htobe16buf (buf + 1, cloveSize); // size
 		buf += 3;
-		if (isDestination)
+		if (m_Destination)
 		{
 			*buf = (eGarlicDeliveryTypeDestination << 5);
 			memcpy (buf + 1, *m_Destination, 32); buf += 32;
