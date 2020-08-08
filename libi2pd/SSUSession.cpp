@@ -745,26 +745,32 @@ namespace transport
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len)
 	{
+		FillHeaderAndEncrypt (payloadType, buf, len, buf);
+	}
+
+	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * in, size_t len, uint8_t * out)
+	{
 		if (len < sizeof (SSUHeader))
 		{
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
-		SSUHeader * header = (SSUHeader *)buf;
+		SSUHeader * header = (SSUHeader *)out;
 		RAND_bytes (header->iv, 16); // random iv
 		m_SessionKeyEncryption.SetIV (header->iv);
-		header->flag = payloadType << 4; // MSB is 0
-		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
-		uint8_t * encrypted = &header->flag;
-		uint16_t encryptedLen = len - (encrypted - buf);
-		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
-		// assume actual buffer size is 18 (16 + 2) bytes more
-		memcpy (buf + len, header->iv, 16);
+		SSUHeader * inHeader = (SSUHeader *)in;
+		inHeader->flag = payloadType << 4; // MSB is 0
+		htobe32buf (inHeader->time, i2p::util::GetSecondsSinceEpoch ());
+		uint8_t * encrypted = &header->flag, * clear = &inHeader->flag;
+		uint16_t encryptedLen = len - (encrypted - out);
+		m_SessionKeyEncryption.Encrypt (clear, encryptedLen, encrypted);
+		// assume actual out buffer size is 18 (16 + 2) bytes more
+		memcpy (out + len, header->iv, 16);
 		uint16_t netid = i2p::context.GetNetID ();
-		htobe16buf (buf + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
+		htobe16buf (out + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
 	}
-
+		
 	void SSUSession::Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey)
 	{
 		if (len < sizeof (SSUHeader))
