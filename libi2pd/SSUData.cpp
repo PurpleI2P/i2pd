@@ -301,7 +301,7 @@ namespace transport
 	void SSUData::Send (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		uint32_t msgID = msg->ToSSU ();
-		if (m_SentMessages.count (msgID) > 0)
+		if (m_SentMessages.find (msgID) != m_SentMessages.end())
 		{
 			LogPrint (eLogWarning, "SSU: message ", msgID, " already sent");
 			return;
