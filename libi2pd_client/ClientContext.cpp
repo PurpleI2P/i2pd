@@ -253,7 +253,8 @@ namespace client
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
-		if (filename == "transient")
+		static const std::string transient("transient");
+		if (!filename.compare (0, transient.length (), transient)) // starts with transient
 		{
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
@@ -533,6 +534,7 @@ namespace client
 			return;
 		}
 
+		std::map<std::string, std::shared_ptr<ClientDestination> > destinations; // keys -> destination
 		for (auto& section: pt)
 		{
 			std::string name = section.first;
@@ -564,18 +566,25 @@ namespace client
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
 					{
-						i2p::data::PrivateKeys k;
-						if(LoadPrivateKeys (k, keys, sigType, cryptoType))
-						{
-							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-							if (!localDestination)
+						auto it = destinations.find (keys);
+						if (it != destinations.end ())
+							localDestination = it->second;
+						else
+						{	
+							i2p::data::PrivateKeys k;
+							if(LoadPrivateKeys (k, keys, sigType, cryptoType))
 							{
-								if(matchTunnels)
-									localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
-								else
-									localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+								localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+								if (!localDestination)
+								{
+									if(matchTunnels)
+										localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
+									else
+										localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+									destinations[keys] = localDestination;
+								}
 							}
-						}
+						}	
 					}
 
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
@@ -679,12 +688,21 @@ namespace client
 					ReadI2CPOptions (section, options);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					i2p::data::PrivateKeys k;
-					if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
-						continue;
-					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-					if (!localDestination)
-						localDestination = CreateNewLocalDestination (k, true, &options);
+					auto it = destinations.find (keys);
+					if (it != destinations.end ())
+						localDestination = it->second;
+					else
+					{	
+						i2p::data::PrivateKeys k;
+						if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
+							continue;
+						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if (!localDestination)
+						{	
+							localDestination = CreateNewLocalDestination (k, true, &options);
+							destinations[keys] = localDestination;
+						}	
+					}	
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
 						// udp server tunnel
