@@ -198,13 +198,18 @@ namespace client
 
 		for (const auto& it: addresses)
 		{
-			f << it.first << ",";
-			if (it.second->IsIdentHash ())
-				f << it.second->identHash.ToBase32 ();
+			if (it.second->IsValid ())
+			{	
+				f << it.first << ",";
+				if (it.second->IsIdentHash ())
+					f << it.second->identHash.ToBase32 ();
+				else
+					f << it.second->blindedPublicKey->ToB33 ();
+				f << std::endl;
+				num++;
+			}	
 			else
-				f << it.second->blindedPublicKey->ToB33 ();
-			f << std::endl;
-			num++;
+				LogPrint (eLogWarning, "Addressbook: invalid address ", it.first);
 		}
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;
