@@ -23,6 +23,8 @@
 - Differentiate UDP server sessions by port 
 - ECIES-X25519-AEAD-Ratchet through I2CP
 - Don't save invalid address to AddressBook
+- ECDSA signatures names in SAM
+- AppArmor profile 
 
 ## [2.32.1] - 2020-06-02
 ### Added
