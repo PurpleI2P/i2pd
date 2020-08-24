@@ -59,6 +59,7 @@ namespace datagram
 
 			/** send an i2np message to remote endpoint for this session */
 			void SendMsg(std::shared_ptr<I2NPMessage> msg);
+			void FlushSendQueue();
 			/** get the last time in milliseconds for when we used this datagram session */
 			uint64_t LastActivity() const { return m_LastUse; }
 
@@ -84,11 +85,6 @@ namespace datagram
 
 		private:
 
-			void FlushSendQueue();
-			void ScheduleFlushSendQueue();
-
-			void HandleSend(std::shared_ptr<I2NPMessage> msg);
-
 			std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
 
 			void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
@@ -99,9 +95,7 @@ namespace datagram
 			i2p::data::IdentHash m_RemoteIdent;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
-			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
-			boost::asio::deadline_timer m_SendQueueTimer;
+			std::vector<std::shared_ptr<i2p::garlic::GarlicRoutingSession> > m_PendingRoutingSessions;
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_LastUse;
 			bool m_RequestingLS;
@@ -122,6 +116,13 @@ namespace datagram
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void SendRawDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+			// TODO: implement calls from other thread from SAM
+			
+			std::shared_ptr<DatagramSession> GetSession(const i2p::data::IdentHash & ident);
+			void SendDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
+			void SendRawDatagram (std::shared_ptr<DatagramSession> session, const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
+			void FlushSendQueue (std::shared_ptr<DatagramSession> session);
+			
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw = false);
 
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
@@ -165,6 +166,7 @@ namespace datagram
 			i2p::data::GzipInflator m_Inflator;
 			i2p::data::GzipDeflator m_Deflator;
 			std::vector<uint8_t> m_From, m_Signature;
+			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};
 }
 }

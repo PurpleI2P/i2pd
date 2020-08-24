@@ -145,11 +145,12 @@ namespace crypto
 	{
 		public:
 
-			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv);
+			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic = false);
 			~ECIESX25519AEADRatchetDecryptor () {};
 			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding);
 			// agree with static and return in sharedSecret (32 bytes)
 			size_t GetPublicKeyLen () const { return 32; };
+			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); };
 
 		private:
 

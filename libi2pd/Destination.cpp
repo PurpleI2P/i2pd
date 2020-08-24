@@ -56,6 +56,9 @@ namespace client
 				if (it != params->end ())
 					numTags = std::stoi(it->second);
 				LogPrint (eLogInfo, "Destination: parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
+				it = params->find (I2CP_PARAM_RATCHET_INBOUND_TAGS);
+				if (it != params->end ())
+					SetNumRatchetInboundTags (std::stoi(it->second));
 				it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
 				if (it != params->end ())
 				{
@@ -892,7 +895,11 @@ namespace client
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
 			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+			{	
 				m_ECIESx25519EncryptionKey.reset (encryptionKey);
+				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
+					SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Rathets must use LeaseSet2 
+			}	
 			else
 				m_StandardEncryptionKey.reset (encryptionKey);
 		}

@@ -83,7 +83,7 @@ namespace transport
 
 	void NTCP2Establisher::KDF1Alice ()
 	{
-		KeyDerivationFunction1 (m_RemoteStaticKey, m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
+		KeyDerivationFunction1 (m_RemoteStaticKey, *m_EphemeralKeys, m_RemoteStaticKey, GetPub ());
 	}
 
 	void NTCP2Establisher::KDF1Bob ()
@@ -102,7 +102,7 @@ namespace transport
 
 		// x25519 between remote pub and ephemaral priv
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys.Agree (GetRemotePub (), inputKeyMaterial);
+		m_EphemeralKeys->Agree (GetRemotePub (), inputKeyMaterial);
 
 		MixKey (inputKeyMaterial);
 	}
@@ -127,13 +127,13 @@ namespace transport
 	void NTCP2Establisher::KDF3Bob ()
 	{
 		uint8_t inputKeyMaterial[32];
-		m_EphemeralKeys.Agree (m_RemoteStaticKey, inputKeyMaterial);
+		m_EphemeralKeys->Agree (m_RemoteStaticKey, inputKeyMaterial);
 		MixKey (inputKeyMaterial);
 	}
 
 	void NTCP2Establisher::CreateEphemeralKey ()
 	{
-		m_EphemeralKeys.GenerateKeys ();
+		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 	}
 
 	void NTCP2Establisher::CreateSessionRequestMessage ()
@@ -338,11 +338,8 @@ namespace transport
 
 		KDF3Bob ();
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
-		{
 			// caclulate new h again for KDF data
-			memcpy (m_SessionConfirmedBuffer + 16, m_H, 32); // h || ciphertext
-			SHA256 (m_SessionConfirmedBuffer + 16, m3p2Len + 32, m_H); //h = SHA256(h || ciphertext);
-		}
+			MixHash (m_SessionConfirmedBuffer + 48, m3p2Len); // h = SHA256(h || ciphertext)
 		else
 		{
 			LogPrint (eLogWarning, "NTCP2: SessionConfirmed Part2 AEAD verification failed ");
@@ -1305,7 +1302,8 @@ namespace transport
 						if (ecode != boost::asio::error::operation_aborted)
 						{
 							LogPrint (eLogInfo, "NTCP2: Not connected in ", timeout, " seconds");
-							//i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+							if (conn->GetRemoteIdentity ())
+								i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 							conn->Terminate ();
 						}
 					});

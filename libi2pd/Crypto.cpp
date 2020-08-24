@@ -375,15 +375,22 @@ namespace crypto
 #endif
 	}
 
-	void X25519Keys::SetPrivateKey (const uint8_t * priv)
+	void X25519Keys::SetPrivateKey (const uint8_t * priv, bool calculatePublic)
 	{
 #if OPENSSL_X25519
 		if (m_Ctx) EVP_PKEY_CTX_free (m_Ctx);
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
+		if (calculatePublic)
+		{
+			size_t len = 32;
+			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
+		}	
 #else
 		memcpy (m_PrivateKey, priv, 32);
+		if (calculatePublic)
+			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
 #endif
 	}
 

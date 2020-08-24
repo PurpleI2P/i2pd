@@ -21,23 +21,27 @@ namespace i2p
 {
 namespace transport
 {
-	DHKeysPairSupplier::DHKeysPairSupplier (int size):
+	template<typename Keys>
+	EphemeralKeysSupplier<Keys>::EphemeralKeysSupplier (int size):
 		m_QueueSize (size), m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 
-	DHKeysPairSupplier::~DHKeysPairSupplier ()
+	template<typename Keys>	
+	EphemeralKeysSupplier<Keys>::~EphemeralKeysSupplier ()
 	{
 		Stop ();
 	}
 
-	void DHKeysPairSupplier::Start ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Start ()
 	{
 		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&DHKeysPairSupplier::Run, this));
+		m_Thread = new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this));
 	}
 
-	void DHKeysPairSupplier::Stop ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Stop ()
 	{
 		{
 			std::unique_lock<std::mutex> l(m_AcquiredMutex);
@@ -52,19 +56,20 @@ namespace transport
 		}
 	}
 
-	void DHKeysPairSupplier::Run ()
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Run ()
 	{
 		while (m_IsRunning)
 		{
 			int num, total = 0;
 			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 10)
 			{
-				CreateDHKeysPairs (num);
+				CreateEphemeralKeys (num);
 				total += num;
 			}
 			if (total >= 10)
 			{
-				LogPrint (eLogWarning, "Transports: ", total, " DH keys generated at the time");
+				LogPrint (eLogWarning, "Transports: ", total, " ephemeral keys generated at the time");
 				std::this_thread::sleep_for (std::chrono::seconds(1)); // take a break
 			}
 			else
@@ -76,24 +81,26 @@ namespace transport
 		}
 	}
 
-	void DHKeysPairSupplier::CreateDHKeysPairs (int num)
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::CreateEphemeralKeys (int num)
 	{
 		if (num > 0)
 		{
 			for (int i = 0; i < num; i++)
 			{
-				auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+				auto pair = std::make_shared<Keys> ();
 				pair->GenerateKeys ();
-				std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+				std::unique_lock<std::mutex> l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
 	}
 
-	std::shared_ptr<i2p::crypto::DHKeys> DHKeysPairSupplier::Acquire ()
+	template<typename Keys>	
+	std::shared_ptr<Keys> EphemeralKeysSupplier<Keys>::Acquire ()
 	{
 		{
-			std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+			std::unique_lock<std::mutex> l(m_AcquiredMutex);
 			if (!m_Queue.empty ())
 			{
 				auto pair = m_Queue.front ();
@@ -103,12 +110,13 @@ namespace transport
 			}
 		}
 		// queue is empty, create new
-		auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+		auto pair = std::make_shared<Keys> ();
 		pair->GenerateKeys ();
 		return pair;
 	}
 
-	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
+	template<typename Keys>	
+	void EphemeralKeysSupplier<Keys>::Return (std::shared_ptr<Keys> pair)
 	{
 		if (pair)
 		{
@@ -126,7 +134,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_DHKeysPairSupplier (5), // 5 pre-generated keys
+		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -158,6 +166,7 @@ namespace transport
 
 		i2p::config::GetOption("nat", m_IsNAT);
 		m_DHKeysPairSupplier.Start ();
+		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
@@ -312,6 +321,7 @@ namespace transport
 		}
 
 		m_DHKeysPairSupplier.Stop ();
+		m_X25519KeysPairSupplier.Stop ();
 		m_IsRunning = false;
 		if (m_Service) m_Service->stop ();
 		if (m_Thread)
@@ -431,6 +441,8 @@ namespace transport
 
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
 	{
+		if (!peer.router) // reconnect
+			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
 			if (!peer.numAttempts) // NTCP2
@@ -440,7 +452,7 @@ namespace transport
 				{
 					// NTCP2 have priority over NTCP
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address)
+					if (address  && !peer.router->IsUnreachable ())
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
@@ -628,6 +640,16 @@ namespace transport
 		m_DHKeysPairSupplier.Return (pair);
 	}
 
+	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()
+	{
+		return m_X25519KeysPairSupplier.Acquire ();
+	}
+
+	void Transports::ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair)
+	{
+		m_X25519KeysPairSupplier.Return (pair);
+	}
+		
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service->post([session, this]()
@@ -638,6 +660,7 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				it->second.router = nullptr; // we don't need RouterInfo after successive connect
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{

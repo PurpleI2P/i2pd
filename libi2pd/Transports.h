@@ -13,7 +13,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <queue>
 #include <string>
@@ -32,33 +32,37 @@ namespace i2p
 {
 namespace transport
 {
-	class DHKeysPairSupplier
+	template<typename Keys>
+	class EphemeralKeysSupplier
 	{
+	// called from this file only, so implementation is in Transports.cpp
 		public:
 
-			DHKeysPairSupplier (int size);
-			~DHKeysPairSupplier ();
+			EphemeralKeysSupplier (int size);
+			~EphemeralKeysSupplier ();
 			void Start ();
 			void Stop ();
-			std::shared_ptr<i2p::crypto::DHKeys> Acquire ();
-			void Return (std::shared_ptr<i2p::crypto::DHKeys> pair);
+			std::shared_ptr<Keys> Acquire ();
+			void Return (std::shared_ptr<Keys> pair);
 
 		private:
 
 			void Run ();
-			void CreateDHKeysPairs (int num);
+			void CreateEphemeralKeys (int num);
 
 		private:
 
 			const int m_QueueSize;
-			std::queue<std::shared_ptr<i2p::crypto::DHKeys> > m_Queue;
+			std::queue<std::shared_ptr<Keys> > m_Queue;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
 	};
-
+	typedef EphemeralKeysSupplier<i2p::crypto::DHKeys> DHKeysPairSupplier;
+	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
+	
 	struct Peer
 	{
 		int numAttempts;
@@ -97,6 +101,8 @@ namespace transport
 			boost::asio::io_service& GetService () { return *m_Service; };
 			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();
 			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
+			std::shared_ptr<i2p::crypto::X25519Keys> GetNextX25519KeysPair ();
+			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
 			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
@@ -157,9 +163,10 @@ namespace transport
 			SSUServer * m_SSUServer;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
-			std::map<i2p::data::IdentHash, Peer> m_Peers;
+			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;
+			X25519KeysPairSupplier m_X25519KeysPairSupplier;
 
 			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes, m_TotalTransitTransmittedBytes;
 			uint32_t m_InBandwidth, m_OutBandwidth, m_TransitBandwidth; // bytes per second

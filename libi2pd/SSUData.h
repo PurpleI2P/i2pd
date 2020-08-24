@@ -11,7 +11,7 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <unordered_set>
 #include <memory>
@@ -124,8 +124,8 @@ namespace transport
 		private:
 
 			SSUSession& m_Session;
-			std::map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
-			std::map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
+			std::unordered_map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
+			std::unordered_map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
 			std::unordered_set<uint32_t> m_ReceivedMessages;
 			boost::asio::deadline_timer m_ResendTimer, m_IncompleteMessagesCleanupTimer;
 			int m_MaxPacketSize, m_PacketSize;

@@ -66,7 +66,7 @@ namespace tunnel
 			// length of bytes doesn't fit full tunnel message
 			// every follow-on fragment adds 7 bytes
 			size_t nonFit = (fullMsgLen + numFollowOnFragments*7) % TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-			if (!nonFit || nonFit > m_RemainingSize)
+			if (!nonFit || nonFit > m_RemainingSize || m_RemainingSize < fullMsgLen/5)
 			{
 				CompleteCurrentTunnelDataMessage ();
 				CreateCurrentTunnelDataMessage ();

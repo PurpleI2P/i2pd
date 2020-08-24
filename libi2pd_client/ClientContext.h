@@ -54,6 +54,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 	const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
+	const char I2P_SERVER_TUNNEL_WHITE_LIST[] = "whitelist";
 	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";

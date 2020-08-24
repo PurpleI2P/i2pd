@@ -253,7 +253,8 @@ namespace client
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
-		if (filename == "transient")
+		static const std::string transient("transient");
+		if (!filename.compare (0, transient.length (), transient)) // starts with transient
 		{
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
@@ -461,6 +462,8 @@ namespace client
 		}
 		std::string explicitPeers = GetI2CPStringOption(section, I2CP_PARAM_EXPLICIT_PEERS, "");
 		if (explicitPeers.length () > 0) options[I2CP_PARAM_EXPLICIT_PEERS] = explicitPeers;
+		std::string ratchetInboundTags = GetI2CPStringOption(section, I2CP_PARAM_RATCHET_INBOUND_TAGS, "");
+		if (ratchetInboundTags.length () > 0) options[I2CP_PARAM_RATCHET_INBOUND_TAGS] = ratchetInboundTags;
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -531,6 +534,7 @@ namespace client
 			return;
 		}
 
+		std::map<std::string, std::shared_ptr<ClientDestination> > destinations; // keys -> destination
 		for (auto& section: pt)
 		{
 			std::string name = section.first;
@@ -562,18 +566,25 @@ namespace client
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
 					{
-						i2p::data::PrivateKeys k;
-						if(LoadPrivateKeys (k, keys, sigType, cryptoType))
-						{
-							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-							if (!localDestination)
+						auto it = destinations.find (keys);
+						if (it != destinations.end ())
+							localDestination = it->second;
+						else
+						{	
+							i2p::data::PrivateKeys k;
+							if(LoadPrivateKeys (k, keys, sigType, cryptoType))
 							{
-								if(matchTunnels)
-									localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
-								else
-									localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+								localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+								if (!localDestination)
+								{
+									if(matchTunnels)
+										localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
+									else
+										localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+									destinations[keys] = localDestination;
+								}
 							}
-						}
+						}	
 					}
 
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
@@ -661,6 +672,8 @@ namespace client
 					// optional params
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+					if(accessList == "")
+						accessList=section.second.get (I2P_SERVER_TUNNEL_WHITE_LIST, "");
 					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
@@ -675,12 +688,21 @@ namespace client
 					ReadI2CPOptions (section, options);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					i2p::data::PrivateKeys k;
-					if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
-						continue;
-					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-					if (!localDestination)
-						localDestination = CreateNewLocalDestination (k, true, &options);
+					auto it = destinations.find (keys);
+					if (it != destinations.end ())
+						localDestination = it->second;
+					else
+					{	
+						i2p::data::PrivateKeys k;
+						if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
+							continue;
+						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if (!localDestination)
+						{	
+							localDestination = CreateNewLocalDestination (k, true, &options);
+							destinations[keys] = localDestination;
+						}	
+					}	
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
 						// udp server tunnel

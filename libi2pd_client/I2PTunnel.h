@@ -165,9 +165,10 @@ namespace client
 
 	/** 2 minute timeout for udp sessions */
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
-
+	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds	
+	
 	/** max size for i2p udp */
-	const size_t I2P_UDP_MAX_MTU = i2p::datagram::MAX_DATAGRAM_SIZE;
+	const size_t I2P_UDP_MAX_MTU = 64*1024;
 
 	struct UDPSession
 	{
@@ -237,6 +238,7 @@ namespace client
 		private:
 
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
@@ -248,6 +250,7 @@ namespace client
 			std::mutex m_SessionsMutex;
 			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
+			UDPSessionPtr m_LastSession;
 	};
 
 	class I2PUDPClientTunnel
@@ -273,10 +276,14 @@ namespace client
 			void RecvFromLocal();
 			void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleRecvFromI2PRaw(uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();
+
+		private:
+			
 			const std::string m_Name;
 			std::mutex m_SessionsMutex;
-			std::map<uint16_t, UDPConvo > m_Sessions; // maps i2p port -> local udp convo
+			std::unordered_map<uint16_t, std::shared_ptr<UDPConvo> > m_Sessions; // maps i2p port -> local udp convo
 			const std::string m_RemoteDest;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
@@ -285,8 +292,9 @@ namespace client
 			boost::asio::ip::udp::socket m_LocalSocket;
 			boost::asio::ip::udp::endpoint m_RecvEndpoint;
 			uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
-			uint16_t RemotePort;
+			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
+			std::shared_ptr<UDPConvo> m_LastSession;
 	};
 
 	class I2PServerTunnel: public I2PService

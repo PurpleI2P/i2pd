@@ -494,7 +494,7 @@ namespace client
 				context.GetAddressBook().InsertFullAddress(dest);
 				auto leaseSet = session->localDestination->FindLeaseSet(dest->GetIdentHash());
 				if (leaseSet)
-					Connect(leaseSet);
+					Connect(leaseSet, session);
 				else
 				{
 					session->localDestination->RequestDestination(dest->GetIdentHash(),
@@ -509,18 +509,25 @@ namespace client
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
-	void SAMSocket::Connect (std::shared_ptr<const i2p::data::LeaseSet> remote)
+	void SAMSocket::Connect (std::shared_ptr<const i2p::data::LeaseSet> remote, std::shared_ptr<SAMSession> session)
 	{
-		auto session = m_Owner.FindSession(m_ID);
-		if(session)
+		if (!session) session = m_Owner.FindSession(m_ID);
+		if (session)
 		{
 			m_SocketType = eSAMSocketTypeStream;
 			m_Stream = session->localDestination->CreateStream (remote);
-			m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
-			m_BufferOffset = 0;
-			I2PReceive ();
-			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+			if (m_Stream)
+			{	
+				m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
+				m_BufferOffset = 0;
+				I2PReceive ();
+				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+			}	
+			else
+				SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 		}
+		else
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
 	void SAMSocket::HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet)
@@ -1015,8 +1022,8 @@ namespace client
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
 			{"ECDSA_SHA256_P256", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256},
-			{"ECDSA_SHA256_P384", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384},
-			{"ECDSA_SHA256_P521", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521},
+			{"ECDSA_SHA384_P384", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384},
+			{"ECDSA_SHA512_P521", i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521},
 			{"EdDSA_SHA512_Ed25519", i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519},
 			{"GOST_GOSTR3411256_GOSTR3410CRYPTOPROA", i2p::data::SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256},
 			{"GOST_GOSTR3411512_GOSTR3410TC26A512", i2p::data::SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512},
