@@ -802,14 +802,6 @@ namespace garlic
 			}
 		}
 		// ECIESx25519
-		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
-		{
-			if (it->second.tagset->IsExpired (ts) || ts > it->second.creationTime + ECIESX25519_INCOMING_TAGS_EXPIRATION_TIMEOUT)
-				it = m_ECIESx25519Tags.erase (it);
-			else
-				++it;
-		}
-
 		for (auto it = m_ECIESx25519Sessions.begin (); it != m_ECIESx25519Sessions.end ();)
 		{
 			if (it->second->CheckExpired (ts))
@@ -820,6 +812,17 @@ namespace garlic
 			else
 				++it;
 		}
+
+		numExpiredTags = 0;
+		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
+		{
+			if (it->second.tagset->IsExpired (ts) || it->second.tagset->IsIndexExpired (it->second.index))
+				it = m_ECIESx25519Tags.erase (it);
+			else
+				++it;
+		}
+		if (numExpiredTags > 0)
+			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
@@ -1009,7 +1012,7 @@ namespace garlic
 	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();
-		m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset, i2p::util::GetSecondsSinceEpoch ()});
+		m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset});
 	}
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)

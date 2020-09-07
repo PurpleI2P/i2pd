@@ -56,10 +56,12 @@ namespace garlic
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
+			void MoveTrimBehind (int offset) { m_TrimBehindIndex += offset; }; 
 
 			void Expire ();
 			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
-
+			bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
+			
 		private:
 
 			union
@@ -73,7 +75,7 @@ namespace garlic
 
 			} m_KeyData;
 			uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64], m_NextRootKey[32];
-			int m_NextIndex, m_NextSymmKeyIndex;
+			int m_NextIndex, m_NextSymmKeyIndex, m_TrimBehindIndex = 0;
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
 			std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
 			int m_TagSetID = 0;

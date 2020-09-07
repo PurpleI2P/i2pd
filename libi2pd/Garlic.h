@@ -220,7 +220,6 @@ namespace garlic
 	{
 		int index;
 		RatchetTagSetPtr tagset;
-		uint64_t creationTime; // seconds since epoch
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination

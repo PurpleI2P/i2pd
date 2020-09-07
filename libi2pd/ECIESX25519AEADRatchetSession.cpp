@@ -657,7 +657,10 @@ namespace garlic
 				moreTags -= (receiveTagset->GetNextIndex () - index);
 			}	
 			if (moreTags > 0)
+			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
+				receiveTagset->MoveTrimBehind (moreTags >> 1); // /2
+			}	
 		}	
 		return true;
 	}
