@@ -88,6 +88,11 @@ namespace garlic
 		}
 	}
 
+	void RatchetTagSet::DeleteSymmKey (int index)
+	{	
+		m_ItermediateSymmKeys.erase (index);
+	}
+	
 	void RatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
@@ -659,7 +664,9 @@ namespace garlic
 			if (moreTags > 0)
 			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
-				receiveTagset->MoveTrimBehind (moreTags >> 1); // /2
+				index -= (moreTags >> 1); // /2
+				if (index > 0)
+					receiveTagset->SetTrimBehind (index);
 			}	
 		}	
 		return true;

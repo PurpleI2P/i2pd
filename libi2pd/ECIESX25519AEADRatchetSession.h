@@ -52,11 +52,12 @@ namespace garlic
 			const uint8_t * GetNextRootKey () const { return m_NextRootKey; };
 			int GetNextIndex () const { return m_NextIndex; };
 			void GetSymmKey (int index, uint8_t * key);
+			void DeleteSymmKey (int index);
 
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
-			void MoveTrimBehind (int offset) { m_TrimBehindIndex += offset; }; 
+			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
 
 			void Expire ();
 			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };

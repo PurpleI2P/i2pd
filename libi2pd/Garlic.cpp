@@ -817,7 +817,10 @@ namespace garlic
 		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
 		{
 			if (it->second.tagset->IsExpired (ts) || it->second.tagset->IsIndexExpired (it->second.index))
+			{
+				it->second.tagset->DeleteSymmKey (it->second.index);
 				it = m_ECIESx25519Tags.erase (it);
+			}	
 			else
 				++it;
 		}
