@@ -40,7 +40,7 @@ namespace garlic
 	// - 16 /* I2NP header */ - 16 /* poly hash */ - 8 /* tag */ - 4 /* garlic length */
 
 	class ECIESX25519AEADRatchetSession;
-	class RatchetTagSet
+	class RatchetTagSet: public std::enable_shared_from_this<RatchetTagSet>
 	{
 		public:
 
@@ -61,7 +61,9 @@ namespace garlic
 
 			void Expire ();
 			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
-			bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
+			virtual bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
+
+			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
 			
 		private:
 
@@ -93,6 +95,21 @@ namespace garlic
 		private:
 
 			std::shared_ptr<ECIESX25519AEADRatchetSession> m_DummySession; // we need a strong pointer for NS
+	};	
+
+	class DatabaseLookupTagSet: public RatchetTagSet
+	{
+		public:
+
+			DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key);
+
+			bool IsIndexExpired (int index) const { return false; };
+			bool HandleNextMessage (uint8_t * buf, size_t len, int index);
+			
+		private:
+
+			GarlicDestination * m_Destination;
+			uint8_t m_Key[32];
 	};	
 	
 	enum ECIESx25519BlockType

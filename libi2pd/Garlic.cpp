@@ -507,8 +507,7 @@ namespace garlic
 				if (it1 != m_ECIESx25519Tags.end ())
 				{
 					found = true;
-					auto session = it1->second.tagset->GetSession ();
-					if (!session || !session->HandleNextMessage (buf, length, it1->second.tagset, it1->second.index))
+					if (!it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
 						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
 					m_ECIESx25519Tags.erase (it1);
 				}
