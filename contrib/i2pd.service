@@ -1,4 +1,3 @@
-# /etc/systemd/system/i2pd.service
 [Unit]
 Description=I2P Router written in C++
 Documentation=man:i2pd(1) https://i2pd.readthedocs.io/en/latest/
