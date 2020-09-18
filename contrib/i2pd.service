@@ -14,12 +14,13 @@ RuntimeDirectoryMode=0700
 LogsDirectory=i2pd
 LogsDirectoryMode=0700
 Type=exec
-Environment="DAEMON_OPTS=--conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --service"
+Environment="DAEMON_OPTS=--conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --loglevel=error --service"
 EnvironmentFile=-/etc/default/i2pd
 ExecStart=/usr/sbin/i2pd $DAEMON_OPTS
 ExecReload=/bin/sh -c "kill -HUP $MAINPID"
 PIDFile=/run/i2pd/i2pd.pid
-Restart=on-failure
+### Uncomment, if auto restart needed
+Restart=always
 
 KillSignal=SIGQUIT
 # If you have the patience waiting 10 min on restarting/stopping it, uncomment this.
@@ -27,6 +28,7 @@ KillSignal=SIGQUIT
 #KillSignal=SIGINT
 #TimeoutStopSec=10m
 
+# If you have problems with hanging i2pd, you can try increase this
 LimitNOFILE=65536
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
@@ -51,6 +53,7 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 RemoveIPC=true
 ReadOnlyDirectories=/
+#ReadWriteDirectories=-/proc
 ReadWriteDirectories=-/var/lib/i2pd
 ReadWriteDirectories=-/var/log/i2pd
 ReadWriteDirectories=-/run
