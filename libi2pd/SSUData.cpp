@@ -7,7 +7,6 @@
 */
 
 #include <stdlib.h>
-#include <boost/bind.hpp>
 #include "Log.h"
 #include "Timestamp.h"
 #include "NetDb.hpp"
