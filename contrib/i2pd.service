@@ -35,7 +35,6 @@ LimitNOFILE=65536
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateUsers=true
-DevicePolicy=closed
 PrivateDevices=yes
 ProtectHome=yes
 ProtectSystem=full
