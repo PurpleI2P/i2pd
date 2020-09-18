@@ -19,8 +19,7 @@ EnvironmentFile=-/etc/default/i2pd
 ExecStart=/usr/sbin/i2pd $DAEMON_OPTS
 ExecReload=/bin/sh -c "kill -HUP $MAINPID"
 PIDFile=/run/i2pd/i2pd.pid
-### Uncomment, if auto restart needed
-Restart=always
+Restart=on-failure
 
 KillSignal=SIGQUIT
 # If you have the patience waiting 10 min on restarting/stopping it, uncomment this.
@@ -28,7 +27,6 @@ KillSignal=SIGQUIT
 #KillSignal=SIGINT
 #TimeoutStopSec=10m
 
-# If you have problems with hanging i2pd, you can try increase this
 LimitNOFILE=65536
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
@@ -53,7 +51,6 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 RemoveIPC=true
 ReadOnlyDirectories=/
-#ReadWriteDirectories=-/proc
 ReadWriteDirectories=-/var/lib/i2pd
 ReadWriteDirectories=-/var/log/i2pd
 ReadWriteDirectories=-/run
