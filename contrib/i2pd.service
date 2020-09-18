@@ -1,21 +1,26 @@
+# /etc/systemd/system/i2pd.service
 [Unit]
 Description=I2P Router written in C++
 Documentation=man:i2pd(1) https://i2pd.readthedocs.io/en/latest/
 After=network.target
+ConditionFileIsExecutable=/usr/sbin/i2pd
 
 [Service]
 User=i2pd
 Group=i2pd
+PermissionsStartOnly=yes
+
 RuntimeDirectory=i2pd
 RuntimeDirectoryMode=0700
 LogsDirectory=i2pd
 LogsDirectoryMode=0700
-Type=forking
-ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
+Type=exec
+Environment="DAEMON_OPTS=--conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --service"
+EnvironmentFile=-/etc/default/i2pd
+ExecStart=/usr/sbin/i2pd $DAEMON_OPTS
 ExecReload=/bin/sh -c "kill -HUP $MAINPID"
 PIDFile=/run/i2pd/i2pd.pid
-### Uncomment, if auto restart needed
-#Restart=on-failure
+Restart=on-failure
 
 KillSignal=SIGQUIT
 # If you have the patience waiting 10 min on restarting/stopping it, uncomment this.
@@ -23,10 +28,35 @@ KillSignal=SIGQUIT
 #KillSignal=SIGINT
 #TimeoutStopSec=10m
 
-# If you have problems with hanging i2pd, you can try increase this
-LimitNOFILE=4096
+LimitNOFILE=65536
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateUsers=true
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=full
+ProtectClock=true
+ProtectControlGroups=yes
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=cgroup ipc mnt pid user uts
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+ReadOnlyDirectories=/
+ReadWriteDirectories=-/proc
+ReadWriteDirectories=-/var/lib/i2pd
+ReadWriteDirectories=-/var/log/i2pd
+ReadWriteDirectories=-/run
+CapabilityBoundingSet=
 
 [Install]
 WantedBy=multi-user.target
