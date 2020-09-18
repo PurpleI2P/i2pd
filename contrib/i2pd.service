@@ -51,7 +51,6 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 RemoveIPC=true
 ReadOnlyDirectories=/
-ReadWriteDirectories=-/proc
 ReadWriteDirectories=-/var/lib/i2pd
 ReadWriteDirectories=-/var/log/i2pd
 ReadWriteDirectories=-/run
