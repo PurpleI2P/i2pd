@@ -460,6 +460,14 @@ namespace garlic
 		}
 	}
 
+	void GarlicDestination::AddECIESx25519Key (const uint8_t * key, const uint8_t * tag)
+	{
+		uint64_t t;
+		memcpy (&t, tag, 8);
+		auto tagset = std::make_shared<DatabaseLookupTagSet>(this, key);
+		m_ECIESx25519Tags.emplace (t, ECIESX25519AEADRatchetIndexTagset{0, tagset});
+	}	
+		
 	bool GarlicDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
 	{
 		AddSessionKey (key, tag);

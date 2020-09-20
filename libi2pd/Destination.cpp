@@ -744,14 +744,19 @@ namespace client
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
 			request->requestTimeoutTimer.cancel ();
 
+			bool isECIES = SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET) &&
+				nextFloodfill->GetVersion () >= MAKE_VERSION_NUMBER(0, 9, 46); // >= 0.9.46;
 			uint8_t replyKey[32], replyTag[32];
 			RAND_bytes (replyKey, 32); // random session key
-			RAND_bytes (replyTag, 32); // random session tag
-			AddSessionKey (replyKey, replyTag);
+			RAND_bytes (replyTag, isECIES ? 8 : 32); // random session tag
+			if (isECIES)	
+				AddECIESx25519Key (replyKey, replyTag);
+			else	
+				AddSessionKey (replyKey, replyTag);
 
 			auto msg = WrapMessage (nextFloodfill,
 				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded,
-					request->replyTunnel, replyKey, replyTag));
+					request->replyTunnel, replyKey, replyTag, isECIES));
 			request->outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock
