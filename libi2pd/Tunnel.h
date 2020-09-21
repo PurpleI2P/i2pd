@@ -36,7 +36,7 @@ namespace tunnel
 	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute
 	const int TUNNEL_RECREATION_THRESHOLD = 90; // 1.5 minutes
 	const int TUNNEL_CREATION_TIMEOUT = 30; // 30 seconds
-	const int STANDARD_NUM_RECORDS = 5; // in VariableTunnelBuild message
+	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 
 	enum TunnelState
 	{
