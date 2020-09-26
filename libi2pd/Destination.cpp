@@ -603,9 +603,8 @@ namespace client
 				return;
 			}
 			auto s = shared_from_this ();
-			// we must capture this for gcc 4.7 due the bug
 			RequestLeaseSet (ls->GetStoreHash (),
-				[s, ls, this](std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
+				[s, ls](std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
 					{
