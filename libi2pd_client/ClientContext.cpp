@@ -401,7 +401,14 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, EDDSA
+		std::map<std::string, std::string> params 
+		{
+			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "2" },
+			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "2" },
+			{ I2CP_PARAM_LEASESET_TYPE, "3" }
+		};
+		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
 		m_SharedLocalDestination->Acquire ();
 	}
 
