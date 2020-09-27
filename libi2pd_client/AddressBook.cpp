@@ -889,7 +889,7 @@ namespace client
 		/* assert: res.code == 200 */
 		auto it = res.headers.find("ETag");
 		if (it != res.headers.end()) m_Etag = it->second;
-		it = res.headers.find("If-Modified-Since");
+		it = res.headers.find("Last-Modified");
 		if (it != res.headers.end()) m_LastModified = it->second;
 		if (res.is_chunked())
 		{
