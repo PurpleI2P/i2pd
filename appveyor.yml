@@ -25,7 +25,7 @@ install:
 - c:\msys64\usr\bin\bash -lc "curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
 - c:\msys64\usr\bin\bash -lc "curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
 - c:\msys64\usr\bin\bash -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
-- c:\msys64\usr\bin\bash -lc "pacman -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+- c:\msys64\usr\bin\bash -lc "pacman -y -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
 # remove packages which can break build
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 # update runtime
