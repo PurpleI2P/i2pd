@@ -31,7 +31,7 @@ install:
 # update runtime
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 # Kill bash before next try
-- taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe
+- taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe | exit /B 0
 # For debug purposes
 - tasklist
 # update packages and install required
