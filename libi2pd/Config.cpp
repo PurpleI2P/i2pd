@@ -96,7 +96,7 @@ namespace config {
 			("httpproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable HTTP Proxy")
 			("httpproxy.address", value<std::string>()->default_value("127.0.0.1"),   "HTTP Proxy listen address")
 			("httpproxy.port", value<uint16_t>()->default_value(4444),                "HTTP Proxy listen port")
-			("httpproxy.keys", value<std::string>()->default_value(""),               "File to persist HTTP Proxy keys")
+			("httpproxy.keys", value<std::string>()->default_value("transient-proxy"), "File to persist HTTP Proxy keys. Transient by default")
 			("httpproxy.signaturetype", value<i2p::data::SigningKeyType>()->
 				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),      "Signature type for new keys. 7 (EdDSA) by default")
 			("httpproxy.inbound.length", value<std::string>()->default_value("3"),    "HTTP proxy inbound tunnel length")
@@ -116,7 +116,7 @@ namespace config {
 			("socksproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable SOCKS Proxy")
 			("socksproxy.address", value<std::string>()->default_value("127.0.0.1"),   "SOCKS Proxy listen address")
 			("socksproxy.port", value<uint16_t>()->default_value(4447),                "SOCKS Proxy listen port")
-			("socksproxy.keys", value<std::string>()->default_value(""),               "File to persist SOCKS Proxy keys")
+			("socksproxy.keys", value<std::string>()->default_value("transient-proxy"), "File to persist SOCKS Proxy keys. Transient by default")
 			("socksproxy.signaturetype", value<i2p::data::SigningKeyType>()->
 				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),       "Signature type for new keys. 7 (EdDSA) by default")
 			("socksproxy.inbound.length", value<std::string>()->default_value("3"),    "SOCKS proxy inbound tunnel length")

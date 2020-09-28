@@ -844,6 +844,8 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
+			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",          httpProxyKeys);
+			// we still need httpProxyKeys to compare with sockProxyKeys
 			std::string socksProxyKeys;        i2p::config::GetOption("socksproxy.keys",             socksProxyKeys);
 			std::string socksProxyAddr;        i2p::config::GetOption("socksproxy.address",          socksProxyAddr);
 			uint16_t    socksProxyPort;        i2p::config::GetOption("socksproxy.port",             socksProxyPort);
@@ -852,7 +854,12 @@ namespace client
 			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
 			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-			if (socksProxyKeys.length () > 0)
+			if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
+			{
+				localDestination = m_HttpProxy->GetLocalDestination ();
+				localDestination->Acquire ();
+			}	
+			else if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
 				if (LoadPrivateKeys (keys, socksProxyKeys, sigType))
