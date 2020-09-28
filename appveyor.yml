@@ -30,6 +30,8 @@ install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 # update runtime
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+# Sleep for 5 seconds before next try?
+- ping -n 5 127.0.0.1 > nul
 # update packages and install required
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu ${MSYS_PACKAGES}"
 
