@@ -23,7 +23,7 @@ environment:
 install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 # TODO: revert that change when appveyor's images will be updated
-- c:\msys64\usr\bin\bash -l "build/appveyor-msys2-upgrade.bash"
+#- c:\msys64\usr\bin\bash -l "build/appveyor-msys2-upgrade.bash"
 # update runtime
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 # update packages and install required
