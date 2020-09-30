@@ -849,8 +849,9 @@ namespace client
 
 	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
 		bool isPublic, const std::map<std::string, std::string> * params):
-		LeaseSetDestination (service, isPublic, params),
-		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
+		LeaseSetDestination (service, isPublic, params), 
+		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY), 
+		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(service)
 	{
@@ -918,7 +919,10 @@ namespace client
 				auto it = params->find (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY);
 				if (it != params->end ())
 					m_StreamingAckDelay = std::stoi(it->second);
-
+				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
+				if (it != params->end ())
+					m_IsStreamingAnswerPings = (it->second == "true");
+				
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
 					// authentication for encrypted LeaseSet
