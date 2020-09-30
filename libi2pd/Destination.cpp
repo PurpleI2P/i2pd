@@ -13,6 +13,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
+#include "Config.h"
 #include "Log.h"
 #include "FS.h"
 #include "Timestamp.h"
@@ -921,7 +922,7 @@ namespace client
 					m_StreamingAckDelay = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
-					m_IsStreamingAnswerPings = (it->second == "true");
+					i2p::config::GetOption (it->second, m_IsStreamingAnswerPings);
 				
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
