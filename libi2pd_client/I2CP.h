@@ -63,16 +63,14 @@ namespace client
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
 	class I2CPSession;
-	class I2CPDestination: private i2p::util::RunnableService, public LeaseSetDestination
+	class I2CPDestination: public LeaseSetDestination
 	{
 		public:
 
-			I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
-			~I2CPDestination ();
-
-			void Start ();
-			void Stop ();
-
+			I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner, 
+				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
+			~I2CPDestination () {};
+			
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };
 			void SetECIESx25519EncryptionPrivateKey (const uint8_t * key);
@@ -109,6 +107,18 @@ namespace client
 			uint64_t m_LeaseSetExpirationTime;
 	};
 
+	class RunnableI2CPDestination: private i2p::util::RunnableService, public I2CPDestination 
+	{
+		public:
+
+			RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, 
+				bool isPublic, const std::map<std::string, std::string>& params);	
+			~RunnableI2CPDestination ();
+
+			void Start ();
+			void Stop ();
+	};	
+	
 	class I2CPServer;
 	class I2CPSession: public std::enable_shared_from_this<I2CPSession>
 	{
@@ -179,17 +189,18 @@ namespace client
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 
-	class I2CPServer
+	class I2CPServer: private i2p::util::RunnableService
 	{
 		public:
 
-			I2CPServer (const std::string& interface, int port);
+			I2CPServer (const std::string& interface, int port, bool isSingleThread);
 			~I2CPServer ();
 
 			void Start ();
 			void Stop ();
-			boost::asio::io_service& GetService () { return m_Service; };
-
+			boost::asio::io_service& GetService () { return GetIOService (); };
+			bool IsSingleThread () const { return m_IsSingleThread; };
+			
 			bool InsertSession (std::shared_ptr<I2CPSession> session);
 			void RemoveSession (uint16_t sessionID);
 
@@ -203,12 +214,10 @@ namespace client
 
 		private:
 
+			bool m_IsSingleThread;
 			I2CPMessageHandler m_MessagesHandlers[256];
 			std::map<uint16_t, std::shared_ptr<I2CPSession> > m_Sessions;
 
-			bool m_IsRunning;
-			std::thread * m_Thread;
-			boost::asio::io_service m_Service;
 			I2CPSession::proto::acceptor m_Acceptor;
 
 		public:

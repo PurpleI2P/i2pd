@@ -23,34 +23,11 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
-		RunnableService ("I2CP"), LeaseSetDestination (GetIOService (), isPublic, &params),
+	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner, 
+	    std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
+		LeaseSetDestination (service, isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ())
 	{
-	}
-
-	I2CPDestination::~I2CPDestination ()
-	{
-		if (IsRunning ())
-			Stop ();
-	}
-
-	void I2CPDestination::Start ()
-	{
-		if (!IsRunning ())
-		{
-			LeaseSetDestination::Start ();
-			StartIOService ();
-		}
-	}
-
-	void I2CPDestination::Stop ()
-	{
-		if (IsRunning ())
-		{
-			LeaseSetDestination::Stop ();
-			StopIOService ();
-		}
 	}
 
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
@@ -217,6 +194,37 @@ namespace client
 		}
 	}
 
+	RunnableI2CPDestination::RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner, 
+		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
+		RunnableService ("I2CP"),
+		I2CPDestination (GetIOService (), owner, identity, isPublic, params)
+	{
+	}	
+
+	RunnableI2CPDestination::~RunnableI2CPDestination ()
+	{
+		if (IsRunning ())
+			Stop ();
+	}	
+
+	void RunnableI2CPDestination::Start ()
+	{
+		if (!IsRunning ())
+		{
+			I2CPDestination::Start ();
+			StartIOService ();
+		}
+	}
+
+	void RunnableI2CPDestination::Stop ()
+	{
+		if (IsRunning ())
+		{
+			I2CPDestination::Stop ();
+			StopIOService ();
+		}
+	}
+		
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket):
 		m_Owner (owner), m_Socket (socket), m_Payload (nullptr),
 		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true)
@@ -451,7 +459,9 @@ namespace client
 			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
 			if (!m_Destination)
 			{
-				m_Destination = std::make_shared<I2CPDestination>(shared_from_this (), identity, isPublic, params);
+				m_Destination = m_Owner.IsSingleThread () ?
+					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, isPublic, params):
+					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, isPublic, params);
 				SendSessionStatusMessage (1); // created
 				LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");
 				m_Destination->Start ();
@@ -800,9 +810,9 @@ namespace client
 			std::placeholders::_1, std::placeholders::_2, buf));
 	}
 
-	I2CPServer::I2CPServer (const std::string& interface, int port):
-		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service,
+	I2CPServer::I2CPServer (const std::string& interface, int port, bool isSingleThread):
+		RunnableService ("I2CP"), m_IsSingleThread (isSingleThread),
+		m_Acceptor (GetIOService (),
 #ifdef ANDROID
 			I2CPSession::proto::endpoint(std::string (1, '\0') + interface)) // leading 0 for abstract address
 #else
@@ -825,20 +835,18 @@ namespace client
 
 	I2CPServer::~I2CPServer ()
 	{
-		if (m_IsRunning)
+		if (IsRunning ())
 			Stop ();
 	}
 
 	void I2CPServer::Start ()
 	{
 		Accept ();
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&I2CPServer::Run, this));
+		StartIOService ();
 	}
 
 	void I2CPServer::Stop ()
 	{
-		m_IsRunning = false;
 		m_Acceptor.cancel ();
 		{
 			auto sessions = m_Sessions;
@@ -846,33 +854,12 @@ namespace client
 				it.second->Stop ();
 		}
 		m_Sessions.clear ();
-		m_Service.stop ();
-		if (m_Thread)
-		{
-			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = nullptr;
-		}
-	}
-
-	void I2CPServer::Run ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "I2CP: runtime exception: ", ex.what ());
-			}
-		}
+		StopIOService ();
 	}
 
 	void I2CPServer::Accept ()
 	{
-		auto newSocket = std::make_shared<I2CPSession::proto::socket> (m_Service);
+		auto newSocket = std::make_shared<I2CPSession::proto::socket> (GetIOService ());
 		m_Acceptor.async_accept (*newSocket, std::bind (&I2CPServer::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}

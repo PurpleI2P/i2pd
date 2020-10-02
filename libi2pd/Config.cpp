@@ -152,6 +152,7 @@ namespace config {
 			("i2cp.enabled", value<bool>()->default_value(false),              "Enable or disable I2CP")
 			("i2cp.address", value<std::string>()->default_value("127.0.0.1"), "I2CP listen address")
 			("i2cp.port", value<uint16_t>()->default_value(7654),              "I2CP listen port")
+			("i2cp.singlethread", value<bool>()->default_value(true),          "Destinations run in the I2CP server's thread")
 		;
 
 		options_description i2pcontrol("I2PControl options");

@@ -102,10 +102,11 @@ namespace client
 		{
 			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
 			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
+			bool singleThread; i2p::config::GetOption("i2cp.singlethread", singleThread);
 			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
 			try
 			{
-				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
+				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort, singleThread);
 				m_I2CPServer->Start ();
 			}
 			catch (std::exception& e)
