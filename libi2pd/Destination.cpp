@@ -465,14 +465,14 @@ namespace client
 			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
 			{
 				for (int i = 0; i < num; i++)
-			{
-				i2p::data::IdentHash peerHash (buf + 33 + i*32);
-				if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 				{
-					LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
-					i2p::data::netdb.RequestDestination (peerHash);
+					i2p::data::IdentHash peerHash (buf + 33 + i*32);
+					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
+					{
+						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); 
+						i2p::data::netdb.RequestDestination (peerHash, nullptr, false); // through exploratory
+					}
 				}
-			}
 
 				auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
 				if (floodfill)
