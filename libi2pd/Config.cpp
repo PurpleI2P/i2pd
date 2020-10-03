@@ -58,7 +58,7 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", value<bool>()->default_value(false),                     "Enable NTCP transport (default: disabled)")
+			("ntcp", value<bool>()->default_value(false),                     "Ignored. Always false")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
 #ifdef _WIN32

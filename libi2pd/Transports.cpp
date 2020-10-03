@@ -472,41 +472,7 @@ namespace transport
 					}
 				}
 			}
-			if (peer.numAttempts == 1) // NTCP1
-			{
-				peer.numAttempts++;
-				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
-				if (address && m_NTCPServer)
-				{
-					if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
-					{
-						if(!m_NTCPServer->ShouldLimit())
-						{
-							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-							if(m_NTCPServer->UsingProxy())
-							{
-								NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
-								std::string addr = address->host.to_string();
-
-								if(address->host.is_v6())
-									remote = NTCPServer::eIP6Address;
-
-								m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
-							}
-							else
-								m_NTCPServer->Connect (address->host, address->port, s);
-							return true;
-						}
-						else
-						{
-							LogPrint(eLogWarning, "Transports: NTCP Limit hit falling back to SSU");
-						}
-					}
-				}
-				else
-					LogPrint (eLogDebug, "Transports: NTCP address is not present for ", i2p::data::GetIdentHashAbbreviation (ident), ", trying SSU");
-			}
-			if (peer.numAttempts == 2)// SSU
+			if (peer.numAttempts == 1)// SSU
 			{
 				peer.numAttempts++;
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))

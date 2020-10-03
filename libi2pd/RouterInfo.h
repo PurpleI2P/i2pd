@@ -153,7 +153,6 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
-			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
@@ -169,7 +168,6 @@ namespace data
 			void ClearProperties () { m_Properties.clear (); };
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
-			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
