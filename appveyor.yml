@@ -26,6 +26,9 @@ install:
 - c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
 - c:\msys64\usr\bin\bash -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+# disable inaccessible miror (doing same for sourceforge because it's laggy) - https://github.com/msys2/MINGW-packages/issues/7084
+- c:\msys64\usr\bin\bash -lc "sed -i 's/^Server\ =\ http:\/\/repo\.msys2\.org/#Server\ =\ http:\/\/repo\.msys2\.org/g' /etc/pacman.d/mirrorlist.*"
+- c:\msys64\usr\bin\bash -lc "sed -i 's/^Server\ =\ https:\/\/sourceforge\.net/#Server\ =\ https:\/\/sourceforge\.net/g' /etc/pacman.d/mirrorlist.*"
 # remove packages which can break build
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 # update runtime
