@@ -732,13 +732,6 @@ namespace http {
 	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n";
-		auto ntcpServer = i2p::transport::transports.GetNTCPServer ();
-		if (ntcpServer)
-		{
-			auto sessions = ntcpServer->GetNTCPSessions ();
-			if (!sessions.empty ())
-				ShowNTCPTransports (s, sessions, "NTCP");
-		}
 		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
 		if (ntcp2Server)
 		{

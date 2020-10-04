@@ -21,7 +21,6 @@
 #include <atomic>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
-#include "NTCPSession.h"
 #include "SSU.h"
 #include "NTCP2.h"
 #include "RouterInfo.h"
@@ -88,10 +87,9 @@ namespace transport
 			Transports ();
 			~Transports ();
 
-			void Start (bool enableNTCP=true, bool enableSSU=true);
+			void Start (bool enableNTCP2=true, bool enableSSU=true);
 			void Stop ();
 
-			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
@@ -159,7 +157,6 @@ namespace transport
 			boost::asio::io_service::work * m_Work;
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer;
 
-			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
@@ -186,7 +183,6 @@ namespace transport
 		public:
 
 			// for HTTP only
-			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
 			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; };
 			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
