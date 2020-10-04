@@ -709,20 +709,6 @@ namespace data
 		s.write (str.c_str (), len);
 	}
 
-	void RouterInfo::AddNTCPAddress (const char * host, int port)
-	{
-		auto addr = std::make_shared<Address>();
-		addr->host = boost::asio::ip::address::from_string (host);
-		addr->port = port;
-		addr->transportStyle = eTransportNTCP;
-		addr->cost = 6;
-		addr->date = 0;
-		for (const auto& it: *m_Addresses) // don't insert same address twice
-			if (*it == *addr) return;
-		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
-		m_Addresses->push_front(std::move(addr)); // always make NTCP first
-	}
-
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
 	{
 		auto addr = std::make_shared<Address>();

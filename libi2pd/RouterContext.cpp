@@ -373,48 +373,19 @@ namespace i2p
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
 	}
 
-	void RouterContext::PublishNTCPAddress (bool publish, bool v4only)
+	void RouterContext::RemoveNTCPAddress (bool v4only)
 	{
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		if (publish)
+		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
-			for (const auto& addr : addresses) // v4
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
+				(!v4only || (*it)->host.is_v4 ()))
 			{
-				if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					addr->host.is_v4 ())
-				{
-					// insert NTCP address with host/port from SSU
-					m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-					break;
-				}
+				it = addresses.erase (it);
+				if (v4only) break; // otherwise might be more than one address
 			}
-			if (!v4only)
-			{
-				for (const auto& addr : addresses) // v6
-				{
-					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-						addr->host.is_v6 ())
-					{
-						// insert NTCP address with host/port from SSU
-						m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			for (auto it = addresses.begin (); it != addresses.end ();)
-			{
-				if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
-					(!v4only || (*it)->host.is_v4 ()))
-				{
-					it = addresses.erase (it);
-					if (v4only) break; // otherwise might be more than one address
-				}
-				else
-					++it;
-			}
+			else
+				++it;
 		}
 	}
 

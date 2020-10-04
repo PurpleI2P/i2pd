@@ -142,8 +142,7 @@ namespace i2p
 			i2p::context.SetSupportsV6 (ipv6);
 			i2p::context.SetSupportsV4 (ipv4);
 
-			bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-			i2p::context.PublishNTCPAddress (ntcp, !ipv6);  
+			i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later 
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
 			{
@@ -151,7 +150,7 @@ namespace i2p
 				if (published)
 				{
 					uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
-					if (!ntcp && !ntcp2port) ntcp2port = port; // use standard port
+					if (!ntcp2port) ntcp2port = port; // use standard port
 					i2p::context.PublishNTCP2Address (ntcp2port, true); // publish
 					if (ipv6)
 					{
