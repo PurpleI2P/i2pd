@@ -328,7 +328,7 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
-						if (m_Host.length () > 0 && line.find ("Host:") != std::string::npos)
+						if (m_Host.length () > 0 && !line.compare(0, 5, "Host:"))
 							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
 						else
 							m_OutHeader << line << "\n";
@@ -377,15 +377,19 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
-						if (line.find ("Server:") != std::string::npos) continue; // exclude "Server:"
-						if (line.find ("Date:") != std::string::npos) continue;  // exclude "Date""
-						if (line[0] == 'X')
-						{	
-							if (line.find ("X-Runtime:") != std::string::npos) continue; // exclude "X-Runtime:"
-							if (line.find ("X-Powered-By:") != std::string::npos) continue; // exclude "X-Powered-By:"
-						}
-						
-						m_OutHeader << line << "\n";
+						static const std::vector<std::string> excluded // list of excluded headers
+						{
+							"Server:", "Date:", "X-Runtime:", "X-Powered-By:", "Proxy"
+						};
+						bool matched = false;
+						for (const auto& it: excluded)
+							if (!line.compare(0, it.length (), it)) 
+							{
+								matched = true;
+								break;	
+							}	
+						if (!matched)
+							m_OutHeader << line << "\n";
 					}
 				}
 				else
