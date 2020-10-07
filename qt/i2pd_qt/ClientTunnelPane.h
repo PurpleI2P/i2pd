@@ -53,6 +53,10 @@ private:
     QLabel * sigTypeLabel;
     QComboBox * sigTypeComboBox;
 
+    //cryptoType
+    QLabel * cryptoTypeLabel;
+    QLineEdit * cryptoTypeLineEdit;
+
 protected slots:
     virtual void setGroupBoxTitle(const QString & title);
 
@@ -61,6 +65,7 @@ private:
         typeLabel->setText(QApplication::translate("cltTunForm", "Client tunnel type:", 0));
         destinationLabel->setText(QApplication::translate("cltTunForm", "Destination:", 0));
         portLabel->setText(QApplication::translate("cltTunForm", "Port:", 0));
+        cryptoTypeLabel->setText(QApplication::translate("cltTunForm", "Crypto type:", 0));
         keysLabel->setText(QApplication::translate("cltTunForm", "Keys:", 0));
         destinationPortLabel->setText(QApplication::translate("cltTunForm", "Destination port:", 0));
         addressLabel->setText(QApplication::translate("cltTunForm", "Address:", 0));
@@ -85,6 +90,14 @@ protected:
             return false;
         }
         ctc->setport(portInt);
+
+        auto cryptoTypeStr=cryptoTypeLineEdit->text();
+        int cryptoTypeInt=cryptoTypeStr.toInt(&ok);
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad crypto type, must be int.")+" "+cannotSaveSettings,cryptoTypeLineEdit);
+            return false;
+        }
+        ctc->setcryptoType(cryptoTypeInt);
 
         ctc->setkeys(keysLineEdit->text().toStdString());
 

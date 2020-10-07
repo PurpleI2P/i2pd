@@ -32,6 +32,7 @@ void ClientTunnelConfig::saveToStringStream(std::stringstream& out) {
         << "port=" << port << "\n"
         << "destination=" << dest << "\n"
         << "destinationport=" << destinationPort << "\n"
+        << "cryptoType=" << getcryptoType() << "\n"
         << "signaturetype=" << sigType << "\n";
     if(!keys.empty()) out << "keys=" << keys << "\n";
 }
@@ -41,9 +42,10 @@ void ServerTunnelConfig::saveToStringStream(std::stringstream& out) {
     out << "host=" << host << "\n"
         << "port=" << port << "\n"
         << "signaturetype=" << sigType << "\n"
-        << "inport=" << inPort << "\n"
-        << "accesslist=" << accessList << "\n"
-        << "gzip=" << (gzip?"true":"false") << "\n"
+        << "inport=" << inPort << "\n";
+    if(accessList.size()>0) { out << "accesslist=" << accessList << "\n"; }
+    out << "gzip=" << (gzip?"true":"false") << "\n"
+        << "cryptoType=" << getcryptoType() << "\n"
         << "enableuniquelocal=" << (isUniqueLocal?"true":"false") << "\n"
         << "address=" << address << "\n"
         << "hostoverride=" << hostOverride << "\n"

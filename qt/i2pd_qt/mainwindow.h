@@ -104,10 +104,13 @@ class MainWindowItem : public QObject {
     QWidget* widgetToFocus;
     QString requirementToBeValid;
 public:
-    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) : option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) :
+        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_),
+        optionValuePresent(false) {}
     QWidget* getWidgetToFocus(){return widgetToFocus;}
     QString& getRequirementToBeValid() { return requirementToBeValid; }
     ConfigOption& getConfigOption() { return option; }
+    bool optionValuePresent;
     boost::any optionValue;
     virtual ~MainWindowItem(){}
     virtual void installListeners(MainWindow *mainWindow);
@@ -118,7 +121,8 @@ public:
         //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
-        optionValue=programOption.empty()?boost::any(std::string(""))
+        optionValuePresent=!programOption.empty();
+        optionValue=!optionValuePresent?boost::any(std::string(""))
                    :boost::any_cast<boost::program_options::variable_value>(programOption).value();
     }
     virtual void saveToStringStream(std::stringstream& out){
@@ -126,7 +130,7 @@ public:
             std::string v = boost::any_cast<std::string>(optionValue);
             if(v.empty())return;
         }
-        if(optionValue.empty())return;
+        if(!optionValuePresent || optionValue.empty())return;
         std::string rtti = optionValue.type().name();
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
@@ -180,6 +184,7 @@ public:
 
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=fromString(lineEdit->text());
+        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -234,6 +239,7 @@ public:
     virtual void saveToStringStream(std::stringstream& out){
         std::string logDest = comboBox->currentText().toStdString();
         optionValue=logDest;
+        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -251,6 +257,7 @@ public:
     }
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=comboBox->currentText().toStdString();
+        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -268,6 +275,7 @@ public:
     virtual void saveToStringStream(std::stringstream& out){
         uint16_t selected = SignatureTypeComboBoxFactory::getSigType(comboBox->currentData());
         optionValue=(unsigned short)selected;
+        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -284,6 +292,7 @@ public:
     }
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=checkBox->isChecked();
+        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -613,6 +622,7 @@ private:
         std::string keys = "";
         std::string address = "127.0.0.1";
         int destinationPort = 0;
+        int cryptoType = 0;
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
         // I2CP
         I2CPParameters i2cpParameters;
@@ -624,7 +634,8 @@ private:
                                                       keys,
                                                       address,
                                                       destinationPort,
-                                                      sigType);
+                                                      sigType,
+                                                      cryptoType);
 
         saveAllConfigs(true, name);
     }
@@ -643,6 +654,7 @@ private:
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
         std::string address = "127.0.0.1";
         bool isUniqueLocal = true;
+        int cryptoType = 0;
 
         // I2CP
         I2CPParameters i2cpParameters;
@@ -659,7 +671,8 @@ private:
                                                   gzip,
                                                   sigType,
                                                   address,
-                                                  isUniqueLocal);
+                                                  isUniqueLocal,
+                                                  cryptoType);
 
 
         saveAllConfigs(true, name);
@@ -712,6 +725,7 @@ private:
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+                    int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
                     int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
                     std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
@@ -726,7 +740,8 @@ private:
                                                               keys,
                                                               address,
                                                               destinationPort,
-                                                              sigType);
+                                                              sigType,
+                                                              cryptoType);
                 }
                 else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
                                  || type == I2P_TUNNELS_SECTION_TYPE_HTTP
@@ -746,6 +761,7 @@ private:
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
                     bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+                    int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
 
                     // I2CP
                     std::map<std::string, std::string> options;
@@ -779,7 +795,8 @@ private:
                                                               gzip,
                                                               sigType,
                                                               address,
-                                                              isUniqueLocal);
+                                                              isUniqueLocal,
+                                                              cryptoType);
                 }
                 else
                     LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);//TODO show err box and disable the tunn gui
