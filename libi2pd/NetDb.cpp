@@ -560,6 +560,9 @@ namespace data
 				updatedCount++;
 				continue;
 			}
+			// make router reachable back if too few routers
+			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)	
+				it.second->SetUnreachable (false); 
 			// find & mark expired routers
 			if (it.second->UsesIntroducer ())
 			{
@@ -575,7 +578,7 @@ namespace data
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
-				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
+				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;	
 			}
 		} // m_RouterInfos iteration
 
