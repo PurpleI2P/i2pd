@@ -7,7 +7,6 @@
 */
 
 #include <string.h>
-#include <boost/bind.hpp>
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"

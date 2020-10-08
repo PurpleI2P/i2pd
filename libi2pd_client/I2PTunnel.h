@@ -57,7 +57,8 @@ namespace client
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			virtual void Write (const uint8_t * buf, size_t len); // can be overloaded
 			void HandleWrite (const boost::system::error_code& ecode);
-
+			virtual void WriteToStream (const uint8_t * buf, size_t len); // can be overloaded
+		
 			void StreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleConnect (const boost::system::error_code& ecode);
@@ -103,12 +104,13 @@ namespace client
 		protected:
 
 			void Write (const uint8_t * buf, size_t len);
+			void WriteToStream (const uint8_t * buf, size_t len); 
 
 		private:
 
 			std::string m_Host;
 			std::stringstream m_InHeader, m_OutHeader;
-			bool m_HeaderSent;
+			bool m_HeaderSent, m_ResponseHeaderSent;
 			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
 
@@ -165,7 +167,8 @@ namespace client
 
 	/** 2 minute timeout for udp sessions */
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
-
+	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds	
+	
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
 

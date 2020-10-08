@@ -88,12 +88,67 @@ namespace garlic
 		}
 	}
 
+	void RatchetTagSet::DeleteSymmKey (int index)
+	{	
+		m_ItermediateSymmKeys.erase (index);
+	}
+	
 	void RatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
+	bool RatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		auto session = GetSession ();
+		if (!session) return false;
+		return session->HandleNextMessage (buf, len, shared_from_this (), index);
+	}	
+
+	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
+		RatchetTagSet (nullptr), m_Destination (destination) 
+	{ 
+		memcpy (m_Key, key, 32); 
+		Expire ();	
+	}
+	
+	bool DatabaseLookupTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		if (len < 24) return false;
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		size_t offset = 8; // first 8 bytes is reply tag used as AD	
+		len -= 16; // poly1305
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len - offset, buf, 8, m_Key, nonce, buf + offset, len - offset, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply AEAD decryption failed");
+			return false;
+		}
+		// we assume 1 I2NP block with delivery type local
+		if (offset + 3 > len) 
+		{	
+			LogPrint (eLogWarning, "Garlic: Lookup reply is too short ", len);
+			return false;
+		}	
+		if (buf[offset] != eECIESx25519BlkGalicClove)
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply unexpected block ", (int)buf[offset]);
+			return false;
+		}	
+		offset++;
+		auto size = bufbe16toh (buf + offset);
+		offset += 2;
+		if (offset + size > len) 
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply block is too long ", size);
+			return false;
+		}	
+		if (m_Destination)
+			m_Destination->HandleECIESx25519GarlicClove (buf + offset, size);	
+		return true;
+	}	
+	
 	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
 		GarlicRoutingSession (owner, attachLeaseSet)
 	{
@@ -657,7 +712,12 @@ namespace garlic
 				moreTags -= (receiveTagset->GetNextIndex () - index);
 			}	
 			if (moreTags > 0)
+			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
+				index -= (moreTags >> 1); // /2
+				if (index > 0)
+					receiveTagset->SetTrimBehind (index);
+			}	
 		}	
 		return true;
 	}
@@ -739,8 +799,11 @@ namespace garlic
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
 		if (first) payloadLen += 7;// datatime
-		if (msg && m_Destination)
-			payloadLen += msg->GetPayloadLength () + 13 + 32;
+		if (msg)
+		{	
+			payloadLen += msg->GetPayloadLength () + 13;
+			if (m_Destination) payloadLen += 32;
+		}	
 		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
 			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted &&
 				ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
@@ -770,7 +833,7 @@ namespace garlic
 			if (m_NextSendRatchet->newKey) payloadLen += 32;
 		}
 		uint8_t paddingSize = 0;
-		if (payloadLen)
+		if (payloadLen || ts > m_LastSentTimestamp + ECIESX25519_SEND_INACTIVITY_TIMEOUT)
 		{
 			int delta = (int)ECIESX25519_OPTIMAL_PAYLOAD_SIZE - (int)payloadLen;
 			if (delta < 0 || delta > 3) // don't create padding if we are close to optimal size
@@ -791,96 +854,100 @@ namespace garlic
 			}
 		}
 		std::vector<uint8_t> v(payloadLen);
-		size_t offset = 0;
-		// DateTime
-		if (first)
-		{
-			v[offset] = eECIESx25519BlkDateTime; offset++;
-			htobe16buf (v.data () + offset, 4); offset += 2;
-			htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
-		}
-		// LeaseSet
-		if (leaseSet)
-		{
-			offset += CreateLeaseSetClove (leaseSet, ts, v.data () + offset, payloadLen - offset);
-			if (!first)
+		if (payloadLen)
+		{	
+			m_LastSentTimestamp = ts;
+			size_t offset = 0;
+			// DateTime
+			if (first)
 			{
-				// ack request
-				v[offset] = eECIESx25519BlkAckRequest; offset++;
-				htobe16buf (v.data () + offset, 1); offset += 2;
-				v[offset] = 0; offset++; // flags
+				v[offset] = eECIESx25519BlkDateTime; offset++;
+				htobe16buf (v.data () + offset, 4); offset += 2;
+				htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
 			}
-		}
-		// msg
-		if (msg && m_Destination)
-			offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
-		// ack
-		if (m_AckRequests.size () > 0)
-		{
-			v[offset] = eECIESx25519BlkAck; offset++;
-			htobe16buf (v.data () + offset, m_AckRequests.size () * 4); offset += 2;
-			for (auto& it: m_AckRequests)
+			// LeaseSet
+			if (leaseSet)
 			{
-				htobe16buf (v.data () + offset, it.first); offset += 2;
-				htobe16buf (v.data () + offset, it.second); offset += 2;
+				offset += CreateLeaseSetClove (leaseSet, ts, v.data () + offset, payloadLen - offset);
+				if (!first)
+				{
+					// ack request
+					v[offset] = eECIESx25519BlkAckRequest; offset++;
+					htobe16buf (v.data () + offset, 1); offset += 2;
+					v[offset] = 0; offset++; // flags
+				}
 			}
-			m_AckRequests.clear ();
-		}
-		// next keys
-		if (m_SendReverseKey)
-		{
-			v[offset] = eECIESx25519BlkNextKey; offset++;
-			htobe16buf (v.data () + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
-			v[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
-			int keyID = m_NextReceiveRatchet->keyID - 1;
-			if (m_NextReceiveRatchet->newKey)
+			// msg
+			if (msg && m_Destination)
+				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
+			// ack
+			if (m_AckRequests.size () > 0)
 			{
-				v[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
-				keyID++;
+				v[offset] = eECIESx25519BlkAck; offset++;
+				htobe16buf (v.data () + offset, m_AckRequests.size () * 4); offset += 2;
+				for (auto& it: m_AckRequests)
+				{
+					htobe16buf (v.data () + offset, it.first); offset += 2;
+					htobe16buf (v.data () + offset, it.second); offset += 2;
+				}
+				m_AckRequests.clear ();
 			}
-			offset++; // flag
-			htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
-			if (m_NextReceiveRatchet->newKey)
+			// next keys
+			if (m_SendReverseKey)
 			{
-				memcpy (v.data () + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
-				offset += 32; // public key
+				v[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (v.data () + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
+				v[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
+				int keyID = m_NextReceiveRatchet->keyID - 1;
+				if (m_NextReceiveRatchet->newKey)
+				{
+					v[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
+					keyID++;
+				}
+				offset++; // flag
+				htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
+				if (m_NextReceiveRatchet->newKey)
+				{
+					memcpy (v.data () + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
+					offset += 32; // public key
+				}
+				m_SendReverseKey = false;
 			}
-			m_SendReverseKey = false;
-		}
-		if (m_SendForwardKey)
-		{
-			v[offset] = eECIESx25519BlkNextKey; offset++;
-			htobe16buf (v.data () + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
-			v[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
-			if (!m_NextSendRatchet->keyID) v[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
-			offset++; // flag
-			htobe16buf (v.data () + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
-			if (m_NextSendRatchet->newKey)
+			if (m_SendForwardKey)
 			{
-				memcpy (v.data () + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
-				offset += 32; // public key
+				v[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (v.data () + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
+				v[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
+				if (!m_NextSendRatchet->keyID) v[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
+				offset++; // flag
+				htobe16buf (v.data () + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
+				if (m_NextSendRatchet->newKey)
+				{
+					memcpy (v.data () + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
+					offset += 32; // public key
+				}
 			}
-		}
-		// padding
-		if (paddingSize)
-		{
-			v[offset] = eECIESx25519BlkPadding; offset++;
-			htobe16buf (v.data () + offset, paddingSize); offset += 2;
-			memset (v.data () + offset, 0, paddingSize); offset += paddingSize;
-		}
+			// padding
+			if (paddingSize)
+			{
+				v[offset] = eECIESx25519BlkPadding; offset++;
+				htobe16buf (v.data () + offset, paddingSize); offset += 2;
+				memset (v.data () + offset, 0, paddingSize); offset += paddingSize;
+			}
+		}	
 		return v;
 	}
 
-	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination)
+	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
 	{
 		if (!msg) return 0;
 		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-		if (isDestination) cloveSize += 32;
+		if (m_Destination) cloveSize += 32;
 		if ((int)len < cloveSize + 3) return 0;
 		buf[0] = eECIESx25519BlkGalicClove; // clove type
 		htobe16buf (buf + 1, cloveSize); // size
 		buf += 3;
-		if (isDestination)
+		if (m_Destination)
 		{
 			*buf = (eGarlicDeliveryTypeDestination << 5);
 			memcpy (buf + 1, *m_Destination, 32); buf += 32;

@@ -68,7 +68,6 @@ set(LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/NetDb.cpp"
   "${LIBI2PD_SRC_DIR}/NetDbRequests.cpp"
   "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
-  "${LIBI2PD_SRC_DIR}/NTCPSession.cpp"
   "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
   "${LIBI2PD_SRC_DIR}/Profiling.cpp"
   "${LIBI2PD_SRC_DIR}/Reseed.cpp"

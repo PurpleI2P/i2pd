@@ -316,7 +316,7 @@ namespace data
 			}
 			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
 			if (isNTCP2Only && address->ntcp2) address->ntcp2->isNTCP2Only = true;
-			if (supportedTransports)
+			if (supportedTransports & ~(eNTCPV4 | eNTCPV6)) // exclude NTCP only
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
@@ -477,7 +477,12 @@ namespace data
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
 			if (address.transportStyle == eTransportNTCP)
-				WriteString (address.IsNTCP2 () ? "NTCP2" : "NTCP", s);
+			{
+				if (address.IsNTCP2 ())
+					WriteString ("NTCP2", s);
+				else
+					continue; // don't write NTCP address
+			}	
 			else if (address.transportStyle == eTransportSSU)
 			{
 				WriteString ("SSU", s);
@@ -704,20 +709,6 @@ namespace data
 		s.write (str.c_str (), len);
 	}
 
-	void RouterInfo::AddNTCPAddress (const char * host, int port)
-	{
-		auto addr = std::make_shared<Address>();
-		addr->host = boost::asio::ip::address::from_string (host);
-		addr->port = port;
-		addr->transportStyle = eTransportNTCP;
-		addr->cost = 6;
-		addr->date = 0;
-		for (const auto& it: *m_Addresses) // don't insert same address twice
-			if (*it == *addr) return;
-		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
-		m_Addresses->push_front(std::move(addr)); // always make NTCP first
-	}
-
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
 	{
 		auto addr = std::make_shared<Address>();
@@ -817,14 +808,6 @@ namespace data
 		return "";
 	}
 
-	bool RouterInfo::IsNTCP (bool v4only) const
-	{
-		if (v4only)
-			return m_SupportedTransports & eNTCPV4;
-		else
-			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
-	}
-
 	bool RouterInfo::IsSSU (bool v4only) const
 	{
 		if (v4only)
@@ -905,15 +888,6 @@ namespace data
 	bool RouterInfo::UsesIntroducer () const
 	{
 		return m_Caps & Caps::eUnreachable; // non-reachable
-	}
-
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCPAddress (bool v4only) const
-	{
-		return GetAddress (
-			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportNTCP) && !address->IsNTCP2Only () && (!v4only || address->host.is_v4 ());
-			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const

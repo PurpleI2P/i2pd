@@ -114,6 +114,7 @@ namespace garlic
 			virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
+			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
 
 			void SetLeaseSetUpdated ()
 			{
@@ -219,7 +220,6 @@ namespace garlic
 	{
 		int index;
 		RatchetTagSetPtr tagset;
-		uint64_t creationTime; // seconds since epoch
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination
@@ -241,6 +241,7 @@ namespace garlic
 				std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
+			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
 			void AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset);

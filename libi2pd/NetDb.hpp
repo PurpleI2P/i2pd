@@ -11,7 +11,7 @@
 // this file is called NetDb.hpp to resolve conflict with libc's netdb.h on case insensitive fs
 #include <inttypes.h>
 #include <set>
-#include <map>
+#include <unordered_map>
 #include <list>
 #include <string>
 #include <thread>
@@ -70,7 +70,7 @@ namespace data
 			std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
 
-			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);
+			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr, bool direct = true);
 			void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);
 
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
@@ -138,9 +138,9 @@ namespace data
 		private:
 
 			mutable std::mutex m_LeaseSetsMutex;
-			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
+			std::unordered_map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
-			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
+			std::unordered_map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 

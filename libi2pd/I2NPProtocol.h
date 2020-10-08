@@ -251,8 +251,9 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
-		const std::set<i2p::data::IdentHash>& excludedFloodfills,
-		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag);
+		const std::set<i2p::data::IdentHash>& excludedFloodfills, 
+	    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, 
+	    const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
 	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 
 	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0);

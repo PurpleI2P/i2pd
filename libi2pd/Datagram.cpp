@@ -315,6 +315,13 @@ namespace datagram
 		}	
 		
 		auto path = m_RoutingSession->GetSharedRoutingPath();
+		if (path && m_RoutingSession->IsRatchets () &&
+		    m_LastUse > m_RoutingSession->GetLastActivityTimestamp ()*1000 + DATAGRAM_SESSION_PATH_TIMEOUT)
+		{	
+			m_RoutingSession->SetSharedRoutingPath (nullptr);
+			path = nullptr;
+		}
+				
 		if (path) 
 		{
 			if (path->outboundTunnel && !path->outboundTunnel->IsEstablished ())
