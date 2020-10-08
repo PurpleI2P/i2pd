@@ -105,12 +105,10 @@ class MainWindowItem : public QObject {
     QString requirementToBeValid;
 public:
     MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) :
-        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_),
-        optionValuePresent(false) {}
+        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
     QWidget* getWidgetToFocus(){return widgetToFocus;}
     QString& getRequirementToBeValid() { return requirementToBeValid; }
     ConfigOption& getConfigOption() { return option; }
-    bool optionValuePresent;
     boost::any optionValue;
     virtual ~MainWindowItem(){}
     virtual void installListeners(MainWindow *mainWindow);
@@ -121,8 +119,7 @@ public:
         //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
-        optionValuePresent=!programOption.empty();
-        optionValue=!optionValuePresent?boost::any(std::string(""))
+        optionValue=programOption.empty()?boost::any(std::string(""))
                    :boost::any_cast<boost::program_options::variable_value>(programOption).value();
     }
     virtual void saveToStringStream(std::stringstream& out){
@@ -130,7 +127,7 @@ public:
             std::string v = boost::any_cast<std::string>(optionValue);
             if(v.empty())return;
         }
-        if(!optionValuePresent || optionValue.empty())return;
+        if(optionValue.empty())return;
         std::string rtti = optionValue.type().name();
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
@@ -184,7 +181,6 @@ public:
 
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=fromString(lineEdit->text());
-        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -239,7 +235,6 @@ public:
     virtual void saveToStringStream(std::stringstream& out){
         std::string logDest = comboBox->currentText().toStdString();
         optionValue=logDest;
-        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -257,7 +252,6 @@ public:
     }
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=comboBox->currentText().toStdString();
-        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -275,7 +269,6 @@ public:
     virtual void saveToStringStream(std::stringstream& out){
         uint16_t selected = SignatureTypeComboBoxFactory::getSigType(comboBox->currentData());
         optionValue=(unsigned short)selected;
-        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -292,7 +285,6 @@ public:
     }
     virtual void saveToStringStream(std::stringstream& out){
         optionValue=checkBox->isChecked();
-        optionValuePresent=true;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
