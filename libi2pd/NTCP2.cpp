@@ -1435,7 +1435,7 @@ namespace transport
 			{
 
 				auto timer = std::make_shared<boost::asio::deadline_timer>(GetService());
-				auto timeout = NTCP_CONNECT_TIMEOUT * 5;
+				auto timeout = NTCP2_CONNECT_TIMEOUT * 5;
 				conn->SetTerminationTimeout(timeout * 2);
 				timer->expires_from_now (boost::posix_time::seconds(timeout));
 				timer->async_wait ([conn, timeout](const boost::system::error_code& ecode)

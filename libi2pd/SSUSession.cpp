@@ -6,7 +6,6 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#include <boost/bind.hpp>
 #include "version.h"
 #include "Crypto.h"
 #include "Log.h"

@@ -21,11 +21,25 @@ environment:
     MSYS_BITNESS: 32
 
 install:
+# install new signing keyring
+- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
+- c:\msys64\usr\bin\bash -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+# disable inaccessible miror (something block sed from changing files, so rewrite them) - https://github.com/msys2/MINGW-packages/issues/7084
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/x86_64/' > /etc/pacman.d/mirrorlist.mingw64"
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/i686/' > /etc/pacman.d/mirrorlist.mingw32"
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/msys/$arch/' > /etc/pacman.d/mirrorlist.msys"
+# remove packages which can break build
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
-# TODO: revert that change when appveyor's images will be updated
-- c:\msys64\usr\bin\bash -l "build/appveyor-msys2-upgrade.bash"
 # update runtime
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+# Kill bash before next try
+- taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe | exit /B 0
+# rewrite mirrorlist again because pacman update can rewrite it
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/x86_64/' > /etc/pacman.d/mirrorlist.mingw64"
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/i686/' > /etc/pacman.d/mirrorlist.mingw32"
+- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/msys/$arch/' > /etc/pacman.d/mirrorlist.msys"
 # update packages and install required
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu ${MSYS_PACKAGES}"
 

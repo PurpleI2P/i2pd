@@ -139,22 +139,25 @@ namespace client
 			}
 		}
 		else
-		{
-			if (m_Stream)
-			{
-				auto s = shared_from_this ();
-				m_Stream->AsyncSend (m_Buffer, bytes_transferred,
-					[s](const boost::system::error_code& ecode)
-					{
-						if (!ecode)
-							s->Receive ();
-						else
-							s->Terminate ();
-					});
-			}
-		}
+			WriteToStream (m_Buffer, bytes_transferred);
 	}
 
+	void I2PTunnelConnection::WriteToStream (const uint8_t * buf, size_t len)
+	{
+		if (m_Stream)
+		{
+			auto s = shared_from_this ();
+			m_Stream->AsyncSend (buf, len,
+				[s](const boost::system::error_code& ecode)
+				{
+					if (!ecode)
+						s->Receive ();
+					else
+						s->Terminate ();
+				});
+			}
+	}	
+		
 	void I2PTunnelConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
 		if (ecode)
@@ -302,7 +305,8 @@ namespace client
 	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
-		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_HeaderSent (false), m_From (stream->GetRemoteIdentity ())
+		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), 
+		m_HeaderSent (false), m_ResponseHeaderSent (false), m_From (stream->GetRemoteIdentity ())
 	{
 	}
 
@@ -324,7 +328,7 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{
-						if (m_Host.length () > 0 && line.find ("Host:") != std::string::npos)
+						if (m_Host.length () > 0 && !line.compare(0, 5, "Host:"))
 							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
 						else
 							m_OutHeader << line << "\n";
@@ -333,12 +337,63 @@ namespace client
 				else
 					break;
 			}
-			// add X-I2P fields
-			if (m_From)
+
+			if (endOfHeader)
 			{
-				m_OutHeader << X_I2P_DEST_B32 << ": " << context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()) << "\r\n";
-				m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
-				m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
+				// add X-I2P fields
+				if (m_From)
+				{
+					m_OutHeader << X_I2P_DEST_B32 << ": " << context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()) << "\r\n";
+					m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
+					m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
+				}
+				
+				m_OutHeader << "\r\n"; // end of header
+				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_InHeader.str ("");
+				m_From = nullptr;
+				m_HeaderSent = true;
+				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+			}
+		}
+	}
+
+	void I2PServerTunnelConnectionHTTP::WriteToStream (const uint8_t * buf, size_t len)
+	{
+		if (m_ResponseHeaderSent)
+			I2PTunnelConnection::WriteToStream (buf, len);
+		else
+		{
+			m_InHeader.clear ();
+			if (m_InHeader.str ().empty ()) m_OutHeader.str (""); // start of response
+			m_InHeader.write ((const char *)buf, len);
+			std::string line;
+			bool endOfHeader = false;
+			while (!endOfHeader)
+			{
+				std::getline(m_InHeader, line);
+				if (!m_InHeader.fail ())
+				{
+					if (line == "\r") endOfHeader = true;
+					else
+					{
+						static const std::vector<std::string> excluded // list of excluded headers
+						{
+							"Server:", "Date:", "X-Runtime:", "X-Powered-By:", "Proxy"
+						};
+						bool matched = false;
+						for (const auto& it: excluded)
+							if (!line.compare(0, it.length (), it)) 
+							{
+								matched = true;
+								break;	
+							}	
+						if (!matched)
+							m_OutHeader << line << "\n";
+					}
+				}
+				else
+					break;
 			}
 
 			if (endOfHeader)
@@ -346,12 +401,15 @@ namespace client
 				m_OutHeader << "\r\n"; // end of header
 				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
-				m_HeaderSent = true;
-				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
-			}
-		}
+				m_ResponseHeaderSent = true;
+				I2PTunnelConnection::WriteToStream ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+				m_OutHeader.str ("");
+			}	
+			else
+				Receive ();
+		}		
 	}
-
+		
 	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass):

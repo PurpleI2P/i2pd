@@ -42,7 +42,6 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/NetDb.cpp \
     ../../libi2pd/NetDbRequests.cpp \
     ../../libi2pd/NTCP2.cpp \
-    ../../libi2pd/NTCPSession.cpp \
     ../../libi2pd/Poly1305.cpp \
     ../../libi2pd/Profiling.cpp \
     ../../libi2pd/Reseed.cpp \
@@ -123,7 +122,6 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/NetDb.hpp \
     ../../libi2pd/NetDbRequests.h \
     ../../libi2pd/NTCP2.h \
-    ../../libi2pd/NTCPSession.h \
     ../../libi2pd/Poly1305.h \
     ../../libi2pd/Profiling.h \
     ../../libi2pd/Queue.h \

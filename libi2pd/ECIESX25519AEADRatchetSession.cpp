@@ -88,12 +88,67 @@ namespace garlic
 		}
 	}
 
+	void RatchetTagSet::DeleteSymmKey (int index)
+	{	
+		m_ItermediateSymmKeys.erase (index);
+	}
+	
 	void RatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
+	bool RatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		auto session = GetSession ();
+		if (!session) return false;
+		return session->HandleNextMessage (buf, len, shared_from_this (), index);
+	}	
+
+	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
+		RatchetTagSet (nullptr), m_Destination (destination) 
+	{ 
+		memcpy (m_Key, key, 32); 
+		Expire ();	
+	}
+	
+	bool DatabaseLookupTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		if (len < 24) return false;
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		size_t offset = 8; // first 8 bytes is reply tag used as AD	
+		len -= 16; // poly1305
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len - offset, buf, 8, m_Key, nonce, buf + offset, len - offset, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply AEAD decryption failed");
+			return false;
+		}
+		// we assume 1 I2NP block with delivery type local
+		if (offset + 3 > len) 
+		{	
+			LogPrint (eLogWarning, "Garlic: Lookup reply is too short ", len);
+			return false;
+		}	
+		if (buf[offset] != eECIESx25519BlkGalicClove)
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply unexpected block ", (int)buf[offset]);
+			return false;
+		}	
+		offset++;
+		auto size = bufbe16toh (buf + offset);
+		offset += 2;
+		if (offset + size > len) 
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply block is too long ", size);
+			return false;
+		}	
+		if (m_Destination)
+			m_Destination->HandleECIESx25519GarlicClove (buf + offset, size);	
+		return true;
+	}	
+	
 	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
 		GarlicRoutingSession (owner, attachLeaseSet)
 	{
@@ -657,7 +712,12 @@ namespace garlic
 				moreTags -= (receiveTagset->GetNextIndex () - index);
 			}	
 			if (moreTags > 0)
+			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
+				index -= (moreTags >> 1); // /2
+				if (index > 0)
+					receiveTagset->SetTrimBehind (index);
+			}	
 		}	
 		return true;
 	}

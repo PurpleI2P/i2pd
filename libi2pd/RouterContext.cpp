@@ -63,7 +63,6 @@ namespace i2p
 		bool ipv4;           i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;            i2p::config::GetOption("ssu", ssu);
-		bool ntcp;           i2p::config::GetOption("ntcp", ntcp);
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool nat;            i2p::config::GetOption("nat", nat);
 		std::string ifname;  i2p::config::GetOption("ifname", ifname);
@@ -83,8 +82,6 @@ namespace i2p
 
 			if (ssu)
 				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
-			if (ntcp)
-				routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
 		if (ipv6)
 		{
@@ -99,8 +96,6 @@ namespace i2p
 
 			if (ssu)
 				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
-			if (ntcp)
-				routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
 
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
@@ -115,20 +110,17 @@ namespace i2p
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true);
-			if (!ntcp) // NTCP2 should replace NTCP
+			bool published; i2p::config::GetOption("ntcp2.published", published);
+			if (published)
 			{
-				bool published; i2p::config::GetOption("ntcp2.published", published);
-				if (published)
+				PublishNTCP2Address (port, true);
+				if (ipv6)
 				{
-					PublishNTCP2Address (port, true);
-					if (ipv6)
-					{
-						// add NTCP2 ipv6 address
-						std::string host = "::1";
-						if (!i2p::config::IsDefault ("ntcp2.addressv6"))
-							i2p::config::GetOption ("ntcp2.addressv6", host);
-						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
-					}
+					// add NTCP2 ipv6 address
+					std::string host = "::1";
+					if (!i2p::config::IsDefault ("ntcp2.addressv6"))
+						i2p::config::GetOption ("ntcp2.addressv6", host);
+					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
 				}
 			}
 		}
@@ -381,48 +373,19 @@ namespace i2p
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
 	}
 
-	void RouterContext::PublishNTCPAddress (bool publish, bool v4only)
+	void RouterContext::RemoveNTCPAddress (bool v4only)
 	{
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		if (publish)
+		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
-			for (const auto& addr : addresses) // v4
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
+				(!v4only || (*it)->host.is_v4 ()))
 			{
-				if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					addr->host.is_v4 ())
-				{
-					// insert NTCP address with host/port from SSU
-					m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-					break;
-				}
+				it = addresses.erase (it);
+				if (v4only) break; // otherwise might be more than one address
 			}
-			if (!v4only)
-			{
-				for (const auto& addr : addresses) // v6
-				{
-					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-						addr->host.is_v6 ())
-					{
-						// insert NTCP address with host/port from SSU
-						m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			for (auto it = addresses.begin (); it != addresses.end ();)
-			{
-				if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
-					(!v4only || (*it)->host.is_v4 ()))
-				{
-					it = addresses.erase (it);
-					if (v4only) break; // otherwise might be more than one address
-				}
-				else
-					++it;
-			}
+			else
+				++it;
 		}
 	}
 
@@ -444,16 +407,10 @@ namespace i2p
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
-		// remove NTCP or NTCP2 v4 address
-		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-		if (ntcp)
-			PublishNTCPAddress (false);
-		else
-		{
-			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-			if (ntcp2)
-				PublishNTCP2Address (port, false, true);
-		}
+		// remove NTCP2 v4 address
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		if (ntcp2)
+			PublishNTCP2Address (port, false, true);
 		// update
 		UpdateRouterInfo ();
 	}
@@ -477,23 +434,16 @@ namespace i2p
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
-		// insert NTCP or NTCP2 back
-		bool ntcp;   i2p::config::GetOption("ntcp", ntcp);
-		if (ntcp)
-			PublishNTCPAddress (true);
-		else
+		// insert NTCP2 back
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		if (ntcp2)
 		{
-			// ntcp2
-			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-			if (ntcp2)
+			bool published; i2p::config::GetOption ("ntcp2.published", published);
+			if (published)
 			{
-				bool published; i2p::config::GetOption ("ntcp2.published", published);
-				if (published)
-				{
-					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
-					if (!ntcp2Port) ntcp2Port = port;
-					PublishNTCP2Address (ntcp2Port, true, true);
-				}
+				uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+				if (!ntcp2Port) ntcp2Port = port;
+				PublishNTCP2Address (ntcp2Port, true, true);
 			}
 		}
 		// update
@@ -506,7 +456,7 @@ namespace i2p
 		{
 			m_RouterInfo.EnableV6 ();
 			// insert v6 addresses if necessary
-			bool foundSSU = false, foundNTCP = false, foundNTCP2 = false;
+			bool foundSSU = false, foundNTCP2 = false;
 			uint16_t port = 0;
 			auto& addresses = m_RouterInfo.GetAddresses ();
 			for (auto& addr: addresses)
@@ -515,12 +465,8 @@ namespace i2p
 				{
 					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 						foundSSU = true;
-					else if (addr->IsNTCP2 ())
-					{
-						if (addr->IsPublishedNTCP2 ()) foundNTCP2 = true;
-					}
-					else
-						foundNTCP = true;
+					else if (addr->IsPublishedNTCP2 ())
+						foundNTCP2 = true;
 				}
 				port = addr->port;
 			}
@@ -550,16 +496,6 @@ namespace i2p
 					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 					if (!ntcp2Port) ntcp2Port = port;
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
-				}
-			}
-			// NTCP
-			if (!foundNTCP)
-			{
-				bool ntcp; i2p::config::GetOption("ntcp", ntcp);
-				if (ntcp)
-				{
-					std::string host = "::1";
-					m_RouterInfo.AddNTCPAddress (host.c_str (), port);
 				}
 			}
 		}

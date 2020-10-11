@@ -806,6 +806,7 @@ namespace client
 		i2p::http::HTTPReq req;
 		req.AddHeader("Host", dest_host);
 		req.AddHeader("User-Agent", "Wget/1.11.4");
+		req.AddHeader("Accept-Encoding", "gzip");
 		req.AddHeader("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0");
 		req.AddHeader("Connection", "close");
 		if (!m_Etag.empty())
@@ -816,6 +817,7 @@ namespace client
 		url.schema = "";
 		url.host   = "";
 		req.uri    = url.to_string();
+		req.version = "HTTP/1.1";
 		auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, dest_port);
 		std::string request = req.to_string();
 		stream->Send ((const uint8_t *) request.data(), request.length());
@@ -887,7 +889,7 @@ namespace client
 		/* assert: res.code == 200 */
 		auto it = res.headers.find("ETag");
 		if (it != res.headers.end()) m_Etag = it->second;
-		it = res.headers.find("If-Modified-Since");
+		it = res.headers.find("Last-Modified");
 		if (it != res.headers.end()) m_LastModified = it->second;
 		if (res.is_chunked())
 		{
@@ -895,7 +897,7 @@ namespace client
 			i2p::http::MergeChunkedResponse (in, out);
 			response = out.str();
 		}
-		else if (res.is_gzipped())
+		if (res.is_gzipped())
 		{
 			std::stringstream out;
 			i2p::data::GzipInflator inflator;

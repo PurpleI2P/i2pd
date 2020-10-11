@@ -15,7 +15,7 @@ ifeq ($(shell expr match $(CXX) 'clang'),5)
 	NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # gcc >= 4.10
 	NEEDED_CXXFLAGS += -std=c++11
-else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # gcc 4.7 - 4.9
+else ifeq ($(shell expr match ${CXXVER} "4\.[8-9]"),3) # gcc 4.8 - 4.9
 	NEEDED_CXXFLAGS += -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1
 else ifeq ($(shell expr match ${CXXVER} "[5-6]"),1) # gcc 5 - 6
 	NEEDED_CXXFLAGS += -std=c++11

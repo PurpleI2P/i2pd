@@ -40,7 +40,7 @@ namespace garlic
 	// - 16 /* I2NP header */ - 16 /* poly hash */ - 8 /* tag */ - 4 /* garlic length */
 
 	class ECIESX25519AEADRatchetSession;
-	class RatchetTagSet
+	class RatchetTagSet: public std::enable_shared_from_this<RatchetTagSet>
 	{
 		public:
 
@@ -52,14 +52,19 @@ namespace garlic
 			const uint8_t * GetNextRootKey () const { return m_NextRootKey; };
 			int GetNextIndex () const { return m_NextIndex; };
 			void GetSymmKey (int index, uint8_t * key);
+			void DeleteSymmKey (int index);
 
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
+			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
 
 			void Expire ();
 			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
+			virtual bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
 
+			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
+			
 		private:
 
 			union
@@ -73,7 +78,7 @@ namespace garlic
 
 			} m_KeyData;
 			uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64], m_NextRootKey[32];
-			int m_NextIndex, m_NextSymmKeyIndex;
+			int m_NextIndex, m_NextSymmKeyIndex, m_TrimBehindIndex = 0;
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
 			std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
 			int m_TagSetID = 0;
@@ -90,6 +95,21 @@ namespace garlic
 		private:
 
 			std::shared_ptr<ECIESX25519AEADRatchetSession> m_DummySession; // we need a strong pointer for NS
+	};	
+
+	class DatabaseLookupTagSet: public RatchetTagSet
+	{
+		public:
+
+			DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key);
+
+			bool IsIndexExpired (int index) const { return false; };
+			bool HandleNextMessage (uint8_t * buf, size_t len, int index);
+			
+		private:
+
+			GarlicDestination * m_Destination;
+			uint8_t m_Key[32];
 	};	
 	
 	enum ECIESx25519BlockType

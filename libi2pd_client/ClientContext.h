@@ -115,7 +115,7 @@ namespace client
 			template<typename Section>
 			void ReadI2CPOptionsGroup (const Section& section, const std::string& group,  std::map<std::string, std::string>& options) const;
 			template<typename Section>
-			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const; // for tunnels
+			void ReadI2CPOptions (const Section& section, bool isServer, std::map<std::string, std::string>& options) const; // for tunnels
 			void ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const; // for HTTP and SOCKS proxy
 
 			void CleanupUDP(const boost::system::error_code & ecode);

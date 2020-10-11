@@ -58,9 +58,9 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", value<bool>()->default_value(false),                     "Enable NTCP transport (default: disabled)")
+			("ntcp", value<bool>()->default_value(false),                     "Ignored. Always false")
 			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Proxy URL for NTCP transport")
+			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
@@ -96,7 +96,7 @@ namespace config {
 			("httpproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable HTTP Proxy")
 			("httpproxy.address", value<std::string>()->default_value("127.0.0.1"),   "HTTP Proxy listen address")
 			("httpproxy.port", value<uint16_t>()->default_value(4444),                "HTTP Proxy listen port")
-			("httpproxy.keys", value<std::string>()->default_value(""),               "File to persist HTTP Proxy keys")
+			("httpproxy.keys", value<std::string>()->default_value("transient-proxy"), "File to persist HTTP Proxy keys. Transient by default")
 			("httpproxy.signaturetype", value<i2p::data::SigningKeyType>()->
 				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),      "Signature type for new keys. 7 (EdDSA) by default")
 			("httpproxy.inbound.length", value<std::string>()->default_value("3"),    "HTTP proxy inbound tunnel length")
@@ -116,7 +116,7 @@ namespace config {
 			("socksproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable SOCKS Proxy")
 			("socksproxy.address", value<std::string>()->default_value("127.0.0.1"),   "SOCKS Proxy listen address")
 			("socksproxy.port", value<uint16_t>()->default_value(4447),                "SOCKS Proxy listen port")
-			("socksproxy.keys", value<std::string>()->default_value(""),               "File to persist SOCKS Proxy keys")
+			("socksproxy.keys", value<std::string>()->default_value("transient-proxy"), "File to persist SOCKS Proxy keys. Transient by default")
 			("socksproxy.signaturetype", value<i2p::data::SigningKeyType>()->
 				default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),       "Signature type for new keys. 7 (EdDSA) by default")
 			("socksproxy.inbound.length", value<std::string>()->default_value("3"),    "SOCKS proxy inbound tunnel length")
@@ -152,6 +152,7 @@ namespace config {
 			("i2cp.enabled", value<bool>()->default_value(false),              "Enable or disable I2CP")
 			("i2cp.address", value<std::string>()->default_value("127.0.0.1"), "I2CP listen address")
 			("i2cp.port", value<uint16_t>()->default_value(7654),              "I2CP listen port")
+			("i2cp.singlethread", value<bool>()->default_value(true),          "Destinations run in the I2CP server's thread")
 		;
 
 		options_description i2pcontrol("I2PControl options");
