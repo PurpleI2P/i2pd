@@ -321,7 +321,8 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
-		SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });
+		if (m_IsOnline)
+			SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });
 	}
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
@@ -756,5 +757,17 @@ namespace transport
 		}
 		return false;
 	}
+
+	void Transports::SetOnline (bool online) 
+	{ 
+		if (m_IsOnline != online)
+		{	
+			m_IsOnline = online; 	
+			if (online)
+				PeerTest ();
+			else
+				i2p::context.SetError (eRouterErrorOffline);
+		}	
+	}	
 }
 }

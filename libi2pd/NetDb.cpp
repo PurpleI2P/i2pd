@@ -125,7 +125,8 @@ namespace data
 					}
 				}
 				if (!m_IsRunning) break;
-
+				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
+			
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
 				{

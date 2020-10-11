@@ -259,6 +259,9 @@ namespace http {
 					case eRouterErrorClockSkew:
 						s << "<br>Clock skew";
 					break;
+					case eRouterErrorOffline:
+						s << "<br>Offline";
+					break;	
 					default: ;
 				}
 				break;
