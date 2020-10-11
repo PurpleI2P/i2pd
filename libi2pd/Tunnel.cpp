@@ -303,6 +303,7 @@ namespace tunnel
 	{
 		for (auto& msg : msgs)
 		{
+			if (!msg.data) continue;
 			switch (msg.deliveryType)
 			{
 				case eDeliveryTypeLocal:
