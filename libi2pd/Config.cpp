@@ -51,6 +51,7 @@ namespace config {
 			("port", value<uint16_t>()->default_value(0),                     "Port to listen for incoming connections (default: auto)")
 			("ipv4", value<bool>()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
 			("ipv6", bool_switch()->default_value(false),                     "Enable communication through ipv6 (default: disabled)")
+			("reservedrange", value<bool>()->default_value(true),             "Check remote RI for being in blacklist of reserved IP ranges (default: enabled)")
 			("netid", value<int>()->default_value(I2PD_NET_ID),               "Specify NetID. Main I2P is 2")
 			("daemon", bool_switch()->default_value(false),                   "Router will go to background after start (default: disabled)")
 			("service", bool_switch()->default_value(false),                  "Router will use system folders like '/var/lib/i2pd' (default: disabled)")

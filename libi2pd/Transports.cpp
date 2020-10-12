@@ -27,20 +27,20 @@ namespace transport
 	{
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	EphemeralKeysSupplier<Keys>::~EphemeralKeysSupplier ()
 	{
 		Stop ();
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Start ()
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this));
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Stop ()
 	{
 		{
@@ -56,7 +56,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Run ()
 	{
 		while (m_IsRunning)
@@ -81,7 +81,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::CreateEphemeralKeys (int num)
 	{
 		if (num > 0)
@@ -96,7 +96,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	std::shared_ptr<Keys> EphemeralKeysSupplier<Keys>::Acquire ()
 	{
 		{
@@ -115,7 +115,7 @@ namespace transport
 		return pair;
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Return (std::shared_ptr<Keys> pair)
 	{
 		if (pair)
@@ -131,8 +131,8 @@ namespace transport
 	Transports transports;
 
 	Transports::Transports ():
-		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
-		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
+		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_СheckReserved(true), m_Thread (nullptr),
+		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
 		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
@@ -170,7 +170,7 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
-		i2p::http::URL proxyurl;	
+		i2p::http::URL proxyurl;
 		// create NTCP2. TODO: move to acceptor
 		if (enableNTCP2)
 		{
@@ -252,7 +252,7 @@ namespace transport
 			delete m_SSUServer;
 			m_SSUServer = nullptr;
 		}
-		
+
 		if (m_NTCP2Server)
 		{
 			m_NTCP2Server->Stop ();
@@ -372,7 +372,7 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",  
+				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",
 					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
@@ -393,7 +393,7 @@ namespace transport
 				{
 					// NTCP2 have priority over NTCP
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address  && !peer.router->IsUnreachable ())
+					if (address && !peer.router->IsUnreachable () && (!m_СheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
@@ -419,8 +419,11 @@ namespace transport
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
 				{
 					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					m_SSUServer->CreateSession (peer.router, address->host, address->port);
-					return true;
+					if (!m_СheckReserved || !i2p::util::net::IsInReservedRange(address->host))
+					{
+						m_SSUServer->CreateSession (peer.router, address->host, address->port);
+						return true;
+					}
 				}
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
@@ -556,7 +559,7 @@ namespace transport
 	{
 		m_X25519KeysPairSupplier.Return (pair);
 	}
-		
+
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service->post([session, this]()
@@ -758,16 +761,16 @@ namespace transport
 		return false;
 	}
 
-	void Transports::SetOnline (bool online) 
-	{ 
+	void Transports::SetOnline (bool online)
+	{
 		if (m_IsOnline != online)
-		{	
-			m_IsOnline = online; 	
+		{
+			m_IsOnline = online;
 			if (online)
 				PeerTest ();
 			else
 				i2p::context.SetError (eRouterErrorOffline);
-		}	
-	}	
+		}
+	}
 }
 }

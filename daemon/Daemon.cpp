@@ -299,14 +299,16 @@ namespace i2p
 
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
+			bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
 			if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
 			if(!ntcp2) LogPrint(eLogInfo, "Daemon: ntcp2 disabled");
 
+			i2p::transport::transports.SetCheckReserved(checkInReserved);
 			i2p::transport::transports.Start(ntcp2, ssu);
-			if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2()) 
+			if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
 				LogPrint(eLogInfo, "Daemon: Transports started");
-			else 
+			else
 			{
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
