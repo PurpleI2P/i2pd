@@ -131,7 +131,7 @@ namespace transport
 	Transports transports;
 
 	Transports::Transports ():
-		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_СheckReserved(true), m_Thread (nullptr),
+		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
 		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
@@ -393,7 +393,7 @@ namespace transport
 				{
 					// NTCP2 have priority over NTCP
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address && !peer.router->IsUnreachable () && (!m_СheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
+					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
@@ -419,7 +419,7 @@ namespace transport
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
 				{
 					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					if (!m_СheckReserved || !i2p::util::net::IsInReservedRange(address->host))
+					if (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host))
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;

@@ -136,8 +136,8 @@ namespace transport
 
 			void PeerTest ();
 
-			void SetCheckReserved (bool check) { m_СheckReserved = check; };
-			bool IsCheckReserved () { return m_СheckReserved; };
+			void SetCheckReserved (bool check) { m_CheckReserved = check; };
+			bool IsCheckReserved () { return m_CheckReserved; };
 
 		private:
 
@@ -155,7 +155,7 @@ namespace transport
 		private:
 
 			volatile bool m_IsOnline;
-			bool m_IsRunning, m_IsNAT, m_СheckReserved;
+			bool m_IsRunning, m_IsNAT, m_CheckReserved;
 			std::thread * m_Thread;
 			boost::asio::io_service * m_Service;
 			boost::asio::io_service::work * m_Work;
