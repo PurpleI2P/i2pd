@@ -9,7 +9,13 @@ os: Visual Studio 2015
 shallow_clone: true
 clone_depth: 1
 
+# avoid building 32-bit if 64-bit failed already
+matrix:
+  fast_finish: true
+
 environment:
+  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
   MSYS2_PATH_TYPE: inherit
   CHERE_INVOKING: enabled_from_arguments
   matrix:
@@ -20,16 +26,10 @@ environment:
     MSYS_PACKAGES: mingw-w64-i686-boost mingw-w64-i686-miniupnpc
     MSYS_BITNESS: 32
 
+cache:
+  - .ccache
+
 install:
-# install new signing keyring
-- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
-- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
-- c:\msys64\usr\bin\bash -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
-# disable inaccessible miror (something block sed from changing files, so rewrite them) - https://github.com/msys2/MINGW-packages/issues/7084
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/x86_64/' > /etc/pacman.d/mirrorlist.mingw64"
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/i686/' > /etc/pacman.d/mirrorlist.mingw32"
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/msys/$arch/' > /etc/pacman.d/mirrorlist.msys"
 # remove packages which can break build
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
 # update runtime
@@ -49,6 +49,8 @@ build_script:
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
 
 test: off
+
+deploy: off
 
 artifacts:
 - path: i2pd-mingw-win*.zip
