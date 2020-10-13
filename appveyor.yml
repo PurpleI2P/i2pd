@@ -45,7 +45,7 @@ install:
 
 build_script:
 - echo MSYSTEM = %MSYSTEM%, bitness = %MSYS_BITNESS%
-- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j3"
+- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes DEBUG=no -j3"
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
 
 after_build:
