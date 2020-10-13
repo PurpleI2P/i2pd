@@ -19,11 +19,7 @@ environment:
   CHERE_INVOKING: enabled_from_arguments
   matrix:
   - MSYSTEM: MINGW64
-    MSYS_PACKAGES: mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc
-    MSYS_BITNESS: 64
   - MSYSTEM: MINGW32
-    MSYS_PACKAGES: mingw-w64-i686-boost mingw-w64-i686-miniupnpc
-    MSYS_BITNESS: 32
 
 cache:
   - c:\msys64\var\cache\pacman\pkg\
@@ -41,12 +37,12 @@ install:
 # Kill bash before next try
 - taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe | exit /B 0
 # update packages and install required
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu ${MSYS_PACKAGES}"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu $MINGW_PACKAGE_PREFIX-boost $MINGW_PACKAGE_PREFIX-miniupnpc"
 
 build_script:
-- echo MSYSTEM = %MSYSTEM%, bitness = %MSYS_BITNESS%
 - c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes DEBUG=no -j3"
-- 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
+- set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d"
+- 7z a -tzip -mx9 -mmt i2pd-%APPVEYOR_BUILD_VERSION%-%APPVEYOR_REPO_COMMIT:~0,7%-mingw-win%MSYSTEM:~-2%.zip %FILELIST%
 
 after_build:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sc"
@@ -56,4 +52,4 @@ test: off
 deploy: off
 
 artifacts:
-- path: i2pd-mingw-win*.zip
+- path: i2pd-*.zip
