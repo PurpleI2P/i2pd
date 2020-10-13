@@ -14,7 +14,6 @@ matrix:
   fast_finish: true
 
 environment:
-  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   MSYS2_PATH_TYPE: inherit
   CHERE_INVOKING: enabled_from_arguments
@@ -27,7 +26,7 @@ environment:
     MSYS_BITNESS: 32
 
 cache:
-  - .ccache
+  - c:\msys64\var\cache\pacman\pkg\
 
 install:
 # install new signing keyring	
@@ -41,10 +40,6 @@ install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 # Kill bash before next try
 - taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe | exit /B 0
-# rewrite mirrorlist again because pacman update can rewrite it
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/x86_64/' > /etc/pacman.d/mirrorlist.mingw64"
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/mingw/i686/' > /etc/pacman.d/mirrorlist.mingw32"
-- c:\msys64\usr\bin\bash -lc "echo 'Server = https://mirror.yandex.ru/mirrors/msys2/msys/$arch/' > /etc/pacman.d/mirrorlist.msys"
 # update packages and install required
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu ${MSYS_PACKAGES}"
 
@@ -52,6 +47,9 @@ build_script:
 - echo MSYSTEM = %MSYSTEM%, bitness = %MSYS_BITNESS%
 - c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j3"
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
+
+after_build:
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sc"
 
 test: off
 
