@@ -1,0 +1,18 @@
+name: Build on Ubuntu with make
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-16.04
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['yes', 'no']
+    steps:
+    - uses: actions/checkout@v2
+    - name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
+    - name: install packages
+      run: apt-get install build-essential libboost-date-time-dev libboost-filesystem-dev libboost-program-options-dev libboost-system-dev libminiupnpc-dev libssl-dev zlib1g-dev
+    - name: build application
+      run: make USE_AVX=no USE_AESNI=no USE_UPNP=yes USE_UPNP=${{ matrix.with_upnp }} -j3
