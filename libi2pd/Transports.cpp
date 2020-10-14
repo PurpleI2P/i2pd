@@ -134,7 +134,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
+		m_X25519KeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -165,7 +165,6 @@ namespace transport
 		}
 
 		i2p::config::GetOption("nat", m_IsNAT);
-		m_DHKeysPairSupplier.Start ();
 		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
@@ -260,7 +259,6 @@ namespace transport
 			m_NTCP2Server = nullptr;
 		}
 
-		m_DHKeysPairSupplier.Stop ();
 		m_X25519KeysPairSupplier.Stop ();
 		m_IsRunning = false;
 		if (m_Service) m_Service->stop ();
@@ -538,16 +536,6 @@ namespace transport
 			if (!statusChanged)
 				LogPrint (eLogWarning, "Transports: Can't find routers for peer test");
 		}
-	}
-
-	std::shared_ptr<i2p::crypto::DHKeys> Transports::GetNextDHKeysPair ()
-	{
-		return m_DHKeysPairSupplier.Acquire ();
-	}
-
-	void Transports::ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair)
-	{
-		m_DHKeysPairSupplier.Return (pair);
 	}
 
 	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()

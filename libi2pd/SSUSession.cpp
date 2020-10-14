@@ -224,7 +224,11 @@ namespace transport
 			return;
 		}
 		if (!m_DHKeysPair)
-			m_DHKeysPair = transports.GetNextDHKeysPair ();
+		{
+			auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+			pair->GenerateKeys ();
+			m_DHKeysPair = pair;
+		}	
 		CreateAESandMacKey (buf + headerSize);
 		SendSessionCreated (buf + headerSize, sendRelayTag);
 	}
@@ -826,9 +830,9 @@ namespace transport
 	{
 		if (m_State == eSessionStateUnknown)
 		{
-			// set connect timer
-			ScheduleConnectTimer ();
-			m_DHKeysPair = transports.GetNextDHKeysPair ();
+			ScheduleConnectTimer (); // set connect timer
+			m_DHKeysPair = std::make_shared<i2p::crypto::DHKeys> ();
+			m_DHKeysPair->GenerateKeys ();
 			SendSessionRequest ();
 		}
 	}
