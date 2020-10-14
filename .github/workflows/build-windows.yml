@@ -23,7 +23,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: ${{ matrix.msystem }}
-        install: base-devel mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-miniupnpc
+        install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
     - name: build application
       run: make USE_UPNP=yes DEBUG=no -j3
