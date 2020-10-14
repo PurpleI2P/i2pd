@@ -13,6 +13,9 @@ jobs:
     - name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
       uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get install build-essential libboost-date-time-dev libboost-filesystem-dev libboost-program-options-dev libboost-system-dev libminiupnpc-dev libssl-dev zlib1g-dev
+      run: |
+        sudo add-apt-repository ppa:mhier/libboost-latest
+        sudo apt-get update
+        sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
       run: make USE_AVX=no USE_AESNI=no USE_UPNP=${{ matrix.with_upnp }} -j3
