@@ -10,8 +10,8 @@ jobs:
       matrix:
         with_upnp: ['yes', 'no']
     steps:
-    - uses: actions/checkout@v2
     - name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
+      uses: actions/checkout@v2
     - name: install packages
       run: apt-get install build-essential libboost-date-time-dev libboost-filesystem-dev libboost-program-options-dev libboost-system-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
