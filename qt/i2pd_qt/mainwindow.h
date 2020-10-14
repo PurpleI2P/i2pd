@@ -116,7 +116,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
@@ -281,6 +281,7 @@ public:
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
+        qDebug() << "setting value for checkbox " << checkBox->text();
         checkBox->setChecked(boost::any_cast<bool>(optionValue));
     }
     virtual void saveToStringStream(std::stringstream& out){

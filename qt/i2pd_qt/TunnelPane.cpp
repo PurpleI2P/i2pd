@@ -185,6 +185,34 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
 
+    {
+        //explicitPeers -- list of comma-separated b64 addresses of peers to use, default: unset
+    }
+
+    {
+        //i2p.streaming.initialAckDelay -- milliseconds to wait before sending Ack. 200 by default
+    }
+
+    {
+        //i2p.streaming.answerPings -- enable sending pongs. true by default
+    }
+
+    {
+        //i2cp.leaseSetType -- type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    }
+
+    {
+        //i2cp.leaseSetEncType -- comma separated encryption types to be used in LeaseSet type 3 or 5. Identity's type by default
+    }
+
+    {
+        //i2cp.leaseSetPrivKey -- decryption key for encrypted LeaseSet in base64. PSK or private DH
+    }
+
+    {
+        //i2cp.leaseSetAuthType -- authentication type for encrypted LeaseSet. 0 - no authentication(default), 1 - DH, 2 - PSK
+    }
+
     retranslateI2CPParameters();
 }
 
