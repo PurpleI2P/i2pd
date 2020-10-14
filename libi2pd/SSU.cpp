@@ -7,7 +7,6 @@
 */
 
 #include <string.h>
-#include <boost/bind.hpp>
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
@@ -243,10 +242,16 @@ namespace transport
 
 	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
+		boost::system::error_code ec;
 		if (to.protocol () == boost::asio::ip::udp::v4())
-			m_Socket.send_to (boost::asio::buffer (buf, len), to);
+			m_Socket.send_to (boost::asio::buffer (buf, len), to, 0, ec);
 		else
-			m_SocketV6.send_to (boost::asio::buffer (buf, len), to);
+			m_SocketV6.send_to (boost::asio::buffer (buf, len), to, 0, ec);
+
+		if (ec)
+		{
+			LogPrint (eLogError, "SSU: send exception: ", ec.message (), " while trying to send data to ", to.address (), ":", to.port (), " (length: ", len, ")");
+		}
 	}
 
 	void SSUServer::Receive ()
@@ -265,7 +270,13 @@ namespace transport
 
 	void SSUServer::HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
-		if (!ecode)
+		if (!ecode ||
+		    ecode == boost::asio::error::connection_refused ||
+		    ecode == boost::asio::error::connection_reset ||
+		    ecode == boost::asio::error::network_unreachable ||
+		    ecode == boost::asio::error::host_unreachable)
+		// just try continue reading when received ICMP response otherwise socket can crash,
+		// but better to find out which host were sent it and mark that router as unreachable
 		{
 			packet->len = bytes_transferred;
 			std::vector<SSUPacket *> packets;
@@ -287,7 +298,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogError, "SSU: receive_from error: ", ec.message ());
+						LogPrint (eLogError, "SSU: receive_from error: code ", ec.value(), ": ", ec.message ());
 						delete packet;
 						break;
 					}
@@ -302,7 +313,7 @@ namespace transport
 			delete packet;
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "SSU: receive error: ", ecode.message ());
+				LogPrint (eLogError, "SSU: receive error: code ", ecode.value(), ": ", ecode.message ());
 				m_Socket.close ();
 				OpenSocket ();
 				Receive ();
@@ -312,7 +323,13 @@ namespace transport
 
 	void SSUServer::HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
-		if (!ecode)
+		if (!ecode ||
+		    ecode == boost::asio::error::connection_refused ||
+		    ecode == boost::asio::error::connection_reset ||
+		    ecode == boost::asio::error::network_unreachable ||
+		    ecode == boost::asio::error::host_unreachable)
+		// just try continue reading when received ICMP response otherwise socket can crash,
+		// but better to find out which host were sent it and mark that router as unreachable
 		{
 			packet->len = bytes_transferred;
 			std::vector<SSUPacket *> packets;
@@ -334,7 +351,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogError, "SSU: v6 receive_from error: ", ec.message ());
+						LogPrint (eLogError, "SSU: v6 receive_from error: code ", ec.value(), ": ", ec.message ());
 						delete packet;
 						break;
 					}
@@ -349,7 +366,7 @@ namespace transport
 			delete packet;
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
+				LogPrint (eLogError, "SSU: v6 receive error: code ", ecode.value(), ": ", ecode.message ());
 				m_SocketV6.close ();
 				OpenSocketV6 ();
 				ReceiveV6 ();
@@ -460,6 +477,7 @@ namespace transport
 			// otherwise create new session
 			auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
 			sessions[remoteEndpoint] = session;
+
 			// connect
 			LogPrint (eLogDebug, "SSU: Creating new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
 				remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());

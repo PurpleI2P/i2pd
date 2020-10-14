@@ -31,7 +31,8 @@ public:
 		} else {
 			Result = E_NOINTERFACE;
 		}
-
+		AddRef();
+		
 		return Result;
 	}
 

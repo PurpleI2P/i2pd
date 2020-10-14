@@ -61,6 +61,9 @@ int inet_pton_xp(int af, const char *src, void *dst)
 #include <ifaddrs.h>
 #endif
 
+#define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
+#define address_pair_v6(a,b) { boost::asio::ip::address_v6::from_string (a).to_bytes (), boost::asio::ip::address_v6::from_string (b).to_bytes () }
+
 namespace i2p
 {
 namespace util
@@ -391,6 +394,50 @@ namespace net
 		return boost::asio::ip::address::from_string(fallback);
 #endif
 	}
-}
+
+	bool IsInReservedRange(const boost::asio::ip::address& host) {
+		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
+		if(host.is_v4())
+		{
+			static const std::vector< std::pair<uint32_t, uint32_t> > reservedIPv4Ranges {
+				address_pair_v4("0.0.0.0",      "0.255.255.255"),
+				address_pair_v4("10.0.0.0",     "10.255.255.255"),
+				address_pair_v4("100.64.0.0",   "100.127.255.255"),
+				address_pair_v4("127.0.0.0",    "127.255.255.255"),
+				address_pair_v4("169.254.0.0",  "169.254.255.255"),
+				address_pair_v4("172.16.0.0",   "172.31.255.255"),
+				address_pair_v4("192.0.0.0",    "192.0.0.255"),
+				address_pair_v4("192.0.2.0",    "192.0.2.255"),
+				address_pair_v4("192.88.99.0",  "192.88.99.255"),
+				address_pair_v4("192.168.0.0",  "192.168.255.255"),
+				address_pair_v4("198.18.0.0",   "192.19.255.255"),
+				address_pair_v4("198.51.100.0", "198.51.100.255"),
+				address_pair_v4("203.0.113.0",  "203.0.113.255"),
+				address_pair_v4("224.0.0.0",    "255.255.255.255")
+			};
+
+			uint32_t ipv4_address = host.to_v4 ().to_ulong ();
+			for(const auto& it : reservedIPv4Ranges) {
+				if (ipv4_address >= it.first && ipv4_address <= it.second)
+					return true;
+			}
+		}
+		if(host.is_v6())
+		{
+			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
+				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+			};
+
+			boost::asio::ip::address_v6::bytes_type ipv6_address = host.to_v6 ().to_bytes ();
+			for(const auto& it : reservedIPv6Ranges) {
+				if (ipv6_address >= it.first && ipv6_address <= it.second)
+					return true;
+			}
+		}
+		return false;
+	}
+} // net
 } // util
 } // i2p

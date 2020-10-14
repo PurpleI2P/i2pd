@@ -21,7 +21,6 @@
 #include <atomic>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
-#include "NTCPSession.h"
 #include "SSU.h"
 #include "NTCP2.h"
 #include "RouterInfo.h"
@@ -60,7 +59,6 @@ namespace transport
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
 	};
-	typedef EphemeralKeysSupplier<i2p::crypto::DHKeys> DHKeysPairSupplier;
 	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
 	
 	struct Peer
@@ -88,19 +86,16 @@ namespace transport
 			Transports ();
 			~Transports ();
 
-			void Start (bool enableNTCP=true, bool enableSSU=true);
+			void Start (bool enableNTCP2=true, bool enableSSU=true);
 			void Stop ();
 
-			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
 			bool IsOnline() const { return m_IsOnline; };
-			void SetOnline (bool online) { m_IsOnline = online; };
+			void SetOnline (bool online);
 
 			boost::asio::io_service& GetService () { return *m_Service; };
-			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();
-			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
 			std::shared_ptr<i2p::crypto::X25519Keys> GetNextX25519KeysPair ();
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
@@ -138,6 +133,9 @@ namespace transport
 
 			void PeerTest ();
 
+			void SetCheckReserved (bool check) { m_CheckReserved = check; };
+			bool IsCheckReserved () { return m_CheckReserved; };
+
 		private:
 
 			void Run ();
@@ -153,19 +151,18 @@ namespace transport
 
 		private:
 
-			bool m_IsOnline, m_IsRunning, m_IsNAT;
+			volatile bool m_IsOnline;
+			bool m_IsRunning, m_IsNAT, m_CheckReserved;
 			std::thread * m_Thread;
 			boost::asio::io_service * m_Service;
 			boost::asio::io_service::work * m_Work;
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer;
 
-			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
 			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;
 
-			DHKeysPairSupplier m_DHKeysPairSupplier;
 			X25519KeysPairSupplier m_X25519KeysPairSupplier;
 
 			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes, m_TotalTransitTransmittedBytes;
@@ -186,7 +183,6 @@ namespace transport
 		public:
 
 			// for HTTP only
-			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
 			const NTCP2Server * GetNTCP2Server () const { return m_NTCP2Server; };
 			const decltype(m_Peers)& GetPeers () const { return m_Peers; };

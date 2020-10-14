@@ -351,6 +351,28 @@ namespace stream
 		return true;
 	}
 
+	void Stream::HandlePing (Packet * packet)
+	{
+		uint16_t flags = packet->GetFlags ();
+		if (ProcessOptions (flags, packet) && m_RemoteIdentity)
+		{
+			// send pong
+			Packet p;
+			memset (p.buf, 0, 22); // minimal header all zeroes
+			memcpy (p.buf + 4, packet->buf, 4); // but receiveStreamID is the sendStreamID from the ping
+			htobe16buf (p.buf + 18, PACKET_FLAG_ECHO); // and echo flag
+			ssize_t payloadLen = packet->len - (packet->GetPayload () - packet->buf);
+			if (payloadLen > 0)
+				memcpy (p.buf + 22, packet->GetPayload (), payloadLen);
+			else
+				payloadLen = 0;
+			p.len = payloadLen + 22;
+			SendPackets (std::vector<Packet *> { &p });
+			LogPrint (eLogDebug, "Streaming: Pong of ", p.len, " bytes sent");
+		}	
+		m_LocalDestination.DeletePacket (packet);
+	}	
+		
 	void Stream::ProcessAck (Packet * packet)
 	{
 		bool acknowledged = false;
@@ -609,6 +631,7 @@ namespace stream
 			packet[size] = 0;
 			size++; // NACK count
 		}
+		packet[size] = 0;
 		size++; // resend delay
 		htobuf16 (packet + size, 0); // no flags set
 		size += 2; // flags
@@ -666,6 +689,7 @@ namespace stream
 		size += 4; // ack Through
 		packet[size] = 0;
 		size++; // NACK count
+		packet[size] = 0;
 		size++; // resend delay
 		htobe16buf (packet + size, PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 		size += 2; // flags
@@ -1016,6 +1040,13 @@ namespace stream
 			auto it = m_Streams.find (sendStreamID);
 			if (it != m_Streams.end ())
 				it->second->HandleNextPacket (packet);
+			else if (packet->IsEcho () && m_Owner->IsStreamingAnswerPings ())
+			{
+				// ping
+				LogPrint (eLogInfo, "Streaming: Ping received sSID=", sendStreamID);
+				auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
+				s->HandlePing (packet);
+			}		
 			else
 			{
 				LogPrint (eLogInfo, "Streaming: Unknown stream sSID=", sendStreamID);

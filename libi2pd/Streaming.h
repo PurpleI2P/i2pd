@@ -87,6 +87,7 @@ namespace stream
 
 		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; };
 		bool IsNoAck () const { return GetFlags () & PACKET_FLAG_NO_ACK; };
+		bool IsEcho () const { return GetFlags () & PACKET_FLAG_ECHO; };
 	};
 
 	struct PacketCmp
@@ -168,6 +169,7 @@ namespace stream
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
 
 			void HandleNextPacket (Packet * packet);
+			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
 

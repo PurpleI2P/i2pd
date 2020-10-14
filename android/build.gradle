@@ -30,8 +30,8 @@ android {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 29
         minSdkVersion 14
-        versionCode 2321
-        versionName "2.32.1"
+        versionCode 2330
+        versionName "2.33.0"
         setProperty("archivesBaseName", archivesBaseName + "-" + versionName)
         ndk {
             abiFilters 'armeabi-v7a'

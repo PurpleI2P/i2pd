@@ -303,6 +303,7 @@ namespace tunnel
 	{
 		for (auto& msg : msgs)
 		{
+			if (!msg.data) continue;
 			switch (msg.deliveryType)
 			{
 				case eDeliveryTypeLocal:
@@ -521,7 +522,7 @@ namespace tunnel
 				}
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastTs >= 15) // manage tunnels every 15 seconds
+				if (ts - lastTs >= 15 && i2p::transport::transports.IsOnline()) // manage tunnels every 15 seconds
 				{
 					ManageTunnels ();
 					lastTs = ts;

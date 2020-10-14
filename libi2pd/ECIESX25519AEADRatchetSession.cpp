@@ -88,12 +88,67 @@ namespace garlic
 		}
 	}
 
+	void RatchetTagSet::DeleteSymmKey (int index)
+	{	
+		m_ItermediateSymmKeys.erase (index);
+	}
+	
 	void RatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
+	bool RatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		auto session = GetSession ();
+		if (!session) return false;
+		return session->HandleNextMessage (buf, len, shared_from_this (), index);
+	}	
+
+	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
+		RatchetTagSet (nullptr), m_Destination (destination) 
+	{ 
+		memcpy (m_Key, key, 32); 
+		Expire ();	
+	}
+	
+	bool DatabaseLookupTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	{
+		if (len < 24) return false;
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		size_t offset = 8; // first 8 bytes is reply tag used as AD	
+		len -= 16; // poly1305
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len - offset, buf, 8, m_Key, nonce, buf + offset, len - offset, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply AEAD decryption failed");
+			return false;
+		}
+		// we assume 1 I2NP block with delivery type local
+		if (offset + 3 > len) 
+		{	
+			LogPrint (eLogWarning, "Garlic: Lookup reply is too short ", len);
+			return false;
+		}	
+		if (buf[offset] != eECIESx25519BlkGalicClove)
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply unexpected block ", (int)buf[offset]);
+			return false;
+		}	
+		offset++;
+		auto size = bufbe16toh (buf + offset);
+		offset += 2;
+		if (offset + size > len) 
+		{
+			LogPrint (eLogWarning, "Garlic: Lookup reply block is too long ", size);
+			return false;
+		}	
+		if (m_Destination)
+			m_Destination->HandleECIESx25519GarlicClove (buf + offset, size);	
+		return true;
+	}	
+	
 	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
 		GarlicRoutingSession (owner, attachLeaseSet)
 	{
@@ -657,7 +712,12 @@ namespace garlic
 				moreTags -= (receiveTagset->GetNextIndex () - index);
 			}	
 			if (moreTags > 0)
+			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
+				index -= (moreTags >> 1); // /2
+				if (index > 0)
+					receiveTagset->SetTrimBehind (index);
+			}	
 		}	
 		return true;
 	}
@@ -739,8 +799,11 @@ namespace garlic
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
 		if (first) payloadLen += 7;// datatime
-		if (msg && m_Destination)
-			payloadLen += msg->GetPayloadLength () + 13 + 32;
+		if (msg)
+		{	
+			payloadLen += msg->GetPayloadLength () + 13;
+			if (m_Destination) payloadLen += 32;
+		}	
 		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
 			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted &&
 				ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
@@ -816,7 +879,7 @@ namespace garlic
 			}
 			// msg
 			if (msg && m_Destination)
-				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset, true);
+				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
 			{
@@ -875,16 +938,16 @@ namespace garlic
 		return v;
 	}
 
-	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len, bool isDestination)
+	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
 	{
 		if (!msg) return 0;
 		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-		if (isDestination) cloveSize += 32;
+		if (m_Destination) cloveSize += 32;
 		if ((int)len < cloveSize + 3) return 0;
 		buf[0] = eECIESx25519BlkGalicClove; // clove type
 		htobe16buf (buf + 1, cloveSize); // size
 		buf += 3;
-		if (isDestination)
+		if (m_Destination)
 		{
 			*buf = (eGarlicDeliveryTypeDestination << 5);
 			memcpy (buf + 1, *m_Destination, 32); buf += 32;

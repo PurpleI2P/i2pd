@@ -1,6 +1,31 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.33.0] - 2020-08-24
+### Added
+- Shared transient addresses
+- crypto.ratchet.inboundTags paramater
+- Multiple encryption keys through I2CP
+- Pre-calculated x25519 ephemeral keys
+- Change datagram routing path if nothing comes back in 10 seconds
+- Shared routing path for datagram session 
+### Changed
+- UDP tunnels send mix of repliable and raw datagrams in bulk
+- Encrypt SSU packet again upon resend
+- Start new tunnel message if remaining buffer is too small 
+- Use LeaseSet2 for ECIES-X25519-AEAD-Ratchet automatically
+- Save new ECIES-X25519-AEAD-Ratchet session with NSR tagset
+- Generate random padding lengths for ECIES-X25519-AEAD-Ratchet in bulk
+- Webconsole layout
+- Reseed servers list
+### Fixed
+- Don't connect through terminated SAM destination
+- Differentiate UDP server sessions by port 
+- ECIES-X25519-AEAD-Ratchet through I2CP
+- Don't save invalid address to AddressBook
+- ECDSA signatures names in SAM
+- AppArmor profile 
+
 ## [2.32.1] - 2020-06-02
 ### Added
 - Read explicit peers in tunnels config

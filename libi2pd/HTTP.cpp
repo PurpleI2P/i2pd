@@ -16,8 +16,8 @@
 namespace i2p {
 namespace http {
 	const std::vector<std::string> HTTP_METHODS = {
-		"GET", "HEAD", "POST", "PUT", "PATCH",
-		"DELETE", "OPTIONS", "CONNECT", "PROPFIND"
+		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
+		"COPY", "LOCK", "MKCOL", "MOVE", "PROPFIND", "PROPPATCH", "UNLOCK", "SEARCH" // WebDAV methods, for SEARCH see rfc5323
 	};
 	const std::vector<std::string> HTTP_VERSIONS = {
 		"HTTP/1.0", "HTTP/1.1"

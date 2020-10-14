@@ -37,7 +37,8 @@ namespace i2p
 	enum RouterError
 	{
 		eRouterErrorNone = 0,
-		eRouterErrorClockSkew = 1
+		eRouterErrorClockSkew = 1,
+		eRouterErrorOffline = 2 
 	};
 
 	class RouterContext: public i2p::garlic::GarlicDestination
@@ -89,7 +90,7 @@ namespace i2p
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			void PublishNTCP2Address (int port, bool publish = true, bool v4only = false);
 			void UpdateNTCP2Address (bool enable);
-			void PublishNTCPAddress (bool publish, bool v4only = true);
+			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const;

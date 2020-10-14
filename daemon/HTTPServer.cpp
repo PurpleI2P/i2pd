@@ -12,7 +12,6 @@
 #include <memory>
 
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "Base.h"
@@ -83,17 +82,18 @@ namespace http {
 		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
 		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
 		"  @media screen and (max-width: 980px) {\r\n" /* adaptive style */
+		"    body { padding: 1.5em 0 0 0; }\r\n"
 		"    .menu { width: 100%; display: block; float: none; position: unset; font-size: 16px;\r\n"
 		"      text-align: center; }\r\n"
 		"    .menu a, .commands a { padding: 2px; }\r\n"
-		"    .content { float: none; margin: 0; margin-top: 16px; max-width: 100%; width: 100%;\r\n"
+		"    .content { float: none; margin-left: unset; margin-top: 16px; max-width: 100%; width: 100%;\r\n"
 		"      text-align: center; }\r\n"
 		"    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
 		"    .header { margin: unset; font-size: 1.5em; } small {display: block}\r\n"
 		"    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
 		"      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
 		"    input { width: 35%; text-align: center; padding: 5px;\r\n"
-		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 24px; }\r\n"
+		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 18px; }\r\n"
 		"    textarea { width: -webkit-fill-available; height: auto; padding:5px; border:2px solid #ccc;\r\n"
 		"      -webkit-border-radius: 5px; border-radius: 5px; font-size: 12px; }\r\n"
 		"    button[type=submit] { padding: 5px 15px; background: #ccc; border: 0 none; cursor: pointer;\r\n"
@@ -257,7 +257,10 @@ namespace http {
 				switch (i2p::context.GetError ())
 				{
 					case eRouterErrorClockSkew:
-						s << "<br>Clock skew";
+						s << " - Clock skew";
+					break;
+					case eRouterErrorOffline:
+						s << " - Offline";
 					break;
 					default: ;
 				}
@@ -732,13 +735,6 @@ namespace http {
 	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n";
-		auto ntcpServer = i2p::transport::transports.GetNTCPServer ();
-		if (ntcpServer)
-		{
-			auto sessions = ntcpServer->GetNTCPSessions ();
-			if (!sessions.empty ())
-				ShowNTCPTransports (s, sessions, "NTCP");
-		}
 		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
 		if (ntcp2Server)
 		{
@@ -933,7 +929,7 @@ namespace http {
 		time_t t = divTime.quot;
 		struct tm *tm = localtime(&t);
 		char date[128];
-		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03ld", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
+		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03lld", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
 		return date;
 	}
 
@@ -1320,8 +1316,8 @@ namespace http {
 	void HTTPServer::Accept ()
 	{
 		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (m_Service);
-		m_Acceptor.async_accept (*newSocket, boost::bind (&HTTPServer::HandleAccept, this,
-			boost::asio::placeholders::error, newSocket));
+		m_Acceptor.async_accept (*newSocket, std::bind (&HTTPServer::HandleAccept, this,
+			std::placeholders::_1, newSocket));
 	}
 
 	void HTTPServer::HandleAccept(const boost::system::error_code& ecode,

@@ -125,7 +125,8 @@ namespace data
 					}
 				}
 				if (!m_IsRunning) break;
-
+				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
+			
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
 				{
@@ -560,6 +561,9 @@ namespace data
 				updatedCount++;
 				continue;
 			}
+			// make router reachable back if too few routers
+			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)	
+				it.second->SetUnreachable (false); 
 			// find & mark expired routers
 			if (it.second->UsesIntroducer ())
 			{
@@ -575,7 +579,7 @@ namespace data
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
-				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
+				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;	
 			}
 		} // m_RouterInfos iteration
 
@@ -610,7 +614,7 @@ namespace data
 		}
 	}
 
-	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete)
+	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
 		auto dest = m_Requests.CreateRequest (destination, false, requestComplete); // non-exploratory
 		if (!dest)
@@ -621,7 +625,23 @@ namespace data
 
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
-			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+		{
+			if (direct)
+				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			else
+			{
+				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+				auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;
+				if (outbound &&	inbound)
+					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, dest->CreateRequestMessage (floodfill, inbound));
+				else
+				{
+					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
+					m_Requests.RequestComplete (destination, nullptr);	
+				}		
+			}		
+		}	
 		else
 		{
 			LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no floodfills found");
@@ -775,37 +795,21 @@ namespace data
 					// reply to our destination. Try other floodfills
 					if (outbound && inbound)
 					{
-						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 						auto count = dest->GetExcludedPeers ().size ();
 						if (count < 7)
 						{
 							auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 							if (nextFloodfill)
 							{
-								// tell floodfill about us
-								msgs.push_back (i2p::tunnel::TunnelMessageBlock
-									{
-										i2p::tunnel::eDeliveryTypeRouter,
-										nextFloodfill->GetIdentHash (), 0,
-										CreateDatabaseStoreMsg ()
-									});
-
 								// request destination
 								LogPrint (eLogDebug, "NetDb: Try ", key, " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
-								auto msg = dest->CreateRequestMessage (nextFloodfill, inbound);
-								msgs.push_back (i2p::tunnel::TunnelMessageBlock
-									{
-										i2p::tunnel::eDeliveryTypeRouter,
-										nextFloodfill->GetIdentHash (), 0, msg
-									});
+								outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
+									dest->CreateRequestMessage (nextFloodfill, inbound));
 								deleteDest = false;
 							}
 						}
 						else
 							LogPrint (eLogWarning, "NetDb: ", key, " was not found on ", count, " floodfills");
-
-						if (msgs.size () > 0)
-							outbound->SendTunnelDataMsg (msgs);
 					}
 				}
 

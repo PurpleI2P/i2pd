@@ -1,11 +1,3 @@
-/*
-* Copyright (c) 2013-2020, The PurpleI2P Project
-*
-* This file is part of Purple i2pd project and licensed under BSD3
-*
-* See full license text in LICENSE file at top of project tree
-*/
-
 #include <stdio.h>
 #include <sstream>
 #include <openssl/x509.h>
@@ -14,12 +6,7 @@
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-
-// There is bug in boost 1.49 with gcc 4.7 coming with Debian Wheezy
-#define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ >= 7))
-#if !GCC47_BOOST149
 #include <boost/property_tree/json_parser.hpp>
-#endif
 
 #include "Crypto.h"
 #include "FS.h"
@@ -67,28 +54,29 @@ namespace client
 		m_SSLContext.use_private_key_file (i2pcp_key, boost::asio::ssl::context::pem);
 
 		// handlers
-		m_MethodHandlers["Authenticate"]       = &I2PControlService::AuthenticateHandler;
-		m_MethodHandlers["Echo"]               = &I2PControlService::EchoHandler;
-		m_MethodHandlers["I2PControl"]         = &I2PControlService::I2PControlHandler;
-		m_MethodHandlers["RouterInfo"]         = &I2PControlService::RouterInfoHandler;
-		m_MethodHandlers["RouterManager"]      = &I2PControlService::RouterManagerHandler;
-		m_MethodHandlers["NetworkSetting"]     = &I2PControlService::NetworkSettingHandler;
-		m_MethodHandlers["ClientServicesInfo"] = &I2PControlService::ClientServicesInfoHandler;
+		m_MethodHandlers["Authenticate"]   = &I2PControlService::AuthenticateHandler;
+		m_MethodHandlers["Echo"]           = &I2PControlService::EchoHandler;
+		m_MethodHandlers["I2PControl"]     = &I2PControlService::I2PControlHandler;
+		m_MethodHandlers["RouterInfo"]     = &I2PControlService::RouterInfoHandler;
+		m_MethodHandlers["RouterManager"]  = &I2PControlService::RouterManagerHandler;
+		m_MethodHandlers["NetworkSetting"] = &I2PControlService::NetworkSettingHandler;
+		m_MethodHandlers["ClientServicesInfo"]     = &I2PControlService::ClientServicesInfoHandler;
 
 		// I2PControl
 		m_I2PControlHandlers["i2pcontrol.password"] = &I2PControlService::PasswordHandler;
 
 		// RouterInfo
-		m_RouterInfoHandlers["i2p.router.uptime"]                    = &I2PControlService::UptimeHandler;
-		m_RouterInfoHandlers["i2p.router.version"]                   = &I2PControlService::VersionHandler;
-		m_RouterInfoHandlers["i2p.router.status"]                    = &I2PControlService::StatusHandler;
-		m_RouterInfoHandlers["i2p.router.netdb.knownpeers"]          = &I2PControlService::NetDbKnownPeersHandler;
-		m_RouterInfoHandlers["i2p.router.netdb.activepeers"]         = &I2PControlService::NetDbActivePeersHandler;
-		m_RouterInfoHandlers["i2p.router.net.bw.inbound.1s"]         = &I2PControlService::InboundBandwidth1S;
-		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"]        = &I2PControlService::OutboundBandwidth1S;
-		m_RouterInfoHandlers["i2p.router.net.status"]                = &I2PControlService::NetStatusHandler;
+		m_RouterInfoHandlers["i2p.router.uptime"]  = &I2PControlService::UptimeHandler;
+		m_RouterInfoHandlers["i2p.router.version"] = &I2PControlService::VersionHandler;
+		m_RouterInfoHandlers["i2p.router.status"]  = &I2PControlService::StatusHandler;
+		m_RouterInfoHandlers["i2p.router.netdb.knownpeers"]   = &I2PControlService::NetDbKnownPeersHandler;
+		m_RouterInfoHandlers["i2p.router.netdb.activepeers"]  = &I2PControlService::NetDbActivePeersHandler;
+		m_RouterInfoHandlers["i2p.router.net.bw.inbound.1s"]  = &I2PControlService::InboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"] = &I2PControlService::OutboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
-		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"]   = &I2PControlService::TunnelsSuccessRateHandler;
+		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] =
+&I2PControlService::TunnelsSuccessRateHandler;
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlService::NetTotalReceivedBytes;
 		m_RouterInfoHandlers["i2p.router.net.total.sent.bytes"]      = &I2PControlService::NetTotalSentBytes;
 
@@ -104,10 +92,10 @@ namespace client
 		// ClientServicesInfo
 		m_ClientServicesInfoHandlers["I2PTunnel"] = &I2PControlService::I2PTunnelInfoHandler;
 		m_ClientServicesInfoHandlers["HTTPProxy"] = &I2PControlService::HTTPProxyInfoHandler;
-		m_ClientServicesInfoHandlers["SOCKS"]     = &I2PControlService::SOCKSInfoHandler;
-		m_ClientServicesInfoHandlers["SAM"]       = &I2PControlService::SAMInfoHandler;
-		m_ClientServicesInfoHandlers["BOB"]       = &I2PControlService::BOBInfoHandler;
-		m_ClientServicesInfoHandlers["I2CP"]      = &I2PControlService::I2CPInfoHandler;
+		m_ClientServicesInfoHandlers["SOCKS"] = &I2PControlService::SOCKSInfoHandler;
+		m_ClientServicesInfoHandlers["SAM"] = &I2PControlService::SAMInfoHandler;
+		m_ClientServicesInfoHandlers["BOB"] = &I2PControlService::BOBInfoHandler;
+		m_ClientServicesInfoHandlers["I2CP"] = &I2PControlService::I2CPInfoHandler;
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -242,12 +230,6 @@ namespace client
 					}
 				}
 				std::ostringstream response;
-#if GCC47_BOOST149
-				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
-				response << "{\"id\":null,\"error\":";
-				response << "{\"code\":-32603,\"message\":\"JSON requests is not supported with this version of boost\"},";
-				response << "\"jsonrpc\":\"2.0\"}";
-#else
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
 
@@ -267,7 +249,6 @@ namespace client
 					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
 					response << "\"jsonrpc\":\"2.0\"}";
 				}
-#endif
 				SendResponse (socket, buf, response, isHtml);
 			}
 			catch (std::exception& ex)
@@ -408,8 +389,8 @@ namespace client
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
 			{
-				if (!first) results << ",";
-				else first = false;
+				if (!first) results << ","; 
+				else first = false;		
 				(this->*(it1->second))(results);
 			}
 			else
@@ -507,7 +488,7 @@ namespace client
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
-			{
+		    {
 				Daemon.running = 0;
 			});
 	}
@@ -521,7 +502,7 @@ namespace client
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
-			{
+		    {
 				Daemon.running = 0;
 			});
 	}

@@ -1,4 +1,4 @@
-version: 2.32.1.{build}
+version: 2.33.0.{build}
 pull_requests:
   do_not_increment_build_number: true
 branches:
@@ -9,32 +9,49 @@ os: Visual Studio 2015
 shallow_clone: true
 clone_depth: 1
 
+# avoid building 32-bit if 64-bit failed already
+matrix:
+  fast_finish: true
+
 environment:
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
   MSYS2_PATH_TYPE: inherit
   CHERE_INVOKING: enabled_from_arguments
   matrix:
   - MSYSTEM: MINGW64
-    MSYS_PACKAGES: mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc
-    MSYS_BITNESS: 64
   - MSYSTEM: MINGW32
-    MSYS_PACKAGES: mingw-w64-i686-boost mingw-w64-i686-miniupnpc
-    MSYS_BITNESS: 32
+
+cache:
+  - c:\msys64\var\cache\pacman\pkg\
 
 install:
+# install new signing keyring	
+- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"	
+- c:\msys64\usr\bin\bash -lc "curl -O https://mirror.selfnet.de/msys2/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"	
+- c:\msys64\usr\bin\bash -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"	
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+# remove packages which can break build
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc mingw-w64-{i686,x86_64}-gcc-ada mingw-w64-{i686,x86_64}-gcc-objc"
-# TODO: revert that change when appveyor's images will be updated
-- c:\msys64\usr\bin\bash -l "build/appveyor-msys2-upgrade.bash"
 # update runtime
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+# Kill bash before next try
+- taskkill /T /F /IM bash.exe /IM gpg.exe /IM gpg-agent.exe | exit /B 0
 # update packages and install required
-- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu ${MSYS_PACKAGES}"
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu $MINGW_PACKAGE_PREFIX-boost $MINGW_PACKAGE_PREFIX-miniupnpc"
 
 build_script:
-- echo MSYSTEM = %MSYSTEM%, bitness = %MSYS_BITNESS%
-- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j3"
-- 7z a -tzip -mx9 -mmt i2pd-mingw-win%MSYS_BITNESS%.zip i2pd.exe
+- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes DEBUG=no -j3"
+# prepare archive for uploading
+- set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d"
+- echo This is development build, use it carefully! For running in portable mode, move all files from contrib directory here. > README.txt
+- 7z a -tzip -mx9 -mmt i2pd-%APPVEYOR_BUILD_VERSION%-%APPVEYOR_REPO_COMMIT:~0,7%-mingw-win%MSYSTEM:~-2%.zip %FILELIST%
+
+after_build:
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sc"
 
 test: off
 
+deploy: off
+
 artifacts:
-- path: i2pd-mingw-win*.zip
+- path: i2pd-*.zip
