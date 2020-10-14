@@ -4,14 +4,14 @@ on: [push, pull_request]
 
 jobs:
   build:
+    name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
     runs-on: ubuntu-16.04
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['yes', 'no']
     steps:
-    - name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
     - name: install packages
       run: |
         sudo add-apt-repository ppa:mhier/libboost-latest
