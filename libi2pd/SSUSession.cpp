@@ -49,7 +49,7 @@ namespace transport
 
 	boost::asio::io_service& SSUSession::GetService ()
 	{
-		return IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
+		return m_Server.GetService ();
 	}
 
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)

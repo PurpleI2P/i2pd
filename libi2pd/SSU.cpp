@@ -19,27 +19,25 @@ namespace transport
 {
 
 	SSUServer::SSUServer (const boost::asio::ip::address & addr, int port):
-		m_OnlyV6(true), m_IsRunning(false),
-		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_ReceiversThreadV6 (nullptr), m_Work (m_Service), m_WorkV6 (m_ServiceV6),
+		m_OnlyV6(true), m_IsRunning(false), m_Thread (nullptr), 
+		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service),
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_EndpointV6 (addr, port), m_Socket (m_ReceiversService, m_Endpoint),
 		m_SocketV6 (m_ReceiversServiceV6), m_IntroducersUpdateTimer (m_Service),
 		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service),
-		m_TerminationTimerV6 (m_ServiceV6)
+		m_TerminationTimerV6 (m_Service)
 	{
 		OpenSocketV6 ();
 	}
 
 	SSUServer::SSUServer (int port):
-		m_OnlyV6(false), m_IsRunning(false),
-		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_ReceiversThreadV6 (nullptr), 	m_Work (m_Service), m_WorkV6 (m_ServiceV6),
+		m_OnlyV6(false), m_IsRunning(false), m_Thread (nullptr),
+		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service), 
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
 		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6),
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
-		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)
+		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service)
 	{
 		OpenSocket ();
 		if (context.SupportsV6 ())
@@ -98,7 +96,8 @@ namespace transport
 		if (context.SupportsV6 ())
 		{
 			m_ReceiversThreadV6 = new std::thread (std::bind (&SSUServer::RunReceiversV6, this));
-			m_ThreadV6 = new std::thread (std::bind (&SSUServer::RunV6, this));
+			if (!m_Thread)		
+				m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 			m_ReceiversServiceV6.post (std::bind (&SSUServer::ReceiveV6, this));
 			ScheduleTerminationV6 ();
 		}
@@ -114,7 +113,6 @@ namespace transport
 		m_TerminationTimerV6.cancel ();
 		m_Service.stop ();
 		m_Socket.close ();
-		m_ServiceV6.stop ();
 		m_SocketV6.close ();
 		m_ReceiversService.stop ();
 		m_ReceiversServiceV6.stop ();
@@ -136,12 +134,6 @@ namespace transport
 			delete m_ReceiversThreadV6;
 			m_ReceiversThreadV6 = nullptr;
 		}
-		if (m_ThreadV6)
-		{
-			m_ThreadV6->join ();
-			delete m_ThreadV6;
-			m_ThreadV6 = nullptr;
-		}
 	}
 
 	void SSUServer::Run ()
@@ -155,21 +147,6 @@ namespace transport
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "SSU: server runtime exception: ", ex.what ());
-			}
-		}
-	}
-
-	void SSUServer::RunV6 ()
-	{
-		while (m_IsRunning)
-		{
-			try
-			{
-				m_ServiceV6.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "SSU: v6 server runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -358,7 +335,7 @@ namespace transport
 				}
 			}
 
-			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_SessionsV6));
+			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_SessionsV6));
 			ReceiveV6 ();
 		}
 		else
@@ -456,8 +433,7 @@ namespace transport
 			else
 			{
 				boost::asio::ip::udp::endpoint remoteEndpoint (addr, port);
-				auto& s = addr.is_v6 () ? m_ServiceV6 : m_Service;
-				s.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
+				m_Service.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
 		}
 	}
@@ -841,7 +817,7 @@ namespace transport
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
 						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
-					m_ServiceV6.post ([session]
+					m_Service.post ([session]
 						{
 							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
 							session->Failed ();
