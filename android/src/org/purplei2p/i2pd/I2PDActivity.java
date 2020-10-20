@@ -15,6 +15,7 @@ import java.util.TimerTask;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -25,6 +26,10 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -41,6 +46,7 @@ import android.widget.Toast;
 
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -63,6 +69,7 @@ public class I2PDActivity extends Activity {
 
 	private TextView textView;
 	private boolean assetsCopied;
+	private NetworkStateCallback networkCallback;
 	private String i2pdpath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/";
 	//private ConfigParser parser = new ConfigParser(i2pdpath); // TODO:
 
@@ -116,7 +123,7 @@ public class I2PDActivity extends Activity {
 		daemonStateUpdatedListener.daemonStateUpdate();
 
 		 // request permissions
-		if (Build.VERSION.SDK_INT >= 23) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 			if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 				ActivityCompat.requestPermissions(this,
 					new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
@@ -137,6 +144,10 @@ public class I2PDActivity extends Activity {
 		}
 
 		openBatteryOptimizationDialogIfNeeded();
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			registerNetworkCallback();
+		}
 	}
 
 	@Override
@@ -244,7 +255,7 @@ public class I2PDActivity extends Activity {
 	}
 
 	private boolean isBatteryOptimizationsOpenOsDialogApiAvailable() {
-		return android.os.Build.VERSION.SDK_INT >= 23;
+		return android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
 	}
 
 	@Override
@@ -629,6 +640,33 @@ public class I2PDActivity extends Activity {
 	private String getBatteryOptimizationPreferenceKey() {
 		@SuppressLint("HardwareIds") String device = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 		return "show_battery_optimization" + (device == null ? "" : device);
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	private void registerNetworkCallback() {
+	ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+	NetworkRequest request = new NetworkRequest.Builder()
+			.addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+			.build();
+	networkCallback = new NetworkStateCallback();
+	connectivityManager.registerNetworkCallback(request, networkCallback);
+	}
+
+	@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+	private final class NetworkStateCallback extends ConnectivityManager.NetworkCallback {
+		@Override
+		public void onAvailable(Network network) {
+			super.onAvailable(network);
+			I2PD_JNI.onNetworkStateChanged(true);
+			Log.i(TAG, "NetworkCallback.onAvailable");
+		}
+
+		@Override
+		public void onLost(Network network) {
+			super.onLost(network);
+			I2PD_JNI.onNetworkStateChanged(false);
+			Log.i(TAG, " NetworkCallback.onLost");
+		}
 	}
 
 	private void quit() {
