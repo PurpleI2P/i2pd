@@ -19,13 +19,28 @@
   <property name="windowTitle">
    <string>GeneralSettingsContentsForm</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QGroupBox {
+    font: bold;
+    border: 1px solid silver;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 7px;
+    padding: 0px 5px 0px 5px;
+}
+</string>
+  </property>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
      <width>679</width>
-     <height>4178</height>
+     <height>4242</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="settingsContentsQVBoxLayout">
@@ -59,7 +74,7 @@
     <item>
      <widget class="QGroupBox" name="configFIleGroupBox">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+       <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -67,17 +82,35 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>51</height>
+        <height>60</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>51</height>
+        <height>60</height>
        </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QGroupBox {
+    font: bold;
+    border: 1px solid silver;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 7px;
+    padding: 0px 5px 0px 5px;
+}
+</string>
       </property>
       <property name="title">
        <string>Configuration file:</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_conf1">
        <property name="geometry">
@@ -90,7 +123,7 @@
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_conf">
         <property name="sizeConstraint">
-         <enum>QLayout::SetMaximumSize</enum>
+         <enum>QLayout::SetMinAndMaxSize</enum>
         </property>
         <item>
          <widget class="QLineEdit" name="configFileLineEdit"/>
@@ -100,19 +133,19 @@
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
             <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
+            <verstretch>25</verstretch>
            </sizepolicy>
           </property>
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>27</height>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>27</height>
+            <height>25</height>
            </size>
           </property>
           <property name="text">
@@ -309,13 +342,13 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>112</height>
+        <height>130</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>112</height>
+        <height>130</height>
        </size>
       </property>
       <property name="title">
@@ -2329,13 +2362,13 @@ Comma separated list of base64 identities:</string>
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>215</height>
+        <height>225</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>215</height>
+        <height>225</height>
        </size>
       </property>
       <property name="title">
@@ -3341,7 +3374,7 @@ Comma separated list of base64 identities:</string>
     <item>
      <widget class="QGroupBox" name="groupBox_5">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -3349,13 +3382,13 @@ Comma separated list of base64 identities:</string>
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>128</height>
+        <height>145</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>128</height>
+        <height>300</height>
        </size>
       </property>
       <property name="title">
@@ -3370,12 +3403,24 @@ Comma separated list of base64 identities:</string>
          <x>-1</x>
          <y>19</y>
          <width>681</width>
-         <height>101</height>
+         <height>124</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="sizeConstraint">
-         <enum>QLayout::SetMinAndMaxSize</enum>
+         <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
         </property>
         <item>
          <widget class="QCheckBox" name="checkBoxWebsocketsEnable">

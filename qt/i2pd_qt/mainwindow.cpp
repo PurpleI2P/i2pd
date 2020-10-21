@@ -84,7 +84,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     ui->settingsScrollArea->resize(uiSettings->settingsContentsQVBoxLayout->sizeHint().width()+10,380);
     //QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
     int w = 683;
-    int h = 4000;
+    int h = 4250;
     ui->settingsContents->setFixedSize(w, h);
     ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
@@ -323,6 +323,18 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     logDestinationComboBoxValueChanged(uiSettings->logDestinationComboBox->currentText());
 
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, 451));
+
+    ui->tunnelsScrollAreaWidgetContents->setStyleSheet("QGroupBox { " \
+                                                   "    font: bold;" \
+                                                   "    border: 1px solid silver;" \
+                                                   "    border-radius: 6px;" \
+                                                   "    margin-top: 6px;" \
+                                                   "}" \
+                                                   "QGroupBox::title {" \
+                                                   "    subcontrol-origin: margin;" \
+                                                   "    left: 7px;" \
+                                                   "    padding: 0px 5px 0px 5px;" \
+                                                   "}");
 
     appendTunnelForms("");
 

@@ -165,9 +165,9 @@ private:
         i2p_streaming_initialAckDelayLabel->setText(QApplication::translate("tunForm", "Milliseconds to wait before sending Ack:", 0));
         i2p_streaming_answerPingsCheckBox->setText(QApplication::translate("tunForm", "Enable sending pongs", 0));
         i2cp_leaseSetTypeLabel->setText(QApplication::translate("tunForm", "Type of LeaseSet to be sent. 1, 3 or 5:", 0));
-        i2cp_leaseSetEncTypeLabel->setText(QApplication::translate("tunForm", "Comma-separated encryption types to be used in LeaseSet type 3 or 5:", 0));
+        i2cp_leaseSetEncTypeLabel->setText(QApplication::translate("tunForm", "Comma-separ. encr. types to be used in LeaseSet type 3 or 5:", 0));
         i2cp_leaseSetPrivKeyLabel->setText(QApplication::translate("tunForm", "Decryption key for encrypted LeaseSet in base64. PSK or private DH:", 0));
-        i2cp_leaseSetAuthTypeLabel->setText(QApplication::translate("tunForm", "Authentication type for encrypted LeaseSet. 0 - no authentication (default), 1 - DH, 2 - PSK:", 0));
+        i2cp_leaseSetAuthTypeLabel->setText(QApplication::translate("tunForm", "Auth type for encrypted LeaseSet. 0 - no auth, 1 - DH, 2 - PSK:", 0));
     }
 };
 

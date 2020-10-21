@@ -31,7 +31,7 @@ void TunnelPane::setupTunnelPane(
     this->gridLayoutWidget_2=gridLayoutWidget_2;
     tunnelGridLayout = new QVBoxLayout(gridLayoutWidget_2);
     tunnelGridLayout->setObjectName(QStringLiteral("tunnelGridLayout"));
-    tunnelGridLayout->setContentsMargins(5, 5, 5, 5);
+    tunnelGridLayout->setContentsMargins(10, 25, 10, 10);
     tunnelGridLayout->setSpacing(5);
 
     //header
