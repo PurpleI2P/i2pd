@@ -740,7 +740,8 @@ namespace garlic
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
 				session->SetRemoteStaticKey (staticKey);
 			}
-			session->SetDestination (destination->GetIdentHash ()); // TODO: remove
+			if (destination->IsDestination ())
+				session->SetDestination (destination->GetIdentHash ()); // TODO: remove
 			return session;
 		}
 		else
