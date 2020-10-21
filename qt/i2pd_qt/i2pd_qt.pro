@@ -4,7 +4,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
+QMAKE_CXXFLAGS *= -Wno-unused-parameter -Wno-maybe-uninitialized
+CONFIG += strict_c++ c++11
 
 DEFINES += USE_UPNP
 

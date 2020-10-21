@@ -104,7 +104,8 @@ class MainWindowItem : public QObject {
     QWidget* widgetToFocus;
     QString requirementToBeValid;
 public:
-    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) : option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) :
+        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
     QWidget* getWidgetToFocus(){return widgetToFocus;}
     QString& getRequirementToBeValid() { return requirementToBeValid; }
     ConfigOption& getConfigOption() { return option; }
@@ -115,7 +116,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
@@ -280,6 +281,7 @@ public:
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
+        qDebug() << "setting value for checkbox " << checkBox->text();
         checkBox->setChecked(boost::any_cast<bool>(optionValue));
     }
     virtual void saveToStringStream(std::stringstream& out){
@@ -543,6 +545,18 @@ private:
     void deleteTunnelForms();
     void deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf);
 
+    template<typename Section>
+    std::string GetI2CPOption (const Section& section, const std::string& name, const std::string& value) const
+    {
+        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), value);
+    }
+
+    template<typename Section>
+    std::string GetI2CPOption (const Section& section, const std::string& name, const char* value) const
+    {
+        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::string (value));
+    }
+
     template<typename Section, typename Type>
     std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
     {
@@ -563,6 +577,19 @@ private:
         param.setOutbound_quantity(QString(_OUTBOUND_TUNNELS_QUANTITY.c_str()));
         std::string _TAGS_TO_SEND = options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
         param.setCrypto_tagsToSend(QString(_TAGS_TO_SEND.c_str()));
+        std::string _i2cp_leaseSetAuthType = options[I2CP_PARAM_LEASESET_AUTH_TYPE] = GetI2CPOption (section, I2CP_PARAM_LEASESET_AUTH_TYPE, 0);
+        param.set_i2cp_leaseSetAuthType(QString(_i2cp_leaseSetAuthType.c_str()));
+        const char DEFAULT_LEASESET_ENCRYPTION_TYPE[] = "";
+        std::string _i2cp_leaseSetEncType = options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = GetI2CPOption (section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, DEFAULT_LEASESET_ENCRYPTION_TYPE);//todo Identity's type by default
+        param.set_i2cp_leaseSetEncType(QString(_i2cp_leaseSetEncType.c_str()));
+        std::string _i2cp_leaseSetPrivKey = options[I2CP_PARAM_LEASESET_PRIV_KEY] = GetI2CPOption (section, I2CP_PARAM_LEASESET_PRIV_KEY, "");
+        param.set_i2cp_leaseSetPrivKey(QString(_i2cp_leaseSetPrivKey.c_str()));
+        std::string _i2cp_leaseSetType = options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption (section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
+        param.set_i2cp_leaseSetType(QString(_i2cp_leaseSetType.c_str()));
+        std::string _i2p_streaming_answerPings= options[I2CP_PARAM_STREAMING_ANSWER_PINGS] = GetI2CPOption (section, I2CP_PARAM_STREAMING_ANSWER_PINGS, DEFAULT_ANSWER_PINGS);
+        param.set_i2p_streaming_answerPings((_i2p_streaming_answerPings.compare("true")==0)||(_i2p_streaming_answerPings.compare("yes")==0));
+        std::string _i2p_streaming_initialAckDelay = options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption (section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY);
+        param.set_i2p_streaming_initialAckDelay(QString(_i2p_streaming_initialAckDelay.c_str()));
         options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);//TODO include into param
         options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);//TODO include into param
     }
@@ -580,6 +607,17 @@ private:
         param.setOutbound_quantity(QString::number(_OUTBOUND_TUNNELS_QUANTITY));
         const int _TAGS_TO_SEND = DEFAULT_TAGS_TO_SEND;
         param.setCrypto_tagsToSend(QString::number(_TAGS_TO_SEND));
+        const int _i2cp_leaseSetAuthType = 0;
+        param.set_i2cp_leaseSetAuthType(QString::number(_i2cp_leaseSetAuthType));
+        const QString _i2cp_leaseSetEncType = "0,4"; //todo Identity's type by default
+        param.set_i2cp_leaseSetEncType(_i2cp_leaseSetEncType);
+        param.set_i2cp_leaseSetPrivKey("");
+        const int _i2cp_leaseSetType = DEFAULT_LEASESET_TYPE;
+        param.set_i2cp_leaseSetType(QString::number(_i2cp_leaseSetType));
+        bool _i2p_streaming_answerPings= DEFAULT_ANSWER_PINGS;
+        param.set_i2p_streaming_answerPings(_i2p_streaming_answerPings);
+        const int _i2p_streaming_initialAckDelay = DEFAULT_INITIAL_ACK_DELAY;
+        param.set_i2p_streaming_initialAckDelay(QString::number(_i2p_streaming_initialAckDelay));
     }
 
 
@@ -613,6 +651,7 @@ private:
         std::string keys = "";
         std::string address = "127.0.0.1";
         int destinationPort = 0;
+        int cryptoType = 0;
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
         // I2CP
         I2CPParameters i2cpParameters;
@@ -624,7 +663,8 @@ private:
                                                       keys,
                                                       address,
                                                       destinationPort,
-                                                      sigType);
+                                                      sigType,
+                                                      cryptoType);
 
         saveAllConfigs(true, name);
     }
@@ -643,6 +683,7 @@ private:
         i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
         std::string address = "127.0.0.1";
         bool isUniqueLocal = true;
+        int cryptoType = 0;
 
         // I2CP
         I2CPParameters i2cpParameters;
@@ -659,7 +700,8 @@ private:
                                                   gzip,
                                                   sigType,
                                                   address,
-                                                  isUniqueLocal);
+                                                  isUniqueLocal,
+                                                  cryptoType);
 
 
         saveAllConfigs(true, name);
@@ -712,6 +754,7 @@ private:
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+                    int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
                     int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
                     std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
@@ -726,7 +769,8 @@ private:
                                                               keys,
                                                               address,
                                                               destinationPort,
-                                                              sigType);
+                                                              sigType,
+                                                              cryptoType);
                 }
                 else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
                                  || type == I2P_TUNNELS_SECTION_TYPE_HTTP
@@ -746,6 +790,7 @@ private:
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
                     bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+                    int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
 
                     // I2CP
                     std::map<std::string, std::string> options;
@@ -779,7 +824,8 @@ private:
                                                               gzip,
                                                               sigType,
                                                               address,
-                                                              isUniqueLocal);
+                                                              isUniqueLocal,
+                                                              cryptoType);
                 }
                 else
                     LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);//TODO show err box and disable the tunn gui

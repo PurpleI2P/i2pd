@@ -11,6 +11,7 @@
 #include "QLineEdit"
 #include "QGroupBox"
 #include "QVBoxLayout"
+#include "QCheckBox"
 
 #include "TunnelConfig.h"
 
@@ -89,6 +90,27 @@ protected:
     QLabel * crypto_tagsToSendLabel;
     QLineEdit * crypto_tagsToSendLineEdit;
 
+    QLabel * explicitPeersLabel;
+    QLineEdit * explicitPeersLineEdit;
+
+    QLabel * i2p_streaming_initialAckDelayLabel;
+    QLineEdit * i2p_streaming_initialAckDelayLineEdit;
+
+    QCheckBox * i2p_streaming_answerPingsCheckBox;
+
+    QLabel * i2cp_leaseSetTypeLabel;
+    QLineEdit * i2cp_leaseSetTypeLineEdit;
+
+    QLabel * i2cp_leaseSetEncTypeLabel;
+    QLineEdit * i2cp_leaseSetEncTypeLineEdit;
+
+    QLabel * i2cp_leaseSetPrivKeyLabel;
+    QLineEdit * i2cp_leaseSetPrivKeyLineEdit;
+
+    QLabel * i2cp_leaseSetAuthTypeLabel;
+    QLineEdit * i2cp_leaseSetAuthTypeLineEdit;
+
+
     QString readTunnelTypeComboboxData();
 
     //should be created by factory
@@ -105,6 +127,12 @@ public:
         i2cpParams.setOutbound_length(outbound_lengthLineEdit->text());
         i2cpParams.setOutbound_quantity(outbound_quantityLineEdit->text());
         i2cpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
+        i2cpParams.set_i2cp_leaseSetAuthType(i2cp_leaseSetAuthTypeLineEdit->text());
+        i2cpParams.set_i2cp_leaseSetEncType(i2cp_leaseSetEncTypeLineEdit->text());
+        i2cpParams.set_i2cp_leaseSetPrivKey(i2cp_leaseSetPrivKeyLineEdit->text());
+        i2cpParams.set_i2cp_leaseSetType(i2cp_leaseSetTypeLineEdit->text());
+        i2cpParams.set_i2p_streaming_answerPings(i2p_streaming_answerPingsCheckBox->isChecked());
+        i2cpParams.set_i2p_streaming_initialAckDelay(i2p_streaming_initialAckDelayLineEdit->text());
         return true;
     }
 protected:
@@ -133,6 +161,13 @@ private:
         inbound_quantityLabel->setText(QApplication::translate("tunForm", "Number of inbound tunnels:", 0));;
         outbound_quantityLabel->setText(QApplication::translate("tunForm", "Number of outbound tunnels:", 0));;
         crypto_tagsToSendLabel->setText(QApplication::translate("tunForm", "Number of ElGamal/AES tags to send:", 0));;
+        explicitPeersLabel->setText(QApplication::translate("tunForm", "List of comma-separated b64 addresses of peers to use:", 0));;
+        i2p_streaming_initialAckDelayLabel->setText(QApplication::translate("tunForm", "Milliseconds to wait before sending Ack:", 0));
+        i2p_streaming_answerPingsCheckBox->setText(QApplication::translate("tunForm", "Enable sending pongs", 0));
+        i2cp_leaseSetTypeLabel->setText(QApplication::translate("tunForm", "Type of LeaseSet to be sent. 1, 3 or 5:", 0));
+        i2cp_leaseSetEncTypeLabel->setText(QApplication::translate("tunForm", "Comma-separ. encr. types to be used in LeaseSet type 3 or 5:", 0));
+        i2cp_leaseSetPrivKeyLabel->setText(QApplication::translate("tunForm", "Decryption key for encrypted LeaseSet in base64. PSK or private DH:", 0));
+        i2cp_leaseSetAuthTypeLabel->setText(QApplication::translate("tunForm", "Auth type for encrypted LeaseSet. 0 - no auth, 1 - DH, 2 - PSK:", 0));
     }
 };
 

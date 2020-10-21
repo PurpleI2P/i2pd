@@ -8,4 +8,6 @@ Makefile*
 object_script.*
 i2pd_qt_plugin_import.cpp
 i2pd_qt.pro.autosave*
+build*
+nohup.out
 
