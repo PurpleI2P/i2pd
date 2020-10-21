@@ -501,7 +501,7 @@ namespace transport
 					{
 						auto addr = router->GetSSUV6Address ();
 						if (addr)
-							m_SSUServer->GetServiceV6 ().post ([this, router, addr]
+							m_SSUServer->GetService ().post ([this, router, addr]
 							{
 								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
 							});
