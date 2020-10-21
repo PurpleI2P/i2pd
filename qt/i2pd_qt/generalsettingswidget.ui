@@ -25,7 +25,7 @@
      <x>0</x>
      <y>0</y>
      <width>679</width>
-     <height>4151</height>
+     <height>4178</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="settingsContentsQVBoxLayout">
@@ -464,13 +464,13 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>390</height>
+        <height>417</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>390</height>
+        <height>417</height>
        </size>
       </property>
       <property name="title">
@@ -482,7 +482,7 @@
          <x>0</x>
          <y>20</y>
          <width>661</width>
-         <height>368</height>
+         <height>397</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -525,6 +525,13 @@
          <widget class="QCheckBox" name="natCheckBox">
           <property name="text">
            <string>Assume we are behind NAT</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="reservedrange_checkbox">
+          <property name="text">
+           <string>Check remote RI for being in blacklist of reserved IP ranges</string>
           </property>
          </widget>
         </item>

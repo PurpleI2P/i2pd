@@ -16,25 +16,49 @@ class I2CPParameters{
     QString outbound_quantity; //number of outbound tunnels. 5 by default
     QString crypto_tagsToSend; //number of ElGamal/AES tags to send. 40 by default; too low value may cause problems with tunnel building
     QString explicitPeers; //list of comma-separated b64 addresses of peers to use, default: unset
+    QString i2p_streaming_initialAckDelay; //i2p.streaming.initialAckDelay -- milliseconds to wait before sending Ack. 200 by default
+    bool i2p_streaming_answerPings; //i2p.streaming.answerPings -- enable sending pongs. true by default
+    QString i2cp_leaseSetType; //i2cp.leaseSetType -- type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    QString i2cp_leaseSetEncType; //i2cp.leaseSetEncType -- comma separated encryption types to be used in LeaseSet type 3 or 5. Identity's type by default
+    QString i2cp_leaseSetPrivKey; //i2cp.leaseSetPrivKey -- decryption key for encrypted LeaseSet in base64. PSK or private DH
+    QString i2cp_leaseSetAuthType; //i2cp.leaseSetAuthType -- authentication type for encrypted LeaseSet. 0 - no authentication(default), 1 - DH, 2 - PSK
 public:
     I2CPParameters(): inbound_length(),
                                  outbound_length(),
                                  inbound_quantity(),
                                  outbound_quantity(),
                                  crypto_tagsToSend(),
-                                 explicitPeers() {}
+                                 explicitPeers(),
+                                 i2p_streaming_initialAckDelay(),
+                                 i2p_streaming_answerPings(true),
+                                 i2cp_leaseSetType(),
+                                 i2cp_leaseSetEncType(),
+                                 i2cp_leaseSetPrivKey(),
+                                 i2cp_leaseSetAuthType() {}
     const QString& getInbound_length(){return inbound_length;}
     const QString& getOutbound_length(){return outbound_length;}
     const QString& getInbound_quantity(){return inbound_quantity;}
     const QString& getOutbound_quantity(){return outbound_quantity;}
     const QString& getCrypto_tagsToSend(){return crypto_tagsToSend;}
     const QString& getExplicitPeers(){return explicitPeers;}
+    const QString& get_i2p_streaming_initialAckDelay(){return i2p_streaming_initialAckDelay;}
+    bool get_i2p_streaming_answerPings(){return i2p_streaming_answerPings;}
+    const QString& get_i2cp_leaseSetType(){return i2cp_leaseSetType;}
+    const QString& get_i2cp_leaseSetEncType(){return i2cp_leaseSetEncType;}
+    const QString& get_i2cp_leaseSetPrivKey(){return i2cp_leaseSetPrivKey;}
+    const QString& get_i2cp_leaseSetAuthType(){return i2cp_leaseSetAuthType;}
     void setInbound_length(QString inbound_length_){inbound_length=inbound_length_;}
     void setOutbound_length(QString outbound_length_){outbound_length=outbound_length_;}
     void setInbound_quantity(QString inbound_quantity_){inbound_quantity=inbound_quantity_;}
     void setOutbound_quantity(QString outbound_quantity_){outbound_quantity=outbound_quantity_;}
     void setCrypto_tagsToSend(QString crypto_tagsToSend_){crypto_tagsToSend=crypto_tagsToSend_;}
     void setExplicitPeers(QString explicitPeers_){explicitPeers=explicitPeers_;}
+    void set_i2p_streaming_initialAckDelay(QString i2p_streaming_initialAckDelay_){i2p_streaming_initialAckDelay=i2p_streaming_initialAckDelay_;}
+    void set_i2p_streaming_answerPings(bool i2p_streaming_answerPings_){i2p_streaming_answerPings=i2p_streaming_answerPings_;}
+    void set_i2cp_leaseSetType(QString i2cp_leaseSetType_){i2cp_leaseSetType=i2cp_leaseSetType_;}
+    void set_i2cp_leaseSetEncType(QString i2cp_leaseSetEncType_){i2cp_leaseSetEncType=i2cp_leaseSetEncType_;}
+    void set_i2cp_leaseSetPrivKey(QString i2cp_leaseSetPrivKey_){i2cp_leaseSetPrivKey=i2cp_leaseSetPrivKey_;}
+    void set_i2cp_leaseSetAuthType(QString i2cp_leaseSetAuthType_){i2cp_leaseSetAuthType=i2cp_leaseSetAuthType_;}
 };
 
 

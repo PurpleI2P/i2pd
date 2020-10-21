@@ -24,6 +24,18 @@ void TunnelConfig::saveI2CPParametersToStringStream(std::stringstream& out) {
     if (!i2cpParameters.getExplicitPeers().isEmpty()) //todo #947
             out << i2p::client::I2CP_PARAM_EXPLICIT_PEERS << "="
                     << i2cpParameters.getExplicitPeers().toStdString() << "\n";
+    out << i2p::client::I2CP_PARAM_LEASESET_AUTH_TYPE << "="
+            << i2cpParameters.get_i2cp_leaseSetAuthType().toStdString() << "\n";
+    out << i2p::client::I2CP_PARAM_LEASESET_ENCRYPTION_TYPE << "="
+            << i2cpParameters.get_i2cp_leaseSetEncType().toStdString() << "\n";
+    out << i2p::client::I2CP_PARAM_LEASESET_PRIV_KEY << "="
+            << i2cpParameters.get_i2cp_leaseSetPrivKey().toStdString() << "\n";
+    out << i2p::client::I2CP_PARAM_LEASESET_TYPE << "="
+            << i2cpParameters.get_i2cp_leaseSetType().toStdString() << "\n";
+    out << i2p::client::I2CP_PARAM_STREAMING_ANSWER_PINGS << "="
+            << (i2cpParameters.get_i2p_streaming_answerPings() ? "true" : "false") << "\n";
+    out << i2p::client::I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY << "="
+            << i2cpParameters.get_i2p_streaming_initialAckDelay().toStdString() << "\n";
     out << "\n";
 }
 

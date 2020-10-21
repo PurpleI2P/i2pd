@@ -190,6 +190,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(      OPTION("","family",[]{return "";}), uiSettings->familyLineEdit);
     initIntegerBox(     OPTION("","netid",[]{return "2";}), uiSettings->netIdLineEdit, tr("NetID"));
     initCheckBox(       OPTION("","ssu",[]{return "true";}), uiSettings->ssuCheckBox);//Enable SSU transport protocol (use UDP). true by default
+    initCheckBox(       OPTION("","reservedrange",[]{return "true";}), uiSettings->reservedrange_checkbox);
 
 #ifdef Q_OS_WIN
     initNonGUIOption(   OPTION("","svcctl",[]{return "";}));
@@ -205,22 +206,22 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("http","auth",[]{return "";}), uiSettings->webconsoleBasicAuthCheckBox);
     initStringBox(      OPTION("http","user",[]{return "i2pd";}), uiSettings->webconsoleUserNameLineEditBasicAuth);
     initStringBox(      OPTION("http","pass",[]{return "";}), uiSettings->webconsolePasswordLineEditBasicAuth);
-    initCheckBox(       OPTION("http","strictheaders",[]{return "true";}), uiSettings->httpStrictHeadersCheckBox);//TODO add option Enable strict host checking on WebUI. true by default
-    initStringBox(      OPTION("http","hostname",[]{return "localhost";}), uiSettings->httpHostnameLineEdit);//TODO add option Expected hostname for WebUI (default: localhost)
+    initCheckBox(       OPTION("http","strictheaders",[]{return "true";}), uiSettings->httpStrictHeadersCheckBox);//Enable strict host checking on WebUI. true by default
+    initStringBox(      OPTION("http","hostname",[]{return "localhost";}), uiSettings->httpHostnameLineEdit);//Expected hostname for WebUI (default: localhost)
 
     initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), uiSettings->httpProxyEnabledCheckBox);
     initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), uiSettings->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
     initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), uiSettings->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
-    initCheckBox(       OPTION("httpproxy","addresshelper",[]{return "true";}), uiSettings->httpProxyAddressHelperCheckBox);//TODO add option Enable address helper (jump). true by default
+    initCheckBox(       OPTION("httpproxy","addresshelper",[]{return "true";}), uiSettings->httpProxyAddressHelperCheckBox);//Enable address helper (jump). true by default
     initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), uiSettings->httpProxyKeyFileLineEdit, uiSettings->httpProxyKeyFilePushButton);
     initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_httpPorxySignatureType);
     initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), uiSettings->httpProxyInboundTunnelsLenLineEdit);
     initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), uiSettings->httpProxyInboundTunnQuantityLineEdit);
     initStringBox(     OPTION("httpproxy","outbound.length",[]{return "3";}), uiSettings->httpProxyOutBoundTunnLenLineEdit);
     initStringBox(     OPTION("httpproxy","outbound.quantity",[]{return "5";}), uiSettings->httpProxyOutboundTunnQuantityLineEdit);
-    initStringBox(     OPTION("httpproxy","outproxy",[]{return "";}), uiSettings->httpProxyOutproxyLineEdit);//TODO add option HTTP proxy upstream out proxy url (like http://false.i2p)
-    initStringBox(     OPTION("httpproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->httpProxyI2cpLeaseSetTypeLineEdit);//TODO add option Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
-    initStringBox(     OPTION("httpproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->httpProxyI2cpLeaseSetEncTypeLineEdit);//TODO add option Comma separated encryption types to be used in LeaseSet type 3 or 5
+    initStringBox(     OPTION("httpproxy","outproxy",[]{return "";}), uiSettings->httpProxyOutproxyLineEdit);//HTTP proxy upstream out proxy url (like http://false.i2p)
+    initStringBox(     OPTION("httpproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->httpProxyI2cpLeaseSetTypeLineEdit);//Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    initStringBox(     OPTION("httpproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->httpProxyI2cpLeaseSetEncTypeLineEdit);//Comma separated encryption types to be used in LeaseSet type 3 or 5
 
     initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), uiSettings->socksProxyEnabledCheckBox);
     initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), uiSettings->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
@@ -233,8 +234,8 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), uiSettings->socksProxyOutboundTunnQuantityLineEdit);
     initIPAddressBox(  OPTION("socksproxy","outproxy",[]{return "";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
     initTCPPortBox(    OPTION("socksproxy","outproxyport",[]{return "";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
-    initStringBox(     OPTION("socksproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->socksProxyI2cpLeaseSetTypeLineEdit);//TODO add option Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
-    initStringBox(     OPTION("socksproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->socksProxyI2cpLeaseSetEncTypeLineEdit);//TODO add option Comma separated encryption types to be used in LeaseSet type 3 or 5
+    initStringBox(     OPTION("socksproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->socksProxyI2cpLeaseSetTypeLineEdit);//Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    initStringBox(     OPTION("socksproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->socksProxyI2cpLeaseSetEncTypeLineEdit);//Comma separated encryption types to be used in LeaseSet type 3 or 5
 
     initCheckBox(       OPTION("sam","enabled",[]{return "false";}), uiSettings->samEnabledCheckBox);
     initIPAddressBox(   OPTION("sam","address",[]{return "";}), uiSettings->samAddressLineEdit, tr("SAM -> IP address"));
