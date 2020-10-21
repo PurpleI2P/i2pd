@@ -40,7 +40,7 @@ QGroupBox::title {
      <x>0</x>
      <y>0</y>
      <width>679</width>
-     <height>4242</height>
+     <height>4434</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="settingsContentsQVBoxLayout">
@@ -82,13 +82,13 @@ QGroupBox::title {
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>60</height>
+        <height>80</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>60</height>
+        <height>80</height>
        </size>
       </property>
       <property name="styleSheet">
@@ -112,46 +112,62 @@ QGroupBox::title {
       <property name="alignment">
        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_conf1">
+      <widget class="QWidget" name="verticalLayoutWidget_7">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>18</y>
-         <width>661</width>
-         <height>31</height>
+         <x>12</x>
+         <y>19</y>
+         <width>651</width>
+         <height>51</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_conf">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetMinAndMaxSize</enum>
-        </property>
+       <layout class="QVBoxLayout" name="verticalLayout_7">
         <item>
-         <widget class="QLineEdit" name="configFileLineEdit"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="configFileBrowsePushButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>25</verstretch>
-           </sizepolicy>
+         <layout class="QHBoxLayout" name="horizontalLayout_conf">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinAndMaxSize</enum>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
+          <property name="leftMargin">
+           <number>10</number>
           </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>25</height>
-           </size>
+          <property name="topMargin">
+           <number>10</number>
           </property>
-          <property name="text">
-           <string>Browse…</string>
+          <property name="rightMargin">
+           <number>10</number>
           </property>
-         </widget>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
+          <item>
+           <widget class="QLineEdit" name="configFileLineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="configFileBrowsePushButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>27</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>27</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Browse…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -162,40 +178,56 @@ QGroupBox::title {
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="title">
        <string>Data folder (for storage of i2pd data — RI, keys, peer profiles, …):</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_7">
+      <widget class="QWidget" name="verticalLayoutWidget_12">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>20</y>
-         <width>661</width>
-         <height>31</height>
+         <x>12</x>
+         <y>19</y>
+         <width>651</width>
+         <height>51</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetMaximumSize</enum>
+       <layout class="QVBoxLayout" name="verticalLayout_12">
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="dataFolderLineEdit"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="dataFolderBrowsePushButton">
-          <property name="text">
-           <string>Browse…</string>
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
-         </widget>
+          <item>
+           <widget class="QLineEdit" name="dataFolderLineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="dataFolderBrowsePushButton">
+            <property name="text">
+             <string>Browse…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -212,58 +244,74 @@ QGroupBox::title {
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="title">
        <string>Pid file:</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_pid3">
+      <widget class="QWidget" name="verticalLayoutWidget_13">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>18</y>
-         <width>661</width>
-         <height>31</height>
+         <x>12</x>
+         <y>19</y>
+         <width>651</width>
+         <height>51</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_pid">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetMaximumSize</enum>
+       <layout class="QVBoxLayout" name="verticalLayout_13">
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="pidFileLineEdit"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pidFileBrowsePushButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <layout class="QHBoxLayout" name="horizontalLayout_pid">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Browse…</string>
-          </property>
-         </widget>
+          <item>
+           <widget class="QLineEdit" name="pidFileLineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pidFileBrowsePushButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>27</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>27</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Browse…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -280,58 +328,74 @@ QGroupBox::title {
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>51</height>
+        <height>80</height>
        </size>
       </property>
       <property name="title">
        <string>Tunnels configuration file:</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_3">
+      <widget class="QWidget" name="verticalLayoutWidget_14">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>18</y>
-         <width>661</width>
-         <height>31</height>
+         <x>12</x>
+         <y>19</y>
+         <width>651</width>
+         <height>51</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_tun">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetMaximumSize</enum>
+       <layout class="QVBoxLayout" name="verticalLayout_14">
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="tunnelsConfigFileLineEdit"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="tunnelsConfigFileBrowsePushButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <layout class="QHBoxLayout" name="horizontalLayout_tun">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>27</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Browse…</string>
-          </property>
-         </widget>
+          <item>
+           <widget class="QLineEdit" name="tunnelsConfigFileLineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="tunnelsConfigFileBrowsePushButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>27</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>27</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Browse…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -2885,434 +2949,377 @@ Comma separated list of base64 identities:</string>
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>405</height>
+        <height>500</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>405</height>
+        <height>500</height>
        </size>
       </property>
       <property name="title">
        <string>Socks proxy</string>
       </property>
-      <widget class="QCheckBox" name="socksProxyEnabledCheckBox">
+      <widget class="QWidget" name="verticalLayoutWidget_8">
        <property name="geometry">
         <rect>
-         <x>0</x>
+         <x>9</x>
          <y>20</y>
-         <width>97</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Enabled</string>
-       </property>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_17_">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>40</y>
          <width>661</width>
-         <height>31</height>
+         <height>470</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_17_">
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
+        </property>
         <item>
-         <widget class="QLabel" name="socks_label_11">
+         <widget class="QCheckBox" name="socksProxyEnabledCheckBox">
           <property name="text">
-           <string>IP address to listen on:</string>
+           <string>Enabled</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="socksProxyAddressLineEdit"/>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_17_">
+          <item>
+           <widget class="QLabel" name="socks_label_11">
+            <property name="text">
+             <string>IP address to listen on:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyAddressLineEdit"/>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_11">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_11">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_18">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>70</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_18">
-        <item>
-         <widget class="QLabel" name="socks_label_12">
-          <property name="text">
-           <string>Port to listen on:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="socksProxyPortLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_18">
+          <item>
+           <widget class="QLabel" name="socks_label_12">
+            <property name="text">
+             <string>Port to listen on:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyPortLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_12">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_12">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_19">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>100</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_19">
-        <item>
-         <widget class="QLabel" name="socks_label_17">
-          <property name="text">
-           <string>Keys file:</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_19">
+          <item>
+           <widget class="QLabel" name="socks_label_17">
+            <property name="text">
+             <string>Keys file:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyKeyFileLineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="socksProxyKeyFilePushButton">
+            <property name="text">
+             <string>Browse…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QLineEdit" name="socksProxyKeyFileLineEdit"/>
+         <layout class="QHBoxLayout" name="horizontalLayout_40">
+          <item>
+           <widget class="QLabel" name="label_42">
+            <property name="text">
+             <string>Signature type:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_socksProxySignatureType"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="socksProxySignTypeComboEditPushButton">
+            <property name="text">
+             <string>Edit</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_28">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QPushButton" name="socksProxyKeyFilePushButton">
-          <property name="text">
-           <string>Browse…</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_20">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>160</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_20">
-        <item>
-         <widget class="QLabel" name="socks_label_18">
-          <property name="text">
-           <string>Inbound tunnels length:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="socksProxyInboundTunnelsLenLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_20">
+          <item>
+           <widget class="QLabel" name="socks_label_18">
+            <property name="text">
+             <string>Inbound tunnels length:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyInboundTunnelsLenLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_13">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_13">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_21">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>190</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_21">
-        <item>
-         <widget class="QLabel" name="socks_label_19">
-          <property name="text">
-           <string>Inbound tunnels quantity:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="socksProxyInboundTunnQuantityLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_21">
+          <item>
+           <widget class="QLabel" name="socks_label_19">
+            <property name="text">
+             <string>Inbound tunnels quantity:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyInboundTunnQuantityLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_14">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_14">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_22">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>220</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_22">
-        <item>
-         <widget class="QLabel" name="socks_label_20">
-          <property name="text">
-           <string>Outbound tunnels length:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="socksProxyOutBoundTunnLenLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_22">
+          <item>
+           <widget class="QLabel" name="socks_label_20">
+            <property name="text">
+             <string>Outbound tunnels length:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyOutBoundTunnLenLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_15">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_15">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="socks_horizontalLayoutWidget_23">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>250</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="socks_horizontalLayout_23">
-        <item>
-         <widget class="QLabel" name="socks_label_21">
-          <property name="text">
-           <string>Outbound tunnels quantity:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="socksProxyOutboundTunnQuantityLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="socks_horizontalLayout_23">
+          <item>
+           <widget class="QLabel" name="socks_label_21">
+            <property name="text">
+             <string>Outbound tunnels quantity:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="socksProxyOutboundTunnQuantityLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="socks_horizontalSpacer_16">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="socks_horizontalSpacer_16">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+         <layout class="QHBoxLayout" name="horizontalLayout_56">
+          <property name="topMargin">
+           <number>0</number>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
+          <property name="bottomMargin">
+           <number>0</number>
           </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="horizontalLayoutWidget_5">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>280</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
-        <item>
-         <widget class="QLabel" name="label_22">
-          <property name="text">
-           <string>Outproxy address:</string>
-          </property>
-         </widget>
+          <item>
+           <widget class="QCheckBox" name="socksOutproxyEnabledCheckBox">
+            <property name="text">
+             <string>Outproxy enabled</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QLineEdit" name="outproxyAddressLineEdit"/>
+         <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <item>
+           <widget class="QLabel" name="label_22">
+            <property name="text">
+             <string>Outproxy address:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="outproxyAddressLineEdit"/>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_17">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
         <item>
-         <spacer name="horizontalSpacer_17">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
+         <layout class="QHBoxLayout" name="horizontalLayout_24">
+          <item>
+           <widget class="QLabel" name="label_23">
+            <property name="text">
+             <string>Outproxy port:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="outproxyPortLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_18">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="horizontalLayoutWidget_6">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>310</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_24">
-        <item>
-         <widget class="QLabel" name="label_23">
-          <property name="text">
-           <string>Outproxy port:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="outproxyPortLineEdit">
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_18">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="horizontalLayoutWidget_34">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>130</y>
-         <width>661</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_40">
-        <item>
-         <widget class="QLabel" name="label_42">
-          <property name="text">
-           <string>Signature type:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBox_socksProxySignatureType"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="socksProxySignTypeComboEditPushButton">
-          <property name="text">
-           <string>Edit</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_28">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="verticalLayoutWidget_7">
-       <property name="geometry">
-        <rect>
-         <x>-1</x>
-         <y>340</y>
-         <width>661</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_7">
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_57">
           <item>
