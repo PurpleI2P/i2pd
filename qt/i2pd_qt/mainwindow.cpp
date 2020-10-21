@@ -84,7 +84,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     ui->settingsScrollArea->resize(uiSettings->settingsContentsQVBoxLayout->sizeHint().width()+10,380);
     //QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
     int w = 683;
-    int h = 4250;
+    int h = 4550;
     ui->settingsContents->setFixedSize(w, h);
     ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
@@ -232,8 +232,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), uiSettings->socksProxyInboundTunnQuantityLineEdit);
     initStringBox(     OPTION("socksproxy","outbound.length",[]{return "";}), uiSettings->socksProxyOutBoundTunnLenLineEdit);
     initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), uiSettings->socksProxyOutboundTunnQuantityLineEdit);
-    initIPAddressBox(  OPTION("socksproxy","outproxy",[]{return "";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
-    initTCPPortBox(    OPTION("socksproxy","outproxyport",[]{return "";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+    initCheckBox(      OPTION("socksproxy","outproxy.enabled",[]{return "false";}), uiSettings->socksOutproxyEnabledCheckBox);
+    initIPAddressBox(  OPTION("socksproxy","outproxy",[]{return "127.0.0.1";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+    initTCPPortBox(    OPTION("socksproxy","outproxyport",[]{return "9050";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
     initStringBox(     OPTION("socksproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->socksProxyI2cpLeaseSetTypeLineEdit);//Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
     initStringBox(     OPTION("socksproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->socksProxyI2cpLeaseSetEncTypeLineEdit);//Comma separated encryption types to be used in LeaseSet type 3 or 5
 
