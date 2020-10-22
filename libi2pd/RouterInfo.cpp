@@ -153,12 +153,6 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		if (m_RouterIdentity->GetCryptoKeyType () != CRYPTO_KEY_TYPE_ELGAMAL)
-		{
-			// we support ElGamal only. TODO: remove later
-			m_IsUnreachable = true;
-			return;	
-		}
 		if (verifySignature)
 		{
 			// reject RSA signatures

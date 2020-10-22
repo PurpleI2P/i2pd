@@ -112,9 +112,20 @@ namespace tunnel
 			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
 			auto encryptor = ident->CreateEncryptor (nullptr);
 			if (encryptor)
-				encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
+			{
+				if (ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+					EncryptECIES (encryptor, clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx);
+				else	
+					encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
+			}	
 			memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 		}
+
+		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
+			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx) const
+		{
+			memset (encrypted, 0, 512); // TODO: implement
+		}	
 	};
 
 	class TunnelConfig
