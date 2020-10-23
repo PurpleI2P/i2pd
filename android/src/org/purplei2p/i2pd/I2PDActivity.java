@@ -7,7 +7,6 @@ import java.util.TimerTask;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -18,9 +17,6 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -36,7 +32,6 @@ import android.widget.Toast;
 
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -62,26 +57,31 @@ public class I2PDActivity extends Activity {
 
 	private final DaemonWrapper.StateUpdateListener daemonStateUpdatedListener = new DaemonWrapper.StateUpdateListener() {
 		@Override
-		public void daemonStateUpdate() {
-			runOnUiThread(() -> {
-				try {
-					if (textView == null)
-						return;
-					Throwable tr = daemon.getLastThrowable();
-					if (tr!=null) {
-						textView.setText(throwableToString(tr));
-						return;
-					}
-					DaemonWrapper.State state = daemon.getState();
-					String startResultStr = DaemonWrapper.State.startFailed.equals(state) ? String.format(": %s", daemon.getDaemonStartResult()) : "";
-					String graceStr = DaemonWrapper.State.gracefulShutdownInProgress.equals(state) ? String.format(": %s %s", formatGraceTimeRemaining(), getText(R.string.remaining)) : "";
-					textView.setText(String.format("%s%s%s", getText(state.getStatusStringResourceId()), startResultStr, graceStr));
-				} catch (Throwable tr) {
-					Log.e(TAG,"error ignored",tr);
-				}
-			});
+		public void daemonStateUpdate(DaemonWrapper.State oldValue, DaemonWrapper.State newValue) {
+			updateStatusText();
 		}
 	};
+
+	private void updateStatusText() {
+		runOnUiThread(() -> {
+			try {
+				if (textView == null)
+					return;
+				Throwable tr = daemon.getLastThrowable();
+				if (tr!=null) {
+					textView.setText(throwableToString(tr));
+					return;
+				}
+				DaemonWrapper.State state = daemon.getState();
+				String startResultStr = DaemonWrapper.State.startFailed.equals(state) ? String.format(": %s", daemon.getDaemonStartResult()) : "";
+				String graceStr = DaemonWrapper.State.gracefulShutdownInProgress.equals(state) ? String.format(": %s %s", formatGraceTimeRemaining(), getText(R.string.remaining)) : "";
+				textView.setText(String.format("%s%s%s", getText(state.getStatusStringResourceId()), startResultStr, graceStr));
+			} catch (Throwable tr) {
+				Log.e(TAG,"error ignored",tr);
+			}
+		});
+	}
+
 	private static volatile long graceStartedMillis;
 	private static final Object graceStartedMillis_LOCK = new Object();
 	private Menu optionsMenu;
@@ -110,7 +110,7 @@ public class I2PDActivity extends Activity {
 		textView = new TextView(this);
 		setContentView(textView);
 		daemon.addStateChangeListener(daemonStateUpdatedListener);
-		daemonStateUpdatedListener.daemonStateUpdate();
+		daemonStateUpdatedListener.daemonStateUpdate(DaemonWrapper.State.uninitialized, daemon.getState());
 
 		 // request permissions
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -372,9 +372,10 @@ public class I2PDActivity extends Activity {
 		if (gracefulQuitTimerOld != null)
 			gracefulQuitTimerOld.cancel();
 
-		if(daemon.GetTransitTunnelsCount() <= 0) { // no tunnels left
+		if(daemon.getTransitTunnelsCount() <= 0) { // no tunnels left
 			Log.d(TAG, "no transit tunnels left, stopping");
 			i2pdStop();
+			return;
 		}
 
 		final Timer gracefulQuitTimer = new Timer(true);
@@ -390,7 +391,7 @@ public class I2PDActivity extends Activity {
 		final TimerTask tickerTask = new TimerTask() {
 			@Override
 			public void run() {
-				daemonStateUpdatedListener.daemonStateUpdate();
+				updateStatusText();
 			}
 		};
 		gracefulQuitTimer.scheduleAtFixedRate(tickerTask, 0/*start delay*/, 1000/*millis period*/);

@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.content.res.AssetManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -32,7 +31,7 @@ public class DaemonWrapper {
 	private boolean assetsCopied;
 
 	public interface StateUpdateListener {
-		void daemonStateUpdate();
+		void daemonStateUpdate(State oldValue, State newValue);
 	}
 
 	private final Set<StateUpdateListener> stateUpdateListeners = new HashSet<>();
@@ -58,7 +57,7 @@ public class DaemonWrapper {
 			return;
 
 		state = newState;
-		fireStateUpdate1();
+		fireStateUpdate1(oldState, newState);
 	}
 
 	public synchronized void stopAcceptingTunnels() {
@@ -81,11 +80,9 @@ public class DaemonWrapper {
 		}
 	}
 
-	public synchronized int GetTransitTunnelsCount() {
+	public int getTransitTunnelsCount() {
 		return I2PD_JNI.GetTransitTunnelsCount();
 	}
-
-	private volatile boolean startedOkay;
 
 	public enum State {
 		uninitialized(R.string.uninitialized),
@@ -105,7 +102,11 @@ public class DaemonWrapper {
 		public int getStatusStringResourceId() {
 			return statusStringResourceId;
 		}
-	};
+
+		public boolean isStartedOkay() {
+			return equals(State.startedOkay) || equals(State.gracefulShutdownInProgress);
+		}
+	}
 
 	private volatile State state = State.uninitialized;
 
@@ -134,7 +135,6 @@ public class DaemonWrapper {
 					daemonStartResult = I2PD_JNI.startDaemon();
 					if ("ok".equals(daemonStartResult)) {
 						setState(State.startedOkay);
-						setStartedOkay(true);
 					} else
 						setState(State.startFailed);
 				}
@@ -148,11 +148,11 @@ public class DaemonWrapper {
 	private Throwable lastThrowable;
 	private String daemonStartResult = "N/A";
 
-	private void fireStateUpdate1() {
+	private void fireStateUpdate1(State oldValue, State newValue) {
 		Log.i(TAG, "daemon state change: " + state);
 		for (StateUpdateListener listener : stateUpdateListeners) {
 			try {
-				listener.daemonStateUpdate();
+				listener.daemonStateUpdate(oldValue, newValue);
 			} catch (Throwable tr) {
 				Log.e(TAG, "exception in listener ignored", tr);
 			}
@@ -167,18 +167,8 @@ public class DaemonWrapper {
 		return daemonStartResult;
 	}
 
-	private final Object startedOkayLock = new Object();
-
 	public boolean isStartedOkay() {
-		synchronized (startedOkayLock) {
-			return startedOkay;
-		}
-	}
-
-	private void setStartedOkay(boolean startedOkay) {
-		synchronized (startedOkayLock) {
-			this.startedOkay = startedOkay;
-		}
+		return getState().isStartedOkay();
 	}
 
 	public synchronized void stopDaemon() {
@@ -189,7 +179,6 @@ public class DaemonWrapper {
 				Log.e(TAG, "", tr);
 			}
 
-			setStartedOkay(false);
 			setState(State.stopped);
 		}
 	}
@@ -197,7 +186,7 @@ public class DaemonWrapper {
 	private void processAssets() {
 		if (!assetsCopied) {
 			try {
-				assetsCopied = true; // prevent from running on every state update
+				assetsCopied = true;
 
 				File holderFile = new File(i2pdpath, "assets.ready");
 				String versionName = BuildConfig.VERSION_NAME; // here will be app version, like 2.XX.XX
@@ -283,12 +272,10 @@ public class DaemonWrapper {
 	 * Path to asset, relative to app's assets directory.
 	 */
 	private void copyAsset(String path) {
-		AssetManager manager = assetManager;
-
 		// If we have a directory, we make it and recurse. If a file, we copy its
 		// contents.
 		try {
-			String[] contents = manager.list(path);
+			String[] contents = assetManager.list(path);
 
 			// The documentation suggests that list throws an IOException, but doesn't
 			// say under what conditions. It'd be nice if it did so when the path was
@@ -355,7 +342,7 @@ public class DaemonWrapper {
 			Log.e(TAG, "fileOrDirectory.delete() returned " + deleteResult + ", absolute path='" + fileOrDirectory.getAbsolutePath() + "'");
 	}
 
-	public void registerNetworkCallback(){
+	private void registerNetworkCallback(){
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) registerNetworkCallback0();
 	}
 
