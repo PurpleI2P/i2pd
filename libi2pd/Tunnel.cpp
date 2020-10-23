@@ -111,7 +111,7 @@ namespace tunnel
 		while (hop)
 		{
 			decryption.SetKey (hop->replyKey);
-			// decrypt records before and including current hop
+			// decrypt records before and current hop 
 			TunnelHopConfig * hop1 = hop;
 			while (hop1)
 			{
@@ -119,8 +119,22 @@ namespace tunnel
 				if (idx >= 0 && idx < msg[0])
 				{
 					uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
-					decryption.SetIV (hop->replyIV);
-					decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+					if (hop1 == hop && hop1->IsECIES ())
+					{
+						uint8_t nonce[12];
+						memset (nonce, 0, 12);
+						if (!i2p::crypto::AEADChaCha20Poly1305 (record, TUNNEL_BUILD_RECORD_SIZE - 16, 
+							hop->h, 32, hop->ck, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+						{
+							LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
+							return false;
+						}	
+					}
+					else
+					{	
+						decryption.SetIV (hop->replyIV);
+						decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+					}	
 				}
 				else
 					LogPrint (eLogWarning, "Tunnel: hop index ", idx, " is out of range");
@@ -134,7 +148,7 @@ namespace tunnel
 		while (hop)
 		{
 			const uint8_t * record = msg + 1 + hop->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
-			uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
+			uint8_t ret = record[hop->IsECIES () ? ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET : BUILD_RESPONSE_RECORD_RET_OFFSET];
 			LogPrint (eLogDebug, "Tunnel: Build response ret code=", (int)ret);
 			auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
 			if (profile)

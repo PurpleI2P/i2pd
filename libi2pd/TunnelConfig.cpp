@@ -9,6 +9,9 @@
 
 #include <memory>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
+#include "Crypto.h"
+#include "Log.h"
 #include "Transports.h"
 #include "Timestamp.h"
 #include "I2PEndian.h"
@@ -76,39 +79,86 @@ namespace tunnel
 		}
 	}
 	
-	void TunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) const
+	void TunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
 	{
-		uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
-		memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
-		memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
 		uint8_t flag = 0;
 		if (isGateway) flag |= 0x80;
 		if (isEndpoint) flag |= 0x40;
-		clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
-		RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
 		auto encryptor = ident->CreateEncryptor (nullptr);
-		if (encryptor)
+		if (IsECIES ())
 		{
-			if (ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+			uint8_t clearText[ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
+			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
+			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
+			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
+			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
+			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
+			clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
+			memset (clearText + ECIES_BUILD_REQUEST_RECORD_MORE_FLAGS_OFFSET, 0, 3); // set to 0 for compatibility
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetMinutesSinceEpoch ());
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET, i2p::util::GetSecondsSinceEpoch () + 600); // 10 minutes
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
+			memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
+			if (encryptor)
 				EncryptECIES (encryptor, clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx);
-			else	
+		}
+		else
+		{	
+			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+			htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
+			memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
+			htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
+			memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
+			memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
+			memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
+			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
+			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
+			clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
+			htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
+			htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
+			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
+			if (encryptor)
 				encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
 		}	
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 
 	void TunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
-			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx) const
+			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
-		memset (encrypted, 0, 512); // TODO: implement
+		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
+		memcpy (ck, protocolName, 32);	// ck = h = protocol_name || 0
+		SHA256 (ck, 32, h); // h = SHA256(h);
+		uint8_t hepk[32];
+		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
+		MixHash (hepk, 32);
+		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+		memcpy (encrypted, ephemeralKeys->GetPublicKey (), 32); encrypted += 32;
+		uint8_t sharedSecret[32];
+		ephemeralKeys->Agree (hepk, sharedSecret); // x25519(sesk, hepk)
+		uint8_t keydata[64];
+		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keydata); 
+		memcpy (ck, keydata, 32);
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, h, 32, 
+			keydata + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
+		{	
+			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
+			return;
+		}	
+		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}	
+
+	void TunnelHopConfig::MixHash (const uint8_t * buf, size_t len)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, h, 32);
+		SHA256_Update (&ctx, buf, len);
+		SHA256_Final (h, &ctx);
+	}
 }
 }
