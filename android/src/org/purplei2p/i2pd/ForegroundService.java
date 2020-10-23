@@ -19,8 +19,12 @@ public class ForegroundService extends Service {
 
 	private volatile boolean shown;
 
-	private final DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
-			new DaemonSingleton.StateUpdateListener() {
+	private static ForegroundService instance;
+
+	private static volatile DaemonWrapper daemon;
+
+	private final DaemonWrapper.StateUpdateListener daemonStateUpdatedListener =
+			new DaemonWrapper.StateUpdateListener() {
 
 				@Override
 				public void daemonStateUpdate() {
@@ -40,7 +44,7 @@ public class ForegroundService extends Service {
 
 	// Unique Identification Number for the Notification.
 	// We use it on Notification start, and to cancel it.
-	private int NOTIFICATION = 1;
+	private static final int NOTIFICATION = 1;
 
 	/**
 	 * Class for clients to access.  Because we know this service always
@@ -53,16 +57,25 @@ public class ForegroundService extends Service {
 		}
 	}
 
+	public static void init(DaemonWrapper daemon) {
+		ForegroundService.daemon = daemon;
+		initCheck();
+	}
+
+	private static void initCheck() {
+		if(instance!=null && daemon!=null) instance.setListener();
+	}
+
 	@Override
 	public void onCreate() {
 		notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+		instance = this;
+		initCheck();
+	}
 
-		synchronized (this) {
-			DaemonSingleton.getInstance().addStateChangeListener(daemonStateUpdatedListener);
-			if (!shown) daemonStateUpdatedListener.daemonStateUpdate();
-		}
-		// Tell the user we started.
-//		Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
+	private void setListener() {
+		daemon.addStateChangeListener(daemonStateUpdatedListener);
+		if (!shown) daemonStateUpdatedListener.daemonStateUpdate();
 	}
 
 	@Override
@@ -73,8 +86,17 @@ public class ForegroundService extends Service {
 
 	@Override
 	public void onDestroy() {
-		DaemonSingleton.getInstance().removeStateChangeListener(daemonStateUpdatedListener);
 		cancelNotification();
+		deinitCheck();
+		instance=null;
+	}
+
+	public static void deinit() {
+		deinitCheck();
+	}
+
+	private static void deinitCheck() {
+		if(daemon!=null && instance!=null)daemon.removeStateChangeListener(instance.daemonStateUpdatedListener);
 	}
 
 	private synchronized void cancelNotification() {
@@ -101,35 +123,39 @@ public class ForegroundService extends Service {
 	 * Show a notification while this service is running.
 	 */
 	private synchronized void showNotification() {
-		// In this sample, we'll use the same text for the ticker and the expanded notification
-		CharSequence text = getText(DaemonSingleton.getInstance().getState().getStatusStringResourceId());
+		if(daemon!=null) {
+			// In this sample, we'll use the same text for the ticker and the expanded notification
+			CharSequence text = getText(daemon.getState().getStatusStringResourceId());
 
-		// The PendingIntent to launch our activity if the user selects this notification
-		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-				new Intent(this, I2PDActivity.class), 0);
+			// The PendingIntent to launch our activity if the user selects this notification
+			PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+					new Intent(this, I2PDActivity.class), 0);
 
-		// If earlier version channel ID is not used
-		// https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
-		String channelId = Build.VERSION.SDK_INT >= 26 ? createNotificationChannel() : "";
+			// If earlier version channel ID is not used
+			// https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
+			String channelId = Build.VERSION.SDK_INT >= 26 ? createNotificationChannel() : "";
 
-		// Set the info for the views that show in the notification panel.
-		NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
-				.setOngoing(true)
-				.setSmallIcon(R.drawable.itoopie_notification_icon); // the status icon
-		if(Build.VERSION.SDK_INT >= 16) builder = builder.setPriority(Notification.PRIORITY_DEFAULT);
-		if(Build.VERSION.SDK_INT >= 21) builder = builder.setCategory(Notification.CATEGORY_SERVICE);
-		Notification notification = builder
-				.setTicker(text) // the status text
-				.setWhen(System.currentTimeMillis()) // the time stamp
-				.setContentTitle(getText(R.string.app_name)) // the label of the entry
-				.setContentText(text) // the contents of the entry
-				.setContentIntent(contentIntent) // The intent to send when the entry is clicked
-				.build();
+			// Set the info for the views that show in the notification panel.
+			NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+					.setOngoing(true)
+					.setSmallIcon(R.drawable.itoopie_notification_icon); // the status icon
+			if (Build.VERSION.SDK_INT >= 16)
+				builder = builder.setPriority(Notification.PRIORITY_DEFAULT);
+			if (Build.VERSION.SDK_INT >= 21)
+				builder = builder.setCategory(Notification.CATEGORY_SERVICE);
+			Notification notification = builder
+					.setTicker(text) // the status text
+					.setWhen(System.currentTimeMillis()) // the time stamp
+					.setContentTitle(getText(R.string.app_name)) // the label of the entry
+					.setContentText(text) // the contents of the entry
+					.setContentIntent(contentIntent) // The intent to send when the entry is clicked
+					.build();
 
-		// Send the notification.
-		//mNM.notify(NOTIFICATION, notification);
-		startForeground(NOTIFICATION, notification);
-		shown = true;
+			// Send the notification.
+			//mNM.notify(NOTIFICATION, notification);
+			startForeground(NOTIFICATION, notification);
+			shown = true;
+		}
 	}
 
 	@RequiresApi(Build.VERSION_CODES.O)
@@ -144,6 +170,4 @@ public class ForegroundService extends Service {
 		else Log.e(TAG, "error: NOTIFICATION_SERVICE is null");
 		return channelId;
 	}
-
-    private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }

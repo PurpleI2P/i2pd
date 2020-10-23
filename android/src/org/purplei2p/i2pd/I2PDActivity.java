@@ -1,13 +1,5 @@
 package org.purplei2p.i2pd;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Timer;
@@ -24,7 +16,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -33,7 +24,6 @@ import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
-import android.os.Environment;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
@@ -60,25 +50,19 @@ import android.webkit.WebViewClient;
 import static android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS;
 
 public class I2PDActivity extends Activity {
-	private WebView webView;
-
 	private static final String TAG = "i2pdActvt";
 	private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
 	public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
 	public static final String PACKAGE_URI_SCHEME = "package:";
 
 	private TextView textView;
-	private boolean assetsCopied;
-	private NetworkStateCallback networkCallback;
-	private String i2pdpath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/i2pd/";
-	//private ConfigParser parser = new ConfigParser(i2pdpath); // TODO:
+	//private ConfigParser parser = new ConfigParser(i2pdpath); // TODO
 
-	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
+	private static volatile DaemonWrapper daemon;
 
-	private final DaemonSingleton.StateUpdateListener daemonStateUpdatedListener = new DaemonSingleton.StateUpdateListener() {
+	private final DaemonWrapper.StateUpdateListener daemonStateUpdatedListener = new DaemonWrapper.StateUpdateListener() {
 		@Override
 		public void daemonStateUpdate() {
-			processAssets();
 			runOnUiThread(() -> {
 				try {
 					if (textView == null)
@@ -88,9 +72,9 @@ public class I2PDActivity extends Activity {
 						textView.setText(throwableToString(tr));
 						return;
 					}
-					DaemonSingleton.State state = daemon.getState();
-					String startResultStr = DaemonSingleton.State.startFailed.equals(state) ? String.format(": %s", daemon.getDaemonStartResult()) : "";
-					String graceStr = DaemonSingleton.State.gracefulShutdownInProgress.equals(state) ? String.format(": %s %s", formatGraceTimeRemaining(), getText(R.string.remaining)) : "";
+					DaemonWrapper.State state = daemon.getState();
+					String startResultStr = DaemonWrapper.State.startFailed.equals(state) ? String.format(": %s", daemon.getDaemonStartResult()) : "";
+					String graceStr = DaemonWrapper.State.gracefulShutdownInProgress.equals(state) ? String.format(": %s %s", formatGraceTimeRemaining(), getText(R.string.remaining)) : "";
 					textView.setText(String.format("%s%s%s", getText(state.getStatusStringResourceId()), startResultStr, graceStr));
 				} catch (Throwable tr) {
 					Log.e(TAG,"error ignored",tr);
@@ -116,6 +100,12 @@ public class I2PDActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		Log.i(TAG, "onCreate");
 		super.onCreate(savedInstanceState);
+
+        if (daemon==null) {
+            ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            daemon = new DaemonWrapper(getAssets(), connectivityManager);
+        }
+        ForegroundService.init(daemon);
 
 		textView = new TextView(this);
 		setContentView(textView);
@@ -145,15 +135,13 @@ public class I2PDActivity extends Activity {
 
 		openBatteryOptimizationDialogIfNeeded();
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			registerNetworkCallback();
-		}
 	}
 
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		textView = null;
+		ForegroundService.deinit();
 		daemon.removeStateChangeListener(daemonStateUpdatedListener);
 		//cancelGracefulStop0();
 		try {
@@ -289,13 +277,13 @@ public class I2PDActivity extends Activity {
 
 			case R.id.action_start_webview:
 				setContentView(R.layout.webview);
-				this.webView = (WebView) findViewById(R.id.webview1);
-				this.webView.setWebViewClient(new WebViewClient());
+				final WebView webView = findViewById(R.id.webview1);
+				webView.setWebViewClient(new WebViewClient());
 
-				WebSettings webSettings = this.webView.getSettings();
+				final WebSettings webSettings = webView.getSettings();
 				webSettings.setBuiltInZoomControls(true);
 				webSettings.setJavaScriptEnabled(false);
-				this.webView.loadUrl("http://127.0.0.1:7070"); // TODO: instead 7070 I2Pd....HttpPort
+				webView.loadUrl("http://127.0.0.1:7070"); // TODO: instead 7070 I2Pd....HttpPort
 				break;
 		}
 
@@ -335,7 +323,7 @@ public class I2PDActivity extends Activity {
 	private static volatile Timer gracefulQuitTimer;
 
 	private void i2pdGracefulStop() {
-		if (daemon.getState() == DaemonSingleton.State.stopped) {
+		if (daemon.getState() == DaemonWrapper.State.stopped) {
 			Toast.makeText(this, R.string.already_stopped, Toast.LENGTH_SHORT).show();
 			return;
 		}
@@ -427,167 +415,6 @@ public class I2PDActivity extends Activity {
 		});
 	}
 
-	/**
-		* Copy the asset at the specified path to this app's data directory. If the
-		* asset is a directory, its contents are also copied.
-		*
-		* @param path
-		* Path to asset, relative to app's assets directory.
-	*/
-	private void copyAsset(String path) {
-		AssetManager manager = getAssets();
-
-		// If we have a directory, we make it and recurse. If a file, we copy its
-		// contents.
-		try {
-			String[] contents = manager.list(path);
-
-			// The documentation suggests that list throws an IOException, but doesn't
-			// say under what conditions. It'd be nice if it did so when the path was
-			// to a file. That doesn't appear to be the case. If the returned array is
-			// null or has 0 length, we assume the path is to a file. This means empty
-			// directories will get turned into files.
-			if (contents == null || contents.length == 0) {
-				copyFileAsset(path);
-				return;
-			}
-
-			// Make the directory.
-			File dir = new File(i2pdpath, path);
-			boolean result = dir.mkdirs();
-			Log.d(TAG, "dir.mkdirs() returned " + result);
-
-			// Recurse on the contents.
-			for (String entry : contents) {
-				copyAsset(path + '/' + entry);
-			}
-		} catch (IOException e) {
-			Log.e(TAG, "ex ignored for path='" + path + "'", e);
-		}
-	}
-
-	/**
-		* Copy the asset file specified by path to app's data directory. Assumes
-		* parent directories have already been created.
-		*
-		* @param path
-		* Path to asset, relative to app's assets directory.
-	*/
-	private void copyFileAsset(String path) {
-		File file = new File(i2pdpath, path);
-		if (!file.exists()) {
-			try {
-				try (InputStream in = getAssets().open(path)) {
-					try (OutputStream out = new FileOutputStream(file)) {
-						byte[] buffer = new byte[1024];
-						int read = in.read(buffer);
-						while (read != -1) {
-							out.write(buffer, 0, read);
-							read = in.read(buffer);
-						}
-					}
-				}
-			} catch (IOException e) {
-				Log.e(TAG, "", e);
-			}
-		}
-	}
-
-	private void deleteRecursive(File fileOrDirectory) {
-		if (fileOrDirectory.isDirectory()) {
-			File[] files = fileOrDirectory.listFiles();
-			if (files != null) {
-				for (File child : files) {
-					deleteRecursive(child);
-				}
-			}
-		}
-		boolean deleteResult = fileOrDirectory.delete();
-		if (!deleteResult)
-			Log.e(TAG, "fileOrDirectory.delete() returned " + deleteResult + ", absolute path='" + fileOrDirectory.getAbsolutePath() + "'");
-	}
-
-	private void processAssets() {
-		if (!assetsCopied) {
-			try {
-				assetsCopied = true; // prevent from running on every state update
-
-				File holderFile = new File(i2pdpath, "assets.ready");
-				String versionName = BuildConfig.VERSION_NAME; // here will be app version, like 2.XX.XX
-				StringBuilder text = new StringBuilder();
-
-				if (holderFile.exists()) {
-					try { // if holder file exists, read assets version string
-						FileReader fileReader = new FileReader(holderFile);
-
-						try {
-							BufferedReader br = new BufferedReader(fileReader);
-
-							try {
-								String line;
-
-								while ((line = br.readLine()) != null) {
-									text.append(line);
-								}
-							}finally {
-								try {
-									br.close();
-								} catch (IOException e) {
-									Log.e(TAG, "", e);
-								}
-							}
-						} finally {
-							try {
-								fileReader.close();
-							} catch (IOException e) {
-								Log.e(TAG, "", e);
-							}
-						}
-					} catch (IOException e) {
-						Log.e(TAG, "", e);
-					}
-				}
-
-				// if version differs from current app version or null, try to delete certificates folder
-				if (!text.toString().contains(versionName))
-					try {
-						boolean deleteResult = holderFile.delete();
-						if (!deleteResult)
-							Log.e(TAG, "holderFile.delete() returned " + deleteResult + ", absolute path='" + holderFile.getAbsolutePath() + "'");
-						File certPath = new File(i2pdpath, "certificates");
-						deleteRecursive(certPath);
-					}
-					catch (Throwable tr) {
-						Log.e(TAG, "", tr);
-					}
-
-				// copy assets. If processed file exists, it won't be overwritten
-				copyAsset("addressbook");
-				copyAsset("certificates");
-				copyAsset("tunnels.d");
-				copyAsset("i2pd.conf");
-				copyAsset("subscriptions.txt");
-				copyAsset("tunnels.conf");
-
-				// update holder file about successful copying
-				FileWriter writer = new FileWriter(holderFile);
-				try {
-					writer.append(versionName);
-				} finally {
-					try {
-						writer.close();
-					} catch (IOException e) {
-						Log.e(TAG,"on writer close", e);
-					}
-				}
-			}
-			catch (Throwable tr)
-			{
-				Log.e(TAG,"on assets copying", tr);
-			}
-		}
-	}
-
 	@SuppressLint("BatteryLife")
 	private void openBatteryOptimizationDialogIfNeeded() {
 		boolean questionEnabled = getPreferences().getBoolean(getBatteryOptimizationPreferenceKey(), true);
@@ -640,33 +467,6 @@ public class I2PDActivity extends Activity {
 	private String getBatteryOptimizationPreferenceKey() {
 		@SuppressLint("HardwareIds") String device = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 		return "show_battery_optimization" + (device == null ? "" : device);
-	}
-
-	@TargetApi(Build.VERSION_CODES.M)
-	private void registerNetworkCallback() {
-	ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-	NetworkRequest request = new NetworkRequest.Builder()
-			.addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-			.build();
-	networkCallback = new NetworkStateCallback();
-	connectivityManager.registerNetworkCallback(request, networkCallback);
-	}
-
-	@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-	private final class NetworkStateCallback extends ConnectivityManager.NetworkCallback {
-		@Override
-		public void onAvailable(Network network) {
-			super.onAvailable(network);
-			I2PD_JNI.onNetworkStateChanged(true);
-			Log.i(TAG, "NetworkCallback.onAvailable");
-		}
-
-		@Override
-		public void onLost(Network network) {
-			super.onLost(network);
-			I2PD_JNI.onNetworkStateChanged(false);
-			Log.i(TAG, " NetworkCallback.onLost");
-		}
 	}
 
 	private void quit() {
