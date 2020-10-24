@@ -98,7 +98,7 @@ namespace tunnel
 			clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
 			memset (clearText + ECIES_BUILD_REQUEST_RECORD_MORE_FLAGS_OFFSET, 0, 3); // set to 0 for compatibility
 			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetMinutesSinceEpoch ());
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET, i2p::util::GetSecondsSinceEpoch () + 600); // 10 minutes
+			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET, 600); // +10 minutes
 			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 			memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
 			if (encryptor)
@@ -133,9 +133,11 @@ namespace tunnel
 		SHA256 (ck, 32, h); // h = SHA256(h);
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
-		MixHash (hepk, 32);
+		MixHash (hepk, 32); // h = SHA256(h || hepk)
 		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-		memcpy (encrypted, ephemeralKeys->GetPublicKey (), 32); encrypted += 32;
+		memcpy (encrypted, ephemeralKeys->GetPublicKey (), 32);  
+		MixHash (encrypted, 32); // h = SHA256(h || sepk)
+		encrypted += 32;
 		uint8_t sharedSecret[32];
 		ephemeralKeys->Agree (hepk, sharedSecret); // x25519(sesk, hepk)
 		uint8_t keydata[64];
