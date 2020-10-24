@@ -30,17 +30,20 @@ namespace tunnel
 
 		TunnelHopConfig * next, * prev;
 		int recordIndex; // record # in tunnel build message
-
+		uint8_t ck[32], h[32]; // for ECIES
+	
 		TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r);
-
+	
 		void SetNextIdent (const i2p::data::IdentHash& ident);
 		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent);
 		void SetNext (TunnelHopConfig * n);
 		void SetPrev (TunnelHopConfig * p);		
 
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) const;
+		bool IsECIES () const { return ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET; };
+		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
 		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
-			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx) const;
+			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);
+		void MixHash (const uint8_t * buf, size_t len);
 	};
 
 	class TunnelConfig
