@@ -226,14 +226,13 @@ namespace client
 	}
 		
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket):
-		m_Owner (owner), m_Socket (socket), m_Payload (nullptr),
-		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true)
+		m_Owner (owner), m_Socket (socket), m_SessionID (0xFFFF), 
+		m_MessageID (0), m_IsSendAccepted (true)
 	{
 	}
 
 	I2CPSession::~I2CPSession ()
 	{
-		delete[] m_Payload;
 	}
 
 	void I2CPSession::Start ()
@@ -264,6 +263,11 @@ namespace client
 
 	void I2CPSession::ReceiveHeader ()
 	{
+		if (!m_Socket) 
+		{
+			LogPrint (eLogError, "I2CP: Can't receive header");
+			return;
+		}	
 		boost::asio::async_read (*m_Socket, boost::asio::buffer (m_Header, I2CP_HEADER_SIZE),
 			boost::asio::transfer_all (),
 			std::bind (&I2CPSession::HandleReceivedHeader, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -279,10 +283,7 @@ namespace client
 			if (m_PayloadLen > 0)
 			{
 				if (m_PayloadLen <= I2CP_MAX_MESSAGE_LENGTH)
-				{
-					m_Payload = new uint8_t[m_PayloadLen];
 					ReceivePayload ();
-				}
 				else
 				{
 					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen);
@@ -299,6 +300,11 @@ namespace client
 
 	void I2CPSession::ReceivePayload ()
 	{
+		if (!m_Socket) 
+		{	
+			LogPrint (eLogError, "I2CP: Can't receive payload");
+			return;
+		}	
 		boost::asio::async_read (*m_Socket, boost::asio::buffer (m_Payload, m_PayloadLen),
 			boost::asio::transfer_all (),
 			std::bind (&I2CPSession::HandleReceivedPayload, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -311,8 +317,6 @@ namespace client
 		else
 		{
 			HandleMessage ();
-			delete[] m_Payload;
-			m_Payload = nullptr;
 			m_PayloadLen = 0;
 			ReceiveHeader (); // next message
 		}
@@ -345,6 +349,11 @@ namespace client
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
 	{
+		if (len > I2CP_MAX_MESSAGE_LENGTH)
+		{
+			LogPrint (eLogError, "I2CP: Message to send is too long ", len);
+			return;
+		}	
 		auto socket = m_Socket;
 		if (socket)
 		{

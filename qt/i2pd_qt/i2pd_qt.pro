@@ -4,7 +4,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11 -Wno-unused-parameter -Wno-maybe-uninitialized
+QMAKE_CXXFLAGS *= -Wno-unused-parameter -Wno-maybe-uninitialized
+CONFIG += strict_c++ c++11
 
 DEFINES += USE_UPNP
 
@@ -59,6 +60,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelEndpoint.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
+    ../../libi2pd/TunnelConfig.cpp \
     ../../libi2pd/util.cpp \
     ../../libi2pd/Elligator.cpp \
     ../../libi2pd/ECIESX25519AEADRatchetSession.cpp \
@@ -103,7 +105,6 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/CPU.h \
     ../../libi2pd/Crypto.h \
     ../../libi2pd/CryptoKey.h \
-    ../../libi2pd/CryptoWorker.h \
     ../../libi2pd/Datagram.h \
     ../../libi2pd/Destination.h \
     ../../libi2pd/Ed25519.h \

@@ -257,7 +257,10 @@ namespace http {
 				switch (i2p::context.GetError ())
 				{
 					case eRouterErrorClockSkew:
-						s << "<br>Clock skew";
+						s << " - Clock skew";
+					break;
+					case eRouterErrorOffline:
+						s << " - Offline";
 					break;
 					default: ;
 				}

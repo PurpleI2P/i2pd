@@ -81,10 +81,10 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
-    ui->settingsScrollArea->resize(uiSettings->settingsContentsGridLayout->sizeHint().width()+10,380);
+    ui->settingsScrollArea->resize(uiSettings->settingsContentsQVBoxLayout->sizeHint().width()+10,380);
     //QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
     int w = 683;
-    int h = 3060;
+    int h = 4550;
     ui->settingsContents->setFixedSize(w, h);
     ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
@@ -159,12 +159,8 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
     initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton);
-    initFolderChooser(  OPTION("","datadir",[]{return "";}), uiSettings->dataFolderLineEdit, uiSettings->dataFolderBrowsePushButton);
     initFileChooser(    OPTION("","tunconf",[](){return "";}), uiSettings->tunnelsConfigFileLineEdit, uiSettings->tunnelsConfigFileBrowsePushButton);
-
     initFileChooser(    OPTION("","pidfile",[]{return "";}), uiSettings->pidFileLineEdit, uiSettings->pidFileBrowsePushButton);
-    daemonOption=initNonGUIOption(   OPTION("","daemon",[]{return "";}));
-    serviceOption=initNonGUIOption(   OPTION("","service",[]{return "";}));
 
     uiSettings->logDestinationComboBox->clear();
     uiSettings->logDestinationComboBox->insertItems(0, QStringList()
@@ -176,20 +172,29 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
     logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton);
     initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), uiSettings->logLevelComboBox);
-
+    initCheckBox(       OPTION("","logclftime",[]{return "false";}), uiSettings->logclftimeCheckBox);//"Write full CLF-formatted date and time to log (default: write only time)"
+    initFolderChooser(  OPTION("","datadir",[]{return "";}), uiSettings->dataFolderLineEdit, uiSettings->dataFolderBrowsePushButton);
     initIPAddressBox(   OPTION("","host",[]{return "";}), uiSettings->routerExternalHostLineEdit, tr("Router external address -> Host"));
     initTCPPortBox(     OPTION("","port",[]{return "";}), uiSettings->routerExternalPortLineEdit, tr("Router external address -> Port"));
-
+    daemonOption=initNonGUIOption(   OPTION("","daemon",[]{return "";}));
+    serviceOption=initNonGUIOption(   OPTION("","service",[]{return "";}));
+    initStringBox(      OPTION("","ifname4",[]{return "";}), uiSettings->ifname4LineEdit);//Network interface to bind to for IPv4
+    initStringBox(      OPTION("","ifname6",[]{return "";}), uiSettings->ifname6LineEdit);//Network interface to bind to for IPv6
+    initCheckBox(       OPTION("","nat",[]{return "true";}), uiSettings->natCheckBox);//If true, assume we are behind NAT. true by default
+    initCheckBox(       OPTION("","ipv4",[]{return "true";}), uiSettings->ipv4CheckBox);//Enable communication through IPv4. true by default
     initCheckBox(       OPTION("","ipv6",[]{return "false";}), uiSettings->ipv6CheckBox);
     initCheckBox(       OPTION("","notransit",[]{return "false";}), uiSettings->notransitCheckBox);
     initCheckBox(       OPTION("","floodfill",[]{return "false";}), uiSettings->floodfillCheckBox);
     initStringBox(      OPTION("","bandwidth",[]{return "";}), uiSettings->bandwidthLineEdit);
+    initIntegerBox(     OPTION("","share",[]{return "100";}), uiSettings->shareLineEdit, tr("Share"));//Max % of bandwidth limit for transit. 0-100. 100 by default
     initStringBox(      OPTION("","family",[]{return "";}), uiSettings->familyLineEdit);
     initIntegerBox(     OPTION("","netid",[]{return "2";}), uiSettings->netIdLineEdit, tr("NetID"));
+    initCheckBox(       OPTION("","ssu",[]{return "true";}), uiSettings->ssuCheckBox);//Enable SSU transport protocol (use UDP). true by default
+    initCheckBox(       OPTION("","reservedrange",[]{return "true";}), uiSettings->reservedrange_checkbox);
 
 #ifdef Q_OS_WIN
-    initCheckBox(       OPTION("","insomnia",[]{return "";}), uiSettings->insomniaCheckBox);
     initNonGUIOption(   OPTION("","svcctl",[]{return "";}));
+    initCheckBox(       OPTION("","insomnia",[]{return "";}), uiSettings->insomniaCheckBox);
     initNonGUIOption(   OPTION("","close",[]{return "";}));
 #else
     uiSettings->insomniaCheckBox->setEnabled(false);
@@ -201,17 +206,22 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("http","auth",[]{return "";}), uiSettings->webconsoleBasicAuthCheckBox);
     initStringBox(      OPTION("http","user",[]{return "i2pd";}), uiSettings->webconsoleUserNameLineEditBasicAuth);
     initStringBox(      OPTION("http","pass",[]{return "";}), uiSettings->webconsolePasswordLineEditBasicAuth);
+    initCheckBox(       OPTION("http","strictheaders",[]{return "true";}), uiSettings->httpStrictHeadersCheckBox);//Enable strict host checking on WebUI. true by default
+    initStringBox(      OPTION("http","hostname",[]{return "localhost";}), uiSettings->httpHostnameLineEdit);//Expected hostname for WebUI (default: localhost)
 
     initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), uiSettings->httpProxyEnabledCheckBox);
     initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), uiSettings->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
     initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), uiSettings->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
+    initCheckBox(       OPTION("httpproxy","addresshelper",[]{return "true";}), uiSettings->httpProxyAddressHelperCheckBox);//Enable address helper (jump). true by default
     initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), uiSettings->httpProxyKeyFileLineEdit, uiSettings->httpProxyKeyFilePushButton);
-
     initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_httpPorxySignatureType);
     initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), uiSettings->httpProxyInboundTunnelsLenLineEdit);
     initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), uiSettings->httpProxyInboundTunnQuantityLineEdit);
     initStringBox(     OPTION("httpproxy","outbound.length",[]{return "3";}), uiSettings->httpProxyOutBoundTunnLenLineEdit);
     initStringBox(     OPTION("httpproxy","outbound.quantity",[]{return "5";}), uiSettings->httpProxyOutboundTunnQuantityLineEdit);
+    initStringBox(     OPTION("httpproxy","outproxy",[]{return "";}), uiSettings->httpProxyOutproxyLineEdit);//HTTP proxy upstream out proxy url (like http://false.i2p)
+    initStringBox(     OPTION("httpproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->httpProxyI2cpLeaseSetTypeLineEdit);//Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    initStringBox(     OPTION("httpproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->httpProxyI2cpLeaseSetEncTypeLineEdit);//Comma separated encryption types to be used in LeaseSet type 3 or 5
 
     initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), uiSettings->socksProxyEnabledCheckBox);
     initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), uiSettings->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
@@ -222,12 +232,16 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), uiSettings->socksProxyInboundTunnQuantityLineEdit);
     initStringBox(     OPTION("socksproxy","outbound.length",[]{return "";}), uiSettings->socksProxyOutBoundTunnLenLineEdit);
     initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), uiSettings->socksProxyOutboundTunnQuantityLineEdit);
-    initIPAddressBox(   OPTION("socksproxy","outproxy",[]{return "";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
-    initTCPPortBox(     OPTION("socksproxy","outproxyport",[]{return "";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+    initCheckBox(      OPTION("socksproxy","outproxy.enabled",[]{return "false";}), uiSettings->socksOutproxyEnabledCheckBox);
+    initIPAddressBox(  OPTION("socksproxy","outproxy",[]{return "127.0.0.1";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+    initTCPPortBox(    OPTION("socksproxy","outproxyport",[]{return "9050";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+    initStringBox(     OPTION("socksproxy","i2cp.leaseSetType",[]{return "1";}), uiSettings->socksProxyI2cpLeaseSetTypeLineEdit);//Type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+    initStringBox(     OPTION("socksproxy","i2cp.leaseSetEncType",[]{return "";}), uiSettings->socksProxyI2cpLeaseSetEncTypeLineEdit);//Comma separated encryption types to be used in LeaseSet type 3 or 5
 
     initCheckBox(       OPTION("sam","enabled",[]{return "false";}), uiSettings->samEnabledCheckBox);
     initIPAddressBox(   OPTION("sam","address",[]{return "";}), uiSettings->samAddressLineEdit, tr("SAM -> IP address"));
     initTCPPortBox(     OPTION("sam","port",[]{return "7656";}), uiSettings->samPortLineEdit, tr("SAM -> Port"));
+    initCheckBox(       OPTION("sam","singlethread",[]{return "true";}), uiSettings->samSingleThreadCheckBox);//If false every SAM session runs in own thread. true by default
 
     initCheckBox(       OPTION("bob","enabled",[]{return "false";}), uiSettings->bobEnabledCheckBox);
     initIPAddressBox(   OPTION("bob","address",[]{return "";}), uiSettings->bobAddressLineEdit, tr("BOB -> IP address"));
@@ -236,6 +250,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("i2cp","enabled",[]{return "false";}), uiSettings->i2cpEnabledCheckBox);
     initIPAddressBox(   OPTION("i2cp","address",[]{return "";}), uiSettings->i2cpAddressLineEdit, tr("I2CP -> IP address"));
     initTCPPortBox(     OPTION("i2cp","port",[]{return "7654";}), uiSettings->i2cpPortLineEdit, tr("I2CP -> Port"));
+    //initCheckBox(       OPTION("i2cp","singlethread",[]{return "true";}), uiSettings->i2cpSingleThreadCheckBox);//If false every I2CP session runs in own thread. true by default
 
     initCheckBox(       OPTION("i2pcontrol","enabled",[]{return "false";}), uiSettings->i2pControlEnabledCheckBox);
     initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), uiSettings->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
@@ -252,6 +267,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("reseed","verify",[]{return "";}), uiSettings->reseedVerifyCheckBox);
     initFileChooser(    OPTION("reseed","file",[]{return "";}), uiSettings->reseedFileLineEdit, uiSettings->reseedFileBrowsePushButton);
     initStringBox(      OPTION("reseed","urls",[]{return "";}), uiSettings->reseedURLsLineEdit);
+    initFileChooser(    OPTION("reseed","zipfile",[]{return "";}), uiSettings->reseedZipFileLineEdit, uiSettings->reseedZipFileBrowsePushButton); //Path to local .zip file to reseed from
+    initUInt16Box(      OPTION("reseed","threshold",[]{return "25";}), uiSettings->reseedThresholdNumberLineEdit, tr("reseedThreshold")); //Minimum number of known routers before requesting reseed. 25 by default
+    initStringBox(      OPTION("reseed","proxy",[]{return "";}), uiSettings->reseedProxyLineEdit);//URL for https/socks reseed proxy
 
     initStringBox(      OPTION("addressbook","defaulturl",[]{return "";}), uiSettings->addressbookDefaultURLLineEdit);
     initStringBox(      OPTION("addressbook","subscriptions",[]{return "";}), uiSettings->addressbookSubscriptionsURLslineEdit);
@@ -265,6 +283,26 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initStringBox(      OPTION("trust","routers",[]{return "";}), uiSettings->lineEditTrustRouters);
     initCheckBox(       OPTION("trust","hidden",[]{return "false";}), uiSettings->checkBoxTrustHidden);
 
+    initCheckBox(       OPTION("websockets","enabled",[]{return "false";}), uiSettings->checkBoxWebsocketsEnable); //Enable websocket server. Disabled by default
+    initIPAddressBox(   OPTION("websockets","address",[]{return "127.0.0.1";}), uiSettings->websocketsAddressLineEdit, tr("Websockets -> IP address")); //Address to bind websocket server on. 127.0.0.1 by default
+    initTCPPortBox(     OPTION("websockets","port",[]{return "7666";}), uiSettings->websocketsPortLineEdit, tr("Websockets -> Port")); //Port to bind websocket server on. 7666 by default
+
+    initIntegerBox(     OPTION("exploratory","inbound.length",[]{return "2";}), uiSettings->exploratoryInboundTunnelsLengthNumberLineEdit, tr("exploratoryInboundTunnelsLength"));//Exploratory inbound tunnels length. 2 by default
+    initIntegerBox(     OPTION("exploratory","inbound.quantity",[]{return "3";}), uiSettings->exploratoryInboundTunnelsQuantityNumberLineEdit, tr("exploratoryInboundTunnelsQuantity"));//Exploratory inbound tunnels quantity. 3 by default
+    initIntegerBox(     OPTION("exploratory","outbound.length",[]{return "2";}), uiSettings->exploratoryOutboundTunnelsLengthNumberLineEdit, tr("exploratoryOutboundTunnelsLength"));//Exploratory outbound tunnels length. 2 by default
+    initIntegerBox(     OPTION("exploratory","outbound.quantity",[]{return "3";}), uiSettings->exploratoryOutboundTunnelsQuantityNumberLineEdit, tr("exploratoryOutboundTunnelsQuantity"));//Exploratory outbound tunnels length. 3 by default
+
+    initCheckBox(       OPTION("ntcp2","enabled",[]{return "true";}), uiSettings->checkBoxNtcp2Enable); //Enable NTCP2. Enabled by default
+    initCheckBox(       OPTION("ntcp2","published",[]{return "false";}), uiSettings->checkBoxNtcp2Published); //Enable incoming NTCP2 connections. Disabled by default
+    initTCPPortBox(     OPTION("ntcp2","port",[]{return "0";}), uiSettings->ntcp2PortLineEdit, tr("NTCP2 -> Port")); //Port to listen for incoming NTCP2 connections (default: auto)
+    initIPAddressBox(   OPTION("ntcp2","addressv6",[]{return "::";}), uiSettings->ntcp2AddressV6LineEdit, tr("NTCP2 -> IPv6 address")); //External IPv6 for incoming connections
+    initStringBox(      OPTION("ntcp2","proxy",[]{return "";}), uiSettings->lineEditNtcp2Proxy); //Specify proxy server for NTCP2. Should be http://address:port or socks://address:port
+
+    initCheckBox(       OPTION("nettime","enabled",[]{return "false";}), uiSettings->checkBoxNettimeEnable); //Enable NTP sync. Disabled by default
+    initStringBox(      OPTION("nettime","ntpservers",[]{return "pool.ntp.org";}), uiSettings->lineEditNetTimeNtpServers); //Comma-separated list of NTP servers. pool.ntp.org by default
+    initIntegerBox(     OPTION("nettime","ntpsyncinterval",[]{return "72";}), uiSettings->nettimeNtpSyncIntervalNumberLineEdit, tr("nettimeNtpSyncInterval")); //NTP time sync interval in hours. 72 by default
+
+    initCheckBox(       OPTION("persist","profiles",[]{return "true";}), uiSettings->checkBoxPersistProfiles);//Enable peer profile persisting to disk. Enabled by default
 #   undef OPTION
 
     //widgetlocks.add(new widgetlock(widget,lockbtn));
@@ -286,6 +324,18 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     logDestinationComboBoxValueChanged(uiSettings->logDestinationComboBox->currentText());
 
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, 451));
+
+    ui->tunnelsScrollAreaWidgetContents->setStyleSheet("QGroupBox { " \
+                                                   "    font: bold;" \
+                                                   "    border: 1px solid silver;" \
+                                                   "    border-radius: 6px;" \
+                                                   "    margin-top: 6px;" \
+                                                   "}" \
+                                                   "QGroupBox::title {" \
+                                                   "    subcontrol-origin: margin;" \
+                                                   "    left: 7px;" \
+                                                   "    padding: 0px 5px 0px 5px;" \
+                                                   "}");
 
     appendTunnelForms("");
 
@@ -666,7 +716,7 @@ void MainWindow::layoutTunnels() {
     int height=0;
     ui->tunnelsScrollAreaWidgetContents->setGeometry(0,0,0,0);
     for(std::map<std::string, TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
-        const std::string& name=it->first;
+        //const std::string& name=it->first;
         TunnelConfig* tunconf = it->second;
         TunnelPane * tunnelPane=tunconf->getTunnelPane();
         if(!tunnelPane)continue;

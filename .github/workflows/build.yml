@@ -1,0 +1,21 @@
+name: Build on Ubuntu with make
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
+    runs-on: ubuntu-16.04
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['yes', 'no']
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: |
+        sudo add-apt-repository ppa:mhier/libboost-latest
+        sudo apt-get update
+        sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+    - name: build application
+      run: make USE_AVX=no USE_AESNI=no USE_UPNP=${{ matrix.with_upnp }} -j3

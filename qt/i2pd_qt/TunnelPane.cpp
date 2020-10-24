@@ -31,7 +31,7 @@ void TunnelPane::setupTunnelPane(
     this->gridLayoutWidget_2=gridLayoutWidget_2;
     tunnelGridLayout = new QVBoxLayout(gridLayoutWidget_2);
     tunnelGridLayout->setObjectName(QStringLiteral("tunnelGridLayout"));
-    tunnelGridLayout->setContentsMargins(5, 5, 5, 5);
+    tunnelGridLayout->setContentsMargins(10, 25, 10, 10);
     tunnelGridLayout->setSpacing(5);
 
     //header
@@ -180,6 +180,153 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         QObject::connect(crypto_tagsToSendLineEdit, SIGNAL(textChanged(const QString &)),
                                  this, SLOT(updated()));
         horizontalLayout_2->addWidget(crypto_tagsToSendLineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //explicitPeers -- list of comma-separated b64 addresses of peers to use, default: unset
+        const QString& value=i2cpParameters.getExplicitPeers();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        explicitPeersLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        explicitPeersLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2p.streaming.initialAckDelay -- milliseconds to wait before sending Ack. 200 by default
+        const QString& value=i2cpParameters.get_i2p_streaming_initialAckDelay();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        i2p_streaming_initialAckDelayLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        i2p_streaming_initialAckDelayLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2p.streaming.answerPings -- enable sending pongs. true by default
+        const bool value=i2cpParameters.get_i2p_streaming_answerPings();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QCheckBox *_CheckBox;
+        i2p_streaming_answerPingsCheckBox = _CheckBox = new QCheckBox(gridLayoutWidget_2);
+        _CheckBox->setObjectName(QStringLiteral("_CheckBox"));
+        horizontalLayout_2->addWidget(_CheckBox);
+        _CheckBox->setChecked(value);
+        QObject::connect(_CheckBox, SIGNAL(toggled(bool)),
+                                 this, SLOT(updated()));
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2cp.leaseSetType -- type of LeaseSet to be sent. 1, 3 or 5. 1 by default
+        const QString& value=i2cpParameters.get_i2cp_leaseSetType();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        i2cp_leaseSetTypeLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        i2cp_leaseSetTypeLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2cp.leaseSetEncType -- comma separated encryption types to be used in LeaseSet type 3 or 5. Identity's type by default
+        const QString& value=i2cpParameters.get_i2cp_leaseSetEncType();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        i2cp_leaseSetEncTypeLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        i2cp_leaseSetEncTypeLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2cp.leaseSetPrivKey -- decryption key for encrypted LeaseSet in base64. PSK or private DH
+        const QString& value=i2cpParameters.get_i2cp_leaseSetPrivKey();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        i2cp_leaseSetPrivKeyLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        i2cp_leaseSetPrivKeyLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+
+    {
+        //i2cp.leaseSetAuthType -- authentication type for encrypted LeaseSet. 0 - no authentication(default), 1 - DH, 2 - PSK
+        const QString& value=i2cpParameters.get_i2cp_leaseSetAuthType();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        QLabel *_Label;
+        i2cp_leaseSetAuthTypeLabel = _Label = new QLabel(gridLayoutWidget_2);
+        _Label->setObjectName(QStringLiteral("_Label"));
+        horizontalLayout_2->addWidget(_Label);
+        QLineEdit *_LineEdit;
+        i2cp_leaseSetAuthTypeLineEdit = _LineEdit = new QLineEdit(gridLayoutWidget_2);
+        _LineEdit->setObjectName(QStringLiteral("_LineEdit"));
+        _LineEdit->setText(value);
+        _LineEdit->setMaximumWidth(80);
+        QObject::connect(_LineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(_LineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
         tunnelGridLayout->addLayout(horizontalLayout_2);

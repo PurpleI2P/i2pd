@@ -64,7 +64,6 @@ namespace transport
 			void DeleteAllSessions ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			boost::asio::io_service& GetServiceV6 () { return m_ServiceV6; };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay);
@@ -82,7 +81,6 @@ namespace transport
 			void OpenSocket ();
 			void OpenSocketV6 ();
 			void Run ();
-			void RunV6 ();
 			void RunReceivers ();
 			void RunReceiversV6 ();
 			void Receive ();
@@ -122,9 +120,9 @@ namespace transport
 
 			bool m_OnlyV6;
 			bool m_IsRunning;
-			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread, * m_ReceiversThreadV6;
-			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService, m_ReceiversServiceV6;
-			boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork, m_ReceiversWorkV6;
+			std::thread * m_Thread, * m_ReceiversThread, * m_ReceiversThreadV6;
+			boost::asio::io_service m_Service, m_ReceiversService, m_ReceiversServiceV6;
+			boost::asio::io_service::work m_Work, m_ReceiversWork, m_ReceiversWorkV6;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer,

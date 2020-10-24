@@ -179,7 +179,7 @@ namespace client
 
 			I2CPServer& m_Owner;
 			std::shared_ptr<proto::socket> m_Socket;
-			uint8_t m_Header[I2CP_HEADER_SIZE], * m_Payload;
+			uint8_t m_Header[I2CP_HEADER_SIZE], m_Payload[I2CP_MAX_MESSAGE_LENGTH];
 			size_t m_PayloadLen;
 
 			std::shared_ptr<I2CPDestination> m_Destination;

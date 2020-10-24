@@ -169,6 +169,23 @@ int ClientTunnelPane::appendClientTunnelForm(
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
+        int cryptoType = tunnelConfig->getcryptoType();
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        ui.cryptoTypeLabel = new QLabel(gridLayoutWidget_2);
+        cryptoTypeLabel->setObjectName(QStringLiteral("cryptoTypeLabel"));
+        horizontalLayout_2->addWidget(cryptoTypeLabel);
+        ui.cryptoTypeLineEdit = new QLineEdit(gridLayoutWidget_2);
+        cryptoTypeLineEdit->setObjectName(QStringLiteral("cryptoTypeLineEdit"));
+        cryptoTypeLineEdit->setText(QString::number(cryptoType));
+        cryptoTypeLineEdit->setMaximumWidth(80);
+        QObject::connect(cryptoTypeLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
+        horizontalLayout_2->addWidget(cryptoTypeLineEdit);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
+    }
+    {
         i2p::data::SigningKeyType sigType = tunnelConfig->getsigType();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));

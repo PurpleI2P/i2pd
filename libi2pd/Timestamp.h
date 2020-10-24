@@ -20,8 +20,9 @@ namespace i2p
 namespace util
 {
 	uint64_t GetMillisecondsSinceEpoch ();
-	uint32_t GetHoursSinceEpoch ();
 	uint64_t GetSecondsSinceEpoch ();
+	uint32_t GetMinutesSinceEpoch ();
+	uint32_t GetHoursSinceEpoch ();
 
 	void GetCurrentDate (char * date); // returns date as YYYYMMDD string, 9 bytes
 	void GetDateString (uint64_t timestamp, char * date); // timestap is seconds since epoch, returns date as YYYYMMDD string, 9 bytes

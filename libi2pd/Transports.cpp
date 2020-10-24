@@ -27,20 +27,20 @@ namespace transport
 	{
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	EphemeralKeysSupplier<Keys>::~EphemeralKeysSupplier ()
 	{
 		Stop ();
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Start ()
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this));
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Stop ()
 	{
 		{
@@ -56,7 +56,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Run ()
 	{
 		while (m_IsRunning)
@@ -81,7 +81,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::CreateEphemeralKeys (int num)
 	{
 		if (num > 0)
@@ -96,7 +96,7 @@ namespace transport
 		}
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	std::shared_ptr<Keys> EphemeralKeysSupplier<Keys>::Acquire ()
 	{
 		{
@@ -115,7 +115,7 @@ namespace transport
 		return pair;
 	}
 
-	template<typename Keys>	
+	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Return (std::shared_ptr<Keys> pair)
 	{
 		if (pair)
@@ -131,10 +131,10 @@ namespace transport
 	Transports transports;
 
 	Transports::Transports ():
-		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
-		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
+		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
+		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_DHKeysPairSupplier (5), m_X25519KeysPairSupplier (5), // 5 pre-generated keys
+		m_X25519KeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -165,12 +165,11 @@ namespace transport
 		}
 
 		i2p::config::GetOption("nat", m_IsNAT);
-		m_DHKeysPairSupplier.Start ();
 		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
-		i2p::http::URL proxyurl;	
+		i2p::http::URL proxyurl;
 		// create NTCP2. TODO: move to acceptor
 		if (enableNTCP2)
 		{
@@ -252,7 +251,7 @@ namespace transport
 			delete m_SSUServer;
 			m_SSUServer = nullptr;
 		}
-		
+
 		if (m_NTCP2Server)
 		{
 			m_NTCP2Server->Stop ();
@@ -260,7 +259,6 @@ namespace transport
 			m_NTCP2Server = nullptr;
 		}
 
-		m_DHKeysPairSupplier.Stop ();
 		m_X25519KeysPairSupplier.Stop ();
 		m_IsRunning = false;
 		if (m_Service) m_Service->stop ();
@@ -321,7 +319,8 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
-		SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });
+		if (m_IsOnline)
+			SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });
 	}
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
@@ -371,7 +370,7 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",  
+				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",
 					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
@@ -392,7 +391,7 @@ namespace transport
 				{
 					// NTCP2 have priority over NTCP
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address  && !peer.router->IsUnreachable ())
+					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
 
@@ -418,8 +417,11 @@ namespace transport
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
 				{
 					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					m_SSUServer->CreateSession (peer.router, address->host, address->port);
-					return true;
+					if (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host))
+					{
+						m_SSUServer->CreateSession (peer.router, address->host, address->port);
+						return true;
+					}
 				}
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
@@ -499,7 +501,7 @@ namespace transport
 					{
 						auto addr = router->GetSSUV6Address ();
 						if (addr)
-							m_SSUServer->GetServiceV6 ().post ([this, router, addr]
+							m_SSUServer->GetService ().post ([this, router, addr]
 							{
 								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
 							});
@@ -536,16 +538,6 @@ namespace transport
 		}
 	}
 
-	std::shared_ptr<i2p::crypto::DHKeys> Transports::GetNextDHKeysPair ()
-	{
-		return m_DHKeysPairSupplier.Acquire ();
-	}
-
-	void Transports::ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair)
-	{
-		m_DHKeysPairSupplier.Return (pair);
-	}
-
 	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()
 	{
 		return m_X25519KeysPairSupplier.Acquire ();
@@ -555,7 +547,7 @@ namespace transport
 	{
 		m_X25519KeysPairSupplier.Return (pair);
 	}
-		
+
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service->post([session, this]()
@@ -755,6 +747,18 @@ namespace transport
 				if(ri->IsFamily(fam)) return true;
 		}
 		return false;
+	}
+
+	void Transports::SetOnline (bool online)
+	{
+		if (m_IsOnline != online)
+		{
+			m_IsOnline = online;
+			if (online)
+				PeerTest ();
+			else
+				i2p::context.SetError (eRouterErrorOffline);
+		}
 	}
 }
 }

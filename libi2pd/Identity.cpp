@@ -48,7 +48,13 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
-		memcpy (m_StandardIdentity.publicKey, publicKey, 256); // publicKey in awlays assumed 256 regardless actual size, padding must be taken care of
+		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+		{
+			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
+			RAND_bytes (m_StandardIdentity.publicKey, 224);
+		}	
+		else	
+			memcpy (m_StandardIdentity.publicKey, publicKey, 256); 
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;

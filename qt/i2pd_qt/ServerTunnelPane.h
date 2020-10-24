@@ -65,6 +65,10 @@ private:
     QLabel * inPortLabel;
     QLineEdit * inPortLineEdit;
 
+    //cryptoType
+    QLabel * cryptoTypeLabel;
+    QLineEdit * cryptoTypeLineEdit;
+
     //accessList
     QLabel * accessListLabel;
     QLineEdit * accessListLineEdit;
@@ -101,6 +105,7 @@ private:
         portLabel->setText(QApplication::translate("srvTunForm", "Port:", 0));
         keysLabel->setText(QApplication::translate("srvTunForm", "Keys:", 0));
         inPortLabel->setText(QApplication::translate("srvTunForm", "InPort:", 0));
+        cryptoTypeLabel->setText(QApplication::translate("srvTunForm", "Crypto type:", 0));
         accessListLabel->setText(QApplication::translate("srvTunForm", "Access list:", 0));
         hostOverrideLabel->setText(QApplication::translate("srvTunForm", "Host override:", 0));
         webIRCPassLabel->setText(QApplication::translate("srvTunForm", "WebIRC password:", 0));
@@ -128,6 +133,14 @@ protected:
             return false;
         }
         stc->setport(portInt);
+
+        auto cryptoTypeStr=cryptoTypeLineEdit->text();
+        int cryptoTypeInt=cryptoTypeStr.toInt(&ok);
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad crypto type, must be int.")+" "+cannotSaveSettings,cryptoTypeLineEdit);
+            return false;
+        }
+        stc->setcryptoType(cryptoTypeInt);
 
         stc->setkeys(keysLineEdit->text().toStdString());
 

@@ -1,0 +1,29 @@
+name: Build on Windows
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: msys2 {0}
+
+jobs:
+  build:
+    name: Building for ${{ matrix.arch }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: [
+          { msystem: MINGW64, arch: x86_64 },
+          { msystem: MINGW32, arch: i686   }
+        ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        update: true
+    - name: build application
+      run: make USE_UPNP=yes DEBUG=no -j3

@@ -37,7 +37,8 @@ namespace i2p
 	enum RouterError
 	{
 		eRouterErrorNone = 0,
-		eRouterErrorClockSkew = 1
+		eRouterErrorClockSkew = 1,
+		eRouterErrorOffline = 2 
 	};
 
 	class RouterContext: public i2p::garlic::GarlicDestination
