@@ -276,15 +276,8 @@ public class I2PDActivity extends Activity {
 				return true;
 
 			case R.id.action_start_webview:
-				setContentView(R.layout.webview);
-				final WebView webView = findViewById(R.id.webview1);
-				webView.setWebViewClient(new WebViewClient());
-
-				final WebSettings webSettings = webView.getSettings();
-				webSettings.setBuiltInZoomControls(true);
-				webSettings.setJavaScriptEnabled(false);
-				webView.loadUrl("http://127.0.0.1:7070"); // TODO: instead 7070 I2Pd....HttpPort
-				break;
+				startActivity(new Intent(getApplicationContext(), WebConsoleActivity.class));
+				return true;
 		}
 
 		return super.onOptionsItemSelected(item);
