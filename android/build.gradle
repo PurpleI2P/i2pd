@@ -21,6 +21,8 @@ repositories {
 
 dependencies {
     implementation 'androidx.core:core:1.0.2'
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 }
 
 android {
@@ -90,7 +92,7 @@ android {
     }
 }
 
-ext.abiCodes = ['armeabi-v7a':1, 'x86':2, 'arm64-v8a':3, 'x86_64':4]
+ext.abiCodes = ['armeabi-v7a': 1, 'x86': 2, 'arm64-v8a': 3, 'x86_64': 4]
 import com.android.build.OutputFile
 
 android.applicationVariants.all { variant ->
