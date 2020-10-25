@@ -806,17 +806,23 @@ namespace client
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
-		auto l = len + 10 + I2CP_HEADER_SIZE;
-		uint8_t * buf = new uint8_t[l];
-		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 10);
-		buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
-		htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
-		htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);
-		htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);
-		memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
-		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
-		std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
-			std::placeholders::_1, std::placeholders::_2, buf));
+		auto socket = m_Socket;
+		if (socket)
+		{
+			auto l = len + 10 + I2CP_HEADER_SIZE;
+			uint8_t * buf = new uint8_t[l];
+			htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 10);
+			buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
+			htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
+			htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);
+			htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);
+			memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
+			boost::asio::async_write (*socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
+			std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
+				std::placeholders::_1, std::placeholders::_2, buf));
+		}	
+		else
+			LogPrint (eLogError, "I2CP: Can't write to the socket");
 	}
 
 	I2CPServer::I2CPServer (const std::string& interface, int port, bool isSingleThread):
