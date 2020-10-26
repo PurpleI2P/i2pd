@@ -608,6 +608,8 @@ namespace client
 		m_SocketType = eSAMSocketTypeForward;
 		m_ID = id;
 		m_IsAccepting = true;
+		std::string& silent = params[SAM_PARAM_SILENT];
+		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;
 		session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PForward, 
 			shared_from_this (), std::placeholders::_1, ep));
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);			
@@ -982,7 +984,17 @@ namespace client
 						s->m_Owner.AddSocket (newSocket);
 						newSocket->Receive ();
 						newSocket->m_Stream = stream;
-						newSocket->I2PReceive ();
+						newSocket->m_ID = s->m_ID;
+						if (!s->m_IsSilent)
+						{
+							// get remote peer address
+							auto dest = stream->GetRemoteIdentity()->ToBase64 ();
+							memcpy (newSocket->m_StreamBuffer, dest.c_str (), dest.length ());
+							newSocket->m_StreamBuffer[dest.length ()] = '\n';
+							newSocket->HandleI2PReceive (boost::system::error_code (),dest.length () + 1); // we send identity like it has been received from stream
+						}
+						else
+							newSocket->I2PReceive ();
 					}
 					else
 						stream->AsyncClose ();
