@@ -199,7 +199,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "SAMSocket::SendMessageReply, close=",close?"true":"false", " reason: ", msg);
 
-		if (!m_IsSilent)
+		if (!m_IsSilent || m_SocketType == eSAMSocketTypeForward)
 			boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
 				std::bind(&SAMSocket::HandleMessageReplySent, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2, close));

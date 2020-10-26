@@ -838,6 +838,7 @@ namespace http {
 				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
 				case i2p::client::eSAMSocketTypeStream   : s << "stream";   break;
 				case i2p::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
+				case i2p::client::eSAMSocketTypeForward : s << "forward"; break;
 				default: s << "unknown"; break;
 			}
 			s << " [" << it->GetSocket ().remote_endpoint() << "]";
