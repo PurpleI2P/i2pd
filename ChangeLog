@@ -1,6 +1,35 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.34.0] - 2020-10-27
+### Added
+- Ping responses for streaming
+- STREAM FORWARD for SAM
+- Tunnels through ECIES-x25519 routers
+- Single thread for I2CP
+- Shared transient destination between proxies
+- Database lookups from ECIES destinations with ratchets response
+- Handle WebDAV HTTP methods 
+- Don't try to connect or build tunnels if offline
+- Validate IP when trying connect to remote peer
+- Handle ICMP responses and WinAPI errors for SSU
+### Changed
+- Removed NTCP
+- Dropped gcc 4.7 support
+- Encyption type 0,4 by default for client tunnels
+- Stripped out some HTTP header for HTTP server response
+- HTTP 1.1 addressbook requests
+- Set LeaseSet type to 3 for ratchets if not specified
+- Handle SSU v4 and v6 messages in one thread
+- Eliminate DH keys thread
+### Fixed
+- Random crashes on I2CP session disconnect
+- Stream through racthets hangs if first SYN was not acked
+- Check "Last-Modified" instead "If-Modified-Since" for addressbook reponse
+- Trim behind ECIESx25519 tags 
+- Few bugs with Android main activity
+- QT visual and layout issues
+
 ## [2.33.0] - 2020-08-24
 ### Added
 - Shared transient addresses
