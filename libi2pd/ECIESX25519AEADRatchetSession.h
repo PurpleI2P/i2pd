@@ -169,6 +169,7 @@ namespace garlic
 			bool IsInactive (uint64_t ts) const { return ts > m_LastActivityTimestamp + ECIESX25519_INACTIVITY_TIMEOUT && CanBeRestarted (ts); }
 			
 			bool IsRatchets () const { return true; };
+			bool IsReadyToSend () const { return m_State != eSessionStateNewSessionSent; };
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
 
 		private:
