@@ -20,7 +20,7 @@
 #include <memory>
 #include "Queue.h"
 #include "Crypto.h"
-#include "TunnelConfig.h"
+#include "TunnelHopConfig.h"
 #include "TunnelPool.h"
 #include "TransitTunnel.h"
 #include "TunnelEndpoint.h"

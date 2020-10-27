@@ -60,7 +60,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/TunnelEndpoint.cpp \
     ../../libi2pd/TunnelGateway.cpp \
     ../../libi2pd/TunnelPool.cpp \
-    ../../libi2pd/TunnelConfig.cpp \
+    ../../libi2pd/TunnelHopConfig.cpp \
     ../../libi2pd/util.cpp \
     ../../libi2pd/Elligator.cpp \
     ../../libi2pd/ECIESX25519AEADRatchetSession.cpp \

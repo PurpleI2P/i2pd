@@ -85,7 +85,7 @@ set(LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/TunnelEndpoint.cpp"
   "${LIBI2PD_SRC_DIR}/TunnelGateway.cpp"
   "${LIBI2PD_SRC_DIR}/TunnelPool.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelConfig.cpp"
+  "${LIBI2PD_SRC_DIR}/TunnelHopConfig.cpp"
   "${LIBI2PD_SRC_DIR}/util.cpp"
 )
 

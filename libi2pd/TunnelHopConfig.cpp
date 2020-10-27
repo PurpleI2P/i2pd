@@ -16,7 +16,7 @@
 #include "Timestamp.h"
 #include "I2PEndian.h"
 #include "I2NPProtocol.h"
-#include "TunnelConfig.h"
+#include "TunnelHopConfig.h"
 
 namespace i2p
 {
