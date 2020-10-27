@@ -1,10 +1,10 @@
-name: Build on Ubuntu with make
+name: Build on Ubuntu
 
 on: [push, pull_request]
 
 jobs:
   build:
-    name: Building with USE_UPNP=${{ matrix.with_upnp }} flag
+    name: With USE_UPNP=${{ matrix.with_upnp }}
     runs-on: ubuntu-16.04
     strategy:
       fail-fast: true
