@@ -57,7 +57,7 @@ cd build
 %endif
 
 %if 0%{?fedora} >= 33
-pushd %{_arch}-redhat-linux-gnu
+pushd %{_target_platform}
 %endif
 
 %if 0%{?mageia} > 7
