@@ -472,6 +472,11 @@ namespace client
 	void SAMSocket::ProcessStreamConnect (char * buf, size_t len, size_t rem)
 	{
 		LogPrint (eLogDebug, "SAM: stream connect: ", buf);
+		if ( m_SocketType != eSAMSocketTypeUnknown)
+		{
+			SendI2PError ("Socket already in use");
+			return;
+		}	
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		std::string& id = params[SAM_PARAM_ID];
@@ -547,6 +552,11 @@ namespace client
 	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: stream accept: ", buf);
+		if ( m_SocketType != eSAMSocketTypeUnknown)
+		{
+			SendI2PError ("Socket already in use");
+			return;
+		}	
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		std::string& id = params[SAM_PARAM_ID];
