@@ -27,7 +27,7 @@ KillSignal=SIGQUIT
 #KillSignal=SIGINT
 #TimeoutStopSec=10m
 
- # If you have problems with hanging i2pd, you can try increase this
+# If you have problems with hanging i2pd, you can try increase this
 LimitNOFILE=4096
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
