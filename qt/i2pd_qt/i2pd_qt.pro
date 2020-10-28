@@ -71,13 +71,13 @@ FORMS += mainwindow.ui \
     routercommandswidget.ui \
     generalsettingswidget.ui
 
-LIBS += ../../libi2pd.a ../../libi2pdclient.a -lz
+LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
-libi2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) OPT=\"$$QMAKE_CXXFLAGS $$QMAKE_CXXFLAGS_RELEASE\" USE_UPNP=yes DEBUG=no mk_obj_dir libi2pd.a
+libi2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api
 libi2pd.target = $$PWD/../../libi2pd.a
 libi2pd.depends = FORCE
 
-libi2pdclient.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) OPT=\"$$QMAKE_CXXFLAGS $$QMAKE_CXXFLAGS_RELEASE\" USE_UPNP=yes DEBUG=no mk_obj_dir libi2pdclient.a
+libi2pdclient.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api_client
 libi2pdclient.target = $$PWD/../../libi2pdclient.a
 libi2pdclient.depends = FORCE
 
