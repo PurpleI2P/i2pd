@@ -73,11 +73,11 @@ FORMS += mainwindow.ui \
 
 LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
-libi2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api
+libi2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api
 libi2pd.target = $$PWD/../../libi2pd.a
 libi2pd.depends = FORCE
 
-libi2pdclient.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api_client
+libi2pdclient.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api_client
 libi2pdclient.target = $$PWD/../../libi2pdclient.a
 libi2pdclient.depends = FORCE
 
