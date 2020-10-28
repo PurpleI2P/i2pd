@@ -81,6 +81,10 @@ pushd build
 pushd build
 %endif
 
+%if 0%{?fedora} >= 33
+pushd %{_target_platform}
+%endif
+
 chrpath -d i2pd
 %{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
 %{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
