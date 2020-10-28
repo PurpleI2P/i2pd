@@ -7,8 +7,6 @@ TEMPLATE = app
 QMAKE_CXXFLAGS *= -Wno-unused-parameter -Wno-maybe-uninitialized
 CONFIG += strict_c++ c++11
 
-DEFINES += USE_UPNP
-
 CONFIG(debug, debug|release) {
     message(Debug build)
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
@@ -75,6 +73,22 @@ FORMS += mainwindow.ui \
 
 LIBS += ../../libi2pd.a ../../libi2pdclient.a -lz
 
+libi2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) OPT=\"$$QMAKE_CXXFLAGS $$QMAKE_CXXFLAGS_RELEASE\" USE_UPNP=yes DEBUG=no mk_obj_dir libi2pd.a
+libi2pd.target = $$PWD/../../libi2pd.a
+libi2pd.depends = FORCE
+
+libi2pdclient.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) OPT=\"$$QMAKE_CXXFLAGS $$QMAKE_CXXFLAGS_RELEASE\" USE_UPNP=yes DEBUG=no mk_obj_dir libi2pdclient.a
+libi2pdclient.target = $$PWD/../../libi2pdclient.a
+libi2pdclient.depends = FORCE
+
+cleani2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) clean
+cleani2pd.depends = clean
+
+PRE_TARGETDEPS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a
+QMAKE_EXTRA_TARGETS += cleani2pd libi2pd libi2pdclient
+CLEAN_DEPS += cleani2pd
+
+
 macx {
 	message("using mac os x target")
 	BREWROOT=/usr/local
@@ -110,10 +124,12 @@ windows {
         QMAKE_CXXFLAGS_RELEASE = -Os
         QMAKE_LFLAGS = -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
 
-        #linker's -s means "strip"
+        # linker's -s means "strip"
         QMAKE_LFLAGS_RELEASE += -s
 
-        LIBS = -lminiupnpc \
+        LIBS = \
+        $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a \
+        -lminiupnpc \
         -lboost_system$$BOOST_SUFFIX \
         -lboost_date_time$$BOOST_SUFFIX \
         -lboost_filesystem$$BOOST_SUFFIX \

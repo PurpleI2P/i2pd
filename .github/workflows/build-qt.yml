@@ -15,7 +15,6 @@ jobs:
         sudo apt-get install build-essential qt5-default libqt5gui5 libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
       run: |
-        make -j3 USE_AVX=no USE_AESNI=no USE_UPNP=yes DEBUG=no mk_obj_dir libi2pd.a libi2pdclient.a
         cd qt/i2pd_qt
         qmake
         make -j3
