@@ -10,7 +10,6 @@
 #include <memory>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
-#include "Crypto.h"
 #include "Log.h"
 #include "Transports.h"
 #include "Timestamp.h"
@@ -129,8 +128,8 @@ namespace tunnel
 			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
-		memcpy (ck, protocolName, 32);	// ck = h = protocol_name || 0
-		SHA256 (ck, 32, h); // h = SHA256(h);
+		memcpy (m_CK, protocolName, 32);	// ck = h = protocol_name || 0
+		SHA256 (m_CK, 32, m_H); // h = SHA256(h);
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
 		MixHash (hepk, 32); // h = SHA256(h || hepk)
@@ -140,27 +139,16 @@ namespace tunnel
 		encrypted += 32;
 		uint8_t sharedSecret[32];
 		ephemeralKeys->Agree (hepk, sharedSecret); // x25519(sesk, hepk)
-		uint8_t keydata[64];
-		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keydata); 
-		memcpy (ck, keydata, 32);
+		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, h, 32, 
-			keydata + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, m_H, 32, 
+			m_CK + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
 		{	
 			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
 			return;
 		}	
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}	
-
-	void TunnelHopConfig::MixHash (const uint8_t * buf, size_t len)
-	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, h, 32);
-		SHA256_Update (&ctx, buf, len);
-		SHA256_Final (h, &ctx);
-	}
 }
 }

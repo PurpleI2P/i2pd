@@ -124,7 +124,7 @@ namespace tunnel
 						uint8_t nonce[12];
 						memset (nonce, 0, 12);
 						if (!i2p::crypto::AEADChaCha20Poly1305 (record, TUNNEL_BUILD_RECORD_SIZE - 16, 
-							hop->h, 32, hop->ck, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+							hop->m_H, 32, hop->m_CK, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
 						{
 							LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 							return false;

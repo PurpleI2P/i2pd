@@ -1323,6 +1323,21 @@ namespace crypto
 #endif
 	}
 
+	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
+    {
+    	SHA256_CTX ctx;
+        SHA256_Init (&ctx);
+        SHA256_Update (&ctx, m_H, 32);
+        SHA256_Update (&ctx, buf, len);
+        SHA256_Final (m_H, &ctx);
+    }
+
+    void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)
+    {
+        HKDF (m_CK, sharedSecret, 32, "", m_CK);
+		// new ck is m_CK[0:31], key is m_CK[32:63]
+    }
+	
 // init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
@@ -1336,8 +1351,7 @@ namespace crypto
 				m_OpenSSLMutexes[type]->unlock ();
 		}
 	}*/
-
-
+	
 	void InitCrypto (bool precomputation)
 	{
 		i2p::cpu::Detect ();

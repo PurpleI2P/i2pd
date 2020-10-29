@@ -311,6 +311,16 @@ namespace crypto
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info, uint8_t * out, size_t outLen = 64); // salt - 32, out - 32 or 64, info <= 32
 
+// Noise
+
+	struct NoiseSymmetricState
+	{
+		uint8_t m_H[32] /*h*/, m_CK[64] /*[ck, k]*/;
+		
+		void MixHash (const uint8_t * buf, size_t len);
+    	void MixKey (const uint8_t * sharedSecret);	
+    };
+	
 // init and terminate
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
