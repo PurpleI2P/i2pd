@@ -476,7 +476,7 @@ namespace data
 
 	size_t PrivateKeys::GetFullLen () const
 	{
-		size_t ret = m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen ();
+		size_t ret = m_Public->GetFullLen () + GetPrivateKeyLen () + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
 			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
 		return ret;
@@ -486,9 +486,10 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>();
 		size_t ret = m_Public->FromBuffer (buf, len);
-		if (!ret || ret + 256 > len) return 0; // overflow
-		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
-		ret += 256;
+		auto cryptoKeyLen = GetPrivateKeyLen ();
+		if (!ret || ret + cryptoKeyLen > len) return 0; // overflow
+		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen); 
+		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
@@ -540,8 +541,9 @@ namespace data
 	size_t PrivateKeys::ToBuffer (uint8_t * buf, size_t len) const
 	{
 		size_t ret = m_Public->ToBuffer (buf, len);
-		memcpy (buf + ret, m_PrivateKey, 256); // private key always 256
-		ret += 256;
+		auto cryptoKeyLen = GetPrivateKeyLen ();
+		memcpy (buf + ret, m_PrivateKey, cryptoKeyLen);
+		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(ret + signingPrivateKeySize > len) return 0; // overflow
 		if (IsOfflineSignature ())
@@ -657,6 +659,12 @@ namespace data
 		return IsOfflineSignature () ? m_TransientSignatureLen : m_Public->GetSignatureLen ();
 	}
 
+	size_t PrivateKeys::GetPrivateKeyLen () const
+	{
+		// private key length always 256, but type 4
+		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET) ? 32 : 256; 
+	}	
+		
 	uint8_t * PrivateKeys::GetPadding()
 	{
 		if(m_Public->GetSigningKeyType () == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)

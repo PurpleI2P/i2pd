@@ -183,6 +183,7 @@ namespace data
 
 			void CreateSigner () const;
 			void CreateSigner (SigningKeyType keyType) const;
+			size_t GetPrivateKeyLen () const;
 
 		private:
 
