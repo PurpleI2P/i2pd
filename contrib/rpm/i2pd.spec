@@ -54,17 +54,30 @@ cd build
 %endif
 %endif
 
-%if 0%{?mageia} > 7
-pushd build
-make %{?_smp_mflags}
-popd
-%else
-make %{?_smp_mflags}
+%if 0%{?fedora} >= 33
+pushd %{_target_platform}
 %endif
 
+%if 0%{?mageia} > 7
+pushd build
+%endif
+
+make %{?_smp_mflags}
+
+%if 0%{?fedora} >= 33
+popd
+%endif
+
+%if 0%{?mageia} > 7
+popd
+%endif
 
 %install
 pushd build
+
+%if 0%{?fedora} >= 33
+pushd %{_target_platform}
+%endif
 
 %if 0%{?mageia}
 pushd build

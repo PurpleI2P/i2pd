@@ -77,12 +77,12 @@ popd
 %install
 pushd build
 
-%if 0%{?mageia}
-pushd build
-%endif
-
 %if 0%{?fedora} >= 33
 pushd %{_target_platform}
+%endif
+
+%if 0%{?mageia}
+pushd build
 %endif
 
 chrpath -d i2pd
