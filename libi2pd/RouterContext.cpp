@@ -19,6 +19,7 @@
 #include "version.h"
 #include "Log.h"
 #include "Family.h"
+#include "TunnelConfig.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -41,6 +42,13 @@ namespace i2p
 			CreateNewRouter ();
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
 		UpdateRouterInfo ();
+		if (IsECIES ())
+		{	
+			auto initState = new i2p::crypto::NoiseSymmetricState ();
+			i2p::tunnel::InitBuildRequestRecordNoiseState (*initState);
+			initState->MixHash (GetIdentity ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || hepk)
+			m_InitialNoiseState.reset (initState);	
+		}	
 	}
 
 	void RouterContext::CreateNewRouter ()
@@ -673,9 +681,32 @@ namespace i2p
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, true) : false;
 	}
 
-	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
-		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, false) : false;
+		if (!m_Decryptor) return false;
+		if (IsECIES ())
+		{
+			if (!m_InitialNoiseState) return false;
+			// m_InitialNoiseState is h = SHA256(h || hepk)
+			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));
+			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
+			uint8_t sharedSecret[32];
+			m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false);
+			m_CurrentNoiseState->MixKey (sharedSecret); 
+			encrypted += 32;
+			uint8_t nonce[12];
+			memset (nonce, 0, 12);
+			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
+				m_CurrentNoiseState->m_H, 32, m_CurrentNoiseState->m_CK, nonce, data, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+			{
+				LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
+				return false;
+			}	
+			m_CurrentNoiseState->MixHash (encrypted, TUNNEL_BUILD_RECORD_SIZE); // h = SHA256(h || ciphertext)
+			return true;
+		}	
+		else	
+			return m_Decryptor->Decrypt (encrypted, data, ctx, false);
 	}
 
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()

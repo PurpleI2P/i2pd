@@ -45,6 +45,8 @@ namespace tunnel
 			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);
 	};
 
+	void InitBuildRequestRecordNoiseState (i2p::crypto::NoiseSymmetricState& state);	
+	
 	class TunnelConfig
 	{
 		public:

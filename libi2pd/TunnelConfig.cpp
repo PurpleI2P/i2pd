@@ -127,9 +127,7 @@ namespace tunnel
 	void TunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
-		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
-		memcpy (m_CK, protocolName, 32);	// ck = h = protocol_name || 0
-		SHA256 (m_CK, 32, m_H); // h = SHA256(h);
+		InitBuildRequestRecordNoiseState (*this);
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
 		MixHash (hepk, 32); // h = SHA256(h || hepk)
@@ -149,6 +147,13 @@ namespace tunnel
 			return;
 		}	
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
+	}	
+
+	void InitBuildRequestRecordNoiseState (i2p::crypto::NoiseSymmetricState& state)
+	{
+		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
+		memcpy (state.m_CK, protocolName, 32);	// ck = h = protocol_name || 0
+		SHA256 (state.m_CK, 32, state.m_H); // h = SHA256(h);
 	}	
 }
 }
