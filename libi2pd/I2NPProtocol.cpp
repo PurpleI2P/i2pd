@@ -361,8 +361,9 @@ namespace i2p
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
 				BN_CTX * ctx = BN_CTX_new ();
-				i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
+				bool success = i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
 				BN_CTX_free (ctx);
+				if(!success) return false;
 				uint8_t retCode = 0;
 				bool isECIES = i2p::context.IsECIES ();
 				// replace record to reply
