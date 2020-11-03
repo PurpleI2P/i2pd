@@ -687,8 +687,10 @@ namespace i2p
 		if (IsECIES ())
 		{
 			if (!m_InitialNoiseState) return false;
+			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState ());
 			// m_InitialNoiseState is h = SHA256(h || hepk)
-			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));
+			memcpy (m_CurrentNoiseState->m_CK, m_InitialNoiseState->m_CK, 64);
+			memcpy (m_CurrentNoiseState->m_H, m_InitialNoiseState->m_H, 32);
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
 			m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false);
