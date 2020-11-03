@@ -325,7 +325,7 @@ namespace stream
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
 			uint8_t signature[256];
-			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
+			auto signatureLen = m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : m_RemoteIdentity->GetSignatureLen ();
 			if(signatureLen <= sizeof(signature))
 			{
 				memcpy (signature, optionData, signatureLen);
