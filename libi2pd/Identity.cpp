@@ -51,7 +51,7 @@ namespace data
 		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
-			RAND_bytes (m_StandardIdentity.publicKey, 224);
+			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
 		}	
 		else	
 			memcpy (m_StandardIdentity.publicKey, publicKey, 256); 
