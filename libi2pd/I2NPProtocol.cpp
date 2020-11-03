@@ -463,22 +463,44 @@ namespace i2p
 		}
 		else
 		{
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			if (HandleBuildRequestRecords (num, buf + 1, clearText))
+			if (i2p::context.IsECIES ())
 			{
-				if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+				uint8_t clearText[TUNNEL_BUILD_RECORD_SIZE];
+				if (HandleBuildRequestRecords (num, buf + 1, clearText))
 				{
-					// so we send it to reply tunnel
-					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							eI2NPVariableTunnelBuildReply, buf, len,
-							bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					if (clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+					{
+						// so we send it to reply tunnel
+						transports.SendMessage (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateTunnelGatewayMsg (bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								eI2NPVariableTunnelBuildReply, buf, len,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					}
+					else
+						transports.SendMessage (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 				}
-				else
-					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
-							bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 			}
+			else
+			{	
+				uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+				if (HandleBuildRequestRecords (num, buf + 1, clearText))
+				{
+					if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+					{
+						// so we send it to reply tunnel
+						transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								eI2NPVariableTunnelBuildReply, buf, len,
+								bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					}
+					else
+						transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
+								bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+				}
+			}	
 		}
 	}
 
