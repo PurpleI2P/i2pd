@@ -687,10 +687,8 @@ namespace i2p
 		if (IsECIES ())
 		{
 			if (!m_InitialNoiseState) return false;
-			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState ());
 			// m_InitialNoiseState is h = SHA256(h || hepk)
-			memcpy (m_CurrentNoiseState->m_CK, m_InitialNoiseState->m_CK, 64);
-			memcpy (m_CurrentNoiseState->m_H, m_InitialNoiseState->m_H, 32);
+			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));		
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
 			m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false);
@@ -704,7 +702,7 @@ namespace i2p
 				LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
 				return false;
 			}	
-			m_CurrentNoiseState->MixHash (encrypted, TUNNEL_BUILD_RECORD_SIZE); // h = SHA256(h || ciphertext)
+			m_CurrentNoiseState->MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 			return true;
 		}	
 		else	
