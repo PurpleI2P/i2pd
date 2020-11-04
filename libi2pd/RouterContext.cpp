@@ -698,8 +698,8 @@ namespace i2p
 			encrypted += 32;
 			uint8_t nonce[12];
 			memset (nonce, 0, 12);
-			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
-				m_CurrentNoiseState->m_H, 32, m_CurrentNoiseState->m_CK + 32, nonce, data, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, 
+				m_CurrentNoiseState->m_H, 32, m_CurrentNoiseState->m_CK + 32, nonce, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, false)) // decrypt
 			{
 				LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
 				return false;
