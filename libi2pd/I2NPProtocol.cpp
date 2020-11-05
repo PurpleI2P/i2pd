@@ -410,20 +410,29 @@ namespace i2p
 				for (int j = 0; j < num; j++)
 				{
 					uint8_t * reply = records + j*TUNNEL_BUILD_RECORD_SIZE;
-					if (isECIES && j == i)
-					{
-						uint8_t nonce[12];
-						memset (nonce, 0, 12);
-						auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
-						if (!noiseState || !i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
-							noiseState->m_H, 32, noiseState->m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+					if (isECIES)
+					{	
+						if (j == i)
 						{
-							LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
-							return false;
+							uint8_t nonce[12];
+							memset (nonce, 0, 12);
+							auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
+							if (!noiseState || !i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
+								noiseState->m_H, 32, noiseState->m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+							{
+								LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
+								return false;
+							}	
+						}
+						else
+						{	
+							encryption.SetKey (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
+							encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);	
+							encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
 						}	
 					}
 					else
-					{	
+					{
 						encryption.SetKey (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
 						encryption.SetIV (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);	
 						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
@@ -466,7 +475,7 @@ namespace i2p
 		{
 			if (i2p::context.IsECIES ())
 			{
-				uint8_t clearText[TUNNEL_BUILD_RECORD_SIZE];
+				uint8_t clearText[ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
 				if (HandleBuildRequestRecords (num, buf + 1, clearText))
 				{
 					if (clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
