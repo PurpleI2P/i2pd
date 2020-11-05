@@ -653,6 +653,15 @@ namespace i2p
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len)));
 	}
 
+	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) 
+	{ 
+		auto msg = CreateI2NPMessage (typeID, payload, len);
+		if (!msg) return false;
+		i2p::HandleI2NPMessage (msg);
+		return true; 
+	} 
+
+		
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);

@@ -135,7 +135,7 @@ namespace i2p
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) { return false; }; // not implemented
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
 
 		private:
 
