@@ -238,8 +238,8 @@ namespace garlic
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
-			std::shared_ptr<I2NPMessage> WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination,
-				std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
+			std::shared_ptr<I2NPMessage> WrapMessageForRouter (std::shared_ptr<const i2p::data::RouterInfo> router,
+				std::shared_ptr<I2NPMessage> msg);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
