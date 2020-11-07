@@ -448,7 +448,7 @@ namespace i2p
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
-		if (len < num*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 1)
+		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "VaribleTunnelBuild message of ", num, " records is too short ", len);
 			return;
@@ -516,7 +516,12 @@ namespace i2p
 
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
 	{
-		if (len < NUM_TUNNEL_BUILD_RECORDS*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE)
+		if (i2p::context.IsECIES ())
+		{
+			LogPrint (eLogWarning, "TunnelBuild is too old for ECIES router");
+			return;
+		}	
+		if (len < NUM_TUNNEL_BUILD_RECORDS*TUNNEL_BUILD_RECORD_SIZE)
 		{
 			LogPrint (eLogError, "TunnelBuild message is too short ", len);
 			return;
