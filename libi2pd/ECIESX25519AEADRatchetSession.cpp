@@ -899,7 +899,7 @@ namespace garlic
 				}
 			}
 			// msg
-			if (msg && m_Destination)
+			if (msg)
 				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
