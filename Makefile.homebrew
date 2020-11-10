@@ -37,9 +37,6 @@ endif
 ifeq ($(USE_AESNI),yes)
 	CXXFLAGS += -maes
 endif
-ifeq ($(USE_AVX),1)
-	CXXFLAGS += -mavx
-endif
 
 install: all
 	install -d ${PREFIX}/bin ${PREFIX}/etc/i2pd ${PREFIX}/share/doc/i2pd ${PREFIX}/share/i2pd ${PREFIX}/share/man/man1 ${PREFIX}/var/lib/i2pd

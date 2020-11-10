@@ -27,7 +27,3 @@ ifeq ($(USE_AESNI),1)
 else
 	CXXFLAGS += -msse
 endif
-
-ifeq ($(USE_AVX),1)
-	CXXFLAGS += -mavx
-endif

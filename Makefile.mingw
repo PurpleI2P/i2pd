@@ -52,15 +52,8 @@ ifeq ($(USE_WINXP_FLAGS), yes)
 	CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
-# don't change following line to ifeq ($(USE_AESNI),yes) !!!
-ifeq ($(USE_AESNI),1)
+ifeq ($(USE_AESNI),yes)
 	CPU_FLAGS += -maes
-else
-	CPU_FLAGS += -msse
-endif
-
-ifeq ($(USE_AVX),1)
-	CPU_FLAGS += -mavx
 endif
 
 ifeq ($(USE_ASLR),yes)

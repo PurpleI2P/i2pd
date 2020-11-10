@@ -68,10 +68,3 @@ ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
 	endif
 endif
 endif
-
-ifeq ($(USE_AVX),yes)
-#check if AVX supported by CPU
-ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
-	CPU_FLAGS += -mavx
-endif
-endif

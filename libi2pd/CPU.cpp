@@ -29,6 +29,7 @@ namespace cpu
 
 	void Detect()
 	{
+		__builtin_cpu_init();
 #if defined(__AES__) || defined(__AVX__)
 
 #if defined(__x86_64__) || defined(__i386__)
@@ -37,11 +38,13 @@ namespace cpu
 		if (info[0] >= 0x00000001) {
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
 #ifdef __AES__
-			aesni = info[2] & bit_AES;  // AESNI
+			if (__builtin_cpu_supports("aes")) {
+				aesni = info[2] & bit_AES;  // AESNI
+			}
 #endif  // __AES__
-#ifdef __AVX__
-			avx = info[2] & bit_AVX;  // AVX
-#endif  // __AVX__
+			if (__builtin_cpu_supports("avx")) {
+				avx = info[2] & bit_AVX;  // AVX
+			}
 		}
 #endif  // defined(__x86_64__) || defined(__i386__)
 
@@ -51,12 +54,10 @@ namespace cpu
 			LogPrint(eLogInfo, "AESNI enabled");
 		}
 #endif  // __AES__
-#ifdef __AVX__
 		if(avx)
 		{
 			LogPrint(eLogInfo, "AVX enabled");
 		}
-#endif  // __AVX__
 #endif  // defined(__AES__) || defined(__AVX__)
 	}
 }
