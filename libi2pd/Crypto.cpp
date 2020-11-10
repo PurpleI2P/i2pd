@@ -698,7 +698,7 @@ namespace crypto
 	}
 
 // AES
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 	#ifdef ARM64AES
 	void init_aesenc(void){
 			// TODO: Implementation
@@ -730,7 +730,7 @@ namespace crypto
 		"movaps	%%xmm3, "#round1"(%[sched]) \n"
 #endif
 
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
 		__asm__
@@ -771,7 +771,7 @@ namespace crypto
 #endif
 
 
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 	#define EncryptAES256(sched) \
 		"pxor (%["#sched"]), %%xmm0 \n" \
 		"aesenc	16(%["#sched"]), %%xmm0 \n" \
@@ -792,7 +792,7 @@ namespace crypto
 
 	void ECBEncryption::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -810,7 +810,7 @@ namespace crypto
 		}
 	}
 
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 	#define DecryptAES256(sched) \
 		"pxor 224(%["#sched"]), %%xmm0 \n" \
 		"aesdec	208(%["#sched"]), %%xmm0 \n" \
@@ -831,7 +831,7 @@ namespace crypto
 
 	void ECBDecryption::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -849,7 +849,7 @@ namespace crypto
 		}
 	}
 
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 	#define CallAESIMC(offset) \
 		"movaps "#offset"(%[shed]), %%xmm0 \n"	\
 		"aesimc %%xmm0, %%xmm0 \n" \
@@ -858,7 +858,7 @@ namespace crypto
 
 	void ECBEncryption::SetKey (const AESKey& key)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key);
@@ -872,7 +872,7 @@ namespace crypto
 
 	void ECBDecryption::SetKey (const AESKey& key)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key); // expand encryption key first
@@ -904,7 +904,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -949,7 +949,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -973,7 +973,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -1019,7 +1019,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -1043,7 +1043,7 @@ namespace crypto
 
 	void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
@@ -1084,7 +1084,7 @@ namespace crypto
 
 	void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __AES__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::aesni)
 		{
 			__asm__
