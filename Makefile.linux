@@ -58,7 +58,7 @@ endif
 endif
 
 ifeq ($(USE_AESNI),yes)
-ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS)) # no arm and aarch64 in dumpmachine
+ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
 	CXXFLAGS += -D__AES__
 endif
 endif
