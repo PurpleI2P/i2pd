@@ -631,10 +631,6 @@ namespace crypto
 	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
 	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
 
-#if defined(__x86_64__) || defined(__i386__)
-#pragma GCC push_options
-#pragma GCC target("avx")
-#endif
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
 	// key is 32 bytes
 	// digest is 16 bytes
@@ -642,6 +638,9 @@ namespace crypto
 	{
 		uint64_t buf[256];
 		uint64_t hash[12]; // 96 bytes
+#if defined(__x86_64__) || defined(__i386__)
+#pragma GCC push_options
+#pragma GCC target("avx")
 		if(i2p::cpu::avx)
 		{
 			__asm__
@@ -664,6 +663,8 @@ namespace crypto
 					);
 		}
 		else
+#pragma GCC pop_options
+#endif
 		{
 			// ikeypad
 			buf[0] = key.GetLL ()[0] ^ IPAD;
@@ -695,9 +696,6 @@ namespace crypto
 		// calculate digest
 		MD5((uint8_t *)hash, 96, digest);
 	}
-#if defined(__x86_64__) || defined(__i386__)
-#pragma GCC pop_options
-#endif
 
 // AES
 #ifdef __AES__
