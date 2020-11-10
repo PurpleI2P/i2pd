@@ -826,6 +826,7 @@ namespace data
 	}
 
 #if defined(__x86_64__) || defined(__i386__)
+#pragma GCC push_options
 #pragma GCC target("avx")
 #endif
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
@@ -855,5 +856,9 @@ namespace data
 
 		return m;
 	}
+#if defined(__x86_64__) || defined(__i386__)
+#pragma GCC pop_options
+#endif
+
 }
 }

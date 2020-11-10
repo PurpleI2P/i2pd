@@ -632,6 +632,7 @@ namespace crypto
 	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
 
 #if defined(__x86_64__) || defined(__i386__)
+#pragma GCC push_options
 #pragma GCC target("avx")
 #endif
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
@@ -694,6 +695,9 @@ namespace crypto
 		// calculate digest
 		MD5((uint8_t *)hash, 96, digest);
 	}
+#if defined(__x86_64__) || defined(__i386__)
+#pragma GCC pop_options
+#endif
 
 // AES
 #ifdef __AES__
