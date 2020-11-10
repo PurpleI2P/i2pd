@@ -53,7 +53,7 @@ ifeq ($(USE_WINXP_FLAGS), yes)
 endif
 
 ifeq ($(USE_AESNI),yes)
-	CPU_FLAGS += -maes
+	CXXFLAGS += -D__AES__
 endif
 
 ifeq ($(USE_ASLR),yes)

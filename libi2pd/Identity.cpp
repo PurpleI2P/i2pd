@@ -829,8 +829,6 @@ namespace data
 	{
 		XORMetric m;
 #if defined(__x86_64__) || defined(__i386__)
-#pragma GCC push_options
-#pragma GCC target("avx")
 		if(i2p::cpu::avx)
 		{
 			__asm__
@@ -845,7 +843,6 @@ namespace data
 			);
 		}
 		else
-#pragma GCC pop_options
 #endif
 		{
 			const uint64_t * hash1 = key1.GetLL (), * hash2 = key2.GetLL ();

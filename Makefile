@@ -76,7 +76,7 @@ deps: mk_obj_dir
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)

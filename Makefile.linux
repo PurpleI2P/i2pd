@@ -58,14 +58,7 @@ endif
 endif
 
 ifeq ($(USE_AESNI),yes)
-ifneq (, $(findstring aarch64, $(SYS)))
-	CXXFLAGS += -DARM64AES
-else
-	ifeq (, $(findstring arm, $(SYS))) # no arm in dumpmachine
-	# check if AES-NI is supported by CPU
-	ifeq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-		CPU_FLAGS += -maes
-	endif
-	endif
+ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS)) # no arm and aarch64 in dumpmachine
+	CXXFLAGS += -D__AES__
 endif
 endif
