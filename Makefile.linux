@@ -1,5 +1,5 @@
 # set defaults instead redefine
-CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation -Wno-psabi
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
 LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -59,6 +59,6 @@ endif
 
 ifeq ($(USE_AESNI),yes)
 ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
-	NEEDED_CXXFLAGS += -D__AES__
+	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 endif

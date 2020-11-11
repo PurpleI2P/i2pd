@@ -42,18 +42,18 @@ LDLIBS += \
 	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)
-	CXXFLAGS += -DWIN32_APP
+	NEEDED_CXXFLAGS += -DWIN32_APP
 	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
 ifeq ($(USE_WINXP_FLAGS), yes)
-	CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
+	NEEDED_CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
 ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -D__AES__
+	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 
 ifeq ($(USE_ASLR),yes)
