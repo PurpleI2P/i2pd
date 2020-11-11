@@ -10,8 +10,10 @@ CONFIG += strict_c++ c++11
 CONFIG(debug, debug|release) {
     message(Debug build)
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+    I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)
+    I2PDMAKE += DEBUG=no
 }
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
@@ -73,11 +75,11 @@ FORMS += mainwindow.ui \
 
 LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
-libi2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api
+libi2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE api
 libi2pd.target = $$PWD/../../libi2pd.a
 libi2pd.depends = FORCE
 
-libi2pdclient.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes DEBUG=no api_client
+libi2pdclient.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE api_client
 libi2pdclient.target = $$PWD/../../libi2pdclient.a
 libi2pdclient.depends = FORCE
 

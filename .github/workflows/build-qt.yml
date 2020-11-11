@@ -17,4 +17,4 @@ jobs:
       run: |
         cd qt/i2pd_qt
         qmake
-        make -j3
+        make release -j3

@@ -37,11 +37,11 @@ namespace cpu
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
 #ifdef __AES__
 			if ((info[2] & bit_AES || __builtin_cpu_supports("aes")) && AesSwitch) {
-				aesni = true;  // AESNI
+				aesni = true;
 			}
 #endif // __AES__
 			if ((info[2] & bit_AVX || __builtin_cpu_supports("avx")) && AvxSwitch) {
-				avx = true;  // AVX
+				avx = true;
 			}
 		}
 #endif // defined(__x86_64__) || defined(__i386__)
