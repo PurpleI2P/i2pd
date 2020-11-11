@@ -44,14 +44,8 @@ namespace cpu
 		}
 #endif  // defined(__x86_64__) || defined(__i386__)
 
-		if(aesni)
-		{
-			LogPrint(eLogInfo, "AESNI enabled");
-		}
-		if(avx)
-		{
-			LogPrint(eLogInfo, "AVX enabled");
-		}
+		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
+		LogPrint(eLogInfo, "AVX ", (avx ? "enabled" : "disabled"));
 	}
 }
 }
