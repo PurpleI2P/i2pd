@@ -49,7 +49,7 @@ endif
 
 # UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP
+	NEEDED_CXXFLAGS += -DUSE_UPNP
 ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libminiupnpc.a
 else
@@ -59,6 +59,6 @@ endif
 
 ifeq ($(USE_AESNI),yes)
 ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
-	CXXFLAGS += -D__AES__
+	NEEDED_CXXFLAGS += -D__AES__
 endif
 endif

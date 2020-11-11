@@ -13,7 +13,6 @@ endif()
 
 # configurale options
 option(WITH_AESNI           "Use AES-NI instructions set"             ON)
-option(WITH_AVX             "deprecated"                              OFF)
 option(WITH_HARDENING       "Use hardening compiler flags"            OFF)
 option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
@@ -190,8 +189,7 @@ if(UNIX)
 endif()
 
 if(WITH_AESNI)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
-  add_definitions(-DAESNI)
+  add_definitions(-D__AES__)
 endif()
 
 if(WITH_ADDRSANITIZER)
