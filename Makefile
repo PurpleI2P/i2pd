@@ -87,11 +87,11 @@ $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
 $(SHLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
-	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
 
 $(ARLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 	$(AR) -r $@ $^
