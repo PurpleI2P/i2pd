@@ -27,7 +27,7 @@ namespace cpu
 	bool aesni = false;
 	bool avx = false;
 
-	void Detect()
+	void Detect(bool AesSwitch, bool AvxSwitch)
 	{
 #if defined(__x86_64__) || defined(__i386__)
 		__builtin_cpu_init();
@@ -35,10 +35,10 @@ namespace cpu
 		__cpuid(0, info[0], info[1], info[2], info[3]);
 		if (info[0] >= 0x00000001) {
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
-			if (__builtin_cpu_supports("aes")) {
+			if (__builtin_cpu_supports("aes") && AesSwitch) {
 				aesni = info[2] & bit_AES;  // AESNI
 			}
-			if (__builtin_cpu_supports("avx")) {
+			if (__builtin_cpu_supports("avx") && AvxSwitch) {
 				avx = info[2] & bit_AVX;  // AVX
 			}
 		}
