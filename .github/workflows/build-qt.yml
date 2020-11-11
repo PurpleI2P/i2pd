@@ -16,5 +16,5 @@ jobs:
     - name: build application
       run: |
         cd qt/i2pd_qt
-        qmake
-        make release -j3
+        qmake -set I2PDMAKE "USE_AESNI=no"
+        make -j3
