@@ -17,4 +17,4 @@ jobs:
         brew update
         brew install boost miniupnpc openssl@1.1
     - name: build application
-      run: make HOMEBREW=1 USE_UPNP=${{ matrix.with_upnp }} -j3
+      run: make HOMEBREW=1 USE_UPNP=${{ matrix.with_upnp }} PREFIX=$GITHUB_WORKSPACE/output -j3
