@@ -11,7 +11,7 @@ if(WIN32 OR MSVC OR MSYS OR MINGW)
   message(SEND_ERROR "cmake build for windows is not supported. Please use MSYS2 with makefiles in project root.")
 endif()
 
-# configurale options
+# configurable options
 option(WITH_AESNI           "Use AES-NI instructions set"             ON)
 option(WITH_HARDENING       "Use hardening compiler flags"            OFF)
 option(WITH_LIBRARY         "Build library"                           ON)
@@ -188,7 +188,9 @@ if(UNIX)
   endif()
 endif()
 
-if(WITH_AESNI)
+# Note: AES-NI and AVX is available on x86-based CPU's.
+# Here also ARM64 implementation, but currently we don't support it.
+if(WITH_AESNI AND (ARCHITECTURE MATCHES "x86_64" OR ARCHITECTURE MATCHES "i386"))
   add_definitions(-D__AES__)
 endif()
 
