@@ -2,12 +2,10 @@ name: Build on Ubuntu
 
 on: [push, pull_request]
 
-defaults:
-  runs-on: ubuntu-16.04
-
 jobs:
   build:
     name: With USE_UPNP=${{ matrix.with_upnp }}
+    runs-on: ubuntu-16.04
     strategy:
       fail-fast: true
       matrix:
@@ -24,6 +22,7 @@ jobs:
 
   build_qt:
     name: With QT GUI
+    runs-on: ubuntu-16.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
