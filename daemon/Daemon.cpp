@@ -128,9 +128,10 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
 			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
-			bool aesni; i2p::config::GetOption("aesni", aesni);
-			bool avx; i2p::config::GetOption("avx", avx);
-			i2p::crypto::InitCrypto (precomputation, aesni, avx);
+			bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
+			bool avx; i2p::config::GetOption("cpuext.avx", avx);
+			bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
+			i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
 
 			int netID; i2p::config::GetOption("netid", netID);
 			i2p::context.SetNetID (netID);

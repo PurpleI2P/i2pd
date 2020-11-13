@@ -16,7 +16,7 @@ namespace cpu
 	extern bool aesni;
 	extern bool avx;
 
-	void Detect(bool AesSwitch, bool AvxSwitch);
+	void Detect(bool AesSwitch, bool AvxSwitch, bool force);
 }
 }
 

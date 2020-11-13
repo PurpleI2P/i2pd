@@ -319,7 +319,7 @@ namespace crypto
 	};
 
 // init and terminate
-	void InitCrypto (bool precomputation, bool aesni, bool avx);
+	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force);
 	void TerminateCrypto ();
 }
 }

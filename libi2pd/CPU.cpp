@@ -27,17 +27,17 @@ namespace cpu
 	bool aesni = false;
 	bool avx = false;
 
-	void Detect(bool AesSwitch, bool AvxSwitch)
+	void Detect(bool AesSwitch, bool AvxSwitch, bool force)
 	{
 #if defined(__x86_64__) || defined(__i386__)
 		int info[4];
 		__cpuid(0, info[0], info[1], info[2], info[3]);
 		if (info[0] >= 0x00000001) {
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
-			if (info[2] & bit_AES && AesSwitch) {
+			if ((info[2] & bit_AES && AesSwitch) || (AesSwitch && force)) {
 				aesni = true;
 			}
-			if (info[2] & bit_AVX && AvxSwitch) {
+			if ((info[2] & bit_AVX && AvxSwitch) || (AvxSwitch && force)) {
 				avx = true;
 			}
 		}
