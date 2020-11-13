@@ -23,7 +23,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -D__AES__
+	CXXFLAGS += -D__AES__ -maes
 else
 	CXXFLAGS += -msse
 endif
