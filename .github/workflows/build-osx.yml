@@ -1,0 +1,20 @@
+name: Build on OSX
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: With USE_UPNP=${{ matrix.with_upnp }}
+    runs-on: macOS-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['yes', 'no']
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: |
+        brew update
+        brew install boost miniupnpc openssl@1.1
+    - name: build application
+      run: make HOMEBREW=1 USE_UPNP=${{ matrix.with_upnp }} PREFIX=$GITHUB_WORKSPACE/output -j3

@@ -35,10 +35,7 @@ endif
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
 ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -maes
-endif
-ifeq ($(USE_AVX),1)
-	CXXFLAGS += -mavx
+	CXXFLAGS += -D__AES__ -maes
 endif
 
 install: all

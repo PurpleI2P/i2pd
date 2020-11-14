@@ -1,7 +1,7 @@
 USE_WIN32_APP=yes
 CXX = g++
 WINDRES = windres
-CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
+CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN -fPIC -msse
 INCFLAGS = -Idaemon -I.
 LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
 
@@ -42,25 +42,18 @@ LDLIBS += \
 	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)
-	CXXFLAGS += -DWIN32_APP
+	NEEDED_CXXFLAGS += -DWIN32_APP
 	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
 ifeq ($(USE_WINXP_FLAGS), yes)
-	CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
+	NEEDED_CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
-# don't change following line to ifeq ($(USE_AESNI),yes) !!!
-ifeq ($(USE_AESNI),1)
-	CPU_FLAGS += -maes
-else
-	CPU_FLAGS += -msse
-endif
-
-ifeq ($(USE_AVX),1)
-	CPU_FLAGS += -mavx
+ifeq ($(USE_AESNI),yes)
+	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 
 ifeq ($(USE_ASLR),yes)

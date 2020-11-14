@@ -47,11 +47,11 @@ namespace config {
 			("ifname", value<std::string>()->default_value(""),               "Network interface to bind to")
 			("ifname4", value<std::string>()->default_value(""),              "Network interface to bind to for ipv4")
 			("ifname6", value<std::string>()->default_value(""),              "Network interface to bind to for ipv6")
-			("nat", value<bool>()->default_value(true),                       "Should we assume we are behind NAT? (default: enabled)")
+			("nat", bool_switch()->default_value(true),                       "Should we assume we are behind NAT? (default: enabled)")
 			("port", value<uint16_t>()->default_value(0),                     "Port to listen for incoming connections (default: auto)")
-			("ipv4", value<bool>()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
+			("ipv4", bool_switch()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
 			("ipv6", bool_switch()->default_value(false),                     "Enable communication through ipv6 (default: disabled)")
-			("reservedrange", value<bool>()->default_value(true),             "Check remote RI for being in blacklist of reserved IP ranges (default: enabled)")
+			("reservedrange", bool_switch()->default_value(true),             "Check remote RI for being in blacklist of reserved IP ranges (default: enabled)")
 			("netid", value<int>()->default_value(I2PD_NET_ID),               "Specify NetID. Main I2P is 2")
 			("daemon", bool_switch()->default_value(false),                   "Router will go to background after start (default: disabled)")
 			("service", bool_switch()->default_value(false),                  "Router will use system folders like '/var/lib/i2pd' (default: disabled)")
@@ -59,8 +59,8 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", value<bool>()->default_value(false),                     "Ignored. Always false")
-			("ssu", value<bool>()->default_value(true),                       "Enable SSU transport (default: enabled)")
+			("ntcp", bool_switch()->default_value(false),                     "Ignored. Always false")
+			("ssu", bool_switch()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
@@ -266,6 +266,13 @@ namespace config {
 			("persist.addressbook", value<bool>()->default_value(true),    "Persist full addresses (default: true)")
 		;
 
+		options_description cpuext("CPU encryption extensions options");
+		cpuext.add_options()
+			("cpuext.aesni", bool_switch()->default_value(true),                     "Use auto detection for AESNI CPU extensions. If false, AESNI will be not used")
+			("cpuext.avx", bool_switch()->default_value(true),                       "Use auto detection for AVX CPU extensions. If false, AVX will be not used")
+			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
+		;
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -286,6 +293,7 @@ namespace config {
 			.add(ntcp2)
 			.add(nettime)
 			.add(persist)
+			.add(cpuext)
 		;
 	}
 

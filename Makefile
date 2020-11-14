@@ -14,7 +14,6 @@ DAEMON_SRC_DIR := daemon
 include filelist.mk
 
 USE_AESNI	:= yes
-USE_AVX		:= yes
 USE_STATIC	:= no
 USE_MESHNET	:= no
 USE_UPNP	:= no
@@ -77,7 +76,7 @@ deps: mk_obj_dir
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
@@ -88,11 +87,11 @@ $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
 $(SHLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
-	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
 
 $(ARLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 	$(AR) -r $@ $^

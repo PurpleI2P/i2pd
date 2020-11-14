@@ -169,9 +169,6 @@ namespace crypto
 
 
 #ifdef __AES__
-	#ifdef ARM64AES
-		void init_aesenc(void) __attribute__((constructor));
-	#endif
 	class ECBCryptoAESNI
 	{
 		public:
@@ -316,13 +313,13 @@ namespace crypto
 	struct NoiseSymmetricState
 	{
 		uint8_t m_H[32] /*h*/, m_CK[64] /*[ck, k]*/;
-		
+
 		void MixHash (const uint8_t * buf, size_t len);
-    	void MixKey (const uint8_t * sharedSecret);	
-    };
-	
+		void MixKey (const uint8_t * sharedSecret);	
+	};
+
 // init and terminate
-	void InitCrypto (bool precomputation);
+	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force);
 	void TerminateCrypto ();
 }
 }

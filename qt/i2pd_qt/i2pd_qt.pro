@@ -4,14 +4,16 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -Wno-unused-parameter -Wno-maybe-uninitialized
+QMAKE_CXXFLAGS *= -Wno-unused-parameter -Wno-maybe-uninitialized -Wno-deprecated-copy
 CONFIG += strict_c++ c++11
 
 CONFIG(debug, debug|release) {
     message(Debug build)
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+    I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)
+    I2PDMAKE += DEBUG=no
 }
 
 SOURCES += DaemonQT.cpp mainwindow.cpp \
@@ -73,19 +75,19 @@ FORMS += mainwindow.ui \
 
 LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
-libi2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_AVX=no USE_AESNI=no USE_UPNP=yes DEBUG=no api
+libi2pd.commands = @echo Building i2pd libraries
 libi2pd.target = $$PWD/../../libi2pd.a
-libi2pd.depends = FORCE
+libi2pd.depends = i2pd FORCE
 
-libi2pdclient.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_AVX=no USE_AESNI=no USE_UPNP=yes DEBUG=no api_client
-libi2pdclient.target = $$PWD/../../libi2pdclient.a
-libi2pdclient.depends = FORCE
+i2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE api_client
+i2pd.target += $$PWD/../../libi2pdclient.a
+i2pd.depends = FORCE
 
 cleani2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) clean
 cleani2pd.depends = clean
 
 PRE_TARGETDEPS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a
-QMAKE_EXTRA_TARGETS += cleani2pd libi2pd libi2pdclient
+QMAKE_EXTRA_TARGETS += cleani2pd i2pd libi2pd
 CLEAN_DEPS += cleani2pd
 
 

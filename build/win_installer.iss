@@ -1,6 +1,7 @@
 #define I2Pd_AppName "i2pd"
-#define I2Pd_ver "2.34.0"
 #define I2Pd_Publisher "PurpleI2P"
+; Get application version from compiled binary
+#define I2Pd_ver GetFileVersionString(AddBackslash(SourcePath) + "..\i2pd_x64.exe")
 
 [Setup]
 AppName={#I2Pd_AppName}
@@ -10,9 +11,9 @@ DefaultDirName={pf}\I2Pd
 DefaultGroupName=I2Pd
 UninstallDisplayIcon={app}\I2Pd.exe
 OutputDir=.
-LicenseFile=../LICENSE
+LicenseFile=..\LICENSE
 OutputBaseFilename=setup_{#I2Pd_AppName}_v{#I2Pd_ver}
-SetupIconFile=mask.ico
+SetupIconFile=..\Win32\mask.ico
 InternalCompressLevel=ultra64
 Compression=lzma/ultra64
 SolidCompression=true
@@ -23,10 +24,12 @@ AppID={{621A23E0-3CF4-4BD6-97BC-4835EA5206A2}
 AppPublisherURL=http://i2pd.website/
 AppSupportURL=https://github.com/PurpleI2P/i2pd/issues
 AppUpdatesURL=https://github.com/PurpleI2P/i2pd/releases
+CloseApplications=yes
 
 [Files]
-Source: ..\i2pd_x86.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: not IsWin64
-Source: ..\i2pd_x64.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: IsWin64
+Source: ..\i2pd_x32.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: not IsWin64; MinVersion: 6.0
+Source: ..\i2pd_x64.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: IsWin64; MinVersion: 6.0
+Source: ..\i2pd_xp.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: IsWin64; OnlyBelowVersion: 6.0
 Source: ..\README.md; DestDir: {app}; DestName: Readme.txt; Flags: onlyifdoesntexist
 Source: ..\contrib\i2pd.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist

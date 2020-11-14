@@ -27,37 +27,24 @@ namespace cpu
 	bool aesni = false;
 	bool avx = false;
 
-	void Detect()
+	void Detect(bool AesSwitch, bool AvxSwitch, bool force)
 	{
-#if defined(__AES__) || defined(__AVX__)
-
 #if defined(__x86_64__) || defined(__i386__)
 		int info[4];
 		__cpuid(0, info[0], info[1], info[2], info[3]);
 		if (info[0] >= 0x00000001) {
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
-#ifdef __AES__
-			aesni = info[2] & bit_AES;  // AESNI
-#endif  // __AES__
-#ifdef __AVX__
-			avx = info[2] & bit_AVX;  // AVX
-#endif  // __AVX__
+			if ((info[2] & bit_AES && AesSwitch) || (AesSwitch && force)) {
+				aesni = true;
+			}
+			if ((info[2] & bit_AVX && AvxSwitch) || (AvxSwitch && force)) {
+				avx = true;
+			}
 		}
-#endif  // defined(__x86_64__) || defined(__i386__)
+#endif // defined(__x86_64__) || defined(__i386__)
 
-#ifdef __AES__
-		if(aesni)
-		{
-			LogPrint(eLogInfo, "AESNI enabled");
-		}
-#endif  // __AES__
-#ifdef __AVX__
-		if(avx)
-		{
-			LogPrint(eLogInfo, "AVX enabled");
-		}
-#endif  // __AVX__
-#endif  // defined(__AES__) || defined(__AVX__)
+		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
+		LogPrint(eLogInfo, "AVX ", (avx ? "enabled" : "disabled"));
 	}
 }
 }

@@ -18,4 +18,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
-      run: make USE_AVX=no USE_AESNI=no USE_UPNP=${{ matrix.with_upnp }} -j3
+      run: make USE_UPNP=${{ matrix.with_upnp }} -j3
+
+  build_qt:
+    name: With QT GUI
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: |
+        sudo add-apt-repository ppa:mhier/libboost-latest
+        sudo apt-get update
+        sudo apt-get install build-essential qt5-default libqt5gui5 libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+    - name: build application
+      run: |
+        cd qt/i2pd_qt
+        qmake
+        make -j3

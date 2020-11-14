@@ -1,5 +1,5 @@
 # set defaults instead redefine
-CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation -Wno-psabi
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
 LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -49,7 +49,7 @@ endif
 
 # UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP
+	NEEDED_CXXFLAGS += -DUSE_UPNP
 ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libminiupnpc.a
 else
@@ -58,20 +58,7 @@ endif
 endif
 
 ifeq ($(USE_AESNI),yes)
-#check if AES-NI is supported by CPU
-ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	machine := $(shell uname -m)
-	ifeq ($(machine), aarch64)
-		CXXFLAGS += -DARM64AES
-	else
-		CPU_FLAGS += -maes
-	endif
-endif
-endif
-
-ifeq ($(USE_AVX),yes)
-#check if AVX supported by CPU
-ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
-	CPU_FLAGS += -mavx
+ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
+	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 endif
