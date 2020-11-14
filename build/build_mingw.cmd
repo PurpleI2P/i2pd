@@ -33,7 +33,7 @@ REM deleting old log files
 del /S build_*.log >> nul 2>&1
 
 echo Receiving latest commit and cleaning up...
-%xSH% "git pull && make clean" > build/build_git.log 2>&1
+%xSH% "git checkout contrib/* && git pull && make clean" > build/build.log 2>&1
 echo.
 
 REM set to variable current commit hash
@@ -42,6 +42,9 @@ FOR /F "usebackq" %%a IN (`%xSH% 'git describe --tags'`) DO (
 )
 
 %xSH% "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
+
+REM converting configuration files to DOS format (usable in default notepad)
+%xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/*" > build/build.log 2>&1
 
 REM starting building
 set MSYSTEM=MINGW32
