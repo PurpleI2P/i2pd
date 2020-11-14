@@ -48,7 +48,7 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
-		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
 			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
@@ -426,7 +426,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -662,7 +662,7 @@ namespace data
 	size_t PrivateKeys::GetPrivateKeyLen () const
 	{
 		// private key length always 256, but type 4
-		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET) ? 32 : 256; 
+		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256; 
 	}	
 		
 	uint8_t * PrivateKeys::GetPadding()
@@ -687,15 +687,15 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
 			break;
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
+				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
+			break;	
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
-				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
@@ -776,7 +776,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:

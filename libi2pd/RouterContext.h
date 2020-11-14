@@ -109,7 +109,7 @@ namespace i2p
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
-			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET; };
+			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 			
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove

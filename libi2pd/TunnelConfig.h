@@ -39,7 +39,7 @@ namespace tunnel
 		void SetNext (TunnelHopConfig * n);
 		void SetPrev (TunnelHopConfig * p);		
 
-		bool IsECIES () const { return ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET; };
+		bool IsECIES () const { return ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
 		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);

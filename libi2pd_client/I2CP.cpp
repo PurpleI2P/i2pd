@@ -46,7 +46,7 @@ namespace client
 		
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET && m_ECIESx25519Decryptor)
+		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
 			return m_ECIESx25519Decryptor->Decrypt (encrypted, data, ctx, true);
 		if (m_Decryptor)
 			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
@@ -57,14 +57,14 @@ namespace client
 
 	const uint8_t * I2CPDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
-		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET && m_ECIESx25519Decryptor)
+		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
 			return m_ECIESx25519Decryptor->GetPubicKey ();
 		return nullptr;
 	}	
 
 	bool I2CPDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const 
 	{ 
-		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET ? (bool)m_ECIESx25519Decryptor : m_EncryptionKeyType == keyType; 
+		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? (bool)m_ECIESx25519Decryptor : m_EncryptionKeyType == keyType; 
 	}
 	
 		
@@ -621,7 +621,7 @@ namespace client
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
 					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
 					if (offset + keyLen > len) return;
-					if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+					if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 						m_Destination->SetECIESx25519EncryptionPrivateKey (buf + offset);
 					else
 					{

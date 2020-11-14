@@ -236,7 +236,7 @@ namespace garlic
 		if (!GetOwner ()) return false;
 		// we are Bob
 		// KDF1
-		MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET), 32); // h = SHA256(h || bpk)
+		MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD), 32); // h = SHA256(h || bpk)
 
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{
@@ -247,7 +247,7 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, aepk)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
 		MixKey (sharedSecret);
 
 		// decrypt flags/static
@@ -267,7 +267,7 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, apk)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, apk)
 			MixKey (sharedSecret);
 		}
 		else // all zeros flags
@@ -469,7 +469,7 @@ namespace garlic
 		CreateNonce (0, nonce);
 		const uint8_t * fs;
 		if (isStatic)
-			fs = GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET);
+			fs = GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 		else
 		{
 			memset (out + offset, 0, 32); // all zeros flags section	
@@ -486,7 +486,7 @@ namespace garlic
 		// KDF2
 		if (isStatic)
 		{	
-			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bpk)
+			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
 			MixKey (sharedSecret); 
 		}
 		else
@@ -618,7 +618,7 @@ namespace garlic
 			// only fist time, we assume ephemeral keys the same
 			m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
 			MixKey (sharedSecret);
-			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
+			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
 			MixKey (sharedSecret);
 		}
 		uint8_t nonce[12];
