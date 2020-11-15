@@ -118,7 +118,6 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
-		//CreatePairedInboundTunnel (createdTunnel);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel)
@@ -235,6 +234,15 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
+		if (!num && !m_OutboundTunnels.empty ())
+		{
+			for (auto it: m_OutboundTunnels)
+			{	
+				CreatePairedInboundTunnel (it);
+				num++;
+				if (num >= m_NumInboundTunnels) break;
+			}	
+		}	
 		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();
 
