@@ -670,8 +670,13 @@ namespace i2p
 
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		std::unique_lock<std::mutex> l(m_GarlicMutex);
-		i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
+		if (i2p::data::netdb.GetPublishReplyToken () == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
+			i2p::data::netdb.PostI2NPMsg (msg);
+		else
+		{	
+			std::unique_lock<std::mutex> l(m_GarlicMutex);
+			i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
+		}	
 	}
 
 	void RouterContext::CleanupDestination ()

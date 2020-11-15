@@ -41,6 +41,8 @@ namespace data
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
+	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
+	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15; 
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
 
 	/** function for visiting a leaseset stored in a floodfill */
@@ -77,6 +79,7 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
+			void HandleDeliveryStatusMsg (std::shared_ptr<const I2NPMessage> msg);
 
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
@@ -114,6 +117,8 @@ namespace data
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
+
+			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
 		private:
 
@@ -162,9 +167,11 @@ namespace data
 			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
 
-
 			/** true if in hidden mode */
 			bool m_HiddenMode;
+
+			std::set<IdentHash> m_PublishExcluded;
+			uint32_t m_PublishReplyToken = 0;
 	};
 
 	extern NetDb netdb;
