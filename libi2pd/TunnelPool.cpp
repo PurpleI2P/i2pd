@@ -292,6 +292,8 @@ namespace tunnel
 		}
 
 		// new tests
+		std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
+		std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
 		auto it1 = m_OutboundTunnels.begin ();
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
