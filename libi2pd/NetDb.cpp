@@ -151,14 +151,22 @@ namespace data
 					lastDestinationCleanup = ts;
 				}
 
-				if (!m_HiddenMode && i2p::transport::transports.IsOnline () &&
-				    ((m_PublishReplyToken && ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) ||
-				    i2p::context.GetLastUpdateTime () > lastPublish || 
-				    ts - lastPublish >= NETDB_PUBLISH_INTERVAL)) // update timestamp and publish
+				// publish 
+				if (!m_HiddenMode && i2p::transport::transports.IsOnline ()) 
 				{
-					i2p::context.UpdateTimestamp (ts);
-					Publish ();
-					lastPublish = ts;
+					bool publish = false;
+				    if (m_PublishReplyToken)
+					{	
+						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
+					}
+					else if (i2p::context.GetLastUpdateTime () > lastPublish || 
+				    	ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
+					if (publish) // update timestamp and publish
+					{
+						i2p::context.UpdateTimestamp (ts);
+						Publish ();
+						lastPublish = ts;
+					}
 				}
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
 				{
