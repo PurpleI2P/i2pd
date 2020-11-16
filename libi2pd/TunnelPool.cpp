@@ -292,8 +292,6 @@ namespace tunnel
 		}
 
 		// new tests
-		std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
-		std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
 		auto it1 = m_OutboundTunnels.begin ();
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
@@ -363,17 +361,24 @@ namespace tunnel
 		}
 		if (found)
 		{
-			// restore from test failed state if any
-			if (test.first->GetState () == eTunnelStateTestFailed)
-				test.first->SetState (eTunnelStateEstablished);
-			if (test.second->GetState () == eTunnelStateTestFailed)
-				test.second->SetState (eTunnelStateEstablished);
 			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
 			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", dlt, " milliseconds");
-			// update latency
 			uint64_t latency = dlt / 2;
-			test.first->AddLatencySample(latency);
-			test.second->AddLatencySample(latency);
+			// restore from test failed state if any
+			if (test.first)
+			{	
+				if (test.first->GetState () == eTunnelStateTestFailed)
+					test.first->SetState (eTunnelStateEstablished);
+				// update latency
+				test.first->AddLatencySample(latency);
+			}	
+			if (test.second)
+			{	
+				if (test.second->GetState () == eTunnelStateTestFailed)
+					test.second->SetState (eTunnelStateEstablished);
+				// update latency
+				test.second->AddLatencySample(latency);
+			}	
 		}
 		else
 		{
