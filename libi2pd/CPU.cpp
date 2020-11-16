@@ -34,10 +34,18 @@ namespace cpu
 		__cpuid(0, info[0], info[1], info[2], info[3]);
 		if (info[0] >= 0x00000001) {
 			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
+#if defined (_WIN32) && (WINVER == 0x0501) // WinXP
+			if (AesSwitch && force) { // only if forced
+#else
 			if ((info[2] & bit_AES && AesSwitch) || (AesSwitch && force)) {
+#endif
 				aesni = true;
 			}
+#if defined (_WIN32) && (WINVER == 0x0501) // WinXP
+			if (AvxSwitch && force) { // only if forced
+#else
 			if ((info[2] & bit_AVX && AvxSwitch) || (AvxSwitch && force)) {
+#endif
 				avx = true;
 			}
 		}
