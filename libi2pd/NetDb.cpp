@@ -153,6 +153,7 @@ namespace data
 
 				if (!m_HiddenMode && i2p::transport::transports.IsOnline () &&
 				    ((m_PublishReplyToken && ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) ||
+				    i2p::context.GetLastUpdateTime () > lastPublish || 
 				    ts - lastPublish >= NETDB_PUBLISH_INTERVAL)) // update timestamp and publish
 				{
 					i2p::context.UpdateTimestamp (ts);
