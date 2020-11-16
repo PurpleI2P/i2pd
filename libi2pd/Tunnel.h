@@ -230,7 +230,7 @@ namespace tunnel
 			void ManagePendingTunnels ();
 			template<class PendingTunnels>
 			void ManagePendingTunnels (PendingTunnels& pendingTunnels);
-			void ManageTunnelPools ();
+			void ManageTunnelPools (uint64_t ts);
 
 			std::shared_ptr<ZeroHopsInboundTunnel> CreateZeroHopsInboundTunnel ();
 			std::shared_ptr<ZeroHopsOutboundTunnel> CreateZeroHopsOutboundTunnel ();
@@ -249,7 +249,7 @@ namespace tunnel
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
-
+			
 			// some stats
 			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
 

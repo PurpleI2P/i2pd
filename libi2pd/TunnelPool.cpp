@@ -26,9 +26,10 @@ namespace tunnel
 {
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
-		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true),
-		m_CustomPeerSelector(nullptr)
+		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
+		m_IsActive (true), m_CustomPeerSelector(nullptr)
 	{
+		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
 	TunnelPool::~TunnelPool ()
@@ -321,6 +322,16 @@ namespace tunnel
 		}
 	}
 
+	void TunnelPool::ManageTunnels (uint64_t ts)
+	{
+		if (ts > m_NextManageTime)
+		{	
+			CreateTunnels ();
+			TestTunnels ();
+			m_NextManageTime = ts + TUNNEL_POOL_MANAGE_INTERVAL + (rand () % TUNNEL_POOL_MANAGE_INTERVAL)/2;  
+		}	
+	}	
+		
 	void TunnelPool::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (m_LocalDestination)
