@@ -270,8 +270,17 @@ namespace http {
 		}
 		s << "<br>\r\n";
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-		if (auto remains = Daemon.gracefulShutdownInterval)
-			s << "<b>Stopping in:</b> " << remains << " seconds<br>\r\n";
+		if (auto remains = Daemon.gracefulShutdownInterval) {
+			s << "<b>Stopping in:</b> ";
+			ShowUptime(s, remains);
+			s << "<br>\r\n";
+#elif defined(WIN32_APP)
+		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
+			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
+			s << "<b>Stopping in:</b> ";
+			ShowUptime(s, remains);
+			s << "<br>\r\n";
+		}
 #endif
 		auto family = i2p::context.GetFamily ();
 		if (family.length () > 0)
