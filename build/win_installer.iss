@@ -1,7 +1,8 @@
 #define I2Pd_AppName "i2pd"
 #define I2Pd_Publisher "PurpleI2P"
 ; Get application version from compiled binary
-#define I2Pd_ver GetFileVersionString(AddBackslash(SourcePath) + "..\i2pd_x64.exe")
+; Disabled to use definition from command line
+;#define I2Pd_ver GetFileVersionString(AddBackslash(SourcePath) + "..\i2pd_x64.exe")
 
 [Setup]
 AppName={#I2Pd_AppName}

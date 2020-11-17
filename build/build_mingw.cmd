@@ -23,8 +23,8 @@ set "xSH=%WD%bash -lc"
 
 set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d"
 
-REM detecting number of processors and subtract 1.
-set /a threads=%NUMBER_OF_PROCESSORS%-1
+REM detecting number of processors
+set /a threads=%NUMBER_OF_PROCESSORS%
 
 REM we must work in root of repo
 cd ..
@@ -33,7 +33,7 @@ REM deleting old log files
 del /S build_*.log >> nul 2>&1
 
 echo Receiving latest commit and cleaning up...
-%xSH% "git checkout contrib/* && git pull && make clean" > build/build.log 2>&1
+%xSH% "git checkout contrib/* && git pull && make clean" > build\build.log 2>&1
 echo.
 
 REM set to variable current commit hash
@@ -44,7 +44,7 @@ FOR /F "usebackq" %%a IN (`%xSH% 'git describe --tags'`) DO (
 %xSH% "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
 
 REM converting configuration files to DOS format (usable in default notepad)
-%xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/*" > build/build.log 2>&1
+%xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/*" >> build\build.log 2>&1
 
 REM starting building
 set MSYSTEM=MINGW32
@@ -64,7 +64,7 @@ call :BUILDING_XP
 echo.
 
 REM compile installer
-C:\PROGRA~2\INNOSE~1\ISCC.exe build\win_installer.iss
+C:\PROGRA~2\INNOSE~1\ISCC.exe /dI2Pd_ver="%tag%" build\win_installer.iss >> build\build.log 2>&1
 
 del README.txt i2pd_x32.exe i2pd_x64.exe i2pd_xp.exe >> nul
 
@@ -75,12 +75,12 @@ exit /b 0
 :BUILDING
 %xSH% "make clean" >> nul
 echo Building i2pd %tag% for win%bitness%
-%xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && cp i2pd.exe i2pd_x%bitness%.exe && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip %FILELIST% && make clean" > build/build_win%bitness%_%tag%.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes -j%threads% && cp i2pd.exe i2pd_x%bitness%.exe && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip %FILELIST% && make clean" > build\build_win%bitness%_%tag%.log 2>&1
 goto EOF
 
 :BUILDING_XP
 %xSH% "make clean" >> nul
 echo Building i2pd %tag% for winxp
-%xSH% "make DEBUG=no USE_UPNP=yes USE_WINXP_FLAGS=yes -j%threads% && cp i2pd.exe i2pd_xp.exe && zip -r9 build/i2pd_%tag%_winxp_mingw.zip %FILELIST% && make clean" > build/build_winxp_%tag%.log 2>&1
+%xSH% "make DEBUG=no USE_UPNP=yes USE_WINXP_FLAGS=yes -j%threads% && cp i2pd.exe i2pd_xp.exe && zip -r9 build/i2pd_%tag%_winxp_mingw.zip %FILELIST% && make clean" > build\build_winxp_%tag%.log 2>&1
 
 :EOF

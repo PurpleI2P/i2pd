@@ -4,13 +4,12 @@ ARLIB := libi2pd.a
 SHLIB_CLIENT := libi2pdclient.so
 ARLIB_CLIENT := libi2pdclient.a
 I2PD := i2pd
-GREP := grep
-DEPS := obj/make.dep
 
 LIB_SRC_DIR := libi2pd
 LIB_CLIENT_SRC_DIR := libi2pd_client
 DAEMON_SRC_DIR := daemon
 
+# import source files lists
 include filelist.mk
 
 USE_AESNI	:= yes
@@ -50,7 +49,12 @@ ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
-NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
+NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
+
+LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
+LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
+DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
+DEPS            := $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
@@ -71,32 +75,29 @@ api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 
-deps: mk_obj_dir
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
-	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
-
 obj/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-$(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
+$(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(SHLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
+$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS)
+ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
+endif
 
-$(ARLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
+$(ARLIB): $(LIB_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
+$(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
 clean:
@@ -122,7 +123,6 @@ doxygen:
 
 .PHONY: all
 .PHONY: clean
-.PHONY: deps
 .PHONY: doxygen
 .PHONY: dist
 .PHONY: last-dist

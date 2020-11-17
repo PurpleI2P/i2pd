@@ -1,8 +1,8 @@
 USE_WIN32_APP=yes
 CXX = g++
 WINDRES = windres
-CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN -fPIC -msse
-INCFLAGS = -Idaemon -I.
+CXXFLAGS := $(CXX_DEBUG) -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN -fPIC -msse
+INCFLAGS = -I$(DAEMON_SRC_DIR) -IWin32
 LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
 
 # detect proper flag for c++11 support by compilers

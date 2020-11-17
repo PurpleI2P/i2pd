@@ -30,8 +30,9 @@
 #include "Daemon.h"
 #include "util.h"
 #include "ECIESX25519AEADRatchetSession.h"
+
 #ifdef WIN32_APP
-#include "Win32/Win32App.h"
+#include "Win32App.h"
 #endif
 
 // For image and info
@@ -274,7 +275,7 @@ namespace http {
 			s << "<b>Stopping in:</b> ";
 			ShowUptime(s, remains);
 			s << "<br>\r\n";
-		}	
+		}
 #elif defined(WIN32_APP)
 		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
 			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
