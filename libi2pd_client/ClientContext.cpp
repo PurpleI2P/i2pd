@@ -590,7 +590,8 @@ namespace client
 										localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
 									else
 										localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
-									destinations[keys] = localDestination;
+									if (keys != "transient")
+										destinations[keys] = localDestination;
 								}
 							}
 						}	
