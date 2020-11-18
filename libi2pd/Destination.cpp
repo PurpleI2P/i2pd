@@ -559,7 +559,9 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
-		auto msg = WrapMessageForRouter (floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound));
+		auto msg = i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound);
+		if (floodfill->GetIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // TODO: remove whan implemented
+			msg = WrapMessageForRouter (floodfill, msg);
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -754,8 +756,9 @@ namespace client
 			else	
 				AddSessionKey (replyKey, replyTag);
 
-			auto msg = WrapMessageForRouter (nextFloodfill, CreateLeaseSetDatabaseLookupMsg (dest, request->excluded,
-				request->replyTunnel, replyKey, replyTag, isECIES));
+			auto msg = CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES);
+			if (nextFloodfill->GetIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // TODO: remove whan implemented
+				msg = WrapMessageForRouter (nextFloodfill, msg);
 			request->outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock
