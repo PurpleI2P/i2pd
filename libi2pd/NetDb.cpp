@@ -240,7 +240,7 @@ namespace data
 					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
 						m_Floodfills.remove (r);
-					else
+					else if (r->IsEligibleFloodfill ())
 						m_Floodfills.push_back (r);
 				}
 			}
@@ -263,7 +263,7 @@ namespace data
 				if (inserted)
 				{
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
-					if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
+					if (r->IsFloodfill () && r->IsEligibleFloodfill ()) 
 					{
 						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 						m_Floodfills.push_back (r);
