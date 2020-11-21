@@ -89,7 +89,7 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
 
 			if (ssu)
-				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
 		}
 		if (ipv6)
 		{
@@ -103,7 +103,7 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
 
 			if (ssu)
-				routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
 		}
 
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
@@ -486,7 +486,7 @@ namespace i2p
 				if (ssu)
 				{
 					std::string host = "::1"; // TODO: read host
-					m_RouterInfo.AddSSUAddress (host.c_str (), port, GetIdentHash ());
+					m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
 				}
 			}
 			// NTCP2

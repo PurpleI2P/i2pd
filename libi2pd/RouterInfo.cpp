@@ -719,7 +719,10 @@ namespace data
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = mtu;
-		memcpy (addr->ssu->key, key, 32);
+		if (key)
+			memcpy (addr->ssu->key, key, 32);
+		else
+			RAND_bytes (addr->ssu->key, 32);
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
