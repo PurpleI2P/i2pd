@@ -564,31 +564,42 @@ namespace i2p
 
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
-		if (!fk.is_open ())	return false;
-		fk.seekg (0, std::ios::end);
-		size_t len = fk.tellg();
-		fk.seekg (0, std::ios::beg);
+		{
+			std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
+			if (!fk.is_open ())	return false;
+			fk.seekg (0, std::ios::end);
+			size_t len = fk.tellg();
+			fk.seekg (0, std::ios::beg);
 
-		if (len == sizeof (i2p::data::Keys)) // old keys file format
-		{
-			i2p::data::Keys keys;
-			fk.read ((char *)&keys, sizeof (keys));
-			m_Keys = keys;
+			if (len == sizeof (i2p::data::Keys)) // old keys file format
+			{
+				i2p::data::Keys keys;
+				fk.read ((char *)&keys, sizeof (keys));
+				m_Keys = keys;
+			}
+			else // new keys file format
+			{
+				uint8_t * buf = new uint8_t[len];
+				fk.read ((char *)buf, len);
+				m_Keys.FromBuffer (buf, len);
+				delete[] buf;
+			}
 		}
-		else // new keys file format
+		std::shared_ptr<const i2p::data::IdentityEx> oldIdentity;
+		if (m_Keys.GetPublic ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
-			uint8_t * buf = new uint8_t[len];
-			fk.read ((char *)buf, len);
-			m_Keys.FromBuffer (buf, len);
-			delete[] buf;
-		}
+			// update keys
+			LogPrint (eLogInfo, "Router: router keys are obsolete. Creating new");
+			oldIdentity = m_Keys.GetPublic ();
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+			SaveKeys ();
+		}	
 		// read NTCP2 keys if available
 		std::ifstream n2k (i2p::fs::DataDirPath (NTCP2_KEYS), std::ifstream::in | std::ifstream::binary);
 		if (n2k)
 		{
 			n2k.seekg (0, std::ios::end);
-			len = n2k.tellg();
+			size_t len = n2k.tellg();
 			n2k.seekg (0, std::ios::beg);
 			if (len == sizeof (NTCP2PrivateKeys))
 			{
@@ -598,17 +609,15 @@ namespace i2p
 			n2k.close ();
 		}
 		// read RouterInfo
-		m_RouterInfo.SetRouterIdentity (GetIdentity ());
+		m_RouterInfo.SetRouterIdentity (oldIdentity ? oldIdentity : GetIdentity ());
 		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
 		if (!routerInfo.IsUnreachable ()) // router.info looks good
 		{
 			m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+			if (oldIdentity)
+				m_RouterInfo.SetRouterIdentity (GetIdentity ()); // from new keys
 			m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 			m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
-
-			// Migration to 0.9.24. TODO: remove later
-			m_RouterInfo.DeleteProperty ("coreVersion");
-			m_RouterInfo.DeleteProperty ("stat_uptime");
 		}
 		else
 		{
