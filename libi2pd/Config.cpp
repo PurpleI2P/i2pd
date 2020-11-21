@@ -197,13 +197,12 @@ namespace config {
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
 			("reseed.urls", value<std::string>()->default_value(
 				"https://reseed.i2p-projekt.de/,"
-			    "https://reseed.diva.exchange/,"
-				"https://reseed.i2p2.no/,"
+				"https://reseed.diva.exchange/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
-			    "https://reseed.i2pgit.org/,"                                                				
+				"https://reseed.i2pgit.org/,"
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 		;
