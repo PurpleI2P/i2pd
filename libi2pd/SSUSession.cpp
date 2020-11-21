@@ -30,14 +30,15 @@ namespace transport
 		if (router)
 		{
 			// we are client
-			auto address = router->GetSSUAddress (false);
+			auto address = IsV6 () ? router->GetSSUV6Address () : router->GetSSUAddress (true);
 			if (address) m_IntroKey = address->ssu->key;
 			m_Data.AdjustPacketSize (router); // mtu
 		}
 		else
 		{
 			// we are server
-			auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
+			auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+				i2p::context.GetRouterInfo ().GetSSUAddress (true);
 			if (address) m_IntroKey = address->ssu->key;
 		}
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
