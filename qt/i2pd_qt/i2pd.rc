@@ -17,7 +17,7 @@ BEGIN
             VALUE "FileDescription",    "I2Pd Qt"
             VALUE "FileVersion",        I2PD_VERSION
             VALUE "InternalName",       "i2pd-qt"
-            VALUE "LegalCopyright",     "Copyright (C) 2013-2018, The PurpleI2P Project"
+            VALUE "LegalCopyright",     "Copyright (C) 2013-2020, The PurpleI2P Project"
             VALUE "LegalTrademarks1",   "Distributed under the BSD 3-Clause software license, see the accompanying file COPYING or https://opensource.org/licenses/BSD-3-Clause."
             VALUE "OriginalFilename",   "i2pd_qt.exe"
             VALUE "ProductName",        "i2pd-qt"

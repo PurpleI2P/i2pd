@@ -46,13 +46,13 @@ namespace fs {
 			dataDir = cmdline_param;
 			return;
 		}
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
 		char localAppData[MAX_PATH];
 
 		// check executable directory first
 		if(!GetModuleFileName(NULL, localAppData, MAX_PATH))
 		{
-#if defined(WIN32_APP)
+#ifdef WIN32_APP
 			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
 #else
 			fprintf(stderr, "Error: Unable to get application path!");
@@ -70,7 +70,7 @@ namespace fs {
 			{
 				if(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
-#if defined(WIN32_APP)
+#ifdef WIN32_APP
 					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
 #else
 					fprintf(stderr, "Error: Unable to get AppData path!");

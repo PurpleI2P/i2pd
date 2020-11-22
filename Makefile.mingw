@@ -1,9 +1,11 @@
-USE_WIN32_APP=yes
-CXX = g++
+# Build application with GUI (tray, main window)
+USE_WIN32_APP := yes
+
 WINDRES = windres
-CXXFLAGS := $(CXX_DEBUG) -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN -fPIC -msse
+
+CXXFLAGS := $(CXX_DEBUG) -D_MT -DWIN32_LEAN_AND_MEAN -fPIC -msse
 INCFLAGS = -I$(DAEMON_SRC_DIR) -IWin32
-LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
+LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc
 
 # detect proper flag for c++11 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
@@ -38,7 +40,6 @@ LDLIBS += \
 	-liphlpapi \
 	-lole32 \
 	-luuid \
-	-lstdc++ \
 	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)

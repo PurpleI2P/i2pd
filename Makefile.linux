@@ -33,7 +33,7 @@ ifeq ($(USE_STATIC),yes)
 # NOTE: on glibc you will get this warning:
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
-	LIBDIR := /usr/lib
+	LIBDIR := /usr/lib/$(SYS)
 	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
@@ -41,20 +41,20 @@ ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
 	LDLIBS += $(LIBDIR)/libz.a
-	LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt -ldl
-	USE_AESNI := no
+ifeq ($(USE_UPNP),yes)
+	LDLIBS += $(LIBDIR)/libminiupnpc.a
+endif
+	LDLIBS += -lpthread -ldl
 else
 	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+ifeq ($(USE_UPNP),yes)
+	LDLIBS += -lminiupnpc
+endif
 endif
 
 # UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
 	NEEDED_CXXFLAGS += -DUSE_UPNP
-ifeq ($(USE_STATIC),yes)
-	LDLIBS += $(LIBDIR)/libminiupnpc.a
-else
-	LDLIBS += -lminiupnpc
-endif
 endif
 
 ifeq ($(USE_AESNI),yes)

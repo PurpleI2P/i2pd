@@ -13,7 +13,7 @@
 #include "util.h"
 #include "Log.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -56,7 +56,7 @@ int inet_pton_xp(int af, const char *src, void *dst)
 	}
 	return 0;
 }
-#else /* !WIN32 => UNIX */
+#else /* !_WIN32 => UNIX */
 #include <sys/types.h>
 #include <ifaddrs.h>
 #endif
@@ -109,7 +109,7 @@ namespace util
 
 namespace net
 {
-#ifdef WIN32
+#ifdef _WIN32
 	bool IsWindowsXPorLater()
 	{
 		static bool isRequested = false;
@@ -333,13 +333,13 @@ namespace net
 
 		return mtu;
 	}
-#endif // WIN32
+#endif // _WIN32
 
 	int GetMTU(const boost::asio::ip::address& localAddress)
 	{
 		int fallback = localAddress.is_v6 () ? 1280 : 620; // fallback MTU
 
-#ifdef WIN32
+#ifdef _WIN32
 		return GetMTUWindows(localAddress, fallback);
 #else
 		return GetMTUUnix(localAddress, fallback);
@@ -349,7 +349,7 @@ namespace net
 
 	const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6)
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
 		if(ipv6)
 			return boost::asio::ip::address::from_string("::1");

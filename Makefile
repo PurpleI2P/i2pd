@@ -54,7 +54,7 @@ NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-DEPS            := $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
+DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
@@ -82,7 +82,7 @@ obj/%.o: %.cpp
 -include $(DEPS)
 
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
-	$(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
@@ -130,3 +130,4 @@ doxygen:
 .PHONY: api_client
 .PHONY: mk_obj_dir
 .PHONY: install
+.PHONY: strip
