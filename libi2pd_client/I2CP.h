@@ -169,7 +169,8 @@ namespace client
 			void HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage ();
 			void Terminate ();
-
+			void SendBuffer (uint8_t * buf, size_t len);
+			
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleI2CPMessageSentQueue (const boost::system::error_code& ecode, std::size_t bytes_transferred, SendQueue queue);
 			std::string ExtractString (const uint8_t * buf, size_t len);

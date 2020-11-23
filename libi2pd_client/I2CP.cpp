@@ -354,40 +354,17 @@ namespace client
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		if (len > I2CP_MAX_MESSAGE_LENGTH)
+		auto l = len + I2CP_HEADER_SIZE;
+		if (l > I2CP_MAX_MESSAGE_LENGTH)
 		{
-			LogPrint (eLogError, "I2CP: Message to send is too long ", len);
+			LogPrint (eLogError, "I2CP: Message to send is too long ", l);
 			return;
 		}	
-		auto socket = m_Socket;
-		if (socket)
-		{
-			auto l = len + I2CP_HEADER_SIZE;
-			uint8_t * buf = m_IsSending ? new uint8_t[l] : m_SendBuffer;
-			htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
-			buf[I2CP_HEADER_TYPE_OFFSET] = type;
-			memcpy (buf + I2CP_HEADER_SIZE, payload, len);
-			if (m_IsSending)
-			{
-				if (!m_SendQueue)
-					m_SendQueue = std::make_shared<SendQueue::element_type> ();
-				if (m_SendQueue->size () > I2CP_MAX_SEND_QUEUE_SIZE)
-				{
-					LogPrint (eLogError, "I2CP: Queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);
-					return;
-				}
-				m_SendQueue->push_back ({buf, l});
-			}	
-			else
-			{
-				m_IsSending = true;
-				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, l), boost::asio::transfer_all (),
-					std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2));
-			}	
-		}
-		else
-			LogPrint (eLogError, "I2CP: Can't write to the socket");
+		uint8_t * buf = m_IsSending ? new uint8_t[l] : m_SendBuffer;
+		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
+		buf[I2CP_HEADER_TYPE_OFFSET] = type;
+		memcpy (buf + I2CP_HEADER_SIZE, payload, len);
+		SendBuffer (buf, l);
 	}
 
 	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -420,6 +397,38 @@ namespace client
 		
 		HandleI2CPMessageSent (ecode, bytes_transferred);
 	}
+
+	void I2CPSession::SendBuffer (uint8_t * buf, size_t len)
+	{
+		auto socket = m_Socket;
+		if (socket)
+		{
+			if (m_IsSending)
+			{
+				auto sendQueue = m_SendQueue;
+				if (!sendQueue)
+				{	
+					sendQueue = std::make_shared<SendQueue::element_type> ();
+					m_SendQueue = sendQueue;
+				}	
+				else if (sendQueue->size () > I2CP_MAX_SEND_QUEUE_SIZE)
+				{
+					LogPrint (eLogError, "I2CP: Queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);
+					return;
+				}
+				sendQueue->push_back ({buf, len});
+			}	
+			else
+			{
+				m_IsSending = true;
+				boost::asio::async_write (*socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),
+					std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
+						std::placeholders::_1, std::placeholders::_2));
+			}	
+		}	
+		else
+			LogPrint (eLogError, "I2CP: Can't write to the socket");
+	}	
 		
 	std::string I2CPSession::ExtractString (const uint8_t * buf, size_t len)
 	{
@@ -850,38 +859,20 @@ namespace client
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
-		auto socket = m_Socket;
-		if (socket)
+		auto l = len + 10 + I2CP_HEADER_SIZE;
+		if (l > I2CP_MAX_MESSAGE_LENGTH)
 		{
-			auto l = len + 10 + I2CP_HEADER_SIZE;
-			uint8_t * buf = m_IsSending ? new uint8_t[l] : m_SendBuffer;
-			htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 10);
-			buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
-			htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
-			htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);
-			htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);
-			memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
-			if (m_IsSending)
-			{
-				if (!m_SendQueue)
-					m_SendQueue = std::make_shared<SendQueue::element_type> ();
-				if (m_SendQueue->size () > I2CP_MAX_SEND_QUEUE_SIZE)
-				{
-					LogPrint (eLogError, "I2CP: Queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);
-					return;
-				}
-				m_SendQueue->push_back ({buf, l});
-			}	
-			else
-			{
-				m_IsSending = true;
-				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, l), boost::asio::transfer_all (),
-				std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
-					std::placeholders::_1, std::placeholders::_2));
-			}	
-		}	
-		else
-			LogPrint (eLogError, "I2CP: Can't write to the socket");
+			LogPrint (eLogError, "I2CP: Message to send is too long ", l);
+			return;
+		}			
+		uint8_t * buf = m_IsSending ? new uint8_t[l] : m_SendBuffer;
+		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 10);
+		buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
+		htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
+		htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);
+		htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);
+		memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
+		SendBuffer (buf, l);
 	}
 
 	I2CPServer::I2CPServer (const std::string& interface, int port, bool isSingleThread):
