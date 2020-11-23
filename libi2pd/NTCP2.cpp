@@ -742,6 +742,10 @@ namespace transport
 	void NTCP2Session::ReceiveLength ()
 	{
 		if (IsTerminated ()) return;
+#ifdef __linux__
+		const int one = 1;
+    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+#endif		
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -793,6 +797,10 @@ namespace transport
 	void NTCP2Session::Receive ()
 	{
 		if (IsTerminated ()) return;
+#ifdef __linux__
+		const int one = 1;
+    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+#endif			
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
