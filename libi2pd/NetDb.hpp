@@ -44,6 +44,7 @@ namespace data
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15; 
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
+	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 28); // 0.9.28
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;

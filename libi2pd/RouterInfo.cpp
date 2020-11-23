@@ -948,5 +948,12 @@ namespace data
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted, ctx, true);
 	}
+
+	bool RouterInfo::IsEligibleFloodfill () const 
+	{
+		// floodfill must be reachable, >= 0.9.28 and not DSA
+		return IsReachable () && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
+	}	
 }
 }

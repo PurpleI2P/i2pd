@@ -184,8 +184,7 @@ namespace data
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
-			// floodfill must be reachable and not DSA
-			bool IsEligibleFloodfill () const { return IsReachable () && GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; };
+			bool IsEligibleFloodfill () const;
 		
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps);
