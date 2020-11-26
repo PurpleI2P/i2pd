@@ -1011,8 +1011,11 @@ namespace garlic
 
 	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags)
 	{
-		for (int i = 0; i < numTags; i++)
-			GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+		if (GetOwner ())
+		{	
+			for (int i = 0; i < numTags; i++)
+				GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+		}	
 	}
 
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)
