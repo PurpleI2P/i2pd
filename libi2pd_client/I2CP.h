@@ -71,6 +71,8 @@ namespace client
 			I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner, 
 				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
 			~I2CPDestination () {};
+
+			void Stop ();
 			
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };

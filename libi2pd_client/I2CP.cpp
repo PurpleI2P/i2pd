@@ -30,6 +30,12 @@ namespace client
 	{
 	}
 
+	void I2CPDestination::Stop ()
+	{
+		LeaseSetDestination::Stop ();
+		m_Owner = nullptr;
+	}	
+		
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
 	{
 		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_Identity->GetCryptoKeyType (), key);
@@ -72,7 +78,8 @@ namespace client
 	{
 		uint32_t length = bufbe32toh (buf);
 		if (length > len - 4) length = len - 4;
-		m_Owner->SendMessagePayloadMessage (buf + 4, length);
+		if (m_Owner)
+			m_Owner->SendMessagePayloadMessage (buf + 4, length);
 	}
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
@@ -84,7 +91,8 @@ namespace client
 		leases[-1] = tunnels.size ();
 		htobe16buf (leases - 3, m_Owner->GetSessionID ());
 		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
-		m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
+		if (m_Owner)
+			m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
 	}
 
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
@@ -119,7 +127,8 @@ namespace client
 				[s, msg, remote, nonce]()
 				{
 					bool sent = s->SendMsg (msg, remote);
-					s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+					if (s->m_Owner)
+						s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
 				});
 		}
 		else
@@ -130,9 +139,10 @@ namespace client
 					if (ls)
 					{
 						bool sent = s->SendMsg (msg, ls);
-						s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+						if (s->m_Owner)
+							s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
 					}
-					else
+					else if (s->m_Owner)
 						s->m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
 				});
 		}
