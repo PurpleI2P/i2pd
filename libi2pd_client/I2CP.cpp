@@ -89,10 +89,16 @@ namespace client
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
 		leases[-1] = tunnels.size ();
-		htobe16buf (leases - 3, m_Owner->GetSessionID ());
-		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
 		if (m_Owner)
-			m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
+		{	
+			uint16_t sessionID = m_Owner->GetSessionID ();
+			if (sessionID != 0xFFFF)
+			{	
+				htobe16buf (leases - 3, sessionID);
+				size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
+				m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
+			}	
+		}	
 	}
 
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
@@ -243,11 +249,7 @@ namespace client
 
 	I2CPSession::~I2CPSession ()
 	{
-		if (m_SendQueue)
-		{
-			for (auto& it: *m_SendQueue)
-				delete[] boost::asio::buffer_cast<const uint8_t *>(it);
-		}	
+		Terminate ();
 	}
 
 	void I2CPSession::Start ()
@@ -358,8 +360,18 @@ namespace client
 			m_Socket->close ();
 			m_Socket = nullptr;
 		}
-		m_Owner.RemoveSession (GetSessionID ());
-		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " terminated");
+		if (m_SendQueue)
+		{
+			for (auto& it: *m_SendQueue)
+				delete[] boost::asio::buffer_cast<const uint8_t *>(it);
+			m_SendQueue = nullptr;
+		}	
+		if (m_SessionID != 0xFFFF)
+		{	
+			m_Owner.RemoveSession (GetSessionID ());
+			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " terminated");
+			m_SessionID = 0xFFFF;
+		}	
 	}
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
@@ -555,11 +567,7 @@ namespace client
 	{
 		SendSessionStatusMessage (0); // destroy
 		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
-		if (m_Destination)
-		{
-			m_Destination->Stop ();
-			m_Destination = 0;
-		}
+		Terminate ();
 	}
 
 	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
