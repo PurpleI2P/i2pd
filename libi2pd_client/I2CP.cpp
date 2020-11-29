@@ -364,6 +364,7 @@ namespace client
 		{
 			for (auto& it: *m_SendQueue)
 				delete[] boost::asio::buffer_cast<const uint8_t *>(it);
+			m_SendQueue->clear ();
 			m_SendQueue = nullptr;
 		}	
 		if (m_SessionID != 0xFFFF)
@@ -415,7 +416,8 @@ namespace client
 	void I2CPSession::HandleI2CPMessageSentQueue (const boost::system::error_code& ecode, std::size_t bytes_transferred, SendQueue queue)
 	{	
 		for (auto& it: *queue)
-			delete[] boost::asio::buffer_cast<const uint8_t *>(it);;
+			delete[] boost::asio::buffer_cast<const uint8_t *>(it);
+		queue->clear ();
 		
 		HandleI2CPMessageSent (ecode, bytes_transferred);
 	}
