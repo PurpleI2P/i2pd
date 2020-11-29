@@ -21,10 +21,18 @@ namespace stream
 {
 	void SendBufferQueue::Add (const uint8_t * buf, size_t len, SendHandler handler)
 	{
-		m_Buffers.push_back (std::make_shared<SendBuffer>(buf, len, handler));
-		m_Size += len;
+		Add (std::make_shared<SendBuffer>(buf, len, handler));
 	}
 
+	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
+	{
+		if (buf)
+		{	
+			m_Buffers.push_back (buf);
+			m_Size += buf->len;
+		}	
+	}	
+	
 	size_t SendBufferQueue::Get (uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
