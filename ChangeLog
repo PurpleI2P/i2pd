@@ -1,6 +1,28 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.35.0] - 2020-11-30
+### Added
+- ECIES-x25519 routers
+- Random intro keys for SSU
+- Graceful shutdown timer for windows
+- Send queue for I2CP messages
+- Update DSA router keys to EdDSA
+- TCP_QUICKACK for NTCP2 sockets on Linux
+### Changed
+- Exclude floodfills with DSA signatures and < 0.9.28
+- Random intervals between tunnel tests and manage for tunnel pools
+- Don't replace an addressbook record by one with DSA signature
+- Publish RouterInfo after update
+- Create paired inbound tunnels if no inbound tunnels yet
+- Reseed servers list
+### Fixed
+- Transient signature length, if different from identity
+- Terminate I2CP session if destroyed
+- RouterInfo publishing confirmation
+- Check if ECIES-X25519-AEAD-Ratchet session expired before generating more tags 
+- Correct block size for delivery type local for ECIES-X25519-AEAD-Ratchet
+
 ## [2.34.0] - 2020-10-27
 ### Added
 - Ping responses for streaming
