@@ -22,12 +22,8 @@ ifeq ($(USE_UPNP),yes)
 	endif
 endif
 
-ifeq ($(USE_AESNI),1)
-	CXXFLAGS += -maes
+ifeq ($(USE_AESNI),yes)
+	CXXFLAGS += -D__AES__ -maes
 else
 	CXXFLAGS += -msse
-endif
-
-ifeq ($(USE_AVX),1)
-	CXXFLAGS += -mavx
 endif

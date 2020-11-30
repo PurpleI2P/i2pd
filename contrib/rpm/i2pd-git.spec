@@ -1,7 +1,7 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:          i2pd-git
-Version:       2.33.0
+Version:       2.35.0
 Release:       git%{git_hash}%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd
@@ -56,17 +56,30 @@ cd build
 %endif
 %endif
 
-%if 0%{?mageia} > 7
-pushd build
-make %{?_smp_mflags}
-popd
-%else
-make %{?_smp_mflags}
+%if 0%{?fedora} >= 33
+pushd %{_target_platform}
 %endif
 
+%if 0%{?mageia} > 7
+pushd build
+%endif
+
+make %{?_smp_mflags}
+
+%if 0%{?fedora} >= 33
+popd
+%endif
+
+%if 0%{?mageia} > 7
+popd
+%endif
 
 %install
 pushd build
+
+%if 0%{?fedora} >= 33
+pushd %{_target_platform}
+%endif
 
 %if 0%{?mageia}
 pushd build
@@ -124,6 +137,12 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon Nov 30 2020 orignal <i2porignal@yandex.ru> - 2.35.0
+- update to 2.35.0
+
+* Tue Oct 27 2020 orignal <i2porignal@yandex.ru> - 2.34.0
+- update to 2.34.0
+
 * Mon Aug 24 2020 orignal <i2porignal@yandex.ru> - 2.33.0
 - update to 2.33.0
 

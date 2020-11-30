@@ -119,7 +119,7 @@ namespace crypto
 
 		~CryptoConstants ()
 		{
-			BN_free (elgp);  BN_free (elgg); BN_free (dsap); BN_free (dsaq); BN_free (dsag); BN_free (rsae);
+			BN_free (elgp); BN_free (elgg); BN_free (dsap); BN_free (dsaq); BN_free (dsag); BN_free (rsae);
 		}
 	};
 
@@ -522,7 +522,7 @@ namespace crypto
 			bn2buf (y, encrypted + len, len);
 			RAND_bytes (encrypted + 2*len, 256 - 2*len);
 		}
-		// ecryption key and iv
+		// encryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx);
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
 		uint8_t keyBuf[64], iv[64], shared[32];
@@ -638,7 +638,7 @@ namespace crypto
 	{
 		uint64_t buf[256];
 		uint64_t hash[12]; // 96 bytes
-#ifdef __AVX__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::avx)
 		{
 			__asm__
@@ -657,7 +657,7 @@ namespace crypto
 					:
 					: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
 						[buf]"r"(buf), [hash]"r"(hash)
-					: "memory", "%xmm0"	// TODO: change to %ymm0 later
+					: "memory", "%xmm0" // TODO: change to %ymm0 later
 					);
 		}
 		else
@@ -688,7 +688,7 @@ namespace crypto
 		// concatenate with msg
 		memcpy (buf + 8, msg, len);
 		// calculate first hash
-		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8));  // 16 bytes
+		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8)); // 16 bytes
 
 		// calculate digest
 		MD5((uint8_t *)hash, 96, digest);
@@ -696,35 +696,28 @@ namespace crypto
 
 // AES
 #ifdef __AES__
-	#ifdef ARM64AES
-	void init_aesenc(void){
-			// TODO: Implementation
-	}
-
-	#endif
-
 	#define KeyExpansion256(round0,round1) \
-		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
-		"movaps	%%xmm1, %%xmm4 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pshufd $0xff, %%xmm2, %%xmm2 \n" \
+		"movaps %%xmm1, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm1 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm1 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm1 \n" \
 		"pxor %%xmm2, %%xmm1 \n" \
-		"movaps	%%xmm1, "#round0"(%[sched]) \n" \
+		"movaps %%xmm1, "#round0"(%[sched]) \n" \
 		"aeskeygenassist $0, %%xmm1, %%xmm4 \n" \
-		"pshufd	$0xaa, %%xmm4, %%xmm2 \n" \
-		"movaps	%%xmm3, %%xmm4 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pshufd $0xaa, %%xmm4, %%xmm2 \n" \
+		"movaps %%xmm3, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm3 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm3 \n" \
-		"pslldq	$4, %%xmm4 \n" \
+		"pslldq $4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm3 \n" \
 		"pxor %%xmm2, %%xmm3 \n" \
-		"movaps	%%xmm3, "#round1"(%[sched]) \n"
+		"movaps %%xmm3, "#round1"(%[sched]) \n"
 #endif
 
 #ifdef __AES__
@@ -750,16 +743,16 @@ namespace crypto
 			KeyExpansion256(192,208)
 			"aeskeygenassist $64, %%xmm3, %%xmm2 \n"
 			// key expansion final
-			"pshufd	$0xff, %%xmm2, %%xmm2 \n"
-			"movaps	%%xmm1, %%xmm4 \n"
-			"pslldq	$4, %%xmm4 \n"
+			"pshufd $0xff, %%xmm2, %%xmm2 \n"
+			"movaps %%xmm1, %%xmm4 \n"
+			"pslldq $4, %%xmm4 \n"
 			"pxor %%xmm4, %%xmm1 \n"
-			"pslldq	$4, %%xmm4 \n"
+			"pslldq $4, %%xmm4 \n"
 			"pxor %%xmm4, %%xmm1 \n"
-			"pslldq	$4, %%xmm4 \n"
+			"pslldq $4, %%xmm4 \n"
 			"pxor %%xmm4, %%xmm1 \n"
 			"pxor %%xmm2, %%xmm1 \n"
-			"movups	%%xmm1, 224(%[sched]) \n"
+			"movups %%xmm1, 224(%[sched]) \n"
 			: // output
 			: [key]"r"((const uint8_t *)key), [sched]"r"(GetKeySchedule ()) // input
 			: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory" // clogged
@@ -794,9 +787,9 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					EncryptAES256(sched)
-					"movups	%%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[out]) \n"
 					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
 					);
 		}
@@ -833,9 +826,9 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					DecryptAES256(sched)
-					"movups	%%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[out]) \n"
 					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
 					);
 		}
@@ -848,7 +841,7 @@ namespace crypto
 
 #ifdef __AES__
 	#define CallAESIMC(offset) \
-		"movaps "#offset"(%[shed]), %%xmm0 \n"	\
+		"movaps "#offset"(%[shed]), %%xmm0 \n" \
 		"aesimc %%xmm0, %%xmm0 \n" \
 		"movaps %%xmm0, "#offset"(%[shed]) \n"
 #endif
@@ -873,7 +866,7 @@ namespace crypto
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key); // expand encryption key first
-			// then  invert it using aesimc
+			// then invert it using aesimc
 			__asm__
 				(
 					CallAESIMC(16)
@@ -906,18 +899,18 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[iv]), %%xmm1 \n"
+					"movups (%[iv]), %%xmm1 \n"
 					"1: \n"
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					"pxor %%xmm1, %%xmm0 \n"
 					EncryptAES256(sched)
-					"movaps	%%xmm0, %%xmm1 \n"
-					"movups	%%xmm0, (%[out]) \n"
+					"movaps %%xmm0, %%xmm1 \n"
+					"movups %%xmm0, (%[out]) \n"
 					"add $16, %[in] \n"
 					"add $16, %[out] \n"
 					"dec %[num] \n"
 					"jnz 1b \n"
-					"movups	%%xmm1, (%[iv]) \n"
+					"movups %%xmm1, (%[iv]) \n"
 					:
 					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
 						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
@@ -951,12 +944,12 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[iv]), %%xmm1 \n"
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[iv]), %%xmm1 \n"
+					"movups (%[in]), %%xmm0 \n"
 					"pxor %%xmm1, %%xmm0 \n"
 					EncryptAES256(sched)
-					"movups	%%xmm0, (%[out]) \n"
-					"movups	%%xmm0, (%[iv]) \n"
+					"movups %%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[iv]) \n"
 					:
 					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
 						[in]"r"(in), [out]"r"(out)
@@ -975,19 +968,19 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[iv]), %%xmm1 \n"
+					"movups (%[iv]), %%xmm1 \n"
 					"1: \n"
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					"movaps %%xmm0, %%xmm2 \n"
 					DecryptAES256(sched)
 					"pxor %%xmm1, %%xmm0 \n"
-					"movups	%%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[out]) \n"
 					"movaps %%xmm2, %%xmm1 \n"
 					"add $16, %[in] \n"
 					"add $16, %[out] \n"
 					"dec %[num] \n"
 					"jnz 1b \n"
-					"movups	%%xmm1, (%[iv]) \n"
+					"movups %%xmm1, (%[iv]) \n"
 					:
 					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
 						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
@@ -1021,12 +1014,12 @@ namespace crypto
 		{
 			__asm__
 				(
-					"movups	(%[iv]), %%xmm1 \n"
-					"movups	(%[in]), %%xmm0 \n"
-					"movups	%%xmm0, (%[iv]) \n"
+					"movups (%[iv]), %%xmm1 \n"
+					"movups (%[in]), %%xmm0 \n"
+					"movups %%xmm0, (%[iv]) \n"
 					DecryptAES256(sched)
 					"pxor %%xmm1, %%xmm0 \n"
-					"movups	%%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[out]) \n"
 					:
 					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
 						[in]"r"(in), [out]"r"(out)
@@ -1046,7 +1039,7 @@ namespace crypto
 			__asm__
 				(
 					// encrypt IV
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					EncryptAES256(sched_iv)
 					"movaps %%xmm0, %%xmm1 \n"
 					// double IV encryption
@@ -1056,11 +1049,11 @@ namespace crypto
 					"1: \n"
 					"add $16, %[in] \n"
 					"add $16, %[out] \n"
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					"pxor %%xmm1, %%xmm0 \n"
 					EncryptAES256(sched_l)
-					"movaps	%%xmm0, %%xmm1 \n"
-					"movups	%%xmm0, (%[out]) \n"
+					"movaps %%xmm0, %%xmm1 \n"
+					"movups %%xmm0, (%[out]) \n"
 					"dec %[num] \n"
 					"jnz 1b \n"
 					:
@@ -1097,11 +1090,11 @@ namespace crypto
 					"1: \n"
 					"add $16, %[in] \n"
 					"add $16, %[out] \n"
-					"movups	(%[in]), %%xmm0 \n"
+					"movups (%[in]), %%xmm0 \n"
 					"movaps %%xmm0, %%xmm2 \n"
 					DecryptAES256(sched_l)
 					"pxor %%xmm1, %%xmm0 \n"
-					"movups	%%xmm0, (%[out]) \n"
+					"movups %%xmm0, (%[out]) \n"
 					"movaps %%xmm2, %%xmm1 \n"
 					"dec %[num] \n"
 					"jnz 1b \n"
@@ -1323,9 +1316,24 @@ namespace crypto
 #endif
 	}
 
+	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		SHA256_Update (&ctx, buf, len);
+		SHA256_Final (m_H, &ctx);
+	}
+
+	void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)
+	{
+		HKDF (m_CK, sharedSecret, 32, "", m_CK);
+		// new ck is m_CK[0:31], key is m_CK[32:63]
+	}
+
 // init and terminate
 
-/*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
+/*	std::vector <std::unique_ptr<std::mutex> > m_OpenSSLMutexes;
 	static void OpensslLockingCallback(int mode, int type, const char * file, int line)
 	{
 		if (type > 0 && (size_t)type < m_OpenSSLMutexes.size ())
@@ -1337,10 +1345,9 @@ namespace crypto
 		}
 	}*/
 
-
-	void InitCrypto (bool precomputation)
+	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force)
 	{
-		i2p::cpu::Detect ();
+		i2p::cpu::Detect (aesni, avx, force);
 #if LEGACY_OPENSSL
 		SSL_library_init ();
 #endif

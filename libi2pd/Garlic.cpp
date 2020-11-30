@@ -506,7 +506,7 @@ namespace garlic
 		else
 		{
 			bool found = false;
-			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 			{
 				// try ECIESx25519 tag
 				uint64_t tag;
@@ -536,7 +536,7 @@ namespace garlic
 					decryption->Decrypt(buf + 514, length - 514, buf + 514);
 					HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 				}
-				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 				{
 					// otherwise ECIESx25519
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
@@ -709,18 +709,27 @@ namespace garlic
 		}
 	}
 
-	std::shared_ptr<I2NPMessage> GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination,
-		std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet)
+	std::shared_ptr<I2NPMessage> GarlicDestination::WrapMessageForRouter (std::shared_ptr<const i2p::data::RouterInfo> router,
+		std::shared_ptr<I2NPMessage> msg)
 	{
-		auto session = GetRoutingSession (destination, attachLeaseSet);
-		return session->WrapSingleMessage (msg);
+		if (router->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+		{
+			auto session = std::make_shared<ECIESX25519AEADRatchetSession>(this, false);
+			session->SetRemoteStaticKey (router->GetIdentity ()->GetEncryptionPublicKey ());
+			return session->WrapOneTimeMessage (msg);
+		}	
+		else
+		{	
+			auto session = GetRoutingSession (router, false);
+			return session->WrapSingleMessage (msg);
+		}	
 	}
 
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-		if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET &&
-			SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
+		if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD &&
+			SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 		{
 			ECIESX25519AEADRatchetSessionPtr session;
 			uint8_t staticKey[32];
@@ -762,6 +771,7 @@ namespace garlic
 			}
 			return session;
 		}
+		return nullptr;
 	}
 
 	void GarlicDestination::CleanupExpiredTags ()

@@ -176,15 +176,6 @@ namespace garlic
 		memcpy (m_H, hh, 32);
 	}
 
-	void ECIESX25519AEADRatchetSession::MixHash (const uint8_t * buf, size_t len)
-	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, buf, len);
-		SHA256_Final (m_H, &ctx);
-	}
-
 	void ECIESX25519AEADRatchetSession::CreateNonce (uint64_t seqn, uint8_t * nonce)
 	{
 		memset (nonce, 0, 4);
@@ -245,7 +236,7 @@ namespace garlic
 		if (!GetOwner ()) return false;
 		// we are Bob
 		// KDF1
-		MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET), 32); // h = SHA256(h || bpk)
+		MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD), 32); // h = SHA256(h || bpk)
 
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{
@@ -256,8 +247,8 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, aepk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		MixKey (sharedSecret);
 
 		// decrypt flags/static
 		uint8_t nonce[12], fs[32];
@@ -276,8 +267,8 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519(bsk, apk)
-			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, apk)
+			MixKey (sharedSecret);
 		}
 		else // all zeros flags
 			CreateNonce (1, nonce);
@@ -289,10 +280,13 @@ namespace garlic
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD verification failed");
 			return false;
 		}
-		if (isStatic) MixHash (buf, len); // h = SHA256(h || ciphertext)
+		
 		m_State = eSessionStateNewSessionReceived;
-		GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
-
+		if (isStatic) 
+		{	
+			MixHash (buf, len); // h = SHA256(h || ciphertext)
+			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
+		}	
 		HandlePayload (payload.data (), len - 16, nullptr, 0);
 
 		return true;
@@ -452,7 +446,7 @@ namespace garlic
 		LogPrint (eLogDebug, "Garlic: new send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
 	}
 
-	bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+	bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen, bool isStatic)
 	{
 		ResetKeys ();
 		// we are Alice, bpk is m_RemoteStaticKey
@@ -469,32 +463,48 @@ namespace garlic
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
 		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
-		// encrypt static key section
+		MixKey (sharedSecret);
+		// encrypt flags/static key section
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET), 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
+		const uint8_t * fs;
+		if (isStatic)
+			fs = GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
+		else
 		{
-			LogPrint (eLogWarning, "Garlic: Static section AEAD encryption failed ");
+			memset (out + offset, 0, 32); // all zeros flags section	
+			fs = out + offset;
+		}
+		if (!i2p::crypto::AEADChaCha20Poly1305 (fs, 32, m_H, 32, m_CK + 32, nonce, out + offset, 48, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Flags/static section AEAD encryption failed ");
 			return false;
 		}
+		
 		MixHash (out + offset, 48); // h = SHA256(h || ciphertext)
 		offset += 48;
 		// KDF2
-		GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bpk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		if (isStatic)
+		{	
+			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
+			MixKey (sharedSecret); 
+		}
+		else
+			CreateNonce (1, nonce);
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return false;
 		}
-		MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
-
+		
 		m_State = eSessionStateNewSessionSent;
-		if (GetOwner ())
-			GenerateMoreReceiveTags (CreateNewSessionTagset (), ECIESX25519_NSR_NUM_GENERATED_TAGS);
-
+		if (isStatic)
+		{	
+			MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
+			if (GetOwner ())
+				GenerateMoreReceiveTags (CreateNewSessionTagset (), ECIESX25519_NSR_NUM_GENERATED_TAGS);
+		}
 		return true;
 	}
 
@@ -520,9 +530,9 @@ namespace garlic
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
 		m_EphemeralKeys->Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32)
+		MixKey (sharedSecret);
 		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk)
-		i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+		MixKey (sharedSecret);
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
 		// calculate hash for zero length
@@ -607,9 +617,9 @@ namespace garlic
 		{
 			// only fist time, we assume ephemeral keys the same
 			m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
-			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK, 32); // chainKey = HKDF(chainKey, sharedSecret, "", 32)
-			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET); // x25519 (ask, bepk)
-			i2p::crypto::HKDF (m_CK, sharedSecret, 32, "", m_CK); // [chainKey, key] = HKDF(chainKey, sharedSecret, "", 64)
+			MixKey (sharedSecret);
+			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
+			MixKey (sharedSecret);
 		}
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -784,6 +794,11 @@ namespace garlic
 					return nullptr;
 				len += 72;
 			break;
+			case eSessionStateOneTime:
+				if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen, false))
+					return nullptr;
+				len += 96;
+			break;	
 			default:
 				return nullptr;
 		}
@@ -794,6 +809,12 @@ namespace garlic
 		return m;
 	}
 
+	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg)
+	{
+		m_State = eSessionStateOneTime;
+		return WrapSingleMessage (msg);
+	}	
+		
 	std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -878,7 +899,7 @@ namespace garlic
 				}
 			}
 			// msg
-			if (msg && m_Destination)
+			if (msg)
 				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
@@ -990,8 +1011,11 @@ namespace garlic
 
 	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags)
 	{
-		for (int i = 0; i < numTags; i++)
-			GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+		if (GetOwner ())
+		{	
+			for (int i = 0; i < numTags; i++)
+				GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+		}	
 	}
 
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)

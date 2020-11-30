@@ -98,6 +98,7 @@ namespace i2p
 	const size_t ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE = 464;
 
 	// ECIES BuildResponseRecord
+	const size_t ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET = 0;
 	const size_t ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET = 511;
 	
 	enum I2NPMessageType

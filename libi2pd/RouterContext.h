@@ -84,7 +84,7 @@ namespace i2p
 			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
-			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
+			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
@@ -109,7 +109,9 @@ namespace i2p
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
-
+			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
+			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
 			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
@@ -133,7 +135,7 @@ namespace i2p
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) { return false; }; // not implemented
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
 
 		private:
 
@@ -160,6 +162,8 @@ namespace i2p
 			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
+			// for ECIESx25519
+			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_InitialNoiseState, m_CurrentNoiseState;
 	};
 
 	extern RouterContext context;

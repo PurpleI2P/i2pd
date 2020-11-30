@@ -361,39 +361,82 @@ namespace i2p
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
 				BN_CTX * ctx = BN_CTX_new ();
-				i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
+				bool success = i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
 				BN_CTX_free (ctx);
+				if(!success) return false;
+				uint8_t retCode = 0;
+				bool isECIES = i2p::context.IsECIES ();
 				// replace record to reply
 				if (i2p::context.AcceptsTunnels () &&
 					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= g_MaxNumTransitTunnels &&
 					!i2p::transport::transports.IsBandwidthExceeded () &&
 					!i2p::transport::transports.IsTransitBandwidthExceeded ())
 				{
-					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
+					auto transitTunnel = isECIES ? 
+						i2p::tunnel::CreateTransitTunnel (
+							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+							clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+							clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
+							clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
+							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
+							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) :
+						i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
 							clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 							bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
 							clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
 							clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
 							clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
-							clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET ] & 0x40);
+							clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
 					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
 				}
 				else
-					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30; // always reject with bandwidth reason (30)
+					retCode = 30; // always reject with bandwidth reason (30)
 
-				//TODO: fill filler
-				SHA256 (record + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1, // + 1 byte of ret
-					record + BUILD_RESPONSE_RECORD_HASH_OFFSET);
+				if (isECIES)
+				{
+					memset (record + ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
+					record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode; 
+				}	
+				else
+				{	
+					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode;
+					SHA256 (record + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1, // + 1 byte of ret
+						record + BUILD_RESPONSE_RECORD_HASH_OFFSET);
+				}	
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
 				{
-					encryption.SetKey (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
-					encryption.SetIV (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
 					uint8_t * reply = records + j*TUNNEL_BUILD_RECORD_SIZE;
-					encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+					if (isECIES)
+					{	
+						if (j == i)
+						{
+							uint8_t nonce[12];
+							memset (nonce, 0, 12);
+							auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
+							if (!noiseState || !i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
+								noiseState->m_H, 32, noiseState->m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+							{
+								LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
+								return false;
+							}	
+						}
+						else
+						{	
+							encryption.SetKey (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
+							encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);	
+							encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+						}	
+					}
+					else
+					{
+						encryption.SetKey (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
+						encryption.SetIV (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);	
+						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+					}	
 				}
 				return true;
 			}
@@ -405,7 +448,7 @@ namespace i2p
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
-		if (len < num*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 1)
+		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "VaribleTunnelBuild message of ", num, " records is too short ", len);
 			return;
@@ -430,28 +473,55 @@ namespace i2p
 		}
 		else
 		{
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			if (HandleBuildRequestRecords (num, buf + 1, clearText))
+			if (i2p::context.IsECIES ())
 			{
-				if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+				uint8_t clearText[ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+				if (HandleBuildRequestRecords (num, buf + 1, clearText))
 				{
-					// so we send it to reply tunnel
-					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							eI2NPVariableTunnelBuildReply, buf, len,
-							bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					if (clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+					{
+						// so we send it to reply tunnel
+						transports.SendMessage (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateTunnelGatewayMsg (bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								eI2NPVariableTunnelBuildReply, buf, len,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					}
+					else
+						transports.SendMessage (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
+								bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 				}
-				else
-					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
-							bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 			}
+			else
+			{	
+				uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+				if (HandleBuildRequestRecords (num, buf + 1, clearText))
+				{
+					if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
+					{
+						// so we send it to reply tunnel
+						transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+								eI2NPVariableTunnelBuildReply, buf, len,
+								bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+					}
+					else
+						transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len,
+								bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+				}
+			}	
 		}
 	}
 
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
 	{
-		if (len < NUM_TUNNEL_BUILD_RECORDS*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE)
+		if (i2p::context.IsECIES ())
+		{
+			LogPrint (eLogWarning, "TunnelBuild is too old for ECIES router");
+			return;
+		}	
+		if (len < NUM_TUNNEL_BUILD_RECORDS*TUNNEL_BUILD_RECORD_SIZE)
 		{
 			LogPrint (eLogError, "TunnelBuild message is too short ", len);
 			return;

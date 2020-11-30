@@ -1,6 +1,57 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.35.0] - 2020-11-30
+### Added
+- ECIES-x25519 routers
+- Random intro keys for SSU
+- Graceful shutdown timer for windows
+- Send queue for I2CP messages
+- Update DSA router keys to EdDSA
+- TCP_QUICKACK for NTCP2 sockets on Linux
+### Changed
+- Exclude floodfills with DSA signatures and < 0.9.28
+- Random intervals between tunnel tests and manage for tunnel pools
+- Don't replace an addressbook record by one with DSA signature
+- Publish RouterInfo after update
+- Create paired inbound tunnels if no inbound tunnels yet
+- Reseed servers list
+### Fixed
+- Transient signature length, if different from identity
+- Terminate I2CP session if destroyed
+- RouterInfo publishing confirmation
+- Check if ECIES-X25519-AEAD-Ratchet session expired before generating more tags 
+- Correct block size for delivery type local for ECIES-X25519-AEAD-Ratchet
+
+## [2.34.0] - 2020-10-27
+### Added
+- Ping responses for streaming
+- STREAM FORWARD for SAM
+- Tunnels through ECIES-x25519 routers
+- Single thread for I2CP
+- Shared transient destination between proxies
+- Database lookups from ECIES destinations with ratchets response
+- Handle WebDAV HTTP methods 
+- Don't try to connect or build tunnels if offline
+- Validate IP when trying connect to remote peer
+- Handle ICMP responses and WinAPI errors for SSU
+### Changed
+- Removed NTCP
+- Dropped gcc 4.7 support
+- Encyption type 0,4 by default for client tunnels
+- Stripped out some HTTP header for HTTP server response
+- HTTP 1.1 addressbook requests
+- Set LeaseSet type to 3 for ratchets if not specified
+- Handle SSU v4 and v6 messages in one thread
+- Eliminate DH keys thread
+### Fixed
+- Random crashes on I2CP session disconnect
+- Stream through racthets hangs if first SYN was not acked
+- Check "Last-Modified" instead "If-Modified-Since" for addressbook reponse
+- Trim behind ECIESx25519 tags 
+- Few bugs with Android main activity
+- QT visual and layout issues
+
 ## [2.33.0] - 2020-08-24
 ### Added
 - Shared transient addresses

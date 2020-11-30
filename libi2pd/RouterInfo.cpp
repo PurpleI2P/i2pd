@@ -719,7 +719,10 @@ namespace data
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = mtu;
-		memcpy (addr->ssu->key, key, 32);
+		if (key)
+			memcpy (addr->ssu->key, key, 32);
+		else
+			RAND_bytes (addr->ssu->key, 32);
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
@@ -945,5 +948,12 @@ namespace data
 		if (encryptor)
 			encryptor->Encrypt (data, encrypted, ctx, true);
 	}
+
+	bool RouterInfo::IsEligibleFloodfill () const 
+	{
+		// floodfill must be reachable, >= 0.9.28 and not DSA
+		return IsReachable () && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
+	}	
 }
 }

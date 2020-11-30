@@ -74,7 +74,7 @@ namespace transport
 	// RouterInfo flags
 	const uint8_t NTCP2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
 
-	struct NTCP2Establisher
+	struct NTCP2Establisher: private i2p::crypto::NoiseSymmetricState
 	{
 		NTCP2Establisher ();
 		~NTCP2Establisher ();
@@ -94,8 +94,6 @@ namespace transport
 		void KDF3Alice (); // for SessionConfirmed part 2
 		void KDF3Bob ();
 
-		void MixKey (const uint8_t * inputKeyMaterial);
-		void MixHash (const uint8_t * buf, size_t len);
 		void KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub); // for SessionRequest, (pub, priv) for DH
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
@@ -112,7 +110,7 @@ namespace transport
 
 		std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 		uint8_t m_RemoteEphemeralPublicKey[32]; // x25519
-		uint8_t m_RemoteStaticKey[32], m_IV[16], m_H[32] /*h*/, m_CK[64] /* [ck, k]*/;
+		uint8_t m_RemoteStaticKey[32], m_IV[16];
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len;
 

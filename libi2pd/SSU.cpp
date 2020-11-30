@@ -13,6 +13,10 @@
 #include "NetDb.hpp"
 #include "SSU.h"
 
+#ifdef _WIN32
+#include <boost/winapi/error_codes.hpp>
+#endif
+
 namespace i2p
 {
 namespace transport
@@ -247,11 +251,17 @@ namespace transport
 
 	void SSUServer::HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
-		if (!ecode ||
-		    ecode == boost::asio::error::connection_refused ||
-		    ecode == boost::asio::error::connection_reset ||
-		    ecode == boost::asio::error::network_unreachable ||
-		    ecode == boost::asio::error::host_unreachable)
+		if (!ecode
+		    || ecode == boost::asio::error::connection_refused
+		    || ecode == boost::asio::error::connection_reset
+		    || ecode == boost::asio::error::network_unreachable
+		    || ecode == boost::asio::error::host_unreachable
+#ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
+		    || ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+		    || ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
+		    || ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
+#endif
+		)
 		// just try continue reading when received ICMP response otherwise socket can crash,
 		// but better to find out which host were sent it and mark that router as unreachable
 		{
@@ -300,11 +310,17 @@ namespace transport
 
 	void SSUServer::HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
-		if (!ecode ||
-		    ecode == boost::asio::error::connection_refused ||
-		    ecode == boost::asio::error::connection_reset ||
-		    ecode == boost::asio::error::network_unreachable ||
-		    ecode == boost::asio::error::host_unreachable)
+		if (!ecode
+		    || ecode == boost::asio::error::connection_refused
+		    || ecode == boost::asio::error::connection_reset
+		    || ecode == boost::asio::error::network_unreachable
+		    || ecode == boost::asio::error::host_unreachable
+#ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
+		    || ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+		    || ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
+		    || ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
+#endif
+		)
 		// just try continue reading when received ICMP response otherwise socket can crash,
 		// but better to find out which host were sent it and mark that router as unreachable
 		{

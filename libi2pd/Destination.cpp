@@ -560,8 +560,8 @@ namespace client
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
 		auto msg = i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound);
-		if (floodfill->GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) // TODO: remove when implemented
-			msg = WrapMessage (floodfill, msg);
+		if (floodfill->GetIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // TODO: remove whan implemented
+			msg = WrapMessageForRouter (floodfill, msg);
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -746,7 +746,7 @@ namespace client
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
 			request->requestTimeoutTimer.cancel ();
 
-			bool isECIES = SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET) &&
+			bool isECIES = SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) &&
 				nextFloodfill->GetVersion () >= MAKE_VERSION_NUMBER(0, 9, 46); // >= 0.9.46;
 			uint8_t replyKey[32], replyTag[32];
 			RAND_bytes (replyKey, 32); // random session key
@@ -756,10 +756,9 @@ namespace client
 			else	
 				AddSessionKey (replyKey, replyTag);
 
-			auto msg = CreateLeaseSetDatabaseLookupMsg (dest, request->excluded,
-				request->replyTunnel, replyKey, replyTag, isECIES);
-			if (nextFloodfill->GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) // TODO: remove when implemented
-				msg = WrapMessage (nextFloodfill, msg);
+			auto msg = CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES);
+			if (nextFloodfill->GetIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) // TODO: remove whan implemented
+				msg = WrapMessageForRouter (nextFloodfill, msg);
 			request->outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock
@@ -846,8 +845,8 @@ namespace client
 
 	i2p::data::CryptoKeyType LeaseSetDestination::GetPreferredCryptoType () const
 	{
-		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET))
-			return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET;
+		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+			return i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
 		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
@@ -902,7 +901,7 @@ namespace client
 			else
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
-			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 			{	
 				m_ECIESx25519EncryptionKey.reset (encryptionKey);
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
@@ -1219,7 +1218,7 @@ namespace client
 
 	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 			if (m_ECIESx25519EncryptionKey && m_ECIESx25519EncryptionKey->decryptor)
 				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data, ctx, true);
 		if (m_StandardEncryptionKey && m_StandardEncryptionKey->decryptor)
@@ -1231,12 +1230,12 @@ namespace client
 
 	bool ClientDestination::SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const
 	{
-		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET ? (bool)m_ECIESx25519EncryptionKey : (bool)m_StandardEncryptionKey;
+		return keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD ? (bool)m_ECIESx25519EncryptionKey : (bool)m_StandardEncryptionKey;
 	}
 
 	const uint8_t * ClientDestination::GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const
 	{
-		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+		if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 			return m_ECIESx25519EncryptionKey ? m_ECIESx25519EncryptionKey->pub : nullptr;
 		return m_StandardEncryptionKey ? m_StandardEncryptionKey->pub : nullptr;
 	}

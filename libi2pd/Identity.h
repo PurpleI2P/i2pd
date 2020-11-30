@@ -64,7 +64,7 @@ namespace data
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 1;
-	const uint16_t CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET = 4;
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_X25519_AEAD = 4;
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST = 65280; // TODO: remove later
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC = 65281; // TODO: use GOST R 34.11 instead SHA256 and GOST 28147-89 instead AES
 
@@ -183,6 +183,7 @@ namespace data
 
 			void CreateSigner () const;
 			void CreateSigner (SigningKeyType keyType) const;
+			size_t GetPrivateKeyLen () const;
 
 		private:
 

@@ -454,17 +454,18 @@ namespace client
 				auto it = m_Addresses.find (name);
 				if (it != m_Addresses.end ()) // already exists ?
 				{
-					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash ()) // address changed?
+					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash () &&  // address changed?
+						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA 
 					{
 						it->second->identHash = ident->GetIdentHash ();
 						m_Storage->AddAddress (ident);
+						m_Storage->RemoveAddress (it->second->identHash);
 						LogPrint (eLogInfo, "Addressbook: updated host: ", name);
 					}
 				}
 				else
 				{
-					//m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
-					m_Addresses[name] = std::make_shared<Address>(ident->GetIdentHash ()); // for gcc 4.7
+					m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
 					m_Storage->AddAddress (ident);
 					if (is_update)
 						LogPrint (eLogInfo, "Addressbook: added new host: ", name);

@@ -124,7 +124,7 @@ namespace tunnel
 						uint8_t nonce[12];
 						memset (nonce, 0, 12);
 						if (!i2p::crypto::AEADChaCha20Poly1305 (record, TUNNEL_BUILD_RECORD_SIZE - 16, 
-							hop->h, 32, hop->ck, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+							hop->m_H, 32, hop->m_CK, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
 						{
 							LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 							return false;
@@ -474,7 +474,7 @@ namespace tunnel
 	{
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
-		uint64_t lastTs = 0;
+		uint64_t lastTs = 0, lastPoolsTs = 0;
 		while (m_IsRunning)
 		{
 			try
@@ -535,12 +535,20 @@ namespace tunnel
 					while (msg);
 				}
 
-				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastTs >= 15 && i2p::transport::transports.IsOnline()) // manage tunnels every 15 seconds
+				if (i2p::transport::transports.IsOnline())
 				{
-					ManageTunnels ();
-					lastTs = ts;
-				}
+					uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+					if (ts - lastTs >= 15) // manage tunnels every 15 seconds
+					{
+						ManageTunnels ();
+						lastTs = ts;
+					}
+					if (ts - lastPoolsTs >= 5) // manage pools every 5 seconds
+					{
+						ManageTunnelPools (ts);
+						lastPoolsTs = ts;
+					}	
+				}	
 			}
 			catch (std::exception& ex)
 			{
@@ -582,7 +590,6 @@ namespace tunnel
 		ManageInboundTunnels ();
 		ManageOutboundTunnels ();
 		ManageTransitTunnels ();
-		ManageTunnelPools ();
 	}
 
 	void Tunnels::ManagePendingTunnels ()
@@ -794,16 +801,13 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageTunnelPools ()
+	void Tunnels::ManageTunnelPools (uint64_t ts)
 	{
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		for (auto& pool : m_Pools)
 		{
 			if (pool && pool->IsActive ())
-			{
-				pool->CreateTunnels ();
-				pool->TestTunnels ();
-			}
+				pool->ManageTunnels (ts);
 		}
 	}
 

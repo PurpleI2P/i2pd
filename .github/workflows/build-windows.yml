@@ -26,4 +26,6 @@ jobs:
         install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
     - name: build application
-      run: make USE_UPNP=yes DEBUG=no -j3
+      run: |
+        mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
+        make USE_UPNP=yes DEBUG=no -j3

@@ -48,10 +48,10 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
-		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET)
+		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
-			RAND_bytes (m_StandardIdentity.publicKey, 224);
+			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
 		}	
 		else	
 			memcpy (m_StandardIdentity.publicKey, publicKey, 256); 
@@ -426,7 +426,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetEncryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
@@ -476,7 +476,7 @@ namespace data
 
 	size_t PrivateKeys::GetFullLen () const
 	{
-		size_t ret = m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen ();
+		size_t ret = m_Public->GetFullLen () + GetPrivateKeyLen () + m_Public->GetSigningPrivateKeyLen ();
 		if (IsOfflineSignature ())
 			ret += m_OfflineSignature.size () + m_TransientSigningPrivateKeyLen;
 		return ret;
@@ -486,9 +486,10 @@ namespace data
 	{
 		m_Public = std::make_shared<IdentityEx>();
 		size_t ret = m_Public->FromBuffer (buf, len);
-		if (!ret || ret + 256 > len) return 0; // overflow
-		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
-		ret += 256;
+		auto cryptoKeyLen = GetPrivateKeyLen ();
+		if (!ret || ret + cryptoKeyLen > len) return 0; // overflow
+		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen); 
+		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
@@ -540,8 +541,9 @@ namespace data
 	size_t PrivateKeys::ToBuffer (uint8_t * buf, size_t len) const
 	{
 		size_t ret = m_Public->ToBuffer (buf, len);
-		memcpy (buf + ret, m_PrivateKey, 256); // private key always 256
-		ret += 256;
+		auto cryptoKeyLen = GetPrivateKeyLen ();
+		memcpy (buf + ret, m_PrivateKey, cryptoKeyLen);
+		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(ret + signingPrivateKeySize > len) return 0; // overflow
 		if (IsOfflineSignature ())
@@ -657,6 +659,12 @@ namespace data
 		return IsOfflineSignature () ? m_TransientSignatureLen : m_Public->GetSignatureLen ();
 	}
 
+	size_t PrivateKeys::GetPrivateKeyLen () const
+	{
+		// private key length always 256, but type 4
+		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256; 
+	}	
+		
 	uint8_t * PrivateKeys::GetPadding()
 	{
 		if(m_Public->GetSigningKeyType () == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
@@ -679,15 +687,15 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
 			break;
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
+				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
+			break;	
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
-			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
-				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
@@ -768,7 +776,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
-			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD_RATCHET:
+			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:
@@ -820,7 +828,7 @@ namespace data
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
 	{
 		XORMetric m;
-#ifdef __AVX__
+#if defined(__x86_64__) || defined(__i386__)
 		if(i2p::cpu::avx)
 		{
 			__asm__

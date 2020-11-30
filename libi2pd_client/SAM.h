@@ -48,6 +48,7 @@ namespace client
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
+	const char SAM_STREAM_FORWARD[] = "STREAM FORWARD";
 	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
 	const char SAM_RAW_SEND[] = "RAW SEND";
 	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
@@ -69,14 +70,14 @@ namespace client
 	const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";
 	const char SAM_PARAM_CRYPTO_TYPE[] = "CRYPTO_TYPE";
 	const char SAM_PARAM_SIZE[] = "SIZE";
+	const char SAM_PARAM_HOST[] = "HOST";
+	const char SAM_PARAM_PORT[] = "PORT";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
-	const char SAM_VALUE_HOST[] = "HOST";
-	const char SAM_VALUE_PORT[] = "PORT";
 
 	enum SAMSocketType
 	{
@@ -84,6 +85,7 @@ namespace client
 		eSAMSocketTypeSession,
 		eSAMSocketTypeStream,
 		eSAMSocketTypeAcceptor,
+		eSAMSocketTypeForward,
 		eSAMSocketTypeTerminated
 	};
 
@@ -121,6 +123,7 @@ namespace client
 			void I2PReceive ();
 			void HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleI2PAccept (std::shared_ptr<i2p::stream::Stream> stream);
+			void HandleI2PForward (std::shared_ptr<i2p::stream::Stream> stream, boost::asio::ip::tcp::endpoint ep);
 			void HandleWriteI2PData (const boost::system::error_code& ecode, size_t sz);
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void HandleI2PRawDatagramReceive (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
@@ -128,6 +131,7 @@ namespace client
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
 			void ProcessStreamAccept (char * buf, size_t len);
+			void ProcessStreamForward (char * buf, size_t len);
 			void ProcessDestGenerate (char * buf, size_t len);
 			void ProcessNamingLookup (char * buf, size_t len);
 			void SendI2PError(const std::string & msg);
@@ -205,6 +209,7 @@ namespace client
 			/** send raw data to remote endpoint from our UDP Socket */
 			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
 
+			void AddSocket(std::shared_ptr<SAMSocket> socket);
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
 
 			bool ResolveSignatureType (const std::string& name, i2p::data::SigningKeyType& type) const;

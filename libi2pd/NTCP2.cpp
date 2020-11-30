@@ -39,21 +39,6 @@ namespace transport
 		delete[] m_SessionConfirmedBuffer;
 	}
 
-	void NTCP2Establisher::MixKey (const uint8_t * inputKeyMaterial)
-	{
-		i2p::crypto::HKDF (m_CK, inputKeyMaterial, 32, "", m_CK);
-		// ck is m_CK[0:31], k is m_CK[32:63]
-	}
-
-	void NTCP2Establisher::MixHash (const uint8_t * buf, size_t len)
-	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, m_H, 32);
-		SHA256_Update (&ctx, buf, len);
-		SHA256_Final (m_H, &ctx);
-	}
-
 	void NTCP2Establisher::KeyDerivationFunction1 (const uint8_t * pub, i2p::crypto::X25519Keys& priv, const uint8_t * rs, const uint8_t * epub)
 	{
 		static const uint8_t protocolNameHash[] =
@@ -757,6 +742,10 @@ namespace transport
 	void NTCP2Session::ReceiveLength ()
 	{
 		if (IsTerminated ()) return;
+#ifdef __linux__
+		const int one = 1;
+    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+#endif		
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -808,6 +797,10 @@ namespace transport
 	void NTCP2Session::Receive ()
 	{
 		if (IsTerminated ()) return;
+#ifdef __linux__
+		const int one = 1;
+    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+#endif			
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}

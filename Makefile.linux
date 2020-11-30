@@ -1,5 +1,5 @@
 # set defaults instead redefine
-CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation -Wno-psabi
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
 LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -33,7 +33,7 @@ ifeq ($(USE_STATIC),yes)
 # NOTE: on glibc you will get this warning:
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
-	LIBDIR := /usr/lib
+	LIBDIR := /usr/lib/$(SYS)
 	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
@@ -41,37 +41,24 @@ ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
 	LDLIBS += $(LIBDIR)/libz.a
-	LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt -ldl
-	USE_AESNI := no
+ifeq ($(USE_UPNP),yes)
+	LDLIBS += $(LIBDIR)/libminiupnpc.a
+endif
+	LDLIBS += -lpthread -ldl
 else
 	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
-endif
-
-# UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP
-ifeq ($(USE_STATIC),yes)
-	LDLIBS += $(LIBDIR)/libminiupnpc.a
-else
 	LDLIBS += -lminiupnpc
 endif
 endif
 
-ifeq ($(USE_AESNI),yes)
-#check if AES-NI is supported by CPU
-ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	machine := $(shell uname -m)
-	ifeq ($(machine), aarch64)
-		CXXFLAGS += -DARM64AES
-	else
-		CPU_FLAGS += -maes
-	endif
-endif
+# UPNP Support (miniupnpc 1.5 and higher)
+ifeq ($(USE_UPNP),yes)
+	NEEDED_CXXFLAGS += -DUSE_UPNP
 endif
 
-ifeq ($(USE_AVX),yes)
-#check if AVX supported by CPU
-ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
-	CPU_FLAGS += -mavx
+ifeq ($(USE_AESNI),yes)
+ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
+	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 endif

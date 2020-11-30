@@ -26,9 +26,10 @@ namespace tunnel
 {
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
-		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true),
-		m_CustomPeerSelector(nullptr)
+		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
+		m_IsActive (true), m_CustomPeerSelector(nullptr)
 	{
+		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
 	TunnelPool::~TunnelPool ()
@@ -118,7 +119,6 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
-		//CreatePairedInboundTunnel (createdTunnel);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel)
@@ -235,6 +235,15 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
+		if (!num && !m_OutboundTunnels.empty ())
+		{
+			for (auto it: m_OutboundTunnels)
+			{	
+				CreatePairedInboundTunnel (it);
+				num++;
+				if (num >= m_NumInboundTunnels) break;
+			}	
+		}	
 		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();
 
@@ -313,6 +322,16 @@ namespace tunnel
 		}
 	}
 
+	void TunnelPool::ManageTunnels (uint64_t ts)
+	{
+		if (ts > m_NextManageTime)
+		{	
+			CreateTunnels ();
+			TestTunnels ();
+			m_NextManageTime = ts + TUNNEL_POOL_MANAGE_INTERVAL + (rand () % TUNNEL_POOL_MANAGE_INTERVAL)/2;  
+		}	
+	}	
+		
 	void TunnelPool::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (m_LocalDestination)
@@ -342,17 +361,24 @@ namespace tunnel
 		}
 		if (found)
 		{
-			// restore from test failed state if any
-			if (test.first->GetState () == eTunnelStateTestFailed)
-				test.first->SetState (eTunnelStateEstablished);
-			if (test.second->GetState () == eTunnelStateTestFailed)
-				test.second->SetState (eTunnelStateEstablished);
 			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
 			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", dlt, " milliseconds");
-			// update latency
 			uint64_t latency = dlt / 2;
-			test.first->AddLatencySample(latency);
-			test.second->AddLatencySample(latency);
+			// restore from test failed state if any
+			if (test.first)
+			{	
+				if (test.first->GetState () == eTunnelStateTestFailed)
+					test.first->SetState (eTunnelStateEstablished);
+				// update latency
+				test.first->AddLatencySample(latency);
+			}	
+			if (test.second)
+			{	
+				if (test.second->GetState () == eTunnelStateTestFailed)
+					test.second->SetState (eTunnelStateEstablished);
+				// update latency
+				test.second->AddLatencySample(latency);
+			}	
 		}
 		else
 		{

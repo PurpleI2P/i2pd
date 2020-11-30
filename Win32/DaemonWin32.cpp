@@ -14,10 +14,10 @@
 #include "Log.h"
 
 #ifdef _WIN32
-#include "Win32/Win32Service.h"
+#include "Win32Service.h"
 #ifdef WIN32_APP
 #include <windows.h>
-#include "Win32/Win32App.h"
+#include "Win32App.h"
 #endif
 
 namespace i2p

@@ -27,6 +27,8 @@ namespace i2p
 {
 namespace tunnel
 {
+	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
+	
 	class Tunnel;
 	class InboundTunnel;
 	class OutboundTunnel;
@@ -69,6 +71,7 @@ namespace tunnel
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;
 			std::shared_ptr<OutboundTunnel> GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const;
 			void TestTunnels ();
+			void ManageTunnels (uint64_t ts);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg);
 
@@ -123,6 +126,7 @@ namespace tunnel
 			mutable std::mutex m_TestsMutex;
 			std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
 			bool m_IsActive;
+			uint64_t m_NextManageTime; // in seconds
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;
 

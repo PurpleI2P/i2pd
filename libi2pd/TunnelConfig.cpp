@@ -10,7 +10,6 @@
 #include <memory>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
-#include "Crypto.h"
 #include "Log.h"
 #include "Transports.h"
 #include "Timestamp.h"
@@ -128,9 +127,7 @@ namespace tunnel
 	void TunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
-		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
-		memcpy (ck, protocolName, 32);	// ck = h = protocol_name || 0
-		SHA256 (ck, 32, h); // h = SHA256(h);
+		InitBuildRequestRecordNoiseState (*this);
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
 		MixHash (hepk, 32); // h = SHA256(h || hepk)
@@ -140,13 +137,11 @@ namespace tunnel
 		encrypted += 32;
 		uint8_t sharedSecret[32];
 		ephemeralKeys->Agree (hepk, sharedSecret); // x25519(sesk, hepk)
-		uint8_t keydata[64];
-		i2p::crypto::HKDF (ck, sharedSecret, 32, "", keydata); 
-		memcpy (ck, keydata, 32);
+		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, h, 32, 
-			keydata + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, m_H, 32, 
+			m_CK + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
 		{	
 			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
 			return;
@@ -154,13 +149,16 @@ namespace tunnel
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}	
 
-	void TunnelHopConfig::MixHash (const uint8_t * buf, size_t len)
+	void InitBuildRequestRecordNoiseState (i2p::crypto::NoiseSymmetricState& state)
 	{
-		SHA256_CTX ctx;
-		SHA256_Init (&ctx);
-		SHA256_Update (&ctx, h, 32);
-		SHA256_Update (&ctx, buf, len);
-		SHA256_Final (h, &ctx);
-	}
+		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
+		static const uint8_t hh[32] =
+		{
+			0x69, 0x4d, 0x52, 0x44, 0x5a, 0x27, 0xd9, 0xad, 0xfa, 0xd2, 0x9c, 0x76, 0x32, 0x39, 0x5d, 0xc1, 
+			0xe4, 0x35, 0x4c, 0x69, 0xb4, 0xf9, 0x2e, 0xac, 0x8a, 0x1e, 0xe4, 0x6a, 0x9e, 0xd2, 0x15, 0x54
+		}; // SHA256 (protocol_name || 0)
+		memcpy (state.m_CK, protocolName, 32);	// ck = h = protocol_name || 0
+		memcpy (state.m_H, hh, 32); // h = SHA256(h)
+	}	
 }
 }

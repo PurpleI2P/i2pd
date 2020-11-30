@@ -43,10 +43,7 @@ namespace i2p
 {
 namespace win32
 {
-	static DWORD GracefulShutdownEndtime = 0;
-
-	typedef DWORD (* IPN)();
-	IPN GetTickCountLocal = (IPN)GetProcAddress (GetModuleHandle ("KERNEL32.dll"), "GetTickCount");
+	DWORD g_GracefulShutdownEndtime = 0;
 
 	static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
 	{
@@ -167,9 +164,9 @@ namespace win32
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
 		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
-		if (GracefulShutdownEndtime != 0)
+		if (g_GracefulShutdownEndtime != 0)
 		{
-			DWORD GracefulTimeLeft = (GracefulShutdownEndtime - GetTickCountLocal()) / 1000;
+			DWORD GracefulTimeLeft = (g_GracefulShutdownEndtime - GetTickCount()) / 1000;
 			s << "Graceful shutdown, time left: "; ShowUptime(s, GracefulTimeLeft);
 		}
 		else
@@ -247,7 +244,7 @@ namespace win32
 						i2p::context.SetAcceptsTunnels (false);
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
 						SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr); // check tunnels every second
-						GracefulShutdownEndtime = GetTickCountLocal() + 10*60*1000;
+						g_GracefulShutdownEndtime = GetTickCount() + 10*60*1000;
 						i2p::util::DaemonWin32::Instance ().isGraceful = true;
 						return 0;
 					}
@@ -256,7 +253,7 @@ namespace win32
 						i2p::context.SetAcceptsTunnels (true);
 						KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
 						KillTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER);
-						GracefulShutdownEndtime = 0;
+						g_GracefulShutdownEndtime = 0;
 						i2p::util::DaemonWin32::Instance ().isGraceful = false;
 						return 0;
 					}
@@ -343,7 +340,7 @@ namespace win32
 				{
 					case IDT_GRACEFUL_SHUTDOWN_TIMER:
 					{
-						GracefulShutdownEndtime = 0;
+						g_GracefulShutdownEndtime = 0;
 						PostMessage (hWnd, WM_CLOSE, 0, 0); // exit
 						return 0;
 					}

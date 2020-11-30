@@ -111,6 +111,9 @@ namespace data
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
 							break;
+							case eI2NPDeliveryStatus:
+								HandleDeliveryStatusMsg (msg);
+							break;	
 							case eI2NPDummyMsg:
 								// plain RouterInfo from NTCP2 with flags for now
 								HandleNTCP2RouterInfoMsg (msg);
@@ -148,11 +151,22 @@ namespace data
 					lastDestinationCleanup = ts;
 				}
 
-				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // update timestamp and publish
+				// publish 
+				if (!m_HiddenMode && i2p::transport::transports.IsOnline ()) 
 				{
-					i2p::context.UpdateTimestamp (ts);
-					if (!m_HiddenMode) Publish ();
-					lastPublish = ts;
+					bool publish = false;
+				    if (m_PublishReplyToken)
+					{	
+						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
+					}
+					else if (i2p::context.GetLastUpdateTime () > lastPublish || 
+				    	ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
+					if (publish) // update timestamp and publish
+					{
+						i2p::context.UpdateTimestamp (ts);
+						Publish ();
+						lastPublish = ts;
+					}
 				}
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
 				{
@@ -226,7 +240,7 @@ namespace data
 					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
 						m_Floodfills.remove (r);
-					else
+					else if (r->IsEligibleFloodfill ())
 						m_Floodfills.push_back (r);
 				}
 			}
@@ -249,7 +263,7 @@ namespace data
 				if (inserted)
 				{
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
-					if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
+					if (r->IsFloodfill () && r->IsEligibleFloodfill ()) 
 					{
 						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 						m_Floodfills.push_back (r);
@@ -992,6 +1006,16 @@ namespace data
 		}
 	}
 
+	void NetDb::HandleDeliveryStatusMsg (std::shared_ptr<const I2NPMessage> msg)
+	{
+		if (m_PublishReplyToken == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
+		{
+			LogPrint (eLogInfo, "NetDb: Publishing confirmed. reply token=", m_PublishReplyToken);
+			m_PublishExcluded.clear ();
+			m_PublishReplyToken = 0;
+		}
+	}	
+	
 	void NetDb::Explore (int numDestinations)
 	{
 		// new requests
@@ -1045,18 +1069,22 @@ namespace data
 	void NetDb::Publish ()
 	{
 		i2p::context.UpdateStats (); // for floodfill
-		std::set<IdentHash> excluded; // TODO: fill up later
-		for (int i = 0; i < 2; i++)
+
+		if (m_PublishExcluded.size () > NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS)
 		{
-			auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
-			if (floodfill)
-			{
-				uint32_t replyToken;
-				RAND_bytes ((uint8_t *)&replyToken, 4);
-				LogPrint (eLogInfo, "NetDb: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
-				excluded.insert (floodfill->GetIdentHash ());
-			}
+			LogPrint (eLogError, "NetDb: Couldn't publish our RouterInfo to ", NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS, " closest routers. Try again");
+			m_PublishExcluded.clear ();
+		}
+		
+		auto floodfill = GetClosestFloodfill (i2p::context.GetIdentHash (), m_PublishExcluded);
+		if (floodfill)
+		{
+			uint32_t replyToken;
+			RAND_bytes ((uint8_t *)&replyToken, 4);
+			LogPrint (eLogInfo, "NetDb: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
+			m_PublishExcluded.insert (floodfill->GetIdentHash ());
+			m_PublishReplyToken = replyToken;
+			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
 		}
 	}
 

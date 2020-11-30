@@ -17,6 +17,7 @@
 #include <boost/asio.hpp>
 #include "util.h"
 #include "Destination.h"
+#include "Streaming.h"
 
 namespace i2p
 {
@@ -25,6 +26,7 @@ namespace client
 	const uint8_t I2CP_PROTOCOL_BYTE = 0x2A;
 	const size_t I2CP_SESSION_BUFFER_SIZE = 4096;
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
+	const size_t I2CP_MAX_SEND_QUEUE_SIZE = 1024*1024; // in bytes, 1M
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
@@ -70,6 +72,8 @@ namespace client
 			I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner, 
 				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
 			~I2CPDestination () {};
+
+			void Stop ();
 			
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void SetEncryptionType (i2p::data::CryptoKeyType keyType) { m_EncryptionKeyType = keyType; };
@@ -166,12 +170,12 @@ namespace client
 			void HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage ();
 			void Terminate ();
-
-			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
+			
+			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
 			void ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping);
-
 			void SendSessionStatusMessage (uint8_t status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
 
@@ -186,6 +190,11 @@ namespace client
 			uint16_t m_SessionID;
 			uint32_t m_MessageID;
 			bool m_IsSendAccepted;
+
+			// to client
+			bool m_IsSending;
+			uint8_t m_SendBuffer[I2CP_MAX_MESSAGE_LENGTH];
+			i2p::stream::SendBufferQueue m_SendQueue; 
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 

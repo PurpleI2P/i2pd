@@ -21,10 +21,18 @@ namespace stream
 {
 	void SendBufferQueue::Add (const uint8_t * buf, size_t len, SendHandler handler)
 	{
-		m_Buffers.push_back (std::make_shared<SendBuffer>(buf, len, handler));
-		m_Size += len;
+		Add (std::make_shared<SendBuffer>(buf, len, handler));
 	}
 
+	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
+	{
+		if (buf)
+		{	
+			m_Buffers.push_back (buf);
+			m_Size += buf->len;
+		}	
+	}	
+	
 	size_t SendBufferQueue::Get (uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
@@ -325,7 +333,7 @@ namespace stream
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
 			uint8_t signature[256];
-			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
+			auto signatureLen = m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : m_RemoteIdentity->GetSignatureLen ();
 			if(signatureLen <= sizeof(signature))
 			{
 				memcpy (signature, optionData, signatureLen);
@@ -756,7 +764,7 @@ namespace stream
 				return;
 			}
 		}
-		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) // expired and detached
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
 			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
 		if (!m_CurrentOutboundTunnel && m_RoutingSession) // first message to send
 		{

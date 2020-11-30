@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2013-2019, The PurpleI2P Project
+# Copyright (c) 2013-2020, The PurpleI2P Project
 #
 # This file is part of Purple i2pd project and licensed under BSD3
 #
@@ -21,13 +21,13 @@ arch=$(uname -m)
 
 screenfind=$(which screen)
 if [ -z $screenfind ]; then
-	echo "Can't find 'screen' installed. That script needs it!";
-	exit 1;
+  echo "Can't find 'screen' installed. That script needs it!";
+  exit 1;
 fi
 
 if [ -z i2pd-$arch ]; then
-	echo "Can't find i2pd binary for your archtecture.";
-	exit 1;
+  echo "Can't find i2pd binary for your archtecture.";
+  exit 1;
 fi
 
 screen -AmdS i2pd ./i2pd-$arch --datadir=$DIR

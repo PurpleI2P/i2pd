@@ -30,8 +30,8 @@ android {
         applicationId "org.purplei2p.i2pd"
         targetSdkVersion 29
         minSdkVersion 14
-        versionCode 2330
-        versionName "2.33.0"
+        versionCode 2350
+        versionName "2.35.0"
         setProperty("archivesBaseName", archivesBaseName + "-" + versionName)
         ndk {
             abiFilters 'armeabi-v7a'
@@ -90,7 +90,7 @@ android {
     }
 }
 
-ext.abiCodes = ['armeabi-v7a':1, 'x86':2, 'arm64-v8a':3, 'x86_64':4]
+ext.abiCodes = ['armeabi-v7a': 1, 'x86': 2, 'arm64-v8a': 3, 'x86_64': 4]
 import com.android.build.OutputFile
 
 android.applicationVariants.all { variant ->
