@@ -79,7 +79,7 @@ libi2pd.commands = @echo Building i2pd libraries
 libi2pd.target = $$PWD/../../libi2pd.a
 libi2pd.depends = i2pd FORCE
 
-i2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE api_client
+i2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE mk_obj_dir api_client
 i2pd.target += $$PWD/../../libi2pdclient.a
 i2pd.depends = FORCE
 
