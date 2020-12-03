@@ -19,7 +19,6 @@
 #include "version.h"
 #include "Log.h"
 #include "Family.h"
-#include "TunnelConfig.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -45,8 +44,7 @@ namespace i2p
 		if (IsECIES ())
 		{	
 			auto initState = new i2p::crypto::NoiseSymmetricState ();
-			i2p::tunnel::InitBuildRequestRecordNoiseState (*initState);
-			initState->MixHash (GetIdentity ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || hepk)
+			i2p::crypto::InitNoiseNState (*initState, GetIdentity ()->GetEncryptionPublicKey ());
 			m_InitialNoiseState.reset (initState);	
 		}	
 	}

@@ -318,6 +318,10 @@ namespace crypto
 		void MixKey (const uint8_t * sharedSecret);	
 	};
 
+	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_N (tunnels, router)
+	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_XK (NTCP2)
+	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets)
+	
 // init and terminate
 	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force);
 	void TerminateCrypto ();

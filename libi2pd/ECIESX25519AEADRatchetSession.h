@@ -178,7 +178,6 @@ namespace garlic
 
 		private:
 
-			void ResetKeys ();
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
 			std::shared_ptr<RatchetTagSet> CreateNewSessionTagset ();

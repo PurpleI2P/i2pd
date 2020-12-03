@@ -153,27 +153,10 @@ namespace garlic
 		GarlicRoutingSession (owner, attachLeaseSet)
 	{
 		RAND_bytes (m_PaddingSizes, 32); m_NextPaddingSize = 0;
-		ResetKeys ();
 	}
 
 	ECIESX25519AEADRatchetSession::~ECIESX25519AEADRatchetSession ()
 	{
-	}
-
-	void ECIESX25519AEADRatchetSession::ResetKeys ()
-	{
-		static const uint8_t protocolNameHash[32] =
-		{
-			0x4c, 0xaf, 0x11, 0xef, 0x2c, 0x8e, 0x36, 0x56, 0x4c, 0x53, 0xe8, 0x88, 0x85, 0x06, 0x4d, 0xba,
-			0xac, 0xbe, 0x00, 0x54, 0xad, 0x17, 0x8f, 0x80, 0x79, 0xa6, 0x46, 0x82, 0x7e, 0x6e, 0xe4, 0x0c
-		}; // SHA256("Noise_IKelg2+hs2_25519_ChaChaPoly_SHA256"), 40 bytes
-		static const uint8_t hh[32] =
-		{
-			0x9c, 0xcf, 0x85, 0x2c, 0xc9, 0x3b, 0xb9, 0x50, 0x44, 0x41, 0xe9, 0x50, 0xe0, 0x1d, 0x52, 0x32,
-			0x2e, 0x0d, 0x47, 0xad, 0xd1, 0xe9, 0xa5, 0x55, 0xf7, 0x55, 0xb5, 0x69, 0xae, 0x18, 0x3b, 0x5c
-		}; // SHA256 (protocolNameHash)
-		memcpy (m_CK, protocolNameHash, 32);
-		memcpy (m_H, hh, 32);
 	}
 
 	void ECIESX25519AEADRatchetSession::CreateNonce (uint64_t seqn, uint8_t * nonce)
@@ -236,8 +219,8 @@ namespace garlic
 		if (!GetOwner ()) return false;
 		// we are Bob
 		// KDF1
-		MixHash (GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD), 32); // h = SHA256(h || bpk)
-
+		i2p::crypto::InitNoiseIKState (*this, GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
+		
 		if (!i2p::crypto::GetElligator ()->Decode (buf, m_Aepk))
 		{
 			LogPrint (eLogError, "Garlic: Can't decode elligator");
@@ -448,7 +431,6 @@ namespace garlic
 
 	bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen, bool isStatic)
 	{
-		ResetKeys ();
 		// we are Alice, bpk is m_RemoteStaticKey
 		size_t offset = 0;
 		if (!GenerateEphemeralKeysAndEncode (out + offset))
@@ -459,7 +441,7 @@ namespace garlic
 		offset += 32;
 
 		// KDF1
-		MixHash (m_RemoteStaticKey, 32); // h = SHA256(h || bpk)
+		i2p::crypto::InitNoiseIKState (*this, m_RemoteStaticKey); // bpk
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
 		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
