@@ -11,6 +11,7 @@
 #include <vector>
 #include <boost/asio.hpp>
 #include <stdexcept>
+#include <pthread.h>
 
 #include "I2PEndian.h"
 #include "Base.h"
@@ -88,6 +89,8 @@ namespace data
 
 	void NetDb::Run ()
 	{
+		pthread_setname_np(pthread_self(), "NetDB");
+
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{

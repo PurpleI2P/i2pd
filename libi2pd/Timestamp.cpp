@@ -14,6 +14,7 @@
 #include <future>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
+#include <pthread.h>
 #include "Config.h"
 #include "Log.h"
 #include "I2PEndian.h"
@@ -148,6 +149,7 @@ namespace util
 
 	void NTPTimeSync::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Timesync");
 		while (m_IsRunning)
 		{
 			try

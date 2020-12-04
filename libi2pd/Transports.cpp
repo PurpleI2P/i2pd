@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <pthread.h>
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
@@ -59,6 +60,8 @@ namespace transport
 	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Ephemerals");
+
 		while (m_IsRunning)
 		{
 			int num, total = 0;
@@ -272,6 +275,8 @@ namespace transport
 
 	void Transports::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Transports");
+
 		while (m_IsRunning && m_Service)
 		{
 			try

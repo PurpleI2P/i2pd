@@ -7,6 +7,7 @@
 */
 
 #include "Log.h"
+#include <pthread.h>
 
 //for std::transform
 #include <algorithm>
@@ -179,6 +180,7 @@ namespace log {
 
 	void Log::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Logging");
 		Reopen ();
 		while (m_IsRunning)
 		{

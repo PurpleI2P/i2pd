@@ -748,6 +748,7 @@ namespace client
 
 	void AddressBookSubscription::CheckUpdates ()
 	{
+		pthread_setname_np(pthread_self(), "Addressbook");
 		bool result = MakeRequest ();
 		m_Book.DownloadComplete (result, m_Ident, m_Etag, m_LastModified);
 	}

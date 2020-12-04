@@ -1,6 +1,7 @@
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
+#include <pthread.h>
 
 #include <boost/thread/thread.hpp>
 #include <boost/asio.hpp>
@@ -60,6 +61,7 @@ namespace transport
 
 	void UPnP::Run ()
 	{
+		pthread_setname_np(pthread_self(), "UPnP");
 		while (m_IsRunning)
 		{
 			try

@@ -94,6 +94,7 @@ namespace util
 
 	void RunnableService::Run ()
 	{
+		pthread_setname_np(pthread_self(), m_Name.c_str());
 		while (m_IsRunning)
 		{
 			try

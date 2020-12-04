@@ -7,6 +7,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <pthread.h>
 
 #include "Crypto.h"
 #include "FS.h"
@@ -131,6 +132,7 @@ namespace client
 
 	void I2PControlService::Run ()
 	{
+		pthread_setname_np(pthread_self(), "I2PC");
 		while (m_IsRunning)
 		{
 			try {

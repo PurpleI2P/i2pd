@@ -7,6 +7,7 @@
 */
 
 #include <cassert>
+#include <pthread.h>
 #include "Base.h"
 #include "Log.h"
 #include "Destination.h"
@@ -862,7 +863,7 @@ namespace client
 			std::placeholders::_3, std::placeholders::_4,
 			std::placeholders::_5));
 		dgram->SetRawReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2PRaw, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));	
+			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 	}
 
 	void I2PUDPClientTunnel::Start() {
@@ -891,11 +892,11 @@ namespace client
 		}
 		auto remotePort = m_RecvEndpoint.port();
 		if (!m_LastPort || m_LastPort != remotePort)
-		{	
+		{
 			auto itr = m_Sessions.find(remotePort);
-			if (itr != m_Sessions.end()) 
+			if (itr != m_Sessions.end())
 				m_LastSession = itr->second;
-			else	
+			else
 			{
 				m_LastSession = std::make_shared<UDPConvo>(boost::asio::ip::udp::endpoint(m_RecvEndpoint), 0);
 				m_Sessions.emplace (remotePort, m_LastSession);
@@ -941,6 +942,7 @@ namespace client
 
 	void I2PUDPClientTunnel::TryResolving() {
 		LogPrint(eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
+		pthread_setname_np(pthread_self(), "UDP Resolver");
 
 		std::shared_ptr<const Address> addr;
 		while(!(addr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)

@@ -10,6 +10,7 @@
 #include "I2PEndian.h"
 #include <random>
 #include <thread>
+#include <pthread.h>
 #include <algorithm>
 #include <vector>
 #include "Crypto.h"
@@ -472,6 +473,7 @@ namespace tunnel
 
 	void Tunnels::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Tunnels");
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0, lastPoolsTs = 0;

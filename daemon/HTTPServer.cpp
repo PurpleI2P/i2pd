@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <sstream>
 #include <thread>
+#include <pthread.h>
 #include <memory>
 
 #include <boost/asio.hpp>
@@ -1312,6 +1313,7 @@ namespace http {
 
 	void HTTPServer::Run ()
 	{
+		pthread_setname_np(pthread_self(), "Webconsole");
 		while (m_IsRunning)
 		{
 			try
