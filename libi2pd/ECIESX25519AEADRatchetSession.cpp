@@ -503,7 +503,7 @@ namespace garlic
 		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
 		MixKey (sharedSecret); 
 		uint8_t nonce[12];
-		memset (nonce, 0, 12);
+		CreateNonce (0, nonce);
 		// encrypt payload
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
 		{
@@ -770,6 +770,28 @@ namespace garlic
 		return true;
 	}
 
+	bool ECIESX25519AEADRatchetSession::HandleNextMessageForRouter (const uint8_t * buf, size_t len)
+	{
+		if (!GetOwner ()) return false;
+		// we are Bob
+		i2p::crypto::InitNoiseNState (*this, GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
+		MixHash (buf, 32);
+		uint8_t sharedSecret[32];
+		GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		MixKey (sharedSecret);
+		buf += 32; len -= 32;	
+		uint8_t nonce[12];
+		CreateNonce (0, nonce);
+		std::vector<uint8_t> payload (len - 16); 
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_H, 32, m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload for router AEAD verification failed");
+			return false;
+		}
+		HandlePayload (payload.data (), len - 16, nullptr, 0);
+		return true;
+	}	
+		
 	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
 		auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);

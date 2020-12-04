@@ -19,6 +19,7 @@
 #include "version.h"
 #include "Log.h"
 #include "Family.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -672,7 +673,21 @@ namespace i2p
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
-		i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
+		if (IsECIES ())
+		{
+			uint8_t * buf = msg->GetPayload ();
+			uint32_t len = bufbe32toh (buf);
+			if (len > msg->GetLength ())
+			{
+				LogPrint (eLogWarning, "Router: garlic message length ", len, " exceeds I2NP message length ", msg->GetLength ());
+				return;
+			}
+			buf += 4;
+			auto session = std::make_shared<i2p::garlic::ECIESX25519AEADRatchetSession>(this, false);
+			session->HandleNextMessageForRouter (buf, len);
+		}	
+		else	
+			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
 	}
 
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)

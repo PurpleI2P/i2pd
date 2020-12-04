@@ -158,6 +158,7 @@ namespace garlic
 			~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index = 0);
+			bool HandleNextMessageForRouter (const uint8_t * buf, size_t len);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
 			
