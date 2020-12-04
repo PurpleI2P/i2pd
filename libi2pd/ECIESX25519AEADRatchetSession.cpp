@@ -490,6 +490,31 @@ namespace garlic
 		return true;
 	}
 
+	bool ECIESX25519AEADRatchetSession::NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
+	{
+		// we are Alice, router's bpk is m_RemoteStaticKey
+		i2p::crypto::InitNoiseNState (*this, m_RemoteStaticKey);
+		size_t offset = 0;
+		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+		memcpy (out + offset, m_EphemeralKeys->GetPublicKey (), 32);
+		MixHash (out + offset, 32); // h = SHA256(h || aepk)
+		offset += 32;
+		uint8_t sharedSecret[32];
+		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		MixKey (sharedSecret); 
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		// encrypt payload
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload for router AEAD encryption failed");
+			return false;
+		}
+		
+		m_State = eSessionStateNewSessionSent;
+		return true;
+	}
+		
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
@@ -549,7 +574,7 @@ namespace garlic
 		
 		return true;
 	}
-
+		
 	bool ECIESX25519AEADRatchetSession::NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob and sent NSR already
@@ -781,6 +806,11 @@ namespace garlic
 					return nullptr;
 				len += 96;
 			break;	
+			case eSessionStateForRouter:
+				if (!NewOutgoingMessageForRouter (payload.data (), payload.size (), buf, m->maxLen))
+					return nullptr;
+				len += 48;
+			break;	
 			default:
 				return nullptr;
 		}
@@ -791,9 +821,9 @@ namespace garlic
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg)
+	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter)
 	{
-		m_State = eSessionStateOneTime;
+		m_State = isForRouter ? eSessionStateForRouter : eSessionStateOneTime;
 		return WrapSingleMessage (msg);
 	}	
 		

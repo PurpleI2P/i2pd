@@ -716,7 +716,7 @@ namespace garlic
 		{
 			auto session = std::make_shared<ECIESX25519AEADRatchetSession>(this, false);
 			session->SetRemoteStaticKey (router->GetIdentity ()->GetEncryptionPublicKey ());
-			return session->WrapOneTimeMessage (msg);
+			return session->WrapOneTimeMessage (msg, true);
 		}	
 		else
 		{	
