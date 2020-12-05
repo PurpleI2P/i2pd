@@ -235,7 +235,7 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		if (!num && !m_OutboundTunnels.empty ())
+		if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0)
 		{
 			for (auto it: m_OutboundTunnels)
 			{	
@@ -559,7 +559,7 @@ namespace tunnel
 			{
 				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ());
 			}
-			if(m_NumOutboundHops == 0 || config)
+			if (!m_NumOutboundHops || config)
 			{
 				auto newTunnel = tunnels.CreateOutboundTunnel (config);
 				newTunnel->SetTunnelPool (shared_from_this ());
@@ -574,8 +574,12 @@ namespace tunnel
 	void TunnelPool::CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
-		auto tunnel = tunnels.CreateInboundTunnel (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
+		auto tunnel = tunnels.CreateInboundTunnel (
+			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()) : nullptr, 
+		    outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
+		if (tunnel->IsEstablished ()) // zero hops
+			TunnelCreated (tunnel);
 	}
 
 	void TunnelPool::SetCustomPeerSelector(ITunnelPeerSelector * selector)
