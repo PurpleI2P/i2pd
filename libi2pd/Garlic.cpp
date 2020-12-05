@@ -485,42 +485,43 @@ namespace garlic
 		}
 		auto mod = length & 0x0f; // %16
 		buf += 4; // length
-		auto it = !mod ? m_Tags.find (SessionTag(buf)) : m_Tags.end (); // AES block is multiple of 16
-		// AES tag might be used even if encryption type is not ElGamal/AES
-		if (it != m_Tags.end ())
-		{
-			// tag found. Use AES
-			auto decryption = it->second;
-			m_Tags.erase (it); // tag might be used only once
-			if (length >= 32)
-			{
-				uint8_t iv[32]; // IV is first 16 bytes
-				SHA256(buf, 32, iv);
-				decryption->SetIV (iv);
-				decryption->Decrypt (buf + 32, length - 32, buf + 32);
-				HandleAESBlock (buf + 32, length - 32, decryption, msg->from);
-			}
-			else
-				LogPrint (eLogWarning, "Garlic: message length ", length, " is less than 32 bytes");
-		}
-		else
-		{
-			bool found = false;
-			if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
-			{
-				// try ECIESx25519 tag
-				uint64_t tag;
-				memcpy (&tag, buf, 8);
-				auto it1 = m_ECIESx25519Tags.find (tag);
-				if (it1 != m_ECIESx25519Tags.end ())
-				{
-					found = true;
-					if (!it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
-						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
-					m_ECIESx25519Tags.erase (it1);
-				}
-			}
 
+		bool found = false;
+		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+		{
+			// try ECIESx25519 tag
+			uint64_t tag;
+			memcpy (&tag, buf, 8);
+			auto it1 = m_ECIESx25519Tags.find (tag);
+			if (it1 != m_ECIESx25519Tags.end ())
+			{
+				found = true;
+				if (!it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
+					LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
+				m_ECIESx25519Tags.erase (it1);
+			}
+		}
+		if (!found)
+		{		
+			auto it = !mod ? m_Tags.find (SessionTag(buf)) : m_Tags.end (); // AES block is multiple of 16
+			// AES tag might be used even if encryption type is not ElGamal/AES
+			if (it != m_Tags.end ()) // try AES tag
+			{
+				// tag found. Use AES
+				auto decryption = it->second;
+				m_Tags.erase (it); // tag might be used only once
+				if (length >= 32)
+				{
+					uint8_t iv[32]; // IV is first 16 bytes
+					SHA256(buf, 32, iv);
+					decryption->SetIV (iv);
+					decryption->Decrypt (buf + 32, length - 32, buf + 32);
+					HandleAESBlock (buf + 32, length - 32, decryption, msg->from);
+					found = true;
+				}
+				else
+					LogPrint (eLogWarning, "Garlic: message length ", length, " is less than 32 bytes");
+			}
 			if (!found) // assume new session
 			{
 				// AES tag not found. Handle depending on encryption type
@@ -545,7 +546,7 @@ namespace garlic
 				}
 				else
 					LogPrint (eLogError, "Garlic: Failed to decrypt message");
-			}
+			}	
 		}
 	}
 
