@@ -15,4 +15,6 @@ jobs:
         usesh: true
         prepare: pkg install -y devel/gmake devel/boost-libs security/openssl net/miniupnpc 
         run: |
-          make USE_UPNP=yes -j3
+          cd build
+          cmake -DWITH_UPNP=ON
+          gmake -j3
