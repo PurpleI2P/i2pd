@@ -7,7 +7,7 @@
 */
 
 #include "Log.h"
-#include <pthread.h>
+#include "util.h"
 
 //for std::transform
 #include <algorithm>
@@ -180,7 +180,8 @@ namespace log {
 
 	void Log::Run ()
 	{
-		pthread_setname_np(pthread_self(), "Logging");
+		i2p::util::SetThreadName("Logging");
+
 		Reopen ();
 		while (m_IsRunning)
 		{

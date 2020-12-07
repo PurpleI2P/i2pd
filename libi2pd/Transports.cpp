@@ -6,7 +6,6 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#include <pthread.h>
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
@@ -15,6 +14,7 @@
 #include "Transports.h"
 #include "Config.h"
 #include "HTTP.h"
+#include "util.h"
 
 using namespace i2p::data;
 
@@ -60,7 +60,7 @@ namespace transport
 	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Run ()
 	{
-		pthread_setname_np(pthread_self(), "Ephemerals");
+		i2p::util::SetThreadName("Ephemerals");
 
 		while (m_IsRunning)
 		{
@@ -275,7 +275,7 @@ namespace transport
 
 	void Transports::Run ()
 	{
-		pthread_setname_np(pthread_self(), "Transports");
+		i2p::util::SetThreadName("Transports");
 
 		while (m_IsRunning && m_Service)
 		{

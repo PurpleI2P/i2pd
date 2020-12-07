@@ -14,11 +14,11 @@
 #include <future>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
-#include <pthread.h>
 #include "Config.h"
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
+#include "util.h"
 
 #ifdef _WIN32
 	#ifndef _WIN64
@@ -149,7 +149,8 @@ namespace util
 
 	void NTPTimeSync::Run ()
 	{
-		pthread_setname_np(pthread_self(), "Timesync");
+		i2p::util::SetThreadName("Timesync");
+
 		while (m_IsRunning)
 		{
 			try

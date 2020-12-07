@@ -7,12 +7,12 @@
 */
 
 #include <cassert>
-#include <pthread.h>
 #include "Base.h"
 #include "Log.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PTunnel.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -941,8 +941,8 @@ namespace client
 	}
 
 	void I2PUDPClientTunnel::TryResolving() {
+		i2p::util::SetThreadName("UDP Resolver");
 		LogPrint(eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
-		pthread_setname_np(pthread_self(), "UDP Resolver");
 
 		std::shared_ptr<const Address> addr;
 		while(!(addr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)

@@ -9,7 +9,6 @@
 #include <iomanip>
 #include <sstream>
 #include <thread>
-#include <pthread.h>
 #include <memory>
 
 #include <boost/asio.hpp>
@@ -1313,7 +1312,8 @@ namespace http {
 
 	void HTTPServer::Run ()
 	{
-		pthread_setname_np(pthread_self(), "Webconsole");
+		i2p::util::SetThreadName("Webconsole");
+
 		while (m_IsRunning)
 		{
 			try

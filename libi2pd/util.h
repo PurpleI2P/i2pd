@@ -168,11 +168,13 @@ namespace util
 			boost::asio::io_service::work m_Work;
 	};
 
+	void SetThreadName (const char *name);
+
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);
-		const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6=false);
-		bool IsInReservedRange(const boost::asio::ip::address& host);
+		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
+		bool IsInReservedRange (const boost::asio::ip::address& host);
 	}
 }
 }

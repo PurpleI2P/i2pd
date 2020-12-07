@@ -7,12 +7,12 @@
 */
 
 #include <string.h>
-#include <pthread.h>
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.hpp"
 #include "SSU.h"
+#include "util.h"
 
 #ifdef _WIN32
 #include <boost/winapi/error_codes.hpp>
@@ -143,7 +143,7 @@ namespace transport
 
 	void SSUServer::Run ()
 	{
-		pthread_setname_np(pthread_self(), "SSU");
+		i2p::util::SetThreadName("SSU");
 
 		while (m_IsRunning)
 		{
@@ -160,7 +160,7 @@ namespace transport
 
 	void SSUServer::RunReceivers ()
 	{
-		pthread_setname_np(pthread_self(), "SSUv4");
+		i2p::util::SetThreadName("SSUv4");
 
 		while (m_IsRunning)
 		{
@@ -184,7 +184,7 @@ namespace transport
 
 	void SSUServer::RunReceiversV6 ()
 	{
-		pthread_setname_np(pthread_self(), "SSUv6");
+		i2p::util::SetThreadName("SSUv6");
 
 		while (m_IsRunning)
 		{
