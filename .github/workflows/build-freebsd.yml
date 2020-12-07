@@ -13,6 +13,6 @@ jobs:
       uses: vmactions/freebsd-vm@v0.0.9
       with:
         usesh: true
-        prepare: pkg install -y devel/gmake devel/boost-libs ssl net/miniupnpc 
+        prepare: pkg install -y devel/gmake devel/boost-libs security/openssl net/miniupnpc 
         run: |
           make USE_UPNP=yes -j3
