@@ -17,4 +17,4 @@ jobs:
         run: |
           cd build
           cmake -DWITH_UPNP=ON
-          gmake -j3
+          gmake -j2
