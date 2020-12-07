@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: macos-latest
-    name: A job to run test FreeBSD
+    name: with UPnP
     steps:
     - uses: actions/checkout@v2
     - name: Test in FreeBSD
@@ -13,6 +13,6 @@ jobs:
       uses: vmactions/freebsd-vm@v0.0.9
       with:
         usesh: true
-        prepare: pkg install -y make boost-libs ssl miniupnpc
+        prepare: pkg install -y devel/gmake devel/boost-libs ssl net/miniupnpc 
         run: |
           make USE_UPNP=yes -j3
