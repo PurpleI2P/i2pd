@@ -487,17 +487,19 @@ namespace garlic
 		buf += 4; // length
 
 		bool found = false;
+		uint64_t tag;
 		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 		{
-			// try ECIESx25519 tag
-			uint64_t tag;
+			// try ECIESx25519 tag	
 			memcpy (&tag, buf, 8);
 			auto it1 = m_ECIESx25519Tags.find (tag);
 			if (it1 != m_ECIESx25519Tags.end ())
 			{
 				found = true;
-				if (!it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
-					LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
+				if (it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
+					m_LastTagset = it1->second.tagset;
+				else	
+					LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");					
 				m_ECIESx25519Tags.erase (it1);
 			}
 		}
@@ -542,7 +544,25 @@ namespace garlic
 					// otherwise ECIESx25519
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
-						LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
+					{
+						// try to gererate more tags for last tagset 
+						if (m_LastTagset)
+						{
+							for (int i = 0; i < ECIESX25519_MAX_NUM_GENERATED_TAGS; i++)
+							{
+								LogPrint (eLogDebug, "Garlic: Missing ECIES-X25519-AEAD-Ratchet tag was generated");
+								if (AddECIESx25519SessionNextTag (m_LastTagset) == tag)
+								{
+									if (m_LastTagset->HandleNextMessage (buf, length, m_ECIESx25519Tags[tag].index))
+										found = true;
+									break;
+								}	
+							}
+							if (!found) m_LastTagset = nullptr;
+						}
+						if (!found)
+							LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");
+					}	
 				}
 				else
 					LogPrint (eLogError, "Garlic: Failed to decrypt message");
@@ -845,6 +865,8 @@ namespace garlic
 		}
 		if (numExpiredTags > 0)
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
+		if (m_LastTagset && m_LastTagset->IsExpired (ts))
+			m_LastTagset = nullptr;
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
@@ -1030,11 +1052,12 @@ namespace garlic
 		}
 	}
 
-	void GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
+	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
 	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();
 		m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset});
+		return tag;
 	}
 
 	void GarlicDestination::AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session)
