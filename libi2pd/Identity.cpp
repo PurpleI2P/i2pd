@@ -828,7 +828,7 @@ namespace data
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
 	{
 		XORMetric m;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__i386__)) && defined(__AVX__) // not all X86 targets supports AVX (like old Pentium, see #1600)
 		if(i2p::cpu::avx)
 		{
 			__asm__
