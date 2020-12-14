@@ -701,7 +701,7 @@ namespace stream
 		size++; // resend delay
 		htobe16buf (packet + size, PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 		size += 2; // flags
-		size_t signatureLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetSignatureLen ();
+		size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
 		htobe16buf (packet + size, signatureLen); // signature only
 		size += 2; // options size
 		uint8_t * signature = packet + size;
