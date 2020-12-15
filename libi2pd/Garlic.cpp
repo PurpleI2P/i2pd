@@ -548,7 +548,8 @@ namespace garlic
 						// try to gererate more tags for last tagset 
 						if (m_LastTagset)
 						{
-							for (int i = 0; i < ECIESX25519_MAX_NUM_GENERATED_TAGS; i++)
+							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
+							for (int i = 0; i < maxTags; i++)
 							{
 								LogPrint (eLogDebug, "Garlic: Missing ECIES-X25519-AEAD-Ratchet tag was generated");
 								if (AddECIESx25519SessionNextTag (m_LastTagset) == tag)
