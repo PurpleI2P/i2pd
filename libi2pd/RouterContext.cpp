@@ -52,7 +52,8 @@ namespace i2p
 
 	void RouterContext::CreateNewRouter ()
 	{
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+			i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 		SaveKeys ();
 		NewRouterInfo ();
 	}
@@ -590,7 +591,8 @@ namespace i2p
 			// update keys
 			LogPrint (eLogInfo, "Router: router keys are obsolete. Creating new");
 			oldIdentity = m_Keys.GetPublic ();
-			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 			SaveKeys ();
 		}	
 		// read NTCP2 keys if available
