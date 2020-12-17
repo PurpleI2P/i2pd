@@ -1,5 +1,7 @@
 #include "DelayedSaveManagerImpl.h"
 
+#include <assert.h>
+
 DelayedSaveManagerImpl::DelayedSaveManagerImpl() :
     widgetToFocus(nullptr),
     saver(nullptr),
