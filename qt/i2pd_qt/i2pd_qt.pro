@@ -36,7 +36,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/HTTPServer.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/i2pd.cpp \
-    ../../daemon/UPnP.cpp
+    ../../daemon/UPnP.cpp \
+    AboutDialog.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ClientTunnelPane.h \
@@ -59,8 +60,9 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \
     ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h
-
+    ../../daemon/UPnP.h \
+    AboutDialog.h \
+    BuildDateTimeQt.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
@@ -71,7 +73,8 @@ FORMS += mainwindow.ui \
     tunnelform.ui \
     statusbuttons.ui \
     routercommandswidget.ui \
-    generalsettingswidget.ui
+    generalsettingswidget.ui \
+    AboutDialog.ui
 
 LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
@@ -85,6 +88,16 @@ i2pd.depends = FORCE
 
 cleani2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) clean
 cleani2pd.depends = clean
+
+BuildDateTimeQtTarget.target = BuildDateTimeQt.h
+BuildDateTimeQtTarget.depends = FORCE
+# 'touch' is unix-only; will probably break on non-unix, TBD
+BuildDateTimeQtTarget.commands = touch $$PWD/BuildDateTimeQt.h
+PRE_TARGETDEPS += BuildDateTimeQt.h
+QMAKE_EXTRA_TARGETS += BuildDateTimeQtTarget
+
+# git only, port to other VCS, too. TBD
+DEFINES += VCS_COMMIT_INFO="\\\"git:$(shell git -C \""$$_PRO_FILE_PWD_"\" describe)\\\""
 
 PRE_TARGETDEPS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a
 QMAKE_EXTRA_TARGETS += cleani2pd i2pd libi2pd
