@@ -188,6 +188,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
         << QApplication::translate("MainWindow", "file", 0)
     );
     initLogDestinationCombobox(   OPTION("","log",[]{return "";}), uiSettings->logDestinationComboBox);
+#ifdef I2PD_QT_RELEASE
+    uiSettings->logDestinationComboBox->setEnabled(false); // #1593
+#endif
 
     logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton, false);
     initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), uiSettings->logLevelComboBox);
@@ -325,7 +328,15 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 #   undef OPTION
 
     //widgetlocks.add(new widgetlock(widget,lockbtn));
+
+
+    // #1593
+#ifdef I2PD_QT_RELEASE
+    uiSettings->logDestComboEditPushButton->setEnabled(false);
+#else
     widgetlocks.add(new widgetlock(uiSettings->logDestinationComboBox,uiSettings->logDestComboEditPushButton));
+#endif
+
     widgetlocks.add(new widgetlock(uiSettings->logLevelComboBox,uiSettings->logLevelComboEditPushButton));
     widgetlocks.add(new widgetlock(uiSettings->comboBox_httpPorxySignatureType,uiSettings->httpProxySignTypeComboEditPushButton));
     widgetlocks.add(new widgetlock(uiSettings->comboBox_socksProxySignatureType,uiSettings->socksProxySignTypeComboEditPushButton));

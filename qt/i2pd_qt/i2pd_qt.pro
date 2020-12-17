@@ -13,9 +13,11 @@ CONFIG(debug, debug|release) {
     # do not redirect logging to std::ostream and to Log pane
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
 
+    DEFINES += I2PD_QT_DEBUG
     I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)
+    DEFINES += I2PD_QT_RELEASE
     I2PDMAKE += DEBUG=no
 }
 
