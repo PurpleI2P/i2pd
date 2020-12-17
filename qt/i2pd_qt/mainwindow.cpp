@@ -177,7 +177,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
-    initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton, false);
+    initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton, false, true);
     initFileChooser(    OPTION("","tunconf",[](){return "";}), uiSettings->tunnelsConfigFileLineEdit, uiSettings->tunnelsConfigFileBrowsePushButton, false);
     initFileChooser(    OPTION("","pidfile",[]{return "";}), uiSettings->pidFileLineEdit, uiSettings->pidFileBrowsePushButton, false);
 
@@ -649,9 +649,9 @@ MainWindow::~MainWindow()
     //QMessageBox::information(0, "Debug", "mw destructor 2");
 }
 
-FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile){
+FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile, bool readOnly){
     FileChooserItem* retVal;
-    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton, this, requireExistingFile);
+    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton, this, requireExistingFile, readOnly);
     MainWindowItem* super=retVal;
     configItems.append(super);
     return retVal;

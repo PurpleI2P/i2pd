@@ -102,12 +102,14 @@ class MainWindow;
 
 class MainWindowItem : public QObject {
     Q_OBJECT
+private:
     ConfigOption option;
     QWidget* widgetToFocus;
     QString requirementToBeValid;
+    const bool readOnly;
 public:
-    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) :
-        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_, bool readOnly_=false) :
+        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_), readOnly(readOnly_) {}
     QWidget* getWidgetToFocus(){return widgetToFocus;}
     QString& getRequirementToBeValid() { return requirementToBeValid; }
     ConfigOption& getConfigOption() { return option; }
@@ -125,6 +127,7 @@ public:
                    :boost::any_cast<boost::program_options::variable_value>(programOption).value();
     }
     virtual void saveToStringStream(std::stringstream& out){
+        if(readOnly)return; //should readOnly items (conf=) error somewhere, instead of silently skipping save?
         if(isType<std::string>(optionValue)) {
             std::string v = boost::any_cast<std::string>(optionValue);
             if(v.empty())return;
@@ -170,8 +173,8 @@ class BaseStringItem : public MainWindowItem {
 public:
     QLineEdit* lineEdit;
     MainWindow *mainWindow;
-    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_, MainWindow* mainWindow_):
-        MainWindowItem(option_, lineEdit_, requirementToBeValid_),
+    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_, MainWindow* mainWindow_, bool readOnly=false):
+        MainWindowItem(option_, lineEdit_, requirementToBeValid_, readOnly),
         lineEdit(lineEdit_),
         mainWindow(mainWindow_)
     {};
@@ -197,8 +200,8 @@ protected:
     const bool requireExistingFile;
 public:
     QPushButton* browsePushButton;
-    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile_) :
-        BaseStringItem(option_, lineEdit_, QString(), mw), requireExistingFile(requireExistingFile_), browsePushButton(browsePushButton_) {}
+    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile_, bool readOnly) :
+        BaseStringItem(option_, lineEdit_, QString(), mw, readOnly), requireExistingFile(requireExistingFile_), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -206,8 +209,8 @@ class FileChooserItem : public FileOrFolderChooserItem {
 private slots:
     void pushButtonReleased();
 public:
-    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFile) {
+    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile, bool readOnly) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFile, readOnly) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -217,7 +220,7 @@ private slots:
     void pushButtonReleased();
 public:
     FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFolder) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFolder) {
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFolder, false) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -521,7 +524,7 @@ protected:
     //LogDestinationComboBoxItem* logOption;
     FileChooserItem* logFileNameOption;
 
-    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile);
+    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile, bool readOnly=false);
     void initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
     //void initCombobox(ConfigOption option, QComboBox* comboBox);
     void initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox);
