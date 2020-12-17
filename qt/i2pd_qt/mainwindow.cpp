@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "I2pdQtUtil.h"
 #include "AboutDialog.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
@@ -15,6 +16,8 @@
 #include <QStyleHints>
 #include <QScreen>
 #include <QWindow>
+
+#include <assert.h>
 
 #include "RouterContext.h"
 #include "Config.h"
@@ -36,6 +39,7 @@
 
 #include "DelayedSaveManagerImpl.h"
 #include "SaverImpl.h"
+
 
 std::string programOptionsWriterCurrentSection;
 
@@ -647,13 +651,13 @@ MainWindow::~MainWindow()
 
 FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton){
     FileChooserItem* retVal;
-    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton);
+    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton, this);
     MainWindowItem* super=retVal;
     configItems.append(super);
     return retVal;
 }
 void MainWindow::initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton){
-    configItems.append(new FolderChooserItem(option, folderLineEdit, folderBrowsePushButton));
+    configItems.append(new FolderChooserItem(option, folderLineEdit, folderBrowsePushButton, this));
 }
 /*void MainWindow::initCombobox(ConfigOption option, QComboBox* comboBox){
     configItems.append(new ComboBoxItem(option, comboBox));
@@ -669,25 +673,25 @@ void MainWindow::initSignatureTypeCombobox(ConfigOption option, QComboBox* combo
     configItems.append(new SignatureTypeComboBoxItem(option, comboBox));
 }
 void MainWindow::initIPAddressBox(ConfigOption option, QLineEdit* addressLineEdit, QString fieldNameTranslated){
-    configItems.append(new IPAddressStringItem(option, addressLineEdit, fieldNameTranslated));
+    configItems.append(new IPAddressStringItem(option, addressLineEdit, fieldNameTranslated, this));
 }
 void MainWindow::initTCPPortBox(ConfigOption option, QLineEdit* portLineEdit, QString fieldNameTranslated){
-    configItems.append(new TCPPortStringItem(option, portLineEdit, fieldNameTranslated));
+    configItems.append(new TCPPortStringItem(option, portLineEdit, fieldNameTranslated, this));
 }
 void MainWindow::initCheckBox(ConfigOption option, QCheckBox* checkBox) {
     configItems.append(new CheckBoxItem(option, checkBox));
 }
 void MainWindow::initIntegerBox(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
-    configItems.append(new IntegerStringItem(option, numberLineEdit, fieldNameTranslated));
+    configItems.append(new IntegerStringItem(option, numberLineEdit, fieldNameTranslated, this));
 }
 void MainWindow::initUInt32Box(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
-    configItems.append(new UInt32StringItem(option, numberLineEdit, fieldNameTranslated));
+    configItems.append(new UInt32StringItem(option, numberLineEdit, fieldNameTranslated, this));
 }
 void MainWindow::initUInt16Box(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
-    configItems.append(new UInt16StringItem(option, numberLineEdit, fieldNameTranslated));
+    configItems.append(new UInt16StringItem(option, numberLineEdit, fieldNameTranslated, this));
 }
 void MainWindow::initStringBox(ConfigOption option, QLineEdit* lineEdit){
-    configItems.append(new BaseStringItem(option, lineEdit, QString()));
+    configItems.append(new BaseStringItem(option, lineEdit, QString(), this));
 }
 NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
     NonGUIOptionItem * retValue;
@@ -789,12 +793,17 @@ bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocu
 
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
-        if(!item->isValid()){
-            highlightWrongInput(QApplication::tr("Invalid value for")+" "+item->getConfigOption().section+"::"+item->getConfigOption().option+". "+item->getRequirementToBeValid()+" "+cannotSaveSettings, item->getWidgetToFocus());
+        bool alreadyDisplayedIfWrong=false;
+        if(!item->isValid(alreadyDisplayedIfWrong)){
+            if(!alreadyDisplayedIfWrong)
+                highlightWrongInput(
+                        QApplication::tr("Invalid value for")+" "+item->getConfigOption().section+"::"+item->getConfigOption().option+". "+item->getRequirementToBeValid()+" "+cannotSaveSettings,
+                        WrongInputPageEnum::generalSettingsPage,
+                        item->getWidgetToFocus());
             return false;
         }
     }
-    delayedSaveManagerPtr->delayedSave(++dataSerial, focusOnTunnel, tunnelNameToFocus);
+    delayedSaveManagerPtr->delayedSave(++dataSerial, focusOnTunnel, tunnelNameToFocus);//TODO does dataSerial work? //FIXME
 
     //onLoggingOptionsChange();
     return true;
@@ -814,6 +823,11 @@ void FolderChooserItem::pushButtonReleased() {
 void BaseStringItem::installListeners(MainWindow *mainWindow) {
     QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(updated()));
 }
+bool BaseStringItem::isValid(bool & alreadyDisplayedIfWrong) {
+    alreadyDisplayedIfWrong=true;
+    return ::isValidSingleLine(lineEdit, WrongInputPageEnum::generalSettingsPage, mainWindow);
+}
+
 void ComboBoxItem::installListeners(MainWindow *mainWindow) {
     QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(updated()));
 }
@@ -825,7 +839,8 @@ void MainWindow::updated() {
     ui->wrongInputLabel->setVisible(false);
     adjustSizesAccordingToWrongLabel();
 
-    applyTunnelsUiToConfigs();
+    bool correct = applyTunnelsUiToConfigs();
+    if(!correct) return;
     saveAllConfigs(false);
 }
 
@@ -1010,11 +1025,15 @@ void MainWindow::adjustSizesAccordingToWrongLabel() {
     }
 }
 
-void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
+void MainWindow::highlightWrongInput(QString warningText, WrongInputPageEnum inputPage, QWidget* widgetToFocus) {
     bool redVisible = ui->wrongInputLabel->isVisible();
     ui->wrongInputLabel->setVisible(true);
     ui->wrongInputLabel->setText(warningText);
     if(!redVisible)adjustSizesAccordingToWrongLabel();
     if(widgetToFocus){ui->settingsScrollArea->ensureWidgetVisible(widgetToFocus);widgetToFocus->setFocus();}
-    showSettingsPage();
+    switch(inputPage) {
+        case WrongInputPageEnum::generalSettingsPage: showSettingsPage(); break;
+        case WrongInputPageEnum::tunnelsSettingsPage: showTunnelsPage(); break;
+        default: assert(false); break;
+    }
 }

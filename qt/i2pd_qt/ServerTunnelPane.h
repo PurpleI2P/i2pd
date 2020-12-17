@@ -124,6 +124,17 @@ protected:
         if(!ok)return false;
         ServerTunnelConfig* stc=tunnelConfig->asServerTunnelConfig();
         assert(stc!=nullptr);
+
+        if(!isValidSingleLine(hostLineEdit))return false;
+        if(!isValidSingleLine(portLineEdit))return false;
+        if(!isValidSingleLine(cryptoTypeLineEdit))return false;
+        if(!isValidSingleLine(keysLineEdit))return false;
+        if(!isValidSingleLine(inPortLineEdit))return false;
+        if(!isValidSingleLine(accessListLineEdit))return false;
+        if(!isValidSingleLine(hostOverrideLineEdit))return false;
+        if(!isValidSingleLine(webIRCPassLineEdit))return false;
+        if(!isValidSingleLine(addressLineEdit))return false;
+
         stc->sethost(hostLineEdit->text().toStdString());
 
         auto portStr=portLineEdit->text();

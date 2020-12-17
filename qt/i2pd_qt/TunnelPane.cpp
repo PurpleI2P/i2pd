@@ -4,6 +4,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "I2pdQtUtil.h"
+
 TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow_):
     QObject(),
     mainWindow(mainWindow_),
@@ -47,8 +49,6 @@ void TunnelPane::setupTunnelPane(
     nameLineEdit->setText(tunnelName);
     setGroupBoxTitle(tunnelName);
 
-    QObject::connect(nameLineEdit, SIGNAL(textChanged(const QString &)),
-                             this, SLOT(setGroupBoxTitle(const QString &)));
     QObject::connect(nameLineEdit, SIGNAL(textChanged(const QString &)),
                              this, SLOT(updated()));
 
@@ -398,4 +398,8 @@ void TunnelPane::highlightWrongInput(QString warningText, QWidget* controlWithWr
 void TunnelPane::hideWrongInputLabel() const {
     wrongInputPane->setVisible(false);
     mainWindow->adjustSizesAccordingToWrongLabel();
+}
+
+bool TunnelPane::isValidSingleLine(QLineEdit* widget) {
+    return ::isValidSingleLine(widget, WrongInputPageEnum::tunnelsSettingsPage, mainWindow);
 }
