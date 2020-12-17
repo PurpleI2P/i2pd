@@ -379,7 +379,8 @@ namespace client
 				LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 				auto it = m_RemoteLeaseSets.find (key);
-				if (it != m_RemoteLeaseSets.end ())
+				if (it != m_RemoteLeaseSets.end () && 
+				    it->second->GetStoreType () == buf[DATABASE_STORE_TYPE_OFFSET]) // update only if same type
 				{
 					leaseSet = it->second;
 					if (leaseSet->IsNewer (buf + offset, len - offset))
@@ -399,6 +400,7 @@ namespace client
 				}
 				else
 				{
+					// add or replace
 					if (buf[DATABASE_STORE_TYPE_OFFSET] == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
