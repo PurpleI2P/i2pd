@@ -9,7 +9,10 @@ CONFIG += strict_c++ c++11
 
 CONFIG(debug, debug|release) {
     message(Debug build)
+
+    # do not redirect logging to std::ostream and to Log pane
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+
     I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)

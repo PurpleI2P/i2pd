@@ -118,7 +118,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
@@ -290,7 +290,7 @@ public:
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
-        qDebug() << "setting value for checkbox " << checkBox->text();
+        //qDebug() << "setting value for checkbox " << checkBox->text();
         checkBox->setChecked(boost::any_cast<bool>(optionValue));
     }
     virtual void saveToStringStream(std::stringstream& out){
@@ -769,16 +769,13 @@ private:
                     std::string dest;
                     if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
                         dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
-                        std::cout << "had read tunnel dest: " << dest << std::endl;
                     }
                     int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
-                    std::cout << "had read tunnel port: " << port << std::endl;
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
                     int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
                     int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
-                    std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     // I2CP
                     std::map<std::string, std::string> options;
