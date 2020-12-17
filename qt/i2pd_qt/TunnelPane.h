@@ -119,6 +119,21 @@ protected:
 public:
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
+        if(!isValidSingleLine(nameLineEdit)){
+            setGroupBoxTitle(QApplication::translate("tunPage", "invalid_tunnel_name"));
+            return false;
+        }
+        if(!isValidSingleLine(inbound_lengthLineEdit))return false;
+        if(!isValidSingleLine(inbound_quantityLineEdit))return false;
+        if(!isValidSingleLine(outbound_lengthLineEdit))return false;
+        if(!isValidSingleLine(outbound_quantityLineEdit))return false;
+        if(!isValidSingleLine(crypto_tagsToSendLineEdit))return false;
+        if(!isValidSingleLine(i2cp_leaseSetAuthTypeLineEdit))return false;
+        if(!isValidSingleLine(i2cp_leaseSetEncTypeLineEdit))return false;
+        if(!isValidSingleLine(i2cp_leaseSetPrivKeyLineEdit))return false;
+        if(!isValidSingleLine(i2cp_leaseSetTypeLineEdit))return false;
+        if(!isValidSingleLine(i2p_streaming_initialAckDelayLineEdit))return false;
+        setGroupBoxTitle(nameLineEdit->text());
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
         I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
@@ -169,6 +184,8 @@ private:
         i2cp_leaseSetPrivKeyLabel->setText(QApplication::translate("tunForm", "Decryption key for encrypted LeaseSet in base64. PSK or private DH:", 0));
         i2cp_leaseSetAuthTypeLabel->setText(QApplication::translate("tunForm", "Auth type for encrypted LeaseSet. 0 - no auth, 1 - DH, 2 - PSK:", 0));
     }
+protected:
+    bool isValidSingleLine(QLineEdit* widget);
 };
 
 #endif // TUNNELPANE_H

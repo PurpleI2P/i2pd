@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+enum WrongInputPageEnum { generalSettingsPage, tunnelsSettingsPage };
+
 #include <QObject>
 #include <QMainWindow>
 #include <QPushButton>
@@ -65,6 +67,8 @@
 #include "DelayedSaveManager.h"
 #include "DelayedSaveManagerImpl.h"
 #include "SaverImpl.h"
+
+#include "I2pdQtUtil.h"
 
 class SaverImpl;
 
@@ -155,19 +159,24 @@ public:
         }else out << boost::any_cast<std::string>(optionValue); //let it throw
         out << "\n\n";
     }
-    virtual bool isValid(){return true;}
+    virtual bool isValid(bool & alreadyDisplayedIfWrong){alreadyDisplayedIfWrong=false;return true;}
 };
 class NonGUIOptionItem : public MainWindowItem {
 public:
-    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_, nullptr, QString()) {};
+    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_, nullptr, QString()) {}
     virtual ~NonGUIOptionItem(){}
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return true; }
 };
 class BaseStringItem : public MainWindowItem {
     Q_OBJECT
 public:
     QLineEdit* lineEdit;
-    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_) : MainWindowItem(option_, lineEdit_, requirementToBeValid_), lineEdit(lineEdit_){};
+    MainWindow *mainWindow;
+    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_, MainWindow* mainWindow_):
+        MainWindowItem(option_, lineEdit_, requirementToBeValid_),
+        lineEdit(lineEdit_),
+        mainWindow(mainWindow_)
+    {};
     virtual ~BaseStringItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual QString toString(){
@@ -183,13 +192,13 @@ public:
         optionValue=fromString(lineEdit->text());
         MainWindowItem::saveToStringStream(out);
     }
-    virtual bool isValid() { return true; }
+    virtual bool isValid(bool & alreadyDisplayedIfWrong);
 };
 class FileOrFolderChooserItem : public BaseStringItem {
 public:
     QPushButton* browsePushButton;
-    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_) :
-        BaseStringItem(option_, lineEdit_, QString()), browsePushButton(browsePushButton_) {}
+    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
+        BaseStringItem(option_, lineEdit_, QString(), mw), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -197,8 +206,8 @@ class FileChooserItem : public FileOrFolderChooserItem {
 private slots:
     void pushButtonReleased();
 public:
-    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_) {
+    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -207,20 +216,20 @@ class FolderChooserItem : public FileOrFolderChooserItem{
 private slots:
     void pushButtonReleased();
 public:
-    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_) {
+    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
 class ComboBoxItem : public MainWindowItem {
 public:
     QComboBox* comboBox;
-    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_,comboBox_,QString()), comboBox(comboBox_){};
+    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_,comboBox_,QString()), comboBox(comboBox_){}
     virtual ~ComboBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption()=0;
     virtual void saveToStringStream(std::stringstream& out)=0;
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return ; }
 };
 class LogDestinationComboBoxItem : public ComboBoxItem {
 public:
@@ -237,13 +246,13 @@ public:
         optionValue=logDest;
         MainWindowItem::saveToStringStream(out);
     }
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return true; }
 
     Q_OBJECT
 };
 class LogLevelComboBoxItem : public ComboBoxItem {
 public:
-    LogLevelComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
+    LogLevelComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {}
     virtual ~LogLevelComboBoxItem(){}
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
@@ -254,11 +263,11 @@ public:
         optionValue=comboBox->currentText().toStdString();
         MainWindowItem::saveToStringStream(out);
     }
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return true; }
 };
 class SignatureTypeComboBoxItem : public ComboBoxItem {
 public:
-    SignatureTypeComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
+    SignatureTypeComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {}
     virtual ~SignatureTypeComboBoxItem(){}
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
@@ -271,12 +280,12 @@ public:
         optionValue=(unsigned short)selected;
         MainWindowItem::saveToStringStream(out);
     }
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return true; }
 };
 class CheckBoxItem : public MainWindowItem {
 public:
     QCheckBox* checkBox;
-    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_,checkBox_,QString()), checkBox(checkBox_){};
+    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_,checkBox_,QString()), checkBox(checkBox_){}
     virtual ~CheckBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
@@ -288,22 +297,25 @@ public:
         optionValue=checkBox->isChecked();
         MainWindowItem::saveToStringStream(out);
     }
-    virtual bool isValid() { return true; }
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong) { return true; }
 };
 class BaseFormattedStringItem : public BaseStringItem {
 public:
     QString fieldNameTranslated;
-    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, QString requirementToBeValid_) :
-        BaseStringItem(option_, lineEdit_, requirementToBeValid_), fieldNameTranslated(fieldNameTranslated_) {};
+    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, QString requirementToBeValid_, MainWindow* mw) :
+        BaseStringItem(option_, lineEdit_, requirementToBeValid_, mw), fieldNameTranslated(fieldNameTranslated_) {}
     virtual ~BaseFormattedStringItem(){}
-    virtual bool isValid()=0;
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong)=0;
 };
 class IntegerStringItem : public BaseFormattedStringItem {
 public:
-    IntegerStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be a valid integer.")) {};
+    IntegerStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be a valid integer."), mw) {}
     virtual ~IntegerStringItem(){}
-    virtual bool isValid(){
+    virtual bool isValid(bool & alreadyDisplayedIfWrong){
+        bool correct = BaseFormattedStringItem::isValid(alreadyDisplayedIfWrong);
+        if(!correct)return false;
+        alreadyDisplayedIfWrong = false;
         auto str=lineEdit->text();
         bool ok;
         str.toInt(&ok);
@@ -314,10 +326,13 @@ public:
 };
 class UShortStringItem : public BaseFormattedStringItem {
 public:
-    UShortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned short integer.")) {};
+    UShortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned short integer."), mw) {}
     virtual ~UShortStringItem(){}
-    virtual bool isValid(){
+    virtual bool isValid(bool & alreadyDisplayedIfWrong){
+        bool correct = BaseFormattedStringItem::isValid(alreadyDisplayedIfWrong);
+        if(!correct)return false;
+        alreadyDisplayedIfWrong = false;
         auto str=lineEdit->text();
         bool ok;
         str.toUShort(&ok);
@@ -328,10 +343,13 @@ public:
 };
 class UInt32StringItem : public BaseFormattedStringItem {
 public:
-    UInt32StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 32-bit integer.")) {};
+    UInt32StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 32-bit integer."), mw) {}
     virtual ~UInt32StringItem(){}
-    virtual bool isValid(){
+    virtual bool isValid(bool & alreadyDisplayedIfWrong){
+        bool correct = BaseFormattedStringItem::isValid(alreadyDisplayedIfWrong);
+        if(!correct)return false;
+        alreadyDisplayedIfWrong = false;
         auto str=lineEdit->text();
         bool ok;
         str.toUInt(&ok);
@@ -342,10 +360,13 @@ public:
 };
 class UInt16StringItem : public BaseFormattedStringItem {
 public:
-    UInt16StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer.")) {};
+    UInt16StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer."), mw) {}
     virtual ~UInt16StringItem(){}
-    virtual bool isValid(){
+    virtual bool isValid(bool & alreadyDisplayedIfWrong){
+        bool correct = BaseFormattedStringItem::isValid(alreadyDisplayedIfWrong);
+        if(!correct)return false;
+        alreadyDisplayedIfWrong = false;
         auto str=lineEdit->text();
         bool ok;
         str.toUShort(&ok);
@@ -356,14 +377,14 @@ public:
 };
 class IPAddressStringItem : public BaseFormattedStringItem {
 public:
-    IPAddressStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be an IPv4 address")) {};
-    virtual bool isValid(){return true;}//todo
+    IPAddressStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be an IPv4 address"), mw) {}
+    //virtual bool isValid(bool & alreadyDisplayedIfWrong){return true;}//todo
 };
 class TCPPortStringItem : public UShortStringItem {
 public:
-    TCPPortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        UShortStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+    TCPPortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, MainWindow* mw) :
+        UShortStringItem(option_, lineEdit_, fieldNameTranslated_,mw) {}
 };
 
 namespace Ui {
@@ -395,7 +416,7 @@ public:
 
     void setI2PController(i2p::qt::Controller* controller_);
 
-    void highlightWrongInput(QString warningText, QWidget* widgetToFocus);
+    void highlightWrongInput(QString warningText, WrongInputPageEnum inputPage, QWidget* widgetToFocus);
 
     //typedef std::function<QString ()> DefaultValueGetter;
 

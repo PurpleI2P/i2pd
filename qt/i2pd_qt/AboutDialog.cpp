@@ -8,7 +8,6 @@ AboutDialog::AboutDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AboutDialog)
 {
-    qDebug() << "AboutDialog::AboutDialog()" << endl;
     ui->setupUi(this);
     ui->i2pdVersionLabel->setText(I2PD_VERSION);
     ui->i2pVersionLabel->setText(I2P_VERSION);
@@ -18,6 +17,5 @@ AboutDialog::AboutDialog(QWidget *parent) :
 
 AboutDialog::~AboutDialog()
 {
-    qDebug() << "AboutDialog::~AboutDialog()" << endl;
     delete ui;
 }

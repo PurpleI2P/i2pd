@@ -37,7 +37,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/i2pd.cpp \
     ../../daemon/UPnP.cpp \
-    AboutDialog.cpp
+    AboutDialog.cpp \
+    I2pdQtUtil.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ClientTunnelPane.h \
@@ -62,7 +63,8 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/I2PControl.h \
     ../../daemon/UPnP.h \
     AboutDialog.h \
-    BuildDateTimeQt.h
+    BuildDateTimeQt.h \
+    I2pdQtUtil.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
