@@ -442,6 +442,7 @@ public slots:
     void showTunnelsPage();
     void showRestartPage();
     void showQuitPage();
+    void showAboutBox(const QString & href);
 
 private:
     StatusPage statusPage;

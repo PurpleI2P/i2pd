@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "AboutDialog.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
 #include "ui_routercommandswidget.h"
@@ -8,6 +9,13 @@
 #include <QTimer>
 #include <QFile>
 #include <QFileDialog>
+
+#include <QApplication>
+#include <QScreen>
+#include <QStyleHints>
+#include <QScreen>
+#include <QWindow>
+
 #include "RouterContext.h"
 #include "Config.h"
 #include "FS.h"
@@ -65,6 +73,10 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     statusButtonsUI->setupUi(ui->statusButtonsPane);
     routerCommandsUI->setupUi(routerCommandsParent);
     uiSettings->setupUi(ui->settingsContents);
+
+    ui->aboutHrefLabel->setText("<html><head/><body><p><a href='about:i2pd_qt'><span style='text-decoration:none;color:#a0a0a0;'>"
+                                "<span style='font-weight:500;'>i2pd_qt</span><br/>Version " I2PD_VERSION " · About...</span></a></p></body></html>");
+
     routerCommandsParent->hide();
     ui->verticalLayout_2->addWidget(routerCommandsParent);
     //,statusHtmlUI(new Ui::StatusHtmlPaneForm)
@@ -76,15 +88,16 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
-    setFixedHeight(550);
-    ui->centralWidget->setFixedHeight(550);
+    constexpr auto WINDOW_HEIGHT = 610;
+    setFixedHeight(WINDOW_HEIGHT);
+    ui->centralWidget->setFixedHeight(WINDOW_HEIGHT);
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
     ui->settingsScrollArea->resize(uiSettings->settingsContentsQVBoxLayout->sizeHint().width()+10,380);
     //QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
-    int w = 683;
-    int h = 4550;
+    constexpr auto w = 683;
+    constexpr auto h = 4550;
     ui->settingsContents->setFixedSize(w, h);
     ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
@@ -142,6 +155,8 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     QObject::connect(routerCommandsUI->runPeerTestPushButton, SIGNAL(released()), this, SLOT(runPeerTest()));
     QObject::connect(routerCommandsUI->acceptTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(enableTransit()));
     QObject::connect(routerCommandsUI->declineTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(disableTransit()));
+
+    QObject::connect(ui->aboutHrefLabel, SIGNAL(linkActivated(const QString &)), this, SLOT(showAboutBox(const QString &)));
 
     QObject::connect(ui->logViewerPushButton, SIGNAL(released()), this, SLOT(showLogViewerPage()));
 
@@ -400,6 +415,27 @@ void MainWindow::showStatusPage(StatusPage newStatusPage){
     }
     wasSelectingAtStatusMainPage=false;
 }
+
+void MainWindow::showAboutBox(const QString & href) {
+    qDebug() << "MainWindow::showAboutBox(), href:" << href << endl;
+    AboutDialog dialog(this);
+
+    if (!QGuiApplication::styleHints()->showIsFullScreen() && !QGuiApplication::styleHints()->showIsMaximized()) {
+        const QWindow * windowHandle = dialog.windowHandle();
+        qDebug()<<"AboutDialog windowHandle ptr: "<<(size_t)windowHandle<<endl;
+        const QScreen * screen = windowHandle?windowHandle->screen():nullptr; //Qt 5.14+: dialog.screen()
+        qDebug()<<"AboutDialog screen ptr: "<<(size_t)screen<<endl;
+        if (screen) {
+            const QRect availableGeometry = screen->availableGeometry();
+            //dialog.resize(availableGeometry.width() / 3, availableGeometry.height() * 2 / 3);
+            dialog.move((availableGeometry.width() - dialog.width()) / 2,
+                        (availableGeometry.height() - dialog.height()) / 2);
+        }
+    }
+    //dialog.show();
+    (void) dialog.exec();
+}
+
 void MainWindow::showLogViewerPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
 void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
 void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
