@@ -64,7 +64,8 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/UPnP.h \
     AboutDialog.h \
     BuildDateTimeQt.h \
-    I2pdQtUtil.h
+    I2pdQtUtil.h \
+    I2pdQtTypes.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client

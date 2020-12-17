@@ -2,6 +2,7 @@
 #define DELAYEDSAVEMANAGER_H
 
 #include "Saver.h"
+#include "I2pdQtTypes.h"
 
 class DelayedSaveManager
 {
@@ -12,13 +13,14 @@ public:
 
     typedef unsigned int DATA_SERIAL_TYPE;
 
-    virtual void delayedSave(DATA_SERIAL_TYPE dataSerial, bool needsTunnelFocus, std::string tunnelNameToFocus)=0;
+    virtual void delayedSave(bool reloadAfterSave, DATA_SERIAL_TYPE dataSerial, FocusEnum focusOn, std::string tunnelNameToFocus, QWidget* widgetToFocus)=0;
 
     //returns false iff save failed
     virtual bool appExiting()=0;
 
-    virtual bool needsFocusOnTunnel()=0;
+    virtual FocusEnum getFocusOn()=0;
     virtual std::string& getTunnelNameToFocus()=0;
+    virtual QWidget* getWidgetToFocus()=0;
 };
 
 #endif // DELAYEDSAVEMANAGER_H

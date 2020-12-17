@@ -1,8 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-enum WrongInputPageEnum { generalSettingsPage, tunnelsSettingsPage };
-
 #include <QObject>
 #include <QMainWindow>
 #include <QPushButton>
@@ -136,7 +134,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "Writing option" << optName.c_str() << "of type" << rtti.c_str();
+        //qDebug() << "Writing option" << optName.c_str() << "of type" << rtti.c_str();
         std::string sectionAsStdStr = option.section.toStdString();
         if(!option.section.isEmpty() &&
                 sectionAsStdStr!=programOptionsWriterCurrentSection) {
@@ -541,12 +539,12 @@ protected:
 
 public slots:
     /** returns false iff not valid items present and save was aborted */
-    bool saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus="");
-    void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus);
+    bool saveAllConfigs(bool reloadAfterSave, FocusEnum focusOn, std::string tunnelNameToFocus="", QWidget* widgetToFocus=nullptr);
+    void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus, QWidget* widgetToFocus);
+    void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI("", nullptr); }
 
     //focus none
-    void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
-    void reloadTunnelsConfigAndUI_QString(const QString tunnelNameToFocus);
+    void reloadTunnelsConfigAndUI_QString(QString tunnelNameToFocus);
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
 
@@ -651,7 +649,7 @@ private:
             tunnelConfigs.erase(it);
             delete tc;
         }
-        saveAllConfigs(false);
+        saveAllConfigs(true, FocusEnum::noFocus);
     }
 
     std::string GenerateNewTunnelName() {
@@ -688,7 +686,7 @@ private:
                                                       sigType,
                                                       cryptoType);
 
-        saveAllConfigs(true, name);
+        saveAllConfigs(true, FocusEnum::focusOnTunnelName, name);
     }
 
     void CreateDefaultServerTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
@@ -726,7 +724,7 @@ private:
                                                   cryptoType);
 
 
-        saveAllConfigs(true, name);
+        saveAllConfigs(true, FocusEnum::focusOnTunnelName, name);
     }
 
     void ReadTunnelsConfig() //TODO deduplicate the code with ClientContext.cpp::ReadTunnels ()

@@ -783,7 +783,7 @@ void MainWindow::deleteTunnelFromUI(std::string tunnelName, TunnelConfig* cnf) {
 }
 
 /** returns false iff not valid items present and save was aborted */
-bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus){
+bool MainWindow::saveAllConfigs(bool reloadAfterSave, FocusEnum focusOn, std::string tunnelNameToFocus, QWidget* widgetToFocus){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
@@ -803,7 +803,7 @@ bool MainWindow::saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocu
             return false;
         }
     }
-    delayedSaveManagerPtr->delayedSave(++dataSerial, focusOnTunnel, tunnelNameToFocus);//TODO does dataSerial work? //FIXME
+    delayedSaveManagerPtr->delayedSave(reloadAfterSave, ++dataSerial, focusOn, tunnelNameToFocus, widgetToFocus);//TODO does dataSerial work? //FIXME
 
     //onLoggingOptionsChange();
     return true;
@@ -841,7 +841,7 @@ void MainWindow::updated() {
 
     bool correct = applyTunnelsUiToConfigs();
     if(!correct) return;
-    saveAllConfigs(false);
+    saveAllConfigs(false, FocusEnum::noFocus);
 }
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
@@ -916,11 +916,11 @@ bool MainWindow::applyTunnelsUiToConfigs() {
     return true;
 }
 
-void MainWindow::reloadTunnelsConfigAndUI_QString(const QString tunnelNameToFocus) {
-    reloadTunnelsConfigAndUI(tunnelNameToFocus.toStdString());
+void MainWindow::reloadTunnelsConfigAndUI_QString(QString tunnelNameToFocus) {
+    reloadTunnelsConfigAndUI(tunnelNameToFocus.toStdString(), nullptr);
 }
 
-void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
+void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus, QWidget* widgetToFocus) {
     deleteTunnelForms();
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
         TunnelConfig* tunconf = it->second;
@@ -937,8 +937,10 @@ void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string ol
         std::map<std::string,TunnelConfig*>::const_iterator it=mainWindow->tunnelConfigs.find(oldName);
         if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
         mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
+        mainWindow->saveAllConfigs(true, FocusEnum::focusOnTunnelName, tunConf->getName());
     }
-    mainWindow->saveAllConfigs(true, tunConf->getName());
+    else
+        mainWindow->saveAllConfigs(false, FocusEnum::noFocus);
 }
 
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){

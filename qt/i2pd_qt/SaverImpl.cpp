@@ -15,7 +15,7 @@ SaverImpl::SaverImpl(MainWindow *mainWindowPtr_, QList<MainWindowItem*> * config
 
 SaverImpl::~SaverImpl() {}
 
-bool SaverImpl::save(const bool focusOnTunnel, const std::string& tunnelNameToFocus) {
+bool SaverImpl::save(bool reloadAfterSave, const FocusEnum focusOn, const std::string& tunnelNameToFocus, QWidget* widgetToFocus) {
     //save main config
     {
         std::stringstream out;
@@ -59,12 +59,14 @@ bool SaverImpl::save(const bool focusOnTunnel, const std::string& tunnelNameToFo
         outfile.close();
     }
 
-    //reload saved configs
+    if(reloadAfterSave) {
+        //reload saved configs
 #if 0
-    i2p::client::context.ReloadConfig();
+        i2p::client::context.ReloadConfig();
 #endif
 
-    if(focusOnTunnel) emit reloadTunnelsConfigAndUISignal(QString::fromStdString(tunnelNameToFocus));
+        if(reloadAfterSave) emit reloadTunnelsConfigAndUISignal(focusOn==FocusEnum::focusOnTunnelName?QString::fromStdString(tunnelNameToFocus):"");
+    }
 
     return true;
 }
