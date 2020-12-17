@@ -417,7 +417,6 @@ void MainWindow::showStatusPage(StatusPage newStatusPage){
 }
 
 void MainWindow::showAboutBox(const QString & href) {
-    qDebug() << "MainWindow::showAboutBox(), href:" << href << endl;
     AboutDialog dialog(this);
 
     /*
