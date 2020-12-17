@@ -177,9 +177,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
-    initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton);
-    initFileChooser(    OPTION("","tunconf",[](){return "";}), uiSettings->tunnelsConfigFileLineEdit, uiSettings->tunnelsConfigFileBrowsePushButton);
-    initFileChooser(    OPTION("","pidfile",[]{return "";}), uiSettings->pidFileLineEdit, uiSettings->pidFileBrowsePushButton);
+    initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton, false);
+    initFileChooser(    OPTION("","tunconf",[](){return "";}), uiSettings->tunnelsConfigFileLineEdit, uiSettings->tunnelsConfigFileBrowsePushButton, false);
+    initFileChooser(    OPTION("","pidfile",[]{return "";}), uiSettings->pidFileLineEdit, uiSettings->pidFileBrowsePushButton, false);
 
     uiSettings->logDestinationComboBox->clear();
     uiSettings->logDestinationComboBox->insertItems(0, QStringList()
@@ -189,7 +189,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     );
     initLogDestinationCombobox(   OPTION("","log",[]{return "";}), uiSettings->logDestinationComboBox);
 
-    logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton);
+    logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton, false);
     initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), uiSettings->logLevelComboBox);
     initCheckBox(       OPTION("","logclftime",[]{return "false";}), uiSettings->logclftimeCheckBox);//"Write full CLF-formatted date and time to log (default: write only time)"
     initFolderChooser(  OPTION("","datadir",[]{return "";}), uiSettings->dataFolderLineEdit, uiSettings->dataFolderBrowsePushButton);
@@ -232,7 +232,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), uiSettings->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
     initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), uiSettings->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
     initCheckBox(       OPTION("httpproxy","addresshelper",[]{return "true";}), uiSettings->httpProxyAddressHelperCheckBox);//Enable address helper (jump). true by default
-    initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), uiSettings->httpProxyKeyFileLineEdit, uiSettings->httpProxyKeyFilePushButton);
+    initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), uiSettings->httpProxyKeyFileLineEdit, uiSettings->httpProxyKeyFilePushButton, false);
     initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_httpPorxySignatureType);
     initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), uiSettings->httpProxyInboundTunnelsLenLineEdit);
     initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), uiSettings->httpProxyInboundTunnQuantityLineEdit);
@@ -245,7 +245,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), uiSettings->socksProxyEnabledCheckBox);
     initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), uiSettings->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
     initTCPPortBox(     OPTION("socksproxy","port",[]{return "4447";}), uiSettings->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
-    initFileChooser(    OPTION("socksproxy","keys",[]{return "";}), uiSettings->socksProxyKeyFileLineEdit, uiSettings->socksProxyKeyFilePushButton);
+    initFileChooser(    OPTION("socksproxy","keys",[]{return "";}), uiSettings->socksProxyKeyFileLineEdit, uiSettings->socksProxyKeyFilePushButton, false);
     initSignatureTypeCombobox(OPTION("socksproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_socksProxySignatureType);
     initStringBox(     OPTION("socksproxy","inbound.length",[]{return "";}), uiSettings->socksProxyInboundTunnelsLenLineEdit);
     initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), uiSettings->socksProxyInboundTunnQuantityLineEdit);
@@ -275,8 +275,8 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), uiSettings->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
     initTCPPortBox(     OPTION("i2pcontrol","port",[]{return "7650";}), uiSettings->i2pControlPortLineEdit, tr("I2PControl -> Port"));
     initStringBox(      OPTION("i2pcontrol","password",[]{return "";}), uiSettings->i2pControlPasswordLineEdit);
-    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), uiSettings->i2pControlCertFileLineEdit, uiSettings->i2pControlCertFileBrowsePushButton);
-    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), uiSettings->i2pControlKeyFileLineEdit, uiSettings->i2pControlKeyFileBrowsePushButton);
+    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), uiSettings->i2pControlCertFileLineEdit, uiSettings->i2pControlCertFileBrowsePushButton, true);
+    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), uiSettings->i2pControlKeyFileLineEdit, uiSettings->i2pControlKeyFileBrowsePushButton, true);
 
     initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), uiSettings->enableUPnPCheckBox);
     initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), uiSettings->upnpNameLineEdit);
@@ -284,9 +284,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), uiSettings->useElGamalPrecomputedTablesCheckBox);
 
     initCheckBox(       OPTION("reseed","verify",[]{return "";}), uiSettings->reseedVerifyCheckBox);
-    initFileChooser(    OPTION("reseed","file",[]{return "";}), uiSettings->reseedFileLineEdit, uiSettings->reseedFileBrowsePushButton);
+    initFileChooser(    OPTION("reseed","file",[]{return "";}), uiSettings->reseedFileLineEdit, uiSettings->reseedFileBrowsePushButton, true);
     initStringBox(      OPTION("reseed","urls",[]{return "";}), uiSettings->reseedURLsLineEdit);
-    initFileChooser(    OPTION("reseed","zipfile",[]{return "";}), uiSettings->reseedZipFileLineEdit, uiSettings->reseedZipFileBrowsePushButton); //Path to local .zip file to reseed from
+    initFileChooser(    OPTION("reseed","zipfile",[]{return "";}), uiSettings->reseedZipFileLineEdit, uiSettings->reseedZipFileBrowsePushButton, true); //Path to local .zip file to reseed from
     initUInt16Box(      OPTION("reseed","threshold",[]{return "25";}), uiSettings->reseedThresholdNumberLineEdit, tr("reseedThreshold")); //Minimum number of known routers before requesting reseed. 25 by default
     initStringBox(      OPTION("reseed","proxy",[]{return "";}), uiSettings->reseedProxyLineEdit);//URL for https/socks reseed proxy
 
@@ -649,15 +649,15 @@ MainWindow::~MainWindow()
     //QMessageBox::information(0, "Debug", "mw destructor 2");
 }
 
-FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton){
+FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile){
     FileChooserItem* retVal;
-    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton, this);
+    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton, this, requireExistingFile);
     MainWindowItem* super=retVal;
     configItems.append(super);
     return retVal;
 }
 void MainWindow::initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton){
-    configItems.append(new FolderChooserItem(option, folderLineEdit, folderBrowsePushButton, this));
+    configItems.append(new FolderChooserItem(option, folderLineEdit, folderBrowsePushButton, this, true));
 }
 /*void MainWindow::initCombobox(ConfigOption option, QComboBox* comboBox){
     configItems.append(new ComboBoxItem(option, comboBox));
@@ -811,11 +811,14 @@ bool MainWindow::saveAllConfigs(bool reloadAfterSave, FocusEnum focusOn, std::st
 
 void FileChooserItem::pushButtonReleased() {
     QString fileName = lineEdit->text().trimmed();
-    fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), fileName, tr("All Files (*.*)"));
+    fileName = requireExistingFile ?
+            QFileDialog::getOpenFileName(nullptr, tr("Open File"), fileName, tr("All Files (*.*)")) :
+            QFileDialog::getSaveFileName(nullptr, tr("Open File"), fileName, tr("All Files (*.*)"));
     if(fileName.length()>0)lineEdit->setText(fileName);
 }
 void FolderChooserItem::pushButtonReleased() {
     QString fileName = lineEdit->text().trimmed();
+    assert(requireExistingFile);
     fileName = QFileDialog::getExistingDirectory(nullptr, tr("Open Folder"), fileName);
     if(fileName.length()>0)lineEdit->setText(fileName);
 }

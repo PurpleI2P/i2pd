@@ -193,10 +193,12 @@ public:
     virtual bool isValid(bool & alreadyDisplayedIfWrong);
 };
 class FileOrFolderChooserItem : public BaseStringItem {
+protected:
+    const bool requireExistingFile;
 public:
     QPushButton* browsePushButton;
-    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        BaseStringItem(option_, lineEdit_, QString(), mw), browsePushButton(browsePushButton_) {}
+    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile_) :
+        BaseStringItem(option_, lineEdit_, QString(), mw), requireExistingFile(requireExistingFile_), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -204,8 +206,8 @@ class FileChooserItem : public FileOrFolderChooserItem {
 private slots:
     void pushButtonReleased();
 public:
-    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
+    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFile) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -214,8 +216,8 @@ class FolderChooserItem : public FileOrFolderChooserItem{
 private slots:
     void pushButtonReleased();
 public:
-    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
+    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFolder) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFolder) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -519,7 +521,7 @@ protected:
     //LogDestinationComboBoxItem* logOption;
     FileChooserItem* logFileNameOption;
 
-    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton);
+    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile);
     void initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
     //void initCombobox(ConfigOption option, QComboBox* comboBox);
     void initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox);
