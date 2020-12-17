@@ -420,6 +420,8 @@ void MainWindow::showAboutBox(const QString & href) {
     qDebug() << "MainWindow::showAboutBox(), href:" << href << endl;
     AboutDialog dialog(this);
 
+    /*
+    //doesn't work on older qt5: ‘class QStyleHints’ has no member named ‘showIsMaximized’
     if (!QGuiApplication::styleHints()->showIsFullScreen() && !QGuiApplication::styleHints()->showIsMaximized()) {
         const QWindow * windowHandle = dialog.windowHandle();
         qDebug()<<"AboutDialog windowHandle ptr: "<<(size_t)windowHandle<<endl;
@@ -432,7 +434,8 @@ void MainWindow::showAboutBox(const QString & href) {
                         (availableGeometry.height() - dialog.height()) / 2);
         }
     }
-    //dialog.show();
+    */
+
     (void) dialog.exec();
 }
 
