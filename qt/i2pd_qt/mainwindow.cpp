@@ -997,30 +997,33 @@ void MainWindow::backClickedFromChild() {
 }
 
 void MainWindow::adjustSizesAccordingToWrongLabel() {
+    constexpr auto HEIGHT = 581;
+    constexpr auto WIDTH = 707;
     if(ui->wrongInputLabel->isVisible()) {
         int dh = ui->wrongInputLabel->height()+ui->verticalLayout_7->layout()->spacing();
         ui->verticalLayout_7->invalidate();
         ui->wrongInputLabel->adjustSize();
         ui->stackedWidget->adjustSize();
-        ui->stackedWidget->setFixedHeight(531-dh);
-        ui->settingsPage->setFixedHeight(531-dh);
-        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531-dh));
-        ui->stackedWidget->setFixedHeight(531-dh);
-        ui->settingsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        const auto height = HEIGHT - dh;
+        ui->stackedWidget->setFixedHeight(height);
+        ui->settingsPage->setFixedHeight(height);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, WIDTH, height));
+        ui->stackedWidget->setFixedHeight(height);
+        ui->settingsScrollArea->setFixedHeight(height-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
         ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
-        ui->tunnelsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsScrollArea->setFixedHeight(height-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
         ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
     }else{
         ui->verticalLayout_7->invalidate();
         ui->wrongInputLabel->adjustSize();
         ui->stackedWidget->adjustSize();
-        ui->stackedWidget->setFixedHeight(531);
-        ui->settingsPage->setFixedHeight(531);
-        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531));
-        ui->stackedWidget->setFixedHeight(531);
-        ui->settingsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        ui->stackedWidget->setFixedHeight(HEIGHT);
+        ui->settingsPage->setFixedHeight(HEIGHT);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, WIDTH, HEIGHT));
+        ui->stackedWidget->setFixedHeight(HEIGHT);
+        ui->settingsScrollArea->setFixedHeight(HEIGHT-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
         ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
-        ui->tunnelsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsScrollArea->setFixedHeight(HEIGHT-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
         ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
     }
 }
