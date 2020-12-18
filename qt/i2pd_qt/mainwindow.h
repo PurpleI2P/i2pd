@@ -1,8 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-enum WrongInputPageEnum { generalSettingsPage, tunnelsSettingsPage };
-
 #include <QObject>
 #include <QMainWindow>
 #include <QPushButton>
@@ -104,12 +102,14 @@ class MainWindow;
 
 class MainWindowItem : public QObject {
     Q_OBJECT
+private:
     ConfigOption option;
     QWidget* widgetToFocus;
     QString requirementToBeValid;
+    const bool readOnly;
 public:
-    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) :
-        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_, bool readOnly_=false) :
+        option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_), readOnly(readOnly_) {}
     QWidget* getWidgetToFocus(){return widgetToFocus;}
     QString& getRequirementToBeValid() { return requirementToBeValid; }
     ConfigOption& getConfigOption() { return option; }
@@ -120,13 +120,14 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
                    :boost::any_cast<boost::program_options::variable_value>(programOption).value();
     }
     virtual void saveToStringStream(std::stringstream& out){
+        if(readOnly)return; //should readOnly items (conf=) error somewhere, instead of silently skipping save?
         if(isType<std::string>(optionValue)) {
             std::string v = boost::any_cast<std::string>(optionValue);
             if(v.empty())return;
@@ -136,7 +137,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "Writing option" << optName.c_str() << "of type" << rtti.c_str();
+        //qDebug() << "Writing option" << optName.c_str() << "of type" << rtti.c_str();
         std::string sectionAsStdStr = option.section.toStdString();
         if(!option.section.isEmpty() &&
                 sectionAsStdStr!=programOptionsWriterCurrentSection) {
@@ -172,8 +173,8 @@ class BaseStringItem : public MainWindowItem {
 public:
     QLineEdit* lineEdit;
     MainWindow *mainWindow;
-    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_, MainWindow* mainWindow_):
-        MainWindowItem(option_, lineEdit_, requirementToBeValid_),
+    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_, MainWindow* mainWindow_, bool readOnly=false):
+        MainWindowItem(option_, lineEdit_, requirementToBeValid_, readOnly),
         lineEdit(lineEdit_),
         mainWindow(mainWindow_)
     {};
@@ -195,10 +196,12 @@ public:
     virtual bool isValid(bool & alreadyDisplayedIfWrong);
 };
 class FileOrFolderChooserItem : public BaseStringItem {
+protected:
+    const bool requireExistingFile;
 public:
     QPushButton* browsePushButton;
-    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        BaseStringItem(option_, lineEdit_, QString(), mw), browsePushButton(browsePushButton_) {}
+    FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile_, bool readOnly) :
+        BaseStringItem(option_, lineEdit_, QString(), mw, readOnly), requireExistingFile(requireExistingFile_), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -206,8 +209,8 @@ class FileChooserItem : public FileOrFolderChooserItem {
 private slots:
     void pushButtonReleased();
 public:
-    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
+    FileChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFile, bool readOnly) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFile, readOnly) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -216,8 +219,8 @@ class FolderChooserItem : public FileOrFolderChooserItem{
 private slots:
     void pushButtonReleased();
 public:
-    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw) :
-        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw) {
+    FolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_, MainWindow* mw, bool requireExistingFolder) :
+        FileOrFolderChooserItem(option_, lineEdit_, browsePushButton_, mw, requireExistingFolder, false) {
         QObject::connect(browsePushButton, SIGNAL(released()), this, SLOT(pushButtonReleased()));
     }
 };
@@ -290,7 +293,7 @@ public:
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
-        qDebug() << "setting value for checkbox " << checkBox->text();
+        //qDebug() << "setting value for checkbox " << checkBox->text();
         checkBox->setChecked(boost::any_cast<bool>(optionValue));
     }
     virtual void saveToStringStream(std::stringstream& out){
@@ -407,6 +410,7 @@ class DelayedSaveManagerImpl;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 private:
+    std::string currentLocalDestinationB32;
     std::shared_ptr<std::iostream> logStream;
     DelayedSaveManagerImpl* delayedSaveManagerPtr;
     DelayedSaveManager::DATA_SERIAL_TYPE dataSerial;
@@ -521,7 +525,7 @@ protected:
     //LogDestinationComboBoxItem* logOption;
     FileChooserItem* logFileNameOption;
 
-    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton);
+    FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton, bool requireExistingFile, bool readOnly=false);
     void initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
     //void initCombobox(ConfigOption option, QComboBox* comboBox);
     void initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox);
@@ -541,12 +545,12 @@ protected:
 
 public slots:
     /** returns false iff not valid items present and save was aborted */
-    bool saveAllConfigs(bool focusOnTunnel, std::string tunnelNameToFocus="");
-    void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus);
+    bool saveAllConfigs(bool reloadAfterSave, FocusEnum focusOn, std::string tunnelNameToFocus="", QWidget* widgetToFocus=nullptr);
+    void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus, QWidget* widgetToFocus);
+    void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI("", nullptr); }
 
     //focus none
-    void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
-    void reloadTunnelsConfigAndUI_QString(const QString tunnelNameToFocus);
+    void reloadTunnelsConfigAndUI_QString(QString tunnelNameToFocus);
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
 
@@ -651,7 +655,7 @@ private:
             tunnelConfigs.erase(it);
             delete tc;
         }
-        saveAllConfigs(false);
+        saveAllConfigs(true, FocusEnum::noFocus);
     }
 
     std::string GenerateNewTunnelName() {
@@ -688,7 +692,7 @@ private:
                                                       sigType,
                                                       cryptoType);
 
-        saveAllConfigs(true, name);
+        saveAllConfigs(true, FocusEnum::focusOnTunnelName, name);
     }
 
     void CreateDefaultServerTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
@@ -726,7 +730,7 @@ private:
                                                   cryptoType);
 
 
-        saveAllConfigs(true, name);
+        saveAllConfigs(true, FocusEnum::focusOnTunnelName, name);
     }
 
     void ReadTunnelsConfig() //TODO deduplicate the code with ClientContext.cpp::ReadTunnels ()
@@ -769,16 +773,13 @@ private:
                     std::string dest;
                     if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
                         dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
-                        std::cout << "had read tunnel dest: " << dest << std::endl;
                     }
                     int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
-                    std::cout << "had read tunnel port: " << port << std::endl;
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
                     int cryptoType = section.second.get<int>(I2P_CLIENT_TUNNEL_CRYPTO_TYPE, 0);
                     int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
-                    std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     // I2CP
                     std::map<std::string, std::string> options;

@@ -9,10 +9,15 @@ CONFIG += strict_c++ c++11
 
 CONFIG(debug, debug|release) {
     message(Debug build)
+
+    # do not redirect logging to std::ostream and to Log pane
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+
+    DEFINES += I2PD_QT_DEBUG
     I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)
+    DEFINES += I2PD_QT_RELEASE
     I2PDMAKE += DEBUG=no
 }
 
@@ -64,7 +69,8 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/UPnP.h \
     AboutDialog.h \
     BuildDateTimeQt.h \
-    I2pdQtUtil.h
+    I2pdQtUtil.h \
+    I2pdQtTypes.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client

@@ -7,14 +7,14 @@
 #include <QMutex>
 #include <QDateTime>
 
-#include "mainwindow.h"
+#include "I2pdQtTypes.h"
 #include "DelayedSaveManager.h"
 #include "Saver.h"
 
 class DelayedSaveManagerImpl;
+class Saver;
 
-class DelayedSaveThread : public QThread
-{
+class DelayedSaveThread : public QThread {
     Q_OBJECT
 
 public:
@@ -42,14 +42,17 @@ private:
     volatile TIMESTAMP_TYPE wakeTime;
 };
 
-class DelayedSaveManagerImpl : public DelayedSaveManager
-{
+class DelayedSaveManagerImpl : public DelayedSaveManager {
+    FocusEnum focusOn;
+    std::string tunnelNameToFocus;
+    QWidget* widgetToFocus;
+    bool reloadAfterSave;
 public:
     DelayedSaveManagerImpl();
     virtual ~DelayedSaveManagerImpl();
     virtual void setSaver(Saver* saver);
     virtual void start();
-    virtual void delayedSave(DATA_SERIAL_TYPE dataSerial, bool focusOnTunnel, std::string tunnelNameToFocus);
+    virtual void delayedSave(bool reloadAfterSave, DATA_SERIAL_TYPE dataSerial, FocusEnum focusOn, std::string tunnelNameToFocus, QWidget* widgetToFocus);
     virtual bool appExiting();
 
     typedef DelayedSaveThread::TIMESTAMP_TYPE TIMESTAMP_TYPE;
@@ -59,8 +62,10 @@ public:
     Saver* getSaver();
     static TIMESTAMP_TYPE getTime();
 
-    bool needsFocusOnTunnel();
-    std::string& getTunnelNameToFocus();
+    bool isReloadAfterSave() { return reloadAfterSave; }
+    FocusEnum getFocusOn() { return focusOn; }
+    std::string& getTunnelNameToFocus() { return tunnelNameToFocus; }
+    QWidget* getWidgetToFocus() { return widgetToFocus; }
 
 private:
     Saver* saver;
@@ -74,9 +79,6 @@ private:
     bool exiting;
     DelayedSaveThread* thread;
     void wakeThreadAndJoinThread();
-
-    bool focusOnTunnel;
-    std::string tunnelNameToFocus;
 };
 
 #endif // DELAYEDSAVEMANAGERIMPL_H

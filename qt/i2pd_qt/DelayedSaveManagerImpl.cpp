@@ -1,6 +1,9 @@
 #include "DelayedSaveManagerImpl.h"
 
+#include <assert.h>
+
 DelayedSaveManagerImpl::DelayedSaveManagerImpl() :
+    widgetToFocus(nullptr),
     saver(nullptr),
     lastDataSerialSeen(DelayedSaveManagerImpl::INITIAL_DATA_SERIAL),
     lastSaveStartedTimestamp(A_VERY_OBSOLETE_TIMESTAMP),
@@ -21,10 +24,12 @@ bool DelayedSaveManagerImpl::isSaverValid() {
     return saver != nullptr;
 }
 
-void DelayedSaveManagerImpl::delayedSave(DATA_SERIAL_TYPE dataSerial, bool focusOnTunnel, std::string tunnelNameToFocus_) {
+void DelayedSaveManagerImpl::delayedSave(bool reloadAfterSave, DATA_SERIAL_TYPE dataSerial, FocusEnum focusOn, std::string tunnelNameToFocus, QWidget* widgetToFocus) {
     if(lastDataSerialSeen==dataSerial)return;
-    this->focusOnTunnel = focusOnTunnel;
-    tunnelNameToFocus = tunnelNameToFocus_;
+    this->reloadAfterSave = reloadAfterSave;
+    this->focusOn = focusOn;
+    this->tunnelNameToFocus = tunnelNameToFocus;
+    this->widgetToFocus = widgetToFocus;
     lastDataSerialSeen=dataSerial;
     assert(isSaverValid());
     TIMESTAMP_TYPE now = getTime();
@@ -42,7 +47,7 @@ bool DelayedSaveManagerImpl::appExiting() {
     exiting=true;
     thread->wakeThreadAndJoinThread();
     assert(isSaverValid());
-    saver->save(false, "");
+    saver->save(false, FocusEnum::noFocus);
     return true;
 }
 
@@ -71,9 +76,10 @@ void DelayedSaveThread::run() {
         assert(saver!=nullptr);
         if(saveNow) {
             saveNow = false;
-            const bool focusOnTunnel = delayedSaveManagerImpl->needsFocusOnTunnel();
+            const FocusEnum focusOn = delayedSaveManagerImpl->getFocusOn();
             const std::string tunnelNameToFocus = delayedSaveManagerImpl->getTunnelNameToFocus();
-            saver->save(focusOnTunnel, tunnelNameToFocus);
+            QWidget* widgetToFocus = delayedSaveManagerImpl->getWidgetToFocus();
+            saver->save(delayedSaveManagerImpl->isReloadAfterSave(), focusOn, tunnelNameToFocus, widgetToFocus);
             continue;
         }
         if(defer) {
@@ -87,9 +93,10 @@ void DelayedSaveThread::run() {
                     if(delayedSaveManagerImpl->isExiting())return;
                     continue;
                 }
-                const bool focusOnTunnel = delayedSaveManagerImpl->needsFocusOnTunnel();
+                const FocusEnum focusOn = delayedSaveManagerImpl->getFocusOn();
                 const std::string tunnelNameToFocus = delayedSaveManagerImpl->getTunnelNameToFocus();
-                saver->save(focusOnTunnel, tunnelNameToFocus);
+                QWidget* widgetToFocus = delayedSaveManagerImpl->getWidgetToFocus();
+                saver->save(delayedSaveManagerImpl->isReloadAfterSave(), focusOn, tunnelNameToFocus, widgetToFocus);
                 break; //break inner loop
             }
         }
@@ -131,10 +138,3 @@ Saver* DelayedSaveManagerImpl::getSaver() {
     return saver;
 }
 
-bool DelayedSaveManagerImpl::needsFocusOnTunnel() {
-    return focusOnTunnel;
-}
-
-std::string& DelayedSaveManagerImpl::getTunnelNameToFocus() {
-    return tunnelNameToFocus;
-}

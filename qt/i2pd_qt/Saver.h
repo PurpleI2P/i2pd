@@ -4,6 +4,9 @@
 #include <string>
 #include <QObject>
 #include <QString>
+class QWidget;
+
+#include "I2pdQtTypes.h"
 
 class Saver : public QObject
 {
@@ -11,8 +14,8 @@ class Saver : public QObject
 
 public:
     Saver();
-    //false iff failures
-    virtual bool save(const bool focusOnTunnel, const std::string& tunnelNameToFocus)=0;
+    //FocusEnum::focusNone iff failures //??? wtf
+    virtual bool save(bool reloadAfterSave, const FocusEnum focusOn, const std::string& tunnelNameToFocus="", QWidget* widgetToFocus=nullptr)=0;
 
 signals:
     void reloadTunnelsConfigAndUISignal(const QString);
