@@ -820,7 +820,7 @@ namespace http {
 			s << "<b>SAM Sessions:</b> no sessions currently running.<br>\r\n";
 	}
 
-	static void ShowSAMSession (std::stringstream& s, const std::string& id)
+    void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {

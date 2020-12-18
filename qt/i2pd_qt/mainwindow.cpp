@@ -1001,7 +1001,14 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
     url.parse_query(params);
     const std::string page = params["page"];
     const std::string cmd = params["cmd"];
-    if(page == "local_destination") {
+    if(page == "sam_session") {
+        const std::string samID = params["sam_id"];
+        pageWithBackButton->show();
+        textBrowser->hide();
+        std::stringstream s;
+        i2p::http::ShowSAMSession (s, samID);
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+    } else if(page == "local_destination") {
         std::string b32 = params["b32"];
         currentLocalDestinationB32 = b32;
         pageWithBackButton->show();
@@ -1010,8 +1017,7 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
         std::string strstd = currentLocalDestinationB32;
         i2p::http::ShowLocalDestination(s,strstd,0);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
-    }
-    if(cmd == "closestream") {
+    } else if(cmd == "closestream") {
         std::string b32 = params["b32"];
         uint32_t streamID = std::stoul(params["streamID"], nullptr);
 
