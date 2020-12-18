@@ -45,6 +45,7 @@ std::string programOptionsWriterCurrentSection;
 
 MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *parent) :
     QMainWindow(parent)
+    ,currentLocalDestinationB32("")
     ,logStream(logStream_)
     ,delayedSaveManagerPtr(new DelayedSaveManagerImpl())
     ,dataSerial(DelayedSaveManagerImpl::INITIAL_DATA_SERIAL)
@@ -135,6 +136,7 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
     //childTextBrowser->setOpenExternalLinks(false);
     childTextBrowser->setOpenLinks(false);
     connect(textBrowser, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(anchorClickedHandler(const QUrl&)));
+    connect(childTextBrowser, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(anchorClickedHandler(const QUrl&)));
     pageWithBackButton = new PageWithBackButton(this, childTextBrowser);
     ui->verticalLayout_2->addWidget(pageWithBackButton);
     pageWithBackButton->hide();
@@ -992,20 +994,60 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
     qDebug()<<debugStr;
     //QMessageBox::information(this, "", debugStr);
 
-    /* /?page=local_destination&b32=xx...xx */
     QString str=link.toString();
-#define LOCAL_DEST_B32_PREFIX "/?page=local_destination&b32="
-    static size_t LOCAL_DEST_B32_PREFIX_SZ=QString(LOCAL_DEST_B32_PREFIX).size();
-    if(str.startsWith(LOCAL_DEST_B32_PREFIX)) {
-        str = str.right(str.size()-LOCAL_DEST_B32_PREFIX_SZ);
-        qDebug () << "b32:" << str;
+    std::map<std::string, std::string> params;
+    i2p::http::URL url;
+    url.parse(str.toStdString());
+    url.parse_query(params);
+    const std::string page = params["page"];
+    const std::string cmd = params["cmd"];
+    if(page == "local_destination") {
+        std::string b32 = params["b32"];
+        currentLocalDestinationB32 = b32;
         pageWithBackButton->show();
         textBrowser->hide();
         std::stringstream s;
-        std::string strstd = str.toStdString();
+        std::string strstd = currentLocalDestinationB32;
         i2p::http::ShowLocalDestination(s,strstd,0);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
     }
+    if(cmd == "closestream") {
+        std::string b32 = params["b32"];
+        uint32_t streamID = std::stoul(params["streamID"], nullptr);
+
+        i2p::data::IdentHash ident;
+        ident.FromBase32 (b32);
+        auto dest = i2p::client::context.FindLocalDestination (ident);
+
+        if (streamID) {
+            if (dest) {
+                if(dest->DeleteStream (streamID))
+                    QMessageBox::information(
+                                this,
+                                QApplication::tr("Success"),
+                                QApplication::tr("<HTML><b>SUCCESS</b>: Stream closed"));
+                else
+                    QMessageBox::critical(
+                                this,
+                                QApplication::tr("Error"),
+                                QApplication::tr("<HTML><b>ERROR</b>: Stream not found or already was closed"));
+            }
+            else
+                QMessageBox::critical(
+                            this,
+                            QApplication::tr("Error"),
+                            QApplication::tr("<HTML><b>ERROR</b>: Destination not found"));
+        }
+        else
+            QMessageBox::critical(
+                        this,
+                        QApplication::tr("Error"),
+                        QApplication::tr("<HTML><b>ERROR</b>: StreamID is null"));
+        std::stringstream s;
+        std::string strstd = currentLocalDestinationB32;
+        i2p::http::ShowLocalDestination(s,strstd,0);
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+   }
 }
 
 void MainWindow::backClickedFromChild() {

@@ -410,6 +410,7 @@ class DelayedSaveManagerImpl;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 private:
+    std::string currentLocalDestinationB32;
     std::shared_ptr<std::iostream> logStream;
     DelayedSaveManagerImpl* delayedSaveManagerPtr;
     DelayedSaveManager::DATA_SERIAL_TYPE dataSerial;
