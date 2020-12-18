@@ -1001,14 +1001,13 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
     url.parse_query(params);
     const std::string page = params["page"];
     const std::string cmd = params["cmd"];
-    if(page == "sam_session") {
-        const std::string samID = params["sam_id"];
+    if (page == "sam_session") {
         pageWithBackButton->show();
         textBrowser->hide();
         std::stringstream s;
-        i2p::http::ShowSAMSession (s, samID);
+        i2p::http::ShowSAMSession (s, params["sam_id"]);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
-    } else if(page == "local_destination") {
+    } else if (page == "local_destination") {
         std::string b32 = params["b32"];
         currentLocalDestinationB32 = b32;
         pageWithBackButton->show();
@@ -1016,6 +1015,12 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
         std::stringstream s;
         std::string strstd = currentLocalDestinationB32;
         i2p::http::ShowLocalDestination(s,strstd,0);
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+    } else if (page == "i2cp_local_destination") {
+        pageWithBackButton->show();
+        textBrowser->hide();
+        std::stringstream s;
+        i2p::http::ShowI2CPLocalDestination (s, params["i2cp_id"]);
         childTextBrowser->setHtml(QString::fromStdString(s.str()));
     } else if(cmd == "closestream") {
         std::string b32 = params["b32"];

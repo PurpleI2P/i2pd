@@ -532,7 +532,7 @@ namespace http {
 		}
 	}
 
-	static void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+    void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
 	{
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer)
