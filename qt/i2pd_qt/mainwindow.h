@@ -453,7 +453,10 @@ private slots:
     void runPeerTest();
     void enableTransit();
     void disableTransit();
+
 public slots:
+    void syncLogLevel (int comboBoxIndex);
+
     void showStatus_local_destinations_Page();
     void showStatus_leasesets_Page();
     void showStatus_tunnels_Page();

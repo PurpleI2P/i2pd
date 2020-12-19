@@ -196,6 +196,9 @@ MainWindow::MainWindow(std::shared_ptr<std::iostream> logStream_, QWidget *paren
 
     logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton, false);
     initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), uiSettings->logLevelComboBox);
+
+    QObject::connect(uiSettings->logLevelComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(syncLogLevel(int)));
+
     initCheckBox(       OPTION("","logclftime",[]{return "false";}), uiSettings->logclftimeCheckBox);//"Write full CLF-formatted date and time to log (default: write only time)"
     initFolderChooser(  OPTION("","datadir",[]{return "";}), uiSettings->dataFolderLineEdit, uiSettings->dataFolderBrowsePushButton);
     initIPAddressBox(   OPTION("","host",[]{return "";}), uiSettings->routerExternalHostLineEdit, tr("Router external address -> Host"));
@@ -1109,3 +1112,15 @@ void MainWindow::highlightWrongInput(QString warningText, WrongInputPageEnum inp
         default: assert(false); break;
     }
 }
+
+void MainWindow::syncLogLevel (int /*comboBoxIndex*/) {
+    std::string level = uiSettings->logLevelComboBox->currentText().toLower().toStdString();
+    if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
+        i2p::log::Logger().SetLogLevel(level);
+    else {
+        LogPrint(eLogError, "unknown loglevel set attempted");
+        return;
+    }
+    i2p::log::Logger().Reopen ();
+}
+
