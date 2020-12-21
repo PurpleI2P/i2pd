@@ -298,7 +298,10 @@ namespace garlic
 				break;
 				case eECIESx25519BlkNextKey:
 					LogPrint (eLogDebug, "Garlic: next key");
-					HandleNextKey (buf + offset, size, receiveTagset);
+					if (receiveTagset)
+						HandleNextKey (buf + offset, size, receiveTagset);
+					else
+						LogPrint (eLogError, "Garlic: Unexpected next key block");
 				break;
 				case eECIESx25519BlkAck:
 				{
@@ -721,20 +724,19 @@ namespace garlic
 			{
 				if (receiveTagset->GetNextIndex () - index < GetOwner ()->GetNumRatchetInboundTags ()/2)
 					moreTags = GetOwner ()->GetNumRatchetInboundTags ();
+				index -= GetOwner ()->GetNumRatchetInboundTags (); // trim behind
 			}
 			else
 			{	
 				moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
 				if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
 				moreTags -= (receiveTagset->GetNextIndex () - index);
+				index -= ECIESX25519_MAX_NUM_GENERATED_TAGS; // trim behind
 			}	
 			if (moreTags > 0)
-			{	
 				GenerateMoreReceiveTags (receiveTagset, moreTags);
-				index -= (moreTags >> 1); // /2
-				if (index > 0)
-					receiveTagset->SetTrimBehind (index);
-			}	
+			if (index > 0)
+				receiveTagset->SetTrimBehind (index);
 		}	
 		return true;
 	}
