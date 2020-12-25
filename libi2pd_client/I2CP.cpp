@@ -26,7 +26,8 @@ namespace client
 	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner, 
 	    std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
-		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ())
+		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ()),
+		m_IsCreatingLeaseSet (false), m_LeaseSetCreationTimer (service)
 	{
 	}
 
@@ -34,6 +35,7 @@ namespace client
 	{
 		LeaseSetDestination::Stop ();
 		m_Owner = nullptr;
+		m_LeaseSetCreationTimer.cancel ();
 	}	
 		
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
@@ -84,6 +86,11 @@ namespace client
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
+		if (m_IsCreatingLeaseSet)
+		{
+			LogPrint (eLogInfo, "I2CP: LeaseSet is being created");
+			return;
+		}	
 		uint8_t priv[256] = {0};
 		i2p::data::LocalLeaseSet ls (m_Identity, priv, tunnels); // we don't care about encryption key, we need leases only
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
@@ -94,15 +101,28 @@ namespace client
 			uint16_t sessionID = m_Owner->GetSessionID ();
 			if (sessionID != 0xFFFF)
 			{	
+				m_IsCreatingLeaseSet = true; 
 				htobe16buf (leases - 3, sessionID);
 				size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
 				m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
+				m_LeaseSetCreationTimer.expires_from_now (boost::posix_time::seconds (I2CP_LEASESET_CREATION_TIMEOUT));
+				auto s = GetSharedFromThis ();
+				m_LeaseSetCreationTimer.async_wait ([s](const boost::system::error_code& ecode)
+				{
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						LogPrint (eLogInfo, "I2CP: LeaseSet creation timeout expired. Terminate");
+						if (s->m_Owner) s->m_Owner->Stop ();
+					}
+				});
 			}	
 		}	
 	}
 
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
 	{
+		m_IsCreatingLeaseSet = false;
+		m_LeaseSetCreationTimer.cancel ();
 		auto ls = std::make_shared<i2p::data::LocalLeaseSet> (m_Identity, buf, len);
 		ls->SetExpirationTime (m_LeaseSetExpirationTime);
 		SetLeaseSet (ls);
@@ -110,6 +130,8 @@ namespace client
 
 	void I2CPDestination::LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len)
 	{
+		m_IsCreatingLeaseSet = false;
+		m_LeaseSetCreationTimer.cancel ();
 		auto ls = (storeType == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2) ?
 			std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (m_Identity, buf, len):
 			std::make_shared<i2p::data::LocalLeaseSet2> (storeType, m_Identity, buf, len);
