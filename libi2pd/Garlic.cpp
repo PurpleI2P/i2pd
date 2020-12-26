@@ -546,12 +546,18 @@ namespace garlic
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
 					{
 						// try to gererate more tags for last tagset 
-						if (m_LastTagset)
+						if (m_LastTagset && m_LastTagset->GetNextIndex () < 2*ECIESX25519_TAGSET_MAX_NUM_TAGS)
 						{
 							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
 							for (int i = 0; i < maxTags; i++)
 							{
-								if (AddECIESx25519SessionNextTag (m_LastTagset) == tag)
+								auto nextTag = AddECIESx25519SessionNextTag (m_LastTagset);
+								if (!nextTag)
+								{
+									LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for last tagset");
+									break;
+								}	
+								if (nextTag == tag)
 								{
 									LogPrint (eLogDebug, "Garlic: Missing ECIES-X25519-AEAD-Ratchet tag was generated");
 									if (m_LastTagset->HandleNextMessage (buf, length, m_ECIESx25519Tags[tag].index))
@@ -1057,7 +1063,8 @@ namespace garlic
 	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();
-		m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset});
+		if (tag)
+			m_ECIESx25519Tags.emplace (tag, ECIESX25519AEADRatchetIndexTagset{index, tagset});
 		return tag;
 	}
 

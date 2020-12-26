@@ -45,13 +45,13 @@ namespace garlic
 
 	uint64_t RatchetTagSet::GetNextSessionTag ()
 	{
-		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
 		m_NextIndex++;
 		if (m_NextIndex >= 65535)
 		{
 			LogPrint (eLogError, "Garlic: Tagset ", GetTagSetID (), " is empty");
 			return 0;
 		}
+		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
 		return m_KeyData.GetTag ();
 	}
 
@@ -687,6 +687,13 @@ namespace garlic
 		auto index = m_SendTagset->GetNextIndex ();
 		CreateNonce (index, nonce); // tag's index
 		uint64_t tag = m_SendTagset->GetNextSessionTag ();
+		if (!tag)
+		{
+			LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for send tagset");
+			if (GetOwner ())
+				GetOwner ()->RemoveECIESx25519Session (m_RemoteStaticKey);
+			return false;
+		}	
 		memcpy (out, &tag, 8);
 		// ad = The session tag, 8 bytes
 		// ciphertext = ENCRYPT(k, n, payload, ad)
@@ -1050,7 +1057,14 @@ namespace garlic
 		if (GetOwner ())
 		{	
 			for (int i = 0; i < numTags; i++)
-				GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+			{	
+				auto tag = GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
+				if (!tag)
+				{
+					LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for receive tagset");
+					break;
+				}	
+			}	
 		}	
 	}
 
