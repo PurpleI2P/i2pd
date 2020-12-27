@@ -170,6 +170,20 @@ namespace util
 
 	void SetThreadName (const char *name);
 
+	template<typename T>
+	class SaveStateHelper
+	{
+		public:
+
+			SaveStateHelper (T& orig): m_Original (orig), m_Copy (orig) {};
+			~SaveStateHelper () { m_Original = m_Copy; };
+			
+		private:
+
+			T& m_Original;
+			T m_Copy;
+	};	
+	
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);

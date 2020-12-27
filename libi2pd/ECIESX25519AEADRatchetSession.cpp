@@ -9,6 +9,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 #include "Log.h"
+#include "util.h"
 #include "Crypto.h"
 #include "Elligator.h"
 #include "Tag.h"
@@ -619,18 +620,15 @@ namespace garlic
 		}
 		buf += 32; len -= 32;
 		// KDF for Reply Key Section
-		uint8_t h[32]; memcpy (h, m_H, 32); // save m_H
+		i2p::util::SaveStateHelper<i2p::crypto::NoiseSymmetricState> s(*this); // restore noise state on exit
 		MixHash (tag, 8); // h = SHA256(h || tag)
 		MixHash (bepk, 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		if (m_State == eSessionStateNewSessionSent)
-		{
-			// only fist time, we assume ephemeral keys the same
-			m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
-			MixKey (sharedSecret);
-			GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
-			MixKey (sharedSecret);
-		}
+		m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
+		MixKey (sharedSecret);
+		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
+		MixKey (sharedSecret);
+
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
 		// calculate hash for zero length
@@ -646,6 +644,7 @@ namespace garlic
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
 		if (m_State == eSessionStateNewSessionSent)
 		{
+			// only first time, then we keep using existing tagsets
 			// k_ab = keydata[0:31], k_ba = keydata[32:63]
 			m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
 			m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
@@ -667,11 +666,10 @@ namespace garlic
 		if (m_State == eSessionStateNewSessionSent)
 		{
 			m_State = eSessionStateEstablished;
-			m_EphemeralKeys = nullptr;
+			//m_EphemeralKeys = nullptr; // TODO: delete after a while
 			m_SessionCreatedTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			GetOwner ()->AddECIESx25519Session (m_RemoteStaticKey, shared_from_this ());
 		}
-		memcpy (m_H, h, 32); // restore m_H
 		HandlePayload (buf, len - 16, nullptr, 0);
 
 		// we have received reply to NS with LeaseSet in it
@@ -762,12 +760,16 @@ namespace garlic
 				[[fallthrough]];
 #endif
 			case eSessionStateEstablished:
-				if (HandleExistingSessionMessage (buf, len, receiveTagset, index)) return true;
-				// check NSR just in case
-				LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
-				if (receiveTagset->GetNextIndex () - index < ECIESX25519_NSR_NUM_GENERATED_TAGS/2)
-					GenerateMoreReceiveTags (receiveTagset, ECIESX25519_NSR_NUM_GENERATED_TAGS);
-				return HandleNewOutgoingSessionReply (buf, len);
+				if (receiveTagset->IsNS ())
+				{	
+					// our of sequence NSR 
+					LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
+					if (receiveTagset->GetNextIndex () - index < ECIESX25519_NSR_NUM_GENERATED_TAGS/2)
+						GenerateMoreReceiveTags (receiveTagset, ECIESX25519_NSR_NUM_GENERATED_TAGS);
+					return HandleNewOutgoingSessionReply (buf, len);
+				}	
+				else
+					return HandleExistingSessionMessage (buf, len, receiveTagset, index);
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:

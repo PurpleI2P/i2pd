@@ -45,7 +45,8 @@ namespace garlic
 		public:
 
 			RatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};
-
+			virtual bool IsNS () const { return false; };
+			
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
 			void NextSessionTagRatchet ();
 			uint64_t GetNextSessionTag ();
@@ -91,6 +92,8 @@ namespace garlic
 			
 			NSRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session):
 				RatchetTagSet (session), m_DummySession (session) {};
+
+			bool IsNS () const { return true; };
 			
 		private:
 
