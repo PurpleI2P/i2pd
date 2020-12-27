@@ -11,6 +11,7 @@ ENV REPO_URL=${REPO_URL}
 
 ENV I2PD_HOME="/home/i2pd"
 ENV DATA_DIR="${I2PD_HOME}/data"
+ENV DEFAULT_ARGS=" --datadir=$DATA_DIR --reseed.verify=true --upnp.enabled=false --http.enabled=true --http.address=0.0.0.0 --httpproxy.enabled=true --httpproxy.address=0.0.0.0 --socksproxy.enabled=true --socksproxy.address=0.0.0.0 --sam.enabled=true --sam.address=0.0.0.0"
 
 RUN mkdir -p "$I2PD_HOME" "$DATA_DIR" \
     && adduser -S -h "$I2PD_HOME" i2pd \
