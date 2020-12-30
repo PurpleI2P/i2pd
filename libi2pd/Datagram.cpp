@@ -295,11 +295,11 @@ namespace datagram
 			}	
 		}	
 
-		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) 
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ()) 
 		{
 			bool found = false;
 			for (auto& it: m_PendingRoutingSessions)
-				if (it->GetOwner ()) // found established session
+				if (it->GetOwner () && m_RoutingSession->IsReadyToSend ()) // found established session
 				{
 					m_RoutingSession = it;
 					m_PendingRoutingSessions.clear ();
@@ -309,7 +309,7 @@ namespace datagram
 			if (!found)
 			{	
 				m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
-				if (!m_RoutingSession->GetOwner ())
+				if (!m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ())
 					m_PendingRoutingSessions.push_back (m_RoutingSession);
 			}	
 		}	

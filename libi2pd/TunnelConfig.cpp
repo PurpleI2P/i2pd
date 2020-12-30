@@ -127,10 +127,9 @@ namespace tunnel
 	void TunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
-		InitBuildRequestRecordNoiseState (*this);
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
-		MixHash (hepk, 32); // h = SHA256(h || hepk)
+		i2p::crypto::InitNoiseNState (*this, hepk);
 		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		memcpy (encrypted, ephemeralKeys->GetPublicKey (), 32);  
 		MixHash (encrypted, 32); // h = SHA256(h || sepk)
@@ -147,18 +146,6 @@ namespace tunnel
 			return;
 		}	
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
-	}	
-
-	void InitBuildRequestRecordNoiseState (i2p::crypto::NoiseSymmetricState& state)
-	{
-		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
-		static const uint8_t hh[32] =
-		{
-			0x69, 0x4d, 0x52, 0x44, 0x5a, 0x27, 0xd9, 0xad, 0xfa, 0xd2, 0x9c, 0x76, 0x32, 0x39, 0x5d, 0xc1, 
-			0xe4, 0x35, 0x4c, 0x69, 0xb4, 0xf9, 0x2e, 0xac, 0x8a, 0x1e, 0xe4, 0x6a, 0x9e, 0xd2, 0x15, 0x54
-		}; // SHA256 (protocol_name || 0)
-		memcpy (state.m_CK, protocolName, 32);	// ck = h = protocol_name || 0
-		memcpy (state.m_H, hh, 32); // h = SHA256(h)
 	}	
 }
 }

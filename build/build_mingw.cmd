@@ -64,7 +64,7 @@ call :BUILDING_XP
 echo.
 
 REM compile installer
-C:\PROGRA~2\INNOSE~1\ISCC.exe /dI2Pd_ver="%tag%" build\win_installer.iss >> build\build.log 2>&1
+C:\PROGRA~2\INNOSE~1\ISCC.exe /dI2Pd_TextVer="%tag%" /dI2Pd_Ver="%tag%.0" build\win_installer.iss >> build\build.log 2>&1
 
 del README.txt i2pd_x32.exe i2pd_x64.exe i2pd_xp.exe >> nul
 

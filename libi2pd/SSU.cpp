@@ -12,6 +12,7 @@
 #include "RouterContext.h"
 #include "NetDb.hpp"
 #include "SSU.h"
+#include "util.h"
 
 #ifdef _WIN32
 #include <boost/winapi/error_codes.hpp>
@@ -23,7 +24,7 @@ namespace transport
 {
 
 	SSUServer::SSUServer (const boost::asio::ip::address & addr, int port):
-		m_OnlyV6(true), m_IsRunning(false), m_Thread (nullptr), 
+		m_OnlyV6(true), m_IsRunning(false), m_Thread (nullptr),
 		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service),
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_EndpointV6 (addr, port), m_Socket (m_ReceiversService, m_Endpoint),
@@ -36,7 +37,7 @@ namespace transport
 
 	SSUServer::SSUServer (int port):
 		m_OnlyV6(false), m_IsRunning(false), m_Thread (nullptr),
-		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service), 
+		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service),
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
 		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6),
@@ -100,7 +101,7 @@ namespace transport
 		if (context.SupportsV6 ())
 		{
 			m_ReceiversThreadV6 = new std::thread (std::bind (&SSUServer::RunReceiversV6, this));
-			if (!m_Thread)		
+			if (!m_Thread)
 				m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 			m_ReceiversServiceV6.post (std::bind (&SSUServer::ReceiveV6, this));
 			ScheduleTerminationV6 ();
@@ -142,6 +143,8 @@ namespace transport
 
 	void SSUServer::Run ()
 	{
+		i2p::util::SetThreadName("SSU");
+
 		while (m_IsRunning)
 		{
 			try
@@ -157,6 +160,8 @@ namespace transport
 
 	void SSUServer::RunReceivers ()
 	{
+		i2p::util::SetThreadName("SSUv4");
+
 		while (m_IsRunning)
 		{
 			try
@@ -179,6 +184,8 @@ namespace transport
 
 	void SSUServer::RunReceiversV6 ()
 	{
+		i2p::util::SetThreadName("SSUv6");
+
 		while (m_IsRunning)
 		{
 			try

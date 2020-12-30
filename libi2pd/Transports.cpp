@@ -14,6 +14,7 @@
 #include "Transports.h"
 #include "Config.h"
 #include "HTTP.h"
+#include "util.h"
 
 using namespace i2p::data;
 
@@ -59,6 +60,8 @@ namespace transport
 	template<typename Keys>
 	void EphemeralKeysSupplier<Keys>::Run ()
 	{
+		i2p::util::SetThreadName("Ephemerals");
+
 		while (m_IsRunning)
 		{
 			int num, total = 0;
@@ -272,6 +275,8 @@ namespace transport
 
 	void Transports::Run ()
 	{
+		i2p::util::SetThreadName("Transports");
+
 		while (m_IsRunning && m_Service)
 		{
 			try

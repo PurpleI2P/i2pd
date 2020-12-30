@@ -6,25 +6,35 @@
 
 [Setup]
 AppName={#I2Pd_AppName}
-AppVersion={#I2Pd_ver}
+AppVersion={#I2Pd_TextVer}
 AppPublisher={#I2Pd_Publisher}
+
 DefaultDirName={pf}\I2Pd
 DefaultGroupName=I2Pd
 UninstallDisplayIcon={app}\I2Pd.exe
 OutputDir=.
+OutputBaseFilename=setup_{#I2Pd_AppName}_v{#I2Pd_TextVer}
+
 LicenseFile=..\LICENSE
-OutputBaseFilename=setup_{#I2Pd_AppName}_v{#I2Pd_ver}
 SetupIconFile=..\Win32\mask.ico
+
 InternalCompressLevel=ultra64
 Compression=lzma/ultra64
 SolidCompression=true
+
 ArchitecturesInstallIn64BitMode=x64
-AppVerName={#I2Pd_AppName}
 ExtraDiskSpaceRequired=15
+
 AppID={{621A23E0-3CF4-4BD6-97BC-4835EA5206A2}
+AppVerName={#I2Pd_AppName}
+AppCopyright=Copyright (c) 2013-2020, The PurpleI2P Project
 AppPublisherURL=http://i2pd.website/
 AppSupportURL=https://github.com/PurpleI2P/i2pd/issues
 AppUpdatesURL=https://github.com/PurpleI2P/i2pd/releases
+
+VersionInfoProductVersion={#I2Pd_Ver}
+VersionInfoVersion={#I2Pd_Ver}
+
 CloseApplications=yes
 
 [Files]

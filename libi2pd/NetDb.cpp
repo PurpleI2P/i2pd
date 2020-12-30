@@ -26,6 +26,7 @@
 #include "ECIESX25519AEADRatchetSession.h"
 #include "Config.h"
 #include "NetDb.hpp"
+#include "util.h"
 
 using namespace i2p::transport;
 
@@ -88,6 +89,8 @@ namespace data
 
 	void NetDb::Run ()
 	{
+		i2p::util::SetThreadName("NetDB");
+
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{
@@ -113,7 +116,7 @@ namespace data
 							break;
 							case eI2NPDeliveryStatus:
 								HandleDeliveryStatusMsg (msg);
-							break;	
+							break;
 							case eI2NPDummyMsg:
 								// plain RouterInfo from NTCP2 with flags for now
 								HandleNTCP2RouterInfoMsg (msg);
@@ -155,12 +158,12 @@ namespace data
 				if (!m_HiddenMode && i2p::transport::transports.IsOnline ()) 
 				{
 					bool publish = false;
-				    if (m_PublishReplyToken)
-					{	
+					if (m_PublishReplyToken)
+					{
 						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
 					}
 					else if (i2p::context.GetLastUpdateTime () > lastPublish || 
-				    	ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
+						ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
 					if (publish) // update timestamp and publish
 					{
 						i2p::context.UpdateTimestamp (ts);

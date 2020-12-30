@@ -58,7 +58,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 ifeq ($(USE_AESNI),yes)
-ifeq (, $(findstring arm, $(SYS))$(findstring aarch64, $(SYS))) # no arm and aarch64 in dumpmachine
+ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
 	NEEDED_CXXFLAGS += -D__AES__ -maes
 endif
 endif

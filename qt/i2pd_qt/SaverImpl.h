@@ -19,7 +19,7 @@ class SaverImpl : public Saver
 public:
     SaverImpl(MainWindow *mainWindowPtr_, QList<MainWindowItem*> * configItems_, std::map<std::string,TunnelConfig*>* tunnelConfigs_);
     virtual ~SaverImpl();
-    virtual bool save(const bool focusOnTunnel, const std::string& tunnelNameToFocus);
+    virtual bool save(bool reloadAfterSave, const FocusEnum focusOn, const std::string& tunnelNameToFocus, QWidget* widgetToFocus);
     void setConfPath(QString& confpath_);
     void setTunnelsConfPath(QString& tunconfpath_);
 private:

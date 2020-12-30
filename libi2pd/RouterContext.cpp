@@ -19,7 +19,7 @@
 #include "version.h"
 #include "Log.h"
 #include "Family.h"
-#include "TunnelConfig.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -45,15 +45,15 @@ namespace i2p
 		if (IsECIES ())
 		{	
 			auto initState = new i2p::crypto::NoiseSymmetricState ();
-			i2p::tunnel::InitBuildRequestRecordNoiseState (*initState);
-			initState->MixHash (GetIdentity ()->GetEncryptionPublicKey (), 32); // h = SHA256(h || hepk)
+			i2p::crypto::InitNoiseNState (*initState, GetIdentity ()->GetEncryptionPublicKey ());
 			m_InitialNoiseState.reset (initState);	
 		}	
 	}
 
 	void RouterContext::CreateNewRouter ()
 	{
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+			i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 		SaveKeys ();
 		NewRouterInfo ();
 	}
@@ -591,7 +591,8 @@ namespace i2p
 			// update keys
 			LogPrint (eLogInfo, "Router: router keys are obsolete. Creating new");
 			oldIdentity = m_Keys.GetPublic ();
-			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
+				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 			SaveKeys ();
 		}	
 		// read NTCP2 keys if available
@@ -674,7 +675,21 @@ namespace i2p
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
-		i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
+		if (IsECIES ())
+		{
+			uint8_t * buf = msg->GetPayload ();
+			uint32_t len = bufbe32toh (buf);
+			if (len > msg->GetLength ())
+			{
+				LogPrint (eLogWarning, "Router: garlic message length ", len, " exceeds I2NP message length ", msg->GetLength ());
+				return;
+			}
+			buf += 4;
+			auto session = std::make_shared<i2p::garlic::ECIESX25519AEADRatchetSession>(this, false);
+			session->HandleNextMessageForRouter (buf, len);
+		}	
+		else	
+			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
 	}
 
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)

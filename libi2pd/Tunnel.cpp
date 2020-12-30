@@ -22,6 +22,7 @@
 #include "Config.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -472,6 +473,7 @@ namespace tunnel
 
 	void Tunnels::Run ()
 	{
+		i2p::util::SetThreadName("Tunnels");
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0, lastPoolsTs = 0;

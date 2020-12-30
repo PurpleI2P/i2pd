@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>908</width>
-    <height>554</height>
+    <height>604</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -35,13 +35,13 @@
    <property name="minimumSize">
     <size>
      <width>908</width>
-     <height>550</height>
+     <height>600</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>908</width>
-     <height>550</height>
+     <height>600</height>
     </size>
    </property>
    <widget class="QWidget" name="horizontalLayoutWidget">
@@ -50,7 +50,7 @@
       <x>10</x>
       <y>10</y>
       <width>888</width>
-      <height>531</height>
+      <height>596</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -58,7 +58,7 @@
       <enum>QLayout::SetMaximumSize</enum>
      </property>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,0,0">
        <property name="sizeConstraint">
         <enum>QLayout::SetMinimumSize</enum>
        </property>
@@ -67,7 +67,7 @@
          <x>0</x>
          <y>0</y>
          <width>170</width>
-         <height>496</height>
+         <height>596</height>
         </rect>
        </property>
        <item>
@@ -171,6 +171,33 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutHrefLabel">
+         <property name="font">
+          <font>
+           <pointsize>9</pointsize>
+          </font>
+         </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::NoContextMenu</enum>
+         </property>
+         <property name="toolTip">
+          <string>Show app name, version and build date</string>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;about:i2pd_qt&quot;&gt;&lt;span style=&quot;text-decoration: none; color:#a0a0a0;&quot;&gt;&lt;span style=&quot;font-weight: 500;&quot;&gt;i2pd_qt&lt;/span&gt;&lt;br/&gt;Version SHORT_VERSION · About...&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
+         <property name="margin">
+          <number>6</number>
+         </property>
+         <property name="indent">
+          <number>0</number>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -629,7 +656,7 @@
          </property>
          <property name="maximumSize">
           <size>
-           <width>713</width>
+           <width>707</width>
            <height>713</height>
           </size>
          </property>
@@ -648,8 +675,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>713</width>
-             <height>531</height>
+             <width>707</width>
+             <height>586</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -690,8 +717,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>711</width>
-             <height>531</height>
+             <width>707</width>
+             <height>586</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4_logViewer">
@@ -753,8 +780,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>711</width>
-             <height>531</height>
+             <width>707</width>
+             <height>586</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -798,8 +825,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>81</width>
-                 <height>28</height>
+                 <width>693</width>
+                 <height>498</height>
                 </rect>
                </property>
                <property name="sizePolicy">
@@ -820,8 +847,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>711</width>
-             <height>531</height>
+             <width>707</width>
+             <height>586</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -903,8 +930,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>711</width>
-             <height>531</height>
+             <width>707</width>
+             <height>586</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -958,7 +985,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>711</width>
+             <width>707</width>
              <height>531</height>
             </rect>
            </property>

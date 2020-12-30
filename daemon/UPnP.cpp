@@ -60,6 +60,8 @@ namespace transport
 
 	void UPnP::Run ()
 	{
+		i2p::util::SetThreadName("UPnP");
+
 		while (m_IsRunning)
 		{
 			try

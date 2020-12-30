@@ -27,7 +27,8 @@ namespace client
 	const size_t I2CP_SESSION_BUFFER_SIZE = 4096;
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
 	const size_t I2CP_MAX_SEND_QUEUE_SIZE = 1024*1024; // in bytes, 1M
-
+	const int I2CP_LEASESET_CREATION_TIMEOUT = 10; // in seconds	
+	
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
 	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;
@@ -109,6 +110,8 @@ namespace client
 			std::shared_ptr<i2p::crypto::ECIESX25519AEADRatchetDecryptor> m_ECIESx25519Decryptor;
 			uint8_t m_ECIESx25519PrivateKey[32];
 			uint64_t m_LeaseSetExpirationTime;
+			bool m_IsCreatingLeaseSet;
+			boost::asio::deadline_timer m_LeaseSetCreationTimer;
 	};
 
 	class RunnableI2CPDestination: private i2p::util::RunnableService, public I2CPDestination 

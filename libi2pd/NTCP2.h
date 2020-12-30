@@ -11,7 +11,6 @@
 
 #include <inttypes.h>
 #include <memory>
-#include <thread>
 #include <list>
 #include <map>
 #include <array>

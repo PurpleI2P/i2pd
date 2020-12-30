@@ -33,7 +33,7 @@ namespace garlic
 	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // 180
 	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 8192; // number of tags we request new tagset after
 	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
-	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 160;
+	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 320;
 	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
 
 	const size_t ECIESX25519_OPTIMAL_PAYLOAD_SIZE = 1912; // 1912 = 1956 /* to fit 2 tunnel messages */
@@ -45,7 +45,8 @@ namespace garlic
 		public:
 
 			RatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};
-
+			virtual bool IsNS () const { return false; };
+			
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
 			void NextSessionTagRatchet ();
 			uint64_t GetNextSessionTag ();
@@ -91,6 +92,8 @@ namespace garlic
 			
 			NSRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session):
 				RatchetTagSet (session), m_DummySession (session) {};
+
+			bool IsNS () const { return true; };
 			
 		private:
 
@@ -140,7 +143,8 @@ namespace garlic
 			eSessionStateNewSessionSent,
 			eSessionStateNewSessionReplySent,
 			eSessionStateEstablished,
-			eSessionStateOneTime
+			eSessionStateOneTime,
+			eSessionStateForRouter
 		};
 
 		struct DHRatchet
@@ -157,8 +161,9 @@ namespace garlic
 			~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index = 0);
+			bool HandleNextMessageForRouter (const uint8_t * buf, size_t len);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
-			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg);
+			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
 			
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
@@ -178,7 +183,6 @@ namespace garlic
 
 		private:
 
-			void ResetKeys ();
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
 			std::shared_ptr<RatchetTagSet> CreateNewSessionTagset ();
@@ -193,7 +197,8 @@ namespace garlic
 			bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
-
+			bool NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+			
 			std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first);
 			size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 			size_t CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len);

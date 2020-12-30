@@ -168,11 +168,27 @@ namespace util
 			boost::asio::io_service::work m_Work;
 	};
 
+	void SetThreadName (const char *name);
+
+	template<typename T>
+	class SaveStateHelper
+	{
+		public:
+
+			SaveStateHelper (T& orig): m_Original (orig), m_Copy (orig) {};
+			~SaveStateHelper () { m_Original = m_Copy; };
+			
+		private:
+
+			T& m_Original;
+			T m_Copy;
+	};	
+	
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);
-		const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6=false);
-		bool IsInReservedRange(const boost::asio::ip::address& host);
+		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
+		bool IsInReservedRange (const boost::asio::ip::address& host);
 	}
 }
 }

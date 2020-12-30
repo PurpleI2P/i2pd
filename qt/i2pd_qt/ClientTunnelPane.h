@@ -79,6 +79,13 @@ protected:
         ClientTunnelConfig* ctc=tunnelConfig->asClientTunnelConfig();
         assert(ctc!=nullptr);
 
+        if(!isValidSingleLine(destinationLineEdit))return false;
+        if(!isValidSingleLine(portLineEdit))return false;
+        if(!isValidSingleLine(cryptoTypeLineEdit))return false;
+        if(!isValidSingleLine(keysLineEdit))return false;
+        if(!isValidSingleLine(addressLineEdit))return false;
+        if(!isValidSingleLine(destinationPortLineEdit))return false;
+
         //destination
         ctc->setdest(destinationLineEdit->text().toStdString());
 

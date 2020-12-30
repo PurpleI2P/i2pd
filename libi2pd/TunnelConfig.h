@@ -44,8 +44,6 @@ namespace tunnel
 		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);
 	};
-
-	void InitBuildRequestRecordNoiseState (i2p::crypto::NoiseSymmetricState& state);	
 	
 	class TunnelConfig
 	{

@@ -497,6 +497,11 @@ QGroupBox::title {
            <widget class="QComboBox" name="logLevelComboBox">
             <item>
              <property name="text">
+              <string>None</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
               <string>Error</string>
              </property>
             </item>

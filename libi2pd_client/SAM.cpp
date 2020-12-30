@@ -708,16 +708,16 @@ namespace client
 		auto session = m_Owner.FindSession(m_ID);
 		auto dest = session == nullptr ? context.GetSharedLocalDestination() : session->localDestination;
 		if (name == "ME")
-			SendNamingLookupReply (dest->GetIdentity ());
+			SendNamingLookupReply (name, dest->GetIdentity ());
 		else if ((identity = context.GetAddressBook ().GetFullAddress (name)) != nullptr)
-			SendNamingLookupReply (identity);
+			SendNamingLookupReply (name, identity);
 		else if ((addr = context.GetAddressBook ().GetAddress (name)))
 		{
 			if (addr->IsIdentHash ())
 			{
 				auto leaseSet = dest->FindLeaseSet (addr->identHash);
 				if (leaseSet)
-					SendNamingLookupReply (leaseSet->GetIdentity ());
+					SendNamingLookupReply (name, leaseSet->GetIdentity ());
 				else
 					dest->RequestDestination (addr->identHash,
 						std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
@@ -756,7 +756,7 @@ namespace client
 		if (leaseSet)
 		{
 			context.GetAddressBook ().InsertFullAddress (leaseSet->GetIdentity ());
-			SendNamingLookupReply (leaseSet->GetIdentity ());
+			SendNamingLookupReply (name, leaseSet->GetIdentity ());
 		}
 		else
 		{
@@ -770,13 +770,13 @@ namespace client
 		}
 	}
 
-	void SAMSocket::SendNamingLookupReply (std::shared_ptr<const i2p::data::IdentityEx> identity)
+	void SAMSocket::SendNamingLookupReply (const std::string& name, std::shared_ptr<const i2p::data::IdentityEx> identity)
 	{
 		auto base64 = identity->ToBase64 ();
 #ifdef _MSC_VER
-		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, base64.c_str ());
+		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
 #else
-		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, base64.c_str ());
+		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, name.c_str (), base64.c_str ());
 #endif
 		SendMessageReply (m_Buffer, l, false);
 	}

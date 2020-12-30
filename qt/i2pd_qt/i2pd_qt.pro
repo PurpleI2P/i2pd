@@ -9,10 +9,15 @@ CONFIG += strict_c++ c++11
 
 CONFIG(debug, debug|release) {
     message(Debug build)
+
+    # do not redirect logging to std::ostream and to Log pane
     DEFINES += DEBUG_WITH_DEFAULT_LOGGING
+
+    DEFINES += I2PD_QT_DEBUG
     I2PDMAKE += DEBUG=yes
 } else {
     message(Release build)
+    DEFINES += I2PD_QT_RELEASE
     I2PDMAKE += DEBUG=no
 }
 
@@ -36,7 +41,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/HTTPServer.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/i2pd.cpp \
-    ../../daemon/UPnP.cpp
+    ../../daemon/UPnP.cpp \
+    AboutDialog.cpp \
+    I2pdQtUtil.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
     ClientTunnelPane.h \
@@ -59,8 +66,11 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \
     ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h
-
+    ../../daemon/UPnP.h \
+    AboutDialog.h \
+    BuildDateTimeQt.h \
+    I2pdQtUtil.h \
+    I2pdQtTypes.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
@@ -71,7 +81,8 @@ FORMS += mainwindow.ui \
     tunnelform.ui \
     statusbuttons.ui \
     routercommandswidget.ui \
-    generalsettingswidget.ui
+    generalsettingswidget.ui \
+    AboutDialog.ui
 
 LIBS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a -lz
 
@@ -79,12 +90,22 @@ libi2pd.commands = @echo Building i2pd libraries
 libi2pd.target = $$PWD/../../libi2pd.a
 libi2pd.depends = i2pd FORCE
 
-i2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE api_client
+i2pd.commands = cd $$PWD/../../ && mkdir -p obj/libi2pd obj/libi2pd_client && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) USE_UPNP=yes $$I2PDMAKE mk_obj_dir api_client
 i2pd.target += $$PWD/../../libi2pdclient.a
 i2pd.depends = FORCE
 
 cleani2pd.commands = cd $$PWD/../../ && CC=$$QMAKE_CC CXX=$$QMAKE_CXX $(MAKE) clean
 cleani2pd.depends = clean
+
+BuildDateTimeQtTarget.target = BuildDateTimeQt.h
+BuildDateTimeQtTarget.depends = FORCE
+# 'touch' is unix-only; will probably break on non-unix, TBD
+BuildDateTimeQtTarget.commands = touch $$PWD/BuildDateTimeQt.h
+PRE_TARGETDEPS += BuildDateTimeQt.h
+QMAKE_EXTRA_TARGETS += BuildDateTimeQtTarget
+
+# git only, port to other VCS, too. TBD
+DEFINES += VCS_COMMIT_INFO="\\\"git:$(shell git -C \""$$_PRO_FILE_PWD_"\" describe)\\\""
 
 PRE_TARGETDEPS += $$PWD/../../libi2pd.a $$PWD/../../libi2pdclient.a
 QMAKE_EXTRA_TARGETS += cleani2pd i2pd libi2pd

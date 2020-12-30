@@ -131,6 +131,8 @@ namespace client
 
 	void I2PControlService::Run ()
 	{
+		i2p::util::SetThreadName("I2PC");
+
 		while (m_IsRunning)
 		{
 			try {

@@ -13,6 +13,15 @@
 #include "util.h"
 #include "Log.h"
 
+#if not defined (__FreeBSD__)
+#include <pthread.h>
+#endif
+
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
+
 #ifdef _WIN32
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +41,7 @@
 
 // inet_pton exists Windows since Vista, but XP doesn't have that function!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
-int inet_pton_xp(int af, const char *src, void *dst)
+int inet_pton_xp (int af, const char *src, void *dst)
 {
 	struct sockaddr_storage ss;
 	int size = sizeof (ss);
@@ -94,6 +103,8 @@ namespace util
 
 	void RunnableService::Run ()
 	{
+		SetThreadName(m_Name.c_str());
+
 		while (m_IsRunning)
 		{
 			try
@@ -107,10 +118,20 @@ namespace util
 		}
 	}
 
+	void SetThreadName (const char *name) {
+#if defined (__APPLE__)
+		pthread_setname_np(name);
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+		pthread_set_name_np(pthread_self(), name);
+#else
+		pthread_setname_np(pthread_self(), name);
+#endif
+	}
+
 namespace net
 {
 #ifdef _WIN32
-	bool IsWindowsXPorLater()
+	bool IsWindowsXPorLater ()
 	{
 		static bool isRequested = false;
 		static bool isXP = false;
@@ -129,7 +150,7 @@ namespace net
 		return isXP;
 	}
 
-	int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
+	int GetMTUWindowsIpv4 (sockaddr_in inputAddress, int fallback)
 	{
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
@@ -183,7 +204,7 @@ namespace net
 		return fallback;
 	}
 
-	int GetMTUWindowsIpv6(sockaddr_in6 inputAddress, int fallback)
+	int GetMTUWindowsIpv6 (sockaddr_in6 inputAddress, int fallback)
 	{
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
@@ -248,7 +269,7 @@ namespace net
 		return fallback;
 	}
 
-	int GetMTUWindows(const boost::asio::ip::address& localAddress, int fallback)
+	int GetMTUWindows (const boost::asio::ip::address& localAddress, int fallback)
 	{
 #ifdef UNICODE
 		string localAddress_temporary = localAddress.to_string();
@@ -280,7 +301,7 @@ namespace net
 		}
 	}
 #else // assume unix
-	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
+	int GetMTUUnix (const boost::asio::ip::address& localAddress, int fallback)
 	{
 		ifaddrs* ifaddr, *ifa = nullptr;
 		if(getifaddrs(&ifaddr) == -1)
@@ -335,7 +356,7 @@ namespace net
 	}
 #endif // _WIN32
 
-	int GetMTU(const boost::asio::ip::address& localAddress)
+	int GetMTU (const boost::asio::ip::address& localAddress)
 	{
 		int fallback = localAddress.is_v6 () ? 1280 : 620; // fallback MTU
 
@@ -347,7 +368,7 @@ namespace net
 		return fallback;
 	}
 
-	const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6)
+	const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6)
 	{
 #ifdef _WIN32
 		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
@@ -395,7 +416,7 @@ namespace net
 #endif
 	}
 
-	bool IsInReservedRange(const boost::asio::ip::address& host) {
+	bool IsInReservedRange (const boost::asio::ip::address& host) {
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if(host.is_v4())
 		{

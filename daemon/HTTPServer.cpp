@@ -532,7 +532,7 @@ namespace http {
 		}
 	}
 
-	static void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+    void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
 	{
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer)
@@ -820,7 +820,7 @@ namespace http {
 			s << "<b>SAM Sessions:</b> no sessions currently running.<br>\r\n";
 	}
 
-	static void ShowSAMSession (std::stringstream& s, const std::string& id)
+    void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -1312,6 +1312,8 @@ namespace http {
 
 	void HTTPServer::Run ()
 	{
+		i2p::util::SetThreadName("Webconsole");
+
 		while (m_IsRunning)
 		{
 			try

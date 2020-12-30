@@ -75,9 +75,11 @@ namespace transport
 		std::shared_ptr<I2NPMessage> msg;
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
+		uint64_t receivedFragmentsBits;
 		std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
 
-		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), lastFragmentInsertTime (0) {};
+		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), 
+			lastFragmentInsertTime (0), receivedFragmentsBits (0) {};
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};
 
@@ -109,7 +111,7 @@ namespace transport
 		private:
 
 			void SendMsgAck (uint32_t msgID);
-			void SendFragmentAck (uint32_t msgID, int fragmentNum);
+			void SendFragmentAck (uint32_t msgID, uint64_t bits);
 			void ProcessAcks (uint8_t *& buf, uint8_t flag);
 			void ProcessFragments (uint8_t * buf);
 			void ProcessSentMessageAck (uint32_t msgID);
