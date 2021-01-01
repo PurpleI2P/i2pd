@@ -729,7 +729,11 @@ namespace i2p
 			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));		
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
-			m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false);
+			if (!m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false))
+			{
+				LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
+				return false;
+			}	
 			m_CurrentNoiseState->MixKey (sharedSecret); 
 			encrypted += 32;
 			uint8_t nonce[12];

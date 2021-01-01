@@ -231,7 +231,11 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 
 		// decrypt flags/static
@@ -251,7 +255,11 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, apk)
+			if (!GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
+			{
+				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+				return false;
+			}	
 			MixKey (sharedSecret);
 		}
 		else // all zeros flags
@@ -448,7 +456,11 @@ namespace garlic
 		i2p::crypto::InitNoiseIKState (*this, m_RemoteStaticKey); // bpk
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		// encrypt flags/static key section
 		uint8_t nonce[12];
@@ -504,7 +516,11 @@ namespace garlic
 		MixHash (out + offset, 32); // h = SHA256(h || aepk)
 		offset += 32;
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return false;
+		}	
 		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -540,9 +556,17 @@ namespace garlic
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk)
+		if (!m_EphemeralKeys->Agree (m_Aepk, sharedSecret)) // sharedSecret = x25519(besk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -624,7 +648,11 @@ namespace garlic
 		MixHash (tag, 8); // h = SHA256(h || tag)
 		MixHash (bepk, 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
+		if (!m_EphemeralKeys->Agree (bepk, sharedSecret)) // sharedSecret = x25519(aesk, bepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
@@ -788,7 +816,11 @@ namespace garlic
 		i2p::crypto::InitNoiseNState (*this, GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
 		MixHash (buf, 32);
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect N ephemeral public key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		buf += 32; len -= 32;	
 		uint8_t nonce[12];

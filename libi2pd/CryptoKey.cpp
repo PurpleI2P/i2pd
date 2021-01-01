@@ -173,8 +173,7 @@ namespace crypto
 
 	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
 	{
-		m_StaticKeys.Agree (epub, sharedSecret);
-		return true;
+		return m_StaticKeys.Agree (epub, sharedSecret);
 	}
 
 	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub)

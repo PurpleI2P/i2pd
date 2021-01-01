@@ -866,6 +866,7 @@ namespace garlic
 			{
 				it->second.tagset->DeleteSymmKey (it->second.index);
 				it = m_ECIESx25519Tags.erase (it);
+				numExpiredTags++;
 			}	
 			else
 				++it;
