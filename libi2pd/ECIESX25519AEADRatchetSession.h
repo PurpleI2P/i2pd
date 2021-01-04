@@ -39,12 +39,13 @@ namespace garlic
 	const size_t ECIESX25519_OPTIMAL_PAYLOAD_SIZE = 1912; // 1912 = 1956 /* to fit 2 tunnel messages */
 	// - 16 /* I2NP header */ - 16 /* poly hash */ - 8 /* tag */ - 4 /* garlic length */
 
-	class ECIESX25519AEADRatchetSession;
-	class RatchetTagSet: public std::enable_shared_from_this<RatchetTagSet>
+	class RatchetTagSet
 	{
 		public:
 
-			RatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};
+			RatchetTagSet () {};
+			virtual ~RatchetTagSet () {};
+			
 			virtual bool IsNS () const { return false; };
 			
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
@@ -55,16 +56,12 @@ namespace garlic
 			void GetSymmKey (int index, uint8_t * key);
 			void DeleteSymmKey (int index);
 
-			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
-			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
-
+			
 			void Expire ();
 			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
-			virtual bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
-
-			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
+			
 			
 		private:
 
@@ -79,19 +76,39 @@ namespace garlic
 
 			} m_KeyData;
 			uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64], m_NextRootKey[32];
-			int m_NextIndex, m_NextSymmKeyIndex, m_TrimBehindIndex = 0;
+			int m_NextIndex, m_NextSymmKeyIndex;
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
-			std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
+			
 			int m_TagSetID = 0;
 			uint64_t m_ExpirationTimestamp = 0;
 	};
 
-	class NSRatchetTagSet: public RatchetTagSet
+	class ECIESX25519AEADRatchetSession;
+	class ReceiveRatchetTagSet: public RatchetTagSet,
+		public std::enable_shared_from_this<ReceiveRatchetTagSet>
+	{
+		public:
+
+			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};
+
+			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
+			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
+
+			virtual bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
+			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
+			
+		private:
+
+			int m_TrimBehindIndex = 0;
+			std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
+	};	
+	
+	class NSRatchetTagSet: public ReceiveRatchetTagSet
 	{
 		public:
 			
 			NSRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session):
-				RatchetTagSet (session), m_DummySession (session) {};
+				ReceiveRatchetTagSet (session), m_DummySession (session) {};
 
 			bool IsNS () const { return true; };
 			
@@ -100,7 +117,7 @@ namespace garlic
 			std::shared_ptr<ECIESX25519AEADRatchetSession> m_DummySession; // we need a strong pointer for NS
 	};	
 
-	class DatabaseLookupTagSet: public RatchetTagSet
+	class DatabaseLookupTagSet: public ReceiveRatchetTagSet
 	{
 		public:
 
@@ -160,7 +177,7 @@ namespace garlic
 			ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
 			~ECIESX25519AEADRatchetSession ();
 
-			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index = 0);
+			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);
 			bool HandleNextMessageForRouter (const uint8_t * buf, size_t len);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
@@ -185,13 +202,13 @@ namespace garlic
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
-			std::shared_ptr<RatchetTagSet> CreateNewSessionTagset ();
+			std::shared_ptr<ReceiveRatchetTagSet> CreateNewSessionTagset ();
 
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
 			bool HandleNewOutgoingSessionReply (uint8_t * buf, size_t len);
-			bool HandleExistingSessionMessage (uint8_t * buf, size_t len, std::shared_ptr<RatchetTagSet> receiveTagset, int index);
-			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset, int index);
-			void HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset);
+			bool HandleExistingSessionMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index);
+			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index);
+			void HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset);
 
 			bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen, bool isStatic = true);
 			bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
@@ -203,7 +220,7 @@ namespace garlic
 			size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 			size_t CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len);
 
-			void GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags);
+			void GenerateMoreReceiveTags (std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int numTags);
 			void NewNextSendRatchet ();
 
 		private:

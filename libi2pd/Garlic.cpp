@@ -1060,7 +1060,7 @@ namespace garlic
 		}
 	}
 
-	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
+	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset)
 	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();

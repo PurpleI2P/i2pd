@@ -100,7 +100,7 @@ namespace garlic
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
-	bool RatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	bool ReceiveRatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
 	{
 		auto session = GetSession ();
 		if (!session) return false;
@@ -108,7 +108,7 @@ namespace garlic
 	}	
 
 	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
-		RatchetTagSet (nullptr), m_Destination (destination) 
+		ReceiveRatchetTagSet (nullptr), m_Destination (destination) 
 	{ 
 		memcpy (m_Key, key, 32); 
 		Expire ();	
@@ -203,12 +203,12 @@ namespace garlic
 		return false;
 	}
 
-	std::shared_ptr<RatchetTagSet> ECIESX25519AEADRatchetSession::CreateNewSessionTagset ()
+	std::shared_ptr<ReceiveRatchetTagSet> ECIESX25519AEADRatchetSession::CreateNewSessionTagset ()
 	{
 		uint8_t tagsetKey[32];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
 		// Session Tag Ratchet
-		auto tagsetNsr = (m_State == eSessionStateNewSessionReceived) ? std::make_shared<RatchetTagSet>(shared_from_this ()):
+		auto tagsetNsr = (m_State == eSessionStateNewSessionReceived) ? std::make_shared<ReceiveRatchetTagSet>(shared_from_this ()):
 			std::make_shared<NSRatchetTagSet>(shared_from_this ());
 		tagsetNsr->DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
 		tagsetNsr->NextSessionTagRatchet ();
@@ -284,7 +284,7 @@ namespace garlic
 		return true;
 	}
 
-	void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset, int index)
+	void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index)
 	{
 		size_t offset = 0;
 		while (offset < len)
@@ -352,7 +352,7 @@ namespace garlic
 		}
 	}
 
-	void ECIESX25519AEADRatchetSession::HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset)
+	void ECIESX25519AEADRatchetSession::HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset)
 	{
 		uint8_t flag = buf[0]; buf++; // flag
 		if (flag & ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG)
@@ -367,7 +367,7 @@ namespace garlic
 				uint8_t sharedSecret[32], tagsetKey[32];
 				m_NextSendRatchet->key->Agree (m_NextSendRatchet->remote, sharedSecret);
 				i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
-				auto newTagset = std::make_shared<RatchetTagSet> (shared_from_this ());
+				auto newTagset = std::make_shared<RatchetTagSet> ();
 				newTagset->SetTagSetID (1 + m_NextSendRatchet->keyID + keyID);
 				newTagset->DHInitialize (m_SendTagset->GetNextRootKey (), tagsetKey);
 				newTagset->NextSessionTagRatchet ();
@@ -409,7 +409,7 @@ namespace garlic
 			uint8_t sharedSecret[32], tagsetKey[32];
 			m_NextReceiveRatchet->key->Agree (m_NextReceiveRatchet->remote, sharedSecret);
 			i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
-			auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			auto newTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this ());
 			newTagset->SetTagSetID (tagsetID);
 			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey);
 			newTagset->NextSessionTagRatchet ();
@@ -582,10 +582,10 @@ namespace garlic
 		uint8_t keydata[64];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
 		// k_ab = keydata[0:31], k_ba = keydata[32:63]
-		auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		auto receiveTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this());
 		receiveTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
 		receiveTagset->NextSessionTagRatchet ();
-		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		m_SendTagset = std::make_shared<RatchetTagSet>();
 		m_SendTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset->NextSessionTagRatchet ();
 		GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
@@ -674,10 +674,10 @@ namespace garlic
 		{
 			// only first time, then we keep using existing tagsets
 			// k_ab = keydata[0:31], k_ba = keydata[32:63]
-			m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			m_SendTagset = std::make_shared<RatchetTagSet>();
 			m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
 			m_SendTagset->NextSessionTagRatchet ();
-			auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			auto receiveTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this ());
 			receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 			receiveTagset->NextSessionTagRatchet ();
 			GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
@@ -736,7 +736,7 @@ namespace garlic
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (uint8_t * buf, size_t len,
-		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
+		std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index)
 	{
 		uint8_t nonce[12];
 		CreateNonce (index, nonce); // tag's index
@@ -775,7 +775,7 @@ namespace garlic
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleNextMessage (uint8_t * buf, size_t len,
-		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
+		std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index)
 	{
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		switch (m_State)
@@ -1086,7 +1086,7 @@ namespace garlic
 		return cloveSize + 3;
 	}
 
-	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags)
+	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int numTags)
 	{
 		if (GetOwner ())
 		{	
