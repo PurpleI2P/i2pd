@@ -100,6 +100,11 @@ namespace garlic
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
+	bool ReceiveRatchetTagSet::IsIndexExpired (int index) const 
+	{ 
+		return index < m_TrimBehindIndex || !m_Session || !m_Session->GetOwner (); 
+	}
+
 	bool ReceiveRatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
 	{
 		auto session = GetSession ();
@@ -203,16 +208,13 @@ namespace garlic
 		return false;
 	}
 
-	std::shared_ptr<ReceiveRatchetTagSet> ECIESX25519AEADRatchetSession::CreateNewSessionTagset ()
+	void ECIESX25519AEADRatchetSession::InitNewSessionTagset (std::shared_ptr<RatchetTagSet> tagsetNsr) const
 	{
 		uint8_t tagsetKey[32];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
 		// Session Tag Ratchet
-		auto tagsetNsr = (m_State == eSessionStateNewSessionReceived) ? std::make_shared<ReceiveRatchetTagSet>(shared_from_this ()):
-			std::make_shared<NSRatchetTagSet>(shared_from_this ());
 		tagsetNsr->DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
 		tagsetNsr->NextSessionTagRatchet ();
-		return tagsetNsr;
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
@@ -501,7 +503,11 @@ namespace garlic
 		{	
 			MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
 			if (GetOwner ())
-				GenerateMoreReceiveTags (CreateNewSessionTagset (), ECIESX25519_NSR_NUM_GENERATED_TAGS);
+			{
+				auto tagsetNsr = std::make_shared<ReceiveRatchetTagSet>(shared_from_this (), true);
+				InitNewSessionTagset (tagsetNsr);
+				GenerateMoreReceiveTags (tagsetNsr, ECIESX25519_NSR_NUM_GENERATED_TAGS);
+			}	
 		}
 		return true;
 	}
@@ -538,7 +544,8 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
-		m_NSRSendTagset = CreateNewSessionTagset ();
+		m_NSRSendTagset = std::make_shared<RatchetTagSet>();
+		InitNewSessionTagset (m_NSRSendTagset);
 		uint64_t tag = m_NSRSendTagset->GetNextSessionTag ();
 
 		size_t offset = 0;

@@ -46,8 +46,6 @@ namespace garlic
 			RatchetTagSet () {};
 			virtual ~RatchetTagSet () {};
 			
-			virtual bool IsNS () const { return false; };
-			
 			void DHInitialize (const uint8_t * rootKey, const uint8_t * k);
 			void NextSessionTagRatchet ();
 			uint64_t GetNextSessionTag ();
@@ -60,8 +58,7 @@ namespace garlic
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
 			
 			void Expire ();
-			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };
-			
+			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };			
 			
 		private:
 
@@ -89,32 +86,21 @@ namespace garlic
 	{
 		public:
 
-			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session): m_Session (session) {};
+			ReceiveRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session, bool isNS = false): 
+				m_Session (session), m_IsNS (isNS) {};
 
-			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session.lock (); };
+			bool IsNS () const { return m_IsNS; };
+			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
 			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
 
-			virtual bool IsIndexExpired (int index) const { return m_Session.expired () || index < m_TrimBehindIndex; };
+			virtual bool IsIndexExpired (int index) const;
 			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
 			
 		private:
 
 			int m_TrimBehindIndex = 0;
-			std::weak_ptr<ECIESX25519AEADRatchetSession> m_Session;
-	};	
-	
-	class NSRatchetTagSet: public ReceiveRatchetTagSet
-	{
-		public:
-			
-			NSRatchetTagSet (std::shared_ptr<ECIESX25519AEADRatchetSession> session):
-				ReceiveRatchetTagSet (session), m_DummySession (session) {};
-
-			bool IsNS () const { return true; };
-			
-		private:
-
-			std::shared_ptr<ECIESX25519AEADRatchetSession> m_DummySession; // we need a strong pointer for NS
+			std::shared_ptr<ECIESX25519AEADRatchetSession> m_Session;
+			bool m_IsNS;
 	};	
 
 	class DatabaseLookupTagSet: public ReceiveRatchetTagSet
@@ -202,7 +188,7 @@ namespace garlic
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
-			std::shared_ptr<ReceiveRatchetTagSet> CreateNewSessionTagset ();
+			void InitNewSessionTagset (std::shared_ptr<RatchetTagSet> tagsetNsr) const;
 
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
 			bool HandleNewOutgoingSessionReply (uint8_t * buf, size_t len);
