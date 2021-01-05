@@ -295,7 +295,7 @@ namespace datagram
 			}	
 		}	
 
-		if (!m_RoutingSession || !m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ()) 
+		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) 
 		{
 			bool found = false;
 			for (auto& it: m_PendingRoutingSessions)

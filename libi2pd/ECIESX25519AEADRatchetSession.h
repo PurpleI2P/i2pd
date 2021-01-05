@@ -56,10 +56,7 @@ namespace garlic
 
 			int GetTagSetID () const { return m_TagSetID; };
 			void SetTagSetID (int tagsetID) { m_TagSetID = tagsetID; };
-			
-			void Expire ();
-			bool IsExpired (uint64_t ts) const { return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; };			
-			
+						
 		private:
 
 			union
@@ -77,7 +74,6 @@ namespace garlic
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
 			
 			int m_TagSetID = 0;
-			uint64_t m_ExpirationTimestamp = 0;
 	};
 
 	class ECIESX25519AEADRatchetSession;
@@ -93,14 +89,18 @@ namespace garlic
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
 			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
 
+			void Expire ();
+			bool IsExpired (uint64_t ts) const;			
+			
 			virtual bool IsIndexExpired (int index) const;
 			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
 			
 		private:
-
+			
 			int m_TrimBehindIndex = 0;
 			std::shared_ptr<ECIESX25519AEADRatchetSession> m_Session;
 			bool m_IsNS;
+			uint64_t m_ExpirationTimestamp = 0;
 	};	
 
 	class DatabaseLookupTagSet: public ReceiveRatchetTagSet
@@ -170,7 +170,8 @@ namespace garlic
 			
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
-
+			
+			void Terminate () { m_IsTerminated = true; }
 			void SetDestination (const i2p::data::IdentHash& dest) // TODO:
 			{
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
@@ -182,6 +183,7 @@ namespace garlic
 			
 			bool IsRatchets () const { return true; };
 			bool IsReadyToSend () const { return m_State != eSessionStateNewSessionSent; };
+			bool IsTerminated () const { return m_IsTerminated; }
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
 
 		private:
@@ -221,7 +223,7 @@ namespace garlic
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // (tagsetid, index)
-			bool m_SendReverseKey = false, m_SendForwardKey = false;
+			bool m_SendReverseKey = false, m_SendForwardKey = false, m_IsTerminated = false;
 			std::unique_ptr<DHRatchet> m_NextReceiveRatchet, m_NextSendRatchet;
 			uint8_t m_PaddingSizes[32], m_NextPaddingSize;
 			

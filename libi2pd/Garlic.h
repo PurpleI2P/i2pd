@@ -115,6 +115,7 @@ namespace garlic
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
 			virtual bool IsReadyToSend () const { return true; };
+			virtual bool IsTerminated () const { return !GetOwner (); }; 
 			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
 
 			void SetLeaseSetUpdated ()

@@ -445,9 +445,16 @@ namespace garlic
 
 	void GarlicDestination::CleanUp ()
 	{
+		for (auto it: m_Sessions)
+			it.second->SetOwner (nullptr);
 		m_Sessions.clear ();
 		m_DeliveryStatusSessions.clear ();
 		m_Tags.clear ();
+		for (auto it: m_ECIESx25519Sessions)
+		{
+			it.second->Terminate ();
+			it.second->SetOwner (nullptr);
+		}	
 		m_ECIESx25519Sessions.clear ();
 		m_ECIESx25519Tags.clear ();
 	}
@@ -852,7 +859,7 @@ namespace garlic
 		{
 			if (it->second->CheckExpired (ts))
 			{
-				it->second->SetOwner (nullptr);
+				it->second->Terminate ();
 				it = m_ECIESx25519Sessions.erase (it);
 			}
 			else
@@ -1077,7 +1084,7 @@ namespace garlic
 		{
 			if (it->second->CanBeRestarted (i2p::util::GetSecondsSinceEpoch ()))
 			{	
-				it->second->SetOwner (nullptr); // detach
+				it->second->Terminate (); // detach
 				m_ECIESx25519Sessions.erase (it);
 			}	
 			else

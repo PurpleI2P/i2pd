@@ -94,15 +94,20 @@ namespace garlic
 		m_ItermediateSymmKeys.erase (index);
 	}
 	
-	void RatchetTagSet::Expire ()
+	void ReceiveRatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
+	bool ReceiveRatchetTagSet::IsExpired (uint64_t ts) const 
+	{ 
+		return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; 
+	}		
+	
 	bool ReceiveRatchetTagSet::IsIndexExpired (int index) const 
 	{ 
-		return index < m_TrimBehindIndex || !m_Session || !m_Session->GetOwner (); 
+		return index < m_TrimBehindIndex || !m_Session || m_Session->IsTerminated (); 
 	}
 
 	bool ReceiveRatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
