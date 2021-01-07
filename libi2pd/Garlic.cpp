@@ -876,7 +876,12 @@ namespace garlic
 				numExpiredTags++;
 			}	
 			else
+			{
+				auto session = it->second.tagset->GetSession ();
+				if (!session || session->IsTerminated())
+					it->second.tagset->Expire ();
 				++it;
+			}	
 		}
 		if (numExpiredTags > 0)
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
@@ -1101,7 +1106,7 @@ namespace garlic
 		auto it = m_ECIESx25519Sessions.find (staticKey);
 		if (it != m_ECIESx25519Sessions.end ())
 		{
-			it->second->SetOwner (nullptr);
+			it->second->Terminate ();
 			m_ECIESx25519Sessions.erase (it);
 		}
 	}

@@ -107,7 +107,7 @@ namespace garlic
 	
 	bool ReceiveRatchetTagSet::IsIndexExpired (int index) const 
 	{ 
-		return index < m_TrimBehindIndex || !m_Session || m_Session->IsTerminated (); 
+		return index < m_TrimBehindIndex; 
 	}
 
 	bool ReceiveRatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
