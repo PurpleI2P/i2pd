@@ -18,6 +18,10 @@
         android:requestLegacyExternalStorage="true"
         android:theme="@android:style/Theme.Holo.Light.DarkActionBar"
         android:usesCleartextTraffic="true">
+        <meta-data
+            android:name="android.webkit.WebView.MetricsOptOut"
+            android:value="true"/>
+
         <activity android:name=".WebConsoleActivity"></activity>
 
         <receiver android:name=".NetworkStateChangeReceiver">
