@@ -398,7 +398,7 @@ namespace transport
 					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
 					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
 
 						if(m_NTCP2Server->UsingProxy())
 						{

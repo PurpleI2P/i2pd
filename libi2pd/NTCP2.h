@@ -123,7 +123,8 @@ namespace transport
 	{
 		public:
 
-			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
+			NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
+				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr);
 			~NTCP2Session ();
 			void Terminate ();
 			void TerminateByTimeout ();

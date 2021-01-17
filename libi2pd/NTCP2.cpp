@@ -317,7 +317,8 @@ namespace transport
 		return true;
 	}
 
-	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
+	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
+	    	std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
@@ -332,7 +333,8 @@ namespace transport
 		if (in_RemoteRouter) // Alice
 		{
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
-			auto addr = in_RemoteRouter->GetNTCP2Address (true); // we need a published address
+			if (!addr)
+				addr = in_RemoteRouter->GetNTCP2Address (true); // we need a published address
 			if (addr)
 			{
 				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
@@ -653,7 +655,7 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = ri.GetNTCP2Address (false); // any NTCP2 address
+					auto addr = ri.GetNTCP2Address (false, false); // any NTCP2 address including v6
 					if (!addr)
 					{
 						LogPrint (eLogError, "NTCP2: No NTCP2 address found in SessionConfirmed");
