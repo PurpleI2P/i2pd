@@ -817,7 +817,7 @@ namespace stream
 
 	void Stream::SendUpdatedLeaseSet ()
 	{
-		if (m_RoutingSession)
+		if (m_RoutingSession && !m_RoutingSession->IsTerminated ())
 		{
 			if (m_RoutingSession->IsLeaseSetNonConfirmed ())
 			{
@@ -838,6 +838,8 @@ namespace stream
 				SendQuickAck ();
 			}
 		}
+		else
+			SendQuickAck ();
 	}
 
 	void Stream::ScheduleResend ()
