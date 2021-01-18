@@ -935,6 +935,24 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
+	{
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return address->IsPublishedNTCP2 () && address->host.is_v4 ();
+			});
+	}
+		
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V6Address () const
+	{
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return address->IsPublishedNTCP2 () && address->host.is_v6 ();
+			});
+	}	
+		
 	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const
 	{
 		if (!m_Profile)

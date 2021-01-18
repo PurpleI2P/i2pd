@@ -154,6 +154,8 @@ namespace data
 			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
+			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const; 
+			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const; 
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
 

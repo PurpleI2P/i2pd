@@ -389,13 +389,23 @@ namespace transport
 			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
-			if (!peer.numAttempts) // NTCP2
+			if (peer.numAttempts < 2) // NTCP2, 0 - ipv6, 1- ipv4
 			{
-				peer.numAttempts++;
 				if (m_NTCP2Server) // we support NTCP2
 				{
-					// NTCP2 have priority over NTCP
-					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
+					std::shared_ptr<const RouterInfo::Address> address;
+					if (!peer.numAttempts) // NTCP2 ipv6
+					{
+						if (context.SupportsV6 ())
+							address = peer.router->GetPublishedNTCP2V6Address ();
+						peer.numAttempts++;
+					}
+					if (!address && peer.numAttempts == 1) // NTCP2 ipv4	
+					{	
+						if (context.SupportsV4 ())
+							address = peer.router->GetPublishedNTCP2V4Address ();
+						peer.numAttempts++;
+					}	
 					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
@@ -415,8 +425,10 @@ namespace transport
 						return true;
 					}
 				}
+				else
+					peer.numAttempts = 2; // switch to SSU
 			}
-			if (peer.numAttempts == 1)// SSU
+			if (peer.numAttempts == 2)// SSU
 			{
 				peer.numAttempts++;
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
