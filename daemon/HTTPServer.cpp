@@ -123,8 +123,8 @@ namespace http {
 	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
 	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
-	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
-	const char HTTP_PARAM_ADDRESS[] = "address";
+	const char HTTP_PARAM_SAM_SESSION_ID[] __attribute__((unused)) = "id";
+	const char HTTP_PARAM_ADDRESS[] __attribute__((unused)) = "address";
 
 	static std::string ConvertTime (uint64_t time);
 	std::map<uint32_t, uint32_t> HTTPConnection::m_Tokens;

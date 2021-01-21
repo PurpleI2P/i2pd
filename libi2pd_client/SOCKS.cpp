@@ -27,7 +27,7 @@ namespace proxy
 	static const size_t socks_buffer_size = 8192;
 	static const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
 
-	static const size_t SOCKS_FORWARDER_BUFFER_SIZE = 8192;
+	static const size_t SOCKS_FORWARDER_BUFFER_SIZE __attribute__((unused)) = 8192;
 
 	static const size_t SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE = 8;
 

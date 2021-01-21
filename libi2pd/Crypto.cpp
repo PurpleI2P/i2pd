@@ -160,7 +160,7 @@ namespace crypto
 // DH/ElGamal
 
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BITS = 226;
-	const int ELGAMAL_SHORT_EXPONENT_NUM_BYTES = ELGAMAL_SHORT_EXPONENT_NUM_BITS/8+1;
+	const int ELGAMAL_SHORT_EXPONENT_NUM_BYTES __attribute__((unused)) = ELGAMAL_SHORT_EXPONENT_NUM_BITS/8+1;
 	const int ELGAMAL_FULL_EXPONENT_NUM_BITS = 2048;
 	const int ELGAMAL_FULL_EXPONENT_NUM_BYTES = ELGAMAL_FULL_EXPONENT_NUM_BITS/8;
 
@@ -631,8 +631,8 @@ namespace crypto
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
 
 
-	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
-	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
+	static const uint64_t ipads[] __attribute__((unused)) = { IPAD, IPAD, IPAD, IPAD };
+	static const uint64_t opads[] __attribute__((unused)) = { OPAD, OPAD, OPAD, OPAD };
 
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
 	// key is 32 bytes
