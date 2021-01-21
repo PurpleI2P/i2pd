@@ -212,7 +212,8 @@ namespace config {
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma");
+			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.hostsfile", value<std::string>()->default_value(""), "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
 		trust.add_options()
