@@ -116,6 +116,7 @@ namespace tunnel
 	{
 		public:
 
+			using Tunnel::SendTunnelDataMsg;
 			OutboundTunnel (std::shared_ptr<const TunnelConfig> config):
 				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
