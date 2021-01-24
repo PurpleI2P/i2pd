@@ -914,10 +914,13 @@ namespace garlic
 			payloadLen += msg->GetPayloadLength () + 13;
 			if (m_Destination) payloadLen += 32;
 		}	
-		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
-			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted &&
-				ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
-			GetOwner ()->GetLeaseSet () : nullptr;
+		if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)
+		{
+			// resubmit non-confirmed LeaseSet
+			SetLeaseSetUpdateStatus (eLeaseSetUpdated);
+			SetSharedRoutingPath (nullptr); // invalidate path since leaseset was not confirmed
+		}
+		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? GetOwner ()->GetLeaseSet () : nullptr;
 		if (leaseSet)
 		{
 			payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;
