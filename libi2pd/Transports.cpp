@@ -397,16 +397,24 @@ namespace transport
 					if (!peer.numAttempts) // NTCP2 ipv6
 					{
 						if (context.SupportsV6 ())
+						{	
 							address = peer.router->GetPublishedNTCP2V6Address ();
+							if (address && m_CheckReserved && !i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}	
 						peer.numAttempts++;
 					}
 					if (!address && peer.numAttempts == 1) // NTCP2 ipv4	
 					{	
-						if (context.SupportsV4 ())
+						if (context.SupportsV4 () && !peer.router->IsUnreachable ())
+						{	
 							address = peer.router->GetPublishedNTCP2V4Address ();
+							if (address && m_CheckReserved && !i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}	
 						peer.numAttempts++;
 					}	
-					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
+					if (address)
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
 
