@@ -399,7 +399,7 @@ namespace transport
 						if (context.SupportsV6 ())
 						{	
 							address = peer.router->GetPublishedNTCP2V6Address ();
-							if (address && m_CheckReserved && !i2p::util::net::IsInReservedRange(address->host))
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 								address = nullptr;
 						}	
 						peer.numAttempts++;
@@ -409,7 +409,7 @@ namespace transport
 						if (context.SupportsV4 () && !peer.router->IsUnreachable ())
 						{	
 							address = peer.router->GetPublishedNTCP2V4Address ();
-							if (address && m_CheckReserved && !i2p::util::net::IsInReservedRange(address->host))
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 								address = nullptr;
 						}	
 						peer.numAttempts++;
