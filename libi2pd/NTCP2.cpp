@@ -1519,7 +1519,7 @@ namespace transport
 
 				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
 				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n",
-					[this, readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
+					[readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
 					{
 						if(ec)
 						{
