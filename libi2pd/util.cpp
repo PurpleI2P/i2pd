@@ -446,7 +446,8 @@ namespace net
 #endif		
 	}	
 	
-	bool IsInReservedRange (const boost::asio::ip::address& host) {
+	bool IsInReservedRange (const boost::asio::ip::address& host, bool checkYggdrasil) 
+	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if(host.is_v4())
 		{
@@ -486,6 +487,8 @@ namespace net
 				if (ipv6_address >= it.first && ipv6_address <= it.second)
 					return true;
 			}
+			if (checkYggdrasil && (ipv6_address[0] == 0x02 || ipv6_address[0] == 0x03)) // yggdrasil?
+				return true;
 		}
 		return false;
 	}
