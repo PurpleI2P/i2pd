@@ -416,6 +416,36 @@ namespace net
 #endif
 	}
 
+	boost::asio::ip::address_v6 GetYggdrasilAddress ()
+	{
+#ifdef _WIN32
+		// TODO: implement
+		return boost::asio::ip::address_v6 ();
+#else
+		ifaddrs * addrs = nullptr;
+		auto err = getifaddrs(&addrs);
+		if (!err)
+		{
+			ifaddrs * cur = addrs;
+			while(cur)
+			{
+				if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
+				{
+					sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
+					if (sa->sin6_addr.s6_addr[0] == 0x02 || sa->sin6_addr.s6_addr[0] == 0x03)
+					{
+						boost::asio::ip::address_v6::bytes_type bytes;
+						memcpy (bytes.data (), &sa->sin6_addr, 16);
+						return boost::asio::ip::address_v6 (bytes);
+					}	
+				}	
+				cur = cur->ifa_next;
+			}	
+		}
+		return boost::asio::ip::address_v6 ();
+#endif		
+	}	
+	
 	bool IsInReservedRange (const boost::asio::ip::address& host) {
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if(host.is_v4())
