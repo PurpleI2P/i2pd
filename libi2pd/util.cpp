@@ -119,10 +119,12 @@ namespace util
 	}
 
 	void SetThreadName (const char *name) {
-#if defined (__APPLE__)
+#if defined(__APPLE__)
 		pthread_setname_np(name);
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
+#elif defined(__NetBSD__)
+		pthread_setname_np(pthread_self(), "%s", (void *)name);
 #else
 		pthread_setname_np(pthread_self(), name);
 #endif
@@ -437,15 +439,15 @@ namespace net
 						boost::asio::ip::address_v6::bytes_type bytes;
 						memcpy (bytes.data (), &sa->sin6_addr, 16);
 						return boost::asio::ip::address_v6 (bytes);
-					}	
-				}	
+					}
+				}
 				cur = cur->ifa_next;
-			}	
+			}
 		}
 		return boost::asio::ip::address_v6 ();
-#endif		
-	}	
-	
+#endif
+	}
+
 	bool IsInReservedRange (const boost::asio::ip::address& host, bool checkYggdrasil) 
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
