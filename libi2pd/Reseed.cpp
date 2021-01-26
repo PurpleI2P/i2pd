@@ -91,7 +91,8 @@ namespace data
 		{
 			LogPrint (eLogInfo, "Reseed: yggdrasil is supported");
 			std::string yggReseedURLs; i2p::config::GetOption("reseed.yggurls", yggReseedURLs);
-			boost::split(yggReseedHostList, yggReseedURLs, boost::is_any_of(","), boost::token_compress_on);
+			if (!yggReseedURLs.empty ())
+				boost::split(yggReseedHostList, yggReseedURLs, boost::is_any_of(","), boost::token_compress_on);
 		}	
 
 		if (httpsReseedHostList.empty () && yggReseedHostList.empty())
@@ -744,8 +745,11 @@ namespace data
 		boost::system::error_code ecode;
 		boost::asio::io_service service;		
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
-		
-		s.connect (boost::asio::ip::tcp::endpoint (boost::asio::ip::address_v6::from_string (url.host), url.port), ecode);
+
+		if (url.host.length () < 2) return ""; // assume []
+		auto host = url.host.substr (1, url.host.length () - 2);
+		LogPrint (eLogDebug, "Reseed: Connecting to yggdrasil ", url.host, ":", url.port);
+		s.connect (boost::asio::ip::tcp::endpoint (boost::asio::ip::address_v6::from_string (host), url.port), ecode);
 		if (!ecode)
 		{
 			LogPrint (eLogDebug, "Reseed: Connected to yggdrasil ", url.host, ":", url.port);
