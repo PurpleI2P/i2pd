@@ -111,7 +111,14 @@ namespace http {
 				pos_p = pos_c + 1;
 			}
 			/* hostname[:port][/path] */
-			pos_c = url.find_first_of(":/", pos_p);
+			if (url[pos_p] == '[') // ipv6
+			{
+				auto pos_b = url.find(']', pos_p);
+				if (pos_b == std::string::npos) return false;
+				pos_c = url.find_first_of(":/", pos_b);
+			}
+			else
+				pos_c = url.find_first_of(":/", pos_p);
 			if (pos_c == std::string::npos) {
 				/* only hostname, without post and path */
 				host = url.substr(pos_p, std::string::npos);

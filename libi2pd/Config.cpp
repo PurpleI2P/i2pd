@@ -205,6 +205,9 @@ namespace config {
 				"https://reseed.i2pgit.org/,"
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
+			("reseed.yggurls", value<std::string>()->default_value(
+				"http://[324:9de3:fea4:f6ac::ace]:7070/"
+			),        													  "Reseed URLs through the Yggdrasil, separated by comma") 	                                                
 		;
 
 		options_description addressbook("AddressBook options");

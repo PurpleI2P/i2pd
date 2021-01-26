@@ -86,7 +86,15 @@ namespace data
 		std::vector<std::string> httpsReseedHostList;
 		boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
 
-		if (reseedURLs.length () == 0)
+		std::vector<std::string> yggReseedHostList;
+		if (!i2p::util::net::GetYggdrasilAddress ().is_unspecified ())
+		{
+			LogPrint (eLogInfo, "Reseed: yggdrasil is supported");
+			std::string yggReseedURLs; i2p::config::GetOption("reseed.yggurls", yggReseedURLs);
+			boost::split(yggReseedHostList, yggReseedURLs, boost::is_any_of(","), boost::token_compress_on);
+		}	
+
+		if (httpsReseedHostList.empty () && yggReseedHostList.empty())
 		{
 			LogPrint (eLogWarning, "Reseed: No reseed servers specified");
 			return 0;
@@ -95,9 +103,12 @@ namespace data
 		int reseedRetries = 0;
 		while (reseedRetries < 10)
 		{
-			auto ind = rand () % httpsReseedHostList.size ();
-			std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
-			auto num = ReseedFromSU3Url (reseedUrl);
+			auto ind = rand () % (httpsReseedHostList.size () + yggReseedHostList.size ());
+			bool isHttps = ind < httpsReseedHostList.size ();
+			std::string reseedUrl = isHttps ? httpsReseedHostList[ind] : 
+				yggReseedHostList[ind - httpsReseedHostList.size ()];
+			reseedUrl += "i2pseeds.su3";
+			auto num = ReseedFromSU3Url (reseedUrl, isHttps);
 			if (num > 0) return num; // success
 			reseedRetries++;
 		}
@@ -110,10 +121,10 @@ namespace data
 	 * @param url
 	 * @return number of entries added to netDb
 	 */
-	int Reseeder::ReseedFromSU3Url (const std::string& url)
+	int Reseeder::ReseedFromSU3Url (const std::string& url, bool isHttps)
 	{
 		LogPrint (eLogInfo, "Reseed: Downloading SU3 from ", url);
-		std::string su3 = HttpsRequest (url);
+		std::string su3 = isHttps ? HttpsRequest (url) : YggdrasilRequest (url);
 		if (su3.length () > 0)
 		{
 			std::stringstream s(su3);
@@ -667,42 +678,7 @@ namespace data
 			if (!ecode)
 			{
 				LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
-				i2p::http::HTTPReq req;
-				req.uri = url.to_string();
-				req.AddHeader("User-Agent", "Wget/1.11.4");
-				req.AddHeader("Connection", "close");
-				s.write_some (boost::asio::buffer (req.to_string()));
-				// read response
-				std::stringstream rs;
-				char recv_buf[1024]; size_t l = 0;
-				do {
-					l = s.read_some (boost::asio::buffer (recv_buf, sizeof(recv_buf)), ecode);
-					if (l) rs.write (recv_buf, l);
-				} while (!ecode && l);
-				// process response
-				std::string data = rs.str();
-				i2p::http::HTTPRes res;
-				int len = res.parse(data);
-				if (len <= 0) {
-					LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", url.host);
-					return "";
-				}
-				if (res.code != 200) {
-					LogPrint(eLogError, "Reseed: failed to reseed from ", url.host, ", http code ", res.code);
-					return "";
-				}
-				data.erase(0, len); /* drop http headers from response */
-				LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", url.host);
-				if (res.is_chunked()) {
-					std::stringstream in(data), out;
-					if (!i2p::http::MergeChunkedResponse(in, out)) {
-						LogPrint(eLogWarning, "Reseed: failed to merge chunked response from ", url.host);
-						return "";
-					}
-					LogPrint(eLogDebug, "Reseed: got ", data.length(), "(", out.tellg(), ") bytes of data from ", url.host);
-					data = out.str();
-				}
-				return data;
+				return ReseedRequest (s, url.to_string());
 			}
 			else
 				LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
@@ -711,5 +687,74 @@ namespace data
 			LogPrint (eLogError, "Reseed: Couldn't connect to ", url.host, ": ", ecode.message ());
 		return "";
 	}
+
+	template<typename Stream>
+	std::string Reseeder::ReseedRequest (Stream& s, const std::string& uri)
+	{
+		boost::system::error_code ecode;
+		i2p::http::HTTPReq req;
+		req.uri = uri;
+		req.AddHeader("User-Agent", "Wget/1.11.4");
+		req.AddHeader("Connection", "close");
+		s.write_some (boost::asio::buffer (req.to_string()));
+		// read response
+		std::stringstream rs;
+		char recv_buf[1024]; size_t l = 0;
+		do {
+			l = s.read_some (boost::asio::buffer (recv_buf, sizeof(recv_buf)), ecode);
+			if (l) rs.write (recv_buf, l);
+		} while (!ecode && l);
+		// process response
+		std::string data = rs.str();
+		i2p::http::HTTPRes res;
+		int len = res.parse(data);
+		if (len <= 0) {
+			LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", uri);
+			return "";
+		}
+		if (res.code != 200) {
+			LogPrint(eLogError, "Reseed: failed to reseed from ", uri, ", http code ", res.code);
+			return "";
+		}
+		data.erase(0, len); /* drop http headers from response */
+		LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", uri);
+		if (res.is_chunked()) {
+			std::stringstream in(data), out;
+			if (!i2p::http::MergeChunkedResponse(in, out)) {
+				LogPrint(eLogWarning, "Reseed: failed to merge chunked response from ", uri);
+				return "";
+			}
+			LogPrint(eLogDebug, "Reseed: got ", data.length(), "(", out.tellg(), ") bytes of data from ", uri);
+			data = out.str();
+		}
+		return data;
+	}	
+
+	std::string Reseeder::YggdrasilRequest (const std::string& address)
+	{
+		i2p::http::URL url;
+		if (!url.parse(address)) 
+		{
+			LogPrint(eLogError, "Reseed: failed to parse url: ", address);
+			return "";
+		}
+		url.schema = "http";
+		if (!url.port) url.port = 80;
+
+		boost::system::error_code ecode;
+		boost::asio::io_service service;		
+		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
+		
+		s.connect (boost::asio::ip::tcp::endpoint (boost::asio::ip::address_v6::from_string (url.host), url.port), ecode);
+		if (!ecode)
+		{
+			LogPrint (eLogDebug, "Reseed: Connected to yggdrasil ", url.host, ":", url.port);
+			return ReseedRequest (s, url.to_string());
+		}
+		else
+			LogPrint (eLogError, "Reseed: Couldn't connect to yggdrasil ", url.host, ": ", ecode.message ());	
+		
+		return "";
+	}	
 }
 }
