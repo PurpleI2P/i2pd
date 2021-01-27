@@ -213,7 +213,7 @@ namespace config {
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
 			("addressbook.defaulturl", value<std::string>()->default_value(
-				"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
+				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
 			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
 			("addressbook.hostsfile", value<std::string>()->default_value(""), "File to dump addresses in hosts.txt format");
