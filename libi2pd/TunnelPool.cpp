@@ -414,7 +414,8 @@ namespace tunnel
 		else if (i2p::transport::transports.GetNumPeers () > 25)
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
-			if (r && !r->GetProfile ()->IsBad ())
+			if (r && !r->GetProfile ()->IsBad () && 
+				(numHops > 1 || !inbound || r->IsReachable ())) // first must be reachable
 			{
 				prevHop = r;
 				peers.push_back (r->GetRouterIdentity ());
@@ -430,6 +431,12 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}
+			if (inbound && (i == numHops - 1) && !hop->IsReachable ())
+			{
+				// if first is not reachable try again
+				auto hop1 = nextHop (prevHop);
+				if (hop1) hop = hop1;
+			}	
 			prevHop = hop;
 			peers.push_back (hop->GetRouterIdentity ());
 		}
