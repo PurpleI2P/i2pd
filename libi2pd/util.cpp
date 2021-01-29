@@ -420,7 +420,7 @@ namespace net
 
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
-#ifdef _WIN32
+#if (defined(_WIN32) || defined(ANDROID))
 		// TODO: implement
 		return boost::asio::ip::address_v6 ();
 #else
