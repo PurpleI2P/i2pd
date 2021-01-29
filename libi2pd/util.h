@@ -190,6 +190,7 @@ namespace util
 		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
 		boost::asio::ip::address_v6 GetYggdrasilAddress ();
 		bool IsInReservedRange (const boost::asio::ip::address& host, bool checkYggdrasil = true);
+		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);
 	}
 }
 }

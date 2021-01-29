@@ -418,6 +418,17 @@ namespace net
 #endif
 	}
 
+	static bool IsYggdrasilAddress (const uint8_t addr[16])
+	{
+		return addr[0] == 0x02 || addr[0] == 0x03;
+	}	
+
+	bool IsYggdrasilAddress (const boost::asio::ip::address& addr)
+	{
+		if (!addr.is_v6 ()) return false;
+		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
+	}	
+	
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
 #if (defined(_WIN32) || defined(ANDROID))
@@ -434,7 +445,7 @@ namespace net
 				if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
 				{
 					sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
-					if (sa->sin6_addr.s6_addr[0] == 0x02 || sa->sin6_addr.s6_addr[0] == 0x03)
+					if (IsYggdrasilAddress(sa->sin6_addr.s6_addr))
 					{
 						boost::asio::ip::address_v6::bytes_type bytes;
 						memcpy (bytes.data (), &sa->sin6_addr, 16);
@@ -444,6 +455,7 @@ namespace net
 				cur = cur->ifa_next;
 			}
 		}
+		if(addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif
 	}
@@ -489,7 +501,7 @@ namespace net
 				if (ipv6_address >= it.first && ipv6_address <= it.second)
 					return true;
 			}
-			if (checkYggdrasil && (ipv6_address[0] == 0x02 || ipv6_address[0] == 0x03)) // yggdrasil?
+			if (checkYggdrasil && IsYggdrasilAddress (ipv6_address.data ())) // yggdrasil?
 				return true;
 		}
 		return false;
