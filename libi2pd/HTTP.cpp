@@ -346,7 +346,7 @@ namespace http {
 		auto it = headers.find("Transfer-Encoding");
 		if (it == headers.end())
 			return false;
-		if (it->second.find("chunked") == std::string::npos)
+		if (it->second.find("chunked") != std::string::npos)
 			return true;
 		return false;
 	}
