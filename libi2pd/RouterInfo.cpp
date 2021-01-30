@@ -16,6 +16,7 @@
 #include <boost/atomic.hpp>
 #endif
 #include "version.h"
+#include "util.h"
 #include "Crypto.h"
 #include "Base.h"
 #include "Timestamp.h"
@@ -298,8 +299,18 @@ namespace data
 			}
 			if (address->transportStyle == eTransportNTCP)
 			{
-				if (isStaticKey && isHost)
-					supportedTransports |= address->host.is_v4 () ? eNTCP2V4 :  eNTCP2V6;
+				if (isStaticKey)
+				{	
+					if (isHost)
+					{
+						if (address->host.is_v6 ())
+							supportedTransports |= i2p::util::net::IsYggdrasilAddress (address->host) ? eNTCP2V6Mesh :  eNTCP2V6;
+						else
+							supportedTransports |= eNTCP2V4; 
+					}	
+					else if (!address->ntcp2->isPublished)
+						supportedTransports |= eNTCP2V4; // most likely, since we don't have host
+				}
 			}	
 			else if (address->transportStyle == eTransportSSU)
 			{
@@ -920,12 +931,12 @@ namespace data
 		return nullptr;
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool publishedOnly, bool v4only) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool publishedOnly) const
 	{
 		return GetAddress (
-			[publishedOnly, v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return address->IsNTCP2 () && (!publishedOnly || address->IsPublishedNTCP2 ()) && (!v4only || address->host.is_v4 ());
+			[publishedOnly](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{			
+				return address->IsNTCP2 () && (!publishedOnly || address->IsPublishedNTCP2 ());
 			});
 	}
 

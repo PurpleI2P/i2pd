@@ -655,7 +655,7 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = ri.GetNTCP2Address (false, false); // any NTCP2 address including v6
+					auto addr = ri.GetNTCP2Address (false); // any NTCP2 address
 					if (!addr)
 					{
 						LogPrint (eLogError, "NTCP2: No NTCP2 address found in SessionConfirmed");
