@@ -54,12 +54,10 @@ namespace data
 
 			enum SupportedTranports
 			{
-				eNTCPV4 = 0x01,
-				eNTCPV6 = 0x02,
+				eNTCP2V4 = 0x01,
+				eNTCP2V6 = 0x02,
 				eSSUV4 = 0x04,
-				eSSUV6 = 0x08,
-				eNTCP2V4 = 0x10,
-				eNTCP2V6 = 0x20
+				eSSUV6 = 0x08
 			};
 
 			enum Caps
@@ -104,7 +102,6 @@ namespace data
 				Tag<32> staticKey;
 				Tag<16> iv;
 				bool isPublished = false;
-				bool isNTCP2Only = false;
 			};
 
 			struct Address
@@ -136,7 +133,6 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
-				bool IsNTCP2Only () const { return ntcp2 && ntcp2->isNTCP2Only; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
