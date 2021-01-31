@@ -164,7 +164,7 @@ namespace i2p
 			}
 			i2p::context.SetSupportsV6 (ipv6);
 			i2p::context.SetSupportsV4 (ipv4);
-			i2p::context.SetSupportsMesh (ygg);
+			i2p::context.SetSupportsMesh (ygg, yggaddr);
 			
 			i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later 
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);

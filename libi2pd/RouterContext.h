@@ -110,7 +110,7 @@ namespace i2p
 			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
-			void SetSupportsMesh (bool supportsmesh);
+			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 			

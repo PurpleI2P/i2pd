@@ -521,10 +521,25 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
-	void RouterContext::SetSupportsMesh (bool supportsmesh)
+	void RouterContext::SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host)
 	{	
 		if (supportsmesh)
+		{	
 			m_RouterInfo.EnableMesh ();
+			uint16_t port = 0;
+			i2p::config::GetOption ("ntcp2.port", port);
+			if (!port) i2p::config::GetOption("port", port);
+			if (!port)
+			{	
+				auto& addresses = m_RouterInfo.GetAddresses ();
+				for (auto& addr: addresses)
+				{
+					port = addr->port;
+					if (port) break;
+				}
+			}	
+			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
+		}	
 		else
 			m_RouterInfo.DisableMesh ();
 		UpdateRouterInfo ();
