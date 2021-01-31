@@ -155,6 +155,7 @@ namespace data
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const; 
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
+			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0);
@@ -171,10 +172,13 @@ namespace data
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsV6 () const;
 			bool IsV4 () const;
+			bool IsMesh () const;	
 			void EnableV6 ();
 			void DisableV6 ();
 			void EnableV4 ();
 			void DisableV4 ();
+			void EnableMesh ();
+			void DisableMesh ();	
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;

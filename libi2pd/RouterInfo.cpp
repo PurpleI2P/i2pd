@@ -847,6 +847,11 @@ namespace data
 		return m_SupportedTransports & (eSSUV4 | eNTCP2V4);
 	}
 
+	bool RouterInfo::IsMesh () const
+	{
+		return m_SupportedTransports & eNTCP2V6Mesh;
+	}	
+		
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
@@ -892,6 +897,27 @@ namespace data
 		}
 	}
 
+	void RouterInfo::EnableMesh ()
+	{
+		if (!IsMesh ())
+			m_SupportedTransports |= eNTCP2V6Mesh;
+	}
+		
+	void RouterInfo::DisableMesh ()
+	{		
+		if (IsMesh ())
+		{
+			m_SupportedTransports &= ~eNTCP2V6Mesh;
+			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
+			{
+				auto addr = *it;
+				if (i2p::util::net::IsYggdrasilAddress (addr->host))
+					it = m_Addresses->erase (it);
+				else
+					++it;
+			}
+		}	
+	}	
 
 	bool RouterInfo::UsesIntroducer () const
 	{
@@ -955,6 +981,15 @@ namespace data
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
 				return address->IsPublishedNTCP2 () && address->host.is_v6 ();
+			});
+	}	
+
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetYggdrasilAddress () const
+	{
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return i2p::util::net::IsYggdrasilAddress (address->host);
 			});
 	}	
 		

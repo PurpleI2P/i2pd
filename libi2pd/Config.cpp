@@ -276,6 +276,11 @@ namespace config {
 			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
 		;
 
+		options_description meshnets("Meshnet transports options");
+		meshnets.add_options()
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
+		;	
+		
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -297,6 +302,7 @@ namespace config {
 			.add(nettime)
 			.add(persist)
 			.add(cpuext)
+			.add(meshnets)
 		;
 	}
 

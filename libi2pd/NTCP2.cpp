@@ -1181,7 +1181,7 @@ namespace transport
 							auto conn = std::make_shared<NTCP2Session>(*this);
 							m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 						}
-						else if (address->host.is_v6() && context.SupportsV6 ())
+						else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
 						{
 							m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 							try

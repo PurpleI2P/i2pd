@@ -521,6 +521,15 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetSupportsMesh (bool supportsmesh)
+	{	
+		if (supportsmesh)
+			m_RouterInfo.EnableMesh ();
+		else
+			m_RouterInfo.DisableMesh ();
+		UpdateRouterInfo ();
+	}
+		
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
 		bool updated = false;

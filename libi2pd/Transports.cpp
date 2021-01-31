@@ -442,12 +442,26 @@ namespace transport
 				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
 				{
 					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					if (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host))
+					if (address && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
 					}
 				}
+			}
+			if (peer.numAttempts == 3) // Mesh
+			{
+				peer.numAttempts++;
+				if (context.SupportsMesh () && m_NTCP2Server)
+				{
+					auto address = peer.router->GetYggdrasilAddress ();
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+						m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}	
+				}	
 			}
 			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
