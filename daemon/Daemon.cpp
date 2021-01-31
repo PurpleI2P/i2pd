@@ -144,6 +144,18 @@ namespace i2p
 			ipv4 = false;
 			ipv6 = true;
 #endif
+			bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
+			boost::asio::ip::address_v6 yggaddr;
+			if (ygg)
+			{
+				yggaddr = i2p::util::net::GetYggdrasilAddress ();
+				if (yggaddr.is_unspecified ())
+				{
+					LogPrint(eLogWarning, "Daemon: Yggdrasil is not running. Disabled");
+					ygg = false;
+				}	
+			}	
+			
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (!i2p::config::IsDefault("port"))
 			{
@@ -152,7 +164,8 @@ namespace i2p
 			}
 			i2p::context.SetSupportsV6 (ipv6);
 			i2p::context.SetSupportsV4 (ipv4);
-
+			i2p::context.SetSupportsMesh (ygg);
+			
 			i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later 
 			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 			if (ntcp2)
@@ -170,6 +183,8 @@ namespace i2p
 						if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
 							i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
 					}
+					if (ygg)
+						i2p::context.UpdateNTCP2V6Address (yggaddr); 
 				}
 				else
 					i2p::context.PublishNTCP2Address (port, false); // unpublish
