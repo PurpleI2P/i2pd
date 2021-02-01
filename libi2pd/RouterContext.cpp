@@ -529,16 +529,19 @@ namespace i2p
 			uint16_t port = 0;
 			i2p::config::GetOption ("ntcp2.port", port);
 			if (!port) i2p::config::GetOption("port", port);
-			if (!port)
-			{	
-				auto& addresses = m_RouterInfo.GetAddresses ();
-				for (auto& addr: addresses)
+			bool foundMesh = false;
+			auto& addresses = m_RouterInfo.GetAddresses ();
+			for (auto& addr: addresses)
+			{
+				if (!port) port = addr->port;
+				if (i2p::util::net::IsYggdrasilAddress (addr->host))
 				{
-					port = addr->port;
-					if (port) break;
-				}
-			}	
-			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
+					foundMesh = true;
+					break;
+				}	
+			}
+			if (!foundMesh)
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
 		}	
 		else
 			m_RouterInfo.DisableMesh ();
