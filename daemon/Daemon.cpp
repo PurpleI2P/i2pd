@@ -148,11 +148,24 @@ namespace i2p
 			boost::asio::ip::address_v6 yggaddr;
 			if (ygg)
 			{
-				yggaddr = i2p::util::net::GetYggdrasilAddress ();
-				if (yggaddr.is_unspecified ())
+				std::string yggaddress; i2p::config::GetOption ("meshnets.yggaddress", yggaddress);
+				if (!yggaddress.empty ())
 				{
-					LogPrint(eLogWarning, "Daemon: Yggdrasil is not running. Disabled");
-					ygg = false;
+					yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
+					if (yggaddr.is_unspecified () || i2p::util::net::GetMTU (yggaddr) != 0xFFFF) // ygg's MTU is always 65535
+					{
+						LogPrint(eLogWarning, "Daemon: Can't find Yggdrasil address ", yggaddress);
+						ygg = false;
+					}	
+				}
+				else
+				{	
+					yggaddr = i2p::util::net::GetYggdrasilAddress ();
+					if (yggaddr.is_unspecified ())
+					{
+						LogPrint(eLogWarning, "Daemon: Yggdrasil is not running. Disabled");
+						ygg = false;
+					}	
 				}	
 			}	
 			
