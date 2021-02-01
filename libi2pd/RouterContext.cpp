@@ -245,7 +245,8 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->host != host && address->IsCompatible (host))
+			if (address->host != host && address->IsCompatible (host) && 
+			    !i2p::util::net::IsYggdrasilAddress (address->host))
 			{
 				address->host = host;
 				if (host.is_v6 () && address->transportStyle == i2p::data::RouterInfo::eTransportSSU)
