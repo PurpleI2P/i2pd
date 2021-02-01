@@ -449,6 +449,7 @@ namespace net
 					{
 						boost::asio::ip::address_v6::bytes_type bytes;
 						memcpy (bytes.data (), &sa->sin6_addr, 16);
+						freeifaddrs(addrs);
 						return boost::asio::ip::address_v6 (bytes);
 					}
 				}

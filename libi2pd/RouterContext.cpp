@@ -550,13 +550,15 @@ namespace i2p
 		
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
+		bool isYgg = i2p::util::net::IsYggdrasilAddress (host);
 		bool updated = false;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr: addresses)
 		{
 			if (addr->IsPublishedNTCP2 ())
 			{
-				if (addr->host.is_v6 ())
+				bool isYgg1 = i2p::util::net::IsYggdrasilAddress (addr->host);
+				if (addr->host.is_v6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))
 				{
 					if (addr->host != host)
 					{
