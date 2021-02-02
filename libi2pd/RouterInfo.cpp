@@ -990,7 +990,7 @@ namespace data
 		return GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return i2p::util::net::IsYggdrasilAddress (address->host);
+				return address->IsPublishedNTCP2 () && i2p::util::net::IsYggdrasilAddress (address->host);
 			});
 	}	
 		
