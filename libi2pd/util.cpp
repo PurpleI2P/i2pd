@@ -461,6 +461,17 @@ namespace net
 #endif
 	}
 
+	bool IsLocalAddress (const boost::asio::ip::address& addr)
+	{
+		auto mtu =  // TODO: implement better
+#ifdef _WIN32
+		GetMTUWindows(addr, 0);
+#else
+		GetMTUUnix(addr, 0);
+#endif	
+		return mtu > 0;
+	}	
+	
 	bool IsInReservedRange (const boost::asio::ip::address& host) 
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses

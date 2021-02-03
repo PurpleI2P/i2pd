@@ -152,7 +152,8 @@ namespace i2p
 				if (!yggaddress.empty ())
 				{
 					yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
-					if (yggaddr.is_unspecified () || i2p::util::net::GetMTU (yggaddr) != 0xFFFF) // ygg's MTU is always 65535
+					if (yggaddr.is_unspecified () || !i2p::util::net::IsYggdrasilAddress (yggaddr) || 
+					    !i2p::util::net::IsLocalAddress (yggaddr)) 
 					{
 						LogPrint(eLogWarning, "Daemon: Can't find Yggdrasil address ", yggaddress);
 						ygg = false;

@@ -189,6 +189,7 @@ namespace util
 		int GetMTU (const boost::asio::ip::address& localAddress);
 		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
 		boost::asio::ip::address_v6 GetYggdrasilAddress ();
+		bool IsLocalAddress (const boost::asio::ip::address& addr);
 		bool IsInReservedRange (const boost::asio::ip::address& host);
 		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);
 	}
