@@ -199,7 +199,6 @@ namespace util
 				}
 				if (ygg)
 					i2p::context.UpdateNTCP2V6Address (yggaddr);
-				}
 			}
 			else
 				i2p::context.PublishNTCP2Address (port, false); // unpublish
