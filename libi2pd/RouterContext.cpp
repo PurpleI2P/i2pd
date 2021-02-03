@@ -72,6 +72,7 @@ namespace i2p
 		bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;            i2p::config::GetOption("ssu", ssu);
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ygg; 			 i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		bool nat;            i2p::config::GetOption("nat", nat);
 		std::string ifname;  i2p::config::GetOption("ifname", ifname);
 		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
@@ -105,7 +106,7 @@ namespace i2p
 			if (ssu)
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
 		}
-
+		
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
@@ -117,11 +118,12 @@ namespace i2p
 		if (ntcp2) // we don't store iv in the address if non published so we must update it from keys
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
-			UpdateNTCP2Address (true);
 			bool published; i2p::config::GetOption("ntcp2.published", published);
+			if (ipv4 || !published) UpdateNTCP2Address (true); // create not published NTCP2 address
 			if (published)
 			{
-				PublishNTCP2Address (port, true);
+				if (ipv4)
+					PublishNTCP2Address (port, true);
 				if (ipv6)
 				{
 					// add NTCP2 ipv6 address
@@ -130,6 +132,15 @@ namespace i2p
 						i2p::config::GetOption ("ntcp2.addressv6", host);
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
 				}
+				if (ygg)
+				{
+					auto yggaddr = i2p::util::net::GetYggdrasilAddress ();
+					if (!yggaddr.is_unspecified ())
+					{	
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
+						UpdateRouterInfo ();
+					}	
+				}	
 			}
 		}
 	}
