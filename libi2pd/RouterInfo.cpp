@@ -837,6 +837,11 @@ namespace data
 			return m_SupportedTransports & (eNTCP2V4 | eNTCP2V6);
 	}
 
+	bool RouterInfo::IsNTCP2V6 () const
+	{
+		return m_SupportedTransports & eNTCP2V6;
+	}	
+		
 	bool RouterInfo::IsV6 () const
 	{
 		return m_SupportedTransports & (eSSUV6 | eNTCP2V6);

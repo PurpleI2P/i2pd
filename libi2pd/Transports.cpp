@@ -397,7 +397,7 @@ namespace transport
 					std::shared_ptr<const RouterInfo::Address> address;
 					if (!peer.numAttempts) // NTCP2 ipv6
 					{
-						if (context.SupportsV6 ())
+						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsNTCP2V6 ())
 						{	
 							address = peer.router->GetPublishedNTCP2V6Address ();
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
@@ -407,7 +407,7 @@ namespace transport
 					}
 					if (!address && peer.numAttempts == 1) // NTCP2 ipv4	
 					{	
-						if (context.SupportsV4 () && !peer.router->IsUnreachable ())
+						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsNTCP2 (true) && !peer.router->IsUnreachable ())
 						{	
 							address = peer.router->GetPublishedNTCP2V4Address ();
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
@@ -453,7 +453,7 @@ namespace transport
 			if (peer.numAttempts == 3) // Mesh
 			{
 				peer.numAttempts++;
-				if (context.SupportsMesh () && m_NTCP2Server)
+				if (m_NTCP2Server && context.GetRouterInfo ().IsMesh () && peer.router->IsMesh ())
 				{
 					auto address = peer.router->GetYggdrasilAddress ();
 					if (address)

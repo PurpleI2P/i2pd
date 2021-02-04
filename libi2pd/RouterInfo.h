@@ -170,6 +170,7 @@ namespace data
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
+			bool IsNTCP2V6 () const;	
 			bool IsV6 () const;
 			bool IsV4 () const;
 			bool IsMesh () const;	
@@ -179,7 +180,7 @@ namespace data
 			void DisableV4 ();
 			void EnableMesh ();
 			void DisableMesh ();	
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
