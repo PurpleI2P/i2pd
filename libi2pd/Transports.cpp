@@ -437,20 +437,41 @@ namespace transport
 				else
 					peer.numAttempts = 2; // switch to SSU
 			}
-			if (peer.numAttempts == 2)// SSU
+			if (peer.numAttempts == 2 || peer.numAttempts == 3) // SSU 
 			{
-				peer.numAttempts++;
-				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
-				{
-					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					if (address && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
+				if (m_SSUServer)
+				{   
+					std::shared_ptr<const RouterInfo::Address> address;
+					if (peer.numAttempts == 2) // SSU ipv6
+					{
+						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsSSUV6 ())
+						{
+							address = peer.router->GetSSUV6Address ();
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}
+						peer.numAttempts++;
+					}
+					if (!address && peer.numAttempts == 3) // SSU ipv4
+					{
+						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsSSU (true))
+						{
+							address = peer.router->GetSSUAddress (true);
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}
+						peer.numAttempts++;
+					}
+					if (address)
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
-					}
+					}	
 				}
+				else
+					peer.numAttempts += 2; // switch to Mesh
 			}
-			if (peer.numAttempts == 3) // Mesh
+			if (peer.numAttempts == 4) // Mesh
 			{
 				peer.numAttempts++;
 				if (m_NTCP2Server && context.GetRouterInfo ().IsMesh () && peer.router->IsMesh ())
@@ -464,7 +485,7 @@ namespace transport
 					}	
 				}	
 			}
-			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
+			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
