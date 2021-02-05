@@ -31,7 +31,8 @@ namespace i2p
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
 		eRouterStatusFirewalled = 2,
-		eRouterStatusError = 3
+		eRouterStatusError = 3,
+		eRouterStatusUnknown = 4
 	};
 
 	enum RouterError

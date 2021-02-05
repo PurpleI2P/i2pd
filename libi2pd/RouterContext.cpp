@@ -28,7 +28,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
-		m_ShareRatio (100), m_Status (eRouterStatusOK),
+		m_ShareRatio (100), m_Status (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -77,6 +77,7 @@ namespace i2p
 		std::string ifname;  i2p::config::GetOption("ifname", ifname);
 		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
 		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+		uint8_t caps = 0;
 		if (ipv4)
 		{
 			std::string host = "127.0.0.1";
@@ -90,7 +91,10 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
 
 			if (ssu)
+			{	
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
+				caps |= i2p::data::RouterInfo::eReachable | i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // R, BC
+			}	
 		}
 		if (ipv6)
 		{
@@ -104,11 +108,13 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
 
 			if (ssu)
+			{	
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
+				caps |= i2p::data::RouterInfo::eReachable; // R
+			}	
 		}
 		
-		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
-			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
+		routerInfo.SetCaps (caps); // caps + L 
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
@@ -132,17 +138,18 @@ namespace i2p
 						i2p::config::GetOption ("ntcp2.addressv6", host);
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
 				}
-				if (ygg)
-				{
-					auto yggaddr = i2p::util::net::GetYggdrasilAddress ();
-					if (!yggaddr.is_unspecified ())
-					{	
-						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
-						UpdateRouterInfo ();
-					}	
-				}	
 			}
 		}
+		if (ygg)
+		{
+			auto yggaddr = i2p::util::net::GetYggdrasilAddress ();
+			if (!yggaddr.is_unspecified ())
+			{	
+				if (!m_NTCP2Keys) NewNTCP2Keys ();
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
+				UpdateRouterInfo ();
+			}	
+		}	
 	}
 
 	void RouterContext::UpdateRouterInfo ()
