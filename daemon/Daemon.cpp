@@ -197,13 +197,13 @@ namespace util
 					if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
 						i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
 				}
-				if (ygg)
-					i2p::context.UpdateNTCP2V6Address (yggaddr);
 			}
 			else
 				i2p::context.PublishNTCP2Address (port, false); // unpublish
 		}
-
+		if (ygg)
+			i2p::context.UpdateNTCP2V6Address (yggaddr);
+		
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
