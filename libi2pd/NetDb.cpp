@@ -643,6 +643,7 @@ namespace data
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 		{
+			if (direct && !floodfill->IsCompatible (i2p::context.GetRouterInfo ())) direct = false; // check if fllodfill is reachable
 			if (direct)
 				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			else
@@ -1087,7 +1088,19 @@ namespace data
 			LogPrint (eLogInfo, "NetDb: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
 			m_PublishExcluded.insert (floodfill->GetIdentHash ());
 			m_PublishReplyToken = replyToken;
-			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
+			if (floodfill->IsCompatible (i2p::context.GetRouterInfo ())) // able to connect?
+				// send directly
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
+			else
+			{
+				// otherwise through exploratory	
+				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;	
+				if (inbound && outbound)
+					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, 
+						CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound));	
+			}		
 		}
 	}
 
