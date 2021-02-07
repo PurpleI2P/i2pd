@@ -34,6 +34,8 @@ namespace transport
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
+	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD = 25*60; // 25 minuntes
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
@@ -212,6 +214,7 @@ namespace transport
 
 			bool m_IsSending;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
+			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
 	};
 
 	class NTCP2Server: private i2p::util::RunnableServiceWithWork

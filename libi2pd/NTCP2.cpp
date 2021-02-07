@@ -343,6 +343,8 @@ namespace transport
 			else
 				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 parameters");
 		}
+		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+			rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
 	}
 
 	NTCP2Session::~NTCP2Session ()
@@ -1012,7 +1014,14 @@ namespace transport
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
-			SendQueue ();
+			if (m_LastActivityTimestamp > m_NextRouterInfoResendTime)
+			{
+				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+					rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
+				SendRouterInfo ();		
+			}	
+			else	
+				SendQueue ();
 		}
 	}
 
