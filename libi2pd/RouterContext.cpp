@@ -679,7 +679,8 @@ namespace i2p
 
 		// read NTCP2
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
-		if (ntcp2)
+		bool ygg;  i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		if (ntcp2 || ygg)
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true); // enable NTCP2

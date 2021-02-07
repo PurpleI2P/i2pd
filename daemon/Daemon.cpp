@@ -202,7 +202,11 @@ namespace util
 				i2p::context.PublishNTCP2Address (port, false); // unpublish
 		}
 		if (ygg)
+		{
+			if (!ntcp2)
+				i2p::context.PublishNTCP2Address (port, true); 
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
+		}	
 		
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
