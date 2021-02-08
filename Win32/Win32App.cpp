@@ -80,18 +80,19 @@ namespace win32
 		DestroyMenu(hPopup);
 	}
 
-	static void AddTrayIcon (HWND hWnd)
+	static void AddTrayIcon (HWND hWnd, bool notify = false)
 	{
 		NOTIFYICONDATA nid;
 		memset(&nid, 0, sizeof(nid));
 		nid.cbSize = sizeof(nid);
 		nid.hWnd = hWnd;
 		nid.uID = ID_TRAY_ICON;
+		nid.uFlags = notify ? NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO : NIF_ICON | NIF_MESSAGE | NIF_TIP;
 		nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
 		nid.uCallbackMessage = WM_TRAYICON;
 		nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (MAINICON));
 		strcpy (nid.szTip, "i2pd");
-		strcpy (nid.szInfo, "i2pd is starting");
+		if (notify) strcpy (nid.szInfo, "i2pd is starting");
 		Shell_NotifyIcon(NIM_ADD, &nid );
 	}
 
@@ -195,7 +196,7 @@ namespace win32
 			case WM_CREATE:
 			{
 				s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
-				AddTrayIcon (hWnd);
+				AddTrayIcon (hWnd, true);
 				break;
 			}
 			case WM_CLOSE:
@@ -380,7 +381,7 @@ namespace win32
 			default:
 			{
 				if (uMsg == s_uTaskbarRestart)
-					AddTrayIcon (hWnd);
+					AddTrayIcon (hWnd, false);
 				break;
 			}
 		}
