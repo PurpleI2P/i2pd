@@ -39,10 +39,12 @@ namespace proxy {
 
 	static const char *pageHead =
 		"<head>\r\n"
+		"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 		"  <title>I2Pd HTTP proxy</title>\r\n"
 		"  <style type=\"text/css\">\r\n"
 		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
-		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"    h1 { font-size: 1.7em; color: #894C84; }\r\n"
+		"    @media screen and (max-width: 980px) { h1 { font-size: 1.7em; text-align: center; color: #894C84; }}\r\n"
 		"  </style>\r\n"
 		"</head>\r\n"
 	;
