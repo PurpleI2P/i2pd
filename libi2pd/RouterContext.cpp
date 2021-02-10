@@ -139,6 +139,9 @@ namespace i2p
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
 				}
 			}
+			// enable added NTCP2 addresses
+			if (ipv4) m_RouterInfo.EnableV4 ();
+			if (ipv6) m_RouterInfo.EnableV6 ();
 		}
 		if (ygg)
 		{
@@ -147,6 +150,7 @@ namespace i2p
 			{	
 				if (!m_NTCP2Keys) NewNTCP2Keys ();
 				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
+				m_RouterInfo.EnableMesh ();
 				UpdateRouterInfo ();
 			}	
 		}	
