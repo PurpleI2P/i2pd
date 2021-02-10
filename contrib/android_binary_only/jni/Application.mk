@@ -33,7 +33,7 @@ MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
 IFADDRS_PATH = $(I2PD_LIBS_PATH)/android-ifaddrs
 
 # don't change me
-I2PD_SRC_PATH = $(PWD)/..
+I2PD_SRC_PATH = $(PWD)/../..
 
 LIB_SRC_PATH = $(I2PD_SRC_PATH)/libi2pd
 LIB_CLIENT_SRC_PATH = $(I2PD_SRC_PATH)/libi2pd_client
