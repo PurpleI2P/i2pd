@@ -57,7 +57,9 @@ namespace data
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
 		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
 			Reseed ();
-
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo ()))
+			Reseed (); // we don't have a router we can connect to. Trying to reseed
+		
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
 		m_IsRunning = true;
