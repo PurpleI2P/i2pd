@@ -431,8 +431,55 @@ namespace net
 	
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
-#if (defined(_WIN32) || defined(ANDROID))
+#if defined(ANDROID)
 		// TODO: implement
+		return boost::asio::ip::address_v6 ();
+#elif defined(_WIN32)
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+
+		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+			== ERROR_BUFFER_OVERFLOW)
+		{
+			FREE(pAddresses);
+			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
+		}
+
+		DWORD dwRetVal = GetAdaptersAddresses(
+			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
+		);
+
+		if(dwRetVal != NO_ERROR)
+		{
+			LogPrint(eLogError, "NetIface: GetYggdrasilAddress(): enclosed GetAdaptersAddresses() call has failed");
+			FREE(pAddresses);
+			return boost::asio::ip::address_v6 ();
+		}
+
+		pCurrAddresses = pAddresses;
+		while(pCurrAddresses)
+		{
+			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+			pUnicast = pCurrAddresses->FirstUnicastAddress;
+
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
+				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
+				if (IsYggdrasilAddress(localInterfaceAddress->sin6_addr.u.Byte)) {
+					boost::asio::ip::address_v6::bytes_type bytes;
+					memcpy (bytes.data (), &localInterfaceAddress->sin6_addr.u.Byte, 16);
+					FREE(pAddresses);
+					return boost::asio::ip::address_v6 (bytes);
+				}
+				pUnicast = pUnicast->Next;
+			}
+			pCurrAddresses = pCurrAddresses->Next;
+		}
+		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
 		ifaddrs * addrs = nullptr;
@@ -456,6 +503,7 @@ namespace net
 				cur = cur->ifa_next;
 			}
 		}
+		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
 		if(addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif
