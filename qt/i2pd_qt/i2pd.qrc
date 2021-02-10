@@ -1,6 +1,0 @@
-<!DOCTYPE RCC><RCC version="1.0">
-	<qresource prefix="/icons">
-		<file alias="mask">resources/icons/mask.ico</file>
-		<file alias="icon">resources/images/icon.png</file>
-	</qresource>
-</RCC>
