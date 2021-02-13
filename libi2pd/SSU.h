@@ -119,7 +119,7 @@ namespace transport
 			};
 
 			bool m_OnlyV6;
-			bool m_IsRunning;
+			volatile bool m_IsRunning;
 			std::thread * m_Thread, * m_ReceiversThread, * m_ReceiversThreadV6;
 			boost::asio::io_service m_Service, m_ReceiversService, m_ReceiversServiceV6;
 			boost::asio::io_service::work m_Work, m_ReceiversWork, m_ReceiversWorkV6;

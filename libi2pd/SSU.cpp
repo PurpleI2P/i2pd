@@ -127,18 +127,18 @@ namespace transport
 			delete m_ReceiversThread;
 			m_ReceiversThread = nullptr;
 		}
-		if (m_Thread)
-		{
-			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = nullptr;
-		}
 		if (m_ReceiversThreadV6)
 		{
 			m_ReceiversThreadV6->join ();
 			delete m_ReceiversThreadV6;
 			m_ReceiversThreadV6 = nullptr;
 		}
+		if (m_Thread)
+		{
+			m_Thread->join ();
+			delete m_Thread;
+			m_Thread = nullptr;
+		}	
 	}
 
 	void SSUServer::Run ()
@@ -377,6 +377,7 @@ namespace transport
 	void SSUServer::HandleReceivedPackets (std::vector<SSUPacket *> packets,
 		std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > * sessions)
 	{
+		if (!m_IsRunning) return;
 		std::shared_ptr<SSUSession> session;
 		for (auto& packet: packets)
 		{
