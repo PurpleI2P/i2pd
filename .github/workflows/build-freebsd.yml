@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Test in FreeBSD
       id: test
-      uses: vmactions/freebsd-vm@v0.0.9
+      uses: vmactions/freebsd-vm@v0.1.2
       with:
         usesh: true
         prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc 
