@@ -29,6 +29,10 @@ namespace tunnel
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
 		m_IsActive (true), m_CustomPeerSelector(nullptr)
 	{
+		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY) 
+			m_NumInboundTunnels = TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY;
+		if (m_NumOutboundTunnels > TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY) 
+			m_NumOutboundTunnels = TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY;	
 		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
@@ -414,7 +418,8 @@ namespace tunnel
 		else if (i2p::transport::transports.GetNumPeers () > 25)
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
-			if (r && !r->GetProfile ()->IsBad ())
+			if (r && !r->GetProfile ()->IsBad () && 
+				(numHops > 1 || !inbound || r->IsReachable ())) // first must be reachable
 			{
 				prevHop = r;
 				peers.push_back (r->GetRouterIdentity ());
@@ -430,6 +435,12 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}
+			if (inbound && (i == numHops - 1) && !hop->IsReachable ())
+			{
+				// if first is not reachable try again
+				auto hop1 = nextHop (prevHop);
+				if (hop1) hop = hop1;
+			}	
 			prevHop = hop;
 			peers.push_back (hop->GetRouterIdentity ());
 		}

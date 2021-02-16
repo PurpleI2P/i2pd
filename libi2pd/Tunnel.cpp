@@ -42,8 +42,8 @@ namespace tunnel
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto numHops = m_Config->GetNumHops ();
-		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops;
-		auto msg = NewI2NPShortMessage ();
+		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : MAX_NUM_RECORDS;
+		auto msg = numRecords <= STANDARD_NUM_RECORDS ? NewI2NPShortMessage () : NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
 		msg->len += numRecords*TUNNEL_BUILD_RECORD_SIZE + 1;
 		// shuffle records

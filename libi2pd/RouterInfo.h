@@ -54,12 +54,11 @@ namespace data
 
 			enum SupportedTranports
 			{
-				eNTCPV4 = 0x01,
-				eNTCPV6 = 0x02,
+				eNTCP2V4 = 0x01,
+				eNTCP2V6 = 0x02,
 				eSSUV4 = 0x04,
 				eSSUV6 = 0x08,
-				eNTCP2V4 = 0x10,
-				eNTCP2V6 = 0x20
+				eNTCP2V6Mesh = 0x10	
 			};
 
 			enum Caps
@@ -104,7 +103,6 @@ namespace data
 				Tag<32> staticKey;
 				Tag<16> iv;
 				bool isPublished = false;
-				bool isNTCP2Only = false;
 			};
 
 			struct Address
@@ -136,7 +134,6 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
-				bool IsNTCP2Only () const { return ntcp2 && ntcp2->isNTCP2Only; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -153,9 +150,12 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
-			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly,  bool v4only = true) const;
+			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly) const;
+			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const; 
+			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const; 
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
+			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0);
@@ -170,13 +170,17 @@ namespace data
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
+			bool IsNTCP2V6 () const;	
 			bool IsV6 () const;
 			bool IsV4 () const;
+			bool IsMesh () const;	
 			void EnableV6 ();
 			void DisableV6 ();
 			void EnableV4 ();
 			void DisableV4 ();
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			void EnableMesh ();
+			void DisableMesh ();	
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };

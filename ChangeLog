@@ -1,6 +1,42 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.36.0] - 2021-02-15
+### Added
+- Encrypted lookup and publications to ECIES-x25519 floodfiils
+- Yggdrasil transports and reseeds
+- Dump addressbook in hosts.txt format
+- Request RouterInfo through exploratory tunnels if direct connection to fllodfill is not possible
+- Threads naming
+- Check if public x25519 key is valid 
+- ECIES-X25519-AEAD-Ratchet for shared local destination
+- LeaseSet creation timeout for I2CP session
+- Resend RouterInfo after some interval for longer NTCP2 sessions
+- Select reachable router of inbound tunnel gateway
+- Reseed if no compatible routers in netdb 
+- Refresh on swipe in Android webconsole
+### Changed
+- reg.i2p for default addressbook instead inr.i2p
+- ECIES-x25519 (crypto type 4) for new routers
+- Try to connect to all compatible addresses from peer's RouterInfo
+- Replace LeaseSet completely if store type changes 
+- Try ECIES-X25519-AEAD-Ratchet tag before ElGamal
+- Don't detach ECIES-X25519-AEAD-Ratchet session from destination immediately
+- Viewport and styles on error in HTTP proxy
+- Don't create notification when Windows taskbar restarted 
+- Cumulative SSU ACK bitfields
+- limit tunnel length to 8 hops
+- Limit tunnels quantity to 16
+### Fixed
+- Handling chunked HTTP response in addressbook
+- Missing ECIES-X25519-AEAD-Ratchet tags for multiple streams with the same destination
+- Correct NAME for NAMING REPLY in SAM
+- SSU crash on termination
+- Offline signature length for stream close packet
+- Don't send updated LeaseSet through a terminated session
+- Decryption of follow-on ECIES-X25519-AEAD-Ratchet NSR messages
+- Non-confirmed LeaseSet is resent too late for ECIES-X25519-AEAD-Ratchet session
+
 ## [2.35.0] - 2020-11-30
 ### Added
 - ECIES-x25519 routers

@@ -1,0 +1,17 @@
+Description: Enable UPnP usage in package
+Author: r4sas <r4sas@i2pmail.org>
+
+Reviewed-By: r4sas <r4sas@i2pmail.org>
+Last-Update: 2021-01-16
+
+--- i2pd.orig/Makefile
++++ i2pd/Makefile
+@@ -15,7 +15,7 @@ include filelist.mk
+ USE_AESNI	:= yes
+ USE_STATIC	:= no
+ USE_MESHNET	:= no
+-USE_UPNP	:= no
++USE_UPNP	:= yes
+ DEBUG		:= yes
+ 
+ ifeq ($(DEBUG),yes)

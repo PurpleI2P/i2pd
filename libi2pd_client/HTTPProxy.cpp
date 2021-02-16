@@ -32,16 +32,19 @@
 namespace i2p {
 namespace proxy {
 	std::map<std::string, std::string> jumpservices = {
-		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
-		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
+		{ "reg.i2p",       "http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/jump/" },
+		{ "identiguy.i2p", "http://3mzmrus2oron5fxptw7hw2puho3bnqmw2hqy7nw64dsrrjwdilva.b32.i2p/cgi-bin/query?hostname=" },
+		{ "stats.i2p",     "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
 	};
 
 	static const char *pageHead =
 		"<head>\r\n"
+		"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 		"  <title>I2Pd HTTP proxy</title>\r\n"
 		"  <style type=\"text/css\">\r\n"
 		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
-		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"    h1 { font-size: 1.7em; color: #894C84; }\r\n"
+		"    @media screen and (max-width: 980px) { h1 { font-size: 1.7em; text-align: center; color: #894C84; }}\r\n"
 		"  </style>\r\n"
 		"</head>\r\n"
 	;

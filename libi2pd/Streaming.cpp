@@ -764,7 +764,7 @@ namespace stream
 				return;
 			}
 		}
-		if (!m_RoutingSession || !m_RoutingSession->GetOwner () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
+		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
 			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
 		if (!m_CurrentOutboundTunnel && m_RoutingSession) // first message to send
 		{
@@ -817,7 +817,7 @@ namespace stream
 
 	void Stream::SendUpdatedLeaseSet ()
 	{
-		if (m_RoutingSession)
+		if (m_RoutingSession && !m_RoutingSession->IsTerminated ())
 		{
 			if (m_RoutingSession->IsLeaseSetNonConfirmed ())
 			{
@@ -838,6 +838,8 @@ namespace stream
 				SendQuickAck ();
 			}
 		}
+		else
+			SendQuickAck ();
 	}
 
 	void Stream::ScheduleResend ()

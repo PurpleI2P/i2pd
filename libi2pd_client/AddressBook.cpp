@@ -34,14 +34,13 @@ namespace client
 	// TODO: this is actually proxy class
 	class AddressBookFilesystemStorage: public AddressBookStorage
 	{
-		private:
-			i2p::fs::HashedStorage storage;
-			std::string etagsPath, indexPath, localPath;
-
 		public:
+		
 			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32")
 			{
 				i2p::config::GetOption("persist.addressbook", m_IsPersist);
+				if (m_IsPersist)
+					i2p::config::GetOption("addressbook.hostsfile", m_HostsFile);
 			}
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
@@ -62,7 +61,10 @@ namespace client
 
 		private:
 
+			i2p::fs::HashedStorage storage;
+			std::string etagsPath, indexPath, localPath;	
 			bool m_IsPersist;
+			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -183,35 +185,59 @@ namespace client
 
 	int AddressBookFilesystemStorage::Save (const std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
-		if (addresses.empty()) {
+		if (addresses.empty()) 
+		{
 			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
 			return 0;
 		}
 
 		int num = 0;
-		std::ofstream f (indexPath, std::ofstream::out); // in text mode
-
-		if (!f.is_open ()) {
-			LogPrint (eLogWarning, "Addressbook: Can't open ", indexPath);
-			return 0;
-		}
-
-		for (const auto& it: addresses)
 		{
-			if (it.second->IsValid ())
-			{	
-				f << it.first << ",";
-				if (it.second->IsIdentHash ())
-					f << it.second->identHash.ToBase32 ();
-				else
-					f << it.second->blindedPublicKey->ToB33 ();
-				f << std::endl;
-				num++;
+			// save index file
+			std::ofstream f (indexPath, std::ofstream::out); // in text mode
+			if (f.is_open ())
+			{
+				for (const auto& it: addresses)
+				{
+					if (it.second->IsValid ())
+					{	
+						f << it.first << ",";
+						if (it.second->IsIdentHash ())
+							f << it.second->identHash.ToBase32 ();
+						else
+							f << it.second->blindedPublicKey->ToB33 ();
+						f << std::endl;
+						num++;
+					}	
+					else
+						LogPrint (eLogWarning, "Addressbook: invalid address ", it.first);
+				}
+				LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 			}	
 			else
-				LogPrint (eLogWarning, "Addressbook: invalid address ", it.first);
-		}
-		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
+				LogPrint (eLogWarning, "Addressbook: Can't open ", indexPath);
+		}	
+		if (!m_HostsFile.empty ())
+		{
+			// dump full hosts.txt
+			std::ofstream f (m_HostsFile, std::ofstream::out); // in text mode
+			if (f.is_open ())
+			{
+				for (const auto& it: addresses)
+				{
+					std::shared_ptr<const i2p::data::IdentityEx> addr;
+					if (it.second->IsIdentHash ()) 
+					{	
+						addr = GetAddress (it.second->identHash);
+						if (addr)
+							f << it.first << "=" << addr->ToBase64 () << std::endl;
+					}	
+				}	
+			}	
+			else
+				LogPrint (eLogWarning, "Addressbook: Can't open ", m_HostsFile);
+		}	
+		
 		return num;
 	}
 
@@ -494,7 +520,7 @@ namespace client
 				while (!f.eof ())
 				{
 					getline(f, s);
-					if (!s.length()) continue; // skip empty line
+					if (s.empty () || s[0] == '#') continue; // skip empty line or comment
 					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
@@ -507,9 +533,10 @@ namespace client
 				std::vector<std::string> subsList;
 				boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
 
-				for (size_t i = 0; i < subsList.size (); i++)
+				for (const auto& s: subsList)
 				{
-					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, subsList[i]));
+					if (s.empty () || s[0] == '#') continue; // skip empty line or comment
+					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}

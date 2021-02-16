@@ -31,7 +31,8 @@ namespace i2p
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
 		eRouterStatusFirewalled = 2,
-		eRouterStatusError = 3
+		eRouterStatusError = 3,
+		eRouterStatusUnknown = 4
 	};
 
 	enum RouterError
@@ -107,8 +108,10 @@ namespace i2p
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
+			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
+			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 			

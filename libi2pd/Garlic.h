@@ -115,6 +115,7 @@ namespace garlic
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
 			virtual bool IsReadyToSend () const { return true; };
+			virtual bool IsTerminated () const { return !GetOwner (); }; 
 			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
 
 			void SetLeaseSetUpdated ()
@@ -215,12 +216,12 @@ namespace garlic
 
 	class ECIESX25519AEADRatchetSession;
 	typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;
-	class RatchetTagSet;
-	typedef std::shared_ptr<RatchetTagSet> RatchetTagSetPtr;
+	class ReceiveRatchetTagSet;
+	typedef std::shared_ptr<ReceiveRatchetTagSet> ReceiveRatchetTagSetPtr;
 	struct ECIESX25519AEADRatchetIndexTagset
 	{
 		int index;
-		RatchetTagSetPtr tagset;
+		ReceiveRatchetTagSetPtr tagset;
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination
@@ -245,7 +246,7 @@ namespace garlic
 			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
-			uint64_t AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset);
+			uint64_t AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void RemoveECIESx25519Session (const uint8_t * staticKey);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
@@ -285,7 +286,7 @@ namespace garlic
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
-			RatchetTagSetPtr m_LastTagset; // tagset last message came for
+			ReceiveRatchetTagSetPtr m_LastTagset; // tagset last message came for
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session

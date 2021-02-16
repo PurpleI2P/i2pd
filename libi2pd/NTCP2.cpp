@@ -317,7 +317,8 @@ namespace transport
 		return true;
 	}
 
-	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
+	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
+	    	std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
@@ -332,7 +333,8 @@ namespace transport
 		if (in_RemoteRouter) // Alice
 		{
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
-			auto addr = in_RemoteRouter->GetNTCP2Address (true); // we need a published address
+			if (!addr)
+				addr = in_RemoteRouter->GetNTCP2Address (true); // we need a published address
 			if (addr)
 			{
 				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
@@ -341,6 +343,8 @@ namespace transport
 			else
 				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 parameters");
 		}
+		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+			rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
 	}
 
 	NTCP2Session::~NTCP2Session ()
@@ -1010,7 +1014,14 @@ namespace transport
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
-			SendQueue ();
+			if (m_LastActivityTimestamp > m_NextRouterInfoResendTime)
+			{
+				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+					rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
+				SendRouterInfo ();		
+			}	
+			else	
+				SendQueue ();
 		}
 	}
 
@@ -1179,7 +1190,7 @@ namespace transport
 							auto conn = std::make_shared<NTCP2Session>(*this);
 							m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 						}
-						else if (address->host.is_v6() && context.SupportsV6 ())
+						else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
 						{
 							m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 							try
@@ -1517,7 +1528,7 @@ namespace transport
 
 				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
 				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n",
-					[this, readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
+					[readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
 					{
 						if(ec)
 						{

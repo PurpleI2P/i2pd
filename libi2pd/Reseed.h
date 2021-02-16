@@ -31,7 +31,6 @@ namespace data
 			~Reseeder();
 			void Bootstrap ();
 			int ReseedFromServers ();
-			int ReseedFromSU3Url (const std::string& url);
 			int ProcessSU3File (const char * filename);
 			int ProcessZIPFile (const char * filename);
 
@@ -39,6 +38,7 @@ namespace data
 
 		private:
 
+			int ReseedFromSU3Url (const std::string& url, bool isHttps = true);
 			void LoadCertificate (const std::string& filename);
 
 			int ProcessSU3Stream (std::istream& s);
@@ -47,7 +47,10 @@ namespace data
 			bool FindZipDataDescriptor (std::istream& s);
 
 			std::string HttpsRequest (const std::string& address);
-
+			std::string YggdrasilRequest (const std::string& address);
+			template<typename Stream>
+			std::string ReseedRequest (Stream& s, const std::string& uri);		
+		
 		private:
 
 			std::map<std::string, PublicKey> m_SigningKeys;

@@ -89,7 +89,7 @@ namespace crypto
 			const uint8_t * GetPublicKey () const { return m_PublicKey; };
 			void GetPrivateKey (uint8_t * priv) const;
 			void SetPrivateKey (const uint8_t * priv, bool calculatePublic = false);
-			void Agree (const uint8_t * pub, uint8_t * shared);
+			bool Agree (const uint8_t * pub, uint8_t * shared);
 
 			bool IsElligatorIneligible () const { return m_IsElligatorIneligible; }
 			void SetElligatorIneligible () { m_IsElligatorIneligible = true; }

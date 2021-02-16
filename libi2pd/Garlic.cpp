@@ -445,9 +445,16 @@ namespace garlic
 
 	void GarlicDestination::CleanUp ()
 	{
+		for (auto it: m_Sessions)
+			it.second->SetOwner (nullptr);
 		m_Sessions.clear ();
 		m_DeliveryStatusSessions.clear ();
 		m_Tags.clear ();
+		for (auto it: m_ECIESx25519Sessions)
+		{
+			it.second->Terminate ();
+			it.second->SetOwner (nullptr);
+		}	
 		m_ECIESx25519Sessions.clear ();
 		m_ECIESx25519Tags.clear ();
 	}
@@ -852,7 +859,7 @@ namespace garlic
 		{
 			if (it->second->CheckExpired (ts))
 			{
-				it->second->SetOwner (nullptr);
+				it->second->Terminate ();
 				it = m_ECIESx25519Sessions.erase (it);
 			}
 			else
@@ -866,9 +873,15 @@ namespace garlic
 			{
 				it->second.tagset->DeleteSymmKey (it->second.index);
 				it = m_ECIESx25519Tags.erase (it);
+				numExpiredTags++;
 			}	
 			else
+			{
+				auto session = it->second.tagset->GetSession ();
+				if (!session || session->IsTerminated())
+					it->second.tagset->Expire ();
 				++it;
+			}	
 		}
 		if (numExpiredTags > 0)
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
@@ -1059,7 +1072,7 @@ namespace garlic
 		}
 	}
 
-	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset)
+	uint64_t GarlicDestination::AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset)
 	{
 		auto index = tagset->GetNextIndex ();
 		uint64_t tag = tagset->GetNextSessionTag ();
@@ -1076,7 +1089,7 @@ namespace garlic
 		{
 			if (it->second->CanBeRestarted (i2p::util::GetSecondsSinceEpoch ()))
 			{	
-				it->second->SetOwner (nullptr); // detach
+				it->second->Terminate (); // detach
 				m_ECIESx25519Sessions.erase (it);
 			}	
 			else
@@ -1093,7 +1106,7 @@ namespace garlic
 		auto it = m_ECIESx25519Sessions.find (staticKey);
 		if (it != m_ECIESx25519Sessions.end ())
 		{
-			it->second->SetOwner (nullptr);
+			it->second->Terminate ();
 			m_ECIESx25519Sessions.erase (it);
 		}
 	}

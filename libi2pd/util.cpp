@@ -119,10 +119,12 @@ namespace util
 	}
 
 	void SetThreadName (const char *name) {
-#if defined (__APPLE__)
+#if defined(__APPLE__)
 		pthread_setname_np(name);
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
+#elif defined(__NetBSD__)
+		pthread_setname_np(pthread_self(), "%s", (void *)name);
 #else
 		pthread_setname_np(pthread_self(), name);
 #endif
@@ -416,7 +418,110 @@ namespace net
 #endif
 	}
 
-	bool IsInReservedRange (const boost::asio::ip::address& host) {
+	static bool IsYggdrasilAddress (const uint8_t addr[16])
+	{
+		return addr[0] == 0x02 || addr[0] == 0x03;
+	}	
+
+	bool IsYggdrasilAddress (const boost::asio::ip::address& addr)
+	{
+		if (!addr.is_v6 ()) return false;
+		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
+	}	
+	
+	boost::asio::ip::address_v6 GetYggdrasilAddress ()
+	{
+#if defined(ANDROID)
+		// TODO: implement
+		return boost::asio::ip::address_v6 ();
+#elif defined(_WIN32)
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+
+		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+			== ERROR_BUFFER_OVERFLOW)
+		{
+			FREE(pAddresses);
+			pAddresses = (IP_ADAPTER_ADDRESSES*) MALLOC(outBufLen);
+		}
+
+		DWORD dwRetVal = GetAdaptersAddresses(
+			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
+		);
+
+		if(dwRetVal != NO_ERROR)
+		{
+			LogPrint(eLogError, "NetIface: GetYggdrasilAddress(): enclosed GetAdaptersAddresses() call has failed");
+			FREE(pAddresses);
+			return boost::asio::ip::address_v6 ();
+		}
+
+		pCurrAddresses = pAddresses;
+		while(pCurrAddresses)
+		{
+			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+			pUnicast = pCurrAddresses->FirstUnicastAddress;
+
+			for(int i = 0; pUnicast != nullptr; ++i)
+			{
+				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
+				if (IsYggdrasilAddress(localInterfaceAddress->sin6_addr.u.Byte)) {
+					boost::asio::ip::address_v6::bytes_type bytes;
+					memcpy (bytes.data (), &localInterfaceAddress->sin6_addr.u.Byte, 16);
+					FREE(pAddresses);
+					return boost::asio::ip::address_v6 (bytes);
+				}
+				pUnicast = pUnicast->Next;
+			}
+			pCurrAddresses = pCurrAddresses->Next;
+		}
+		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		FREE(pAddresses);
+		return boost::asio::ip::address_v6 ();
+#else
+		ifaddrs * addrs = nullptr;
+		auto err = getifaddrs(&addrs);
+		if (!err)
+		{
+			ifaddrs * cur = addrs;
+			while(cur)
+			{
+				if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
+				{
+					sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
+					if (IsYggdrasilAddress(sa->sin6_addr.s6_addr))
+					{
+						boost::asio::ip::address_v6::bytes_type bytes;
+						memcpy (bytes.data (), &sa->sin6_addr, 16);
+						freeifaddrs(addrs);
+						return boost::asio::ip::address_v6 (bytes);
+					}
+				}
+				cur = cur->ifa_next;
+			}
+		}
+		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		if(addrs) freeifaddrs(addrs);
+		return boost::asio::ip::address_v6 ();
+#endif
+	}
+
+	bool IsLocalAddress (const boost::asio::ip::address& addr)
+	{
+		auto mtu =  // TODO: implement better
+#ifdef _WIN32
+		GetMTUWindows(addr, 0);
+#else
+		GetMTUUnix(addr, 0);
+#endif	
+		return mtu > 0;
+	}	
+	
+	bool IsInReservedRange (const boost::asio::ip::address& host) 
+	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if(host.is_v4())
 		{
@@ -456,6 +561,8 @@ namespace net
 				if (ipv6_address >= it.first && ipv6_address <= it.second)
 					return true;
 			}
+			if (IsYggdrasilAddress (ipv6_address.data ())) // yggdrasil?
+				return true;
 		}
 		return false;
 	}

@@ -61,7 +61,7 @@ namespace stream
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
-	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds
+	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 
 	struct Packet
 	{

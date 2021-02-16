@@ -94,13 +94,23 @@ namespace garlic
 		m_ItermediateSymmKeys.erase (index);
 	}
 	
-	void RatchetTagSet::Expire ()
+	void ReceiveRatchetTagSet::Expire ()
 	{
 		if (!m_ExpirationTimestamp)
 			m_ExpirationTimestamp = i2p::util::GetSecondsSinceEpoch () + ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT;
 	}
 
-	bool RatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	bool ReceiveRatchetTagSet::IsExpired (uint64_t ts) const 
+	{ 
+		return m_ExpirationTimestamp && ts > m_ExpirationTimestamp; 
+	}		
+	
+	bool ReceiveRatchetTagSet::IsIndexExpired (int index) const 
+	{ 
+		return index < m_TrimBehindIndex; 
+	}
+
+	bool ReceiveRatchetTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
 	{
 		auto session = GetSession ();
 		if (!session) return false;
@@ -108,7 +118,7 @@ namespace garlic
 	}	
 
 	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
-		RatchetTagSet (nullptr), m_Destination (destination) 
+		ReceiveRatchetTagSet (nullptr), m_Destination (destination) 
 	{ 
 		memcpy (m_Key, key, 32); 
 		Expire ();	
@@ -203,16 +213,13 @@ namespace garlic
 		return false;
 	}
 
-	std::shared_ptr<RatchetTagSet> ECIESX25519AEADRatchetSession::CreateNewSessionTagset ()
+	void ECIESX25519AEADRatchetSession::InitNewSessionTagset (std::shared_ptr<RatchetTagSet> tagsetNsr) const
 	{
 		uint8_t tagsetKey[32];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SessionReplyTags", tagsetKey, 32); // tagsetKey = HKDF(chainKey, ZEROLEN, "SessionReplyTags", 32)
 		// Session Tag Ratchet
-		auto tagsetNsr = (m_State == eSessionStateNewSessionReceived) ? std::make_shared<RatchetTagSet>(shared_from_this ()):
-			std::make_shared<NSRatchetTagSet>(shared_from_this ());
 		tagsetNsr->DHInitialize (m_CK, tagsetKey); // tagset_nsr = DH_INITIALIZE(chainKey, tagsetKey)
 		tagsetNsr->NextSessionTagRatchet ();
-		return tagsetNsr;
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
@@ -231,7 +238,11 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 
 		// decrypt flags/static
@@ -251,7 +262,11 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, apk)
+			if (!GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
+			{
+				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+				return false;
+			}	
 			MixKey (sharedSecret);
 		}
 		else // all zeros flags
@@ -276,7 +291,7 @@ namespace garlic
 		return true;
 	}
 
-	void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset, int index)
+	void ECIESX25519AEADRatchetSession::HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index)
 	{
 		size_t offset = 0;
 		while (offset < len)
@@ -344,7 +359,7 @@ namespace garlic
 		}
 	}
 
-	void ECIESX25519AEADRatchetSession::HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<RatchetTagSet>& receiveTagset)
+	void ECIESX25519AEADRatchetSession::HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset)
 	{
 		uint8_t flag = buf[0]; buf++; // flag
 		if (flag & ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG)
@@ -359,7 +374,7 @@ namespace garlic
 				uint8_t sharedSecret[32], tagsetKey[32];
 				m_NextSendRatchet->key->Agree (m_NextSendRatchet->remote, sharedSecret);
 				i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
-				auto newTagset = std::make_shared<RatchetTagSet> (shared_from_this ());
+				auto newTagset = std::make_shared<RatchetTagSet> ();
 				newTagset->SetTagSetID (1 + m_NextSendRatchet->keyID + keyID);
 				newTagset->DHInitialize (m_SendTagset->GetNextRootKey (), tagsetKey);
 				newTagset->NextSessionTagRatchet ();
@@ -401,7 +416,7 @@ namespace garlic
 			uint8_t sharedSecret[32], tagsetKey[32];
 			m_NextReceiveRatchet->key->Agree (m_NextReceiveRatchet->remote, sharedSecret);
 			i2p::crypto::HKDF (sharedSecret, nullptr, 0, "XDHRatchetTagSet", tagsetKey, 32); // tagsetKey = HKDF(sharedSecret, ZEROLEN, "XDHRatchetTagSet", 32)
-			auto newTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			auto newTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this ());
 			newTagset->SetTagSetID (tagsetID);
 			newTagset->DHInitialize (receiveTagset->GetNextRootKey (), tagsetKey);
 			newTagset->NextSessionTagRatchet ();
@@ -448,7 +463,11 @@ namespace garlic
 		i2p::crypto::InitNoiseIKState (*this, m_RemoteStaticKey); // bpk
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		// encrypt flags/static key section
 		uint8_t nonce[12];
@@ -489,7 +508,11 @@ namespace garlic
 		{	
 			MixHash (out + offset, len + 16); // h = SHA256(h || ciphertext)
 			if (GetOwner ())
-				GenerateMoreReceiveTags (CreateNewSessionTagset (), ECIESX25519_NSR_NUM_GENERATED_TAGS);
+			{
+				auto tagsetNsr = std::make_shared<ReceiveRatchetTagSet>(shared_from_this (), true);
+				InitNewSessionTagset (tagsetNsr);
+				GenerateMoreReceiveTags (tagsetNsr, ECIESX25519_NSR_NUM_GENERATED_TAGS);
+			}	
 		}
 		return true;
 	}
@@ -504,7 +527,11 @@ namespace garlic
 		MixHash (out + offset, 32); // h = SHA256(h || aepk)
 		offset += 32;
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // x25519(aesk, bpk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return false;
+		}	
 		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -522,7 +549,8 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
-		m_NSRSendTagset = CreateNewSessionTagset ();
+		m_NSRSendTagset = std::make_shared<RatchetTagSet>();
+		InitNewSessionTagset (m_NSRSendTagset);
 		uint64_t tag = m_NSRSendTagset->GetNextSessionTag ();
 
 		size_t offset = 0;
@@ -540,9 +568,17 @@ namespace garlic
 		MixHash ((const uint8_t *)&tag, 8); // h = SHA256(h || tag)
 		MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_Aepk, sharedSecret); // sharedSecret = x25519(besk, aepk)
+		if (!m_EphemeralKeys->Agree (m_Aepk, sharedSecret)) // sharedSecret = x25519(besk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
-		m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret); // sharedSecret = x25519(besk, apk)
+		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // sharedSecret = x25519(besk, apk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
@@ -558,10 +594,10 @@ namespace garlic
 		uint8_t keydata[64];
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
 		// k_ab = keydata[0:31], k_ba = keydata[32:63]
-		auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		auto receiveTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this());
 		receiveTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
 		receiveTagset->NextSessionTagRatchet ();
-		m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+		m_SendTagset = std::make_shared<RatchetTagSet>();
 		m_SendTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 		m_SendTagset->NextSessionTagRatchet ();
 		GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
@@ -624,7 +660,11 @@ namespace garlic
 		MixHash (tag, 8); // h = SHA256(h || tag)
 		MixHash (bepk, 32); // h = SHA256(h || bepk)
 		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (bepk, sharedSecret); // sharedSecret = x25519(aesk, bepk)
+		if (!m_EphemeralKeys->Agree (bepk, sharedSecret)) // sharedSecret = x25519(aesk, bepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob ephemeral key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
@@ -646,10 +686,10 @@ namespace garlic
 		{
 			// only first time, then we keep using existing tagsets
 			// k_ab = keydata[0:31], k_ba = keydata[32:63]
-			m_SendTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			m_SendTagset = std::make_shared<RatchetTagSet>();
 			m_SendTagset->DHInitialize (m_CK, keydata); // tagset_ab = DH_INITIALIZE(chainKey, k_ab)
 			m_SendTagset->NextSessionTagRatchet ();
-			auto receiveTagset = std::make_shared<RatchetTagSet>(shared_from_this ());
+			auto receiveTagset = std::make_shared<ReceiveRatchetTagSet>(shared_from_this ());
 			receiveTagset->DHInitialize (m_CK, keydata + 32); // tagset_ba = DH_INITIALIZE(chainKey, k_ba)
 			receiveTagset->NextSessionTagRatchet ();
 			GenerateMoreReceiveTags (receiveTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
@@ -708,7 +748,7 @@ namespace garlic
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleExistingSessionMessage (uint8_t * buf, size_t len,
-		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
+		std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index)
 	{
 		uint8_t nonce[12];
 		CreateNonce (index, nonce); // tag's index
@@ -747,7 +787,7 @@ namespace garlic
 	}
 
 	bool ECIESX25519AEADRatchetSession::HandleNextMessage (uint8_t * buf, size_t len,
-		std::shared_ptr<RatchetTagSet> receiveTagset, int index)
+		std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index)
 	{
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		switch (m_State)
@@ -788,7 +828,11 @@ namespace garlic
 		i2p::crypto::InitNoiseNState (*this, GetOwner ()->GetEncryptionPublicKey (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)); // bpk
 		MixHash (buf, 32);
 		uint8_t sharedSecret[32];
-		GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect N ephemeral public key");
+			return false;
+		}	
 		MixKey (sharedSecret);
 		buf += 32; len -= 32;	
 		uint8_t nonce[12];
@@ -870,10 +914,13 @@ namespace garlic
 			payloadLen += msg->GetPayloadLength () + 13;
 			if (m_Destination) payloadLen += 32;
 		}	
-		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated ||
-			(GetLeaseSetUpdateStatus () == eLeaseSetSubmitted &&
-				ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)) ?
-			GetOwner ()->GetLeaseSet () : nullptr;
+		if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)
+		{
+			// resubmit non-confirmed LeaseSet
+			SetLeaseSetUpdateStatus (eLeaseSetUpdated);
+			SetSharedRoutingPath (nullptr); // invalidate path since leaseset was not confirmed
+		}
+		auto leaseSet = (GetLeaseSetUpdateStatus () == eLeaseSetUpdated) ? GetOwner ()->GetLeaseSet () : nullptr;
 		if (leaseSet)
 		{
 			payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;
@@ -1054,7 +1101,7 @@ namespace garlic
 		return cloveSize + 3;
 	}
 
-	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<RatchetTagSet> receiveTagset, int numTags)
+	void ECIESX25519AEADRatchetSession::GenerateMoreReceiveTags (std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int numTags)
 	{
 		if (GetOwner ())
 		{	
@@ -1073,7 +1120,8 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)
 	{
 		CleanupUnconfirmedLeaseSet (ts);
-		return ts > m_LastActivityTimestamp + ECIESX25519_EXPIRATION_TIMEOUT;
+		return ts > m_LastActivityTimestamp + ECIESX25519_RECEIVE_EXPIRATION_TIMEOUT && // seconds
+			ts*1000 > m_LastSentTimestamp + ECIESX25519_SEND_EXPIRATION_TIMEOUT*1000; // milliseconds
 	}
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)

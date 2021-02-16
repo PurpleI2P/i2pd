@@ -20,7 +20,7 @@ if [ -d archive ]; then
 	rm -r archive
 fi
 
-if [ -f i2pd_*_android_binary.zip ]; then
+if [ -f ../i2pd_*_android_binary.zip ]; then
 	rm i2pd_*_android_binary.zip
 fi
 
@@ -28,13 +28,16 @@ fi
 mkdir archive
 
 for ABI in "${!ABILIST[@]}"; do
-	if [ -f ../../android_binary_only/libs/${ABI}/i2pd ]; then
-		cp ../../android_binary_only/libs/${ABI}/i2pd archive/i2pd-${ABILIST[$ABI]}
+	if [ -f ../android_binary_only/libs/${ABI}/i2pd ]; then
+		cp ../android_binary_only/libs/${ABI}/i2pd archive/i2pd-${ABILIST[$ABI]}
 	fi
 done
 
 cp i2pd archive/i2pd
-cp -rH ../../android/assets/* archive/
+cp -rH ../android/assets/certificates archive/
+cp -rH ../android/assets/tunnels.conf.d archive/
+cp -H ../android/assets/i2pd.conf archive/
+cp -H ../android/assets/tunnels.conf archive/
 
 # Compress files
 cd archive

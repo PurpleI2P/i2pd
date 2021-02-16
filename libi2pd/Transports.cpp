@@ -351,6 +351,7 @@ namespace transport
 			try
 			{
 				auto r = netdb.FindRouter (ident);
+				if (!r || !r->IsCompatible (i2p::context.GetRouterInfo ())) return;
 				{
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
@@ -389,16 +390,34 @@ namespace transport
 			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
-			if (!peer.numAttempts) // NTCP2
+			if (peer.numAttempts < 2) // NTCP2, 0 - ipv6, 1- ipv4
 			{
-				peer.numAttempts++;
 				if (m_NTCP2Server) // we support NTCP2
 				{
-					// NTCP2 have priority over NTCP
-					auto address = peer.router->GetNTCP2Address (true, !context.SupportsV6 ()); // published only
-					if (address && !peer.router->IsUnreachable () && (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host)))
+					std::shared_ptr<const RouterInfo::Address> address;
+					if (!peer.numAttempts) // NTCP2 ipv6
 					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
+						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsNTCP2V6 ())
+						{	
+							address = peer.router->GetPublishedNTCP2V6Address ();
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}	
+						peer.numAttempts++;
+					}
+					if (!address && peer.numAttempts == 1) // NTCP2 ipv4	
+					{	
+						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsNTCP2 (true) && !peer.router->IsUnreachable ())
+						{	
+							address = peer.router->GetPublishedNTCP2V4Address ();
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}	
+						peer.numAttempts++;
+					}	
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
 
 						if(m_NTCP2Server->UsingProxy())
 						{
@@ -415,21 +434,58 @@ namespace transport
 						return true;
 					}
 				}
+				else
+					peer.numAttempts = 2; // switch to SSU
 			}
-			if (peer.numAttempts == 1)// SSU
+			if (peer.numAttempts == 2 || peer.numAttempts == 3) // SSU 
 			{
-				peer.numAttempts++;
-				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
-				{
-					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
-					if (!m_CheckReserved || !i2p::util::net::IsInReservedRange(address->host))
+				if (m_SSUServer)
+				{   
+					std::shared_ptr<const RouterInfo::Address> address;
+					if (peer.numAttempts == 2) // SSU ipv6
+					{
+						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsSSUV6 ())
+						{
+							address = peer.router->GetSSUV6Address ();
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}
+						peer.numAttempts++;
+					}
+					if (!address && peer.numAttempts == 3) // SSU ipv4
+					{
+						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsSSU (true))
+						{
+							address = peer.router->GetSSUAddress (true);
+							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+								address = nullptr;
+						}
+						peer.numAttempts++;
+					}
+					if (address)
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
-					}
+					}	
 				}
+				else
+					peer.numAttempts += 2; // switch to Mesh
 			}
-			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
+			if (peer.numAttempts == 4) // Mesh
+			{
+				peer.numAttempts++;
+				if (m_NTCP2Server && context.GetRouterInfo ().IsMesh () && peer.router->IsMesh ())
+				{
+					auto address = peer.router->GetYggdrasilAddress ();
+					if (address)
+					{
+						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+						m_NTCP2Server->Connect (address->host, address->port, s);
+						return true;
+					}	
+				}	
+			}
+			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);

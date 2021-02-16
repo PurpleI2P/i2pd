@@ -205,14 +205,18 @@ namespace config {
 				"https://reseed.i2pgit.org/,"
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
+			("reseed.yggurls", value<std::string>()->default_value(
+				"http://[324:9de3:fea4:f6ac::ace]:7070/"
+			),        													  "Reseed URLs through the Yggdrasil, separated by comma") 	                                                
 		;
 
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
 			("addressbook.defaulturl", value<std::string>()->default_value(
-				"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
+				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma");
+			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.hostsfile", value<std::string>()->default_value(""), "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
 		trust.add_options()
@@ -272,6 +276,12 @@ namespace config {
 			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
 		;
 
+		options_description meshnets("Meshnet transports options");
+		meshnets.add_options()
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
+			("meshnets.yggaddress", value<std::string>()->default_value(""), 		 "Yggdrasil address to publish")
+		;	
+		
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -293,6 +303,7 @@ namespace config {
 			.add(nettime)
 			.add(persist)
 			.add(cpuext)
+			.add(meshnets)
 		;
 	}
 

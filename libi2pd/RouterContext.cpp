@@ -28,7 +28,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
-		m_ShareRatio (100), m_Status (eRouterStatusOK),
+		m_ShareRatio (100), m_Status (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -72,10 +72,12 @@ namespace i2p
 		bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;            i2p::config::GetOption("ssu", ssu);
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ygg; 			 i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		bool nat;            i2p::config::GetOption("nat", nat);
 		std::string ifname;  i2p::config::GetOption("ifname", ifname);
 		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
 		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+		uint8_t caps = 0;
 		if (ipv4)
 		{
 			std::string host = "127.0.0.1";
@@ -89,7 +91,10 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
 
 			if (ssu)
+			{	
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
+				caps |= i2p::data::RouterInfo::eReachable | i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // R, BC
+			}	
 		}
 		if (ipv6)
 		{
@@ -103,11 +108,13 @@ namespace i2p
 				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
 
 			if (ssu)
+			{	
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
+				caps |= i2p::data::RouterInfo::eReachable; // R
+			}	
 		}
-
-		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
-			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
+		
+		routerInfo.SetCaps (caps); // caps + L 
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
@@ -117,11 +124,12 @@ namespace i2p
 		if (ntcp2) // we don't store iv in the address if non published so we must update it from keys
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
-			UpdateNTCP2Address (true);
 			bool published; i2p::config::GetOption("ntcp2.published", published);
+			if (ipv4 || !published) UpdateNTCP2Address (true); // create not published NTCP2 address
 			if (published)
 			{
-				PublishNTCP2Address (port, true);
+				if (ipv4)
+					PublishNTCP2Address (port, true);
 				if (ipv6)
 				{
 					// add NTCP2 ipv6 address
@@ -131,7 +139,21 @@ namespace i2p
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (host), port);
 				}
 			}
+			// enable added NTCP2 addresses
+			if (ipv4) m_RouterInfo.EnableV4 ();
+			if (ipv6) m_RouterInfo.EnableV6 ();
 		}
+		if (ygg)
+		{
+			auto yggaddr = i2p::util::net::GetYggdrasilAddress ();
+			if (!yggaddr.is_unspecified ())
+			{	
+				if (!m_NTCP2Keys) NewNTCP2Keys ();
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
+				m_RouterInfo.EnableMesh ();
+				UpdateRouterInfo ();
+			}	
+		}	
 	}
 
 	void RouterContext::UpdateRouterInfo ()
@@ -245,7 +267,8 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->host != host && address->IsCompatible (host))
+			if (address->host != host && address->IsCompatible (host) && 
+			    !i2p::util::net::IsYggdrasilAddress (address->host))
 			{
 				address->host = host;
 				if (host.is_v6 () && address->transportStyle == i2p::data::RouterInfo::eTransportSSU)
@@ -521,15 +544,44 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host)
+	{	
+		if (supportsmesh)
+		{	
+			m_RouterInfo.EnableMesh ();
+			uint16_t port = 0;
+			i2p::config::GetOption ("ntcp2.port", port);
+			if (!port) i2p::config::GetOption("port", port);
+			bool foundMesh = false;
+			auto& addresses = m_RouterInfo.GetAddresses ();
+			for (auto& addr: addresses)
+			{
+				if (!port) port = addr->port;
+				if (i2p::util::net::IsYggdrasilAddress (addr->host))
+				{
+					foundMesh = true;
+					break;
+				}	
+			}
+			if (!foundMesh)
+				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
+		}	
+		else
+			m_RouterInfo.DisableMesh ();
+		UpdateRouterInfo ();
+	}
+		
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
+		bool isYgg = i2p::util::net::IsYggdrasilAddress (host);
 		bool updated = false;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr: addresses)
 		{
 			if (addr->IsPublishedNTCP2 ())
 			{
-				if (addr->host.is_v6 ())
+				bool isYgg1 = i2p::util::net::IsYggdrasilAddress (addr->host);
+				if (addr->host.is_v6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))
 				{
 					if (addr->host != host)
 					{
@@ -631,7 +683,8 @@ namespace i2p
 
 		// read NTCP2
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
-		if (ntcp2)
+		bool ygg;  i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		if (ntcp2 || ygg)
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			UpdateNTCP2Address (true); // enable NTCP2
@@ -729,7 +782,11 @@ namespace i2p
 			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));		
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
-			m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false);
+			if (!m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false))
+			{
+				LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
+				return false;
+			}	
 			m_CurrentNoiseState->MixKey (sharedSecret); 
 			encrypted += 32;
 			uint8_t nonce[12];

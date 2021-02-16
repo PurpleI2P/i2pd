@@ -244,7 +244,8 @@ namespace i2p
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, 
+		uint32_t replyToken, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		if (!router) // we send own RouterInfo
 			router = context.GetSharedRouterInfo ();
@@ -258,10 +259,20 @@ namespace i2p
 		uint8_t * buf = payload + DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
-			memset (buf, 0, 4); // zero tunnelID means direct reply
-			buf += 4;
-			memcpy (buf, router->GetIdentHash (), 32);
-			buf += 32;
+			if (replyTunnel)
+			{
+				htobe32buf (buf, replyTunnel->GetNextTunnelID ());
+				buf += 4; // reply tunnelID
+				memcpy (buf, replyTunnel->GetNextIdentHash (), 32);
+				buf += 32; // reply tunnel gateway
+			}
+			else
+			{	
+				memset (buf, 0, 4); // zero tunnelID means direct reply
+				buf += 4;
+				memcpy (buf, context.GetIdentHash (), 32);
+				buf += 32;
+			}	
 		}
 
 		uint8_t * sizePtr = buf;
