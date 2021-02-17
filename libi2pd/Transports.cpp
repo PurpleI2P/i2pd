@@ -418,19 +418,10 @@ namespace transport
 					if (address)
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-
-						if(m_NTCP2Server->UsingProxy())
-						{
-							NTCP2Server::RemoteAddressType remote = NTCP2Server::eIP4Address;
-							std::string addr = address->host.to_string();
-
-							if(address->host.is_v6())
-								remote = NTCP2Server::eIP6Address;
-
-							m_NTCP2Server->ConnectWithProxy(addr, address->port, remote, s);
-						}
+						if( m_NTCP2Server->UsingProxy())
+							m_NTCP2Server->ConnectWithProxy(s);
 						else
-							m_NTCP2Server->Connect (address->host, address->port, s);
+							m_NTCP2Server->Connect (s);
 						return true;
 					}
 				}
@@ -480,7 +471,7 @@ namespace transport
 					if (address)
 					{
 						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-						m_NTCP2Server->Connect (address->host, address->port, s);
+						m_NTCP2Server->Connect (s);
 						return true;
 					}	
 				}	
