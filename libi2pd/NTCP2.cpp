@@ -333,8 +333,6 @@ namespace transport
 		if (in_RemoteRouter) // Alice
 		{
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
-			if (!addr)
-				addr = in_RemoteRouter->GetNTCP2Address (true); // we need a published address
 			if (addr)
 			{
 				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
@@ -342,7 +340,7 @@ namespace transport
 				m_RemoteEndpoint = boost::asio::ip::tcp::endpoint (addr->host, addr->port);
 			}
 			else
-				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 parameters");
+				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 address");
 		}
 		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL + 
 			rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
@@ -658,17 +656,11 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = ri.GetNTCP2Address (false); // any NTCP2 address
+					auto addr = ri.GetNTCP2AddressWithStaticKey (m_Establisher->m_RemoteStaticKey);
 					if (!addr)
 					{
-						LogPrint (eLogError, "NTCP2: No NTCP2 address found in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: No NTCP2 address wth static key found in SessionConfirmed");
 						Terminate ();
-						return;
-					}
-					if (memcmp (addr->ntcp2->staticKey, m_Establisher->m_RemoteStaticKey, 32))
-					{
-						LogPrint (eLogError, "NTCP2: Static key mismatch in SessionConfirmed");
-						SendTerminationAndTerminate (eNTCP2IncorrectSParameter);
 						return;
 					}
 					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
@@ -1296,8 +1288,6 @@ namespace transport
 						if (ecode != boost::asio::error::operation_aborted)
 						{
 							LogPrint (eLogInfo, "NTCP2: Not connected in ", timeout, " seconds");
-							if (conn->GetRemoteIdentity ())
-								i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 							conn->Terminate ();
 						}
 					});
@@ -1426,6 +1416,11 @@ namespace transport
 	void NTCP2Server::ConnectWithProxy (std::shared_ptr<NTCP2Session> conn)
 	{
 		if(!m_ProxyEndpoint) return;
+		if (!conn || conn->GetRemoteEndpoint ().address ().is_unspecified ())
+		{
+			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
+			return;
+		}	
 		GetService().post([this, conn]() 
 		{
 			if (this->AddNTCP2Session (conn))
@@ -1439,7 +1434,6 @@ namespace transport
 					if (ecode != boost::asio::error::operation_aborted)
 					{
 						LogPrint (eLogInfo, "NTCP2: Not connected in ", timeout, " seconds");
-						i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 						conn->Terminate ();
 					}
 				});
@@ -1633,8 +1627,6 @@ namespace transport
 						return;
 					}
 				}
-				if(!e)
-					i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 				timer->cancel();
 				conn->Terminate();
 			});

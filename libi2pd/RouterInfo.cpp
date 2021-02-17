@@ -962,12 +962,13 @@ namespace data
 		return nullptr;
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2Address (bool publishedOnly) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2AddressWithStaticKey (const uint8_t * key) const
 	{
+		if (!key) return nullptr;
 		return GetAddress (
-			[publishedOnly](std::shared_ptr<const RouterInfo::Address> address)->bool
+			[key](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
-				return address->IsNTCP2 () && (!publishedOnly || address->IsPublishedNTCP2 ());
+				return address->IsNTCP2 () && !memcmp (address->ntcp2->staticKey, key, 32);
 			});
 	}
 
