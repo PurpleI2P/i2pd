@@ -750,12 +750,13 @@ namespace client
 					else // regular server tunnel by default
 						serverTunnel = std::make_shared<I2PServerTunnel> (name, host, port, localDestination, inPort, gzip);
 
+					if (!address.empty ())
+						serverTunnel->SetLocalAddress (address);
 					if(!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
 						serverTunnel->SetUniqueLocal(isUniqueLocal);
 					}
-
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;
