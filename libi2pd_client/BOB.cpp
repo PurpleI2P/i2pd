@@ -645,6 +645,22 @@ namespace client
 			localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey, requstCallback);
 	}
 
+	void BOBCommandSession::LookupLocalCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: lookup local ", operand);
+		auto addr = context.GetAddressBook ().GetAddress (operand);
+		if (!addr)
+		{
+			SendReplyError ("Address Not found");
+			return;
+		}
+		auto ls = i2p::data::netdb.FindLeaseSet (addr->identHash);
+		if (ls)
+			SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+		else
+			SendReplyError ("Local LeaseSet Not found");
+	}
+		
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: clear");
@@ -770,6 +786,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_LOOKUP_LOCAL] = &BOBCommandSession::LookupLocalCommandHandler;	
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
