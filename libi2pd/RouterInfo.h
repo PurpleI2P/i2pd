@@ -44,6 +44,8 @@ namespace data
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
 
+	const char CAPS_FLAG_V4 = '4';
+	const char CAPS_FLAG_V6 = '6';
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
 
@@ -67,12 +69,18 @@ namespace data
 				eHighBandwidth = 0x02,
 				eExtraBandwidth = 0x04,
 				eReachable = 0x08,
-				eSSUTesting = 0x10,
-				eSSUIntroducer = 0x20,
-				eHidden = 0x40,
-				eUnreachable = 0x80
+				eHidden = 0x10,
+				eUnreachable = 0x20
 			};
 
+			enum AddressCaps
+			{
+				eV4 = 0x01,
+				eV6 = 0x02,
+				eSSUTesting = 0x04,
+				eSSUIntroducer = 0x08
+			};
+		
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -234,7 +242,8 @@ namespace data
 			void WriteToStream (std::ostream& s) const;
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
-			uint8_t ExtractCaps (const char * value);
+			void ExtractCaps (const char * value);
+			uint8_t ExtractAddressCaps (const char * value) const;
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			void UpdateCapsProperty ();

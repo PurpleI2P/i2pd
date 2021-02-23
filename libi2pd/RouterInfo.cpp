@@ -186,6 +186,7 @@ namespace data
 
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
+		m_Caps = 0;
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
@@ -251,7 +252,7 @@ namespace data
 						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP");
 				}
 				else if (!strcmp (key, "caps"))
-					address->caps = ExtractCaps (value);
+					address->caps = ExtractAddressCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 static key
 				{
 					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);
@@ -354,7 +355,7 @@ namespace data
 
 			// extract caps
 			if (!strcmp (key, "caps"))
-				m_Caps = ExtractCaps (value);
+				ExtractCaps (value);
 			// extract version
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_VERSION))
 			{
@@ -403,7 +404,41 @@ namespace data
 		return m_Family == fam;
 	}
 
-	uint8_t RouterInfo::ExtractCaps (const char * value)
+	void RouterInfo::ExtractCaps (const char * value)
+	{
+		const char * cap = value;
+		while (*cap)
+		{
+			switch (*cap)
+			{
+				case CAPS_FLAG_FLOODFILL:
+					m_Caps |= Caps::eFloodfill;
+				break;
+				case CAPS_FLAG_HIGH_BANDWIDTH1:
+				case CAPS_FLAG_HIGH_BANDWIDTH2:
+				case CAPS_FLAG_HIGH_BANDWIDTH3:
+					m_Caps |= Caps::eHighBandwidth;
+				break;
+				case CAPS_FLAG_EXTRA_BANDWIDTH1:
+				case CAPS_FLAG_EXTRA_BANDWIDTH2:
+					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
+				break;
+				case CAPS_FLAG_HIDDEN:
+					m_Caps |= Caps::eHidden;
+				break;
+				case CAPS_FLAG_REACHABLE:
+					m_Caps |= Caps::eReachable;
+				break;
+				case CAPS_FLAG_UNREACHABLE:
+					m_Caps |= Caps::eUnreachable;
+				break;
+				default: ;
+			}
+			cap++;
+		}
+	}
+
+	uint8_t RouterInfo::ExtractAddressCaps (const char * value) const
 	{
 		uint8_t caps = 0;
 		const char * cap = value;
@@ -411,32 +446,17 @@ namespace data
 		{
 			switch (*cap)
 			{
-				case CAPS_FLAG_FLOODFILL:
-					caps |= Caps::eFloodfill;
-				break;
-				case CAPS_FLAG_HIGH_BANDWIDTH1:
-				case CAPS_FLAG_HIGH_BANDWIDTH2:
-				case CAPS_FLAG_HIGH_BANDWIDTH3:
-					caps |= Caps::eHighBandwidth;
-				break;
-				case CAPS_FLAG_EXTRA_BANDWIDTH1:
-				case CAPS_FLAG_EXTRA_BANDWIDTH2:
-					caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
-				break;
-				case CAPS_FLAG_HIDDEN:
-					caps |= Caps::eHidden;
-				break;
-				case CAPS_FLAG_REACHABLE:
-					caps |= Caps::eReachable;
-				break;
-				case CAPS_FLAG_UNREACHABLE:
-					caps |= Caps::eUnreachable;
-				break;
+				case CAPS_FLAG_V4:
+					caps |= AddressCaps::eV4;
+				break;	
+				case CAPS_FLAG_V6:
+					caps |= AddressCaps::eV6;
+				break;		
 				case CAPS_FLAG_SSU_TESTING:
-					caps |= Caps::eSSUTesting;
+					caps |= AddressCaps::eSSUTesting;
 				break;
 				case CAPS_FLAG_SSU_INTRODUCER:
-					caps |= Caps::eSSUIntroducer;
+					caps |= AddressCaps::eSSUIntroducer;
 				break;
 				default: ;
 			}
@@ -444,7 +464,7 @@ namespace data
 		}
 		return caps;
 	}
-
+		
 	void RouterInfo::UpdateCapsProperty ()
 	{
 		std::string caps;
@@ -799,7 +819,8 @@ namespace data
 	void RouterInfo::SetCaps (const char * caps)
 	{
 		SetProperty ("caps", caps);
-		m_Caps = ExtractCaps (caps);
+		m_Caps = 0;
+		ExtractCaps (caps);
 	}
 
 	void RouterInfo::SetProperty (const std::string& key, const std::string& value)
