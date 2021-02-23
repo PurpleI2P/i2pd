@@ -455,7 +455,7 @@ namespace transport
 					}
 					if (address)
 					{
-						m_SSUServer->CreateSession (peer.router, address->host, address->port);
+						m_SSUServer->CreateSession (peer.router, address);
 						return true;
 					}	
 				}

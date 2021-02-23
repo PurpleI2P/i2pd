@@ -442,21 +442,21 @@ namespace transport
 	{
 		auto address = router->GetSSUAddress (v4only || !context.SupportsV6 ());
 		if (address)
-			CreateSession (router, address->host, address->port, peerTest);
+			CreateSession (router, address, peerTest);
 		else
 			LogPrint (eLogWarning, "SSU: Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 	}
 
 	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
-		const boost::asio::ip::address& addr, int port, bool peerTest)
+		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
-		if (router)
+		if (router && address)
 		{
 			if (router->UsesIntroducer ())
 				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, peerTest)); // always V4 thread
 			else
 			{
-				boost::asio::ip::udp::endpoint remoteEndpoint (addr, port);
+				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				m_Service.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
 		}

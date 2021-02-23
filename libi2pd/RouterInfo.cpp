@@ -215,6 +215,7 @@ namespace data
 			}
 			else
 				address->transportStyle = eTransportUnknown;
+			address->caps = 0;
 			address->port = 0;
 			uint16_t size, r = 0;
 			s.read ((char *)&size, sizeof (size)); if (!s) return;
@@ -250,7 +251,7 @@ namespace data
 						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP");
 				}
 				else if (!strcmp (key, "caps"))
-					ExtractCaps (value);
+					address->caps = ExtractCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 static key
 				{
 					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);
@@ -353,7 +354,7 @@ namespace data
 
 			// extract caps
 			if (!strcmp (key, "caps"))
-				ExtractCaps (value);
+				m_Caps = ExtractCaps (value);
 			// extract version
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_VERSION))
 			{
@@ -402,44 +403,46 @@ namespace data
 		return m_Family == fam;
 	}
 
-	void RouterInfo::ExtractCaps (const char * value)
+	uint8_t RouterInfo::ExtractCaps (const char * value)
 	{
+		uint8_t caps = 0;
 		const char * cap = value;
 		while (*cap)
 		{
 			switch (*cap)
 			{
 				case CAPS_FLAG_FLOODFILL:
-					m_Caps |= Caps::eFloodfill;
+					caps |= Caps::eFloodfill;
 				break;
 				case CAPS_FLAG_HIGH_BANDWIDTH1:
 				case CAPS_FLAG_HIGH_BANDWIDTH2:
 				case CAPS_FLAG_HIGH_BANDWIDTH3:
-					m_Caps |= Caps::eHighBandwidth;
+					caps |= Caps::eHighBandwidth;
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
 				case CAPS_FLAG_EXTRA_BANDWIDTH2:
-					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
+					caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
 				break;
 				case CAPS_FLAG_HIDDEN:
-					m_Caps |= Caps::eHidden;
+					caps |= Caps::eHidden;
 				break;
 				case CAPS_FLAG_REACHABLE:
-					m_Caps |= Caps::eReachable;
+					caps |= Caps::eReachable;
 				break;
 				case CAPS_FLAG_UNREACHABLE:
-					m_Caps |= Caps::eUnreachable;
+					caps |= Caps::eUnreachable;
 				break;
 				case CAPS_FLAG_SSU_TESTING:
-					m_Caps |= Caps::eSSUTesting;
+					caps |= Caps::eSSUTesting;
 				break;
 				case CAPS_FLAG_SSU_INTRODUCER:
-					m_Caps |= Caps::eSSUIntroducer;
+					caps |= Caps::eSSUIntroducer;
 				break;
 				default: ;
 			}
 			cap++;
 		}
+		return caps;
 	}
 
 	void RouterInfo::UpdateCapsProperty ()
@@ -496,8 +499,8 @@ namespace data
 				WriteString ("caps", properties);
 				properties << '=';
 				std::string caps;
-				if (IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
+				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
 				WriteString (caps, properties);
 				properties << ';';
 			}
@@ -721,7 +724,8 @@ namespace data
 		addr->host = boost::asio::ip::address::from_string (host);
 		addr->port = port;
 		addr->transportStyle = eTransportSSU;
-		addr->cost = 10; // NTCP should have priority over SSU
+		addr->cost = 10; // NTCP2 should have priority over SSU
+		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = mtu;
@@ -745,6 +749,7 @@ namespace data
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP;
 		addr->cost = port ? 3 : 14; // override from RouterContext::PublishNTCP2Address
+		addr->caps = 0;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		if (port) addr->ntcp2->isPublished = true;
@@ -794,8 +799,7 @@ namespace data
 	void RouterInfo::SetCaps (const char * caps)
 	{
 		SetProperty ("caps", caps);
-		m_Caps = 0;
-		ExtractCaps (caps);
+		m_Caps = ExtractCaps (caps);
 	}
 
 	void RouterInfo::SetProperty (const std::string& key, const std::string& value)
@@ -1019,6 +1023,29 @@ namespace data
 		// floodfill must be reachable, >= 0.9.28 and not DSA
 		return IsReachable () && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
+	}	
+
+	bool RouterInfo::IsPeerTesting (bool v4only) const
+	{
+		auto supportedTransports = m_SupportedTransports & (eSSUV4 | eSSUV6);
+		if (!supportedTransports) return false; // no SSU
+		if (v4only && !(supportedTransports & eSSUV4)) return false; // no SSU v4
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{			
+				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting ();
+			}) != nullptr;	
+	}
+
+	bool RouterInfo::IsIntroducer () const
+	{
+		// TODO: support ipv6
+		if (!(m_SupportedTransports & eSSUV4)) return false;
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{			
+				return (address->transportStyle == eTransportSSU) && address->IsIntroducer ();
+			}) != nullptr;
 	}	
 }
 }

@@ -54,7 +54,7 @@ namespace transport
 			void Stop ();
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false, bool v4only = false);
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
-				const boost::asio::ip::address& addr, int port, bool peerTest = false);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
 			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;

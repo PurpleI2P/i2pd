@@ -111,7 +111,7 @@ namespace data
 				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
-				uint8_t cost;
+				uint8_t cost, caps;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
 				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
@@ -134,6 +134,9 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
+
+				bool IsIntroducer () const { return caps & eSSUIntroducer; };
+				bool IsPeerTesting () const { return caps & eSSUTesting; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -183,12 +186,12 @@ namespace data
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
-			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
-			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
+			bool IsPeerTesting (bool v4only) const;	
+			bool IsIntroducer () const;	
 		
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps);
@@ -231,7 +234,7 @@ namespace data
 			void WriteToStream (std::ostream& s) const;
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
-			void ExtractCaps (const char * value);
+			uint8_t ExtractCaps (const char * value);
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			void UpdateCapsProperty ();
