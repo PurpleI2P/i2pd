@@ -17,7 +17,12 @@ PIDFile=/run/i2pd/i2pd.pid
 ### Uncomment, if auto restart needed
 #Restart=on-failure
 
-KillSignal=SIGQUIT
+# Use SIGTERM to stop i2pd immediately.
+# Some cleanup processes can delay stopping, so we set 30 seconds timeout and then SIGKILL i2pd.
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+SendSIGKILL=yes
+
 # If you have the patience waiting 10 min on restarting/stopping it, uncomment this.
 # i2pd stops accepting new tunnels and waits ~10 min while old ones do not die.
 #KillSignal=SIGINT
