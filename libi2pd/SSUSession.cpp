@@ -321,6 +321,7 @@ namespace transport
 	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU: Session confirmed received");
+		m_ConnectTimer.cancel (); 
 		auto headerSize = GetSSUHeaderSize (buf);
 		if (headerSize >= len)
 		{
