@@ -311,7 +311,15 @@ namespace data
 							supportedTransports |= eNTCP2V4; 
 					}	
 					else if (!address->ntcp2->isPublished)
-						supportedTransports |= eNTCP2V4; // most likely, since we don't have host
+					{
+						if (address->caps)
+						{	
+							if (address->caps | AddressCaps::eV4) supportedTransports |= eNTCP2V4;
+							if (address->caps | AddressCaps::eV6) supportedTransports |= eNTCP2V6;
+						}
+						else
+							supportedTransports |= eNTCP2V4; // most likely, since we don't have host
+					}	
 				}
 			}	
 			else if (address->transportStyle == eTransportSSU)
@@ -505,10 +513,26 @@ namespace data
 			s.write ((const char *)&address.cost, sizeof (address.cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
+			bool isPublished = false;
 			if (address.transportStyle == eTransportNTCP)
 			{
 				if (address.IsNTCP2 ())
+				{	
 					WriteString ("NTCP2", s);
+					if (address.IsPublishedNTCP2 ())
+						 isPublished = true;
+					else
+					{
+						WriteString ("caps", properties);
+						properties << '=';
+						std::string caps;
+						if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
+						if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
+						if (caps.empty ()) caps += CAPS_FLAG_V4;
+						WriteString (caps, properties);
+						properties << ';';
+					}	
+				}	
 				else
 					continue; // don't write NTCP address
 			}	
@@ -521,13 +545,17 @@ namespace data
 				std::string caps;
 				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
 				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+				if (address.ssu && address.ssu->introducers.empty ())
+					isPublished = true;
+				else
+					caps += CAPS_FLAG_V4;
 				WriteString (caps, properties);
 				properties << ';';
 			}
 			else
 				WriteString ("", s);
 
-			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
+			if (isPublished)
 			{
 				WriteString ("host", properties);
 				properties << '=';
@@ -537,7 +565,7 @@ namespace data
 			if (address.transportStyle == eTransportSSU)
 			{
 				// write introducers if any
-				if (address.ssu->introducers.size () > 0)
+				if (!address.ssu->introducers.empty())
 				{
 					int i = 0;
 					for (const auto& introducer: address.ssu->introducers)
@@ -616,7 +644,7 @@ namespace data
 				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
 			}
 
-			if (!address.IsNTCP2 () || address.IsPublishedNTCP2 ())
+			if (isPublished)
 			{
 				WriteString ("port", properties);
 				properties << '=';
