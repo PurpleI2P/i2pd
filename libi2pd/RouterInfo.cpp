@@ -644,7 +644,7 @@ namespace data
 				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
 			}
 
-			if (isPublished)
+			if (isPublished || address.ssu)
 			{
 				WriteString ("port", properties);
 				properties << '=';
