@@ -29,3 +29,7 @@ jobs:
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
         make USE_UPNP=yes DEBUG=no -j3
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        path: i2pd.exe
