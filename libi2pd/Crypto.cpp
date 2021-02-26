@@ -353,7 +353,7 @@ namespace crypto
 
 	bool X25519Keys::Agree (const uint8_t * pub, uint8_t * shared)
 	{
-		if (pub[31] & 0x80) return false; // not x25519 key
+		if (!pub || (pub[31] & 0x80)) return false; // not x25519 key
 #if OPENSSL_X25519
 		EVP_PKEY_derive_init (m_Ctx);
 		auto pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_X25519, NULL, pub, 32);
