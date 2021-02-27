@@ -22,21 +22,8 @@ namespace i2p
 {
 namespace transport
 {
-
-	SSUServer::SSUServer (const boost::asio::ip::address & addr, int port):
-		m_OnlyV6(true), m_IsRunning(false), m_Thread (nullptr),
-		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service),
-		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
-		m_EndpointV6 (addr, port), m_Socket (m_ReceiversService, m_Endpoint),
-		m_SocketV6 (m_ReceiversServiceV6), m_IntroducersUpdateTimer (m_Service),
-		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service),
-		m_TerminationTimerV6 (m_Service)
-	{
-		OpenSocketV6 ();
-	}
-
 	SSUServer::SSUServer (int port):
-		m_OnlyV6(false), m_IsRunning(false), m_Thread (nullptr),
+		m_IsRunning(false), m_Thread (nullptr),
 		m_ReceiversThread (nullptr), m_ReceiversThreadV6 (nullptr), m_Work (m_Service),
 		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
@@ -44,9 +31,6 @@ namespace transport
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
 		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service)
 	{
-		OpenSocket ();
-		if (context.SupportsV6 ())
-			OpenSocketV6 ();
 	}
 
 	SSUServer::~SSUServer ()
@@ -91,18 +75,18 @@ namespace transport
 	void SSUServer::Start ()
 	{
 		m_IsRunning = true;
-		if (!m_OnlyV6)
+		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
+		if (context.SupportsV4 ())
 		{
-			m_ReceiversThread = new std::thread (std::bind (&SSUServer::RunReceivers, this));
-			m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
+			OpenSocket ();
+			m_ReceiversThread = new std::thread (std::bind (&SSUServer::RunReceivers, this));		
 			m_ReceiversService.post (std::bind (&SSUServer::Receive, this));
 			ScheduleTermination ();
 		}
 		if (context.SupportsV6 ())
 		{
+			OpenSocketV6 ();
 			m_ReceiversThreadV6 = new std::thread (std::bind (&SSUServer::RunReceiversV6, this));
-			if (!m_Thread)
-				m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 			m_ReceiversServiceV6.post (std::bind (&SSUServer::ReceiveV6, this));
 			ScheduleTerminationV6 ();
 		}
@@ -205,6 +189,14 @@ namespace transport
 		}
 	}
 
+	void SSUServer::SetLocalAddress (const boost::asio::ip::address& localAddress)
+	{
+		if (localAddress.is_v6 ())
+			m_EndpointV6.address (localAddress);
+		else if (localAddress.is_v4 ())
+			m_Endpoint.address (localAddress);
+	}	
+		
 	void SSUServer::AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay)
 	{
 		m_Relays[tag] = relay;

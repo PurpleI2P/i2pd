@@ -201,34 +201,22 @@ namespace transport
 				m_NTCP2Server = new NTCP2Server ();
 		}
 
-		// create acceptors
-		auto& addresses = context.GetRouterInfo ().GetAddresses ();
-		for (const auto& address : addresses)
-		{
-			if (!address) continue;
-			if (address->transportStyle == RouterInfo::eTransportSSU)
+		// create SSU server
+		int ssuPort = 0;
+		if (enableSSU)
+		{	
+			auto& addresses = context.GetRouterInfo ().GetAddresses ();
+			for (const auto& address: addresses)
 			{
-				if (m_SSUServer == nullptr && enableSSU)
+				if (!address) continue;
+				if (address->transportStyle == RouterInfo::eTransportSSU)
 				{
-					if (address->host.is_v4())
-						m_SSUServer = new SSUServer (address->port);
-					else
-						m_SSUServer = new SSUServer (address->host, address->port);
-					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
-					try {
-						m_SSUServer->Start ();
-					} catch ( std::exception & ex ) {
-						LogPrint(eLogError, "Transports: Failed to bind to UDP port", address->port);
-						delete m_SSUServer;
-						m_SSUServer = nullptr;
-						continue;
-					}
-					DetectExternalIP ();
+					ssuPort = address->port;
+					m_SSUServer = new SSUServer (address->port);
+					break;
 				}
-				else
-					LogPrint (eLogError, "Transports: SSU server already exists");
 			}
-		}
+		}	
 		
 		// bind to interfaces
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
@@ -239,8 +227,11 @@ namespace transport
 			{	
 				boost::system::error_code ec;
 				auto addr = boost::asio::ip::address::from_string (address, ec);
-				if (!ec && m_NTCP2Server)
-					m_NTCP2Server->SetLocalAddress (addr);
+				if (!ec)
+				{	
+					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
+					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
+				}	
 			}	
 		}	
 
@@ -252,8 +243,11 @@ namespace transport
 			{	
 				boost::system::error_code ec;
 				auto addr = boost::asio::ip::address::from_string (address, ec);
-				if (!ec && m_NTCP2Server)
-					m_NTCP2Server->SetLocalAddress (addr);
+				if (!ec) 
+				{	
+					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
+					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
+				}	
 			}	
 		}
 
@@ -272,6 +266,22 @@ namespace transport
 
 		// start servers
 		if (m_NTCP2Server) m_NTCP2Server->Start ();
+		if (m_SSUServer)
+		{
+			LogPrint (eLogInfo, "Transports: Start listening UDP port ", ssuPort);
+			try 
+			{
+				m_SSUServer->Start ();
+			} 
+			catch (std::exception& ex ) 
+			{
+				LogPrint(eLogError, "Transports: Failed to bind to UDP port", ssuPort);
+				m_SSUServer->Stop ();
+				delete m_SSUServer;
+				m_SSUServer = nullptr;
+			}
+			if (m_SSUServer) DetectExternalIP ();
+		}	
 		
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));

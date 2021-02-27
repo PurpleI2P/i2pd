@@ -48,7 +48,6 @@ namespace transport
 		public:
 
 			SSUServer (int port);
-			SSUServer (const boost::asio::ip::address & addr, int port); // ipv6 only constructor
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -64,7 +63,8 @@ namespace transport
 			void DeleteAllSessions ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };
+			void SetLocalAddress (const boost::asio::ip::address& localAddress);
+			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay);
 			void RemoveRelay (uint32_t tag);
@@ -118,7 +118,6 @@ namespace transport
 				std::shared_ptr<SSUSession> session; // for Bob to Alice
 			};
 
-			bool m_OnlyV6;
 			volatile bool m_IsRunning;
 			std::thread * m_Thread, * m_ReceiversThread, * m_ReceiversThreadV6;
 			boost::asio::io_service m_Service, m_ReceiversService, m_ReceiversServiceV6;
