@@ -248,6 +248,8 @@ namespace transport
 			bool UsingProxy() const { return m_ProxyType != eNoProxy; };
 			void UseProxy(ProxyType proxy, const std::string & address, uint16_t port);
 
+			void SetLocalAddress (const boost::asio::ip::address& localAddress);
+			
 		private:
 
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
@@ -273,7 +275,8 @@ namespace transport
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
-
+			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
+			
 		public:
 
 			// for HTTP/I2PControl

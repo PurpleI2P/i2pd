@@ -50,7 +50,9 @@ namespace config {
 			("nat", bool_switch()->default_value(true),                       "Should we assume we are behind NAT? (default: enabled)")
 			("port", value<uint16_t>()->default_value(0),                     "Port to listen for incoming connections (default: auto)")
 			("ipv4", bool_switch()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
+			("address4", value<std::string>()->default_value(""),             "Local address to bind ipv4 transport sockets to")
 			("ipv6", bool_switch()->default_value(false),                     "Enable communication through ipv6 (default: disabled)")
+			("address6", value<std::string>()->default_value(""),             "Local address to bind ipv6 transport sockets to")
 			("reservedrange", bool_switch()->default_value(true),             "Check remote RI for being in blacklist of reserved IP ranges (default: enabled)")
 			("netid", value<int>()->default_value(I2PD_NET_ID),               "Specify NetID. Main I2P is 2")
 			("daemon", bool_switch()->default_value(false),                   "Router will go to background after start (default: disabled)")
@@ -247,7 +249,7 @@ namespace config {
 			("ntcp2.enabled", value<bool>()->default_value(true),          "Enable NTCP2 (default: enabled)")
 			("ntcp2.published", value<bool>()->default_value(true),        "Publish NTCP2 (default: enabled)")
 			("ntcp2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming NTCP2 connections (default: auto)")
-			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to bind NTCP2 on")
+			("ntcp2.addressv6", value<std::string>()->default_value("::"), "Address to publish NTCP2 with")
 			("ntcp2.proxy", value<std::string>()->default_value(""),       "Proxy URL for NTCP2 transport")
 		;
 

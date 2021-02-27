@@ -205,6 +205,46 @@ namespace transport
 			}
 		}
 
+		// bind to interfaces
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		if (ipv4)
+		{
+			std::string address; i2p::config::GetOption("address4", address);
+			if (!address.empty ())
+			{	
+				boost::system::error_code ec;
+				auto addr = boost::asio::ip::address::from_string (address, ec);
+				if (!ec && m_NTCP2Server)
+					m_NTCP2Server->SetLocalAddress (addr);
+			}	
+		}	
+
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		if (ipv6)
+		{
+			std::string address; i2p::config::GetOption("address6", address);
+			if (!address.empty ())
+			{	
+				boost::system::error_code ec;
+				auto addr = boost::asio::ip::address::from_string (address, ec);
+				if (!ec && m_NTCP2Server)
+					m_NTCP2Server->SetLocalAddress (addr);
+			}	
+		}
+
+		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		if (ygg)
+		{
+			std::string address; i2p::config::GetOption("meshnets.yggdrasil", address);
+			if (!address.empty ())
+			{	
+				boost::system::error_code ec;
+				auto addr = boost::asio::ip::address::from_string (address, ec);
+				if (!ec && m_NTCP2Server && i2p::util::net::IsYggdrasilAddress (addr))
+					m_NTCP2Server->SetLocalAddress (addr);
+			}	
+		}
+		
 		// create acceptors
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
 		for (const auto& address : addresses)

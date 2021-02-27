@@ -1291,6 +1291,24 @@ namespace transport
 							conn->Terminate ();
 						}
 					});
+					// bind to local address
+					std::shared_ptr<boost::asio::ip::tcp::endpoint> localAddress;
+					if (conn->GetRemoteEndpoint ().address ().is_v6 ())
+					{	
+						if (i2p::util::net::IsYggdrasilAddress (conn->GetRemoteEndpoint ().address ()))
+							localAddress = m_YggdrasilAddress;
+						else 
+							localAddress = m_Address6;
+					}	
+					else
+						localAddress = m_Address4;
+					if (localAddress)
+					{
+						boost::system::error_code ec;
+						conn->GetSocket ().bind (*localAddress, ec);
+						if (ec)
+							LogPrint (eLogError, "NTCP2: can't bind to ", localAddress->address ().to_string (), ": ", ec.message ());	
+					}	
 					conn->GetSocket ().async_connect (conn->GetRemoteEndpoint (), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn, timer));
 				}
 				else
@@ -1631,5 +1649,19 @@ namespace transport
 				conn->Terminate();
 			});
 	}
+
+	void NTCP2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
+	{	
+		auto addr = std::make_shared<boost::asio::ip::tcp::endpoint>(boost::asio::ip::tcp::endpoint(localAddress, 0));
+		if (localAddress.is_v6 ())
+		{	
+			if (i2p::util::net::IsYggdrasilAddress (localAddress))
+				m_YggdrasilAddress = addr;
+			else 
+				m_Address6 = addr;
+		}	
+		else
+			m_Address4 = addr;
+	}	
 }
 }
