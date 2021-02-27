@@ -235,7 +235,7 @@ namespace transport
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		if (ygg)
 		{
-			std::string address; i2p::config::GetOption("meshnets.yggdrasil", address);
+			std::string address; i2p::config::GetOption("meshnets.yggaddress", address);
 			if (!address.empty ())
 			{	
 				boost::system::error_code ec;
