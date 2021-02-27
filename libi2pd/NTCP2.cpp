@@ -1170,7 +1170,9 @@ namespace transport
 						{
 							try
 							{
-								m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port)));
+								auto ep = m_Address4 ? boost::asio::ip::tcp::endpoint (m_Address4->address(), address->port):
+									boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), address->port);
+								m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), ep));
 							}
 							catch ( std::exception & ex )
 							{
@@ -1299,9 +1301,13 @@ namespace transport
 							localAddress = m_YggdrasilAddress;
 						else 
 							localAddress = m_Address6;
+						conn->GetSocket ().open (boost::asio::ip::tcp::v6 ());
 					}	
 					else
+					{	
 						localAddress = m_Address4;
+						conn->GetSocket ().open (boost::asio::ip::tcp::v4 ());
+					}	
 					if (localAddress)
 					{
 						boost::system::error_code ec;

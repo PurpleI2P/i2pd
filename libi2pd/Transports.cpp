@@ -189,7 +189,6 @@ namespace transport
 							proxytype = NTCP2Server::eHTTPProxy;
 
 						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
-						m_NTCP2Server->Start();
 					}
 					else
 						LogPrint(eLogError, "Transports: unsupported NTCP2 proxy URL ", ntcp2proxy);
@@ -199,12 +198,38 @@ namespace transport
 				return;
 			}
 			else
-			{
 				m_NTCP2Server = new NTCP2Server ();
-				m_NTCP2Server->Start ();
-			}
 		}
 
+		// create acceptors
+		auto& addresses = context.GetRouterInfo ().GetAddresses ();
+		for (const auto& address : addresses)
+		{
+			if (!address) continue;
+			if (address->transportStyle == RouterInfo::eTransportSSU)
+			{
+				if (m_SSUServer == nullptr && enableSSU)
+				{
+					if (address->host.is_v4())
+						m_SSUServer = new SSUServer (address->port);
+					else
+						m_SSUServer = new SSUServer (address->host, address->port);
+					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
+					try {
+						m_SSUServer->Start ();
+					} catch ( std::exception & ex ) {
+						LogPrint(eLogError, "Transports: Failed to bind to UDP port", address->port);
+						delete m_SSUServer;
+						m_SSUServer = nullptr;
+						continue;
+					}
+					DetectExternalIP ();
+				}
+				else
+					LogPrint (eLogError, "Transports: SSU server already exists");
+			}
+		}
+		
 		// bind to interfaces
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		if (ipv4)
@@ -244,35 +269,10 @@ namespace transport
 					m_NTCP2Server->SetLocalAddress (addr);
 			}	
 		}
+
+		// start servers
+		if (m_NTCP2Server) m_NTCP2Server->Start ();
 		
-		// create acceptors
-		auto& addresses = context.GetRouterInfo ().GetAddresses ();
-		for (const auto& address : addresses)
-		{
-			if (!address) continue;
-			if (address->transportStyle == RouterInfo::eTransportSSU)
-			{
-				if (m_SSUServer == nullptr && enableSSU)
-				{
-					if (address->host.is_v4())
-						m_SSUServer = new SSUServer (address->port);
-					else
-						m_SSUServer = new SSUServer (address->host, address->port);
-					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
-					try {
-						m_SSUServer->Start ();
-					} catch ( std::exception & ex ) {
-						LogPrint(eLogError, "Transports: Failed to bind to UDP port", address->port);
-						delete m_SSUServer;
-						m_SSUServer = nullptr;
-						continue;
-					}
-					DetectExternalIP ();
-				}
-				else
-					LogPrint (eLogError, "Transports: SSU server already exists");
-			}
-		}
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
