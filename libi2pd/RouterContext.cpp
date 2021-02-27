@@ -41,6 +41,7 @@ namespace i2p
 		if (!Load ())
 			CreateNewRouter ();
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
+		m_TunnelDecryptor = m_Keys.CreateDecryptor (nullptr);
 		UpdateRouterInfo ();
 		if (IsECIES ())
 		{	
@@ -105,7 +106,7 @@ namespace i2p
 			if (ssu)
 			{	
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
-				caps |= i2p::data::RouterInfo::eReachable | i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // R, BC
+				caps |= i2p::data::RouterInfo::eReachable; // R
 			}	
 		}
 		if (ipv6)
@@ -424,7 +425,6 @@ namespace i2p
 		caps &= ~i2p::data::RouterInfo::eReachable;
 		caps |= i2p::data::RouterInfo::eUnreachable;
 		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
-		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 		m_RouterInfo.SetCaps (caps);
 		uint16_t port = 0;
 		// delete previous introducers
@@ -432,6 +432,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
+				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
@@ -449,7 +450,6 @@ namespace i2p
 		uint8_t caps = m_RouterInfo.GetCaps ();
 		caps &= ~i2p::data::RouterInfo::eUnreachable;
 		caps |= i2p::data::RouterInfo::eReachable;
-		caps |= i2p::data::RouterInfo::eSSUIntroducer;
 		if (m_IsFloodfill)
 			caps |= i2p::data::RouterInfo::eFloodfill;
 		m_RouterInfo.SetCaps (caps);
@@ -459,6 +459,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
+				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
@@ -771,7 +772,7 @@ namespace i2p
 
 	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
-		if (!m_Decryptor) return false;
+		if (!m_TunnelDecryptor) return false;
 		if (IsECIES ())
 		{
 			if (!m_InitialNoiseState) return false;
@@ -779,7 +780,7 @@ namespace i2p
 			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));		
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
-			if (!m_Decryptor->Decrypt (encrypted, sharedSecret, ctx, false))
+			if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, ctx, false))
 			{
 				LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
 				return false;
@@ -798,7 +799,7 @@ namespace i2p
 			return true;
 		}	
 		else	
-			return m_Decryptor->Decrypt (encrypted, data, ctx, false);
+			return m_TunnelDecryptor->Decrypt (encrypted, data, ctx, false);
 	}
 
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()

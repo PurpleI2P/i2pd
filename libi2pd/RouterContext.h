@@ -153,7 +153,7 @@ namespace i2p
 
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys;
-			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor, m_TunnelDecryptor;
 			uint64_t m_LastUpdateTime; // in seconds
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
