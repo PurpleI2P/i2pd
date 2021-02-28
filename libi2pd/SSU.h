@@ -90,7 +90,8 @@ namespace transport
 			void HandleReceivedPackets (std::vector<SSUPacket *> packets,
 				std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >* sessions);
 
-			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
+			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, 
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV4Session (Filter filter);
 			template<typename Filter>

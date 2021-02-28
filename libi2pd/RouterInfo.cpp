@@ -329,7 +329,7 @@ namespace data
 					if (isHost)
 						supportedTransports |= address->host.is_v4 () ? eSSUV4 :  eSSUV6;
 					else 
-						if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
+						if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented	
 				}	
 			}	
 			if (supportedTransports)
@@ -545,7 +545,7 @@ namespace data
 				std::string caps;
 				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
 				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-				if (address.ssu && address.ssu->introducers.empty ())
+				if (IsReachable ())
 					isPublished = true;
 				else
 					caps += CAPS_FLAG_V4;

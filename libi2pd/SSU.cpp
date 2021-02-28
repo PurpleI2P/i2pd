@@ -445,7 +445,7 @@ namespace transport
 		if (router && address)
 		{
 			if (router->UsesIntroducer ())
-				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, peerTest)); // always V4 thread
+				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, address, peerTest)); // always V4 thread
 			else
 			{
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
@@ -477,13 +477,13 @@ namespace transport
 		}
 	}
 
-	void SSUServer::CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	void SSUServer::CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, 
+		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
-		if (router && router->UsesIntroducer ())
-		{
-			auto address = router->GetSSUAddress (true); // v4 only for now
-			if (address)
-			{
+		if (router && router->UsesIntroducer () && address)
+		{	
+			if (!address->host.is_unspecified () && address->port)
+			{	
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				auto it = m_Sessions.find (remoteEndpoint);
 				// check if session is presented already
@@ -494,70 +494,67 @@ namespace transport
 						session->SendPeerTest ();
 					return;
 				}
-				// create new session
-				int numIntroducers = address->ssu->introducers.size ();
-				if (numIntroducers > 0)
+			}	
+			// create new session
+			int numIntroducers = address->ssu->introducers.size ();
+			if (numIntroducers > 0)
+			{
+				uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+				std::shared_ptr<SSUSession> introducerSession;
+				const i2p::data::RouterInfo::Introducer * introducer = nullptr;
+				// we might have a session to introducer already
+				for (int i = 0; i < numIntroducers; i++)
 				{
-					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					std::shared_ptr<SSUSession> introducerSession;
-					const i2p::data::RouterInfo::Introducer * introducer = nullptr;
-					// we might have a session to introducer already
-					for (int i = 0; i < numIntroducers; i++)
+					auto intr = &(address->ssu->introducers[i]);
+					if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
+					boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
+					if (ep.address ().is_v4 ()) // ipv4 only
 					{
-						auto intr = &(address->ssu->introducers[i]);
-						if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
-						boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
-						if (ep.address ().is_v4 ()) // ipv4 only
+						if (!introducer) introducer = intr; // we pick first one for now
+						auto it = m_Sessions.find (ep);
+						if (it != m_Sessions.end ())
 						{
-							if (!introducer) introducer = intr; // we pick first one for now
-							it = m_Sessions.find (ep);
-							if (it != m_Sessions.end ())
-							{
-								introducerSession = it->second;
-								break;
-							}
+							introducerSession = it->second;
+							break;
 						}
 					}
-					if (!introducer)
-					{
-						LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 non-expired introducers presented");
-						return;
-					}
-
-					if (introducerSession) // session found
-						LogPrint (eLogWarning, "SSU: Session to introducer already exists");
-					else // create new
-					{
-						LogPrint (eLogDebug, "SSU: Creating new session to introducer ", introducer->iHost);
-						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
-						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
-						m_Sessions[introducerEndpoint] = introducerSession;
-					}
-#if BOOST_VERSION >= 104900
-					if (!address->host.is_unspecified () && address->port)
-#endif
-					{
-						// create session
-						auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-						m_Sessions[remoteEndpoint] = session;
-
-						// introduce
-						LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
-								"] through introducer ", introducer->iHost, ":", introducer->iPort);
-						session->WaitForIntroduction ();
-						if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
-						{
-							uint8_t buf[1];
-							Send (buf, 0, remoteEndpoint); // send HolePunch
-						}
-					}
-					introducerSession->Introduce (*introducer, router);
 				}
-				else
-					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no introducers present");
+				if (!introducer)
+				{
+					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 non-expired introducers presented");
+					return;
+				}
+
+				if (introducerSession) // session found
+					LogPrint (eLogWarning, "SSU: Session to introducer already exists");
+				else // create new
+				{
+					LogPrint (eLogDebug, "SSU: Creating new session to introducer ", introducer->iHost);
+					boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
+					introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
+					m_Sessions[introducerEndpoint] = introducerSession;
+				}
+				if (!address->host.is_unspecified () && address->port)
+				{
+					// create session
+					boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
+					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
+					m_Sessions[remoteEndpoint] = session;
+
+					// introduce
+					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
+							"] through introducer ", introducer->iHost, ":", introducer->iPort);
+					session->WaitForIntroduction ();
+					if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+					{
+						uint8_t buf[1];
+						Send (buf, 0, remoteEndpoint); // send HolePunch
+					}
+				}
+				introducerSession->Introduce (*introducer, router);
 			}
 			else
-				LogPrint (eLogWarning, "SSU: Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+				LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no introducers present");
 		}
 	}
 
