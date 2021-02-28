@@ -111,6 +111,10 @@ namespace client
 	{
 		if (m_Socket)
 		{
+			if (m_RemoteEndpoint.address().is_v6 ())
+				m_Socket->open (boost::asio::ip::tcp::v6 ());
+			else
+				m_Socket->open (boost::asio::ip::tcp::v4 ());
 			boost::system::error_code ec;
 			m_Socket->bind (boost::asio::ip::tcp::endpoint (localAddress, 0), ec);
 			if (ec)
