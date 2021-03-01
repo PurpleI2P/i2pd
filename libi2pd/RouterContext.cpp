@@ -224,7 +224,7 @@ namespace i2p
 					if (port == 9150) port = 9151; // Tor browser
 				}
 				if (port) address->port = port;
-				address->cost = publish ? 3 : 14;
+				address->cost = publish ? i2p::data::COST_NTCP2_PUBLISHED : i2p::data::COST_NTCP2_NON_PUBLISHED;
 				address->ntcp2->isPublished = publish;
 				address->ntcp2->iv = m_NTCP2Keys->iv;
 				updated = true;
@@ -432,7 +432,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
-				addr->cost = 11; 
+				addr->cost = i2p::data::COST_SSU_THROUGH_INTRODUCERS; 
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 				addr->ssu->introducers.clear ();
 				port = addr->port;
@@ -460,7 +460,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
-				addr->cost = 9; 
+				addr->cost = i2p::data::COST_SSU_DIRECT; 
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
 				port = addr->port;

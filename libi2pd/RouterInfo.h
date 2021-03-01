@@ -49,6 +49,11 @@ namespace data
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
 
+	const uint8_t COST_NTCP2_PUBLISHED = 3;
+	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
+	const uint8_t COST_SSU_DIRECT = 9;
+	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
+	
 	const int MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
