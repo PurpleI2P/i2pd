@@ -39,7 +39,8 @@ namespace i2p
 	{
 		eRouterErrorNone = 0,
 		eRouterErrorClockSkew = 1,
-		eRouterErrorOffline = 2 
+		eRouterErrorOffline = 2,
+		eRouterErrorSymmetricNAT = 3
 	};
 
 	class RouterContext: public i2p::garlic::GarlicDestination

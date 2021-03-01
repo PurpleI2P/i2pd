@@ -263,6 +263,9 @@ namespace http {
 					case eRouterErrorOffline:
 						s << " - Offline";
 					break;
+					case eRouterErrorSymmetricNAT:
+						s << " - Symmetric NAT";
+					break;	
 					default: ;
 				}
 				break;

@@ -63,6 +63,7 @@ namespace transport
 			void DeleteAllSessions ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
+			uint16_t GetPort () const { return m_Endpoint.port (); };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
