@@ -48,7 +48,8 @@ namespace client
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
 			void Connect (bool isUniqueLocal = true);
-
+			void Connect (const boost::asio::ip::address& localAddress);
+		
 		protected:
 
 			void Terminate ();
@@ -314,6 +315,8 @@ namespace client
 			void SetUniqueLocal (bool isUniqueLocal) { m_IsUniqueLocal = isUniqueLocal; }
 			bool IsUniqueLocal () const { return m_IsUniqueLocal; }
 
+			void SetLocalAddress (const std::string& localAddress);
+			
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
 			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };
@@ -339,6 +342,7 @@ namespace client
 			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
 			std::set<i2p::data::IdentHash> m_AccessList;
 			bool m_IsAccessList;
+			std::unique_ptr<boost::asio::ip::address> m_LocalAddress;
 	};
 
 	class I2PServerTunnelHTTP: public I2PServerTunnel

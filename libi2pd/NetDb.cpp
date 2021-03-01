@@ -1150,7 +1150,7 @@ namespace data
 		return GetRandomRouter (
 			[v4only](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsPeerTesting () && router->IsSSU (v4only);
+				return !router->IsHidden () && router->IsPeerTesting (v4only);
 			});
 	}
 

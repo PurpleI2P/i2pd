@@ -107,6 +107,22 @@ namespace client
 		}
 	}
 
+	void I2PTunnelConnection::Connect (const boost::asio::ip::address& localAddress)
+	{
+		if (m_Socket)
+		{
+			if (m_RemoteEndpoint.address().is_v6 ())
+				m_Socket->open (boost::asio::ip::tcp::v6 ());
+			else
+				m_Socket->open (boost::asio::ip::tcp::v4 ());
+			boost::system::error_code ec;
+			m_Socket->bind (boost::asio::ip::tcp::endpoint (localAddress, 0), ec);
+			if (ec)
+				LogPrint (eLogError, "I2PTunnel: can't bind to ", localAddress.to_string (), ": ", ec.message ());	
+		}	
+		Connect (false);
+	}	
+		
 	void I2PTunnelConnection::Terminate ()
 	{
 		if (Kill()) return;
@@ -600,6 +616,16 @@ namespace client
 		m_IsAccessList = true;
 	}
 
+	void I2PServerTunnel::SetLocalAddress (const std::string& localAddress)
+	{
+		boost::system::error_code ec;
+		auto addr = boost::asio::ip::address::from_string(localAddress, ec);
+		if (!ec)
+			m_LocalAddress.reset (new boost::asio::ip::address (addr));
+		else
+			LogPrint (eLogError, "I2PTunnel: can't set local address ", localAddress);
+	}	
+		
 	void I2PServerTunnel::Accept ()
 	{
 		if (m_PortDestination)
@@ -631,7 +657,10 @@ namespace client
 			// new connection
 			auto conn = CreateI2PConnection (stream);
 			AddHandler (conn);
-			conn->Connect (m_IsUniqueLocal);
+			if (m_LocalAddress)
+				conn->Connect (*m_LocalAddress);
+			else	
+				conn->Connect (m_IsUniqueLocal);
 		}
 	}
 

@@ -44,9 +44,16 @@ namespace data
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
 
+	const char CAPS_FLAG_V4 = '4';
+	const char CAPS_FLAG_V6 = '6';
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
 
+	const uint8_t COST_NTCP2_PUBLISHED = 3;
+	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
+	const uint8_t COST_SSU_DIRECT = 9;
+	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
+	
 	const int MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
@@ -67,12 +74,18 @@ namespace data
 				eHighBandwidth = 0x02,
 				eExtraBandwidth = 0x04,
 				eReachable = 0x08,
-				eSSUTesting = 0x10,
-				eSSUIntroducer = 0x20,
-				eHidden = 0x40,
-				eUnreachable = 0x80
+				eHidden = 0x10,
+				eUnreachable = 0x20
 			};
 
+			enum AddressCaps
+			{
+				eV4 = 0x01,
+				eV6 = 0x02,
+				eSSUTesting = 0x04,
+				eSSUIntroducer = 0x08
+			};
+		
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -111,7 +124,7 @@ namespace data
 				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
-				uint8_t cost;
+				uint8_t cost, caps;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
 				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
@@ -134,6 +147,9 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
+
+				bool IsIntroducer () const { return caps & eSSUIntroducer; };
+				bool IsPeerTesting () const { return caps & eSSUTesting; };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -150,7 +166,7 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
-			std::shared_ptr<const Address> GetNTCP2Address (bool publishedOnly) const;
+			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const; 
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const; 
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
@@ -183,12 +199,12 @@ namespace data
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
-			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
-			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
+			bool IsPeerTesting (bool v4only) const;	
+			bool IsIntroducer () const;	
 		
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps);
@@ -232,6 +248,7 @@ namespace data
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
 			void ExtractCaps (const char * value);
+			uint8_t ExtractAddressCaps (const char * value) const;
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			void UpdateCapsProperty ();

@@ -48,13 +48,12 @@ namespace transport
 		public:
 
 			SSUServer (int port);
-			SSUServer (const boost::asio::ip::address & addr, int port); // ipv6 only constructor
 			~SSUServer ();
 			void Start ();
 			void Stop ();
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false, bool v4only = false);
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
-				const boost::asio::ip::address& addr, int port, bool peerTest = false);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
 			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
@@ -64,7 +63,9 @@ namespace transport
 			void DeleteAllSessions ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };
+			uint16_t GetPort () const { return m_Endpoint.port (); };
+			void SetLocalAddress (const boost::asio::ip::address& localAddress);
+			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay);
 			void RemoveRelay (uint32_t tag);
@@ -90,7 +91,8 @@ namespace transport
 			void HandleReceivedPackets (std::vector<SSUPacket *> packets,
 				std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >* sessions);
 
-			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
+			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, 
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV4Session (Filter filter);
 			template<typename Filter>
@@ -118,7 +120,6 @@ namespace transport
 				std::shared_ptr<SSUSession> session; // for Bob to Alice
 			};
 
-			bool m_OnlyV6;
 			volatile bool m_IsRunning;
 			std::thread * m_Thread, * m_ReceiversThread, * m_ReceiversThreadV6;
 			boost::asio::io_service m_Service, m_ReceiversService, m_ReceiversServiceV6;

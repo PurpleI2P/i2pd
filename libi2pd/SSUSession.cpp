@@ -321,6 +321,7 @@ namespace transport
 	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU: Session confirmed received");
+		m_ConnectTimer.cancel (); 
 		auto headerSize = GetSSUHeaderSize (buf);
 		if (headerSize >= len)
 		{
@@ -683,6 +684,8 @@ namespace transport
 		buf += 2; // our port
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
+		if (ourPort != m_Server.GetPort ())
+			i2p::context.SetError (eRouterErrorSymmetricNAT);
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);
