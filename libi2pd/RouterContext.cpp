@@ -432,6 +432,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
+				addr->cost = 11; 
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 				addr->ssu->introducers.clear ();
 				port = addr->port;
@@ -459,6 +460,7 @@ namespace i2p
 		for (auto& addr : addresses)
 			if (addr->ssu)
 			{
+				addr->cost = 9; 
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
 				port = addr->port;

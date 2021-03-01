@@ -772,7 +772,7 @@ namespace data
 		addr->host = boost::asio::ip::address::from_string (host);
 		addr->port = port;
 		addr->transportStyle = eTransportSSU;
-		addr->cost = 10; // NTCP2 should have priority over SSU
+		addr->cost = 9; // NTCP2 should have priority over SSU
 		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
