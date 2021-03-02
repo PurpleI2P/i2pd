@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1079,22 +1079,37 @@ namespace data
 		auto supportedTransports = m_SupportedTransports & (eSSUV4 | eSSUV6);
 		if (!supportedTransports) return false; // no SSU
 		if (v4only && !(supportedTransports & eSSUV4)) return false; // no SSU v4
-		return GetAddress (
+		return (bool)GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting ();
-			}) != nullptr;	
+			});	
 	}
 
 	bool RouterInfo::IsIntroducer () const
 	{
 		// TODO: support ipv6
 		if (!(m_SupportedTransports & eSSUV4)) return false;
-		return GetAddress (
+		return (bool)GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsIntroducer ();
-			}) != nullptr;
+			});
+	}	
+
+	bool RouterInfo::IsReachableFrom (const RouterInfo& other) const
+	{
+		auto commonTransports = m_SupportedTransports & other.m_SupportedTransports;
+		if (!commonTransports) return false;
+		if (commonTransports & eNTCP2V6Mesh) return true;
+		return (bool)GetAddress (
+			[commonTransports](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{	
+				// TODO:check v4 and v6 separately based on caps
+				if ((commonTransports & (eNTCP2V4 | eNTCP2V6)) && address->IsPublishedNTCP2 ()) return true;
+				if ((commonTransports & (eSSUV4 | eSSUV6)) && address->IsReachableSSU ()) return true;
+				return false;
+			});
 	}	
 }
 }

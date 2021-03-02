@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -393,14 +393,14 @@ namespace tunnel
 		}
 	}
 
-	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const
+	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const
 	{
 		bool isExploratory = (i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ());
-		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop):
-			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
+		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
+			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse);
 
 		if (!hop || hop->GetProfile ()->IsBad ())
-			hop = i2p::data::netdb.GetRandomRouter (prevHop);
+			hop = i2p::data::netdb.GetRandomRouter (prevHop, reverse);
 		return hop;
 	}
 
@@ -429,7 +429,7 @@ namespace tunnel
 
 		for(int i = 0; i < numHops; i++ )
 		{
-			auto hop = nextHop (prevHop);
+			auto hop = nextHop (prevHop, inbound);
 			if (!hop)
 			{
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
@@ -438,7 +438,7 @@ namespace tunnel
 			if (inbound && (i == numHops - 1) && !hop->IsReachable ())
 			{
 				// if first is not reachable try again
-				auto hop1 = nextHop (prevHop);
+				auto hop1 = nextHop (prevHop, true);
 				if (hop1) hop = hop1;
 			}	
 			prevHop = hop;
@@ -460,7 +460,7 @@ namespace tunnel
 		}
 		// explicit peers in use
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
-		return StandardSelectPeers(peers, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, std::placeholders::_1));
+		return StandardSelectPeers(peers, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, std::placeholders::_1, std::placeholders::_2));
 	}
 
 	bool TunnelPool::SelectExplicitPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers, bool isInbound)

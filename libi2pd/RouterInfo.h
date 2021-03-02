@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -147,7 +147,8 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
-
+				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
+				
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
 			};
@@ -196,7 +197,8 @@ namespace data
 			void DisableV4 ();
 			void EnableMesh ();
 			void DisableMesh ();	
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
+			bool IsReachableFrom (const RouterInfo& other) const;	
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsHidden () const { return m_Caps & eHidden; };

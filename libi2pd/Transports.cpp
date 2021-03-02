@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -503,7 +503,7 @@ namespace transport
 						}
 						peer.numAttempts++;
 					}
-					if (address)
+					if (address && address->IsReachableSSU ())
 					{
 						m_SSUServer->CreateSession (peer.router, address);
 						return true;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -57,7 +57,7 @@ namespace data
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
 		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
 			Reseed ();
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo ()))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 		
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
@@ -1135,13 +1135,14 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
 	{
 		return GetRandomRouter (
-			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					router->IsCompatible (*compatibleWith);
+					(reverse ? compatibleWith->IsReachableFrom (*router) :
+						router->IsReachableFrom (*compatibleWith));
 			});
 	}
 
@@ -1172,13 +1173,14 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const
+	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
 	{
 		return GetRandomRouter (
-			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					router->IsCompatible (*compatibleWith) &&
+					(reverse ? compatibleWith->IsReachableFrom (*router) :
+						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION;
 			});
