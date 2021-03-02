@@ -388,6 +388,7 @@ namespace i2p
 		else if (limit >   48) { SetBandwidth('M'); }
 		else if (limit >   12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
+		m_BandwidthLimit = limit; // set precise limit
 	}
 
 	void RouterContext::SetShareRatio (int percents)
