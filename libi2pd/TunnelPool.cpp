@@ -430,6 +430,11 @@ namespace tunnel
 		for(int i = 0; i < numHops; i++ )
 		{
 			auto hop = nextHop (prevHop, inbound);
+			if (!hop && !i) // if no suitable peer found for first hop, try already connected
+			{	
+				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
+				hop = i2p::transport::transports.GetRandomPeer ();
+			}	
 			if (!hop)
 			{
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
