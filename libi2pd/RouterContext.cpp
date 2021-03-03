@@ -48,6 +48,7 @@ namespace i2p
 			auto initState = new i2p::crypto::NoiseSymmetricState ();
 			i2p::crypto::InitNoiseNState (*initState, GetIdentity ()->GetEncryptionPublicKey ());
 			m_InitialNoiseState.reset (initState);	
+			m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(*initState);
 		}	
 	}
 
@@ -739,8 +740,10 @@ namespace i2p
 				return;
 			}
 			buf += 4;
-			auto session = std::make_shared<i2p::garlic::ECIESX25519AEADRatchetSession>(this, false);
-			session->HandleNextMessageForRouter (buf, len);
+			if (m_ECIESSession)
+				m_ECIESSession->HandleNextMessage (buf, len);
+			else
+				LogPrint (eLogError, "Router: Session is not set for ECIES router");
 		}	
 		else	
 			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
