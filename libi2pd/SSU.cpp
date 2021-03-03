@@ -671,7 +671,7 @@ namespace transport
 				ScheduleIntroducersUpdateTimer ();
 				return;
 			}
-			if (i2p::context.GetStatus () == eRouterStatusOK) return; // we don't need introducers anymore
+			if (i2p::context.GetStatus () != eRouterStatusFirewalled) return; // we don't need introducers
 			// we are firewalled
 			if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable ();
 			std::list<boost::asio::ip::udp::endpoint> newList;
@@ -712,9 +712,19 @@ namespace transport
 			m_Introducers = newList;
 			if (m_Introducers.size () < SSU_MAX_NUM_INTRODUCERS)
 			{
-				auto introducer = i2p::data::netdb.GetRandomIntroducer ();
-				if (introducer)
-					CreateSession (introducer);
+				for (auto i = m_Introducers.size (); i < SSU_MAX_NUM_INTRODUCERS; i++)
+				{	
+					auto introducer = i2p::data::netdb.GetRandomIntroducer ();
+					if (introducer)
+					{	
+						auto address = introducer->GetSSUAddress (true); // v4
+						if (address && !address->host.is_unspecified ())
+						{
+							boost::asio::ip::udp::endpoint ep (address->host, address->port);
+							CreateDirectSession  (introducer, ep, false);
+						}	
+					}	
+				}	
 			}
 			ScheduleIntroducersUpdateTimer ();
 		}
