@@ -653,6 +653,14 @@ namespace transport
 		return ret;
 	}
 
+	void SSUServer::RescheduleIntroducersUpdateTimer ()
+	{
+		m_IntroducersUpdateTimer.cancel ();
+		m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INTERVAL/2));
+		m_IntroducersUpdateTimer.async_wait (std::bind (&SSUServer::HandleIntroducersUpdateTimer,
+			this, std::placeholders::_1));
+	}	
+		
 	void SSUServer::ScheduleIntroducersUpdateTimer ()
 	{
 		m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INTERVAL));
@@ -671,7 +679,12 @@ namespace transport
 				ScheduleIntroducersUpdateTimer ();
 				return;
 			}
-			if (i2p::context.GetStatus () != eRouterStatusFirewalled) return; // we don't need introducers
+			if (i2p::context.GetStatus () != eRouterStatusFirewalled)
+			{	
+				// we don't need introducers
+				m_Introducers.clear ();
+				return; 
+			}	
 			// we are firewalled
 			if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable ();
 			std::list<boost::asio::ip::udp::endpoint> newList;
@@ -712,16 +725,21 @@ namespace transport
 			m_Introducers = newList;
 			if (m_Introducers.size () < SSU_MAX_NUM_INTRODUCERS)
 			{
+				std::set<std::shared_ptr<const i2p::data::RouterInfo> > requested;
 				for (auto i = m_Introducers.size (); i < SSU_MAX_NUM_INTRODUCERS; i++)
 				{	
 					auto introducer = i2p::data::netdb.GetRandomIntroducer ();
-					if (introducer)
+					if (introducer && !requested.count (introducer)) // not requested already
 					{	
 						auto address = introducer->GetSSUAddress (true); // v4
 						if (address && !address->host.is_unspecified ())
 						{
 							boost::asio::ip::udp::endpoint ep (address->host, address->port);
-							CreateDirectSession  (introducer, ep, false);
+							if (std::find (m_Introducers.begin (), m_Introducers.end (), ep) == m_Introducers.end ()) // not connected yet
+							{	
+								CreateDirectSession  (introducer, ep, false);
+								requested.insert (introducer);
+							}	
 						}	
 					}	
 				}	

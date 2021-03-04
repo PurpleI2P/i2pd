@@ -70,7 +70,8 @@ namespace transport
 			void AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay);
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
-
+			void RescheduleIntroducersUpdateTimer ();
+			
 			void NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session = nullptr);
 			PeerTestParticipant GetPeerTestParticipant (uint32_t nonce);
 			std::shared_ptr<SSUSession> GetPeerTestSession (uint32_t nonce);

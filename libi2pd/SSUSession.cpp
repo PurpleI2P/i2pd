@@ -999,7 +999,10 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
 					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
+					{	
 						i2p::context.SetStatus (eRouterStatusFirewalled);
+						m_Server.RescheduleIntroducersUpdateTimer ();
+					}	
 				}
 				else
 				{
