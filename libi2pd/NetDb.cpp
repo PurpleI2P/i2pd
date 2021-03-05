@@ -645,7 +645,9 @@ namespace data
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 		{
-			if (direct && !floodfill->IsCompatible (i2p::context.GetRouterInfo ())) direct = false; // check if fllodfill is reachable
+			if (direct && !floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) &&
+			    !i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) 
+				direct = false; // floodfill can't be reached directly
 			if (direct)
 				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			else
@@ -1090,7 +1092,8 @@ namespace data
 			LogPrint (eLogInfo, "NetDb: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
 			m_PublishExcluded.insert (floodfill->GetIdentHash ());
 			m_PublishReplyToken = replyToken;
-			if (floodfill->IsCompatible (i2p::context.GetRouterInfo ())) // able to connect?
+			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
+			    i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))  // already connected ?    
 				// send directly
 				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
 			else
