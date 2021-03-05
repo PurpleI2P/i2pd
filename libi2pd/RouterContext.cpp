@@ -671,8 +671,8 @@ namespace i2p
 			m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 			if (oldIdentity)
 				m_RouterInfo.SetRouterIdentity (GetIdentity ()); // from new keys
-			m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 			m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
+			m_RouterInfo.DeleteProperty ("coreVersion"); // TODO: remove later
 		}
 		else
 		{
