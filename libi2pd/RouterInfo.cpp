@@ -193,7 +193,6 @@ namespace data
 		auto addresses = boost::make_shared<Addresses>();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;
-		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
@@ -271,7 +270,6 @@ namespace data
 						LogPrint (eLogError, "RouterInfo: Introducer is presented for non-SSU address. Skipped");
 						continue;
 					}
-					introducers = true;
 					size_t l = strlen(key);
 					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
@@ -328,8 +326,13 @@ namespace data
 				{
 					if (isHost)
 						supportedTransports |= address->host.is_v4 () ? eSSUV4 :  eSSUV6;
+					else if (address->caps | AddressCaps::eV6) 
+					{	
+						supportedTransports |= eSSUV6;
+						if (address->caps | AddressCaps::eV4) supportedTransports |= eSSUV4; // in additional to v6
+					}	
 					else 
-						if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented	
+						supportedTransports |= eSSUV4; // in case if host or 6 caps is not preasented, we assume 4
 				}	
 			}	
 			if (supportedTransports)
@@ -403,7 +406,7 @@ namespace data
 			if (!s) return;
 		}
 
-		if (!m_SupportedTransports || !m_Addresses->size() || (UsesIntroducer () && !introducers))
+		if (!m_SupportedTransports)
 			SetUnreachable (true);
 	}
 
