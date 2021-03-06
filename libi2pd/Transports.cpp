@@ -189,6 +189,7 @@ namespace transport
 							proxytype = NTCP2Server::eHTTPProxy;
 
 						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
+						i2p::context.SetStatus (eRouterStatusProxy);
 					}
 					else
 						LogPrint(eLogError, "Transports: unsupported NTCP2 proxy URL ", ntcp2proxy);
