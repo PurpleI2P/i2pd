@@ -312,8 +312,8 @@ namespace data
 					{
 						if (address->caps)
 						{	
-							if (address->caps | AddressCaps::eV4) supportedTransports |= eNTCP2V4;
-							if (address->caps | AddressCaps::eV6) supportedTransports |= eNTCP2V6;
+							if (address->caps & AddressCaps::eV4) supportedTransports |= eNTCP2V4;
+							if (address->caps & AddressCaps::eV6) supportedTransports |= eNTCP2V6;
 						}
 						else
 							supportedTransports |= eNTCP2V4; // most likely, since we don't have host
@@ -326,10 +326,10 @@ namespace data
 				{
 					if (isHost)
 						supportedTransports |= address->host.is_v4 () ? eSSUV4 :  eSSUV6;
-					else if (address->caps | AddressCaps::eV6) 
+					else if (address->caps & AddressCaps::eV6) 
 					{	
 						supportedTransports |= eSSUV6;
-						if (address->caps | AddressCaps::eV4) supportedTransports |= eSSUV4; // in additional to v6
+						if (address->caps & AddressCaps::eV4) supportedTransports |= eSSUV4; // in additional to v6
 					}	
 					else 
 						supportedTransports |= eSSUV4; // in case if host or 6 caps is not preasented, we assume 4
