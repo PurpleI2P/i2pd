@@ -1158,54 +1158,53 @@ namespace transport
 				}
 			}
 			else
-			{
 				LogPrint(eLogInfo, "NTCP2: Proxy is not used");
-				auto& addresses = context.GetRouterInfo ().GetAddresses ();
-				for (const auto& address: addresses)
+			// start acceptors
+			auto& addresses = context.GetRouterInfo ().GetAddresses ();
+			for (const auto& address: addresses)
+			{
+				if (!address) continue;
+				if (address->IsPublishedNTCP2 () && address->port)
 				{
-					if (!address) continue;
-					if (address->IsPublishedNTCP2 ())
+					if (address->host.is_v4())
 					{
-						if (address->host.is_v4())
+						try
 						{
-							try
-							{
-								auto ep = m_Address4 ? boost::asio::ip::tcp::endpoint (m_Address4->address(), address->port):
-									boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), address->port);
-								m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), ep));
-							}
-							catch ( std::exception & ex )
-							{
-								LogPrint(eLogError, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
-								ThrowFatal ("Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
-								continue;
-							}
-
-							LogPrint (eLogInfo, "NTCP2: Start listening v4 TCP port ", address->port);
-							auto conn = std::make_shared<NTCP2Session>(*this);
-							m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
+							auto ep = m_Address4 ? boost::asio::ip::tcp::endpoint (m_Address4->address(), address->port):
+								boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), address->port);
+							m_NTCP2Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), ep));
 						}
-						else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
+						catch ( std::exception & ex )
 						{
-							m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
-							try
-							{
-								m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
-								m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
-								m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
-								m_NTCP2V6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
-								m_NTCP2V6Acceptor->listen ();
+							LogPrint(eLogError, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
+							ThrowFatal ("Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
+							continue;
+						}
 
-								LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
-								auto conn = std::make_shared<NTCP2Session> (*this);
-								m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
-							}
-							catch ( std::exception & ex )
-							{
-								LogPrint(eLogError, "NTCP2: failed to bind to v6 port ", address->port, ": ", ex.what());
-								ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
-								continue;
-							}
+						LogPrint (eLogInfo, "NTCP2: Start listening v4 TCP port ", address->port);
+						auto conn = std::make_shared<NTCP2Session>(*this);
+						m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
+					}
+					else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
+					{
+						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
+						try
+						{
+							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
+							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
+							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
+							m_NTCP2V6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
+							m_NTCP2V6Acceptor->listen ();
+
+							LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
+							auto conn = std::make_shared<NTCP2Session> (*this);
+							m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this, conn, std::placeholders::_1));
+						}
+						catch ( std::exception & ex )
+						{
+							LogPrint(eLogError, "NTCP2: failed to bind to v6 port ", address->port, ": ", ex.what());
+							ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
+							continue;
 						}
 					}
 				}
