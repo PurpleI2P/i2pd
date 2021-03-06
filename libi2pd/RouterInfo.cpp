@@ -522,7 +522,7 @@ namespace data
 				if (address.IsNTCP2 ())
 				{	
 					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 ())
+					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified ())
 						 isPublished = true;
 					else
 					{
@@ -545,13 +545,24 @@ namespace data
 				// caps
 				WriteString ("caps", properties);
 				properties << '=';
-				std::string caps;
-				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-				if (IsReachable ())
+				std::string caps;	
+				if (address.host.is_v4 ())
+				{	
+					if (IsReachable ())
+						isPublished = true;
+					else
+						caps += CAPS_FLAG_V4;
+				}
+				else if (address.host.is_v6 ())
 					isPublished = true;
 				else
-					caps += CAPS_FLAG_V4;
+				{
+					if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
+					if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+				}	
+				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
+				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
 				WriteString (caps, properties);
 				properties << ';';
 			}
@@ -640,7 +651,7 @@ namespace data
 				}
 			}
 
-			if (address.IsPublishedNTCP2 ())
+			if (address.IsNTCP2 () && isPublished)
 			{
 				// publish i for NTCP2
 				WriteString ("i", properties); properties << '=';
