@@ -195,7 +195,6 @@ namespace transport
 				}
 				else
 					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
-				return;
 			}
 			else
 				m_NTCP2Server = new NTCP2Server ();
