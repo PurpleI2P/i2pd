@@ -186,6 +186,11 @@ namespace util
 		{
 			bool published; i2p::config::GetOption("ntcp2.published", published);
 			if (published)
+			{	
+				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
+				if (!ntcp2proxy.empty ()) published = false;
+			}	
+			if (published)
 			{
 				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
 				if (!ntcp2port) ntcp2port = port; // use standard port

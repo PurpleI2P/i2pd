@@ -84,7 +84,14 @@ namespace i2p
 		    NewNTCP2Keys ();
 		bool ntcp2Published = false; 
 		if (ntcp2)
+		{	
 			i2p::config::GetOption("ntcp2.published", ntcp2Published);
+			if (ntcp2Published)
+			{
+				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
+				if (!ntcp2proxy.empty ()) ntcp2Published = false;
+			}	
+		}	
 		uint8_t caps = 0;
 		if (ipv4)
 		{
