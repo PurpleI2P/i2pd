@@ -419,7 +419,7 @@ namespace tunnel
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
 			if (r && !r->GetProfile ()->IsBad () && 
-				(numHops > 1 || !inbound || r->IsReachable ())) // first must be reachable
+				(numHops > 1 || (!inbound && r->IsV4 ()) || r->IsReachable ())) // first inbound must be reachable
 			{
 				prevHop = r;
 				peers.push_back (r->GetRouterIdentity ());
@@ -440,9 +440,10 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}
-			if (inbound && (i == numHops - 1) && !hop->IsReachable ())
+			if ((i == numHops - 1) &&
+				((inbound && !hop->IsReachable ()) ||  // IBGW is not reachable
+				(!inbound && !hop->IsV4 ())))	// OBEP is not ipv4
 			{
-				// if first is not reachable try again
 				auto hop1 = nextHop (prevHop, true);
 				if (hop1) hop = hop1;
 			}	
