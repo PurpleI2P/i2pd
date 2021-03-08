@@ -182,6 +182,7 @@ namespace data
 			void DeleteProperty (const std::string& key); // called from RouterContext only
 			std::string GetProperty (const std::string& key) const; // called from RouterContext only
 			void ClearProperties () { m_Properties.clear (); };
+			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsSSU (bool v4only = true) const;

@@ -546,10 +546,14 @@ namespace data
 				WriteString ("caps", properties);
 				properties << '=';
 				std::string caps;	
+				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
 				if (address.host.is_v4 ())
 				{	
 					if (IsReachable ())
+					{	
 						isPublished = true;
+						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					}	
 					else
 						caps += CAPS_FLAG_V4;
 				}
@@ -561,8 +565,6 @@ namespace data
 					if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
 					if (caps.empty ()) caps += CAPS_FLAG_V4;
 				}	
-				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
 				WriteString (caps, properties);
 				properties << ';';
 			}
@@ -799,9 +801,6 @@ namespace data
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Addresses->push_back(std::move(addr));
-
-		m_Caps |= eSSUTesting;
-		m_Caps |= eSSUIntroducer;
 	}
 
 	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host, int port)
@@ -927,13 +926,23 @@ namespace data
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
+		{	
 			m_SupportedTransports |= eSSUV6 | eNTCP2V6;
+			uint8_t addressCaps = AddressCaps::eV6;
+			if (IsV4 ()) addressCaps |= AddressCaps::eV4;
+			SetUnreachableAddressesTransportCaps (addressCaps);
+		}	
 	}
 
 	void RouterInfo::EnableV4 ()
 	{
 		if (!IsV4 ())
+		{	
 			m_SupportedTransports |= eSSUV4 | eNTCP2V4;
+			uint8_t addressCaps = AddressCaps::eV4;
+			if (IsV6 ()) addressCaps |= AddressCaps::eV6;
+			SetUnreachableAddressesTransportCaps (addressCaps);
+		}	
 	}
 
 
@@ -945,6 +954,7 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
+				addr->caps &= ~AddressCaps::eV6;
 				if (addr->host.is_v6 ())
 					it = m_Addresses->erase (it);
 				else
@@ -961,6 +971,7 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
+				addr->caps &= ~AddressCaps::eV4;
 				if (addr->host.is_v4 ())
 					it = m_Addresses->erase (it);
 				else
@@ -1126,5 +1137,18 @@ namespace data
 				return false;
 			});
 	}	
+
+	void RouterInfo::SetUnreachableAddressesTransportCaps (uint8_t transports)
+	{
+		for (auto& addr: *m_Addresses)
+		{
+			// TODO: implement SSU
+			if (addr->transportStyle == eTransportNTCP && (!addr->IsPublishedNTCP2 () || addr->port))
+			{
+				addr->caps &= ~(eV4 | eV6);
+				addr->caps |= transports;
+			}
+		}
+	}
 }
 }

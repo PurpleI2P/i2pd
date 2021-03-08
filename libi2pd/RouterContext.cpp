@@ -92,7 +92,7 @@ namespace i2p
 				if (!ntcp2proxy.empty ()) ntcp2Published = false;
 			}	
 		}	
-		uint8_t caps = 0;
+		uint8_t caps = 0, addressCaps = 0;
 		if (ipv4)
 		{
 			std::string host = "127.0.0.1";
@@ -109,7 +109,10 @@ namespace i2p
 				if (ntcp2Published)
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v4::from_string (host), port);
 				else // add non-published NTCP2 address
+				{
+					addressCaps = i2p::data::RouterInfo::AddressCaps::eV4;
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv); 
+				}		
 			}	
 			if (ssu)
 			{	
@@ -138,8 +141,12 @@ namespace i2p
 						ntcp2Host = host;
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (ntcp2Host), port);
 				}
-				else if (!ipv4) // no other ntcp2 addresses yet
-					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+				else 
+				{	
+					if (!ipv4) // no other ntcp2 addresses yet
+						routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+				}	
 			}	
 			if (ssu)
 			{	
@@ -153,7 +160,9 @@ namespace i2p
 			if (!yggaddr.is_unspecified ())
 				routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
 		}	
-		
+
+		if (addressCaps)
+			routerInfo.SetUnreachableAddressesTransportCaps (addressCaps);
 		routerInfo.SetCaps (caps); // caps + L 
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
@@ -494,7 +503,6 @@ namespace i2p
 	{
 		if (supportsV6)
 		{
-			m_RouterInfo.EnableV6 ();
 			// insert v6 addresses if necessary
 			bool foundSSU = false, foundNTCP2 = false;
 			uint16_t port = 0;
@@ -538,6 +546,7 @@ namespace i2p
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
 				}
 			}
+			m_RouterInfo.EnableV6 ();
 		}
 		else
 			m_RouterInfo.DisableV6 ();
