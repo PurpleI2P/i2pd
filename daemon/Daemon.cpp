@@ -144,6 +144,25 @@ namespace util
 		ipv4 = false;
 		ipv6 = true;
 #endif
+		// ifname -> address
+		std::string ifname;  i2p::config::GetOption("ifname", ifname);
+		if (ipv4 && i2p::config::IsDefault ("address4"))
+		{
+			std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
+			if (!ifname4.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname4, false).to_string ()); // v4
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4 
+		}	
+		if (ipv6 && i2p::config::IsDefault ("address6"))
+		{
+			std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+			if (!ifname6.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname6, true).to_string ()); // v6
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
+		}	
+		
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		boost::asio::ip::address_v6 yggaddr;
 		if (ygg)

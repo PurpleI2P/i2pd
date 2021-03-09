@@ -76,9 +76,6 @@ namespace i2p
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ygg; 			 i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		bool nat;            i2p::config::GetOption("nat", nat);
-		std::string ifname;  i2p::config::GetOption("ifname", ifname);
-		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
-		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
 		
 		if ((ntcp2 || ygg) && !m_NTCP2Keys)
 		    NewNTCP2Keys ();
@@ -98,12 +95,13 @@ namespace i2p
 			std::string host = "127.0.0.1";
 			if (!i2p::config::IsDefault("host"))
 				i2p::config::GetOption("host", host);
-			else if (!nat && !ifname.empty())
-				/* bind to interface, we have no NAT so set external address too */
-				host = i2p::util::net::GetInterfaceAddress(ifname, false).to_string(); // v4
-			if(ifname4.size())
-				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
-
+			else if (!nat)
+			{
+				// we have no NAT so set external address from local address
+				std::string address4; i2p::config::GetOption("address4", address4);
+				if (!address4.empty ()) host = address4;
+			}	
+				
 			if (ntcp2)
 			{
 				if (ntcp2Published)
@@ -125,10 +123,11 @@ namespace i2p
 			std::string host = "::1";
 			if (!i2p::config::IsDefault("host") && !ipv4) // override if v6 only
 				i2p::config::GetOption("host", host);
-			else if (!ifname.empty())
-				host = i2p::util::net::GetInterfaceAddress(ifname, true).to_string(); // v6
-			if(ifname6.size())
-				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
+			else 
+			{
+				std::string address6; i2p::config::GetOption("address6", address6);
+				if (!address6.empty ()) host = address6;
+			}
 			
 			if (ntcp2)
 			{
