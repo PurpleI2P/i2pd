@@ -1263,12 +1263,15 @@ namespace http {
 			ident.FromBase32 (b32);
 			auto dest = i2p::client::context.FindLocalDestination (ident);
 
-			if (dest) {
+			if (dest) 
+			{
 				std::size_t pos;
 				pos = name.find (".i2p");
-				if (pos == (name.length () - 4)) {
+				if (pos == (name.length () - 4)) 
+				{
 					pos = name.find (".b32.i2p");
-					if (pos == std::string::npos) {
+					if (pos == std::string::npos) 
+					{
 						auto signatureLen = dest->GetIdentity ()->GetSignatureLen ();
 						uint8_t * signature = new uint8_t[signatureLen];
 						char * sig = new char[signatureLen*2];
@@ -1280,16 +1283,17 @@ namespace http {
 						sig[len] = 0;
 						out << "#!sig=" << sig;
 						s << "<b>SUCCESS</b>:<br>\r\n<textarea readonly cols=\"80\" rows=\"10\" wrap=\"on\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n";
-						delete[] signature, sig;
-					} else {
+						delete[] signature;
+						delete[] sig;
+					} 
+					else 
 						s << "<b>ERROR</b>:&nbsp;Domain can't end with .b32.i2p\r\n<br>\r\n<br>\r\n";
-					}
-				} else {
+				} 
+				else
 					s << "<b>ERROR</b>:&nbsp;Domain must end with .i2p\r\n<br>\r\n<br>\r\n";
-				}
-			} else {
+			} 
+			else
 				s << "<b>ERROR</b>:&nbsp;Such destination is not found\r\n<br>\r\n<br>\r\n";
-			}
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">Return to destination page</a>\r\n";
 			return;
