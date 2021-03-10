@@ -367,7 +367,7 @@ namespace util
 		if(!ntcp2) LogPrint(eLogInfo, "Daemon: ntcp2 disabled");
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
-		i2p::transport::transports.Start(ntcp2 || i2p::context.SupportsMesh (), ssu);
+		i2p::transport::transports.Start(ntcp2, ssu);
 		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else

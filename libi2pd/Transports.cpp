@@ -174,9 +174,9 @@ namespace transport
 		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
 		i2p::http::URL proxyurl;
 		// create NTCP2. TODO: move to acceptor
-		if (enableNTCP2)
+		if (enableNTCP2 || i2p::context.SupportsMesh ())
 		{
-			if(!ntcp2proxy.empty())
+			if(!ntcp2proxy.empty() && enableNTCP2)
 			{
 				if(proxyurl.parse(ntcp2proxy))
 				{
