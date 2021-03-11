@@ -102,8 +102,13 @@ namespace util
 		if (logclftime)
 			i2p::log::Logger().SetTimeFormat ("[%d/%b/%Y:%H:%M:%S %z]");
 
+#ifdef WIN32_APP
+		// Win32 app with GUI supports only logging to file
+		logs = "file";
+#else
 		if (isDaemon && (logs == "" || logs == "stdout"))
 			logs = "file";
+#endif
 
 		i2p::log::Logger().SetLogLevel(loglevel);
 		if (logstream) {
@@ -123,7 +128,7 @@ namespace util
 			// use stdout -- default
 		}
 
-		LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
+		LogPrint(eLogNone,  "i2pd v", VERSION, " starting");
 		LogPrint(eLogDebug, "FS: main config file: ", config);
 		LogPrint(eLogDebug, "FS: data directory: ", datadir);
 

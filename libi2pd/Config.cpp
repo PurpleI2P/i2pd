@@ -19,6 +19,7 @@
 #include "Identity.h"
 #include "Config.h"
 #include "version.h"
+#include "Log.h"
 
 using namespace boost::program_options;
 
@@ -65,7 +66,7 @@ namespace config {
 			("ssu", bool_switch()->default_value(true),                       "Enable SSU transport (default: enabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
-			("svcctl", value<std::string>()->default_value(""),               "Windows service management ('install' or 'remove')")
+			("svcctl", value<std::string>()->default_value(""),               "Ignored")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
 			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask")
 #endif
@@ -209,7 +210,7 @@ namespace config {
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:9de3:fea4:f6ac::ace]:7070/"
-			),        													  "Reseed URLs through the Yggdrasil, separated by comma") 	                                                
+			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
 		options_description addressbook("AddressBook options");
@@ -218,12 +219,12 @@ namespace config {
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
 			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
-			("addressbook.hostsfile", value<std::string>()->default_value(""), "File to dump addresses in hosts.txt format");
+			("addressbook.hostsfile", value<std::string>()->default_value(""),     "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
 		trust.add_options()
 			("trust.enabled", value<bool>()->default_value(false),     "Enable explicit trust options")
-			("trust.family", value<std::string>()->default_value(""),  "Router Familiy to trust for first hops")
+			("trust.family", value<std::string>()->default_value(""),  "Router Family to trust for first hops")
 			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
 			("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
 		;
@@ -281,9 +282,9 @@ namespace config {
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
 			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
-			("meshnets.yggaddress", value<std::string>()->default_value(""), 		 "Yggdrasil address to publish")
-		;	
-		
+			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
+		;
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -314,7 +315,7 @@ namespace config {
 		try
 		{
 			auto style = boost::program_options::command_line_style::unix_style
-				| boost::program_options::command_line_style::allow_long_disguise;
+			           | boost::program_options::command_line_style::allow_long_disguise;
 			style &=   ~ boost::program_options::command_line_style::allow_guessing;
 			if (ignoreUnknown)
 				store(command_line_parser(argc, argv).options(m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);
@@ -323,6 +324,7 @@ namespace config {
 		}
 		catch (boost::program_options::error& e)
 		{
+			ThrowFatal ("Error while parsing arguments: ", e.what());
 			std::cerr << "args: " << e.what() << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -360,6 +362,7 @@ namespace config {
 
 		if (!config.is_open())
 		{
+			ThrowFatal ("Missing or unreadable config file: ", path);
 			std::cerr << "missing/unreadable config file: " << path << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -370,6 +373,7 @@ namespace config {
 		}
 		catch (boost::program_options::error& e)
 		{
+			ThrowFatal ("Error while parsing config file: ", e.what());
 			std::cerr << e.what() << std::endl;
 			exit(EXIT_FAILURE);
 		};
