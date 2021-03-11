@@ -188,7 +188,7 @@ namespace transport
 						if (proxyurl.schema == "http")
 							proxytype = NTCP2Server::eHTTPProxy;
 
-						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port, proxyurl.user, proxyurl.pass);
 						i2p::context.SetStatus (eRouterStatusProxy);
 					}
 					else

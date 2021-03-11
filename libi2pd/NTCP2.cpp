@@ -1465,11 +1465,14 @@ namespace transport
 		});
 	}
 
-	void NTCP2Server::UseProxy(ProxyType proxytype, const std::string & addr, uint16_t port)
+	void NTCP2Server::UseProxy(ProxyType proxytype, const std::string& addr, uint16_t port,
+		const std::string& user, const std::string& pass)
 	{
 		m_ProxyType = proxytype;
 		m_ProxyAddress = addr;
 		m_ProxyPort = port;
+		if ((!user.empty () || !pass.empty ()) && m_ProxyType == eHTTPProxy )
+			m_ProxyAuthorization = "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
 	}
 
 	void NTCP2Server::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer)
@@ -1538,8 +1541,10 @@ namespace transport
 				if(ep.address ().is_v6 ())
 					req.uri = "[" + ep.address ().to_string() + "]:" + std::to_string(ep.port ());
 				else
-					req.uri = ep.address ().to_string() + ":" + std::to_string(ep.port ());
-
+					req.uri = ep.address ().to_string() + ":" + std::to_string(ep.port ());	
+				if (!m_ProxyAuthorization.empty ())
+					req.AddHeader("Proxy-Authorization", m_ProxyAuthorization);
+				
 				boost::asio::streambuf writebuff;
 				std::ostream out(&writebuff);
 				out << req.to_string();
