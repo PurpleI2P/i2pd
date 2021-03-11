@@ -1471,8 +1471,8 @@ namespace transport
 		m_ProxyType = proxytype;
 		m_ProxyAddress = addr;
 		m_ProxyPort = port;
-		if ((!user.empty () || !pass.empty ()) && m_ProxyType == eHTTPProxy )
-			m_ProxyAuthorization = "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+		if (m_ProxyType == eHTTPProxy )
+			m_ProxyAuthorization = i2p::http::CreateBasicAuthorizationString (user, pass);
 	}
 
 	void NTCP2Server::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer)

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -166,6 +166,9 @@ namespace http
 	 * @return true on success, false otherwise
 	 */
 	bool MergeChunkedResponse (std::istream& in, std::ostream& out);
+
+	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass); 
+		
 } // http
 } // i2p
 
