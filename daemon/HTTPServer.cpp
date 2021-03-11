@@ -410,7 +410,7 @@ namespace http {
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
-		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\" wrap=\"on\">";
+		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
 		{
@@ -1282,7 +1282,12 @@ namespace http {
 						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
 						sig[len] = 0;
 						out << "#!sig=" << sig;
-						s << "<b>SUCCESS</b>:<br>\r\n<textarea readonly cols=\"80\" rows=\"10\" wrap=\"on\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n";
+						s << "<b>SUCCESS</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\" method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
+						     "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
+						     "<b>Register at reg.i2p:</b>\r\n<br>\r\n"
+						     "<b>Description:</b>\r\n<input type=\"text\" maxlength=\"64\" name=\"desc\" placeholder=\"A bit information about service on domain\">\r\n"
+						     "<input type=\"submit\" value=\"Submit\">\r\n"
+						     "</form>\r\n<br>\r\n";
 						delete[] signature;
 						delete[] sig;
 					} 
