@@ -685,7 +685,12 @@ namespace transport
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
 		if (ourPort != m_Server.GetPort ())
-			i2p::context.SetError (eRouterErrorSymmetricNAT);
+		{	
+			if (i2p::context.GetStatus () == eRouterStatusTesting)
+				i2p::context.SetError (eRouterErrorSymmetricNAT);
+		}
+		else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
+			i2p::context.SetStatus (eRouterStatusTesting);
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);
