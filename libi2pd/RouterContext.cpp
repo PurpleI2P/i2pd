@@ -231,7 +231,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->IsV4 ()))
 			{
 				if (!port && !address->port)
 				{
@@ -508,7 +508,7 @@ namespace i2p
 			auto& addresses = m_RouterInfo.GetAddresses ();
 			for (auto& addr: addresses)
 			{
-				if (addr->host.is_v6 ())
+				if (addr->IsV6 () && !i2p::util::net::IsYggdrasilAddress (addr->host))
 				{
 					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 						foundSSU = true;
@@ -554,8 +554,54 @@ namespace i2p
 
 	void RouterContext::SetSupportsV4 (bool supportsV4)
 	{
+		// check if updates
+		if (supportsV4 && SupportsV4 ()) return;
+		if (!supportsV4 && !SupportsV4 ()) return;
+		// update
 		if (supportsV4)
+		{
+			bool foundSSU = false, foundNTCP2 = false;
+			std::string host = "127.0.0.1"; 
+			uint16_t port = 0;
+			auto& addresses = m_RouterInfo.GetAddresses ();
+			for (auto& addr: addresses)
+			{
+				if (addr->IsV4 ())
+				{
+					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+						foundSSU = true;
+					else if (addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+						foundNTCP2 = true;
+				}
+				if (addr->port) port = addr->port;
+			}
+			if (!port) i2p::config::GetOption("port", port);
+			// SSU
+			if (!foundSSU)
+			{
+				bool ssu; i2p::config::GetOption("ssu", ssu);
+				if (ssu)
+					m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
+			}
+			// NTCP2
+			if (!foundNTCP2)
+			{
+				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+				if (ntcp2)
+				{
+					bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
+					if (ntcp2Published)
+					{	
+						uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+						if (!ntcp2Port) ntcp2Port = port;
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (host), ntcp2Port);
+					}	
+					else
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+				}	
+			}		
 			m_RouterInfo.EnableV4 ();
+		}	
 		else
 			m_RouterInfo.DisableV4 ();
 		UpdateRouterInfo ();
