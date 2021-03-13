@@ -235,6 +235,8 @@ namespace util
 			if (!ntcp2)
 				i2p::context.PublishNTCP2Address (port, true); 
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
+			if (!ipv4 && !ipv6)
+				i2p::context.SetStatus (eRouterStatusMesh);		
 		}	
 		
 		bool transit; i2p::config::GetOption("notransit", transit);

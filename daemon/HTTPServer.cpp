@@ -255,6 +255,7 @@ namespace http {
 			case eRouterStatusFirewalled: s << "Firewalled"; break;
 			case eRouterStatusUnknown: s << "Unknown"; break;
 			case eRouterStatusProxy: s << "Proxy"; break;
+			case eRouterStatusMesh: s << "Mesh"; break;
 			case eRouterStatusError:
 			{
 				s << "Error";

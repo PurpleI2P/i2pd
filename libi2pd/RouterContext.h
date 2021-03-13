@@ -38,7 +38,8 @@ namespace garlic
 		eRouterStatusFirewalled = 2,
 		eRouterStatusError = 3,
 		eRouterStatusUnknown = 4,
-		eRouterStatusProxy = 5	
+		eRouterStatusProxy = 5,
+		eRouterStatusMesh = 6	
 	};
 
 	enum RouterError
