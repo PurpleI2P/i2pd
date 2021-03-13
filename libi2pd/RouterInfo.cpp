@@ -1131,9 +1131,16 @@ namespace data
 		return (bool)GetAddress (
 			[commonTransports](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{	
-				// TODO:check v4 and v6 separately based on caps
-				if ((commonTransports & (eNTCP2V4 | eNTCP2V6)) && address->IsPublishedNTCP2 ()) return true;
-				if ((commonTransports & (eSSUV4 | eSSUV6)) && address->IsReachableSSU ()) return true;
+				if (address->IsPublishedNTCP2 ())
+				{
+					if ((commonTransports & eNTCP2V4) && address->IsV4 ()) return true;
+					if ((commonTransports & eNTCP2V6) && address->IsV6 ()) return true;
+				}	
+				else if (address->IsReachableSSU ())
+				{
+					if ((commonTransports & eSSUV4) && address->IsV4 ()) return true;
+					if ((commonTransports & eSSUV6) && address->IsV6 ()) return true;
+				}	
 				return false;
 			});
 	}	

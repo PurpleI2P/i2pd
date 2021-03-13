@@ -130,8 +130,8 @@ namespace data
 
 				bool IsCompatible (const boost::asio::ip::address& other) const
 				{
-					return (host.is_v4 () && other.is_v4 ()) ||
-						(host.is_v6 () && other.is_v6 ());
+					return (IsV4 () && other.is_v4 ()) ||
+						(IsV6 () && other.is_v6 ());
 				}
 
 				bool operator==(const Address& other) const
