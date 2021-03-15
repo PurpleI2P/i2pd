@@ -14,13 +14,13 @@
 - Popup notification windows when unable to parse config for Windows
 ### Changed
 - Floodfills with "U" cap are not ignored anymore
-- Check transports reachability between between tunnel peers and between router and floodfill 
+- Check transports reachability between tunnel peers and between router and floodfill 
 - NTCP2 and reseed HTTP proxy support authorization now
 - Show actual IP addresses for proxy connections
 - Publish and handle SSU addreses without host
 - Outbound tunnel endpoint must be ipv4 compatible
 - Logging optimization
-- Removed windows service
+- Removed Windows service
 ### Fixed
 - Incoming SSU session terminates after 5 seconds
 - Outgoing NTCP2 ipv4 session even if ipv4 is disabled
