@@ -164,7 +164,6 @@ namespace garlic
 			~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);
-			bool HandleNextMessageForRouter (const uint8_t * buf, size_t len);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
 			
@@ -186,16 +185,21 @@ namespace garlic
 			bool IsTerminated () const { return m_IsTerminated; }
 			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
 
+		protected:	
+			
+			i2p::crypto::NoiseSymmetricState& GetNoiseState () { return *this; };
+			void SetNoiseState (const i2p::crypto::NoiseSymmetricState& state) { GetNoiseState () = state; };
+			void CreateNonce (uint64_t seqn, uint8_t * nonce);
+			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index);
+			
 		private:
 
-			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool GenerateEphemeralKeysAndEncode (uint8_t * buf); // buf is 32 bytes
 			void InitNewSessionTagset (std::shared_ptr<RatchetTagSet> tagsetNsr) const;
 
 			bool HandleNewIncomingSession (const uint8_t * buf, size_t len);
 			bool HandleNewOutgoingSessionReply (uint8_t * buf, size_t len);
 			bool HandleExistingSessionMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index);
-			void HandlePayload (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset, int index);
 			void HandleNextKey (const uint8_t * buf, size_t len, const std::shared_ptr<ReceiveRatchetTagSet>& receiveTagset);
 
 			bool NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen, bool isStatic = true);
@@ -237,6 +241,15 @@ namespace garlic
 			}
 	 };
 
+	// single session for all incoming messages
+	class RouterIncomingRatchetSession: public ECIESX25519AEADRatchetSession
+	{
+		public:
+
+			RouterIncomingRatchetSession (const i2p::crypto::NoiseSymmetricState& initState);
+			bool HandleNextMessage (const uint8_t * buf, size_t len);
+	};	
+	
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
 }
 }

@@ -123,6 +123,7 @@ namespace http {
 	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
 	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
+	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
@@ -252,6 +253,9 @@ namespace http {
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
 			case eRouterStatusFirewalled: s << "Firewalled"; break;
+			case eRouterStatusUnknown: s << "Unknown"; break;
+			case eRouterStatusProxy: s << "Proxy"; break;
+			case eRouterStatusMesh: s << "Mesh"; break;
 			case eRouterStatusError:
 			{
 				s << "Error";
@@ -405,9 +409,9 @@ namespace http {
 		}
 	}
 
-	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest)
+	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
-		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\" wrap=\"on\">";
+		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
 		{
@@ -415,6 +419,20 @@ namespace http {
 			s << "<div class='slide'><label for='slide-b33'><b>Encrypted B33 address:</b></label>\r\n<input type=\"checkbox\" id=\"slide-b33\" />\r\n<div class=\"slidecontent\">\r\n";
 			s << blinded.ToB33 () << ".b32.i2p<br>\r\n";
 			s << "</div>\r\n</div>\r\n";
+		}
+
+		if(dest->IsPublic())
+		{
+			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+			auto base32 = dest->GetIdentHash ().ToBase32 ();
+			s << "<div class='slide'><label for='slide-regaddr'><b>Address registration line</b></label>\r\n<input type=\"checkbox\" id=\"slide-regaddr\" />\r\n<div class=\"slidecontent\">\r\n"
+			     "<form method=\"get\" action=\"" << webroot << "\">\r\n"
+			     "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_GET_REG_STRING << "\">\r\n"
+			     "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
+			     "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
+			     "  <b>Domain:</b>\r\n<input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
+			     "  <button type=\"submit\">Generate</button>\r\n"
+			     "</form>\r\n<small><b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		}
 
 		if(dest->GetNumRemoteLeaseSets())
@@ -492,7 +510,7 @@ namespace http {
 
 		if (dest)
 		{
-			ShowLeaseSetDestination (s, dest);
+			ShowLeaseSetDestination (s, dest, token);
 			// show streams
 			s << "<table>\r\n<caption>Streams</caption>\r\n<thead>\r\n<tr>";
 			s << "<th style=\"width:25px;\">StreamID</th>";
@@ -535,7 +553,7 @@ namespace http {
 		}
 	}
 
-    void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
 	{
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer)
@@ -543,7 +561,7 @@ namespace http {
 			s << "<b>I2CP Local Destination:</b><br>\r\n<br>\r\n";
 			auto it = i2cpServer->GetSessions ().find (std::stoi (id));
 			if (it != i2cpServer->GetSessions ().end ())
-				ShowLeaseSetDestination (s, it->second->GetDestination ());
+				ShowLeaseSetDestination (s, it->second->GetDestination (), 0);
 			else
 				ShowError(s, "I2CP session not found");
 		}
@@ -823,7 +841,7 @@ namespace http {
 			s << "<b>SAM Sessions:</b> no sessions currently running.<br>\r\n";
 	}
 
-    void ShowSAMSession (std::stringstream& s, const std::string& id)
+	void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -1208,15 +1226,15 @@ namespace http {
 				if (dest)
 				{
 					if(dest->DeleteStream (streamID))
-						s << "<b>SUCCESS</b>:&nbsp;Stream closed<br><br>\r\n";
+						s << "<b>SUCCESS</b>:&nbsp;Stream closed<br>\r\n<br>\r\n";
 					else
-						s << "<b>ERROR</b>:&nbsp;Stream not found or already was closed<br><br>\r\n";
+						s << "<b>ERROR</b>:&nbsp;Stream not found or already was closed<br>\r\n<br>\r\n";
 				}
 				else
-					s << "<b>ERROR</b>:&nbsp;Destination not found<br><br>\r\n";
+					s << "<b>ERROR</b>:&nbsp;Destination not found<br>\r\n<br>\r\n";
 			}
 			else
-				s << "<b>ERROR</b>:&nbsp;StreamID can be null<br><br>\r\n";
+				s << "<b>ERROR</b>:&nbsp;StreamID can be null<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">Return to destination page</a><br>\r\n";
 			s << "<p>You will be redirected back in 5 seconds</b>";
@@ -1230,12 +1248,61 @@ namespace http {
 			if (limit > 0 && limit <= 65535)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<b>ERROR</b>:&nbsp;Transit tunnels count must not exceed 65535<br><br>\r\n";
-				s << "<a href=\"" << webroot << "?page=commands\">Back to commands list</a><br>\r\n";
+				s << "<b>ERROR</b>:&nbsp;Transit tunnels count must not exceed 65535\r\n<br>\r\n<br>\r\n";
+				s << "<a href=\"" << webroot << "?page=commands\">Back to commands list</a>\r\n<br>\r\n";
 				s << "<p>You will be redirected back in 5 seconds</b>";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
+		}
+		else if (cmd == HTTP_COMMAND_GET_REG_STRING)
+		{
+			std::string b32 = params["b32"];
+			std::string name = params["name"];
+
+			i2p::data::IdentHash ident;
+			ident.FromBase32 (b32);
+			auto dest = i2p::client::context.FindLocalDestination (ident);
+
+			if (dest) 
+			{
+				std::size_t pos;
+				pos = name.find (".i2p");
+				if (pos == (name.length () - 4)) 
+				{
+					pos = name.find (".b32.i2p");
+					if (pos == std::string::npos) 
+					{
+						auto signatureLen = dest->GetIdentity ()->GetSignatureLen ();
+						uint8_t * signature = new uint8_t[signatureLen];
+						char * sig = new char[signatureLen*2];
+						std::stringstream out;
+
+						out << name << "=" << dest->GetIdentity ()->ToBase64 ();
+						dest->Sign ((uint8_t *)out.str ().c_str (), out.str ().length (), signature);
+						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
+						sig[len] = 0;
+						out << "#!sig=" << sig;
+						s << "<b>SUCCESS</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\" method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
+						     "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
+						     "<b>Register at reg.i2p:</b>\r\n<br>\r\n"
+						     "<b>Description:</b>\r\n<input type=\"text\" maxlength=\"64\" name=\"desc\" placeholder=\"A bit information about service on domain\">\r\n"
+						     "<input type=\"submit\" value=\"Submit\">\r\n"
+						     "</form>\r\n<br>\r\n";
+						delete[] signature;
+						delete[] sig;
+					} 
+					else 
+						s << "<b>ERROR</b>:&nbsp;Domain can't end with .b32.i2p\r\n<br>\r\n<br>\r\n";
+				} 
+				else
+					s << "<b>ERROR</b>:&nbsp;Domain must end with .i2p\r\n<br>\r\n<br>\r\n";
+			} 
+			else
+				s << "<b>ERROR</b>:&nbsp;Such destination is not found\r\n<br>\r\n<br>\r\n";
+
+			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">Return to destination page</a>\r\n";
+			return;
 		}
 		else
 		{

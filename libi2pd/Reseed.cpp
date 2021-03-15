@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -574,9 +574,11 @@ namespace data
 						proxyReq.method = "CONNECT";
 						proxyReq.version = "HTTP/1.1";
 						proxyReq.uri = url.host + ":" + std::to_string(url.port);
+						auto auth = i2p::http::CreateBasicAuthorizationString (proxyUrl.user, proxyUrl.pass);
+						if (!auth.empty ())
+							proxyReq.AddHeader("Proxy-Authorization", auth);
 
 						boost::asio::streambuf writebuf, readbuf;
-
 						std::ostream out(&writebuf);
 						out << proxyReq.to_string();
 

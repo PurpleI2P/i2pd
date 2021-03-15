@@ -21,6 +21,11 @@
 
 namespace i2p
 {
+namespace garlic
+{
+	class RouterIncomingRatchetSession;
+}	
+
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
 	const char NTCP2_KEYS[] = "ntcp2.keys";
@@ -32,7 +37,9 @@ namespace i2p
 		eRouterStatusTesting = 1,
 		eRouterStatusFirewalled = 2,
 		eRouterStatusError = 3,
-		eRouterStatusUnknown = 4
+		eRouterStatusUnknown = 4,
+		eRouterStatusProxy = 5,
+		eRouterStatusMesh = 6	
 	};
 
 	enum RouterError
@@ -42,7 +49,7 @@ namespace i2p
 		eRouterErrorOffline = 2,
 		eRouterErrorSymmetricNAT = 3
 	};
-
+	
 	class RouterContext: public i2p::garlic::GarlicDestination
 	{
 		private:
@@ -155,6 +162,7 @@ namespace i2p
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor, m_TunnelDecryptor;
+			std::shared_ptr<i2p::garlic::RouterIncomingRatchetSession> m_ECIESSession;
 			uint64_t m_LastUpdateTime; // in seconds
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;

@@ -102,8 +102,13 @@ namespace util
 		if (logclftime)
 			i2p::log::Logger().SetTimeFormat ("[%d/%b/%Y:%H:%M:%S %z]");
 
+#ifdef WIN32_APP
+		// Win32 app with GUI supports only logging to file
+		logs = "file";
+#else
 		if (isDaemon && (logs == "" || logs == "stdout"))
 			logs = "file";
+#endif
 
 		i2p::log::Logger().SetLogLevel(loglevel);
 		if (logstream) {
@@ -123,7 +128,7 @@ namespace util
 			// use stdout -- default
 		}
 
-		LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
+		LogPrint(eLogNone,  "i2pd v", VERSION, " starting");
 		LogPrint(eLogDebug, "FS: main config file: ", config);
 		LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
@@ -144,6 +149,25 @@ namespace util
 		ipv4 = false;
 		ipv6 = true;
 #endif
+		// ifname -> address
+		std::string ifname;  i2p::config::GetOption("ifname", ifname);
+		if (ipv4 && i2p::config::IsDefault ("address4"))
+		{
+			std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
+			if (!ifname4.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname4, false).to_string ()); // v4
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4 
+		}	
+		if (ipv6 && i2p::config::IsDefault ("address6"))
+		{
+			std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+			if (!ifname6.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname6, true).to_string ()); // v6
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
+		}	
+		
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		boost::asio::ip::address_v6 yggaddr;
 		if (ygg)
@@ -186,6 +210,11 @@ namespace util
 		{
 			bool published; i2p::config::GetOption("ntcp2.published", published);
 			if (published)
+			{	
+				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
+				if (!ntcp2proxy.empty ()) published = false;
+			}	
+			if (published)
 			{
 				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
 				if (!ntcp2port) ntcp2port = port; // use standard port
@@ -206,6 +235,8 @@ namespace util
 			if (!ntcp2)
 				i2p::context.PublishNTCP2Address (port, true); 
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
+			if (!ipv4 && !ipv6)
+				i2p::context.SetStatus (eRouterStatusMesh);		
 		}	
 		
 		bool transit; i2p::config::GetOption("notransit", transit);
@@ -343,7 +374,7 @@ namespace util
 		if(!ntcp2) LogPrint(eLogInfo, "Daemon: ntcp2 disabled");
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
-		i2p::transport::transports.Start(ntcp2 || i2p::context.SupportsMesh (), ssu);
+		i2p::transport::transports.Start(ntcp2, ssu);
 		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else

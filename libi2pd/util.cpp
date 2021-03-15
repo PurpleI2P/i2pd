@@ -67,7 +67,11 @@ int inet_pton_xp (int af, const char *src, void *dst)
 }
 #else /* !_WIN32 => UNIX */
 #include <sys/types.h>
+#ifdef ANDROID
+#include "ifaddrs.h"
+#else
 #include <ifaddrs.h>
+#endif
 #endif
 
 #define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
@@ -380,11 +384,11 @@ namespace net
 			return boost::asio::ip::address::from_string("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
-		ifaddrs * addrs = nullptr;
+		ifaddrs *addrs, *cur = nullptr;
 		if(getifaddrs(&addrs) == 0)
 		{
 			// got ifaddrs
-			ifaddrs * cur = addrs;
+			cur = addrs;
 			while(cur)
 			{
 				std::string cur_ifname(cur->ifa_name);
@@ -431,10 +435,7 @@ namespace net
 	
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
-#if defined(ANDROID)
-		// TODO: implement
-		return boost::asio::ip::address_v6 ();
-#elif defined(_WIN32)
+#if defined(_WIN32)
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -482,11 +483,11 @@ namespace net
 		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
-		ifaddrs * addrs = nullptr;
+		ifaddrs *addrs, *cur = nullptr;
 		auto err = getifaddrs(&addrs);
 		if (!err)
 		{
-			ifaddrs * cur = addrs;
+			cur = addrs;
 			while(cur)
 			{
 				if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)

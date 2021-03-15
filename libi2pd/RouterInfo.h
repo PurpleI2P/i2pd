@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -130,8 +130,8 @@ namespace data
 
 				bool IsCompatible (const boost::asio::ip::address& other) const
 				{
-					return (host.is_v4 () && other.is_v4 ()) ||
-						(host.is_v6 () && other.is_v6 ());
+					return (IsV4 () && other.is_v4 ()) ||
+						(IsV6 () && other.is_v6 ());
 				}
 
 				bool operator==(const Address& other) const
@@ -147,9 +147,13 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
-
+				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
+				
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
+
+				bool IsV4 () const { return (caps & AddressCaps::eV4) || host.is_v4 (); };
+				bool IsV6 () const { return (caps & AddressCaps::eV6) || host.is_v6 (); };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -181,6 +185,7 @@ namespace data
 			void DeleteProperty (const std::string& key); // called from RouterContext only
 			std::string GetProperty (const std::string& key) const; // called from RouterContext only
 			void ClearProperties () { m_Properties.clear (); };
+			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsSSU (bool v4only = true) const;
@@ -196,7 +201,8 @@ namespace data
 			void DisableV4 ();
 			void EnableMesh ();
 			void DisableMesh ();	
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };		
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
+			bool IsReachableFrom (const RouterInfo& other) const;	
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsHidden () const { return m_Caps & eHidden; };

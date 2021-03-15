@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -193,7 +193,6 @@ namespace data
 		auto addresses = boost::make_shared<Addresses>();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;
-		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
@@ -271,7 +270,6 @@ namespace data
 						LogPrint (eLogError, "RouterInfo: Introducer is presented for non-SSU address. Skipped");
 						continue;
 					}
-					introducers = true;
 					size_t l = strlen(key);
 					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
@@ -314,8 +312,8 @@ namespace data
 					{
 						if (address->caps)
 						{	
-							if (address->caps | AddressCaps::eV4) supportedTransports |= eNTCP2V4;
-							if (address->caps | AddressCaps::eV6) supportedTransports |= eNTCP2V6;
+							if (address->caps & AddressCaps::eV4) supportedTransports |= eNTCP2V4;
+							if (address->caps & AddressCaps::eV6) supportedTransports |= eNTCP2V6;
 						}
 						else
 							supportedTransports |= eNTCP2V4; // most likely, since we don't have host
@@ -328,8 +326,13 @@ namespace data
 				{
 					if (isHost)
 						supportedTransports |= address->host.is_v4 () ? eSSUV4 :  eSSUV6;
+					else if (address->caps & AddressCaps::eV6) 
+					{	
+						supportedTransports |= eSSUV6;
+						if (address->caps & AddressCaps::eV4) supportedTransports |= eSSUV4; // in additional to v6
+					}	
 					else 
-						if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented	
+						supportedTransports |= eSSUV4; // in case if host or 6 caps is not preasented, we assume 4
 				}	
 			}	
 			if (supportedTransports)
@@ -403,7 +406,7 @@ namespace data
 			if (!s) return;
 		}
 
-		if (!m_SupportedTransports || !m_Addresses->size() || (UsesIntroducer () && !introducers))
+		if (!m_SupportedTransports)
 			SetUnreachable (true);
 	}
 
@@ -519,7 +522,7 @@ namespace data
 				if (address.IsNTCP2 ())
 				{	
 					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 ())
+					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified ())
 						 isPublished = true;
 					else
 					{
@@ -542,13 +545,26 @@ namespace data
 				// caps
 				WriteString ("caps", properties);
 				properties << '=';
-				std::string caps;
+				std::string caps;	
 				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-				if (IsReachable ())
+				if (address.host.is_v4 ())
+				{	
+					if (IsReachable ())
+					{	
+						isPublished = true;
+						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					}	
+					else
+						caps += CAPS_FLAG_V4;
+				}
+				else if (address.host.is_v6 ())
 					isPublished = true;
 				else
-					caps += CAPS_FLAG_V4;
+				{
+					if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
+					if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+				}	
 				WriteString (caps, properties);
 				properties << ';';
 			}
@@ -637,7 +653,7 @@ namespace data
 				}
 			}
 
-			if (address.IsPublishedNTCP2 ())
+			if (address.IsNTCP2 () && isPublished)
 			{
 				// publish i for NTCP2
 				WriteString ("i", properties); properties << '=';
@@ -785,9 +801,6 @@ namespace data
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Addresses->push_back(std::move(addr));
-
-		m_Caps |= eSSUTesting;
-		m_Caps |= eSSUIntroducer;
 	}
 
 	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host, int port)
@@ -913,13 +926,23 @@ namespace data
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
+		{	
 			m_SupportedTransports |= eSSUV6 | eNTCP2V6;
+			uint8_t addressCaps = AddressCaps::eV6;
+			if (IsV4 ()) addressCaps |= AddressCaps::eV4;
+			SetUnreachableAddressesTransportCaps (addressCaps);
+		}	
 	}
 
 	void RouterInfo::EnableV4 ()
 	{
 		if (!IsV4 ())
+		{	
 			m_SupportedTransports |= eSSUV4 | eNTCP2V4;
+			uint8_t addressCaps = AddressCaps::eV4;
+			if (IsV6 ()) addressCaps |= AddressCaps::eV6;
+			SetUnreachableAddressesTransportCaps (addressCaps);
+		}	
 	}
 
 
@@ -931,6 +954,7 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
+				addr->caps &= ~AddressCaps::eV6;
 				if (addr->host.is_v6 ())
 					it = m_Addresses->erase (it);
 				else
@@ -947,6 +971,7 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
+				addr->caps &= ~AddressCaps::eV4;
 				if (addr->host.is_v4 ())
 					it = m_Addresses->erase (it);
 				else
@@ -1069,8 +1094,9 @@ namespace data
 
 	bool RouterInfo::IsEligibleFloodfill () const 
 	{
-		// floodfill must be reachable, >= 0.9.28 and not DSA
-		return IsReachable () && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+		// floodfill must be reachable somehow, >= 0.9.28 and not DSA
+		return (IsReachable () || (m_SupportedTransports & eSSUV4)) && 
+			m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
 	}	
 
@@ -1079,22 +1105,57 @@ namespace data
 		auto supportedTransports = m_SupportedTransports & (eSSUV4 | eSSUV6);
 		if (!supportedTransports) return false; // no SSU
 		if (v4only && !(supportedTransports & eSSUV4)) return false; // no SSU v4
-		return GetAddress (
+		return (bool)GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting ();
-			}) != nullptr;	
+			});	
 	}
 
 	bool RouterInfo::IsIntroducer () const
 	{
 		// TODO: support ipv6
 		if (!(m_SupportedTransports & eSSUV4)) return false;
-		return GetAddress (
+		return (bool)GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsIntroducer ();
-			}) != nullptr;
+			});
 	}	
+
+	bool RouterInfo::IsReachableFrom (const RouterInfo& other) const
+	{
+		auto commonTransports = m_SupportedTransports & other.m_SupportedTransports;
+		if (!commonTransports) return false;
+		if (commonTransports & eNTCP2V6Mesh) return true;
+		return (bool)GetAddress (
+			[commonTransports](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{	
+				if (address->IsPublishedNTCP2 ())
+				{
+					if ((commonTransports & eNTCP2V4) && address->IsV4 ()) return true;
+					if ((commonTransports & eNTCP2V6) && address->IsV6 ()) return true;
+				}	
+				else if (address->IsReachableSSU ())
+				{
+					if ((commonTransports & eSSUV4) && address->IsV4 ()) return true;
+					if ((commonTransports & eSSUV6) && address->IsV6 ()) return true;
+				}	
+				return false;
+			});
+	}	
+
+	void RouterInfo::SetUnreachableAddressesTransportCaps (uint8_t transports)
+	{
+		for (auto& addr: *m_Addresses)
+		{
+			// TODO: implement SSU
+			if (addr->transportStyle == eTransportNTCP && (!addr->IsPublishedNTCP2 () || addr->port))
+			{
+				addr->caps &= ~(eV4 | eV6);
+				addr->caps |= transports;
+			}
+		}
+	}
 }
 }

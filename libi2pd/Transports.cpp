@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -174,9 +174,9 @@ namespace transport
 		std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
 		i2p::http::URL proxyurl;
 		// create NTCP2. TODO: move to acceptor
-		if (enableNTCP2)
+		if (enableNTCP2 || i2p::context.SupportsMesh ())
 		{
-			if(!ntcp2proxy.empty())
+			if(!ntcp2proxy.empty() && enableNTCP2)
 			{
 				if(proxyurl.parse(ntcp2proxy))
 				{
@@ -188,14 +188,14 @@ namespace transport
 						if (proxyurl.schema == "http")
 							proxytype = NTCP2Server::eHTTPProxy;
 
-						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port);
+						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port, proxyurl.user, proxyurl.pass);
+						i2p::context.SetStatus (eRouterStatusProxy);
 					}
 					else
 						LogPrint(eLogError, "Transports: unsupported NTCP2 proxy URL ", ntcp2proxy);
 				}
 				else
 					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
-				return;
 			}
 			else
 				m_NTCP2Server = new NTCP2Server ();
@@ -503,7 +503,7 @@ namespace transport
 						}
 						peer.numAttempts++;
 					}
-					if (address)
+					if (address && address->IsReachableSSU ())
 					{
 						m_SSUServer->CreateSession (peer.router, address);
 						return true;

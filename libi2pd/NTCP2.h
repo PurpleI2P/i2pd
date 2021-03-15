@@ -246,7 +246,7 @@ namespace transport
 			void Connect(std::shared_ptr<NTCP2Session> conn);
 
 			bool UsingProxy() const { return m_ProxyType != eNoProxy; };
-			void UseProxy(ProxyType proxy, const std::string & address, uint16_t port);
+			void UseProxy(ProxyType proxy, const std::string& address, uint16_t port, const std::string& user, const std::string& pass);
 
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			
@@ -271,7 +271,7 @@ namespace transport
 			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
 			ProxyType m_ProxyType;
-			std::string m_ProxyAddress;
+			std::string m_ProxyAddress, m_ProxyAuthorization;
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;

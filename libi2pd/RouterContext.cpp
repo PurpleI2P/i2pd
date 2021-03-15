@@ -48,6 +48,7 @@ namespace i2p
 			auto initState = new i2p::crypto::NoiseSymmetricState ();
 			i2p::crypto::InitNoiseNState (*initState, GetIdentity ()->GetEncryptionPublicKey ());
 			m_InitialNoiseState.reset (initState);	
+			m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(*initState);
 		}	
 	}
 
@@ -75,33 +76,41 @@ namespace i2p
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ygg; 			 i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		bool nat;            i2p::config::GetOption("nat", nat);
-		std::string ifname;  i2p::config::GetOption("ifname", ifname);
-		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
-		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
 		
 		if ((ntcp2 || ygg) && !m_NTCP2Keys)
 		    NewNTCP2Keys ();
 		bool ntcp2Published = false; 
 		if (ntcp2)
+		{	
 			i2p::config::GetOption("ntcp2.published", ntcp2Published);
-		uint8_t caps = 0;
+			if (ntcp2Published)
+			{
+				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
+				if (!ntcp2proxy.empty ()) ntcp2Published = false;
+			}	
+		}	
+		uint8_t caps = 0, addressCaps = 0;
 		if (ipv4)
 		{
 			std::string host = "127.0.0.1";
 			if (!i2p::config::IsDefault("host"))
 				i2p::config::GetOption("host", host);
-			else if (!nat && !ifname.empty())
-				/* bind to interface, we have no NAT so set external address too */
-				host = i2p::util::net::GetInterfaceAddress(ifname, false).to_string(); // v4
-			if(ifname4.size())
-				host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
-
+			else if (!nat)
+			{
+				// we have no NAT so set external address from local address
+				std::string address4; i2p::config::GetOption("address4", address4);
+				if (!address4.empty ()) host = address4;
+			}	
+				
 			if (ntcp2)
 			{
 				if (ntcp2Published)
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v4::from_string (host), port);
 				else // add non-published NTCP2 address
+				{
+					addressCaps = i2p::data::RouterInfo::AddressCaps::eV4;
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv); 
+				}		
 			}	
 			if (ssu)
 			{	
@@ -114,10 +123,11 @@ namespace i2p
 			std::string host = "::1";
 			if (!i2p::config::IsDefault("host") && !ipv4) // override if v6 only
 				i2p::config::GetOption("host", host);
-			else if (!ifname.empty())
-				host = i2p::util::net::GetInterfaceAddress(ifname, true).to_string(); // v6
-			if(ifname6.size())
-				host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
+			else 
+			{
+				std::string address6; i2p::config::GetOption("address6", address6);
+				if (!address6.empty ()) host = address6;
+			}
 			
 			if (ntcp2)
 			{
@@ -130,8 +140,12 @@ namespace i2p
 						ntcp2Host = host;
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (ntcp2Host), port);
 				}
-				else if (!ipv4) // no other ntcp2 addresses yet
-					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+				else 
+				{	
+					if (!ipv4) // no other ntcp2 addresses yet
+						routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+				}	
 			}	
 			if (ssu)
 			{	
@@ -145,7 +159,9 @@ namespace i2p
 			if (!yggaddr.is_unspecified ())
 				routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, yggaddr, port);
 		}	
-		
+
+		if (addressCaps)
+			routerInfo.SetUnreachableAddressesTransportCaps (addressCaps);
 		routerInfo.SetCaps (caps); // caps + L 
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
@@ -215,7 +231,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->host.is_v4 ()))
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->IsV4 ()))
 			{
 				if (!port && !address->port)
 				{
@@ -388,6 +404,7 @@ namespace i2p
 		else if (limit >   48) { SetBandwidth('M'); }
 		else if (limit >   12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
+		m_BandwidthLimit = limit; // set precise limit
 	}
 
 	void RouterContext::SetShareRatio (int percents)
@@ -485,14 +502,13 @@ namespace i2p
 	{
 		if (supportsV6)
 		{
-			m_RouterInfo.EnableV6 ();
 			// insert v6 addresses if necessary
 			bool foundSSU = false, foundNTCP2 = false;
 			uint16_t port = 0;
 			auto& addresses = m_RouterInfo.GetAddresses ();
 			for (auto& addr: addresses)
 			{
-				if (addr->host.is_v6 ())
+				if (addr->IsV6 () && !i2p::util::net::IsYggdrasilAddress (addr->host))
 				{
 					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 						foundSSU = true;
@@ -529,6 +545,7 @@ namespace i2p
 					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
 				}
 			}
+			m_RouterInfo.EnableV6 ();
 		}
 		else
 			m_RouterInfo.DisableV6 ();
@@ -537,8 +554,54 @@ namespace i2p
 
 	void RouterContext::SetSupportsV4 (bool supportsV4)
 	{
+		// check if updates
+		if (supportsV4 && SupportsV4 ()) return;
+		if (!supportsV4 && !SupportsV4 ()) return;
+		// update
 		if (supportsV4)
+		{
+			bool foundSSU = false, foundNTCP2 = false;
+			std::string host = "127.0.0.1"; 
+			uint16_t port = 0;
+			auto& addresses = m_RouterInfo.GetAddresses ();
+			for (auto& addr: addresses)
+			{
+				if (addr->IsV4 ())
+				{
+					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+						foundSSU = true;
+					else if (addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+						foundNTCP2 = true;
+				}
+				if (addr->port) port = addr->port;
+			}
+			if (!port) i2p::config::GetOption("port", port);
+			// SSU
+			if (!foundSSU)
+			{
+				bool ssu; i2p::config::GetOption("ssu", ssu);
+				if (ssu)
+					m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
+			}
+			// NTCP2
+			if (!foundNTCP2)
+			{
+				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+				if (ntcp2)
+				{
+					bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
+					if (ntcp2Published)
+					{	
+						uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+						if (!ntcp2Port) ntcp2Port = port;
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (host), ntcp2Port);
+					}	
+					else
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+				}	
+			}		
 			m_RouterInfo.EnableV4 ();
+		}	
 		else
 			m_RouterInfo.DisableV4 ();
 		UpdateRouterInfo ();
@@ -638,7 +701,14 @@ namespace i2p
 			}
 		}
 		std::shared_ptr<const i2p::data::IdentityEx> oldIdentity;
-		if (m_Keys.GetPublic ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		bool rekey = m_Keys.GetPublic ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+		if (!rekey && m_Keys.GetPublic ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
+		{
+			// rekey routers with bandwidth = L (or default) this time
+			std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
+			if (bandwidth.empty () || bandwidth[0] == 'L') rekey = true;
+		}	
+		if (rekey)
 		{
 			// update keys
 			LogPrint (eLogInfo, "Router: router keys are obsolete. Creating new");
@@ -669,8 +739,8 @@ namespace i2p
 			m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 			if (oldIdentity)
 				m_RouterInfo.SetRouterIdentity (GetIdentity ()); // from new keys
-			m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 			m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
+			m_RouterInfo.DeleteProperty ("coreVersion"); // TODO: remove later
 		}
 		else
 		{
@@ -738,8 +808,10 @@ namespace i2p
 				return;
 			}
 			buf += 4;
-			auto session = std::make_shared<i2p::garlic::ECIESX25519AEADRatchetSession>(this, false);
-			session->HandleNextMessageForRouter (buf, len);
+			if (m_ECIESSession)
+				m_ECIESSession->HandleNextMessage (buf, len);
+			else
+				LogPrint (eLogError, "Router: Session is not set for ECIES router");
 		}	
 		else	
 			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);

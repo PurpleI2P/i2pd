@@ -148,7 +148,7 @@ namespace log {
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
 
-		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
+		LogMsg (LogLevel lvl, std::time_t ts, std::string&& txt): timestamp(ts), text(std::move(txt)), level(lvl) {}
 	};
 
 	Log & Logger();
@@ -189,7 +189,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 		return;
 
 	// fold message to single string
-	std::stringstream ss("");
+	std::stringstream ss;
 
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 	(LogPrint (ss, std::forward<TArgs>(args)), ...);
@@ -197,7 +197,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	LogPrint (ss, std::forward<TArgs>(args)...);
 #endif
 
-	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
+	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), std::move(ss).str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);
 }

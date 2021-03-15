@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -433,13 +433,13 @@ namespace proxy {
 			if (m_ProxyURL.is_i2p())
 			{
 				m_ClientRequest.uri = origURI;
-				if (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ())
+				auto auth = i2p::http::CreateBasicAuthorizationString (m_ProxyURL.user, m_ProxyURL.pass);
+				if (!auth.empty ())
 				{
 					// remove existing authorization if any
 					m_ClientRequest.RemoveHeader("Proxy-");
 					// add own http proxy authorization
-					std::string s = "Basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
-					m_ClientRequest.AddHeader("Proxy-Authorization", s);
+					m_ClientRequest.AddHeader("Proxy-Authorization", auth);
 				}
 				m_send_buf = m_ClientRequest.to_string();
 				m_recv_buf.erase(0, m_req_len);
