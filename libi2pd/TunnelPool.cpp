@@ -417,7 +417,8 @@ namespace tunnel
 			prevHop = hop;
 			start++;
 		}
-		else if (i2p::transport::transports.GetNumPeers () > 25)
+		else if (i2p::transport::transports.GetNumPeers () > 100 ||
+			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
 			if (r && !r->GetProfile ()->IsBad () && 
