@@ -97,7 +97,7 @@ namespace garlic
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
-			void PublishNTCP2Address (int port, bool publish = true, bool v4only = false);
+			void PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg);
 			void UpdateNTCP2Address (bool enable);
 			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);

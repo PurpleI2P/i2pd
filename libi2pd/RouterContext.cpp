@@ -225,13 +225,15 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4only)
+	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg)
 	{
 		if (!m_NTCP2Keys) return;
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) && (!v4only || address->IsV4 ()))
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) 
+			    && ((v4 && address->IsV4 ()) || (v6 && address->IsV6 ()) || 
+			    (ygg && i2p::util::net::IsYggdrasilAddress (address->host))))
 			{
 				if (!port && !address->port)
 				{
@@ -457,7 +459,7 @@ namespace i2p
 		// remove NTCP2 v4 address
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
-			PublishNTCP2Address (port, false, true);
+			PublishNTCP2Address (port, false, true, false, false); // ipv4 only
 		// update
 		UpdateRouterInfo ();
 	}
@@ -491,7 +493,7 @@ namespace i2p
 			{
 				uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 				if (!ntcp2Port) ntcp2Port = port;
-				PublishNTCP2Address (ntcp2Port, true, true);
+				PublishNTCP2Address (ntcp2Port, true, true, false, false); // ipv4 only
 			}
 		}
 		// update

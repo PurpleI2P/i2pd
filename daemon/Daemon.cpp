@@ -218,7 +218,7 @@ namespace util
 			{
 				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
 				if (!ntcp2port) ntcp2port = port; // use standard port
-				i2p::context.PublishNTCP2Address (ntcp2port, true); // publish
+				i2p::context.PublishNTCP2Address (ntcp2port, true, ipv4, ipv6, false); // publish
 				if (ipv6)
 				{
 					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
@@ -228,12 +228,12 @@ namespace util
 				}
 			}
 			else
-				i2p::context.PublishNTCP2Address (port, false); // unpublish
+				i2p::context.PublishNTCP2Address (port, false, ipv4, ipv6, false); // unpublish
 		}
 		if (ygg)
 		{
 			if (!ntcp2)
-				i2p::context.PublishNTCP2Address (port, true); 
+				i2p::context.PublishNTCP2Address (port, true, false, false, true); 
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
 			if (!ipv4 && !ipv6)
 				i2p::context.SetStatus (eRouterStatusMesh);		
