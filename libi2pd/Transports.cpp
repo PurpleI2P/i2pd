@@ -772,10 +772,15 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
 		if (m_Peers.empty ()) return nullptr;
-		std::unique_lock<std::mutex> l(m_PeersMutex);
-		auto it = m_Peers.begin ();
-		std::advance (it, rand () % m_Peers.size ());
-		return it != m_Peers.end () ? it->second.router : nullptr;
+		i2p::data::IdentHash ident;
+		{
+			std::unique_lock<std::mutex> l(m_PeersMutex);
+			auto it = m_Peers.begin ();
+			std::advance (it, rand () % m_Peers.size ());
+			if (it == m_Peers.end () || it->second.router) return nullptr; // not connected
+			ident = it->first;
+		}	
+		return i2p::data::netdb.FindRouter (ident);
 	}
 	void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
 	{

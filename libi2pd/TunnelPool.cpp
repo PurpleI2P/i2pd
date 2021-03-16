@@ -406,6 +406,7 @@ namespace tunnel
 
 	bool StandardSelectPeers(Path & peers, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
+		int start = 0;
 		auto prevHop = i2p::context.GetSharedRouterInfo ();
 		if(i2p::transport::transports.RoutesRestricted())
 		{
@@ -414,6 +415,7 @@ namespace tunnel
 			if(!hop) return false;
 			peers.push_back(hop->GetRouterIdentity());
 			prevHop = hop;
+			start++;
 		}
 		else if (i2p::transport::transports.GetNumPeers () > 25)
 		{
@@ -423,11 +425,11 @@ namespace tunnel
 			{
 				prevHop = r;
 				peers.push_back (r->GetRouterIdentity ());
-				numHops--;
+				start++;
 			}
 		}
 
-		for(int i = 0; i < numHops; i++ )
+		for(int i = start; i < numHops; i++ )
 		{
 			auto hop = nextHop (prevHop, inbound);
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
