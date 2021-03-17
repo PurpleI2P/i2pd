@@ -232,8 +232,7 @@ namespace util
 		}
 		if (ygg)
 		{
-			if (!ntcp2)
-				i2p::context.PublishNTCP2Address (port, true, false, false, true); 
+			i2p::context.PublishNTCP2Address (port, true, false, false, true); 
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
 			if (!ipv4 && !ipv6)
 				i2p::context.SetStatus (eRouterStatusMesh);		
