@@ -86,6 +86,11 @@ namespace client
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
 	{
+		GetService ().post (std::bind (&I2CPDestination::PostCreateNewLeaseSet, this, tunnels));
+	}
+		
+	void I2CPDestination::PostCreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
+	{
 		if (m_IsCreatingLeaseSet)
 		{
 			LogPrint (eLogInfo, "I2CP: LeaseSet is being created");
