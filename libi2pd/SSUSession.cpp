@@ -716,18 +716,36 @@ namespace transport
 
 	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
 	{
+		if (!len) return;
 		uint8_t size = *buf;
+		if ((int)len < 1 + size + 2) // size + address + port
+		{
+			LogPrint (eLogWarning, "SSU: Relay intro is too short ", len);
+			return;
+		}	
+		buf++; // size
+		boost::asio::ip::address ip;
 		if (size == 4)
 		{
-			buf++; // size
-			boost::asio::ip::address_v4 address (bufbe32toh (buf));
-			buf += 4; // address
-			uint16_t port = bufbe16toh (buf);
-			// send hole punch of 0 bytes
-			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), buf, 4);
+			ip = boost::asio::ip::address_v4 (bytes);
 		}
+		else if (size == 16)
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), buf, 16);
+			ip = boost::asio::ip::address_v6 (bytes);
+		}	
 		else
+		{	
 			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+			return;
+		}	
+		buf += size;
+		uint16_t port = bufbe16toh (buf);
+		// send hole punch of 0 bytes
+		m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (ip, port));
 	}
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len,
