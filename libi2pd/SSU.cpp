@@ -482,12 +482,16 @@ namespace transport
 	{
 		if (router && router->UsesIntroducer () && address)
 		{	
+			if (address->IsV4 () && !i2p::context.SupportsV4 ()) return;
+			if (address->IsV6 () && !i2p::context.SupportsV6 ()) return;
 			if (!address->host.is_unspecified () && address->port)
 			{	
+				// we rarely come here
+				auto& sessions = address->host.is_v6 () ? m_SessionsV6 : m_Sessions;
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
-				auto it = m_Sessions.find (remoteEndpoint);
+				auto it = sessions.find (remoteEndpoint);
 				// check if session is presented already
-				if (it != m_Sessions.end ())
+				if (it != sessions.end ())
 				{
 					auto session = it->second;
 					if (peerTest && session->GetState () == eSessionStateEstablished)
@@ -508,11 +512,21 @@ namespace transport
 					auto intr = &(address->ssu->introducers[i]);
 					if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
 					boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
-					if (ep.address ().is_v4 ()) // ipv4 only
+					if (ep.address ().is_v4 () && address->IsV4 ()) // ipv4 
 					{
-						if (!introducer) introducer = intr; // we pick first one for now
+						if (!introducer) introducer = intr; 
 						auto it = m_Sessions.find (ep);
 						if (it != m_Sessions.end ())
+						{
+							introducerSession = it->second;
+							break;
+						}
+					}
+					if (ep.address ().is_v6 () && address->IsV6 ()) // ipv6 
+					{
+						if (!introducer) introducer = intr; 
+						auto it = m_SessionsV6.find (ep);
+						if (it != m_SessionsV6.end ())
 						{
 							introducerSession = it->second;
 							break;
@@ -521,7 +535,7 @@ namespace transport
 				}
 				if (!introducer)
 				{
-					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 non-expired introducers presented");
+					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no compatibe non-expired introducers presented");
 					return;
 				}
 
@@ -532,14 +546,20 @@ namespace transport
 					LogPrint (eLogDebug, "SSU: Creating new session to introducer ", introducer->iHost);
 					boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 					introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
-					m_Sessions[introducerEndpoint] = introducerSession;
+					if (introducerEndpoint.address ().is_v4 ())
+						m_Sessions[introducerEndpoint] = introducerSession;
+					else if (introducerEndpoint.address ().is_v6 ())
+						m_SessionsV6[introducerEndpoint] = introducerSession;	
 				}
 				if (!address->host.is_unspecified () && address->port)
 				{
 					// create session
 					boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-					m_Sessions[remoteEndpoint] = session;
+					if (address->host.is_v4 ())
+						m_Sessions[remoteEndpoint] = session;
+					else if (address->host.is_v6 ())
+						m_SessionsV6[remoteEndpoint] = session;
 
 					// introduce
 					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
