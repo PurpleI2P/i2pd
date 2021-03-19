@@ -645,30 +645,16 @@ namespace transport
 	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU message: Relay response received");
-		uint8_t remoteSize = *buf;
-		buf++; // remote size
-		boost::asio::ip::address_v4 remoteIP (bufbe32toh (buf));
-		buf += remoteSize; // remote address
-		uint16_t remotePort = bufbe16toh (buf);
-		buf += 2; // remote port
-		uint8_t ourSize = *buf;
-		buf++; // our size
+		boost::asio::ip::address remoteIP;
+		uint16_t remotePort = 0;
+		auto remoteSize = ExtractIPAddressAndPort (buf, len, remoteIP, remotePort);
+		if (!remoteSize) return;
+		buf += remoteSize; len -= remoteSize;
 		boost::asio::ip::address ourIP;
-		if (ourSize == 4)
-		{
-			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), buf, 4);
-			ourIP = boost::asio::ip::address_v4 (bytes);
-		}
-		else
-		{
-			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), buf, 16);
-			ourIP = boost::asio::ip::address_v6 (bytes);
-		}
-		buf += ourSize; // our address
-		uint16_t ourPort = bufbe16toh (buf);
-		buf += 2; // our port
+		uint16_t ourPort = 0;
+		auto ourSize = ExtractIPAddressAndPort (buf, len, ourIP, ourPort);
+		if (!ourSize) return;
+		buf += ourSize; len -= ourSize;
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
 		if (ourPort != m_Server.GetPort ())
