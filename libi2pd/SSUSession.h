@@ -145,6 +145,8 @@ namespace transport
 
 			void Reset ();
 
+			static size_t ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port); // returns actual buf size
+			
 		private:
 
 			friend class SSUData; // TODO: change in later

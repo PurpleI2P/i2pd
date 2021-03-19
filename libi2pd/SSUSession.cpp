@@ -257,27 +257,14 @@ namespace transport
 		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
 		s.Insert (y, 256); // y
 		payload += 256;
-		uint8_t addressSize = *payload;
-		payload += 1; // size
-		uint8_t * ourAddress = payload;
 		boost::asio::ip::address ourIP;
-		if (addressSize == 4) // v4
-		{
-			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), ourAddress, 4);
-			ourIP = boost::asio::ip::address_v4 (bytes);
-		}
-		else // v6
-		{
-			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), ourAddress, 16);
-			ourIP = boost::asio::ip::address_v6 (bytes);
-		}
-		s.Insert (ourAddress, addressSize); // our IP
-		payload += addressSize; // address
-		uint16_t ourPort = bufbe16toh (payload);
-		s.Insert (payload, 2); // our port
-		payload += 2; // port
+		uint16_t ourPort = 0; 
+		auto addressAndPortLen = ExtractIPAddressAndPort (payload, len, ourIP, ourPort);
+		if (!addressAndPortLen) return;
+		uint8_t * ourAddressAndPort = payload + 1;
+		payload += addressAndPortLen;
+		addressAndPortLen--; // -1 byte address size
+		s.Insert (ourAddressAndPort, addressAndPortLen); // address + port
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
@@ -309,7 +296,7 @@ namespace transport
 		{
 			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 			i2p::context.UpdateAddress (ourIP);
-			SendSessionConfirmed (y, ourAddress, addressSize + 2);
+			SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen); 
 		}
 		else
 		{
@@ -716,36 +703,12 @@ namespace transport
 
 	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
 	{
-		if (!len) return;
-		uint8_t size = *buf;
-		if ((int)len < 1 + size + 2) // size + address + port
-		{
-			LogPrint (eLogWarning, "SSU: Relay intro is too short ", len);
-			return;
-		}	
-		buf++; // size
 		boost::asio::ip::address ip;
-		if (size == 4)
-		{
-			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), buf, 4);
-			ip = boost::asio::ip::address_v4 (bytes);
-		}
-		else if (size == 16)
-		{
-			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), buf, 16);
-			ip = boost::asio::ip::address_v6 (bytes);
-		}	
-		else
-		{	
-			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
-			return;
-		}	
-		buf += size;
-		uint16_t port = bufbe16toh (buf);
-		// send hole punch of 0 bytes
-		m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (ip, port));
+		uint16_t port = 0;
+		ExtractIPAddressAndPort (buf, len, ip, port);
+		if (!ip.is_unspecified () && port)
+			// send hole punch of 0 bytes
+			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (ip, port));
 	}
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len,
@@ -1251,5 +1214,36 @@ namespace transport
 		i2p::transport::transports.UpdateSentBytes (size);
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}
+
+	size_t SSUSession::ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port)
+	{
+		if (!len) return 0;
+		uint8_t size = *buf;
+		size_t s = 1 + size + 2; // size + address + port
+		if (len < s) 
+		{
+			LogPrint (eLogWarning, "SSU: Address is too short ", len);
+			port = 0;
+			return len;
+		}	
+		buf++; // size
+		if (size == 4)
+		{
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), buf, 4);
+			ip = boost::asio::ip::address_v4 (bytes);
+		}
+		else if (size == 16)
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), buf, 16);
+			ip = boost::asio::ip::address_v6 (bytes);
+		}	
+		else
+			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+		buf += size;
+		port = bufbe16toh (buf);
+		return s;
+	}	
 }
 }
