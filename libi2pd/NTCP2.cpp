@@ -1193,7 +1193,12 @@ namespace transport
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
 							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
 							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
-							m_NTCP2V6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
+							auto ep = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port);
+							if (m_Address6 && !context.SupportsMesh ())
+								ep = boost::asio::ip::tcp::endpoint (m_Address6->address(), address->port);
+							else if (m_YggdrasilAddress && !context.SupportsV6 ())
+								ep = boost::asio::ip::tcp::endpoint (m_YggdrasilAddress->address(), address->port);
+							m_NTCP2V6Acceptor->bind (ep);
 							m_NTCP2V6Acceptor->listen ();
 
 							LogPrint (eLogInfo, "NTCP2: Start listening v6 TCP port ", address->port);
