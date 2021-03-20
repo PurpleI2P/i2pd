@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -953,15 +953,15 @@ namespace transport
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes
-		uint8_t size = buf[4];	// 1 byte
-		const uint8_t * address = buf + 5; // big endian, size bytes
-		uint16_t port = buf16toh(buf + size + 5); // big endian, 2 bytes
-		const uint8_t * introKey = buf + size + 7;
-		if (port && (size != 4) && (size != 16))
+		boost::asio::ip::address addr; // Alice's addresss
+		uint16_t port = 0; // and port
+		auto size = ExtractIPAddressAndPort (buf + 4, len - 4, addr, port);
+		if (port && (size != 7) && (size != 19))
 		{
-			LogPrint (eLogWarning, "SSU: Address of ", size, " bytes not supported");
+			LogPrint (eLogWarning, "SSU: Address of ", size - 3, " bytes not supported");
 			return;
 		}
+		const uint8_t * introKey = buf + 4 + size;
 		switch (m_Server.GetPeerTestParticipant (nonce))
 		{
 			// existing test
@@ -1027,20 +1027,7 @@ namespace transport
 						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
 						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
-						boost::asio::ip::address addr; // Alice's address
-						if (size == 4) // v4
-						{
-							boost::asio::ip::address_v4::bytes_type bytes;
-							memcpy (bytes.data (), address, 4);
-							addr = boost::asio::ip::address_v4 (bytes);
-						}
-						else // v6
-						{
-							boost::asio::ip::address_v6::bytes_type bytes;
-							memcpy (bytes.data (), address, 16);
-							addr = boost::asio::ip::address_v6 (bytes);
-						}
-						SendPeerTest (nonce, addr, be16toh (port), introKey); // to Alice with her address received from Bob
+						SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
 					}
 					else
 					{
@@ -1097,7 +1084,8 @@ namespace transport
 		if (toAddress)
 		{
 			// send our intro key to address instead of its own
-			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			auto addr = address.is_v4 () ? i2p::context.GetRouterInfo ().GetSSUAddress (true) : // ipv4
+				i2p::context.GetRouterInfo ().GetSSUV6Address ();
 			if (addr)
 				memcpy (payload, addr->ssu->key, 32); // intro key
 			else
