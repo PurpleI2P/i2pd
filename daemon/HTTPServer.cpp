@@ -242,13 +242,9 @@ namespace http {
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
 	{
-		s << "<b>Uptime:</b> ";
-		ShowUptime(s, i2p::context.GetUptime ());
-		s << "<br>\r\n";
-		s << "<b>Network status:</b> ";
-		switch (i2p::context.GetStatus ())
+		switch (status)
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
@@ -276,7 +272,22 @@ namespace http {
 			}
 			default: s << "Unknown";
 		}
+	}	
+	
+	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
+	{
+		s << "<b>Uptime:</b> ";
+		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
+		s << "<b>Network status:</b> ";
+		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		s << "<br>\r\n";
+		if (i2p::context.SupportsV6 ())
+		{
+			s << "<b>Network status 6:</b> ";
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
+			s << "<br>\r\n";
+		}	
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<b>Stopping in:</b> ";

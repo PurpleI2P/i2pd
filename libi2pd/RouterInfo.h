@@ -209,7 +209,7 @@ namespace data
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
-			bool IsPeerTesting (bool v4only) const;	
+			bool IsPeerTesting (bool v4) const;	
 			bool IsIntroducer () const;	
 		
 			uint8_t GetCaps () const { return m_Caps; };

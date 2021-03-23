@@ -970,7 +970,12 @@ namespace transport
 				if (m_Server.GetPeerTestSession (nonce) == shared_from_this ()) // Alice-Bob
 				{
 					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
-					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
+					if (IsV6 ())
+					{
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting) 
+							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+					}	
+					else if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
 					{	
 						i2p::context.SetStatus (eRouterStatusFirewalled);
 						m_Server.RescheduleIntroducersUpdateTimer ();
@@ -981,7 +986,10 @@ namespace transport
 					LogPrint (eLogDebug, "SSU: first peer test from Charlie. We are Alice");
 					if (m_State == eSessionStateEstablished)
 						LogPrint (eLogWarning, "SSU: first peer test from Charlie through established session. We are Alice");
-					i2p::context.SetStatus (eRouterStatusOK);
+					if (IsV6 ())
+						i2p::context.SetStatusV6 (eRouterStatusOK);
+					else	
+						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, true, false); // to Charlie
 				}
@@ -995,7 +1003,10 @@ namespace transport
 				{
 					// peer test successive
 					LogPrint (eLogDebug, "SSU: second peer test from Charlie. We are Alice");
-					i2p::context.SetStatus (eRouterStatusOK);
+					if (IsV6 ())
+						i2p::context.SetStatusV6 (eRouterStatusOK);		
+					else		
+						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.RemovePeerTest (nonce);
 				}
 				break;

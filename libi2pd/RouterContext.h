@@ -91,6 +91,8 @@ namespace garlic
 			void SetStatus (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
+			RouterStatus GetStatusV6 () const { return m_StatusV6; };
+			void SetStatusV6 (RouterStatus status);
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);
@@ -168,7 +170,7 @@ namespace garlic
 			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;
-			RouterStatus m_Status;
+			RouterStatus m_Status, m_StatusV6;
 			RouterError m_Error;
 			int m_NetID;
 			std::mutex m_GarlicMutex;

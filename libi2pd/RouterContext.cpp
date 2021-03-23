@@ -28,7 +28,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
-		m_ShareRatio (100), m_Status (eRouterStatusUnknown),
+		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusOK), 
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -210,6 +210,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::SetStatusV6 (RouterStatus status)
+	{
+		if (status != m_StatusV6)
+			m_StatusV6 = status;
+	}	
+		
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;

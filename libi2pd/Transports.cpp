@@ -576,55 +576,21 @@ namespace transport
 			return;
 		}
 		if (m_SSUServer)
-		{
-			bool isv4 = i2p::context.SupportsV4 ();
-			if (m_IsNAT && isv4)
-				i2p::context.SetStatus (eRouterStatusTesting);
-			for (int i = 0; i < 5; i++)
-			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
-				if (router)
-					m_SSUServer->CreateSession (router, true, isv4); // peer test
-				else
-				{
-					// if not peer test capable routers found pick any
-					router = i2p::data::netdb.GetRandomRouter ();
-					if (router && router->IsSSU ())
-						m_SSUServer->CreateSession (router); // no peer test
-				}
-			}
-			if (i2p::context.SupportsV6 ())
-			{
-				// try to connect to few v6 addresses to get our address back
-				for (int i = 0; i < 3; i++)
-				{
-					auto router = i2p::data::netdb.GetRandomSSUV6Router ();
-					if (router)
-					{
-						auto addr = router->GetSSUV6Address ();
-						if (addr)
-							m_SSUServer->GetService ().post ([this, router, addr]
-							{
-								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
-							});
-					}
-				}
-			}
-		}
+			PeerTest ();
 		else
 			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");
 	}
 
 	void Transports::PeerTest ()
 	{
-		if (RoutesRestricted() || !i2p::context.SupportsV4 ()) return;
-		if (m_SSUServer)
+		if (RoutesRestricted() || !m_SSUServer) return;
+		if (i2p::context.SupportsV4 ())
 		{
-			LogPrint (eLogInfo, "Transports: Started peer test");
+			LogPrint (eLogInfo, "Transports: Started peer test ipv4");
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 only
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 
 				if (router)
 				{
 					if (!statusChanged)
@@ -636,8 +602,32 @@ namespace transport
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv4");
 		}
+		if (i2p::context.SupportsV6 ())
+		{
+			LogPrint (eLogInfo, "Transports: Started peer test ipv6");
+			bool statusChanged = false;
+			for (int i = 0; i < 5; i++)
+			{
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (false); // v6
+				if (router)
+				{
+					auto addr = router->GetSSUV6Address ();
+					if (addr)
+					{	
+						if (!statusChanged)
+						{
+							statusChanged = true;
+							i2p::context.SetStatusV6 (eRouterStatusTesting); // first time only
+						}
+						m_SSUServer->CreateSession (router, addr, true); // peer test v6
+					}	
+				}
+			}
+			if (!statusChanged)
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv6");
+		}	
 	}
 
 	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()

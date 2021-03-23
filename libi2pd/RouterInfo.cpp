@@ -1100,15 +1100,15 @@ namespace data
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
 	}	
 
-	bool RouterInfo::IsPeerTesting (bool v4only) const
+	bool RouterInfo::IsPeerTesting (bool v4) const
 	{
-		auto supportedTransports = m_SupportedTransports & (eSSUV4 | eSSUV6);
-		if (!supportedTransports) return false; // no SSU
-		if (v4only && !(supportedTransports & eSSUV4)) return false; // no SSU v4
+		auto supportedTransports = m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6);
+		if (!supportedTransports) return false; 
 		return (bool)GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
-				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting ();
+				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting () &&
+					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ()));
 			});	
 	}
 
