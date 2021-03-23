@@ -72,6 +72,12 @@ namespace data
 		}
 		size += 256; // encryption key
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
+		if (size + 1 > m_BufferLen)
+		{
+			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
+			m_IsValid = false;
+			return;
+		}	
 		uint8_t num = m_Buffer[size];
 		size++; // num
 		LogPrint (eLogDebug, "LeaseSet: read num=", (int)num);
@@ -81,9 +87,14 @@ namespace data
 			m_IsValid = false;
 			return;
 		}
-
+		if (size + num*LEASE_SIZE > m_BufferLen) 
+		{	
+			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
+			m_IsValid = false;
+			return;
+		}	
+		
 		UpdateLeasesBegin ();
-
 		// process leases
 		m_ExpirationTime = 0;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -106,14 +117,22 @@ namespace data
 			return;
 		}
 		m_ExpirationTime += LEASE_ENDDATE_THRESHOLD;
-
 		UpdateLeasesEnd ();
 
 		// verify
-		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
-		{
-			LogPrint (eLogWarning, "LeaseSet: verification failed");
-			m_IsValid = false;
+		if (verifySignature)
+		{	
+			auto signedSize = leases - m_Buffer;
+			if (signedSize + m_Identity->GetSignatureLen () > m_BufferLen)
+			{
+				LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", m_BufferLen);
+				m_IsValid = false;
+			}	
+			else if (!m_Identity->Verify (m_Buffer, signedSize, leases))
+			{
+				LogPrint (eLogWarning, "LeaseSet: verification failed");
+				m_IsValid = false;
+			}
 		}
 	}
 
