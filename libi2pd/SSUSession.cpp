@@ -273,7 +273,7 @@ namespace transport
 		s.Insert (payload, 8); // relayTag and signed on time
 		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
-		if (i2p::context.GetStatus () == eRouterStatusTesting)
+		if (ourIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting)
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			uint32_t signedOnTime = bufbe32toh(payload);
@@ -358,7 +358,9 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t flag = 0;
 		// fill extended options, 3 bytes extended options don't change message size
-		if (i2p::context.GetStatus () == eRouterStatusOK) // we don't need relays
+		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
+		if ((isV4 && i2p::context.GetStatus () == eRouterStatusOK) ||
+		    (!isV4 && i2p::context.GetStatusV6 () == eRouterStatusOK)) // we don't need relays
 		{
 			// tell out peer to now assign relay tag
 			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
@@ -369,7 +371,6 @@ namespace transport
 		}
 		// fill payload
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256); // x
-		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
 		if (isV4)
 		{
 			payload[256] = 4;
@@ -657,13 +658,16 @@ namespace transport
 		buf += ourSize; len -= ourSize;
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
-		if (ourPort != m_Server.GetPort ())
+		if (ourIP.is_v4 ())
 		{	
-			if (i2p::context.GetStatus () == eRouterStatusTesting)
-				i2p::context.SetError (eRouterErrorSymmetricNAT);
-		}
-		else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
-			i2p::context.SetStatus (eRouterStatusTesting);
+			if (ourPort != m_Server.GetPort ())
+			{	
+				if (i2p::context.GetStatus () == eRouterStatusTesting)
+					i2p::context.SetError (eRouterErrorSymmetricNAT);
+			}
+			else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
+				i2p::context.SetStatus (eRouterStatusTesting);
+		}	
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);

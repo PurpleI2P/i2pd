@@ -593,12 +593,16 @@ namespace transport
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 
 				if (router)
 				{
-					if (!statusChanged)
+					auto addr = router->GetSSUAddress (true); // ipv4
+					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
 					{
-						statusChanged = true;
-						i2p::context.SetStatus (eRouterStatusTesting); // first time only
-					}
-					m_SSUServer->CreateSession (router, true, true); // peer test v4
+						if (!statusChanged)
+						{
+							statusChanged = true;
+							i2p::context.SetStatus (eRouterStatusTesting); // first time only
+						}
+						m_SSUServer->CreateSession (router, addr, true); // peer test v4
+					}	
 				}
 			}
 			if (!statusChanged)
@@ -614,7 +618,7 @@ namespace transport
 				if (router)
 				{
 					auto addr = router->GetSSUV6Address ();
-					if (addr)
+					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
 					{	
 						if (!statusChanged)
 						{
