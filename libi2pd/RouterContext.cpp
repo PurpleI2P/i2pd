@@ -28,7 +28,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
-		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusOK), 
+		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown), 
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -199,10 +199,10 @@ namespace i2p
 			switch (m_Status)
 			{
 				case eRouterStatusOK:
-					SetReachable ();
+					SetReachable (true, false); // ipv4
 				break;
 				case eRouterStatusFirewalled:
-					SetUnreachable ();
+					SetUnreachable (true, false); // ipv4
 				break;
 				default:
 					;
@@ -213,7 +213,20 @@ namespace i2p
 	void RouterContext::SetStatusV6 (RouterStatus status)
 	{
 		if (status != m_StatusV6)
+		{	
 			m_StatusV6 = status;
+			switch (m_StatusV6)
+			{
+				case eRouterStatusOK:
+					SetReachable (false, true); // ipv6
+				break;
+				case eRouterStatusFirewalled:
+					SetUnreachable (false, true); // ipv6
+				break;
+				default:
+					;
+			}
+		}	
 	}	
 		
 	void RouterContext::UpdatePort (int port)
@@ -443,7 +456,7 @@ namespace i2p
 		}
 	}
 
-	void RouterContext::SetUnreachable ()
+	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
 		// set caps
 		uint8_t caps = m_RouterInfo.GetCaps ();
@@ -455,22 +468,22 @@ namespace i2p
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu)
+			if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->cost = i2p::data::COST_SSU_THROUGH_INTRODUCERS; 
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
-		// remove NTCP2 v4 address
+		// unpiblish NTCP2 addreeses
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
-			PublishNTCP2Address (port, false, true, false, false); // ipv4 only
+			PublishNTCP2Address (port, false, v4, v6, false);
 		// update
 		UpdateRouterInfo ();
 	}
 
-	void RouterContext::SetReachable ()
+	void RouterContext::SetReachable (bool v4, bool v6)
 	{
 		// update caps
 		uint8_t caps = m_RouterInfo.GetCaps ();
@@ -483,14 +496,14 @@ namespace i2p
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu)
+			if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->cost = i2p::data::COST_SSU_DIRECT; 
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
-		// insert NTCP2 back
+		// publish NTCP2
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
@@ -499,7 +512,7 @@ namespace i2p
 			{
 				uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 				if (!ntcp2Port) ntcp2Port = port;
-				PublishNTCP2Address (ntcp2Port, true, true, false, false); // ipv4 only
+				PublishNTCP2Address (ntcp2Port, true, v4, v6, false); 
 			}
 		}
 		// update
@@ -757,7 +770,7 @@ namespace i2p
 		}
 
 		if (IsUnreachable ())
-			SetReachable (); // we assume reachable until we discover firewall through peer tests
+			SetReachable (true, true); // we assume reachable until we discover firewall through peer tests
 
 		// read NTCP2
 		bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);

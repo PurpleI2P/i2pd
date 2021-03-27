@@ -105,8 +105,8 @@ namespace garlic
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const;
-			void SetUnreachable ();
-			void SetReachable ();
+			void SetUnreachable (bool v4, bool v6);
+			void SetReachable (bool v4, bool v6);
 			bool IsFloodfill () const { return m_IsFloodfill; };
 			void SetFloodfill (bool floodfill);
 			void SetFamily (const std::string& family);

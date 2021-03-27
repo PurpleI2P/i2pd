@@ -706,7 +706,7 @@ namespace transport
 				return; 
 			}	
 			// we are firewalled
-			if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable ();
+			if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable (true, false); // ipv4
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
