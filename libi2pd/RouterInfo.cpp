@@ -558,7 +558,10 @@ namespace data
 						caps += CAPS_FLAG_V4;
 				}
 				else if (address.host.is_v6 ())
+				{	
 					isPublished = true;
+					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+				}	
 				else
 				{
 					if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
