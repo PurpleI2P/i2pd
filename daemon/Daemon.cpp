@@ -280,7 +280,7 @@ namespace util
 		else if (isFloodfill)
 		{
 			LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
-			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1);
+			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2);
 		}
 		else
 		{
