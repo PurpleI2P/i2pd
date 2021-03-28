@@ -865,7 +865,7 @@ namespace i2p
 		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, true) : false;
 	}
 
-	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
+	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data)
 	{
 		if (!m_TunnelDecryptor) return false;
 		if (IsECIES ())
@@ -875,7 +875,7 @@ namespace i2p
 			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));		
 			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
 			uint8_t sharedSecret[32];
-			if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, ctx, false))
+			if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr, false))
 			{
 				LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
 				return false;
@@ -894,7 +894,12 @@ namespace i2p
 			return true;
 		}	
 		else	
-			return m_TunnelDecryptor->Decrypt (encrypted, data, ctx, false);
+		{
+			BN_CTX * ctx = BN_CTX_new ();
+			bool success = m_TunnelDecryptor->Decrypt (encrypted, data, ctx, false);
+			BN_CTX_free (ctx);
+			return success;
+		}	
 	}
 
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()

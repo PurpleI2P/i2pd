@@ -371,10 +371,7 @@ namespace i2p
 			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
-				BN_CTX * ctx = BN_CTX_new ();
-				bool success = i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
-				BN_CTX_free (ctx);
-				if(!success) return false;
+				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
 				uint8_t retCode = 0;
 				bool isECIES = i2p::context.IsECIES ();
 				// replace record to reply
