@@ -418,6 +418,7 @@ namespace transport
 		else
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, introducer.iKey, iv, introducer.iKey);
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
+		LogPrint (eLogDebug, "SSU: relay request sent");
 	}
 
 	void SSUSession::SendSessionCreated (const uint8_t * x, bool sendRelayTag)
@@ -682,6 +683,7 @@ namespace transport
 				LogPrint (eLogInfo, "SSU: RelayReponse connecting to endpoint ", remoteEndpoint);
 				if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
+				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
 				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
 			}
 			// delete request

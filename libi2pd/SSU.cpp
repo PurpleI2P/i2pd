@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -385,7 +385,7 @@ namespace transport
 					auto it = sessions->find (packet->from);
 					if (it != sessions->end ())
 						session = it->second;
-					if (!session)
+					if (!session && packet->len > 0)
 					{
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
