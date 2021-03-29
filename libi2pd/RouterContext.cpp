@@ -458,12 +458,15 @@ namespace i2p
 
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
-		// set caps
-		uint8_t caps = m_RouterInfo.GetCaps ();
-		caps &= ~i2p::data::RouterInfo::eReachable;
-		caps |= i2p::data::RouterInfo::eUnreachable;
-		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
-		m_RouterInfo.SetCaps (caps);
+		if (v4)
+		{	
+			// set caps
+			uint8_t caps = m_RouterInfo.GetCaps ();
+			caps &= ~i2p::data::RouterInfo::eReachable;
+			caps |= i2p::data::RouterInfo::eUnreachable;
+			caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
+			m_RouterInfo.SetCaps (caps);
+		}	
 		uint16_t port = 0;
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
@@ -485,13 +488,16 @@ namespace i2p
 
 	void RouterContext::SetReachable (bool v4, bool v6)
 	{
-		// update caps
-		uint8_t caps = m_RouterInfo.GetCaps ();
-		caps &= ~i2p::data::RouterInfo::eUnreachable;
-		caps |= i2p::data::RouterInfo::eReachable;
-		if (m_IsFloodfill)
-			caps |= i2p::data::RouterInfo::eFloodfill;
-		m_RouterInfo.SetCaps (caps);
+		if (v4)
+		{	
+			// update caps
+			uint8_t caps = m_RouterInfo.GetCaps ();
+			caps &= ~i2p::data::RouterInfo::eUnreachable;
+			caps |= i2p::data::RouterInfo::eReachable;
+			if (m_IsFloodfill)
+				caps |= i2p::data::RouterInfo::eFloodfill;
+			m_RouterInfo.SetCaps (caps);
+		}	
 		uint16_t port = 0;
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
