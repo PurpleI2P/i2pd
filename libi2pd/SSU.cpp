@@ -393,7 +393,8 @@ namespace transport
 						LogPrint (eLogDebug, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
-				session->ProcessNextMessage (packet->buf, packet->len, packet->from);
+				if (session)
+					session->ProcessNextMessage (packet->buf, packet->len, packet->from);
 			}
 			catch (std::exception& ex)
 			{
