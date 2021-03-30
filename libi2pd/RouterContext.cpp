@@ -250,21 +250,30 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish) 
-			    && ((v4 && address->IsV4 ()) || (v6 && address->IsV6 ()) || 
-			    (ygg && i2p::util::net::IsYggdrasilAddress (address->host))))
+			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish)) 
 			{
-				if (!port && !address->port)
-				{
-					// select random port only if address's port is not set
-					port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-					if (port == 9150) port = 9151; // Tor browser
+				bool isAddr = v4 && address->IsV4 ();
+				if (!isAddr && (v6 || ygg))
+				{	
+					if (i2p::util::net::IsYggdrasilAddress (address->host))
+						isAddr = ygg;
+					else
+						isAddr = v6 && address->IsV6 ();
 				}
-				if (port) address->port = port;
-				address->cost = publish ? i2p::data::COST_NTCP2_PUBLISHED : i2p::data::COST_NTCP2_NON_PUBLISHED;
-				address->ntcp2->isPublished = publish;
-				address->ntcp2->iv = m_NTCP2Keys->iv;
-				updated = true;
+				if (isAddr)
+				{	
+					if (!port && !address->port)
+					{
+						// select random port only if address's port is not set
+						port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+						if (port == 9150) port = 9151; // Tor browser
+					}
+					if (port) address->port = port;
+					address->cost = publish ? i2p::data::COST_NTCP2_PUBLISHED : i2p::data::COST_NTCP2_NON_PUBLISHED;
+					address->ntcp2->isPublished = publish;
+					address->ntcp2->iv = m_NTCP2Keys->iv;
+					updated = true;
+				}	
 			}
 		}
 		if (updated)
