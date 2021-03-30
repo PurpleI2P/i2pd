@@ -1105,8 +1105,7 @@ namespace data
 
 	bool RouterInfo::IsPeerTesting (bool v4) const
 	{
-		auto supportedTransports = m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6);
-		if (!supportedTransports) return false; 
+		if (!(m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6))) return false; 
 		return (bool)GetAddress (
 			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
@@ -1115,14 +1114,14 @@ namespace data
 			});	
 	}
 
-	bool RouterInfo::IsIntroducer () const
+	bool RouterInfo::IsIntroducer (bool v4) const
 	{
-		// TODO: support ipv6
-		if (!(m_SupportedTransports & eSSUV4)) return false;
+		if (!(m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6))) return false; 
 		return (bool)GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
-				return (address->transportStyle == eTransportSSU) && address->IsIntroducer ();
+				return (address->transportStyle == eTransportSSU) && address->IsIntroducer () &&
+					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ()));
 			});
 	}	
 

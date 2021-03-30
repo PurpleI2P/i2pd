@@ -1172,7 +1172,7 @@ namespace data
 		return GetRandomRouter (
 			[](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return router->IsIntroducer () && !router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
+				return router->IsIntroducer (true) && !router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
 			});
 	}
 

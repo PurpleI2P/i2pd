@@ -212,7 +212,7 @@ namespace transport
 		{
 			uint8_t extendedOptionsLen = buf[headerSize];
 			headerSize++;
-			if (extendedOptionsLen >= 3) // options are presented
+			if (extendedOptionsLen >= 2) // options are presented
 			{
 				uint16_t flags = bufbe16toh (buf + headerSize);
 				sendRelayTag = flags & EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG;
@@ -464,7 +464,7 @@ namespace transport
 		else
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
-		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
+		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer (!IsV6 ()))
 		{
 			RAND_bytes((uint8_t *)&m_SentRelayTag, 4);
 			if (!m_SentRelayTag) m_SentRelayTag = 1;
