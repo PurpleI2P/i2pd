@@ -826,7 +826,8 @@ namespace data
 	{
 		for (auto& addr : *m_Addresses)
 		{
-			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
+			if (addr->transportStyle == eTransportSSU && 
+			   ((addr->IsV4 () && introducer.iHost.is_v4 ()) || (addr->IsV6 () && introducer.iHost.is_v6 ())))
 			{
 				for (auto& intro: addr->ssu->introducers)
 					if (intro.iTag == introducer.iTag) return false; // already presented
@@ -841,10 +842,11 @@ namespace data
 	{
 		for (auto& addr: *m_Addresses)
 		{
-			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
+			if (addr->transportStyle == eTransportSSU && 
+			   ((addr->IsV4 () && e.address ().is_v4 ()) || (addr->IsV6 () && e.address ().is_v6 ())))
 			{
 				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
-					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e)
+					if (boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e)
 					{
 						addr->ssu->introducers.erase (it);
 						return true;
