@@ -529,8 +529,8 @@ namespace data
 						WriteString ("caps", properties);
 						properties << '=';
 						std::string caps;
-						if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
-						if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
+						if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+						if (address.IsV6 ()) caps += CAPS_FLAG_V6;
 						if (caps.empty ()) caps += CAPS_FLAG_V4;
 						WriteString (caps, properties);
 						properties << ';';
@@ -564,8 +564,8 @@ namespace data
 				}	
 				else
 				{
-					if (address.caps & AddressCaps::eV4) caps += CAPS_FLAG_V4;
-					if (address.caps & AddressCaps::eV6) caps += CAPS_FLAG_V6;
+					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
 					if (caps.empty ()) caps += CAPS_FLAG_V4;
 				}	
 				WriteString (caps, properties);
