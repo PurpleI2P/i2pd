@@ -862,9 +862,18 @@ namespace data
 			offset += 4; // end date
 		}
 		// update expiration
-		SetExpirationTime (expirationTime*1000LL);
-		auto expires = expirationTime - timestamp;
-		htobe16buf (expiresBuf, expires > 0 ? expires : 0);
+		if (expirationTime)
+		{		
+			SetExpirationTime (expirationTime*1000LL);
+			auto expires = (int)expirationTime - timestamp;
+			htobe16buf (expiresBuf, expires > 0 ? expires : 0);
+		}	
+		else
+		{
+			// no tunnels or withdraw
+			SetExpirationTime (timestamp*1000LL);
+			memset (expiresBuf, 0, 2); // expires immeditely
+		}		
 		// sign
 		keys.Sign (m_Buffer, offset, m_Buffer + offset); // LS + leading store type
 	}
