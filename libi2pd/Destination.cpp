@@ -386,7 +386,7 @@ namespace client
 					if (leaseSet->IsNewer (buf + offset, len - offset))
 					{
 						leaseSet->Update (buf + offset, len - offset);
-						if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
+						if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 							LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 						else
 						{
@@ -405,7 +405,7 @@ namespace client
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
 						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset, true, GetPreferredCryptoType () ); // LeaseSet2
-					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
+					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 					{
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
 						{

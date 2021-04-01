@@ -336,7 +336,7 @@ namespace data
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
-				if (leaseSet->IsPublic ())
+				if (leaseSet->IsPublic () && !leaseSet->IsExpired ())
 				{
 					// TODO: implement actual update
 					LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
@@ -345,7 +345,7 @@ namespace data
 				}
 				else
 				{
-					LogPrint (eLogWarning, "NetDb: Unpublished LeaseSet2 received: ", ident.ToBase32());
+					LogPrint (eLogWarning, "NetDb: Unpublished or expired LeaseSet2 received: ", ident.ToBase32());
 					m_LeaseSets.erase (ident);
 				}
 			}
