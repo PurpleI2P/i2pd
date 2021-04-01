@@ -797,7 +797,7 @@ namespace data
 	}
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
-		const KeySections& encryptionKeys, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels,
+		const KeySections& encryptionKeys, const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 		bool isPublic, bool isPublishedEncrypted):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{

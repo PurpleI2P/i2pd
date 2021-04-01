@@ -300,7 +300,11 @@ namespace client
 	{
 		int numTunnels = m_Pool->GetNumInboundTunnels () + 2; // 2 backup tunnels
 		if (numTunnels > i2p::data::MAX_NUM_LEASES) numTunnels = i2p::data::MAX_NUM_LEASES; // 16 tunnels maximum
-		CreateNewLeaseSet (m_Pool->GetInboundTunnels (numTunnels));
+		auto tunnels = m_Pool->GetInboundTunnels (numTunnels);
+		if (!tunnels.empty ())
+			CreateNewLeaseSet (tunnels);
+		else
+			LogPrint (eLogInfo, "Destination: No inbound tunnels for LeaseSet");
 	}
 
 	bool LeaseSetDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
@@ -1176,7 +1180,7 @@ namespace client
 		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
 	}
 
-	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
+	void ClientDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
 	{
 		std::shared_ptr<i2p::data::LocalLeaseSet> leaseSet;
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)

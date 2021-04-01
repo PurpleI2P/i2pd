@@ -152,7 +152,7 @@ namespace client
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
-			virtual void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) = 0;
+			virtual void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) = 0;
 
 		private:
 
@@ -262,7 +262,7 @@ namespace client
 			void CleanupDestination ();
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
 
 		private:
 

@@ -84,7 +84,7 @@ namespace client
 			m_Owner->SendMessagePayloadMessage (buf + 4, length);
 	}
 
-	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
+	void I2CPDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
 	{
 		GetService ().post (std::bind (&I2CPDestination::PostCreateNewLeaseSet, this, tunnels));
 	}

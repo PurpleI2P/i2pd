@@ -93,7 +93,7 @@ namespace client
 
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
 
 		private:
 
