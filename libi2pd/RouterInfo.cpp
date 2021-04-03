@@ -1017,7 +1017,7 @@ namespace data
 		return GetAddress (
 			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return (address->transportStyle == eTransportSSU) && (!v4only || address->host.is_v4 ());
+				return (address->transportStyle == eTransportSSU) && (!v4only || address->IsV4 ());
 			});
 	}
 
@@ -1026,7 +1026,7 @@ namespace data
 		return GetAddress (
 			[](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return (address->transportStyle == eTransportSSU) && address->host.is_v6 ();
+				return (address->transportStyle == eTransportSSU) && address->IsV6();
 			});
 	}
 
