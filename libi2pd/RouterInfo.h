@@ -148,6 +148,7 @@ namespace data
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
 				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
+				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
 				
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
@@ -188,6 +189,7 @@ namespace data
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
+			bool HasUnreachableCap () const { return m_Caps & Caps::eUnreachable; }; 
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
@@ -204,7 +206,6 @@ namespace data
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
 			bool IsReachableFrom (const RouterInfo& other) const;	
 			bool HasValidAddresses () const { return m_SupportedTransports; };
-			bool UsesIntroducer () const;
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };

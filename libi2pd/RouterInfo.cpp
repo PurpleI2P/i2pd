@@ -1007,11 +1007,6 @@ namespace data
 		}	
 	}	
 
-	bool RouterInfo::UsesIntroducer () const
-	{
-		return m_Caps & Caps::eUnreachable; // non-reachable
-	}
-
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const
 	{
 		return GetAddress (

@@ -681,7 +681,7 @@ namespace transport
 				// we didn't have correct endpoint when sent relay request
 				// now we do
 				LogPrint (eLogInfo, "SSU: RelayReponse connecting to endpoint ", remoteEndpoint);
-				if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+				if (i2p::context.GetRouterInfo ().HasUnreachableCap ()) // if we are unreachable. TODO: ipv4 and ipv6
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
 				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
 				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);

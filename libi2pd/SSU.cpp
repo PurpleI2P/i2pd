@@ -445,7 +445,7 @@ namespace transport
 	{
 		if (router && address)
 		{
-			if (router->UsesIntroducer ())
+			if (address->UsesIntroducer ())
 				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, address, peerTest)); // always V4 thread
 			else
 			{
@@ -481,7 +481,7 @@ namespace transport
 	void SSUServer::CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, 
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
-		if (router && router->UsesIntroducer () && address)
+		if (router && address && address->UsesIntroducer ())
 		{	
 			if (address->IsV4 () && !i2p::context.SupportsV4 ()) return;
 			if (address->IsV6 () && !i2p::context.SupportsV6 ()) return;
@@ -566,7 +566,7 @@ namespace transport
 					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
 							"] through introducer ", introducer->iHost, ":", introducer->iPort);
 					session->WaitForIntroduction ();
-					if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+					if (i2p::context.GetRouterInfo ().HasUnreachableCap ()) // if we are unreachable. TODO: ipv4 and ipv6
 					{
 						uint8_t buf[1];
 						Send (buf, 0, remoteEndpoint); // send HolePunch
