@@ -333,6 +333,21 @@ namespace data
 					}	
 					else 
 						supportedTransports |= eSSUV4; // in case if host or 6 caps is not preasented, we assume 4
+					if (address->ssu && !address->ssu->introducers.empty ())
+					{
+						// exclude invalid introducers
+						uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+						int numValid = 0;
+						for (auto& it: address->ssu->introducers)
+						{
+							if (ts <= it.iExp && it.iPort > 0 && 
+							    ((it.iHost.is_v4 () && address->IsV4 ()) || (it.iHost.is_v6 () && address->IsV6 ()))) 
+								numValid++;
+							else
+								it.iPort = 0;
+						}	
+						if (!numValid) address->ssu->introducers.resize (0);
+					}	
 				}	
 			}	
 			if (supportedTransports)

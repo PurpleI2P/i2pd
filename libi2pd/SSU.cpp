@@ -431,16 +431,17 @@ namespace transport
 			return nullptr;
 	}
 
-	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest, bool v4only)
+	bool SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest, bool v4only)
 	{
 		auto address = router->GetSSUAddress (v4only || !context.SupportsV6 ());
 		if (address)
-			CreateSession (router, address, peerTest);
+			return CreateSession (router, address, peerTest);
 		else
 			LogPrint (eLogWarning, "SSU: Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+		return false;
 	}
 
-	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
+	bool SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
 		if (router && address)
@@ -449,10 +450,14 @@ namespace transport
 				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, address, peerTest)); // always V4 thread
 			else
 			{
+				if (address->host.is_unspecified ()) return false;	
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				m_Service.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
 		}
+		else
+			return false;
+		return true;
 	}
 
 	void SSUServer::CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest)
@@ -511,6 +516,7 @@ namespace transport
 				for (int i = 0; i < numIntroducers; i++)
 				{
 					auto intr = &(address->ssu->introducers[i]);
+					if (!intr->iPort) continue; // skip invalid introducer
 					if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
 					boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
 					if (ep.address ().is_v4 () && address->IsV4 ()) // ipv4 

@@ -505,8 +505,8 @@ namespace transport
 					}
 					if (address && address->IsReachableSSU ())
 					{
-						m_SSUServer->CreateSession (peer.router, address);
-						return true;
+						if (m_SSUServer->CreateSession (peer.router, address))
+							return true;
 					}	
 				}
 				else

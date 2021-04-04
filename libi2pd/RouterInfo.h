@@ -96,7 +96,7 @@ namespace data
 			typedef Tag<32> IntroKey; // should be castable to MacKey and AESKey
 			struct Introducer
 			{
-				Introducer (): iExp (0) {};
+				Introducer (): iPort (0), iExp (0) {};
 				boost::asio::ip::address iHost;
 				int iPort;
 				IntroKey iKey;
