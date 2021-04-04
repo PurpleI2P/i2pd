@@ -153,8 +153,8 @@ namespace data
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
 
-				bool IsV4 () const { return (caps & AddressCaps::eV4) || host.is_v4 (); };
-				bool IsV6 () const { return (caps & AddressCaps::eV6) || host.is_v6 (); };
+				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); };
+				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
