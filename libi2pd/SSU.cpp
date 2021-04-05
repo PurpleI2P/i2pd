@@ -513,9 +513,10 @@ namespace transport
 				std::shared_ptr<SSUSession> introducerSession;
 				const i2p::data::RouterInfo::Introducer * introducer = nullptr;
 				// we might have a session to introducer already
+				auto offset = rand ();
 				for (int i = 0; i < numIntroducers; i++)
 				{
-					auto intr = &(address->ssu->introducers[i]);
+					auto intr = &(address->ssu->introducers[(offset + i)%numIntroducers]);
 					if (!intr->iPort) continue; // skip invalid introducer
 					if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
 					boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
