@@ -260,7 +260,7 @@ namespace data
 				else if (!strcmp (key, "i")) // ntcp2 iv
 				{
 					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);
-					address->ntcp2->isPublished = true; // presence if "i" means "published"
+					address->published = true; // presence if "i" means "published"
 				}
 				else if (key[0] == 'i')
 				{
@@ -308,7 +308,7 @@ namespace data
 						else
 							supportedTransports |= eNTCP2V4; 
 					}	
-					else if (!address->ntcp2->isPublished)
+					else if (!address->published)
 					{
 						if (address->caps)
 						{	
@@ -348,6 +348,8 @@ namespace data
 						}	
 						if (!numValid) address->ssu->introducers.resize (0);
 					}	
+					else if (isHost && address->port)
+						address->published = true;
 				}	
 			}	
 			if (supportedTransports)
@@ -564,7 +566,7 @@ namespace data
 				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
 				if (address.host.is_v4 ())
 				{	
-					if (IsReachable ())
+					if (address.published)
 					{	
 						isPublished = true;
 						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
@@ -574,8 +576,13 @@ namespace data
 				}
 				else if (address.host.is_v6 ())
 				{	
-					isPublished = true;
-					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					if (address.published)
+					{	
+						isPublished = true;
+						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					}	
+					else
+						caps += CAPS_FLAG_V6;
 				}	
 				else
 				{
@@ -807,6 +814,7 @@ namespace data
 		addr->port = port;
 		addr->transportStyle = eTransportSSU;
 		addr->cost = COST_SSU_DIRECT; // NTCP2 should have priority over SSU
+		addr->published = true;
 		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
@@ -831,7 +839,7 @@ namespace data
 		addr->caps = 0;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
-		if (port) addr->ntcp2->isPublished = true;
+		if (port) addr->published = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);
 		m_Addresses->push_back(std::move(addr));

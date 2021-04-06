@@ -250,7 +250,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->ntcp2->isPublished != publish)) 
+			if (address->IsNTCP2 () && (address->port != port || address->published != publish)) 
 			{
 				bool isAddr = v4 && address->IsV4 ();
 				if (!isAddr && (v6 || ygg))
@@ -270,7 +270,7 @@ namespace i2p
 					}
 					if (port) address->port = port;
 					address->cost = publish ? i2p::data::COST_NTCP2_PUBLISHED : i2p::data::COST_NTCP2_NON_PUBLISHED;
-					address->ntcp2->isPublished = publish;
+					address->published = publish;
 					address->ntcp2->iv = m_NTCP2Keys->iv;
 					updated = true;
 				}	
@@ -483,6 +483,7 @@ namespace i2p
 			if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->cost = i2p::data::COST_SSU_THROUGH_INTRODUCERS; 
+				addr->published = false;
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
 				addr->ssu->introducers.clear ();
 				port = addr->port;
@@ -514,6 +515,7 @@ namespace i2p
 			if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->cost = i2p::data::COST_SSU_DIRECT; 
+				addr->published = true;
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
 				port = addr->port;

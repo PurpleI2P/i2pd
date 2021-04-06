@@ -115,7 +115,6 @@ namespace data
 			{
 				Tag<32> staticKey;
 				Tag<16> iv;
-				bool isPublished = false;
 			};
 
 			struct Address
@@ -125,6 +124,7 @@ namespace data
 				int port;
 				uint64_t date;
 				uint8_t cost, caps;
+				bool published = false;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
 				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
@@ -146,7 +146,7 @@ namespace data
 				}
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
-				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
+				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
 				
