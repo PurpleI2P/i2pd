@@ -341,7 +341,7 @@ namespace data
 						int numValid = 0;
 						for (auto& it: address->ssu->introducers)
 						{
-							if (ts <= it.iExp && it.iPort > 0 && 
+							if ((!it.iExp || ts <= it.iExp) && it.iPort > 0 && 
 							    ((it.iHost.is_v4 () && address->IsV4 ()) || (it.iHost.is_v6 () && address->IsV6 ()))) 
 								numValid++;
 							else
