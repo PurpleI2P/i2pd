@@ -197,7 +197,8 @@ namespace data
 		{
 			uint8_t supportedTransports = 0;
 			auto address = std::make_shared<Address>();
-			s.read ((char *)&address->cost, sizeof (address->cost));
+			uint8_t cost; // ignore
+			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
 			bool isHost = false, isIntroKey = false, isStaticKey = false;
 			char transportStyle[6];
@@ -530,7 +531,13 @@ namespace data
 		for (const auto& addr_ptr : *m_Addresses)
 		{
 			const Address& address = *addr_ptr;
-			s.write ((const char *)&address.cost, sizeof (address.cost));
+			// calculate cost
+			uint8_t cost = 0x7f;
+			if (address.transportStyle == eTransportNTCP)
+				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
+			else if (address.transportStyle == eTransportSSU)
+				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
+			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
 			bool isPublished = false;
@@ -813,7 +820,6 @@ namespace data
 		addr->host = boost::asio::ip::address::from_string (host);
 		addr->port = port;
 		addr->transportStyle = eTransportSSU;
-		addr->cost = COST_SSU_DIRECT; // NTCP2 should have priority over SSU
 		addr->published = true;
 		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
@@ -834,8 +840,7 @@ namespace data
 		auto addr = std::make_shared<Address>();
 		addr->host = host;
 		addr->port = port;
-		addr->transportStyle = eTransportNTCP;
-		addr->cost = port ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED; // override from RouterContext::PublishNTCP2Address
+		addr->transportStyle = eTransportNTCP;		
 		addr->caps = 0;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());

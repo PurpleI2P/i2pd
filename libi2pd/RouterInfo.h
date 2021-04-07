@@ -123,7 +123,7 @@ namespace data
 				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
-				uint8_t cost, caps;
+				uint8_t caps;
 				bool published = false;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
 				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
