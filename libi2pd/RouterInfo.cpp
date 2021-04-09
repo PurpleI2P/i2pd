@@ -618,6 +618,18 @@ namespace data
 					int i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
+						if (introducer.iExp) // expiration is specified
+						{
+							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
+							properties << '=';
+							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
+							properties << ';';
+						}
+						i++;
+					}
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
 						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
 						WriteString (introducer.iHost.to_string (), properties);
@@ -652,18 +664,6 @@ namespace data
 						properties << '=';
 						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
 						properties << ';';
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						if (introducer.iExp) // expiration is specified
-						{
-							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
-							properties << '=';
-							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
-							properties << ';';
-						}
 						i++;
 					}
 				}

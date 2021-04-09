@@ -744,6 +744,7 @@ namespace transport
 					introducer.iPort = ep.port ();
 					introducer.iTag = it1->GetRelayTag ();
 					introducer.iKey = it1->GetIntroKey ();
+					introducer.iExp = it1->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
 					if (i2p::context.AddIntroducer (introducer))
 					{
 						newList.push_back (ep);
