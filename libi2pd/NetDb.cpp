@@ -454,7 +454,7 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
-				(!r->HasUnreachableCap () || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
+			(r->IsReachable () || !r->IsSSU (false) || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
 		{
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
@@ -584,7 +584,7 @@ namespace data
 			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)	
 				it.second->SetUnreachable (false); 
 			// find & mark expired routers
-			if (it.second->HasUnreachableCap ())
+			if (!it.second->IsReachable () && it.second->IsSSU (false))
 			{
 				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
