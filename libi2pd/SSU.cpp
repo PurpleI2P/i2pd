@@ -573,7 +573,8 @@ namespace transport
 					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
 							"] through introducer ", introducer->iHost, ":", introducer->iPort);
 					session->WaitForIntroduction ();
-					if (i2p::context.GetRouterInfo ().HasUnreachableCap ()) // if we are unreachable. TODO: ipv4 and ipv6
+					if ((address->host.is_v4 () && i2p::context.GetStatus () == eRouterStatusFirewalled) ||
+					    (address->host.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled)) 
 					{
 						uint8_t buf[1];
 						Send (buf, 0, remoteEndpoint); // send HolePunch
