@@ -495,20 +495,39 @@ namespace client
 			else
 				m_BufferOffset = 0;
 
-			auto dest = std::make_shared<i2p::data::IdentityEx> ();
-			size_t l = dest->FromBase64(destination);
-			if (l > 0)
+			std::shared_ptr<Address> addr;
+			auto pos = destination.find(".b32.i2p");
+			if (pos != std::string::npos)
+				addr = std::make_shared<Address>(destination.substr (0, pos));
+			else
 			{
-				context.GetAddressBook().InsertFullAddress(dest);
-				auto leaseSet = session->localDestination->FindLeaseSet(dest->GetIdentHash());
-				if (leaseSet)
-					Connect(leaseSet, session);
-				else
+				auto dest = std::make_shared<i2p::data::IdentityEx> ();
+				size_t l = dest->FromBase64(destination);
+				if (l > 0)
 				{
-					session->localDestination->RequestDestination(dest->GetIdentHash(),
+					context.GetAddressBook().InsertFullAddress(dest);
+					addr = std::make_shared<Address>(dest->GetIdentHash ());
+				}	
+			}		
+			
+			if (addr && addr->IsValid ())
+			{
+				if (addr->IsIdentHash ())
+				{	
+					auto leaseSet = session->localDestination->FindLeaseSet(addr->identHash);
+					if (leaseSet)
+						Connect(leaseSet, session);
+					else
+					{
+						session->localDestination->RequestDestination(addr->identHash,
+							std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
+							shared_from_this(), std::placeholders::_1));
+					}
+				}	
+				else // B33
+					session->localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
 						std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
 						shared_from_this(), std::placeholders::_1));
-				}
 			}
 			else
 				SendMessageReply (SAM_STREAM_STATUS_INVALID_KEY, strlen(SAM_STREAM_STATUS_INVALID_KEY), true);
