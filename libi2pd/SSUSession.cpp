@@ -120,7 +120,8 @@ namespace transport
 				else
 				{
 					// try own intro key
-					auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
+					auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+						i2p::context.GetRouterInfo ().GetSSUAddress (true);
 					if (!address)
 					{
 						LogPrint (eLogInfo, "SSU is not supported");
@@ -390,7 +391,8 @@ namespace transport
 
 	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce)
 	{
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
+		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+			i2p::context.GetRouterInfo ().GetSSUAddress (true);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported");
@@ -689,6 +691,8 @@ namespace transport
 			}
 			// delete request
 			m_RelayRequests.erase (it);
+			// cancel connect timer
+			m_ConnectTimer.cancel ();
 		}
 		else
 			LogPrint (eLogError, "SSU: Unsolicited RelayResponse, nonce=", nonce);
