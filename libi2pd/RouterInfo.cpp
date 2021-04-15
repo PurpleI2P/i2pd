@@ -1135,7 +1135,7 @@ namespace data
 			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting () &&
-					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ()));
+					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && address->IsReachableSSU ();
 			});	
 	}
 
@@ -1146,7 +1146,7 @@ namespace data
 			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{			
 				return (address->transportStyle == eTransportSSU) && address->IsIntroducer () &&
-					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ()));
+					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && !address->host.is_unspecified ();
 			});
 	}	
 
