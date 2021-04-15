@@ -570,22 +570,33 @@ namespace transport
 	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
-		// Charlie's address always v4
-		if (!to.address ().is_v4 ())
+		bool isV4 = to.address ().is_v4 (); // Charle's
+		bool isV4A = from.address ().is_v4 (); // Alice's
+		if ((isV4 && !isV4A) || (!isV4 && isV4A))
 		{
-			LogPrint (eLogWarning, "SSU: Charlie's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Charlie's IP and Alice's IP belong to different networks for relay response");
 			return;
 		}
-		uint8_t buf[80 + 18] = {0}; // 64 Alice's ipv4 and 80 Alice's ipv6
+		uint8_t buf[80 + 18] = {0}; // 64 for ipv4 and 80 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		*payload = 4;
-		payload++; // size
-		htobe32buf (payload, to.address ().to_v4 ().to_ulong ()); // Charlie's IP
-		payload += 4; // address
+		// Charlie
+		if (isV4)
+		{	
+			*payload = 4;
+			payload++; // size
+			memcpy (payload, to.address ().to_v4 ().to_bytes ().data (), 4); // Charlie's IP V4
+			payload += 4; // address
+		}	
+		else
+		{
+			*payload = 16;
+			payload++; // size
+			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			payload += 16; // address
+		}	
 		htobe16buf (payload, to.port ()); // Charlie's port
 		payload += 2; // port
 		// Alice
-		bool isV4 = from.address ().is_v4 (); // Alice's
 		if (isV4)
 		{
 			*payload = 4;
@@ -624,25 +635,36 @@ namespace transport
 	void SSUSession::SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from)
 	{
 		if (!session) return;
-		// Alice's address always v4
-		if (!from.address ().is_v4 ())
+		bool isV4 = from.address ().is_v4 (); // Alice's
+		bool isV4C = session->m_RemoteEndpoint.address ().is_v4 (); // Charlie's
+		if ((isV4 && !isV4C) || (!isV4 && isV4C))
 		{
-			LogPrint (eLogWarning, "SSU: Alice's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Charlie's IP and Alice's IP belong to different networks for relay intro");
 			return;
 		}
-		uint8_t buf[48 + 18] = {0};
+		uint8_t buf[64 + 18] = {0}; // 48 for ipv4 and 64 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		*payload = 4;
-		payload++; // size
-		htobe32buf (payload, from.address ().to_v4 ().to_ulong ()); // Alice's IP
-		payload += 4; // address
+		if (isV4)
+		{
+			*payload = 4;
+			payload++; // size
+			memcpy (payload, from.address ().to_v4 ().to_bytes ().data (), 4); // Alice's IP V4
+			payload += 4; // address
+		}
+		else
+		{
+			*payload = 16;
+			payload++; // size
+			memcpy (payload, from.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			payload += 16; // address
+		}
 		htobe16buf (payload, from.port ()); // Alice's port
 		payload += 2; // port
 		*payload = 0; // challenge size
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
-		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, isV4 ? 48 : 64, session->m_SessionKey, iv, session->m_MacKey);
+		m_Server.Send (buf, isV4 ? 48 : 64, session->m_RemoteEndpoint);
 		LogPrint (eLogDebug, "SSU: relay intro sent");
 	}
 
