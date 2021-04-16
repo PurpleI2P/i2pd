@@ -296,8 +296,16 @@ namespace transport
 		if (s.Verify (m_RemoteIdentity, payload))
 		{
 			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
-			i2p::context.UpdateAddress (ourIP);
-			SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen); 
+			if (!i2p::util::net::IsInReservedRange (ourIP))
+			{	
+				i2p::context.UpdateAddress (ourIP);
+				SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen); 
+			}	
+			else
+			{	
+				LogPrint (eLogError, "SSU: Wrong external address ", ourIP.to_string ());
+				Failed ();
+			}	
 		}
 		else
 		{
@@ -682,7 +690,10 @@ namespace transport
 		if (!ourSize) return;
 		buf += ourSize; len -= ourSize;
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
-		i2p::context.UpdateAddress (ourIP);
+		if (!i2p::util::net::IsInReservedRange (ourIP))
+			i2p::context.UpdateAddress (ourIP);
+		else
+			LogPrint (eLogWarning, "SSU: Wrong external address ", ourIP.to_string ());
 		if (ourIP.is_v4 ())
 		{	
 			if (ourPort != m_Server.GetPort ())
