@@ -587,10 +587,11 @@ namespace transport
 		if (i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test ipv4");
+			std::set<i2p::data::IdentHash> excluded;
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true, excluded); // v4 
 				if (router)
 				{
 					auto addr = router->GetSSUAddress (true); // ipv4
@@ -601,8 +602,9 @@ namespace transport
 							statusChanged = true;
 							i2p::context.SetStatus (eRouterStatusTesting); // first time only
 						}
-						m_SSUServer->CreateSession (router, addr, true); // peer test v4
+						m_SSUServer->CreateSession (router, addr, true); // peer test v4	
 					}	
+					excluded.insert (router->GetIdentHash ());
 				}
 			}
 			if (!statusChanged)
@@ -611,10 +613,11 @@ namespace transport
 		if (i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test ipv6");
+			std::set<i2p::data::IdentHash> excluded;
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (false); // v6
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (false, excluded); // v6
 				if (router)
 				{
 					auto addr = router->GetSSUV6Address ();
@@ -627,6 +630,7 @@ namespace transport
 						}
 						m_SSUServer->CreateSession (router, addr, true); // peer test v6
 					}	
+					excluded.insert (router->GetIdentHash ());
 				}
 			}
 			if (!statusChanged)
