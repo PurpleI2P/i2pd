@@ -678,8 +678,31 @@ namespace data
 			// direct connection
 			auto it = boost::asio::ip::tcp::resolver(service).resolve (
 				boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
-			if(!ecode)
-				s.lowest_layer().connect (*it, ecode);
+			if (!ecode)
+			{	
+				bool connected = false;
+				boost::asio::ip::tcp::resolver::iterator end;
+				while (it != end)
+				{	
+					boost::asio::ip::tcp::endpoint ep = *it;
+					if ((ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
+					    (ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
+					{	
+						s.lowest_layer().connect (ep, ecode);
+						if (!ecode)
+						{
+							connected = true;
+							break;
+						}	
+					}	
+					it++;
+				}
+				if (!connected)
+				{
+					LogPrint(eLogError, "Reseed: Failed to connect to ", url.host);
+					return "";
+				}	
+			}	
 		}
 		if (!ecode)
 		{
