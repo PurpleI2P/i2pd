@@ -676,10 +676,9 @@ namespace transport
 		{
 			auto session = v4 ? GetRandomV4Session (filter) : GetRandomV6Session (filter);
 			if (session)
-			{
 				ret.insert (session.get ());
+			else
 				break;
-			}
 		}
 		return ret;
 	}
@@ -771,7 +770,7 @@ namespace transport
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
-				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4);
+				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - numIntroducers, v4);
 				for (const auto& it1: sessions)
 				{
 					const auto& ep = it1->GetRemoteEndpoint ();
