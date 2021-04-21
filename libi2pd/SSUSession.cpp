@@ -1017,7 +1017,10 @@ namespace transport
 					if (IsV6 ())
 					{
 						if (i2p::context.GetStatusV6 () == eRouterStatusTesting) 
+						{	
 							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimerV6 ();
+						}	
 					}	
 					else if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
 					{	

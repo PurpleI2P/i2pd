@@ -466,7 +466,7 @@ namespace i2p
 
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
-		if (v4)
+		if (v4 || (v6 && !SupportsV4 ()))
 		{	
 			// set caps
 			uint8_t caps = m_RouterInfo.GetCaps ();
@@ -496,7 +496,7 @@ namespace i2p
 
 	void RouterContext::SetReachable (bool v4, bool v6)
 	{
-		if (v4)
+		if (v4 || (v6 && !SupportsV4 ()))
 		{	
 			// update caps
 			uint8_t caps = m_RouterInfo.GetCaps ();

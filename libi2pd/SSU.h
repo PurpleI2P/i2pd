@@ -71,6 +71,7 @@ namespace transport
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 			void RescheduleIntroducersUpdateTimer ();
+			void RescheduleIntroducersUpdateTimerV6 ();
 			
 			void NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session = nullptr);
 			PeerTestParticipant GetPeerTestParticipant (uint32_t nonce);
@@ -99,9 +100,10 @@ namespace transport
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV6Session (Filter filter);
 
-			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers);
+			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers, bool v4);
 			void ScheduleIntroducersUpdateTimer ();
-			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);
+			void ScheduleIntroducersUpdateTimerV6 ();
+			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
 
 			void SchedulePeerTestsCleanupTimer ();
 			void HandlePeerTestsCleanupTimer (const boost::system::error_code& ecode);
@@ -127,9 +129,9 @@ namespace transport
 			boost::asio::io_service::work m_Work, m_ReceiversWork, m_ReceiversWorkV6;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
-			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer,
-				m_TerminationTimer, m_TerminationTimerV6;
-			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
+			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6, 
+				m_PeerTestsCleanupTimer, m_TerminationTimer, m_TerminationTimerV6;
+			std::list<boost::asio::ip::udp::endpoint> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
 			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
