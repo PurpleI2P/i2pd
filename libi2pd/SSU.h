@@ -100,7 +100,7 @@ namespace transport
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV6Session (Filter filter);
 
-			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers, bool v4);
+			std::list<std::shared_ptr<SSUSession> > FindIntroducers (int maxNumIntroducers, bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void ScheduleIntroducersUpdateTimerV6 ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);

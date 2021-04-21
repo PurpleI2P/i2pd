@@ -662,24 +662,29 @@ namespace transport
 		);
 	}
 
-	std::set<SSUSession *> SSUServer::FindIntroducers (int maxNumIntroducers, bool v4)
+	std::list<std::shared_ptr<SSUSession> >  SSUServer::FindIntroducers (int maxNumIntroducers, bool v4)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::set<SSUSession *> ret;
-		auto filter = [&ret, ts](std::shared_ptr<SSUSession> session)->bool
-			{
-				return session->GetRelayTag () && !ret.count (session.get ()) &&
-					session->GetState () == eSessionStateEstablished &&
-					ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
-			};
-		for (int i = 0; i < maxNumIntroducers; i++)
+		std::list<std::shared_ptr<SSUSession> > ret;
+		const auto& sessions = v4 ? m_Sessions : m_SessionsV6;
+		for (const auto& s : sessions)
+		{	
+			if (s.second->GetRelayTag () && s.second->GetState () == eSessionStateEstablished &&
+			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
+				ret.push_back (s.second);
+		}	
+		if ((int)ret.size () > maxNumIntroducers)
 		{
-			auto session = v4 ? GetRandomV4Session (filter) : GetRandomV6Session (filter);
-			if (session)
-				ret.insert (session.get ());
-			else
-				break;
-		}
+			// shink ret  randomly
+			int sz = ret.size () - maxNumIntroducers;
+			for (int i = 0; i < sz; i++)
+			{
+				auto ind = rand () % ret.size ();
+				auto it = ret.begin ();
+				std::advance (it, ind);
+				ret.erase (it);
+			}	
+		}	
 		return ret;
 	}
 
@@ -770,7 +775,7 @@ namespace transport
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
-				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - numIntroducers, v4);
+				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4); // try to find if duplicates
 				for (const auto& it1: sessions)
 				{
 					const auto& ep = it1->GetRemoteEndpoint ();
