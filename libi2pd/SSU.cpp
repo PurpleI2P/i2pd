@@ -794,10 +794,10 @@ namespace transport
 				std::set<std::shared_ptr<const i2p::data::RouterInfo> > requested;
 				for (auto i = introducers.size (); i < SSU_MAX_NUM_INTRODUCERS; i++)
 				{	
-					auto introducer = i2p::data::netdb.GetRandomIntroducer ();
+					auto introducer = i2p::data::netdb.GetRandomIntroducer (v4);
 					if (introducer && !requested.count (introducer)) // not requested already
 					{	
-						auto address = introducer->GetSSUAddress (true); // v4
+						auto address = v4 ? introducer->GetSSUAddress (true) : introducer->GetSSUV6Address ();
 						if (address && !address->host.is_unspecified ())
 						{
 							boost::asio::ip::udp::endpoint ep (address->host, address->port);
