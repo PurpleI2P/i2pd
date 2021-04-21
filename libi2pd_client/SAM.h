@@ -76,6 +76,7 @@ namespace client
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";
+	const char SAM_VALUE_MASTER[] = "MASTER";	
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
 
@@ -171,7 +172,8 @@ namespace client
 		eSAMSessionTypeUnknown,
 		eSAMSessionTypeStream,
 		eSAMSessionTypeDatagram,
-		eSAMSessionTypeRaw
+		eSAMSessionTypeRaw,
+		eSAMSessionTypeMaster
 	};
 
 	struct SAMSession
@@ -187,7 +189,7 @@ namespace client
 
 		void CloseStreams ();
 	};
-
+	
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:

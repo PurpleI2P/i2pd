@@ -352,6 +352,7 @@ namespace client
 		if (style == SAM_VALUE_STREAM) type = eSAMSessionTypeStream;
 		else if (style == SAM_VALUE_DATAGRAM) type = eSAMSessionTypeDatagram;
 		else if (style == SAM_VALUE_RAW) type = eSAMSessionTypeRaw;
+		else if (style == SAM_VALUE_MASTER) type = eSAMSessionTypeMaster;
 		if (type == eSAMSessionTypeUnknown)
 		{
 			// unknown style
