@@ -453,7 +453,7 @@ namespace transport
 				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, address, peerTest)); // always V4 thread
 			else
 			{
-				if (address->host.is_unspecified ()) return false;	
+				if (address->host.is_unspecified () || !address->port) return false;	
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				m_Service.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
@@ -802,7 +802,7 @@ namespace transport
 					if (introducer && !requested.count (introducer)) // not requested already
 					{	
 						auto address = v4 ? introducer->GetSSUAddress (true) : introducer->GetSSUV6Address ();
-						if (address && !address->host.is_unspecified ())
+						if (address && !address->host.is_unspecified () && address->port)
 						{
 							boost::asio::ip::udp::endpoint ep (address->host, address->port);
 							if (std::find (introducers.begin (), introducers.end (), ep) == introducers.end ()) // not connected yet
