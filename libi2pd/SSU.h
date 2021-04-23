@@ -31,6 +31,7 @@ namespace transport
 	const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds
 	const int SSU_PEER_TEST_TIMEOUT = 60; // 60 seconds
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
+	const int SSU_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 	const int SSU_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 	const size_t SSU_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K

@@ -102,7 +102,8 @@ namespace transport
 			uint32_t GetRelayTag () const { return m_RelayTag; };
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
-
+			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
+			
 			void FlushData ();
 
 		private:

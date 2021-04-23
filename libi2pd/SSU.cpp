@@ -670,7 +670,7 @@ namespace transport
 		for (const auto& s : sessions)
 		{	
 			if (s.second->GetRelayTag () && s.second->GetState () == eSessionStateEstablished &&
-			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
+			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
 				ret.push_back (s.second);
 		}	
 		if ((int)ret.size () > maxNumIntroducers)
@@ -762,13 +762,19 @@ namespace transport
 			for (const auto& it : introducers)
 			{
 				auto session = FindSession (it);
-				if (session && ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
+				if (session)
 				{
-					session->SendKeepAlive ();
-					newList.push_back (it);
-					numIntroducers++;
+					if (ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
+						session->SendKeepAlive ();
+					if (ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
+					{	
+						newList.push_back (it);
+						numIntroducers++;
+					}
+					else
+						session = nullptr;
 				}
-				else
+				if (!session)
 					i2p::context.RemoveIntroducer (it);
 			}
 
@@ -776,6 +782,19 @@ namespace transport
 			{
 				// create new
 				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4); // try to find if duplicates
+				if (sessions.empty () && !introducers.empty ())
+				{
+					// bump creation time for previous introducers if no new sessions found
+					LogPrint (eLogDebug, "SSU: no new introducers found. Trying to reuse existing");
+					for (const auto& it : introducers)
+					{
+						auto session = FindSession (it);
+						if (session)
+							session->SetCreationTime (session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION);
+					}	
+					// try again
+					sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4);
+				}	
 				for (const auto& it1: sessions)
 				{
 					const auto& ep = it1->GetRemoteEndpoint ();
@@ -784,7 +803,7 @@ namespace transport
 					introducer.iPort = ep.port ();
 					introducer.iTag = it1->GetRelayTag ();
 					introducer.iKey = it1->GetIntroKey ();
-					introducer.iExp = it1->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION;
+					introducer.iExp = it1->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION;
 					if (i2p::context.AddIntroducer (introducer))
 					{
 						newList.push_back (ep);
