@@ -778,6 +778,7 @@ namespace transport
 					i2p::context.RemoveIntroducer (it);
 			}
 
+			std::set<i2p::data::IdentHash> excluded;
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
@@ -809,16 +810,16 @@ namespace transport
 						newList.push_back (ep);
 						if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
 					}
+					excluded.insert (it1->GetRemoteIdentity ()->GetIdentHash ());
 				}
 			}
 			introducers = newList;
 			if (introducers.size () < SSU_MAX_NUM_INTRODUCERS)
 			{
-				std::set<std::shared_ptr<const i2p::data::RouterInfo> > requested;
 				for (auto i = introducers.size (); i < SSU_MAX_NUM_INTRODUCERS; i++)
 				{	
-					auto introducer = i2p::data::netdb.GetRandomIntroducer (v4);
-					if (introducer && !requested.count (introducer)) // not requested already
+					auto introducer = i2p::data::netdb.GetRandomIntroducer (v4, excluded);
+					if (introducer)
 					{	
 						auto address = v4 ? introducer->GetSSUAddress (true) : introducer->GetSSUV6Address ();
 						if (address && !address->host.is_unspecified () && address->port)
@@ -827,7 +828,7 @@ namespace transport
 							if (std::find (introducers.begin (), introducers.end (), ep) == introducers.end ()) // not connected yet
 							{	
 								CreateDirectSession  (introducer, ep, false);
-								requested.insert (introducer);
+								excluded.insert (introducer->GetIdentHash ());
 							}	
 						}	
 					}	

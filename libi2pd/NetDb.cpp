@@ -1168,12 +1168,13 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer (bool v4) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
-			[v4](std::shared_ptr<const RouterInfo> router)->bool
+			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return router->IsIntroducer (v4) && !router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
+				return router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ()) &&
+					!router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
 			});
 	}
 
