@@ -410,20 +410,6 @@ namespace transport
 		if (session) session->FlushData ();
 	}
 
-	std::shared_ptr<SSUSession> SSUServer::FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const
-	{
-		if (!router) return nullptr;
-		auto address = router->GetSSUAddress (true); // v4 only
-		if (!address) return nullptr;
-		auto session = FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
-		if (session || !context.SupportsV6 ())
-			return session;
-		// try v6
-		address = router->GetSSUV6Address ();
-		if (!address) return nullptr;
-		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
-	}
-
 	std::shared_ptr<SSUSession> SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
 		auto& sessions = e.address ().is_v6 () ?  m_SessionsV6 : m_Sessions;
@@ -662,7 +648,8 @@ namespace transport
 		);
 	}
 
-	std::list<std::shared_ptr<SSUSession> >  SSUServer::FindIntroducers (int maxNumIntroducers, bool v4)
+	std::list<std::shared_ptr<SSUSession> >  SSUServer::FindIntroducers (int maxNumIntroducers, 
+		bool v4, std::set<i2p::data::IdentHash>& excluded)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		std::list<std::shared_ptr<SSUSession> > ret;
@@ -672,6 +659,8 @@ namespace transport
 			if (s.second->GetRelayTag () && s.second->GetState () == eSessionStateEstablished &&
 			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
 				ret.push_back (s.second);
+			else
+				excluded.insert (s.second->GetRemoteIdentity ()->GetIdentHash ());
 		}	
 		if ((int)ret.size () > maxNumIntroducers)
 		{
@@ -782,7 +771,7 @@ namespace transport
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
-				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4); // try to find if duplicates
+				auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4, excluded); // try to find if duplicates
 				if (sessions.empty () && !introducers.empty ())
 				{
 					// bump creation time for previous introducers if no new sessions found
@@ -794,7 +783,8 @@ namespace transport
 							session->SetCreationTime (session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION);
 					}	
 					// try again
-					sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4);
+					excluded.clear ();
+					sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS, v4, excluded);
 				}	
 				for (const auto& it1: sessions)
 				{
@@ -831,6 +821,11 @@ namespace transport
 								excluded.insert (introducer->GetIdentHash ());
 							}	
 						}	
+					}
+					else
+					{	
+						LogPrint (eLogDebug, "SSU: can't find more introducers");
+						break;
 					}	
 				}	
 			}

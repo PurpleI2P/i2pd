@@ -56,7 +56,6 @@ namespace transport
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
-			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
 			std::shared_ptr<SSUSession> GetRandomEstablishedV4Session (std::shared_ptr<const SSUSession> excluded);
 			std::shared_ptr<SSUSession> GetRandomEstablishedV6Session (std::shared_ptr<const SSUSession> excluded);
@@ -101,7 +100,7 @@ namespace transport
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV6Session (Filter filter);
 
-			std::list<std::shared_ptr<SSUSession> > FindIntroducers (int maxNumIntroducers, bool v4);
+			std::list<std::shared_ptr<SSUSession> > FindIntroducers (int maxNumIntroducers, bool v4, std::set<i2p::data::IdentHash>& excluded);
 			void ScheduleIntroducersUpdateTimer ();
 			void ScheduleIntroducersUpdateTimerV6 ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
