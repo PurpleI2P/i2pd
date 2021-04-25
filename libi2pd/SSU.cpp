@@ -726,6 +726,8 @@ namespace transport
 					m_Introducers.clear ();
 					return; 
 				}	
+				// we are firewalled
+				if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable (true, false); // v4
 			}	
 			else
 			{
@@ -740,13 +742,17 @@ namespace transport
 					// we don't need introducers
 					m_IntroducersV6.clear ();
 					return; 
-				}	
+				}
+				// we are firewalled
+				auto addr = i2p::context.GetRouterInfo ().GetSSUV6Address ();
+				if (addr && addr->ssu && addr->ssu->introducers.empty ())
+					i2p::context.SetUnreachable (false, true); // v6
 			}	
-			// we are firewalled
-			if (!i2p::context.IsUnreachable () || !v4) i2p::context.SetUnreachable (v4, !v4);
+			
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			std::set<i2p::data::IdentHash> excluded;
 			auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
 			for (const auto& it : introducers)
 			{
@@ -759,6 +765,8 @@ namespace transport
 					{	
 						newList.push_back (it);
 						numIntroducers++;
+						if (session->GetRemoteIdentity ())
+							excluded.insert (session->GetRemoteIdentity ()->GetIdentHash ());
 					}
 					else
 						session = nullptr;
@@ -766,8 +774,6 @@ namespace transport
 				if (!session)
 					i2p::context.RemoveIntroducer (it);
 			}
-
-			std::set<i2p::data::IdentHash> excluded;
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
