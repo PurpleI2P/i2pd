@@ -547,7 +547,7 @@ namespace i2p
 				{
 					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 						foundSSU = true;
-					else if (addr->IsPublishedNTCP2 ())
+					else if (addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 						foundNTCP2 = true;
 				}
 				port = addr->port;
