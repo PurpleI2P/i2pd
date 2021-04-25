@@ -659,7 +659,7 @@ namespace transport
 			if (s.second->GetRelayTag () && s.second->GetState () == eSessionStateEstablished &&
 			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
 				ret.push_back (s.second);
-			else
+			else if (s.second->GetRemoteIdentity ())
 				excluded.insert (s.second->GetRemoteIdentity ()->GetIdentHash ());
 		}	
 		if ((int)ret.size () > maxNumIntroducers)
@@ -800,7 +800,8 @@ namespace transport
 						newList.push_back (ep);
 						if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
 					}
-					excluded.insert (it1->GetRemoteIdentity ()->GetIdentHash ());
+					if (it1->GetRemoteIdentity ())
+						excluded.insert (it1->GetRemoteIdentity ()->GetIdentHash ());
 				}
 			}
 			introducers = newList;
