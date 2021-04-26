@@ -496,10 +496,9 @@ namespace client
 			else
 				m_BufferOffset = 0;
 
-			std::shared_ptr<Address> addr;
-			auto pos = destination.find(".b32.i2p");
-			if (pos != std::string::npos)
-				addr = std::make_shared<Address>(destination.substr (0, pos));
+			std::shared_ptr<const Address> addr;
+			if (destination.find(".i2p") != std::string::npos)
+				addr = context.GetAddressBook().GetAddress (destination); 
 			else
 			{
 				auto dest = std::make_shared<i2p::data::IdentityEx> ();
