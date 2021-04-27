@@ -842,7 +842,7 @@ namespace http {
 			s << "<b>SAM Sessions:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
 			{
-				auto& name = it.second->localDestination->GetNickname ();
+				auto& name = it.second->GetLocalDestination ()->GetNickname ();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
 				s << name << " (" << it.first << ")</a></div>\r\n" << std::endl;
 			}
@@ -868,7 +868,7 @@ namespace http {
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>SAM Session:</b><br>\r\n<div class=\"list\">\r\n";
-		auto& ident = session->localDestination->GetIdentHash();
+		auto& ident = session->GetLocalDestination ()->GetIdentHash();
 		s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n";
 		s << "<br>\r\n";

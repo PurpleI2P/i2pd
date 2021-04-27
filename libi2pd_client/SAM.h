@@ -179,17 +179,34 @@ namespace client
 	struct SAMSession
 	{
 		SAMBridge & m_Bridge;
-		std::shared_ptr<ClientDestination> localDestination;
-		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint;
 		std::string Name;
 		SAMSessionType Type;
-
-		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
-		~SAMSession ();
-
+		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
+		
+		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
+		virtual ~SAMSession () {};
+		
+		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
+		
 		void CloseStreams ();
 	};
-	
+
+	struct SAMSingleSession: public SAMSession
+	{
+		std::shared_ptr<ClientDestination> localDestination;
+
+		SAMSingleSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
+		~SAMSingleSession ();
+
+		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
+	};	
+
+	struct SAMMasterSession: public SAMSingleSession
+	{
+		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
+			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
+	};	
+		
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:

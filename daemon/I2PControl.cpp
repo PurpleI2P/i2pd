@@ -714,8 +714,8 @@ namespace client
 			for (auto& it: sam->GetSessions ())
 			{
 				boost::property_tree::ptree sam_session, sam_session_sockets;
-				auto& name = it.second->localDestination->GetNickname ();
-				auto& ident = it.second->localDestination->GetIdentHash();
+				auto& name = it.second->GetLocalDestination ()->GetNickname ();
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				sam_session.put("name", name);
 				sam_session.put("address", i2p::client::context.GetAddressBook ().ToAddress(ident));
 
