@@ -740,8 +740,8 @@ namespace i2p
 		if (!rekey && m_Keys.GetPublic ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
 		{
 			// rekey routers with bandwidth = L (or default) this time
-			std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
-			if (bandwidth.empty () || bandwidth[0] == 'L') rekey = true;
+			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
+			if (!isFloodfill) rekey = true;
 		}	
 		if (rekey)
 		{
