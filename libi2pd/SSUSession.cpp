@@ -321,12 +321,17 @@ namespace transport
 		auto headerSize = GetSSUHeaderSize (buf);
 		if (headerSize >= len)
 		{
-			LogPrint (eLogError, "SSU: Session confirmed header size ", len, " exceeds packet length ", len);
+			LogPrint (eLogError, "SSU: Session confirmed header size ", headerSize, " exceeds packet length ", len);
 			return;
 		}
 		const uint8_t * payload = buf + headerSize;
 		payload++; // identity fragment info
 		uint16_t identitySize = bufbe16toh (payload);
+		if (identitySize + headerSize + 7 > len) // 7 = fragment info + fragment size + signed on time
+		{
+			LogPrint (eLogError, "SSU: Session confirmed identity size ", identitySize, " exceeds packet length ", len);
+			return;
+		}	
 		payload += 2; // size of identity fragment
 		auto identity = std::make_shared<i2p::data::IdentityEx> (payload, identitySize);
 		auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
@@ -344,10 +349,15 @@ namespace transport
 		if (m_SignedData)
 			m_SignedData->Insert (payload, 4); // insert Alice's signed on time
 		payload += 4; // signed-on time
-		size_t paddingSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
-		paddingSize &= 0x0F; // %16
+		size_t fullSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
+		size_t paddingSize = fullSize & 0x0F; // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
+		if (fullSize + paddingSize > len)
+		{
+			LogPrint (eLogError, "SSU: Session confirmed message is too short ", len);
+			return;
+		}	
 		// verify signature
 		if (m_SignedData && m_SignedData->Verify (m_RemoteIdentity, payload))
 		{
