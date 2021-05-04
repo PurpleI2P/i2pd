@@ -41,6 +41,8 @@ namespace client
 	const char SAM_SESSION_CREATE_INVALID_ID[] = "SESSION STATUS RESULT=INVALID_ID\n";
 	const char SAM_SESSION_STATUS_INVALID_KEY[] = "SESSION STATUS RESULT=INVALID_KEY\n";
 	const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=%s\n";
+	const char SAM_SESSION_ADD[] = "SESSION ADD";
+	const char SAM_SESSION_REMOVE[] = "SESSION REMOVE";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
@@ -135,6 +137,8 @@ namespace client
 			void ProcessStreamForward (char * buf, size_t len);
 			void ProcessDestGenerate (char * buf, size_t len);
 			void ProcessNamingLookup (char * buf, size_t len);
+			void ProcessSessionAdd (char * buf, size_t len);
+			void ProcessSessionRemove (char * buf, size_t len);
 			void SendI2PError(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
@@ -187,6 +191,7 @@ namespace client
 		virtual ~SAMSession () {};
 		
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
+		virtual void StopLocalDestination () = 0;
 		
 		void CloseStreams ();
 	};
@@ -199,6 +204,7 @@ namespace client
 		~SAMSingleSession ();
 
 		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
+		void StopLocalDestination ();
 	};	
 
 	struct SAMMasterSession: public SAMSingleSession
@@ -206,7 +212,18 @@ namespace client
 		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
 			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
 	};	
-		
+
+	struct SAMSubSession: public SAMSession
+	{
+		std::shared_ptr<SAMMasterSession> masterSession;
+		int inPort;
+
+		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port);
+		// implements SAMSession
+		std::shared_ptr<ClientDestination> GetLocalDestination ();
+		void StopLocalDestination ();
+	};	
+	
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:

@@ -1131,13 +1131,28 @@ namespace client
 		return dest;
 	}
 
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::RemoveStreamingDestination (int port)
+	{
+		if (port)
+		{
+			auto it = m_StreamingDestinationsByPorts.find (port);
+			if (it != m_StreamingDestinationsByPorts.end ())
+			{
+				auto ret = it->second;
+				m_StreamingDestinationsByPorts.erase (it);
+				return ret;
+			}	
+		}
+		return nullptr;
+	}	
+		
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip)
 	{
 		if (m_DatagramDestination == nullptr)
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip);
 		return m_DatagramDestination;
-	}
-
+	}		
+		
 	std::vector<std::shared_ptr<const i2p::stream::Stream> > ClientDestination::GetAllStreams () const
 	{
 		std::vector<std::shared_ptr<const i2p::stream::Stream> > ret;

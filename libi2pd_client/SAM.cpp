@@ -270,6 +270,10 @@ namespace client
 						ProcessDestGenerate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+					else if (!strcmp (m_Buffer, SAM_SESSION_ADD))
+						ProcessSessionAdd (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+					else if (!strcmp (m_Buffer, SAM_SESSION_REMOVE))
+						ProcessSessionRemove (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND) || !strcmp (m_Buffer, SAM_RAW_SEND))
 					{
 						size_t len = bytes_transferred - (separator - m_Buffer) - 1;
@@ -759,6 +763,16 @@ namespace client
 		}
 	}
 
+	void SAMSocket::ProcessSessionAdd (char * buf, size_t len)
+	{
+		// TODO: implement
+	}
+		
+	void SAMSocket::ProcessSessionRemove (char * buf, size_t len)
+	{
+		// TODO: implement
+	}	
+		
 	void SAMSocket::SendI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: i2p error ", msg);
@@ -1132,6 +1146,39 @@ namespace client
 	{
 		i2p::client::context.DeleteLocalDestination (localDestination);
 	}	
+
+	void SAMSingleSession::StopLocalDestination ()
+	{
+		localDestination->Release ();
+		localDestination->StopAcceptingStreams ();
+	}
+
+	SAMSubSession::SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port):
+		SAMSession (master->m_Bridge, name, type), masterSession (master), inPort (port)
+	{
+		if (Type == eSAMSessionTypeStream)
+		{		
+			auto d = masterSession->GetLocalDestination ()->CreateStreamingDestination (inPort);
+			if (d) d->Start ();
+		}	
+		// TODO: implement datagrams	
+	}	
+		
+	std::shared_ptr<ClientDestination> SAMSubSession::GetLocalDestination ()
+	{
+		return masterSession ? masterSession->GetLocalDestination () : nullptr;
+	}
+		
+	void SAMSubSession::StopLocalDestination ()
+	{
+		auto dest = GetLocalDestination ();
+		if (dest && Type == eSAMSessionTypeStream)
+		{
+			auto d = dest->RemoveStreamingDestination (inPort);
+			if (d) d->Stop ();
+		}	
+		// TODO: implement datagrams
+	}	
 		
 	SAMBridge::SAMBridge (const std::string& address, int port, bool singleThread):
 		RunnableService ("SAM"), m_IsSingleThread (singleThread),
@@ -1295,8 +1342,7 @@ namespace client
 		}
 		if (session)
 		{
-			session->GetLocalDestination ()->Release ();
-			session->GetLocalDestination ()->StopAcceptingStreams ();
+			session->StopLocalDestination ();
 			session->CloseStreams ();
 			if (m_IsSingleThread)
 			{
