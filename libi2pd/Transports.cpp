@@ -581,10 +581,10 @@ namespace transport
 			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");
 	}
 
-	void Transports::PeerTest ()
+	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
 		if (RoutesRestricted() || !m_SSUServer) return;
-		if (i2p::context.SupportsV4 ())
+		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test ipv4");
 			std::set<i2p::data::IdentHash> excluded;
@@ -610,7 +610,7 @@ namespace transport
 			if (!statusChanged)
 				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv4");
 		}
-		if (i2p::context.SupportsV6 ())
+		if (ipv6 && i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test ipv6");
 			std::set<i2p::data::IdentHash> excluded;
@@ -750,9 +750,12 @@ namespace transport
 					++it;
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
-			if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,	 repeat peer test
-				DetectExternalIP ();
-			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
+			bool ipv6Testing = i2p::context.GetStatusV6 () == eRouterStatusTesting;
+			// if still testing, repeat peer test
+			if (ipv4Testing || ipv6Testing)
+				PeerTest (ipv4Testing, ipv6Testing);
+			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3*SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}
 	}
