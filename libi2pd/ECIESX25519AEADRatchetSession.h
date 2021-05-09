@@ -160,7 +160,7 @@ namespace garlic
 
 		public:
 
-			ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
+			ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSetNS);
 			~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);

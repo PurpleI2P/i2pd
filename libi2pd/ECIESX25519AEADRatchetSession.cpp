@@ -160,9 +160,10 @@ namespace garlic
 		return true;
 	}	
 	
-	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
-		GarlicRoutingSession (owner, attachLeaseSet)
+	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSetNS):
+		GarlicRoutingSession (owner, true)
 	{
+		if (!attachLeaseSetNS) SetLeaseSetUpdateStatus (eLeaseSetUpToDate);	
 		RAND_bytes (m_PaddingSizes, 32); m_NextPaddingSize = 0;
 	}
 
@@ -1101,6 +1102,7 @@ namespace garlic
 	RouterIncomingRatchetSession::RouterIncomingRatchetSession (const i2p::crypto::NoiseSymmetricState& initState):
 		ECIESX25519AEADRatchetSession (&i2p::context, false)
 	{
+		SetLeaseSetUpdateStatus (eLeaseSetDoNotSend);	
 		SetNoiseState (initState);
 	}	
 
