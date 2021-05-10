@@ -196,7 +196,7 @@ namespace garlic
 				i2p::transport::transports.ReuseX25519KeysPair (m_EphemeralKeys);
 		}	
 		// we still didn't find elligator eligible pair
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 25; i++)
 		{
 			// create new
 			m_EphemeralKeys = std::make_shared<i2p::crypto::X25519Keys>();

@@ -556,6 +556,7 @@ namespace garlic
 						if (m_LastTagset && m_LastTagset->GetNextIndex () < 2*ECIESX25519_TAGSET_MAX_NUM_TAGS)
 						{
 							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
+							LogPrint (eLogWarning, "Garlic: trying to generate more ECIES-X25519-AEAD-Ratchet tags");
 							for (int i = 0; i < maxTags; i++)
 							{
 								auto nextTag = AddECIESx25519SessionNextTag (m_LastTagset);

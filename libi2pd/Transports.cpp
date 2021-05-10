@@ -137,7 +137,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_X25519KeysPairSupplier (5), // 5 pre-generated keys
+		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
