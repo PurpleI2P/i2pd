@@ -880,8 +880,12 @@ namespace garlic
 			{
 				auto session = it->second.tagset->GetSession ();
 				if (!session || session->IsTerminated())
-					it->second.tagset->Expire ();
-				++it;
+				{	
+					it = m_ECIESx25519Tags.erase (it);
+					numExpiredTags++;
+				}	
+				else
+					++it;
 			}	
 		}
 		if (numExpiredTags > 0)
