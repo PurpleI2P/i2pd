@@ -88,7 +88,8 @@ namespace garlic
 			bool IsNS () const { return m_IsNS; };
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
 			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
-
+			int GetTrimBehind () const { return m_TrimBehindIndex; };
+			
 			void Expire ();
 			bool IsExpired (uint64_t ts) const;			
 			
