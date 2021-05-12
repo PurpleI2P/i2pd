@@ -512,6 +512,7 @@ namespace garlic
 			{
 				auto tagsetNsr = std::make_shared<ReceiveRatchetTagSet>(shared_from_this (), true);
 				InitNewSessionTagset (tagsetNsr);
+				tagsetNsr->Expire (); // let non-replied session expire
 				GenerateMoreReceiveTags (tagsetNsr, ECIESX25519_NSR_NUM_GENERATED_TAGS);
 			}	
 		}
@@ -814,7 +815,6 @@ namespace garlic
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
-				receiveTagset->Expire (); // NSR tagset
 				return HandleNewOutgoingSessionReply (buf, len);
 			default:
 				return false;
