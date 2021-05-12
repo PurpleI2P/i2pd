@@ -325,6 +325,7 @@ namespace http {
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
 				s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
 			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+			s << "<b>Version:</b> " VERSION "<br>\r\n";
 			s << "<b>Our external address:</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
 			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 			{
