@@ -765,12 +765,69 @@ namespace client
 
 	void SAMSocket::ProcessSessionAdd (char * buf, size_t len)
 	{
-		// TODO: implement
+		auto session = m_Owner.FindSession(m_ID);
+		if (session && session->Type == eSAMSessionTypeMaster)
+		{
+			LogPrint (eLogDebug, "SAM: subsession add: ", buf);
+			auto masterSession = std::static_pointer_cast<SAMMasterSession>(session);
+			std::map<std::string, std::string> params;
+			ExtractParams (buf, params);
+			std::string& id = params[SAM_PARAM_ID];
+			if (masterSession->subsessions.count (id) > 1)
+			{
+				// session exists
+				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), false);
+				return;
+			}	
+			std::string& style = params[SAM_PARAM_STYLE];	
+			SAMSessionType type = eSAMSessionTypeUnknown;
+			if (style == SAM_VALUE_STREAM) type = eSAMSessionTypeStream;
+			// TODO: implement other styles
+			if (type == eSAMSessionTypeUnknown)
+			{
+				// unknown style
+				SendI2PError("Unsupported STYLE");
+				return;
+			}
+			auto fromPort = std::stoi(params[SAM_PARAM_FROM_PORT]);
+			if (fromPort == -1)
+			{
+				SendI2PError("Invalid from port");
+				return;
+			}
+			auto subsession = std::make_shared<SAMSubSession>(masterSession, id, type, fromPort);
+			if (m_Owner.AddSession (subsession))
+			{
+				masterSession->subsessions.insert (id);
+				SendSessionCreateReplyOk ();
+			}	
+			else
+				SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), false);
+		}	
+		else
+			SendI2PError ("Wrong session type");
 	}
 		
 	void SAMSocket::ProcessSessionRemove (char * buf, size_t len)
 	{
-		// TODO: implement
+		auto session = m_Owner.FindSession(m_ID);
+		if (session && session->Type == eSAMSessionTypeMaster)
+		{
+			LogPrint (eLogDebug, "SAM: subsession remove: ", buf);
+			auto masterSession = std::static_pointer_cast<SAMMasterSession>(session);
+			std::map<std::string, std::string> params;
+			ExtractParams (buf, params);
+			std::string& id = params[SAM_PARAM_ID];
+			if (!masterSession->subsessions.erase (id))
+			{	
+				SendMessageReply (SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), false);
+				return;
+			}
+			m_Owner.CloseSession (id);
+			SendSessionCreateReplyOk ();
+		}	
+		else
+			SendI2PError ("Wrong session type");
 	}	
 		
 	void SAMSocket::SendI2PError(const std::string & msg)
@@ -1153,6 +1210,14 @@ namespace client
 		localDestination->StopAcceptingStreams ();
 	}
 
+	void SAMMasterSession::Close ()
+	{
+		SAMSingleSession::Close ();
+		for (const auto& it: subsessions)
+			m_Bridge.CloseSession (it);
+		subsessions.clear ();
+	}		
+		
 	SAMSubSession::SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port):
 		SAMSession (master->m_Bridge, name, type), masterSession (master), inPort (port)
 	{
@@ -1225,7 +1290,7 @@ namespace client
 		{
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			for (auto& it: m_Sessions)
-				it.second->CloseStreams ();
+				it.second->Close ();
 			m_Sessions.clear ();
 		}
 		StopIOService ();
@@ -1328,6 +1393,13 @@ namespace client
 		return nullptr;
 	}
 
+	bool SAMBridge::AddSession (std::shared_ptr<SAMSession> session)
+	{
+		if (!session) return false;
+		auto ret = m_Sessions.emplace (session->Name, session);
+		return ret.second;
+	}
+		
 	void SAMBridge::CloseSession (const std::string& id)
 	{
 		std::shared_ptr<SAMSession> session;
@@ -1343,7 +1415,7 @@ namespace client
 		if (session)
 		{
 			session->StopLocalDestination ();
-			session->CloseStreams ();
+			session->Close ();
 			if (m_IsSingleThread)
 			{
 				auto timer = std::make_shared<boost::asio::deadline_timer>(GetService ());

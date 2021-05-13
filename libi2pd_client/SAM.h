@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <set>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -74,6 +75,7 @@ namespace client
 	const char SAM_PARAM_SIZE[] = "SIZE";
 	const char SAM_PARAM_HOST[] = "HOST";
 	const char SAM_PARAM_PORT[] = "PORT";
+	const char SAM_PARAM_FROM_PORT[] = "FROM_PORT";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
@@ -192,6 +194,7 @@ namespace client
 		
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
 		virtual void StopLocalDestination () = 0;
+		virtual void Close () { CloseStreams (); };
 		
 		void CloseStreams ();
 	};
@@ -209,8 +212,10 @@ namespace client
 
 	struct SAMMasterSession: public SAMSingleSession
 	{
+		std::set<std::string> subsessions;
 		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
 			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
+		void Close ();	
 	};	
 
 	struct SAMSubSession: public SAMSession
@@ -237,6 +242,7 @@ namespace client
 			boost::asio::io_service& GetService () { return GetIOService (); };
 			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string means transient
 				const std::map<std::string, std::string> * params);
+			bool AddSession (std::shared_ptr<SAMSession> session);
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
 
