@@ -509,7 +509,7 @@ namespace client
 			// schedule verification
 			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 			m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-			shared_from_this (), std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
@@ -592,8 +592,7 @@ namespace client
 					// assume it successive and try to verify
 					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-			shared_from_this (), std::placeholders::_1));
-
+						shared_from_this (), std::placeholders::_1));
 				}
 			}
 		}

@@ -383,7 +383,7 @@ namespace transport
 		{
 			// tell out peer to now assign relay tag
 			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
-			*payload = 2; payload++; //  1 byte length
+			*payload = 2; payload++; // 1 byte length
 			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
 			htobe16buf (payload, flags);
 			payload += 2;

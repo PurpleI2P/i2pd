@@ -265,15 +265,15 @@ namespace http {
 					break;
 					case eRouterErrorSymmetricNAT:
 						s << " - Symmetric NAT";
-					break;	
+					break;
 					default: ;
 				}
 				break;
 			}
 			default: s << "Unknown";
 		}
-	}	
-	
+	}
+
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
 		s << "<b>Uptime:</b> ";
@@ -287,7 +287,7 @@ namespace http {
 			s << "<b>Network status 6:</b> ";
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
 			s << "<br>\r\n";
-		}	
+		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<b>Stopping in:</b> ";
@@ -1276,14 +1276,14 @@ namespace http {
 			ident.FromBase32 (b32);
 			auto dest = i2p::client::context.FindLocalDestination (ident);
 
-			if (dest) 
+			if (dest)
 			{
 				std::size_t pos;
 				pos = name.find (".i2p");
-				if (pos == (name.length () - 4)) 
+				if (pos == (name.length () - 4))
 				{
 					pos = name.find (".b32.i2p");
-					if (pos == std::string::npos) 
+					if (pos == std::string::npos)
 					{
 						auto signatureLen = dest->GetIdentity ()->GetSignatureLen ();
 						uint8_t * signature = new uint8_t[signatureLen];
@@ -1303,13 +1303,13 @@ namespace http {
 						     "</form>\r\n<br>\r\n";
 						delete[] signature;
 						delete[] sig;
-					} 
-					else 
+					}
+					else
 						s << "<b>ERROR</b>:&nbsp;Domain can't end with .b32.i2p\r\n<br>\r\n<br>\r\n";
-				} 
+				}
 				else
 					s << "<b>ERROR</b>:&nbsp;Domain must end with .i2p\r\n<br>\r\n<br>\r\n";
-			} 
+			}
 			else
 				s << "<b>ERROR</b>:&nbsp;Such destination is not found\r\n<br>\r\n<br>\r\n";
 

@@ -342,7 +342,7 @@ namespace transport
 			else
 				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 address");
 		}
-		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL +
 			rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
 	}
 
@@ -717,7 +717,7 @@ namespace transport
 		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
-				std::placeholders::_1, std::placeholders::_2));
+			std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void NTCP2Session::ReceiveLength ()
@@ -726,7 +726,7 @@ namespace transport
 #ifdef __linux__
 		const int one = 1;
     	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
-#endif		
+#endif
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -780,8 +780,8 @@ namespace transport
 		if (IsTerminated ()) return;
 #ifdef __linux__
 		const int one = 1;
-    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
-#endif			
+		setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+#endif
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -1009,11 +1009,11 @@ namespace transport
 			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
 			if (m_LastActivityTimestamp > m_NextRouterInfoResendTime)
 			{
-				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL + 
+				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL +
 					rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
-				SendRouterInfo ();		
-			}	
-			else	
+				SendRouterInfo ();
+			}
+			else
 				SendQueue ();
 		}
 	}
@@ -1113,7 +1113,7 @@ namespace transport
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
-			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size to ", 
+			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size to ",
 			   	GetIdentHashBase64(), " exceeds ",  NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
@@ -1279,7 +1279,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
 			return;
-		}	
+		}
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", conn->GetRemoteEndpoint ());
 		GetService ().post([this, conn]()
 			{
@@ -1300,25 +1300,25 @@ namespace transport
 					// bind to local address
 					std::shared_ptr<boost::asio::ip::tcp::endpoint> localAddress;
 					if (conn->GetRemoteEndpoint ().address ().is_v6 ())
-					{	
+					{
 						if (i2p::util::net::IsYggdrasilAddress (conn->GetRemoteEndpoint ().address ()))
 							localAddress = m_YggdrasilAddress;
-						else 
+						else
 							localAddress = m_Address6;
 						conn->GetSocket ().open (boost::asio::ip::tcp::v6 ());
-					}	
+					}
 					else
-					{	
+					{
 						localAddress = m_Address4;
 						conn->GetSocket ().open (boost::asio::ip::tcp::v4 ());
-					}	
+					}
 					if (localAddress)
 					{
 						boost::system::error_code ec;
 						conn->GetSocket ().bind (*localAddress, ec);
 						if (ec)
-							LogPrint (eLogError, "NTCP2: can't bind to ", localAddress->address ().to_string (), ": ", ec.message ());	
-					}	
+							LogPrint (eLogError, "NTCP2: can't bind to ", localAddress->address ().to_string (), ": ", ec.message ());
+					}
 					conn->GetSocket ().async_connect (conn->GetRemoteEndpoint (), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn, timer));
 				}
 				else
@@ -1448,8 +1448,8 @@ namespace transport
 		{
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
 			return;
-		}	
-		GetService().post([this, conn]() 
+		}
+		GetService().post([this, conn]()
 		{
 			if (this->AddNTCP2Session (conn))
 			{
@@ -1546,10 +1546,10 @@ namespace transport
 				if(ep.address ().is_v6 ())
 					req.uri = "[" + ep.address ().to_string() + "]:" + std::to_string(ep.port ());
 				else
-					req.uri = ep.address ().to_string() + ":" + std::to_string(ep.port ());	
+					req.uri = ep.address ().to_string() + ":" + std::to_string(ep.port ());
 				if (!m_ProxyAuthorization.empty ())
 					req.AddHeader("Proxy-Authorization", m_ProxyAuthorization);
-				
+
 				boost::asio::streambuf writebuff;
 				std::ostream out(&writebuff);
 				out << req.to_string();
@@ -1627,7 +1627,7 @@ namespace transport
 			sz += 16;
 			memcpy(buff->data () + 4, addrbytes.data(), 16);
 		}
-		else 
+		else
 		{
 			// We mustn't really fall here because all connections are made to IP addresses
 			LogPrint(eLogError, "NTCP2: Tried to connect to unexpected address via proxy");
@@ -1666,17 +1666,17 @@ namespace transport
 	}
 
 	void NTCP2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
-	{	
+	{
 		auto addr = std::make_shared<boost::asio::ip::tcp::endpoint>(boost::asio::ip::tcp::endpoint(localAddress, 0));
 		if (localAddress.is_v6 ())
-		{	
+		{
 			if (i2p::util::net::IsYggdrasilAddress (localAddress))
 				m_YggdrasilAddress = addr;
-			else 
+			else
 				m_Address6 = addr;
-		}	
+		}
 		else
 			m_Address4 = addr;
-	}	
+	}
 }
 }

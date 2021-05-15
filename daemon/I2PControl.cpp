@@ -2,6 +2,10 @@
 #include <sstream>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
+
+// Use global placeholders from boost introduced when local_time.hpp is loaded
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
