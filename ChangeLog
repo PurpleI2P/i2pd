@@ -1,6 +1,37 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.38.0] - 2021-03-17
+### Added
+- Publish ipv6 introducers
+- Bind ipv6 or yggdrasil NTCP2 acceptor to specified address 
+- Support .b32.i2p addresses and hostnames for SAM STREAM CREATE
+- ipv6 peer tests
+- Publish iexp param for introducers
+- Show ipv6 network status on the webconsole
+- EdDSA signing keys can also be blinded
+- Show router version on the webconsole
+### Changed
+- Rekey of all routers but floodfills to ECIES
+- Increased number of precalculated x25519 keys to 15
+- Don't publish LeaseSet without inbound tunnels
+- Reseed from compatible address(ipv4 or ipv6)
+- Recongnize v4 and v6 SSU addresses without host
+- Inbound tunnel gateway must be ipv4 compatible
+- Don't select next introducers from existing sessions
+- Set X bandwidth for floodfill by default
+### Fixed
+- Incoming ECIES-x25519 session doesn't send updated LeaseSet
+- Unique local address for server tunnels
+- Race condition for LeaseSet creation in I2CP
+- Relay tag for ipv6 introducer
+- Already expired introducers
+- Find connected router for first peer in tunnel
+- Failed outgoing ECIES-x25519 session's tagset stays forever
+- Yggdrasil address disappears if router becomes unreachable through ipv6
+- Ignore SSU address/introducers if port is not specified
+- Check identity and signature length for SSU SessionConfirmed
+
 ## [2.37.0] - 2021-03-15
 ### Added
 - Address registration line for reg.i2p and stats.i2p through the web console
