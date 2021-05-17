@@ -142,23 +142,23 @@ namespace util
 		i2p::context.SetNetID (netID);
 		i2p::context.Init ();
 
-		bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
-		bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 #ifdef MESHNET
 		// manual override for meshnet
 		ipv4 = false;
 		ipv6 = true;
 #endif
 		// ifname -> address
-		std::string ifname;  i2p::config::GetOption("ifname", ifname);
+		std::string ifname; i2p::config::GetOption("ifname", ifname);
 		if (ipv4 && i2p::config::IsDefault ("address4"))
 		{
 			std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
 			if (!ifname4.empty ())
 				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname4, false).to_string ()); // v4
 			else if (!ifname.empty ())
-				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4 
-		}	
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4
+		}
 		if (ipv6 && i2p::config::IsDefault ("address6"))
 		{
 			std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
@@ -166,8 +166,8 @@ namespace util
 				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname6, true).to_string ()); // v6
 			else if (!ifname.empty ())
 				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
-		}	
-		
+		}
+
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		boost::asio::ip::address_v6 yggaddr;
 		if (ygg)
@@ -210,15 +210,15 @@ namespace util
 		{
 			bool published; i2p::config::GetOption("ntcp2.published", published);
 			if (published)
-			{	
+			{
 				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
 				if (!ntcp2proxy.empty ()) published = false;
-			}	
+			}
 			if (published)
 			{
 				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
 				if (!ntcp2port) ntcp2port = port; // use standard port
-				i2p::context.PublishNTCP2Address (ntcp2port, true); // publish
+				i2p::context.PublishNTCP2Address (ntcp2port, true, ipv4, ipv6, false); // publish
 				if (ipv6)
 				{
 					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
@@ -228,17 +228,16 @@ namespace util
 				}
 			}
 			else
-				i2p::context.PublishNTCP2Address (port, false); // unpublish
+				i2p::context.PublishNTCP2Address (port, false, ipv4, ipv6, false); // unpublish
 		}
 		if (ygg)
 		{
-			if (!ntcp2)
-				i2p::context.PublishNTCP2Address (port, true); 
+			i2p::context.PublishNTCP2Address (port, true, false, false, true);
 			i2p::context.UpdateNTCP2V6Address (yggaddr);
 			if (!ipv4 && !ipv6)
-				i2p::context.SetStatus (eRouterStatusMesh);		
-		}	
-		
+				i2p::context.SetStatus (eRouterStatusMesh);
+		}
+
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
@@ -281,7 +280,7 @@ namespace util
 		else if (isFloodfill)
 		{
 			LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
-			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1);
+			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2);
 		}
 		else
 		{

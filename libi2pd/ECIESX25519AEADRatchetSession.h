@@ -88,7 +88,8 @@ namespace garlic
 			bool IsNS () const { return m_IsNS; };
 			std::shared_ptr<ECIESX25519AEADRatchetSession> GetSession () { return m_Session; };
 			void SetTrimBehind (int index) { if (index > m_TrimBehindIndex) m_TrimBehindIndex = index; }; 
-
+			int GetTrimBehind () const { return m_TrimBehindIndex; };
+			
 			void Expire ();
 			bool IsExpired (uint64_t ts) const;			
 			
@@ -160,7 +161,7 @@ namespace garlic
 
 		public:
 
-			ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet);
+			ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSetNS);
 			~ECIESX25519AEADRatchetSession ();
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);

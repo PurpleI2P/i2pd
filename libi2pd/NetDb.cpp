@@ -336,7 +336,7 @@ namespace data
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
-				if (leaseSet->IsPublic ())
+				if (leaseSet->IsPublic () && !leaseSet->IsExpired ())
 				{
 					// TODO: implement actual update
 					LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
@@ -345,7 +345,7 @@ namespace data
 				}
 				else
 				{
-					LogPrint (eLogWarning, "NetDb: Unpublished LeaseSet2 received: ", ident.ToBase32());
+					LogPrint (eLogWarning, "NetDb: Unpublished or expired LeaseSet2 received: ", ident.ToBase32());
 					m_LeaseSets.erase (ident);
 				}
 			}
@@ -454,7 +454,7 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
-				(!r->UsesIntroducer () || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
+			(r->IsReachable () || !r->IsSSU (false) || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
 		{
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
@@ -584,7 +584,7 @@ namespace data
 			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)	
 				it.second->SetUnreachable (false); 
 			// find & mark expired routers
-			if (it.second->UsesIntroducer ())
+			if (!it.second->IsReachable () && it.second->IsSSU (false))
 			{
 				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
@@ -1149,12 +1149,13 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter (bool v4only) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
-			[v4only](std::shared_ptr<const RouterInfo> router)->bool
+			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsPeerTesting (v4only);
+				return !router->IsHidden () && router->IsPeerTesting (v4) &&
+					!excluded.count (router->GetIdentHash ());
 			});
 	}
 
@@ -1167,12 +1168,13 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer () const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
-			[](std::shared_ptr<const RouterInfo> router)->bool
+			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return router->IsIntroducer () && !router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
+				return router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ()) &&
+					!router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
 			});
 	}
 

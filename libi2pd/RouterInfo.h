@@ -96,7 +96,7 @@ namespace data
 			typedef Tag<32> IntroKey; // should be castable to MacKey and AESKey
 			struct Introducer
 			{
-				Introducer (): iExp (0) {};
+				Introducer (): iPort (0), iExp (0) {};
 				boost::asio::ip::address iHost;
 				int iPort;
 				IntroKey iKey;
@@ -115,7 +115,6 @@ namespace data
 			{
 				Tag<32> staticKey;
 				Tag<16> iv;
-				bool isPublished = false;
 			};
 
 			struct Address
@@ -124,7 +123,8 @@ namespace data
 				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
-				uint8_t cost, caps;
+				uint8_t caps;
+				bool published = false;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
 				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
@@ -146,14 +146,15 @@ namespace data
 				}
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
-				bool IsPublishedNTCP2 () const { return IsNTCP2 () && ntcp2->isPublished; };
+				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
+				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
 				
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
 
-				bool IsV4 () const { return (caps & AddressCaps::eV4) || host.is_v4 (); };
-				bool IsV6 () const { return (caps & AddressCaps::eV6) || host.is_v6 (); };
+				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); };
+				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
 			};
 			typedef std::list<std::shared_ptr<Address> > Addresses;
 
@@ -204,13 +205,12 @@ namespace data
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
 			bool IsReachableFrom (const RouterInfo& other) const;	
 			bool HasValidAddresses () const { return m_SupportedTransports; };
-			bool UsesIntroducer () const;
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
-			bool IsPeerTesting (bool v4only) const;	
-			bool IsIntroducer () const;	
+			bool IsPeerTesting (bool v4) const;	
+			bool IsIntroducer (bool v4) const;	
 		
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps);

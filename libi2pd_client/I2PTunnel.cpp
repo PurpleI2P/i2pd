@@ -84,7 +84,11 @@ namespace client
 		// bind to 127.x.x.x address
 		// where x.x.x are first three bytes from ident
 		auto ourIP = GetLoopbackAddressFor(addr);
-		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
+		boost::system::error_code ec;
+		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0), ec);
+		if (ec)
+			LogPrint (eLogError, "I2PTunnel: can't bind ourIP to ", ourIP.to_string (), ": ", ec.message ());	
+
 	}
 #endif
 

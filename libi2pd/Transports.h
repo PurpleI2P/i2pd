@@ -76,9 +76,9 @@ namespace transport
 		}
 	};
 
-	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
+	const size_t SESSION_CREATION_TIMEOUT = 15; // in seconds
 	const int PEER_TEST_INTERVAL = 71; // in minutes
-	const int MAX_NUM_DELAYED_MESSAGES = 50;
+	const int MAX_NUM_DELAYED_MESSAGES = 150;
 	class Transports
 	{
 		public:
@@ -131,7 +131,7 @@ namespace transport
 
 			bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
 
-			void PeerTest ();
+			void PeerTest (bool ipv4 = true, bool ipv6 = true);
 
 			void SetCheckReserved (bool check) { m_CheckReserved = check; };
 			bool IsCheckReserved () { return m_CheckReserved; };

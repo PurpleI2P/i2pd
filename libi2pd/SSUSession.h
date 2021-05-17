@@ -102,7 +102,8 @@ namespace transport
 			uint32_t GetRelayTag () const { return m_RelayTag; };
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
-
+			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
+			
 			void FlushData ();
 
 		private:
@@ -145,6 +146,8 @@ namespace transport
 
 			void Reset ();
 
+			static size_t ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port); // returns actual buf size
+			
 		private:
 
 			friend class SSUData; // TODO: change in later

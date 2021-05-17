@@ -942,15 +942,26 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ())
 		{
-			m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
-			if (!m_RemoteLeaseSet)
+			auto remoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+			if (!remoteLeaseSet)
 			{
-				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
-				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), m_RemoteLeaseSet ? " expired" : " not found");
+				if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
+				{	
+					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
+						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
+					return; // we keep m_RemoteLeaseSet for possible next request
+				}	
+				else	
+				{	
+					m_RemoteLeaseSet = nullptr;	
+					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+				}			
 			}
 			else
 			{
 				// LeaseSet updated
+				m_RemoteLeaseSet = remoteLeaseSet;
 				m_RemoteIdentity = m_RemoteLeaseSet->GetIdentity ();
 				m_TransientVerifier = m_RemoteLeaseSet->GetTransientVerifier ();
 			}

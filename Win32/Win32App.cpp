@@ -142,25 +142,47 @@ namespace win32
 		s << bytes << " Bytes\n";
 	}
 
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
+	{
+		switch (status)
+		{
+			case eRouterStatusOK: s << "OK"; break;
+			case eRouterStatusTesting: s << "Test"; break;
+			case eRouterStatusFirewalled: s << "FW"; break;
+			case eRouterStatusUnknown: s << "Unk"; break;
+			case eRouterStatusProxy: s << "Proxy"; break;
+			case eRouterStatusMesh: s << "Mesh"; break;
+			case eRouterStatusError:
+			{
+				s << "Err";
+				switch (i2p::context.GetError ())
+				{
+					case eRouterErrorClockSkew:
+						s << " - Clock skew";
+					break;
+					case eRouterErrorOffline:
+						s << " - Offline";
+					break;
+					case eRouterErrorSymmetricNAT:
+						s << " - Symmetric NAT";
+					break;
+					default: ;
+				}
+				break;
+			}
+			default: s << "Unk";
+		}
+	}
+
 	static void PrintMainWindowText (std::stringstream& s)
 	{
 		s << "\n";
 		s << "Status: ";
-		switch (i2p::context.GetStatus())
+		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		if (i2p::context.SupportsV6 ())
 		{
-			case eRouterStatusOK: s << "OK"; break;
-			case eRouterStatusTesting: s << "Testing"; break;
-			case eRouterStatusFirewalled: s << "Firewalled"; break;
-			case eRouterStatusError:
-			{
-				switch (i2p::context.GetError())
-				{
-					case eRouterErrorClockSkew: s << "Clock skew"; break;
-					default: s << "Error";
-				}
-				break;
-			}
-			default: s << "Unknown";
+			s << " / ";
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
 		}
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";

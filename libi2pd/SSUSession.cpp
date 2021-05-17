@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -120,7 +120,8 @@ namespace transport
 				else
 				{
 					// try own intro key
-					auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
+					auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+						i2p::context.GetRouterInfo ().GetSSUAddress (true);
 					if (!address)
 					{
 						LogPrint (eLogInfo, "SSU is not supported");
@@ -212,7 +213,7 @@ namespace transport
 		{
 			uint8_t extendedOptionsLen = buf[headerSize];
 			headerSize++;
-			if (extendedOptionsLen >= 3) // options are presented
+			if (extendedOptionsLen >= 2) // options are presented
 			{
 				uint16_t flags = bufbe16toh (buf + headerSize);
 				sendRelayTag = flags & EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG;
@@ -257,27 +258,14 @@ namespace transport
 		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
 		s.Insert (y, 256); // y
 		payload += 256;
-		uint8_t addressSize = *payload;
-		payload += 1; // size
-		uint8_t * ourAddress = payload;
 		boost::asio::ip::address ourIP;
-		if (addressSize == 4) // v4
-		{
-			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), ourAddress, 4);
-			ourIP = boost::asio::ip::address_v4 (bytes);
-		}
-		else // v6
-		{
-			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), ourAddress, 16);
-			ourIP = boost::asio::ip::address_v6 (bytes);
-		}
-		s.Insert (ourAddress, addressSize); // our IP
-		payload += addressSize; // address
-		uint16_t ourPort = bufbe16toh (payload);
-		s.Insert (payload, 2); // our port
-		payload += 2; // port
+		uint16_t ourPort = 0; 
+		auto addressAndPortLen = ExtractIPAddressAndPort (payload, len, ourIP, ourPort);
+		if (!addressAndPortLen) return;
+		uint8_t * ourAddressAndPort = payload + 1;
+		payload += addressAndPortLen;
+		addressAndPortLen--; // -1 byte address size
+		s.Insert (ourAddressAndPort, addressAndPortLen); // address + port
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
@@ -286,7 +274,7 @@ namespace transport
 		s.Insert (payload, 8); // relayTag and signed on time
 		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
-		if (i2p::context.GetStatus () == eRouterStatusTesting)
+		if (ourIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting)
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			uint32_t signedOnTime = bufbe32toh(payload);
@@ -308,8 +296,16 @@ namespace transport
 		if (s.Verify (m_RemoteIdentity, payload))
 		{
 			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
-			i2p::context.UpdateAddress (ourIP);
-			SendSessionConfirmed (y, ourAddress, addressSize + 2);
+			if (!i2p::util::net::IsInReservedRange (ourIP))
+			{	
+				i2p::context.UpdateAddress (ourIP);
+				SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen); 
+			}	
+			else
+			{	
+				LogPrint (eLogError, "SSU: Wrong external address ", ourIP.to_string ());
+				Failed ();
+			}	
 		}
 		else
 		{
@@ -325,12 +321,17 @@ namespace transport
 		auto headerSize = GetSSUHeaderSize (buf);
 		if (headerSize >= len)
 		{
-			LogPrint (eLogError, "SSU: Session confirmed header size ", len, " exceeds packet length ", len);
+			LogPrint (eLogError, "SSU: Session confirmed header size ", headerSize, " exceeds packet length ", len);
 			return;
 		}
 		const uint8_t * payload = buf + headerSize;
 		payload++; // identity fragment info
 		uint16_t identitySize = bufbe16toh (payload);
+		if (identitySize + headerSize + 7 > len) // 7 = fragment info + fragment size + signed on time
+		{
+			LogPrint (eLogError, "SSU: Session confirmed identity size ", identitySize, " exceeds packet length ", len);
+			return;
+		}	
 		payload += 2; // size of identity fragment
 		auto identity = std::make_shared<i2p::data::IdentityEx> (payload, identitySize);
 		auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
@@ -348,10 +349,15 @@ namespace transport
 		if (m_SignedData)
 			m_SignedData->Insert (payload, 4); // insert Alice's signed on time
 		payload += 4; // signed-on time
-		size_t paddingSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
-		paddingSize &= 0x0F; // %16
+		size_t fullSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
+		size_t paddingSize = fullSize & 0x0F; // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
+		if (fullSize + paddingSize > len)
+		{
+			LogPrint (eLogError, "SSU: Session confirmed message is too short ", len);
+			return;
+		}	
 		// verify signature
 		if (m_SignedData && m_SignedData->Verify (m_RemoteIdentity, payload))
 		{
@@ -371,18 +377,19 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t flag = 0;
 		// fill extended options, 3 bytes extended options don't change message size
-		if (i2p::context.GetStatus () == eRouterStatusOK) // we don't need relays
+		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
+		if ((isV4 && i2p::context.GetStatus () == eRouterStatusOK) ||
+		    (!isV4 && i2p::context.GetStatusV6 () == eRouterStatusOK)) // we don't need relays
 		{
 			// tell out peer to now assign relay tag
 			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
-			*payload = 2; payload++; //  1 byte length
+			*payload = 2; payload++; // 1 byte length
 			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
 			htobe16buf (payload, flags);
 			payload += 2;
 		}
 		// fill payload
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256); // x
-		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
 		if (isV4)
 		{
 			payload[256] = 4;
@@ -402,7 +409,8 @@ namespace transport
 
 	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce)
 	{
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
+		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+			i2p::context.GetRouterInfo ().GetSSUAddress (true);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported");
@@ -430,6 +438,7 @@ namespace transport
 		else
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, introducer.iKey, iv, introducer.iKey);
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
+		LogPrint (eLogDebug, "SSU: relay request sent");
 	}
 
 	void SSUSession::SendSessionCreated (const uint8_t * x, bool sendRelayTag)
@@ -475,7 +484,7 @@ namespace transport
 		else
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
-		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
+		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer (!IsV6 ()))
 		{
 			RAND_bytes((uint8_t *)&m_SentRelayTag, 4);
 			if (!m_SentRelayTag) m_SentRelayTag = 1;
@@ -579,22 +588,33 @@ namespace transport
 	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
-		// Charlie's address always v4
-		if (!to.address ().is_v4 ())
+		bool isV4 = to.address ().is_v4 (); // Charle's
+		bool isV4A = from.address ().is_v4 (); // Alice's
+		if ((isV4 && !isV4A) || (!isV4 && isV4A))
 		{
-			LogPrint (eLogWarning, "SSU: Charlie's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Charlie's IP and Alice's IP belong to different networks for relay response");
 			return;
 		}
-		uint8_t buf[80 + 18] = {0}; // 64 Alice's ipv4 and 80 Alice's ipv6
+		uint8_t buf[80 + 18] = {0}; // 64 for ipv4 and 80 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		*payload = 4;
-		payload++; // size
-		htobe32buf (payload, to.address ().to_v4 ().to_ulong ()); // Charlie's IP
-		payload += 4; // address
+		// Charlie
+		if (isV4)
+		{	
+			*payload = 4;
+			payload++; // size
+			memcpy (payload, to.address ().to_v4 ().to_bytes ().data (), 4); // Charlie's IP V4
+			payload += 4; // address
+		}	
+		else
+		{
+			*payload = 16;
+			payload++; // size
+			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			payload += 16; // address
+		}	
 		htobe16buf (payload, to.port ()); // Charlie's port
 		payload += 2; // port
 		// Alice
-		bool isV4 = from.address ().is_v4 (); // Alice's
 		if (isV4)
 		{
 			*payload = 4;
@@ -633,64 +653,67 @@ namespace transport
 	void SSUSession::SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from)
 	{
 		if (!session) return;
-		// Alice's address always v4
-		if (!from.address ().is_v4 ())
+		bool isV4 = from.address ().is_v4 (); // Alice's
+		bool isV4C = session->m_RemoteEndpoint.address ().is_v4 (); // Charlie's
+		if ((isV4 && !isV4C) || (!isV4 && isV4C))
 		{
-			LogPrint (eLogWarning, "SSU: Alice's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Charlie's IP and Alice's IP belong to different networks for relay intro");
 			return;
 		}
-		uint8_t buf[48 + 18] = {0};
+		uint8_t buf[64 + 18] = {0}; // 48 for ipv4 and 64 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		*payload = 4;
-		payload++; // size
-		htobe32buf (payload, from.address ().to_v4 ().to_ulong ()); // Alice's IP
-		payload += 4; // address
+		if (isV4)
+		{
+			*payload = 4;
+			payload++; // size
+			memcpy (payload, from.address ().to_v4 ().to_bytes ().data (), 4); // Alice's IP V4
+			payload += 4; // address
+		}
+		else
+		{
+			*payload = 16;
+			payload++; // size
+			memcpy (payload, from.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			payload += 16; // address
+		}
 		htobe16buf (payload, from.port ()); // Alice's port
 		payload += 2; // port
 		*payload = 0; // challenge size
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
-		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, isV4 ? 48 : 64, session->m_SessionKey, iv, session->m_MacKey);
+		m_Server.Send (buf, isV4 ? 48 : 64, session->m_RemoteEndpoint);
 		LogPrint (eLogDebug, "SSU: relay intro sent");
 	}
 
 	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU message: Relay response received");
-		uint8_t remoteSize = *buf;
-		buf++; // remote size
-		boost::asio::ip::address_v4 remoteIP (bufbe32toh (buf));
-		buf += remoteSize; // remote address
-		uint16_t remotePort = bufbe16toh (buf);
-		buf += 2; // remote port
-		uint8_t ourSize = *buf;
-		buf++; // our size
+		boost::asio::ip::address remoteIP;
+		uint16_t remotePort = 0;
+		auto remoteSize = ExtractIPAddressAndPort (buf, len, remoteIP, remotePort);
+		if (!remoteSize) return;
+		buf += remoteSize; len -= remoteSize;
 		boost::asio::ip::address ourIP;
-		if (ourSize == 4)
-		{
-			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), buf, 4);
-			ourIP = boost::asio::ip::address_v4 (bytes);
-		}
-		else
-		{
-			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), buf, 16);
-			ourIP = boost::asio::ip::address_v6 (bytes);
-		}
-		buf += ourSize; // our address
-		uint16_t ourPort = bufbe16toh (buf);
-		buf += 2; // our port
+		uint16_t ourPort = 0;
+		auto ourSize = ExtractIPAddressAndPort (buf, len, ourIP, ourPort);
+		if (!ourSize) return;
+		buf += ourSize; len -= ourSize;
 		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
-		i2p::context.UpdateAddress (ourIP);
-		if (ourPort != m_Server.GetPort ())
+		if (!i2p::util::net::IsInReservedRange (ourIP))
+			i2p::context.UpdateAddress (ourIP);
+		else
+			LogPrint (eLogWarning, "SSU: Wrong external address ", ourIP.to_string ());
+		if (ourIP.is_v4 ())
 		{	
-			if (i2p::context.GetStatus () == eRouterStatusTesting)
-				i2p::context.SetError (eRouterErrorSymmetricNAT);
-		}
-		else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
-			i2p::context.SetStatus (eRouterStatusTesting);
+			if (ourPort != m_Server.GetPort ())
+			{	
+				if (i2p::context.GetStatus () == eRouterStatusTesting)
+					i2p::context.SetError (eRouterErrorSymmetricNAT);
+			}
+			else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
+				i2p::context.SetStatus (eRouterStatusTesting);
+		}	
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);
@@ -703,12 +726,16 @@ namespace transport
 				// we didn't have correct endpoint when sent relay request
 				// now we do
 				LogPrint (eLogInfo, "SSU: RelayReponse connecting to endpoint ", remoteEndpoint);
-				if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+				if ((remoteIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusFirewalled) ||
+					(remoteIP.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled)) 
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
+				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
 				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
 			}
 			// delete request
 			m_RelayRequests.erase (it);
+			// cancel connect timer
+			m_ConnectTimer.cancel ();
 		}
 		else
 			LogPrint (eLogError, "SSU: Unsolicited RelayResponse, nonce=", nonce);
@@ -716,18 +743,12 @@ namespace transport
 
 	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
 	{
-		uint8_t size = *buf;
-		if (size == 4)
-		{
-			buf++; // size
-			boost::asio::ip::address_v4 address (bufbe32toh (buf));
-			buf += 4; // address
-			uint16_t port = bufbe16toh (buf);
+		boost::asio::ip::address ip;
+		uint16_t port = 0;
+		ExtractIPAddressAndPort (buf, len, ip, port);
+		if (!ip.is_unspecified () && port)
 			// send hole punch of 0 bytes
-			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
-		}
-		else
-			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (ip, port));
 	}
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len,
@@ -986,15 +1007,15 @@ namespace transport
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes
-		uint8_t size = buf[4];	// 1 byte
-		const uint8_t * address = buf + 5; // big endian, size bytes
-		uint16_t port = buf16toh(buf + size + 5); // big endian, 2 bytes
-		const uint8_t * introKey = buf + size + 7;
-		if (port && (size != 4) && (size != 16))
+		boost::asio::ip::address addr; // Alice's addresss
+		uint16_t port = 0; // and port
+		auto size = ExtractIPAddressAndPort (buf + 4, len - 4, addr, port);
+		if (port && (size != 7) && (size != 19))
 		{
-			LogPrint (eLogWarning, "SSU: Address of ", size, " bytes not supported");
+			LogPrint (eLogWarning, "SSU: Address of ", size - 3, " bytes not supported");
 			return;
 		}
+		const uint8_t * introKey = buf + 4 + size;
 		switch (m_Server.GetPeerTestParticipant (nonce))
 		{
 			// existing test
@@ -1003,7 +1024,15 @@ namespace transport
 				if (m_Server.GetPeerTestSession (nonce) == shared_from_this ()) // Alice-Bob
 				{
 					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
-					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
+					if (IsV6 ())
+					{
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting) 
+						{	
+							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimerV6 ();
+						}	
+					}	
+					else if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
 					{	
 						i2p::context.SetStatus (eRouterStatusFirewalled);
 						m_Server.RescheduleIntroducersUpdateTimer ();
@@ -1014,7 +1043,10 @@ namespace transport
 					LogPrint (eLogDebug, "SSU: first peer test from Charlie. We are Alice");
 					if (m_State == eSessionStateEstablished)
 						LogPrint (eLogWarning, "SSU: first peer test from Charlie through established session. We are Alice");
-					i2p::context.SetStatus (eRouterStatusOK);
+					if (IsV6 ())
+						i2p::context.SetStatusV6 (eRouterStatusOK);
+					else	
+						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, true, false); // to Charlie
 				}
@@ -1028,7 +1060,10 @@ namespace transport
 				{
 					// peer test successive
 					LogPrint (eLogDebug, "SSU: second peer test from Charlie. We are Alice");
-					i2p::context.SetStatus (eRouterStatusOK);
+					if (IsV6 ())
+						i2p::context.SetStatusV6 (eRouterStatusOK);		
+					else		
+						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.RemovePeerTest (nonce);
 				}
 				break;
@@ -1060,20 +1095,7 @@ namespace transport
 						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
 						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
-						boost::asio::ip::address addr; // Alice's address
-						if (size == 4) // v4
-						{
-							boost::asio::ip::address_v4::bytes_type bytes;
-							memcpy (bytes.data (), address, 4);
-							addr = boost::asio::ip::address_v4 (bytes);
-						}
-						else // v6
-						{
-							boost::asio::ip::address_v6::bytes_type bytes;
-							memcpy (bytes.data (), address, 16);
-							addr = boost::asio::ip::address_v6 (bytes);
-						}
-						SendPeerTest (nonce, addr, be16toh (port), introKey); // to Alice with her address received from Bob
+						SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
 					}
 					else
 					{
@@ -1130,7 +1152,8 @@ namespace transport
 		if (toAddress)
 		{
 			// send our intro key to address instead of its own
-			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			auto addr = address.is_v4 () ? i2p::context.GetRouterInfo ().GetSSUAddress (true) : // ipv4
+				i2p::context.GetRouterInfo ().GetSSUV6Address ();
 			if (addr)
 				memcpy (payload, addr->ssu->key, 32); // intro key
 			else
@@ -1160,7 +1183,7 @@ namespace transport
 	{
 		// we are Alice
 		LogPrint (eLogDebug, "SSU: sending peer test");
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (i2p::context.SupportsV4 ());
+		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () : i2p::context.GetRouterInfo ().GetSSUAddress (true);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");
@@ -1233,5 +1256,36 @@ namespace transport
 		i2p::transport::transports.UpdateSentBytes (size);
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}
+
+	size_t SSUSession::ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port)
+	{
+		if (!len) return 0;
+		uint8_t size = *buf;
+		size_t s = 1 + size + 2; // size + address + port
+		if (len < s) 
+		{
+			LogPrint (eLogWarning, "SSU: Address is too short ", len);
+			port = 0;
+			return len;
+		}	
+		buf++; // size
+		if (size == 4)
+		{
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), buf, 4);
+			ip = boost::asio::ip::address_v4 (bytes);
+		}
+		else if (size == 16)
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), buf, 16);
+			ip = boost::asio::ip::address_v6 (bytes);
+		}	
+		else
+			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+		buf += size;
+		port = bufbe16toh (buf);
+		return s;
+	}	
 }
 }

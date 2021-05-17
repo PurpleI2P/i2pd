@@ -160,9 +160,10 @@ namespace garlic
 		return true;
 	}	
 	
-	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSet):
-		GarlicRoutingSession (owner, attachLeaseSet)
+	ECIESX25519AEADRatchetSession::ECIESX25519AEADRatchetSession (GarlicDestination * owner, bool attachLeaseSetNS):
+		GarlicRoutingSession (owner, true)
 	{
+		if (!attachLeaseSetNS) SetLeaseSetUpdateStatus (eLeaseSetUpToDate);	
 		RAND_bytes (m_PaddingSizes, 32); m_NextPaddingSize = 0;
 	}
 
@@ -195,7 +196,7 @@ namespace garlic
 				i2p::transport::transports.ReuseX25519KeysPair (m_EphemeralKeys);
 		}	
 		// we still didn't find elligator eligible pair
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 25; i++)
 		{
 			// create new
 			m_EphemeralKeys = std::make_shared<i2p::crypto::X25519Keys>();
@@ -511,6 +512,7 @@ namespace garlic
 			{
 				auto tagsetNsr = std::make_shared<ReceiveRatchetTagSet>(shared_from_this (), true);
 				InitNewSessionTagset (tagsetNsr);
+				tagsetNsr->Expire (); // let non-replied session expire
 				GenerateMoreReceiveTags (tagsetNsr, ECIESX25519_NSR_NUM_GENERATED_TAGS);
 			}	
 		}
@@ -813,7 +815,6 @@ namespace garlic
 			case eSessionStateNew:
 				return HandleNewIncomingSession (buf, len);
 			case eSessionStateNewSessionSent:
-				receiveTagset->Expire (); // NSR tagset
 				return HandleNewOutgoingSessionReply (buf, len);
 			default:
 				return false;
@@ -1101,6 +1102,7 @@ namespace garlic
 	RouterIncomingRatchetSession::RouterIncomingRatchetSession (const i2p::crypto::NoiseSymmetricState& initState):
 		ECIESX25519AEADRatchetSession (&i2p::context, false)
 	{
+		SetLeaseSetUpdateStatus (eLeaseSetDoNotSend);	
 		SetNoiseState (initState);
 	}	
 

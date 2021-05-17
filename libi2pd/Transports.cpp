@@ -137,7 +137,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
-		m_X25519KeysPairSupplier (5), // 5 pre-generated keys
+		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
@@ -505,8 +505,8 @@ namespace transport
 					}
 					if (address && address->IsReachableSSU ())
 					{
-						m_SSUServer->CreateSession (peer.router, address);
-						return true;
+						if (m_SSUServer->CreateSession (peer.router, address))
+							return true;
 					}	
 				}
 				else
@@ -576,68 +576,66 @@ namespace transport
 			return;
 		}
 		if (m_SSUServer)
-		{
-			bool isv4 = i2p::context.SupportsV4 ();
-			if (m_IsNAT && isv4)
-				i2p::context.SetStatus (eRouterStatusTesting);
-			for (int i = 0; i < 5; i++)
-			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
-				if (router)
-					m_SSUServer->CreateSession (router, true, isv4); // peer test
-				else
-				{
-					// if not peer test capable routers found pick any
-					router = i2p::data::netdb.GetRandomRouter ();
-					if (router && router->IsSSU ())
-						m_SSUServer->CreateSession (router); // no peer test
-				}
-			}
-			if (i2p::context.SupportsV6 ())
-			{
-				// try to connect to few v6 addresses to get our address back
-				for (int i = 0; i < 3; i++)
-				{
-					auto router = i2p::data::netdb.GetRandomSSUV6Router ();
-					if (router)
-					{
-						auto addr = router->GetSSUV6Address ();
-						if (addr)
-							m_SSUServer->GetService ().post ([this, router, addr]
-							{
-								m_SSUServer->CreateDirectSession (router, { addr->host, (uint16_t)addr->port }, false);
-							});
-					}
-				}
-			}
-		}
+			PeerTest ();
 		else
 			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");
 	}
 
-	void Transports::PeerTest ()
+	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
-		if (RoutesRestricted() || !i2p::context.SupportsV4 ()) return;
-		if (m_SSUServer)
+		if (RoutesRestricted() || !m_SSUServer) return;
+		if (ipv4 && i2p::context.SupportsV4 ())
 		{
-			LogPrint (eLogInfo, "Transports: Started peer test");
+			LogPrint (eLogInfo, "Transports: Started peer test ipv4");
+			std::set<i2p::data::IdentHash> excluded;
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 only
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true, excluded); // v4 
 				if (router)
 				{
-					if (!statusChanged)
+					auto addr = router->GetSSUAddress (true); // ipv4
+					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
 					{
-						statusChanged = true;
-						i2p::context.SetStatus (eRouterStatusTesting); // first time only
-					}
-					m_SSUServer->CreateSession (router, true, true); // peer test v4
+						if (!statusChanged)
+						{
+							statusChanged = true;
+							i2p::context.SetStatus (eRouterStatusTesting); // first time only
+						}
+						m_SSUServer->CreateSession (router, addr, true); // peer test v4	
+					}	
+					excluded.insert (router->GetIdentHash ());
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv4");
 		}
+		if (ipv6 && i2p::context.SupportsV6 ())
+		{
+			LogPrint (eLogInfo, "Transports: Started peer test ipv6");
+			std::set<i2p::data::IdentHash> excluded;
+			bool statusChanged = false;
+			for (int i = 0; i < 5; i++)
+			{
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (false, excluded); // v6
+				if (router)
+				{
+					auto addr = router->GetSSUV6Address ();
+					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
+					{	
+						if (!statusChanged)
+						{
+							statusChanged = true;
+							i2p::context.SetStatusV6 (eRouterStatusTesting); // first time only
+						}
+						m_SSUServer->CreateSession (router, addr, true); // peer test v6
+					}	
+					excluded.insert (router->GetIdentHash ());
+				}
+			}
+			if (!statusChanged)
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv6");
+		}	
 	}
 
 	std::shared_ptr<i2p::crypto::X25519Keys> Transports::GetNextX25519KeysPair ()
@@ -752,9 +750,12 @@ namespace transport
 					++it;
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
-			if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,	 repeat peer test
-				DetectExternalIP ();
-			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
+			bool ipv6Testing = i2p::context.GetStatusV6 () == eRouterStatusTesting;
+			// if still testing, repeat peer test
+			if (ipv4Testing || ipv6Testing)
+				PeerTest (ipv4Testing, ipv6Testing);
+			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3*SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}
 	}
@@ -772,10 +773,15 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
 		if (m_Peers.empty ()) return nullptr;
-		std::unique_lock<std::mutex> l(m_PeersMutex);
-		auto it = m_Peers.begin ();
-		std::advance (it, rand () % m_Peers.size ());
-		return it != m_Peers.end () ? it->second.router : nullptr;
+		i2p::data::IdentHash ident;
+		{
+			std::unique_lock<std::mutex> l(m_PeersMutex);
+			auto it = m_Peers.begin ();
+			std::advance (it, rand () % m_Peers.size ());
+			if (it == m_Peers.end () || it->second.router) return nullptr; // not connected
+			ident = it->first;
+		}	
+		return i2p::data::netdb.FindRouter (ident);
 	}
 	void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
 	{

@@ -242,13 +242,9 @@ namespace http {
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
 	{
-		s << "<b>Uptime:</b> ";
-		ShowUptime(s, i2p::context.GetUptime ());
-		s << "<br>\r\n";
-		s << "<b>Network status:</b> ";
-		switch (i2p::context.GetStatus ())
+		switch (status)
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
@@ -269,14 +265,29 @@ namespace http {
 					break;
 					case eRouterErrorSymmetricNAT:
 						s << " - Symmetric NAT";
-					break;	
+					break;
 					default: ;
 				}
 				break;
 			}
 			default: s << "Unknown";
 		}
+	}
+
+	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
+	{
+		s << "<b>Uptime:</b> ";
+		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
+		s << "<b>Network status:</b> ";
+		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		s << "<br>\r\n";
+		if (i2p::context.SupportsV6 ())
+		{
+			s << "<b>Network status 6:</b> ";
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
+			s << "<br>\r\n";
+		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<b>Stopping in:</b> ";
@@ -314,6 +325,7 @@ namespace http {
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
 				s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
 			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+			s << "<b>Version:</b> " VERSION "<br>\r\n";
 			s << "<b>Our external address:</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
 			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 			{
@@ -831,7 +843,7 @@ namespace http {
 			s << "<b>SAM Sessions:</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
 			{
-				auto& name = it.second->localDestination->GetNickname ();
+				auto& name = it.second->GetLocalDestination ()->GetNickname ();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
 				s << name << " (" << it.first << ")</a></div>\r\n" << std::endl;
 			}
@@ -857,7 +869,7 @@ namespace http {
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<b>SAM Session:</b><br>\r\n<div class=\"list\">\r\n";
-		auto& ident = session->localDestination->GetIdentHash();
+		auto& ident = session->GetLocalDestination ()->GetIdentHash();
 		s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n";
 		s << "<br>\r\n";
@@ -1264,14 +1276,14 @@ namespace http {
 			ident.FromBase32 (b32);
 			auto dest = i2p::client::context.FindLocalDestination (ident);
 
-			if (dest) 
+			if (dest)
 			{
 				std::size_t pos;
 				pos = name.find (".i2p");
-				if (pos == (name.length () - 4)) 
+				if (pos == (name.length () - 4))
 				{
 					pos = name.find (".b32.i2p");
-					if (pos == std::string::npos) 
+					if (pos == std::string::npos)
 					{
 						auto signatureLen = dest->GetIdentity ()->GetSignatureLen ();
 						uint8_t * signature = new uint8_t[signatureLen];
@@ -1291,13 +1303,13 @@ namespace http {
 						     "</form>\r\n<br>\r\n";
 						delete[] signature;
 						delete[] sig;
-					} 
-					else 
+					}
+					else
 						s << "<b>ERROR</b>:&nbsp;Domain can't end with .b32.i2p\r\n<br>\r\n<br>\r\n";
-				} 
+				}
 				else
 					s << "<b>ERROR</b>:&nbsp;Domain must end with .i2p\r\n<br>\r\n<br>\r\n";
-			} 
+			}
 			else
 				s << "<b>ERROR</b>:&nbsp;Such destination is not found\r\n<br>\r\n<br>\r\n";
 

@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <set>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -41,6 +42,8 @@ namespace client
 	const char SAM_SESSION_CREATE_INVALID_ID[] = "SESSION STATUS RESULT=INVALID_ID\n";
 	const char SAM_SESSION_STATUS_INVALID_KEY[] = "SESSION STATUS RESULT=INVALID_KEY\n";
 	const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=%s\n";
+	const char SAM_SESSION_ADD[] = "SESSION ADD";
+	const char SAM_SESSION_REMOVE[] = "SESSION REMOVE";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
@@ -72,10 +75,12 @@ namespace client
 	const char SAM_PARAM_SIZE[] = "SIZE";
 	const char SAM_PARAM_HOST[] = "HOST";
 	const char SAM_PARAM_PORT[] = "PORT";
+	const char SAM_PARAM_FROM_PORT[] = "FROM_PORT";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";
+	const char SAM_VALUE_MASTER[] = "MASTER";	
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
 
@@ -134,6 +139,8 @@ namespace client
 			void ProcessStreamForward (char * buf, size_t len);
 			void ProcessDestGenerate (char * buf, size_t len);
 			void ProcessNamingLookup (char * buf, size_t len);
+			void ProcessSessionAdd (char * buf, size_t len);
+			void ProcessSessionRemove (char * buf, size_t len);
 			void SendI2PError(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
@@ -171,23 +178,57 @@ namespace client
 		eSAMSessionTypeUnknown,
 		eSAMSessionTypeStream,
 		eSAMSessionTypeDatagram,
-		eSAMSessionTypeRaw
+		eSAMSessionTypeRaw,
+		eSAMSessionTypeMaster
 	};
 
 	struct SAMSession
 	{
 		SAMBridge & m_Bridge;
-		std::shared_ptr<ClientDestination> localDestination;
-		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint;
 		std::string Name;
 		SAMSessionType Type;
-
-		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
-		~SAMSession ();
-
+		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
+		
+		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
+		virtual ~SAMSession () {};
+		
+		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
+		virtual void StopLocalDestination () = 0;
+		virtual void Close () { CloseStreams (); };
+		
 		void CloseStreams ();
 	};
 
+	struct SAMSingleSession: public SAMSession
+	{
+		std::shared_ptr<ClientDestination> localDestination;
+
+		SAMSingleSession (SAMBridge & parent, const std::string & name, SAMSessionType type, std::shared_ptr<ClientDestination> dest);
+		~SAMSingleSession ();
+
+		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
+		void StopLocalDestination ();
+	};	
+
+	struct SAMMasterSession: public SAMSingleSession
+	{
+		std::set<std::string> subsessions;
+		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
+			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
+		void Close ();	
+	};	
+
+	struct SAMSubSession: public SAMSession
+	{
+		std::shared_ptr<SAMMasterSession> masterSession;
+		int inPort;
+
+		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port);
+		// implements SAMSession
+		std::shared_ptr<ClientDestination> GetLocalDestination ();
+		void StopLocalDestination ();
+	};	
+	
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:
@@ -201,6 +242,7 @@ namespace client
 			boost::asio::io_service& GetService () { return GetIOService (); };
 			std::shared_ptr<SAMSession> CreateSession (const std::string& id, SAMSessionType type, const std::string& destination, // empty string means transient
 				const std::map<std::string, std::string> * params);
+			bool AddSession (std::shared_ptr<SAMSession> session);
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
 

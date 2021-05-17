@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -272,11 +272,19 @@ namespace data
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				publicKeyLength = BlindECDSA (m_SigType, priv, seed, BlindEncodedPrivateKeyECDSA, blindedPriv, blindedPub);
-			break;
+			break;	
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
 				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
 			break;
+			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:	
+			{
+				uint8_t exp[64];	
+				i2p::crypto::Ed25519::ExpandPrivateKey (priv, exp);	
+				i2p::crypto::GetEd25519 ()->BlindPrivateKey (exp, seed, blindedPriv, blindedPub);
+				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;	
+				break;
+			}		
 			default:
 				LogPrint (eLogError, "Blinding: can't blind signature type ", (int)m_SigType);
 		}

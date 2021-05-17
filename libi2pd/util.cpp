@@ -524,6 +524,7 @@ namespace net
 	bool IsInReservedRange (const boost::asio::ip::address& host) 
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
+		if (host.is_unspecified ()) return false;
 		if(host.is_v4())
 		{
 			static const std::vector< std::pair<uint32_t, uint32_t> > reservedIPv4Ranges {

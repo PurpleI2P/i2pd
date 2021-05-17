@@ -300,7 +300,11 @@ namespace client
 	{
 		int numTunnels = m_Pool->GetNumInboundTunnels () + 2; // 2 backup tunnels
 		if (numTunnels > i2p::data::MAX_NUM_LEASES) numTunnels = i2p::data::MAX_NUM_LEASES; // 16 tunnels maximum
-		CreateNewLeaseSet (m_Pool->GetInboundTunnels (numTunnels));
+		auto tunnels = m_Pool->GetInboundTunnels (numTunnels);
+		if (!tunnels.empty ())
+			CreateNewLeaseSet (tunnels);
+		else
+			LogPrint (eLogInfo, "Destination: No inbound tunnels for LeaseSet");
 	}
 
 	bool LeaseSetDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
@@ -386,7 +390,7 @@ namespace client
 					if (leaseSet->IsNewer (buf + offset, len - offset))
 					{
 						leaseSet->Update (buf + offset, len - offset);
-						if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
+						if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 							LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 						else
 						{
@@ -405,7 +409,7 @@ namespace client
 						leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset); // LeaseSet
 					else
 						leaseSet = std::make_shared<i2p::data::LeaseSet2> (buf[DATABASE_STORE_TYPE_OFFSET], buf + offset, len - offset, true, GetPreferredCryptoType () ); // LeaseSet2
-					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
+					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key && !leaseSet->IsExpired ())
 					{
 						if (leaseSet->GetIdentHash () != GetIdentHash ())
 						{
@@ -505,7 +509,7 @@ namespace client
 			// schedule verification
 			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 			m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-			shared_from_this (), std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
@@ -588,8 +592,7 @@ namespace client
 					// assume it successive and try to verify
 					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-			shared_from_this (), std::placeholders::_1));
-
+						shared_from_this (), std::placeholders::_1));
 				}
 			}
 		}
@@ -1127,13 +1130,28 @@ namespace client
 		return dest;
 	}
 
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::RemoveStreamingDestination (int port)
+	{
+		if (port)
+		{
+			auto it = m_StreamingDestinationsByPorts.find (port);
+			if (it != m_StreamingDestinationsByPorts.end ())
+			{
+				auto ret = it->second;
+				m_StreamingDestinationsByPorts.erase (it);
+				return ret;
+			}	
+		}
+		return nullptr;
+	}	
+		
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip)
 	{
 		if (m_DatagramDestination == nullptr)
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip);
 		return m_DatagramDestination;
-	}
-
+	}		
+		
 	std::vector<std::shared_ptr<const i2p::stream::Stream> > ClientDestination::GetAllStreams () const
 	{
 		std::vector<std::shared_ptr<const i2p::stream::Stream> > ret;
@@ -1176,7 +1194,7 @@ namespace client
 		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
 	}
 
-	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
+	void ClientDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
 	{
 		std::shared_ptr<i2p::data::LocalLeaseSet> leaseSet;
 		if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)

@@ -251,7 +251,7 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
 				const KeySections& encryptionKeys,
-				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels,
+				const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 				bool isPublic, bool isPublishedEncrypted = false);
 
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP

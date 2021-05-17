@@ -406,6 +406,7 @@ namespace tunnel
 
 	bool StandardSelectPeers(Path & peers, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
+		int start = 0;
 		auto prevHop = i2p::context.GetSharedRouterInfo ();
 		if(i2p::transport::transports.RoutesRestricted())
 		{
@@ -414,20 +415,22 @@ namespace tunnel
 			if(!hop) return false;
 			peers.push_back(hop->GetRouterIdentity());
 			prevHop = hop;
+			start++;
 		}
-		else if (i2p::transport::transports.GetNumPeers () > 25)
+		else if (i2p::transport::transports.GetNumPeers () > 100 ||
+			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
 			if (r && !r->GetProfile ()->IsBad () && 
-				(numHops > 1 || (!inbound && r->IsV4 ()) || r->IsReachable ())) // first inbound must be reachable
+				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsReachable ())))) // first inbound must be reachable
 			{
 				prevHop = r;
 				peers.push_back (r->GetRouterIdentity ());
-				numHops--;
+				start++;
 			}
 		}
 
-		for(int i = 0; i < numHops; i++ )
+		for(int i = start; i < numHops; i++ )
 		{
 			auto hop = nextHop (prevHop, inbound);
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
@@ -440,9 +443,8 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}
-			if ((i == numHops - 1) &&
-				((inbound && !hop->IsReachable ()) ||  // IBGW is not reachable
-				(!inbound && !hop->IsV4 ())))	// OBEP is not ipv4
+			if ((i == numHops - 1) && (!hop->IsV4 () || // doesn't support ipv4
+				(inbound && !hop->IsReachable ())))  // IBGW is not reachable
 			{
 				auto hop1 = nextHop (prevHop, true);
 				if (hop1) hop = hop1;

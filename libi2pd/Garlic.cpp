@@ -553,9 +553,10 @@ namespace garlic
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
 					{
 						// try to gererate more tags for last tagset 
-						if (m_LastTagset && m_LastTagset->GetNextIndex () < 2*ECIESX25519_TAGSET_MAX_NUM_TAGS)
+						if (m_LastTagset && (m_LastTagset->GetNextIndex () - m_LastTagset->GetTrimBehind () < 3*ECIESX25519_MAX_NUM_GENERATED_TAGS))
 						{
 							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
+							LogPrint (eLogWarning, "Garlic: trying to generate more ECIES-X25519-AEAD-Ratchet tags");
 							for (int i = 0; i < maxTags; i++)
 							{
 								auto nextTag = AddECIESx25519SessionNextTag (m_LastTagset);
@@ -879,8 +880,12 @@ namespace garlic
 			{
 				auto session = it->second.tagset->GetSession ();
 				if (!session || session->IsTerminated())
-					it->second.tagset->Expire ();
-				++it;
+				{	
+					it = m_ECIESx25519Tags.erase (it);
+					numExpiredTags++;
+				}	
+				else
+					++it;
 			}	
 		}
 		if (numExpiredTags > 0)
