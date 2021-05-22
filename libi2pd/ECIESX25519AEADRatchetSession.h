@@ -104,11 +104,11 @@ namespace garlic
 			uint64_t m_ExpirationTimestamp = 0;
 	};	
 
-	class DatabaseLookupTagSet: public ReceiveRatchetTagSet
+	class SymmetricKeyTagSet: public ReceiveRatchetTagSet
 	{
 		public:
 
-			DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key);
+			SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key);
 
 			bool IsIndexExpired (int index) const { return false; };
 			bool HandleNextMessage (uint8_t * buf, size_t len, int index);

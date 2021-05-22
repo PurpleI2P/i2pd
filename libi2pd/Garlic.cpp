@@ -471,7 +471,7 @@ namespace garlic
 	{
 		uint64_t t;
 		memcpy (&t, tag, 8);
-		auto tagset = std::make_shared<DatabaseLookupTagSet>(this, key);
+		auto tagset = std::make_shared<SymmetricKeyTagSet>(this, key);
 		m_ECIESx25519Tags.emplace (t, ECIESX25519AEADRatchetIndexTagset{0, tagset});
 	}	
 		
