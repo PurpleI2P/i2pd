@@ -30,6 +30,12 @@
 #include "Daemon.h"
 #include "util.h"
 #include "ECIESX25519AEADRatchetSession.h"
+#include "I18N.h"
+
+#ifdef _WIN32
+#include <boost/filesystem.hpp>
+#include <codecvt>
+#endif
 
 #ifdef WIN32_APP
 #include "Win32App.h"
@@ -130,23 +136,37 @@ namespace http {
 	static std::string ConvertTime (uint64_t time);
 	std::map<uint32_t, uint32_t> HTTPConnection::m_Tokens;
 
+	std::string DataPath;
+
+	static void SetDataDir ()
+	{
+#ifdef _WIN32
+		boost::filesystem::wpath path (i2p::fs::GetDataDir());
+		auto loc = boost::filesystem::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) );
+		i2p::http::DataPath = path.string();
+		boost::filesystem::path::imbue(loc); // Return it back
+#else
+		i2p::http::DataPath = i2p::fs::GetDataDir();
+#endif
+	}
+
 	static void ShowUptime (std::stringstream& s, int seconds)
 	{
 		int num;
 
 		if ((num = seconds / 86400) > 0) {
-			s << num << " days, ";
+			s << num << " " << tr("days", num) << ", ";
 			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
-			s << num << " hours, ";
+			s << num << " " << tr("hours", num) << ", ";
 			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
-			s << num << " min, ";
+			s << num << " " << tr("minutes", num) << ", ";
 			seconds -= num * 60;
 		}
-		s << seconds << " seconds";
+		s << seconds << " " << tr("seconds", seconds);
 	}
 
 	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
@@ -197,11 +217,7 @@ namespace http {
 			"<!DOCTYPE html>\r\n"
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
 			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
-#if (!defined(WIN32))
 			"  <meta charset=\"UTF-8\">\r\n"
-#else
-			"  <meta charset=\"windows-1251\">\r\n"
-#endif
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
@@ -315,7 +331,7 @@ namespace http {
 		s << "<b>Transit:</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
-		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
+		s << "<b>Data path:</b> " << i2p::http::DataPath << "<br>\r\n";
 		s << "<div class='slide'>";
 		if((outputFormat==OutputFormatEnum::forWebConsole)||!includeHiddenContent) {
 			s << "<label for=\"slide-info\">Hidden content. Press on text to see.</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
@@ -1373,6 +1389,8 @@ namespace http {
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
+
+		i2p::http::SetDataDir();
 
 		m_IsRunning = true;
 		m_Thread.reset (new std::thread (std::bind (&HTTPServer::Run, this)));

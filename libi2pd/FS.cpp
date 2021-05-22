@@ -47,10 +47,10 @@ namespace fs {
 			return;
 		}
 #ifdef _WIN32
-		char localAppData[MAX_PATH];
+		wchar_t localAppData[MAX_PATH];
 
 		// check executable directory first
-		if(!GetModuleFileName(NULL, localAppData, MAX_PATH))
+		if(!GetModuleFileNameW(NULL, localAppData, MAX_PATH))
 		{
 #ifdef WIN32_APP
 			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
@@ -61,14 +61,15 @@ namespace fs {
 		}
 		else
 		{
-			auto execPath = boost::filesystem::path(localAppData).parent_path();
+			auto execPath = boost::filesystem::wpath(localAppData).parent_path();
 
 			// if config file exists in .exe's folder use it
 			if(boost::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
-				dataDir = execPath.string ();
-			else // otherwise %appdata%
 			{
-				if(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
+				dataDir = execPath.string ();
+			} else // otherwise %appdata%
+			{
+				if(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
 #ifdef WIN32_APP
 					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
@@ -78,7 +79,9 @@ namespace fs {
 					exit(1);
 				}
 				else
-					dataDir = std::string(localAppData) + "\\" + appName;
+				{
+					dataDir = boost::filesystem::wpath(localAppData).string() + "\\" + appName;
+				}
 			}
 		}
 		return;

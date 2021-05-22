@@ -19,4 +19,6 @@ LIB_CLIENT_SRC = $(wildcard $(LIB_CLIENT_SRC_DIR)/*.cpp)
 #DAEMON_SRC = \
 #	HTTPServer.cpp I2PControl.cpp UPnP.cpp Daemon.cpp i2pd.cpp
 
+LANG_SRC = $(wildcard $(LANG_SRC_DIR)/*.cpp)
+
 DAEMON_SRC = $(wildcard $(DAEMON_SRC_DIR)/*.cpp)
