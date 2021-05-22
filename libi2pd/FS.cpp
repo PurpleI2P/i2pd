@@ -12,6 +12,7 @@
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
+#include <codecvt>
 #endif
 
 #include "Base.h"
@@ -39,6 +40,18 @@ namespace fs {
 
 	const std::string & GetDataDir () {
 		return dataDir;
+	}
+
+	const std::string GetUTF8DataDir () {
+#ifdef _WIN32
+		boost::filesystem::wpath path (dataDir);
+		auto loc = boost::filesystem::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) ); // convert path to UTF-8
+		auto dataDirUTF8 = path.string();
+		boost::filesystem::path::imbue(loc); // Return locale settings back
+		return dataDirUTF8;
+#else
+		return dataDir; // linux, osx, android uses UTF-8 by default
+#endif
 	}
 
 	void DetectDataDir(const std::string & cmdline_param, bool isService) {

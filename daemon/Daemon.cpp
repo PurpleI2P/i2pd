@@ -343,6 +343,13 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: using hidden mode");
 			i2p::data::netdb.SetHidden(true);
 		}
+
+		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
+		if (!httpLang.compare("russian"))
+			i2p::context.SetLanguage (eRussian);
+		else
+			i2p::context.SetLanguage (eEnglish);
+
 		return true;
 	}
 
