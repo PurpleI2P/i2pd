@@ -66,7 +66,7 @@ namespace russian { // language
 		// ShowTunnelDetails
 		{"building", "строится"},
 		{"failed", "неудачный"},
-		{"expiring", "заканчивается"},
+		{"expiring", "истекает"},
 		{"established", "работает"},
 		{"exploratory", "исследовательский"},
 		{"unknown", "неизвестно"},
