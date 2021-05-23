@@ -93,6 +93,7 @@ namespace config {
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
 			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
+			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");

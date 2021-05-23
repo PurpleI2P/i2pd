@@ -12,6 +12,7 @@
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
+#include <codecvt>
 #endif
 
 #include "Base.h"
@@ -41,16 +42,28 @@ namespace fs {
 		return dataDir;
 	}
 
+	const std::string GetUTF8DataDir () {
+#ifdef _WIN32
+		boost::filesystem::wpath path (dataDir);
+		auto loc = boost::filesystem::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) ); // convert path to UTF-8
+		auto dataDirUTF8 = path.string();
+		boost::filesystem::path::imbue(loc); // Return locale settings back
+		return dataDirUTF8;
+#else
+		return dataDir; // linux, osx, android uses UTF-8 by default
+#endif
+	}
+
 	void DetectDataDir(const std::string & cmdline_param, bool isService) {
 		if (cmdline_param != "") {
 			dataDir = cmdline_param;
 			return;
 		}
 #ifdef _WIN32
-		char localAppData[MAX_PATH];
+		wchar_t localAppData[MAX_PATH];
 
 		// check executable directory first
-		if(!GetModuleFileName(NULL, localAppData, MAX_PATH))
+		if(!GetModuleFileNameW(NULL, localAppData, MAX_PATH))
 		{
 #ifdef WIN32_APP
 			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
@@ -61,14 +74,15 @@ namespace fs {
 		}
 		else
 		{
-			auto execPath = boost::filesystem::path(localAppData).parent_path();
+			auto execPath = boost::filesystem::wpath(localAppData).parent_path();
 
 			// if config file exists in .exe's folder use it
 			if(boost::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
-				dataDir = execPath.string ();
-			else // otherwise %appdata%
 			{
-				if(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
+				dataDir = execPath.string ();
+			} else // otherwise %appdata%
+			{
+				if(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
 #ifdef WIN32_APP
 					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
@@ -78,7 +92,9 @@ namespace fs {
 					exit(1);
 				}
 				else
-					dataDir = std::string(localAppData) + "\\" + appName;
+				{
+					dataDir = boost::filesystem::wpath(localAppData).string() + "\\" + appName;
+				}
 			}
 		}
 		return;

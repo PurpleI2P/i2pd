@@ -29,7 +29,7 @@ namespace i2p
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
-		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
+		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID), m_Language (eEnglish)
 	{
 	}
 
@@ -914,6 +914,11 @@ namespace i2p
 			BN_CTX_free (ctx);
 			return success;
 		}
+	}
+
+	void RouterContext::SetLanguage (Lang language)
+	{
+		m_Language = language;
 	}
 
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()

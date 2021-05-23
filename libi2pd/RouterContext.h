@@ -18,13 +18,14 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
+#include "I18N_langs.h"
 
 namespace i2p
 {
 namespace garlic
 {
 	class RouterIncomingRatchetSession;
-}	
+}
 
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
@@ -39,7 +40,7 @@ namespace garlic
 		eRouterStatusError = 3,
 		eRouterStatusUnknown = 4,
 		eRouterStatusProxy = 5,
-		eRouterStatusMesh = 6	
+		eRouterStatusMesh = 6
 	};
 
 	enum RouterError
@@ -49,7 +50,7 @@ namespace garlic
 		eRouterErrorOffline = 2,
 		eRouterErrorSymmetricNAT = 3
 	};
-	
+
 	class RouterContext: public i2p::garlic::GarlicDestination
 	{
 		private:
@@ -144,6 +145,10 @@ namespace garlic
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
+			// i18n
+			Lang GetLanguage () const { return m_Language; };
+			void SetLanguage (Lang language);
+
 		protected:
 
 			// implements GarlicDestination
@@ -178,6 +183,9 @@ namespace garlic
 			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
 			// for ECIESx25519
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_InitialNoiseState, m_CurrentNoiseState;
+
+			// i18n
+			Lang m_Language;
 	};
 
 	extern RouterContext context;
