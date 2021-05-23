@@ -33,10 +33,12 @@ target_architecture(ARCHITECTURE)
 
 set(LIBI2PD_SRC_DIR ../libi2pd)
 set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
+set(LANG_SRC_DIR ../i18n)
 set(DAEMON_SRC_DIR ../daemon)
 
 include_directories(${LIBI2PD_SRC_DIR})
 include_directories(${LIBI2PD_CLIENT_SRC_DIR})
+include_directories(${LANG_SRC_DIR})
 include_directories(${DAEMON_SRC_DIR})
 
 set(LIBI2PD_SRC
@@ -125,6 +127,11 @@ if(WITH_LIBRARY)
     LIBRARY DESTINATION lib
     COMPONENT Libraries)
 endif()
+
+set(LANG_SRC
+  "${LANG_SRC_DIR}/English.cpp"
+  "${LANG_SRC_DIR}/Russian.cpp"
+)
 
 set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
@@ -321,7 +328,7 @@ message(STATUS "---------------------------------------")
 include(GNUInstallDirs)
 
 if(WITH_BINARY)
-  add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
+  add_executable("${PROJECT_NAME}" ${LANG_SRC} ${DAEMON_SRC})
 
   if(WITH_STATIC)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
