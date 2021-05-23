@@ -94,6 +94,7 @@ ETH: 0x9e5bac70d20d1079ceaa111127f4fb3bccce379d
 DASH: Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF  
 ZEC: t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ  
 GST: GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG  
+XMR: 497pJc7X4xqKvcLBLpSUtRgWqMMyo24u4btCos3cak6gbMkpobgSU6492ztUcUBghyeHpYeczB55s38NpuHoH5WGNSPDRMH  
 
 License
 -------
