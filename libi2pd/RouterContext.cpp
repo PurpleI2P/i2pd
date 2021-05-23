@@ -736,14 +736,8 @@ namespace i2p
 			}
 		}
 		std::shared_ptr<const i2p::data::IdentityEx> oldIdentity;
-		bool rekey = m_Keys.GetPublic ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
-		if (!rekey && m_Keys.GetPublic ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
-		{
-			// rekey routers with bandwidth = L (or default) this time
-			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-			if (!isFloodfill) rekey = true;
-		}
-		if (rekey)
+		if (m_Keys.GetPublic ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1 ||
+		    m_Keys.GetPublic ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
 		{
 			// update keys
 			LogPrint (eLogInfo, "Router: router keys are obsolete. Creating new");
