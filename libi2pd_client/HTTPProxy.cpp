@@ -217,7 +217,8 @@ namespace proxy {
 		b64 = i2p::http::UrlDecode(value);
 		// if we need update exists, request formed with update param
 		if (params["update"] == "true") { len += std::strlen("&update=true"); confirm = true; }
-		url.query.replace(pos - 1, len + 1, ""); // +-1 for taking ? and & before parameter
+		if (pos != 0 && url.query[pos-1] == '&') { pos--; len++; } // if helper is not only one query option
+		url.query.replace(pos, len, "");
 		return true;
 	}
 
