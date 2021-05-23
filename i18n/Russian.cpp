@@ -124,6 +124,8 @@ namespace russian { // language
 		{"Address registration line", "Строка регистрации адреса"},
 		{"Domain", "Домен"},
 		{"Generate", "Сгенерировать"},
+		{"<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.",
+			"<b>Примечание:</b> полученная строка может быть использована только для регистрации доменов второго уровня. Для регистрации поддоменов используйте i2pd-tools."},
 		{"Address", "Адрес"},
 		{"Type", "Тип"},
 		{"EncType", "ТипШифр"},

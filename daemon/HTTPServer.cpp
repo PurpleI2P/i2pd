@@ -455,7 +455,7 @@ namespace http {
 			     "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
 			     "  <b>" << tr("Domain") << ":</b>\r\n<input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
 			     "  <button type=\"submit\">" << tr("Generate") << "</button>\r\n"
-			     "</form>\r\n<small><b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
+			     "</form>\r\n<small>" << tr("<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.") << "</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		}
 
 		if(dest->GetNumRemoteLeaseSets())
