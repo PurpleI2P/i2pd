@@ -18,6 +18,7 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
+#include "I18N_langs.h"
 
 namespace i2p
 {
@@ -48,11 +49,6 @@ namespace garlic
 		eRouterErrorClockSkew = 1,
 		eRouterErrorOffline = 2,
 		eRouterErrorSymmetricNAT = 3
-	};
-
-	enum Lang {
-		eEnglish = 0,
-		eRussian
 	};
 
 	class RouterContext: public i2p::garlic::GarlicDestination

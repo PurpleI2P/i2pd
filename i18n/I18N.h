@@ -11,20 +11,11 @@
 
 #include "RouterContext.h"
 
+
 namespace i2p {
 namespace i18n {
 
-	namespace english {
-		std::string GetString (std::string arg);
-		std::string GetPlural (std::string arg, int n);
-	}
-
-	namespace russian {
-		std::string GetString (std::string arg);
-		std::string GetPlural (std::string arg, int n);
-	}
-
-	std::string translate (std::string arg)
+	inline std::string translate (std::string arg)
 	{
 		switch (i2p::context.GetLanguage ())
 		{
@@ -49,7 +40,8 @@ namespace i18n {
 } // i2p
 
 template<typename... TArgs>
-std::string tr (TArgs&&... args) {
+std::string tr (TArgs&&... args)
+{
 	return i2p::i18n::translate(std::forward<TArgs>(args)...);
 }
 
