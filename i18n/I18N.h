@@ -15,24 +15,30 @@
 namespace i2p {
 namespace i18n {
 
-	inline std::string translate (std::string arg)
+	inline std::string translate (const std::string& arg)
 	{
 		switch (i2p::context.GetLanguage ())
 		{
-			case eEnglish: return i2p::i18n::english::GetString (arg);
-			case eRussian: return i2p::i18n::russian::GetString (arg);
-			default: return arg;
+			case eEnglish: 
+				return i2p::i18n::english::GetString (arg);
+			case eRussian: 
+				return i2p::i18n::russian::GetString (arg);
+			default: 
+				return arg;
 		}
 	}
 
 	template<typename inttype>
-	std::string translate (std::string arg, inttype&& n)
+	std::string translate (const std::string& arg, inttype&& n)
 	{
 		switch (i2p::context.GetLanguage ())
 		{
-			case eEnglish: return i2p::i18n::english::GetPlural (arg, (int) n);
-			case eRussian: return i2p::i18n::russian::GetPlural (arg, (int) n);
-			default: return arg;
+			case eEnglish: 
+				return i2p::i18n::english::GetPlural (arg, (int) n);
+			case eRussian: 
+				return i2p::i18n::russian::GetPlural (arg, (int) n);
+			default: 
+				return arg;
 		}
 	}
 
