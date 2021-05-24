@@ -179,8 +179,8 @@ namespace russian { // language
 		{"SAM Session", "SAM сессия"},
 		// ShowI2PTunnels
 		{"Server Tunnels", "Серверные туннели"},
-		{"Client Forwards", "Клиентские переадресации"},
-		{"Server Forwards", "Серверные переадресации"},
+		{"Client Forwards", "Клиентские перенаправления"},
+		{"Server Forwards", "Серверные перенаправления"},
 		// HandlePage
 		{"Unknown page", "Неизвестная страница"},
 		// HandleCommand, ShowError
