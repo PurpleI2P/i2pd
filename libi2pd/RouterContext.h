@@ -99,7 +99,7 @@ namespace garlic
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
 
 			void UpdatePort (int port); // called from Daemon
-			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
+			void UpdateAddress (const boost::asio::ip::address& host); // called from SSU or Daemon
 			void PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg);
 			void UpdateNTCP2Address (bool enable);
 			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
@@ -125,11 +125,11 @@ namespace garlic
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
-			
+
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
 			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
-			void CleanupDestination ();	// garlic destination
+			void CleanupDestination (); // garlic destination
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
@@ -146,8 +146,8 @@ namespace garlic
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
 			// i18n
-			Lang GetLanguage () const { return m_Language; };
-			void SetLanguage (Lang language);
+			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
+			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
 
 		protected:
 
@@ -185,7 +185,7 @@ namespace garlic
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_InitialNoiseState, m_CurrentNoiseState;
 
 			// i18n
-			Lang m_Language;
+			std::shared_ptr<const i2p::i18n::Locale> m_Language;
 	};
 
 	extern RouterContext context;

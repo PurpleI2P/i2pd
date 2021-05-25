@@ -1,16 +1,28 @@
+/*
+* Copyright (c) 2021, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <map>
 #include <vector>
 #include <string>
+#include <memory>
+#include "I18N.h"
 
 // Russian localization file
 
-namespace i2p {
-namespace i18n {
-namespace russian { // language
-
+namespace i2p
+{
+namespace i18n
+{
+namespace russian // language
+{
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
-	int plural (int n) {
+	static int plural (int n) {
 		return n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
 	}
 
@@ -218,30 +230,12 @@ namespace russian { // language
 		{"hours",   {"час", "часа", "часов"}},
 		{"minutes", {"минуту", "минуты", "минут"}},
 		{"seconds", {"секунду", "секунды", "секунд"}},
-		{"", {"", ""}},
+		{"", {"", "", ""}},
 	};
 
-	std::string GetString (std::string arg)
+	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		auto it = strings.find(arg);
-		if (it == strings.end())
-		{
-			return arg;
-		} else {
-			return it->second;
-		}
-	}
-
-	std::string GetPlural (std::string arg, int n)
-	{
-		auto it = plurals.find(arg);
-		if (it == plurals.end())
-		{
-			return arg;
-		} else {
-			int form = plural(n);
-			return it->second[form];
-		}
+		return std::make_shared<i2p::i18n::Locale>(strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

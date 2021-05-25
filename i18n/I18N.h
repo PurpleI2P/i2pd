@@ -11,37 +11,27 @@
 
 #include "RouterContext.h"
 
-
-namespace i2p {
-namespace i18n {
+namespace i2p
+{
+namespace i18n
+{
+	inline void SetLanguage(const std::string &lang)
+	{
+		if (!lang.compare("russian"))
+			i2p::context.SetLanguage (i2p::i18n::russian::GetLocale());
+		else
+			i2p::context.SetLanguage (i2p::i18n::english::GetLocale());
+	}
 
 	inline std::string translate (const std::string& arg)
 	{
-		switch (i2p::context.GetLanguage ())
-		{
-			case eEnglish: 
-				return i2p::i18n::english::GetString (arg);
-			case eRussian: 
-				return i2p::i18n::russian::GetString (arg);
-			default: 
-				return arg;
-		}
+		return i2p::context.GetLanguage ()->GetString (arg);
 	}
 
-	template<typename inttype>
-	std::string translate (const std::string& arg, inttype&& n)
+	inline std::string translate (const std::string& arg, const int& n)
 	{
-		switch (i2p::context.GetLanguage ())
-		{
-			case eEnglish: 
-				return i2p::i18n::english::GetPlural (arg, (int) n);
-			case eRussian: 
-				return i2p::i18n::russian::GetPlural (arg, (int) n);
-			default: 
-				return arg;
-		}
+		return i2p::context.GetLanguage ()->GetPlural (arg, n);
 	}
-
 } // i18n
 } // i2p
 

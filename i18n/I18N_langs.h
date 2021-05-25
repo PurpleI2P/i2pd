@@ -9,24 +9,55 @@
 #ifndef __I18N_LANGS_H__
 #define __I18N_LANGS_H__
 
-namespace i2p {
+namespace i2p
+{
+namespace i18n
+{
+	class Locale
+	{
+		public:
+			Locale (
+				const std::map<std::string, std::string>& strings,
+				const std::map<std::string, std::vector<std::string>>& plurals,
+				std::function<int(int)> formula
+			): m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
 
-enum Lang {
-	eEnglish = 0,
-	eRussian
-};
+			std::string GetString (const std::string& arg) const
+			{
+				const auto it = m_Strings.find(arg);
+				if (it == m_Strings.end())
+				{
+					return arg;
+				}
+				else
+				{
+					return it->second;
+				}
+			}
 
-namespace i18n {
+			std::string GetPlural (const std::string& arg, const int& n) const
+			{
+				const auto it = m_Plurals.find(arg);
+				if (it == m_Plurals.end())
+				{
+					return arg;
+				}
+				else
+				{
+					int form = m_Formula(n);
+					return it->second[form];
+				}
+			}
 
-	namespace english {
-		std::string GetString (std::string arg);
-		std::string GetPlural (std::string arg, int n);
-	}
+		private:
+			const std::map<std::string, std::string> m_Strings;
+			const std::map<std::string, std::vector<std::string>> m_Plurals;
+			std::function<int(int)> m_Formula;
+	};
 
-	namespace russian {
-		std::string GetString (std::string arg);
-		std::string GetPlural (std::string arg, int n);
-	}
+	// Add localization here with language name as namespace
+	namespace english { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace russian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
 } // i18n
 } // i2p

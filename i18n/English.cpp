@@ -1,23 +1,34 @@
+/*
+* Copyright (c) 2021, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <map>
 #include <vector>
 #include <string>
+#include <memory>
+#include "I18N.h"
 
-// Russian localization file
+// English localization file
 
-namespace i2p {
-namespace i18n {
-namespace english { // language
-
+namespace i2p
+{
+namespace i18n
+{
+namespace english // language
+{
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
-	int plural (int n) {
+	static int plural (int n) {
 		return n != 1 ? 1 : 0;
 	}
 
 	static std::map<std::string, std::string> strings
 	{
-		{"Enabled", "Enabled"},
-		{"Disabled", "Disabled"}
+		{"", ""},
 	};
 
 	static std::map<std::string, std::vector<std::string>> plurals
@@ -25,30 +36,13 @@ namespace english { // language
 		{"days",    {"day", "days"}},
 		{"hours",   {"hour", "hours"}},
 		{"minutes", {"minute", "minutes"}},
-		{"seconds", {"second", "seconds"}}
+		{"seconds", {"second", "seconds"}},
+		{"", {"", ""}},
 	};
 
-	std::string GetString (std::string arg)
+	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		auto it = strings.find(arg);
-		if (it == strings.end())
-		{
-			return arg;
-		} else {
-			return it->second;
-		}
-	}
-
-	std::string GetPlural (std::string arg, int n)
-	{
-		auto it = plurals.find(arg);
-		if (it == plurals.end())
-		{
-			return arg;
-		} else {
-			int form = plural(n);
-			return it->second[form];
-		}
+		return std::make_shared<i2p::i18n::Locale>(strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

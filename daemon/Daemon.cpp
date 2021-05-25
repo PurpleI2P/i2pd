@@ -32,6 +32,7 @@
 #include "UPnP.h"
 #include "Timestamp.h"
 #include "util.h"
+#include "I18N.h"
 
 namespace i2p
 {
@@ -345,10 +346,7 @@ namespace util
 		}
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
-		if (!httpLang.compare("russian"))
-			i2p::context.SetLanguage (eRussian);
-		else
-			i2p::context.SetLanguage (eEnglish);
+		i2p::i18n::SetLanguage(httpLang);
 
 		return true;
 	}
