@@ -41,55 +41,7 @@ include_directories(${LIBI2PD_CLIENT_SRC_DIR})
 include_directories(${LANG_SRC_DIR})
 include_directories(${DAEMON_SRC_DIR})
 
-set(LIBI2PD_SRC
-  "${LIBI2PD_SRC_DIR}/api.cpp"
-  "${LIBI2PD_SRC_DIR}/Base.cpp"
-  "${LIBI2PD_SRC_DIR}/Blinding.cpp"
-  "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
-  "${LIBI2PD_SRC_DIR}/ChaCha20.cpp"
-  "${LIBI2PD_SRC_DIR}/Config.cpp"
-  "${LIBI2PD_SRC_DIR}/CPU.cpp"
-  "${LIBI2PD_SRC_DIR}/Crypto.cpp"
-  "${LIBI2PD_SRC_DIR}/CryptoKey.cpp"
-  "${LIBI2PD_SRC_DIR}/Datagram.cpp"
-  "${LIBI2PD_SRC_DIR}/Destination.cpp"
-  "${LIBI2PD_SRC_DIR}/ECIESX25519AEADRatchetSession.cpp"
-  "${LIBI2PD_SRC_DIR}/Ed25519.cpp"
-  "${LIBI2PD_SRC_DIR}/Elligator.cpp"
-  "${LIBI2PD_SRC_DIR}/Family.cpp"
-  "${LIBI2PD_SRC_DIR}/FS.cpp"
-  "${LIBI2PD_SRC_DIR}/Garlic.cpp"
-  "${LIBI2PD_SRC_DIR}/Gost.cpp"
-  "${LIBI2PD_SRC_DIR}/Gzip.cpp"
-  "${LIBI2PD_SRC_DIR}/HTTP.cpp"
-  "${LIBI2PD_SRC_DIR}/I2NPProtocol.cpp"
-  "${LIBI2PD_SRC_DIR}/Identity.cpp"
-  "${LIBI2PD_SRC_DIR}/LeaseSet.cpp"
-  "${LIBI2PD_SRC_DIR}/Log.cpp"
-  "${LIBI2PD_SRC_DIR}/NetDb.cpp"
-  "${LIBI2PD_SRC_DIR}/NetDbRequests.cpp"
-  "${LIBI2PD_SRC_DIR}/NTCP2.cpp"
-  "${LIBI2PD_SRC_DIR}/Poly1305.cpp"
-  "${LIBI2PD_SRC_DIR}/Profiling.cpp"
-  "${LIBI2PD_SRC_DIR}/Reseed.cpp"
-  "${LIBI2PD_SRC_DIR}/RouterContext.cpp"
-  "${LIBI2PD_SRC_DIR}/RouterInfo.cpp"
-  "${LIBI2PD_SRC_DIR}/Signature.cpp"
-  "${LIBI2PD_SRC_DIR}/SSU.cpp"
-  "${LIBI2PD_SRC_DIR}/SSUData.cpp"
-  "${LIBI2PD_SRC_DIR}/SSUSession.cpp"
-  "${LIBI2PD_SRC_DIR}/Streaming.cpp"
-  "${LIBI2PD_SRC_DIR}/Timestamp.cpp"
-  "${LIBI2PD_SRC_DIR}/TransitTunnel.cpp"
-  "${LIBI2PD_SRC_DIR}/Transports.cpp"
-  "${LIBI2PD_SRC_DIR}/Tunnel.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelEndpoint.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelGateway.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelPool.cpp"
-  "${LIBI2PD_SRC_DIR}/TunnelConfig.cpp"
-  "${LIBI2PD_SRC_DIR}/util.cpp"
-)
-
+FILE(GLOB LIBI2PD_SRC ${LIBI2PD_SRC_DIR}/*.cpp)
 add_library(libi2pd ${LIBI2PD_SRC})
 set_target_properties(libi2pd PROPERTIES PREFIX "")
 
@@ -104,19 +56,7 @@ if(WITH_LIBRARY)
 # install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
-set(CLIENT_SRC
-  "${LIBI2PD_CLIENT_SRC_DIR}/AddressBook.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/BOB.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/ClientContext.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/MatchedDestination.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2PTunnel.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2PService.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/SAM.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/SOCKS.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/HTTPProxy.cpp"
-  "${LIBI2PD_CLIENT_SRC_DIR}/I2CP.cpp"
-)
-
+FILE(GLOB CLIENT_SRC ${LIBI2PD_CLIENT_SRC_DIR}/*.cpp)
 add_library(libi2pdclient ${CLIENT_SRC})
 set_target_properties(libi2pdclient PROPERTIES PREFIX "")
 
@@ -128,11 +68,7 @@ if(WITH_LIBRARY)
     COMPONENT Libraries)
 endif()
 
-set(LANG_SRC
-  "${LANG_SRC_DIR}/English.cpp"
-  "${LANG_SRC_DIR}/Russian.cpp"
-  "${LANG_SRC_DIR}/Ukrainian.cpp"
-)
+FILE(GLOB LANG_SRC ${LANG_SRC_DIR}/*.cpp)
 
 set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
