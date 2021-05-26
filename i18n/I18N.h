@@ -19,7 +19,9 @@ namespace i18n
 	{
 		if (!lang.compare("russian"))
 			i2p::context.SetLanguage (i2p::i18n::russian::GetLocale());
-		else
+		if (!lang.compare("ukrainian"))
+			i2p::context.SetLanguage (i2p::i18n::ukrainian::GetLocale());
+		else // fallback
 			i2p::context.SetLanguage (i2p::i18n::english::GetLocale());
 	}
 
