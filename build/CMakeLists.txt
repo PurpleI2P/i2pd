@@ -131,6 +131,7 @@ endif()
 set(LANG_SRC
   "${LANG_SRC_DIR}/English.cpp"
   "${LANG_SRC_DIR}/Russian.cpp"
+  "${LANG_SRC_DIR}/Ukrainian.cpp"
 )
 
 set(DAEMON_SRC
