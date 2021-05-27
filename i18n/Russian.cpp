@@ -96,7 +96,7 @@ namespace russian // language
 		// Network Status
 		{"OK", "OK"},
 		{"Testing", "Тестирование"},
-		{"Firewalled", "Файрвол"},
+		{"Firewalled", "Заблокировано извне"},
 		{"Unknown", "Неизвестно"},
 		{"Proxy", "Прокси"},
 		{"Mesh", "MESH-сеть"},
