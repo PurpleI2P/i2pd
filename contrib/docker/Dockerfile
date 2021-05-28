@@ -25,24 +25,24 @@ RUN mkdir -p "$I2PD_HOME" "$DATA_DIR" \
 # 1. install deps, clone and build.
 # 2. strip binaries.
 # 3. Purge all dependencies and other unrelated packages, including build directory.
-RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib-dev boost-dev build-base openssl-dev openssl git \
+RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib-dev boost-dev build-base openssl-dev openssl miniupnpc-dev git \
     && mkdir -p /tmp/build \
     && cd /tmp/build && git clone -b ${GIT_BRANCH} ${REPO_URL} \
     && cd i2pd \
     && if [ -n "${GIT_TAG}" ]; then git checkout tags/${GIT_TAG}; fi \
-    && make \
+    && make USE_UPNP=yes \
     && cp -R contrib/certificates /i2pd_certificates \
     && mkdir -p /usr/local/bin \
     && mv i2pd /usr/local/bin \
     && cd /usr/local/bin \
     && strip i2pd \
     && rm -fr /tmp/build && apk --no-cache --purge del build-dependendencies build-base fortify-headers boost-dev zlib-dev openssl-dev \
-    boost-python3 python3 gdbm boost-unit_test_framework linux-headers boost-prg_exec_monitor \
+    miniupnpc-dev boost-python3 python3 gdbm boost-unit_test_framework linux-headers boost-prg_exec_monitor \
     boost-serialization boost-wave boost-wserialization boost-math boost-graph boost-regex git pcre2 \
     libtool g++ gcc
 
 # 2. Adding required libraries to run i2pd to ensure it will run.
-RUN apk --no-cache add boost-filesystem boost-system boost-program_options boost-date_time boost-thread boost-iostreams openssl musl-utils libstdc++
+RUN apk --no-cache add boost-filesystem boost-system boost-program_options boost-date_time boost-thread boost-iostreams openssl miniupnpc musl-utils libstdc++
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
