@@ -393,10 +393,14 @@ namespace tunnel
 		}
 	}
 
+	bool TunnelPool::IsExploratory () const
+	{
+		return i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ();
+	}	
+		
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const
 	{
-		bool isExploratory = (i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ());
-		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
+		auto hop = IsExploratory () ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse);
 
 		if (!hop || hop->GetProfile ()->IsBad ())
@@ -521,6 +525,11 @@ namespace tunnel
 
 	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
 	{
+		if (IsExploratory ()) // always create new exploratory tunnel
+		{
+			CreateInboundTunnel ();
+			return;
+		}
 		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
@@ -567,6 +576,11 @@ namespace tunnel
 
 	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
 	{
+		if (IsExploratory ()) // always create new exploratory tunnel
+		{
+			CreateOutboundTunnel ();
+			return;
+		}
 		auto inboundTunnel = GetNextInboundTunnel ();
 		if (!inboundTunnel)
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
