@@ -23,6 +23,10 @@
 #include "HTTP.h"
 #include "util.h"
 
+#ifdef __linux__
+	#include <linux/in6.h>
+#endif
+
 namespace i2p
 {
 namespace transport
@@ -1198,6 +1202,11 @@ namespace transport
 								ep = boost::asio::ip::tcp::endpoint (m_Address6->address(), address->port);
 							else if (m_YggdrasilAddress && !context.SupportsV6 ())
 								ep = boost::asio::ip::tcp::endpoint (m_YggdrasilAddress->address(), address->port);
+#ifdef __linux__
+							// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+							typedef boost::asio::detail::socket_option::boolean<IPV6_ADDR_PREFERENCES, IPV6_PREFER_SRC_PUBLIC> ipv6PreferPubAddr;
+							m_NTCP2V6Acceptor->set_option (ipv6PreferPubAddr (true));
+#endif
 							m_NTCP2V6Acceptor->bind (ep);
 							m_NTCP2V6Acceptor->listen ();
 

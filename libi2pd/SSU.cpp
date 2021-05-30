@@ -14,6 +14,10 @@
 #include "SSU.h"
 #include "util.h"
 
+#ifdef __linux__
+	#include <linux/in6.h>
+#endif
+
 #ifdef _WIN32
 #include <boost/winapi/error_codes.hpp>
 #endif
@@ -62,6 +66,11 @@ namespace transport
 			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
 			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
+#ifdef __linux__
+			// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+			typedef boost::asio::detail::socket_option::boolean<IPV6_ADDR_PREFERENCES, IPV6_PREFER_SRC_PUBLIC> ipv6PreferPubAddr;
+			m_SocketV6.set_option (ipv6PreferPubAddr(true));
+#endif
 			m_SocketV6.bind (m_EndpointV6);
 			LogPrint (eLogInfo, "SSU: Start listening v6 port ", m_EndpointV6.port());
 		}
