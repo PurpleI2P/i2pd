@@ -12,7 +12,7 @@
 #include <memory>
 #include "I18N.h"
 
-// Russian localization file
+// Ukrainian localization file
 
 namespace i2p
 {

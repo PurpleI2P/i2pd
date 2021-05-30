@@ -58,6 +58,7 @@ namespace i18n
 	// Add localization here with language name as namespace
 	namespace english { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace russian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace turkmen { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
 } // i18n
