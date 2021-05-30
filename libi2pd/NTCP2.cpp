@@ -1197,16 +1197,19 @@ namespace transport
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
 							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
 							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
+#ifdef __linux__
+							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address
+							{
+								// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+								typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+								m_NTCP2V6Acceptor->set_option (ipv6PreferAddr(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_NONCGA));
+							}
+#endif
 							auto ep = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port);
 							if (m_Address6 && !context.SupportsMesh ())
 								ep = boost::asio::ip::tcp::endpoint (m_Address6->address(), address->port);
 							else if (m_YggdrasilAddress && !context.SupportsV6 ())
 								ep = boost::asio::ip::tcp::endpoint (m_YggdrasilAddress->address(), address->port);
-#ifdef __linux__
-							// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
-							typedef boost::asio::detail::socket_option::boolean<IPV6_ADDR_PREFERENCES, IPV6_PREFER_SRC_PUBLIC> ipv6PreferPubAddr;
-							m_NTCP2V6Acceptor->set_option (ipv6PreferPubAddr (true));
-#endif
 							m_NTCP2V6Acceptor->bind (ep);
 							m_NTCP2V6Acceptor->listen ();
 
