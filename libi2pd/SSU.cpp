@@ -67,7 +67,7 @@ namespace transport
 			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 #ifdef __linux__
-			if (m_EndpointV6.address() != boost::asio::ip::address().from_string("::")) // only if not binded to address
+			if (m_EndpointV6.address() == boost::asio::ip::address().from_string("::")) // only if not binded to address
 			{
 				// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
 				typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
