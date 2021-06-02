@@ -59,7 +59,7 @@ namespace data
 	{
 		public:
 
-			enum SupportedTranports
+			enum SupportedTransports
 			{
 				eNTCP2V4 = 0x01,
 				eNTCP2V6 = 0x02,
@@ -147,7 +147,7 @@ namespace data
 
 				bool IsNTCP2 () const { return (bool)ntcp2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
-				bool IsReachableSSU () const { return (bool)ssu && (!host.is_unspecified () || !ssu->introducers.empty ()); };
+				bool IsReachableSSU () const { return (bool)ssu && (published || !ssu->introducers.empty ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
 				
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
@@ -187,6 +187,7 @@ namespace data
 			std::string GetProperty (const std::string& key) const; // called from RouterContext only
 			void ClearProperties () { m_Properties.clear (); };
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
+			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsSSU (bool v4only = true) const;
@@ -269,7 +270,7 @@ namespace data
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
-			uint8_t m_SupportedTransports, m_Caps;
+			uint8_t m_SupportedTransports, m_ReachableTransports, m_Caps;
 			int m_Version;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};
