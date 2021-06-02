@@ -525,7 +525,7 @@ namespace tunnel
 
 	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
 	{
-		if (IsExploratory ()) // always create new exploratory tunnel
+		if (IsExploratory () || tunnel->IsSlow ()) // always create new exploratory tunnel or if slow
 		{
 			CreateInboundTunnel ();
 			return;
@@ -576,7 +576,7 @@ namespace tunnel
 
 	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
 	{
-		if (IsExploratory ()) // always create new exploratory tunnel
+		if (IsExploratory () || tunnel->IsSlow ()) // always create new exploratory tunnel or if slow
 		{
 			CreateOutboundTunnel ();
 			return;
