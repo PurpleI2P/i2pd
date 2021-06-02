@@ -875,34 +875,11 @@ namespace i2p
 
 	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data)
 	{
-		if (!m_TunnelDecryptor) return false;
 		if (IsECIES ())
-		{
-			if (!m_InitialNoiseState) return false;
-			// m_InitialNoiseState is h = SHA256(h || hepk)
-			m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));
-			m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
-			uint8_t sharedSecret[32];
-			if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr, false))
-			{
-				LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
-				return false;
-			}
-			m_CurrentNoiseState->MixKey (sharedSecret);
-			encrypted += 32;
-			uint8_t nonce[12];
-			memset (nonce, 0, 12);
-			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE,
-				m_CurrentNoiseState->m_H, 32, m_CurrentNoiseState->m_CK + 32, nonce, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, false)) // decrypt
-			{
-				LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
-				return false;
-			}
-			m_CurrentNoiseState->MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
-			return true;
-		}
+			return DecryptECIESTunnelBuildRecord (encrypted, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 		else
 		{
+			if (!m_TunnelDecryptor) return false;	
 			BN_CTX * ctx = BN_CTX_new ();
 			bool success = m_TunnelDecryptor->Decrypt (encrypted, data, ctx, false);
 			BN_CTX_free (ctx);
@@ -910,6 +887,43 @@ namespace i2p
 		}
 	}
 
+	bool RouterContext::DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize)
+	{	
+		if (!m_InitialNoiseState || !m_TunnelDecryptor) return false;
+		// m_InitialNoiseState is h = SHA256(h || hepk)
+		m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));
+		m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
+		uint8_t sharedSecret[32];
+		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr, false))
+		{
+			LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
+			return false;
+		}
+		m_CurrentNoiseState->MixKey (sharedSecret);
+		encrypted += 32;
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, clearTextSize, m_CurrentNoiseState->m_H, 32, 
+			m_CurrentNoiseState->m_CK + 32, nonce, data, clearTextSize, false)) // decrypt
+		{
+			LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
+			return false;
+		}
+		m_CurrentNoiseState->MixHash (encrypted, clearTextSize + 16); // h = SHA256(h || ciphertext)
+		return true;
+	}
+
+	bool RouterContext::DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data)
+	{
+		if (IsECIES ())
+			return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
+		else
+		{
+			LogPrint (eLogWarning, "Router: Can't decrypt short request record on non-ECIES router");
+			return false;
+		}	 
+	}	
+		
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
 	{
 		if (!m_StaticKeys)

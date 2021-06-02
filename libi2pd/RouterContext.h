@@ -97,7 +97,8 @@ namespace garlic
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
-
+			bool DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data);
+			
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host); // called from SSU or Daemon
 			void PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg);
@@ -164,6 +165,8 @@ namespace garlic
 			bool Load ();
 			void SaveKeys ();
 
+			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
+			
 		private:
 
 			i2p::data::RouterInfo m_RouterInfo;
