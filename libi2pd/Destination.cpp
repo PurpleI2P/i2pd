@@ -82,6 +82,14 @@ namespace client
 					if (it != params->end ()) m_Nickname = it->second;
 					// otherwise we set default nickname in Start when we know local address
 				}
+				it = params->find (I2CP_PARAM_DONT_PUBLISH_LEASESET);
+				if (it != params->end ())
+				{
+					// oveeride isPublic
+					bool dontpublish = false;
+					i2p::config::GetOption (it->second, dontpublish);
+					m_IsPublic = !dontpublish;
+				}	
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
 					m_LeaseSetType = std::stoi(it->second);
@@ -509,7 +517,7 @@ namespace client
 			// schedule verification
 			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 			m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-				shared_from_this (), std::placeholders::_1));
+			shared_from_this (), std::placeholders::_1));
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
@@ -592,7 +600,8 @@ namespace client
 					// assume it successive and try to verify
 					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
 					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
-						shared_from_this (), std::placeholders::_1));
+			shared_from_this (), std::placeholders::_1));
+
 				}
 			}
 		}

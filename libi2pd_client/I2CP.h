@@ -62,7 +62,6 @@ namespace client
 	};
 
 	// params
-	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
 	class I2CPSession;
