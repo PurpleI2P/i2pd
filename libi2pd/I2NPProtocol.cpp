@@ -458,7 +458,7 @@ namespace i2p
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
 		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
-			LogPrint (eLogError, "VaribleTunnelBuild message of ", num, " records is too short ", len);
+			LogPrint (eLogError, "I2NP: VaribleTunnelBuild message of ", num, " records is too short ", len);
 			return;
 		}
 
@@ -526,12 +526,12 @@ namespace i2p
 	{
 		if (i2p::context.IsECIES ())
 		{
-			LogPrint (eLogWarning, "TunnelBuild is too old for ECIES router");
+			LogPrint (eLogWarning, "I2NP: TunnelBuild is too old for ECIES router");
 			return;
 		}	
 		if (len < NUM_TUNNEL_BUILD_RECORDS*TUNNEL_BUILD_RECORD_SIZE)
 		{
-			LogPrint (eLogError, "TunnelBuild message is too short ", len);
+			LogPrint (eLogError, "I2NP: TunnelBuild message is too short ", len);
 			return;
 		}
 		uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
@@ -558,7 +558,7 @@ namespace i2p
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuildReplyMsg of ", num, " records replyMsgID=", replyMsgID);
 		if (len < num*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 1)
 		{
-			LogPrint (eLogError, "VaribleTunnelBuildReply message of ", num, " records is too short ", len);
+			LogPrint (eLogError, "I2NP: VaribleTunnelBuildReply message of ", num, " records is too short ", len);
 			return;
 		}
 
@@ -582,7 +582,66 @@ namespace i2p
 			LogPrint (eLogWarning, "I2NP: Pending tunnel for message ", replyMsgID, " not found");
 	}
 
-
+	void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
+	{
+		if (!i2p::context.IsECIES ())
+		{
+			LogPrint (eLogWarning, "I2NP: ShortTunnelBuild can be handled by ECIES router only");
+			return;
+		}	
+		int num = buf[0];
+		LogPrint (eLogDebug, "I2NP: ShortTunnelBuild ", num, " records");
+		if (len < num*SHORT_TUNNEL_BUILD_RECORD_SIZE + 1)
+		{
+			LogPrint (eLogError, "I2NP: ShortTunnelBuild message of ", num, " records is too short ", len);
+			return;
+		}
+		// TODO: check replyMsgID
+		const uint8_t * record = buf + 1;
+		for (int i = 0; i < num; i++)
+		{
+			if (!memcmp (record, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
+			{
+				LogPrint (eLogDebug, "I2NP: Short request record ", i, " is ours");
+				uint8_t clearText[SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
+				{	
+					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
+					return;
+				}
+				// TODO: fill reply
+				// encrypt reply
+				auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
+				if (!noiseState) 
+				{	
+					LogPrint (eLogWarning, "I2NP: Invalid Noise state for short reply encryption");
+					return;
+				}	
+				uint8_t nonce[12];
+				memset (nonce, 0, 12);
+				uint8_t * reply = buf + 1;
+				for (int j = 0; j < num; j++)
+				{	
+					if (j == i)
+					{
+						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
+							noiseState->m_H, 32, noiseState->m_CK, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+						{
+							LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
+							return;
+						}	
+					}
+					else
+						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, noiseState->m_CK, nonce, reply); 
+					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;	
+				}
+				// TODO: send
+				return;
+			}	
+			record += SHORT_TUNNEL_BUILD_RECORD_SIZE;
+		}	
+	}	
+	
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
 		auto msg = NewI2NPTunnelMessage ();
@@ -700,6 +759,9 @@ namespace i2p
 			case eI2NPVariableTunnelBuildReply:
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
 			break;
+			case eI2NPShortTunnelBuild:
+				HandleShortTunnelBuildMsg (msgID, buf, size);
+			break;	
 			case eI2NPTunnelBuild:
 				HandleTunnelBuildMsg (buf, size);
 			break;
@@ -756,6 +818,7 @@ namespace i2p
 				case eI2NPVariableTunnelBuildReply:
 				case eI2NPTunnelBuild:
 				case eI2NPTunnelBuildReply:
+				case eI2NPShortTunnelBuild:	
 					// forward to tunnel thread
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
