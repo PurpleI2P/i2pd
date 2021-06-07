@@ -424,7 +424,7 @@ namespace i2p
 						{
 							uint8_t nonce[12];
 							memset (nonce, 0, 12);
-							auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
+							auto& noiseState = i2p::context.GetCurrentNoiseState ();
 							if (!noiseState || !i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
 								noiseState->m_H, 32, noiseState->m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 							{
@@ -609,9 +609,19 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
+				auto& noiseState = i2p::context.GetCurrentNoiseState ();
+				uint8_t layerKeys[64]; // (layer key, iv key)
+				i2p::crypto::HKDF (noiseState->m_CK + 32, nullptr, 0, "LayerAndIVKeys", layerKeys); // TODO: correct domain		
+				auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
+					bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+					clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+					bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+					layerKeys, layerKeys + 32,
+					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
+					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
+				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
 				// TODO: fill reply
 				// encrypt reply
-				auto noiseState = std::move (i2p::context.GetCurrentNoiseState ());
 				if (!noiseState) 
 				{	
 					LogPrint (eLogWarning, "I2NP: Invalid Noise state for short reply encryption");
@@ -622,6 +632,7 @@ namespace i2p
 				uint8_t * reply = buf + 1;
 				for (int j = 0; j < num; j++)
 				{	
+					nonce[4] = j; // nonce is record #
 					if (j == i)
 					{
 						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
@@ -635,7 +646,10 @@ namespace i2p
 						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, noiseState->m_CK, nonce, reply); 
 					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;	
 				}
-				// TODO: send
+				// TODO: send reply
+				transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,
+					CreateI2NPMessage (eI2NPShortTunnelBuild, buf, len,
+						bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 				return;
 			}	
 			record += SHORT_TUNNEL_BUILD_RECORD_SIZE;
