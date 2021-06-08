@@ -131,12 +131,8 @@ namespace win32
 		transfer >>= 10;
 		auto mbytes = transfer & 0x03ff;
 		transfer >>= 10;
-		auto gbytes = transfer & 0x03ff;
-		transfer >>= 10;
-		auto tbytes = transfer & 0x03ff;
+		auto gbytes = transfer;
 
-		if (tbytes)
-			s << tbytes << " TB, ";
 		if (gbytes)
 			s << gbytes << " GB, ";
 		if (mbytes)
