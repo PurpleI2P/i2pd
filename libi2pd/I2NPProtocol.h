@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -130,9 +130,12 @@ namespace i2p
 		eI2NPTunnelBuildReply = 22,
 		eI2NPVariableTunnelBuild = 23,
 		eI2NPVariableTunnelBuildReply = 24,
-		eI2NPShortTunnelBuild = 25
+		eI2NPShortTunnelBuild = 25,
+		eI2NPOutboundTunnelBuildReply = 26
 	};
 
+	const uint8_t TUNNEL_BUILD_RECORD_GATEWAY_FLAG = 0x80;
+	const uint8_t TUNNEL_BUILD_RECORD_ENDPOINT_FLAG = 0x40;
 	const int NUM_TUNNEL_BUILD_RECORDS = 8;
 
 	// DatabaseLookup flags
