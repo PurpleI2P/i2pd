@@ -1201,7 +1201,11 @@ namespace transport
 							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address
 							{
 								// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+#if (BOOST_VERSION >= 105500)
 								typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#else
+								typedef boost::asio::detail::socket_option::integer<IPPROTO_IPV6, IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#endif
 								m_NTCP2V6Acceptor->set_option (ipv6PreferAddr(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_NONCGA));
 							}
 #endif
