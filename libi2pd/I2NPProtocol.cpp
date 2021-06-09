@@ -426,8 +426,8 @@ namespace i2p
 							uint8_t nonce[12];
 							memset (nonce, 0, 12);
 							auto& noiseState = i2p::context.GetCurrentNoiseState ();
-							if (!noiseState || !i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
-								noiseState->m_H, 32, noiseState->m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+							if (!i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
+								noiseState.m_H, 32, noiseState.m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 							{
 								LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
 								return false;
@@ -611,13 +611,8 @@ namespace i2p
 					return;
 				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
-				if (!noiseState) 
-				{	
-					LogPrint (eLogWarning, "I2NP: Invalid Noise state for short reply encryption");
-					return;
-				}	
 				uint8_t layerKeys[64]; // (layer key, iv key)
-				i2p::crypto::HKDF (noiseState->m_CK + 32, nullptr, 0, "LayerAndIVKeys", layerKeys); // TODO: correct domain		
+				i2p::crypto::HKDF (noiseState.m_CK + 32, nullptr, 0, "LayerAndIVKeys", layerKeys); // TODO: correct domain		
 				auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 					bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
 					clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
@@ -653,7 +648,7 @@ namespace i2p
 					otbrm->len += (payload - otbrm->GetPayload ());
 					otbrm->FillI2NPMessageHeader (eI2NPOutboundTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
 					uint8_t replyKeys[64]; // (reply key, tag)
-					i2p::crypto::HKDF (noiseState->m_CK, nullptr, 0, "ReplyKeyAndTag", replyKeys); // TODO: correct domain		
+					i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "ReplyKeyAndTag", replyKeys); // TODO: correct domain		
 					uint64_t tag;
 					memcpy (&tag, replyKeys + 32, 8);
 					// send garlic to reply tunnel
@@ -674,14 +669,14 @@ namespace i2p
 						{
 							// TODO: fill reply
 							if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
-								noiseState->m_H, 32, noiseState->m_CK, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+								noiseState.m_H, 32, noiseState.m_CK, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 							{
 								LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
 								return;
 							}	
 						}
 						else
-							i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, noiseState->m_CK, nonce, reply); 
+							i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, noiseState.m_CK, nonce, reply); 
 						reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;	
 					}
 					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,

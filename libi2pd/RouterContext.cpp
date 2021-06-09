@@ -45,10 +45,8 @@ namespace i2p
 		UpdateRouterInfo ();
 		if (IsECIES ())
 		{
-			auto initState = new i2p::crypto::NoiseSymmetricState ();
-			i2p::crypto::InitNoiseNState (*initState, GetIdentity ()->GetEncryptionPublicKey ());
-			m_InitialNoiseState.reset (initState);
-			m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(*initState);
+			i2p::crypto::InitNoiseNState (m_InitialNoiseState, GetIdentity ()->GetEncryptionPublicKey ());
+			m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(m_InitialNoiseState);
 		}
 	}
 
@@ -889,27 +887,26 @@ namespace i2p
 
 	bool RouterContext::DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize)
 	{	
-		if (!m_InitialNoiseState || !m_TunnelDecryptor) return false;
 		// m_InitialNoiseState is h = SHA256(h || hepk)
-		m_CurrentNoiseState.reset (new i2p::crypto::NoiseSymmetricState (*m_InitialNoiseState));
-		m_CurrentNoiseState->MixHash (encrypted, 32); // h = SHA256(h || sepk)
+		m_CurrentNoiseState = m_InitialNoiseState;
+		m_CurrentNoiseState.MixHash (encrypted, 32); // h = SHA256(h || sepk)
 		uint8_t sharedSecret[32];
 		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr, false))
 		{
 			LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
 			return false;
 		}
-		m_CurrentNoiseState->MixKey (sharedSecret);
+		m_CurrentNoiseState.MixKey (sharedSecret);
 		encrypted += 32;
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, clearTextSize, m_CurrentNoiseState->m_H, 32, 
-			m_CurrentNoiseState->m_CK + 32, nonce, data, clearTextSize, false)) // decrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, clearTextSize, m_CurrentNoiseState.m_H, 32, 
+			m_CurrentNoiseState.m_CK + 32, nonce, data, clearTextSize, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
 			return false;
 		}
-		m_CurrentNoiseState->MixHash (encrypted, clearTextSize + 16); // h = SHA256(h || ciphertext)
+		m_CurrentNoiseState.MixHash (encrypted, clearTextSize + 16); // h = SHA256(h || ciphertext)
 		return true;
 	}
 

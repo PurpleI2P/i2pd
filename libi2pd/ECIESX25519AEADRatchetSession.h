@@ -249,6 +249,11 @@ namespace garlic
 
 			RouterIncomingRatchetSession (const i2p::crypto::NoiseSymmetricState& initState);
 			bool HandleNextMessage (const uint8_t * buf, size_t len);
+			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			
+		private:
+
+			i2p::crypto::NoiseSymmetricState m_CurrentNoiseState;
 	};	
 	
 	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
