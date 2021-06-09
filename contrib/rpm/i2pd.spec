@@ -10,14 +10,15 @@ Source0:       https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%versi
 
 %if 0%{?rhel} == 7
 BuildRequires: cmake3
+BuildRequires: boost169-devel
 %else
 BuildRequires: cmake
+BuildRequires: boost-devel
 %endif
 
 BuildRequires: chrpath
 BuildRequires: gcc-c++
 BuildRequires: zlib-devel
-BuildRequires: boost-devel
 BuildRequires: openssl-devel
 BuildRequires: miniupnpc-devel
 BuildRequires: systemd-units
@@ -37,6 +38,8 @@ C++ implementation of I2P.
 cd build
 %if 0%{?rhel} == 7
 %cmake3 \
+    -DBOOST_INCLUDEDIR=/usr/include/boost169 \
+    -DBOOST_LIBRARYDIR=/usr/lib64/boost169 \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
