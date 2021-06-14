@@ -484,7 +484,7 @@ namespace i2p
 				addr->ssu->introducers.clear ();
 				port = addr->port;
 			}
-		// unpiblish NTCP2 addreeses
+		// unpublish NTCP2 addreeses
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 			PublishNTCP2Address (port, false, v4, v6, false);
@@ -677,7 +677,7 @@ namespace i2p
 			if (addr->IsPublishedNTCP2 ())
 			{
 				bool isYgg1 = i2p::util::net::IsYggdrasilAddress (addr->host);
-				if (addr->host.is_v6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))
+				if (addr->IsV6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))
 				{
 					if (addr->host != host)
 					{

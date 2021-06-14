@@ -554,7 +554,7 @@ namespace data
 				if (address.IsNTCP2 ())
 				{	
 					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified ())
+					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
 						 isPublished = true;
 					else
 					{
@@ -998,9 +998,16 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
-				addr->caps &= ~AddressCaps::eV6;
-				if (addr->host.is_v6 ())
-					it = m_Addresses->erase (it);
+				if (addr->IsV6 ())
+				{	
+					if (addr->IsV4 ())
+					{	
+						addr->caps &= ~AddressCaps::eV6;
+						++it;
+					}	
+					else
+						it = m_Addresses->erase (it);
+				}	
 				else
 					++it;
 			}
@@ -1015,9 +1022,16 @@ namespace data
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
-				addr->caps &= ~AddressCaps::eV4;
-				if (addr->host.is_v4 ())
-					it = m_Addresses->erase (it);
+				if (addr->IsV4 ())
+				{	
+					if (addr->IsV6 ())
+					{	
+						addr->caps &= ~AddressCaps::eV4;
+						++it;
+					}	
+					else
+						it = m_Addresses->erase (it);
+				}	
 				else
 					++it;
 			}
@@ -1188,7 +1202,7 @@ namespace data
 		for (auto& addr: *m_Addresses)
 		{
 			// TODO: implement SSU
-			if (addr->transportStyle == eTransportNTCP && (!addr->IsPublishedNTCP2 () || addr->port))
+			if (addr->transportStyle == eTransportNTCP && !addr->IsPublishedNTCP2 ())
 			{
 				addr->caps &= ~(eV4 | eV6);
 				addr->caps |= transports;
