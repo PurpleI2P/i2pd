@@ -28,6 +28,10 @@
 #include "Datagram.h"
 #include "util.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 namespace i2p
 {
 namespace client
@@ -311,5 +315,9 @@ namespace client
 
 }
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

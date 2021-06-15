@@ -136,3 +136,8 @@ doxygen:
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip
+
+##TODO: delete this before a PR
+testc: api api_client
+	g++ -Ii18n -c test.c -o test.o
+	g++ test.o libi2pd.so libi2pdclient.so -o test.main

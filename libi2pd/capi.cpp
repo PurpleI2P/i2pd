@@ -22,9 +22,10 @@ void C_TerminateI2P ()
 	return i2p::api::TerminateI2P();
 }
 
-void C_StartI2P (std::shared_ptr<std::ostream> logStream)
+void C_StartI2P (std::ostream *logStream)
 {
-	return i2p::api::StartI2P(logStream);
+	std::shared_ptr<std::ostream> cppLogStream(logStream);
+	return i2p::api::StartI2P(cppLogStream);
 }
 
 void C_StopI2P ()
@@ -37,41 +38,46 @@ void C_RunPeerTest ()
 	return i2p::api::RunPeerTest();
 }
 
-std::shared_ptr<i2p::client::ClientDestination> C_CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
+i2p::client::ClientDestination *C_CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
 	const std::map<std::string, std::string> * params)
 {
-	return i2p::api::CreateLocalDestination(keys, isPublic, params);
+	return i2p::api::CreateLocalDestination(keys, isPublic, params).get();
 }
 
-std::shared_ptr<i2p::client::ClientDestination> C_CreateTransientLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
+i2p::client::ClientDestination *C_CreateTransientLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 	const std::map<std::string, std::string> * params)
 {
-	return i2p::api::CreateLocalDestination(isPublic, sigType, params);
+	return i2p::api::CreateLocalDestination(isPublic, sigType, params).get();
 }
 
-void C_DestroyLocalDestination (std::shared_ptr<i2p::client::ClientDestination> dest)
+void C_DestroyLocalDestination (i2p::client::ClientDestination *dest)
 {
-	return i2p::api::DestroyLocalDestination(dest);
+	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
+	return i2p::api::DestroyLocalDestination(cppDest);
 }
 
-void C_RequestLeaseSet (std::shared_ptr<i2p::client::ClientDestination> dest, const i2p::data::IdentHash& remote)
+void C_RequestLeaseSet (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote)
 {
-	return i2p::api::RequestLeaseSet(dest, remote);
+	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
+	return i2p::api::RequestLeaseSet(cppDest, remote);
 }
 
-std::shared_ptr<i2p::stream::Stream> C_CreateStream (std::shared_ptr<i2p::client::ClientDestination> dest, const i2p::data::IdentHash& remote)
+i2p::stream::Stream *C_CreateStream (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote)
 {
-	return i2p::api::CreateStream(dest, remote);
+	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
+	return i2p::api::CreateStream(cppDest, remote).get();
 }
 
-void C_AcceptStream (std::shared_ptr<i2p::client::ClientDestination> dest, const i2p::stream::StreamingDestination::Acceptor& acceptor)
+void C_AcceptStream (i2p::client::ClientDestination *dest, const i2p::stream::StreamingDestination::Acceptor& acceptor)
 {
-	return i2p::api::AcceptStream(dest, acceptor);
+	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
+	return i2p::api::AcceptStream(cppDest, acceptor);
 }
 
-void C_DestroyStream (std::shared_ptr<i2p::stream::Stream> stream)
+void C_DestroyStream (i2p::stream::Stream *stream)
 {
-	return i2p::api::DestroyStream(stream);
+	std::shared_ptr<i2p::stream::Stream> cppStream(stream);
+	return i2p::api::DestroyStream(cppStream);
 }
 
 #ifdef __cplusplus
