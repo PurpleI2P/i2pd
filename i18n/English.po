@@ -1,15 +1,15 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# i2pd
+# Copyright (C) 2021 PurpleI2P team
+# This file is distributed under the same license as the i2pd package.
+# R4SAS <r4sas@i2pmail.org>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: i2pd\n"
-"Report-Msgid-Bugs-To: \n"
+"Report-Msgid-Bugs-To: https://github.com/PurpleI2P/i2pd/issues\n"
 "POT-Creation-Date: 2021-06-15 20:41+0300\n"
 "PO-Revision-Date: 2021-06-15 20:42+0300\n"
-"Last-Translator: \n"
+"Last-Translator: R4SAS\n"
 "Language-Team: PurpleI2P\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -733,9 +733,3 @@ msgid ""
 "Can't create connection to requested host, it may be down. Please try again "
 "later."
 msgstr ""
-
-#~ msgid "day"
-#~ msgid_plural "days"
-#~ msgstr[0] "день"
-#~ msgstr[1] "дня"
-#~ msgstr[2] "дней"
