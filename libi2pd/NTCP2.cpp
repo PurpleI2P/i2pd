@@ -1170,7 +1170,7 @@ namespace transport
 				if (!address) continue;
 				if (address->IsPublishedNTCP2 () && address->port)
 				{
-					if (address->host.is_v4())
+					if (address->IsV4())
 					{
 						try
 						{
@@ -1189,7 +1189,7 @@ namespace transport
 						auto conn = std::make_shared<NTCP2Session>(*this);
 						m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 					}
-					else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
+					else if (address->IsV6() && (context.SupportsV6 () || context.SupportsMesh ()))
 					{
 						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
