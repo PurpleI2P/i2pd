@@ -32,9 +32,9 @@ namespace i18n
 		return i2p::context.GetLanguage ()->GetString (arg);
 	}
 
-	inline std::string translate (const std::string& arg, const int& n)
+	inline std::string translate (const std::string& arg, const std::string& arg2, const int& n)
 	{
-		return i2p::context.GetLanguage ()->GetPlural (arg, n);
+		return i2p::context.GetLanguage ()->GetPlural (arg, arg2, n);
 	}
 } // i18n
 } // i2p
