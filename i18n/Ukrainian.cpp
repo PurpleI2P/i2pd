@@ -86,17 +86,17 @@ namespace ukrainian // language
 		// ShowPageHead
 		{"Main page", "Головна"},
 		{"Router commands", "Команди роутера"},
-		{"Local destinations", "Локальні признач."},
+		{"Local destinations", "Локальні призначення"},
 		{"LeaseSets", "Лізсети"},
 		{"Tunnels", "Тунелі"},
-		{"Transit tunnels", "Транзит. тунелі"},
+		{"Transit tunnels", "Транзитні тунелі"},
 		{"Transports", "Транспорти"},
 		{"I2P tunnels", "I2P тунелі"},
 		{"SAM sessions", "SAM сесії"},
 		// Network Status
 		{"OK", "OK"},
 		{"Testing", "Тестування"},
-		{"Firewalled", "Файрвол"},
+		{"Firewalled", "Заблоковано ззовні"},
 		{"Unknown", "Невідомо"},
 		{"Proxy", "Проксі"},
 		{"Mesh", "MESH-мережа"},
@@ -125,7 +125,6 @@ namespace ukrainian // language
 		{"supported", "підтримується"},
 		{"Routers", "Роутери"},
 		{"Floodfills", "Флудфіли"},
-		{"LeaseSets", "Лізсети"},
 		{"Client Tunnels", "Клієнтські Тунелі"},
 		{"Transit Tunnels", "Транзитні Тунелі"},
 		{"Services", "Сервіси"},
@@ -153,7 +152,7 @@ namespace ukrainian // language
 		{"Tags sessions", "Сесії тегів"},
 		{"Status", "Статус"},
 		// ShowLocalDestination
-		{"Local Destination", "Локальне Призначення"},
+		{"Local Destination", "Локальні Призначення"},
 		{"Streams", "Потоки"},
 		{"Close stream", "Закрити потік"},
 		// ShowI2CPLocalDestination
@@ -197,7 +196,7 @@ namespace ukrainian // language
 		{"Unknown page", "Невідома сторінка"},
 		// HandleCommand, ShowError
 		{"Invalid token", "Невірний токен"},
-		{"SUCCESS", "ВДАЛО"},
+		{"SUCCESS", "УСПІШНО"},
 		{"ERROR", "ПОМИЛКА"},
 		{"Unknown command", "Невідома команда"},
 		{"Command accepted", "Команда прийнята"},
