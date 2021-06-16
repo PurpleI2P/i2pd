@@ -38,3 +38,35 @@ jobs:
         cd build
         cmake -DWITH_UPNP=${{ matrix.with_upnp }} .
         make -j3
+  build-deb-stretch:
+    name: Build package for stretch
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: change debian changelog
+      run: |
+        debchange -v `git describe --tags` -M "trunk build"
+    - uses: singingwolfboy/build-dpkg-stretch@v1
+      id: build
+      with:
+        args: --unsigned-source --unsigned-changes
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename }}
+        path: ${{ steps.build.outputs.filename }}
+  build-deb-buster:
+    name: Build package for buster
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: change debian changelog
+      run: |
+        debchange -v `git describe --tags` -M "trunk build"
+    - uses: singingwolfboy/build-dpkg-buster@v1
+      id: build
+      with:
+        args: --unsigned-source --unsigned-changes
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename }}
+        path: ${{ steps.build.outputs.filename }}
