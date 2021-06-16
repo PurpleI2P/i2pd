@@ -13,7 +13,6 @@
 #include "I18N.h"
 
 // Afrikaans localization file
-// This is an example translation file without strings in it.
 
 namespace i2p
 {
