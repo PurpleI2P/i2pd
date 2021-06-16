@@ -489,6 +489,7 @@ namespace i2p
 		if (ntcp2)
 			PublishNTCP2Address (port, false, v4, v6, false);
 		// update
+		m_RouterInfo.UpdateSupportedTransports ();
 		UpdateRouterInfo ();
 	}
 
@@ -528,6 +529,7 @@ namespace i2p
 			}
 		}
 		// update
+		m_RouterInfo.UpdateSupportedTransports ();
 		UpdateRouterInfo ();
 	}
 
