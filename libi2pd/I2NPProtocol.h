@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -55,7 +55,8 @@ namespace i2p
 
 	// TunnelBuild
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
-
+	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 236;
+	
 	//BuildRequestRecordClearText
 	const size_t BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
 	const size_t BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET = BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET + 4;
@@ -100,6 +101,19 @@ namespace i2p
 	// ECIES BuildResponseRecord
 	const size_t ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET = 0;
 	const size_t ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET = 511;
+
+	// ShortRequestRecordClearText
+	const size_t SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET = 16;
+	const size_t SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
+	const size_t SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET = SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET + 4;
+	const size_t SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET = SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET + 4;
+	const size_t SHORT_REQUEST_RECORD_FLAG_OFFSET = SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET + 32;
+	const size_t SHORT_REQUEST_RECORD_MORE_FLAGS_OFFSET = SHORT_REQUEST_RECORD_FLAG_OFFSET + 1;
+	const size_t SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE = SHORT_REQUEST_RECORD_MORE_FLAGS_OFFSET + 2;
+	const size_t SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET = SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE + 1;
+	const size_t SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET = SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4;
+	const size_t SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET = SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET + 4;
+	const size_t SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE = 172;
 	
 	enum I2NPMessageType
 	{
@@ -115,9 +129,13 @@ namespace i2p
 		eI2NPTunnelBuild = 21,
 		eI2NPTunnelBuildReply = 22,
 		eI2NPVariableTunnelBuild = 23,
-		eI2NPVariableTunnelBuildReply = 24
+		eI2NPVariableTunnelBuildReply = 24,
+		eI2NPShortTunnelBuild = 25,
+		eI2NPOutboundTunnelBuildReply = 26
 	};
 
+	const uint8_t TUNNEL_BUILD_RECORD_GATEWAY_FLAG = 0x80;
+	const uint8_t TUNNEL_BUILD_RECORD_ENDPOINT_FLAG = 0x40;
 	const int NUM_TUNNEL_BUILD_RECORDS = 8;
 
 	// DatabaseLookup flags
@@ -284,6 +302,7 @@ namespace tunnel
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
+	void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);

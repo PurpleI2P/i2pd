@@ -32,6 +32,7 @@
 #include "UPnP.h"
 #include "Timestamp.h"
 #include "util.h"
+#include "I18N.h"
 
 namespace i2p
 {
@@ -343,6 +344,10 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: using hidden mode");
 			i2p::data::netdb.SetHidden(true);
 		}
+
+		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
+		i2p::i18n::SetLanguage(httpLang);
+
 		return true;
 	}
 

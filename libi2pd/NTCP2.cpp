@@ -23,6 +23,10 @@
 #include "HTTP.h"
 #include "util.h"
 
+#ifdef __linux__
+	#include <linux/in6.h>
+#endif
+
 namespace i2p
 {
 namespace transport
@@ -1166,7 +1170,7 @@ namespace transport
 				if (!address) continue;
 				if (address->IsPublishedNTCP2 () && address->port)
 				{
-					if (address->host.is_v4())
+					if (address->IsV4())
 					{
 						try
 						{
@@ -1185,7 +1189,7 @@ namespace transport
 						auto conn = std::make_shared<NTCP2Session>(*this);
 						m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 					}
-					else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
+					else if (address->IsV6() && (context.SupportsV6 () || context.SupportsMesh ()))
 					{
 						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
@@ -1193,6 +1197,18 @@ namespace transport
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
 							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
 							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
+#ifdef __linux__
+							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address
+							{
+								// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+#if (BOOST_VERSION >= 105500)
+								typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#else
+								typedef boost::asio::detail::socket_option::integer<IPPROTO_IPV6, IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#endif
+								m_NTCP2V6Acceptor->set_option (ipv6PreferAddr(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_NONCGA));
+							}
+#endif
 							auto ep = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port);
 							if (m_Address6 && !context.SupportsMesh ())
 								ep = boost::asio::ip::tcp::endpoint (m_Address6->address(), address->port);

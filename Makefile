@@ -7,6 +7,7 @@ I2PD := i2pd
 
 LIB_SRC_DIR := libi2pd
 LIB_CLIENT_SRC_DIR := libi2pd_client
+LANG_SRC_DIR := i18n
 DAEMON_SRC_DIR := daemon
 
 # import source files lists
@@ -49,12 +50,13 @@ ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
-NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
+NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR)
 
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
+LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
+DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
@@ -63,6 +65,7 @@ mk_obj_dir:
 	@mkdir -p obj/Win32
 	@mkdir -p obj/$(LIB_SRC_DIR)
 	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
+	@mkdir -p obj/$(LANG_SRC_DIR)
 	@mkdir -p obj/$(DAEMON_SRC_DIR)
 
 api: mk_obj_dir $(SHLIB) $(ARLIB)
@@ -82,7 +85,7 @@ obj/%.o: %.cpp
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
+$(I2PD): $(LANG_OBJS) $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)

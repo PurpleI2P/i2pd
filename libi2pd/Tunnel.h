@@ -38,6 +38,7 @@ namespace tunnel
 	const int TUNNEL_CREATION_TIMEOUT = 30; // 30 seconds
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
+	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
 	
 	enum TunnelState
 	{
@@ -98,6 +99,8 @@ namespace tunnel
 			bool LatencyFitsRange(uint64_t lowerbound, uint64_t upperbound) const;
 
 			bool LatencyIsKnown() const { return m_Latency > 0; }
+			bool IsSlow () const { return LatencyIsKnown() && (int)m_Latency > HIGH_LATENCY_PER_HOP*GetNumHops (); }
+			
 		protected:
 
 			void PrintHops (std::stringstream& s) const;

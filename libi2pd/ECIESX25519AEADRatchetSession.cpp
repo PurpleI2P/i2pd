@@ -117,14 +117,14 @@ namespace garlic
 		return session->HandleNextMessage (buf, len, shared_from_this (), index);
 	}	
 
-	DatabaseLookupTagSet::DatabaseLookupTagSet (GarlicDestination * destination, const uint8_t * key):
+	SymmetricKeyTagSet::SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key):
 		ReceiveRatchetTagSet (nullptr), m_Destination (destination) 
 	{ 
 		memcpy (m_Key, key, 32); 
 		Expire ();	
 	}
 	
-	bool DatabaseLookupTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
+	bool SymmetricKeyTagSet::HandleNextMessage (uint8_t * buf, size_t len, int index)
 	{
 		if (len < 24) return false;
 		uint8_t nonce[12];
@@ -133,18 +133,18 @@ namespace garlic
 		len -= 16; // poly1305
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len - offset, buf, 8, m_Key, nonce, buf + offset, len - offset, false)) // decrypt
 		{
-			LogPrint (eLogWarning, "Garlic: Lookup reply AEAD decryption failed");
+			LogPrint (eLogWarning, "Garlic: Symmetric key tagset AEAD decryption failed");
 			return false;
 		}
 		// we assume 1 I2NP block with delivery type local
 		if (offset + 3 > len) 
 		{	
-			LogPrint (eLogWarning, "Garlic: Lookup reply is too short ", len);
+			LogPrint (eLogWarning, "Garlic: Symmetric key tagset is too short ", len);
 			return false;
 		}	
 		if (buf[offset] != eECIESx25519BlkGalicClove)
 		{
-			LogPrint (eLogWarning, "Garlic: Lookup reply unexpected block ", (int)buf[offset]);
+			LogPrint (eLogWarning, "Garlic: Symmetric key tagset unexpected block ", (int)buf[offset]);
 			return false;
 		}	
 		offset++;
@@ -152,7 +152,7 @@ namespace garlic
 		offset += 2;
 		if (offset + size > len) 
 		{
-			LogPrint (eLogWarning, "Garlic: Lookup reply block is too long ", size);
+			LogPrint (eLogWarning, "Garlic: Symmetric key tagset block is too long ", size);
 			return false;
 		}	
 		if (m_Destination)
@@ -1109,21 +1109,22 @@ namespace garlic
 	bool RouterIncomingRatchetSession::HandleNextMessage (const uint8_t * buf, size_t len)
 	{
 		if (!GetOwner ()) return false;
-		i2p::crypto::NoiseSymmetricState state (GetNoiseState ());
+		m_CurrentNoiseState = GetNoiseState ();
 		// we are Bob
-		state.MixHash (buf, 32);
+		m_CurrentNoiseState.MixHash (buf, 32);
 		uint8_t sharedSecret[32];
 		if (!GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
 		{
 			LogPrint (eLogWarning, "Garlic: Incorrect N ephemeral public key");
 			return false;
 		}	
-		state.MixKey (sharedSecret);
+		m_CurrentNoiseState.MixKey (sharedSecret);
 		buf += 32; len -= 32;	
 		uint8_t nonce[12];
 		CreateNonce (0, nonce);
 		std::vector<uint8_t> payload (len - 16); 
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, state.m_H, 32, state.m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf, len - 16, m_CurrentNoiseState.m_H, 32,
+			m_CurrentNoiseState.m_CK + 32, nonce, payload.data (), len - 16, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload for router AEAD verification failed");
 			return false;

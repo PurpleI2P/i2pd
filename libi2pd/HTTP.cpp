@@ -187,6 +187,8 @@ namespace http
 
 		params.clear();
 		for (const auto& it : tokens) {
+			if (!it.length()) // empty
+				continue;
 			std::size_t eq = it.find ('=');
 			if (eq != std::string::npos) {
 				auto e = std::pair<std::string, std::string>(it.substr(0, eq), it.substr(eq + 1));

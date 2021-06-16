@@ -3,9 +3,9 @@ name: Build on Ubuntu
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: With USE_UPNP=${{ matrix.with_upnp }}
-    runs-on: ubuntu-16.04
+  build-make:
+    name: Make with USE_UPNP=${{ matrix.with_upnp }}
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: true
       matrix:
@@ -19,3 +19,70 @@ jobs:
         sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
       run: make USE_UPNP=${{ matrix.with_upnp }} -j3
+  build-cmake:
+    name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['ON', 'OFF']
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: |
+        sudo add-apt-repository ppa:mhier/libboost-latest
+        sudo apt-get update
+        sudo apt-get install build-essential cmake libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+    - name: build application
+      run: |
+        cd build
+        cmake -DWITH_UPNP=${{ matrix.with_upnp }} .
+        make -j3
+  build-deb-stretch:
+    name: Build package for stretch
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: change debian changelog
+      run: |
+        sudo apt-get update
+        sudo apt-get install devscripts
+        debchange -v "`git describe --tags`-stretch" -M --distribution stretch "trunk build"
+    - uses: singingwolfboy/build-dpkg-stretch@v1
+      id: build
+      with:
+        args: --unsigned-source --unsigned-changes -b
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename }}
+        path: ${{ steps.build.outputs.filename }}
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename-dbgsym }}
+        path: ${{ steps.build.outputs.filename-dbgsym }}
+  build-deb-buster:
+    name: Build package for buster
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: change debian changelog
+      run: |
+        sudo apt-get update
+        sudo apt-get install devscripts
+        debchange -v "`git describe --tags`-buster" -M --distribution buster "trunk build"
+    - uses: singingwolfboy/build-dpkg-buster@v1
+      id: build
+      with:
+        args: --unsigned-source --unsigned-changes -b
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename }}
+        path: ${{ steps.build.outputs.filename }}
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ steps.build.outputs.filename-dbgsym }}
+        path: ${{ steps.build.outputs.filename-dbgsym }}

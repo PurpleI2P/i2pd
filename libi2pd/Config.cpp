@@ -62,11 +62,11 @@ namespace config {
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
 			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
-			("ntcp", bool_switch()->default_value(false),                     "Deprecated option. Always false")
+			("ntcp", bool_switch()->default_value(false),                     "Ignored. Always false")
 			("ssu", bool_switch()->default_value(true),                       "Enable SSU transport (default: enabled)")
-			("ntcpproxy", value<std::string>()->default_value(""),            "Deprecated option")
+			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
-			("svcctl", value<std::string>()->default_value(""),               "Deprecated option")
+			("svcctl", value<std::string>()->default_value(""),               "Ignored")
 			("insomnia", bool_switch()->default_value(false),                 "Prevent system from sleeping (default: disabled)")
 			("close", value<std::string>()->default_value("ask"),             "Action on close: minimize, exit, ask")
 #endif
@@ -77,9 +77,9 @@ namespace config {
 			("limits.coresize", value<uint32_t>()->default_value(0),          "Maximum size of corefile in Kb (0 - use system limit)")
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
 			("limits.transittunnels", value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
-			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Deprecated option")
-			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Deprecated option")
-			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Deprecated option")
+			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Threshold to start probabilistic backoff with ntcp sessions (default: use system limit)")
+			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Maximum number of ntcp sessions (default: use system limit)")
+			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Maximum number of threads used by NTCP DH worker (default: 1)")
 		;
 
 		options_description httpserver("HTTP Server options");
@@ -93,6 +93,7 @@ namespace config {
 			("http.strictheaders", value<bool>()->default_value(true),          "Enable strict host checking on WebUI")
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
 			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
+			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -113,6 +114,7 @@ namespace config {
 			("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
 			("httpproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
 			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
+			("httpproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
 		;
 
 		options_description socksproxy("SOCKS Proxy options");
@@ -134,6 +136,7 @@ namespace config {
 			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
 			("socksproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
 			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
+			("socksproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
 		;
 
 		options_description sam("SAM bridge options");
@@ -218,7 +221,7 @@ namespace config {
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.subscriptions", value<std::string>()->default_value("http://reg.i2p/hosts.txt"), "AddressBook subscriptions URLs, separated by comma")
 			("addressbook.hostsfile", value<std::string>()->default_value(""),     "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
@@ -281,7 +284,7 @@ namespace config {
 
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
-			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (default: false)")
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 

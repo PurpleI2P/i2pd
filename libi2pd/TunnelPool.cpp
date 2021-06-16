@@ -142,16 +142,24 @@ namespace tunnel
 	{
 		std::vector<std::shared_ptr<InboundTunnel> > v;
 		int i = 0;
+		std::shared_ptr<InboundTunnel> slowTunnel;
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (const auto& it : m_InboundTunnels)
 		{
 			if (i >= num) break;
 			if (it->IsEstablished ())
 			{
-				v.push_back (it);
-				i++;
+				if (it->IsSlow () && !slowTunnel)
+					slowTunnel = it;
+				else
+				{	
+					v.push_back (it);
+					i++;
+				}	
 			}
 		}
+		if (slowTunnel && (int)v.size () < (num/2+1))
+			v.push_back (slowTunnel);
 		return v;
 	}
 
@@ -172,13 +180,16 @@ namespace tunnel
 	{
 		if (tunnels.empty ()) return nullptr;
 		uint32_t ind = rand () % (tunnels.size ()/2 + 1), i = 0;
+		bool skipped = false;
 		typename TTunnels::value_type tunnel = nullptr;
 		for (const auto& it: tunnels)
 		{
 			if (it->IsEstablished () && it != excluded)
 			{
-				if(HasLatencyRequirement() && it->LatencyIsKnown() && !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)) {
-					i ++;
+				if (it->IsSlow () || (HasLatencyRequirement() && it->LatencyIsKnown() && 
+				    !it->LatencyFitsRange(m_MinLatency, m_MaxLatency))) 
+				{
+					i++; skipped = true;
 					continue;
 				}
 				tunnel = it;
@@ -186,7 +197,8 @@ namespace tunnel
 			}
 			if (i > ind && tunnel) break;
 		}
-		if(HasLatencyRequirement() && !tunnel) {
+		if (!tunnel && skipped) 
+		{
 			ind = rand () % (tunnels.size ()/2 + 1), i = 0;
 			for (const auto& it: tunnels)
 			{
@@ -393,10 +405,14 @@ namespace tunnel
 		}
 	}
 
+	bool TunnelPool::IsExploratory () const
+	{
+		return i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ();
+	}	
+		
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const
 	{
-		bool isExploratory = (i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ());
-		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
+		auto hop = IsExploratory () ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse);
 
 		if (!hop || hop->GetProfile ()->IsBad ())
@@ -521,6 +537,11 @@ namespace tunnel
 
 	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
 	{
+		if (IsExploratory () || tunnel->IsSlow ()) // always create new exploratory tunnel or if slow
+		{
+			CreateInboundTunnel ();
+			return;
+		}
 		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
@@ -567,6 +588,11 @@ namespace tunnel
 
 	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
 	{
+		if (IsExploratory () || tunnel->IsSlow ()) // always create new exploratory tunnel or if slow
+		{
+			CreateOutboundTunnel ();
+			return;
+		}
 		auto inboundTunnel = GetNextInboundTunnel ();
 		if (!inboundTunnel)
 			inboundTunnel = tunnels.GetNextInboundTunnel ();

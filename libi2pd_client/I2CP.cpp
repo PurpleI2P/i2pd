@@ -544,13 +544,11 @@ namespace client
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{
-			bool isPublic = true;
-			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
 			if (!m_Destination)
 			{
 				m_Destination = m_Owner.IsSingleThread () ?
-					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, isPublic, params):
-					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, isPublic, params);
+					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
+					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
 				SendSessionStatusMessage (1); // created
 				LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");
 				m_Destination->Start ();

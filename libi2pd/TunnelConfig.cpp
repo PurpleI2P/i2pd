@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -81,8 +81,8 @@ namespace tunnel
 	void TunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
 	{
 		uint8_t flag = 0;
-		if (isGateway) flag |= 0x80;
-		if (isEndpoint) flag |= 0x40;
+		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
+		if (isEndpoint) flag |= TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
 		auto encryptor = ident->CreateEncryptor (nullptr);
 		if (IsECIES ())
 		{

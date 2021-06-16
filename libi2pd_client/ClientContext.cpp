@@ -495,6 +495,8 @@ namespace client
 			options[I2CP_PARAM_LEASESET_TYPE] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, value))
 			options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_PRIV_KEY, value) && !value.empty ())
+			options[I2CP_PARAM_LEASESET_PRIV_KEY] = value;
 	}
 
 	void ClientContext::ReadTunnels ()
