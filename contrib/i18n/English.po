@@ -27,23 +27,23 @@ msgid "Enabled"
 msgstr ""
 
 #: daemon/HTTPServer.cpp:141
-msgid "days"
+msgid "day"
 msgid_plural "days"
 msgstr[0] ""
 msgstr[1] ""
 #: daemon/HTTPServer.cpp:145
-msgid "hours"
+msgid "hour"
 msgid_plural "hours"
 msgstr[0] ""
 msgstr[1] ""
 #: daemon/HTTPServer.cpp:149
-msgid "minutes"
+msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
 
 #: daemon/HTTPServer.cpp:152
-msgid "seconds"
+msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
