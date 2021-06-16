@@ -17,7 +17,9 @@ namespace i18n
 {
 	inline void SetLanguage(const std::string &lang)
 	{
-		if (!lang.compare("russian"))
+		if (!lang.compare("afrikaans"))
+			i2p::context.SetLanguage (i2p::i18n::afrikaans::GetLocale());
+		else if (!lang.compare("russian"))
 			i2p::context.SetLanguage (i2p::i18n::russian::GetLocale());
 		else if (!lang.compare("turkmen"))
 			i2p::context.SetLanguage (i2p::i18n::turkmen::GetLocale());
