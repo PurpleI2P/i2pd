@@ -45,6 +45,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: change debian changelog
       run: |
+        sudo apt-get update
+        sudo apt-get install devscripts
         debchange -v `git describe --tags` -M "trunk build"
     - uses: singingwolfboy/build-dpkg-stretch@v1
       id: build
@@ -61,6 +63,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: change debian changelog
       run: |
+        sudo apt-get update
+        sudo apt-get install devscripts
         debchange -v `git describe --tags` -M "trunk build"
     - uses: singingwolfboy/build-dpkg-buster@v1
       id: build
