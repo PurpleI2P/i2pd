@@ -2,9 +2,6 @@ name: Build Docker containers
 
 on: push
 
-env:
-  IMAGE_NAME: i2pd
-
 jobs:
   docker:
     name: For ${{ matrix.platform }}
@@ -47,4 +44,4 @@ jobs:
           file: ./contrib/docker/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          tags: ${{ IMAGE_ID }}:latest
+          tags: ghcr.io/purplei2p/i2pd:latest
