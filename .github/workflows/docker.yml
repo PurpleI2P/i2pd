@@ -10,11 +10,6 @@ jobs:
       packages: write
       contents: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ['linux/amd64', 'linux/386', 'linux/arm64', 'linux/arm/v7']
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -42,6 +37,6 @@ jobs:
         with:
           context: ./contrib/docker
           file: ./contrib/docker/Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/386
           push: true
           tags: ghcr.io/purplei2p/i2pd:latest
