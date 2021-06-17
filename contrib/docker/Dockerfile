@@ -45,12 +45,12 @@ RUN apk update \
 # 2. Adding required libraries to run i2pd to ensure it will run.
 RUN apk --no-cache add boost-filesystem boost-system boost-program_options boost-date_time boost-thread boost-iostreams openssl miniupnpc musl-utils libstdc++
 
-COPY entrypoint.sh /opt/entrypoint.sh
-RUN chmod a+x /opt/entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod a+x /entrypoint.sh
 
 RUN echo "export DATA_DIR=${DATA_DIR}" >> /etc/profile
 VOLUME "$DATA_DIR"
 EXPOSE 7070 4444 4447 7656 2827 7654 7650
 USER i2pd
 
-ENTRYPOINT [ "/opt/entrypoint.sh" ]
+ENTRYPOINT [ "/entrypoint.sh" ]
