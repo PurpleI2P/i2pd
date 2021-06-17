@@ -35,7 +35,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push image
+      - name: Prepare image id
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
@@ -47,4 +47,4 @@ jobs:
           file: ./contrib/docker/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          tags: $IMAGE_ID:latest
+          tags: ${{ IMAGE_ID }}:latest
