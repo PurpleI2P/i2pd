@@ -1179,11 +1179,6 @@ namespace data
 			});
 	}	
 
-	bool RouterInfo::IsReachableFrom (const RouterInfo& other) const
-	{
-		return  m_ReachableTransports & other.m_SupportedTransports;
-	}	
-
 	void RouterInfo::SetUnreachableAddressesTransportCaps (uint8_t transports)
 	{
 		for (auto& addr: *m_Addresses)
