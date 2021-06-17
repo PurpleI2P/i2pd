@@ -22,6 +22,12 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container registry
+        uses: docker/login-action@v1 
+        with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
@@ -33,4 +39,6 @@ jobs:
           file: ./contrib/docker/Dockerfile
           platforms: linux/amd64,linux/386
           push: true
-          tags: ghcr.io/purplei2p/i2pd:latest
+          tags: |
+            purplei2p/i2pd:latest
+            ghcr.io/purplei2p/i2pd:latest
