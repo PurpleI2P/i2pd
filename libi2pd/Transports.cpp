@@ -401,7 +401,7 @@ namespace transport
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				if (!r || r->IsUnreachable () || !r->IsCompatible (i2p::context.GetRouterInfo ())) return;
+				if (!r || r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ())) return;
 				{
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
