@@ -147,6 +147,6 @@ doxygen:
 ##TODO: delete this before a PR
 testc: api api_client
 #	g++ -Ii18n -c test.c -o test.o
-	gcc -Ii18n -c _test.c -o test.o
+	gcc -llibi2pd.so -c _test.c -o test.o
 #	gcc -Ii18n -I/usr/include/c++/10 -I/usr/include/x86_64-linux-gnu/c++/10 -llibi2pd.a -c test.c -o test.o
 	g++ test.o libi2pd.so libi2pdclient.so -o test.main
