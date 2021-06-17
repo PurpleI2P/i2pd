@@ -31,6 +31,7 @@ RUN apk update \
     && cd /tmp/build && git clone -b ${GIT_BRANCH} ${REPO_URL} \
     && cd i2pd \
     && if [ -n "${GIT_TAG}" ]; then git checkout tags/${GIT_TAG}; fi \
+    && g++ -dumpmachine \
     && make USE_UPNP=yes \
     && cp -R contrib/certificates /i2pd_certificates \
     && mkdir -p /usr/local/bin \
