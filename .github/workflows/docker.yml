@@ -23,6 +23,7 @@ jobs:
         with:
           context: .
           file: contrib/docker/Dockerfile
-          platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64,linux/ppc64le
+          # platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64,linux/ppc64le
+          platforms: linux/amd64
           push: true
           tags: ghcr.io/purplei2p/i2pd:latest
