@@ -1,0 +1,16 @@
+// See swig.org for more inteface options,
+// e.g. map std::string to Go string
+
+%{
+#include "api.h"
+//#include "Streaming.h"
+#include "Destination.h"
+//#include "Identity.h"
+//#include "Tag.h"
+%}
+
+%include "api.h"
+//%include "Streaming.h"
+//%include "Destination.h"
+//%include "Identity.h"
+//%include "Tag.h"

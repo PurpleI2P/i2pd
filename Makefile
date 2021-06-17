@@ -13,11 +13,11 @@ DAEMON_SRC_DIR := daemon
 # import source files lists
 include filelist.mk
 
-USE_AESNI	:= yes
-USE_STATIC	:= no
-USE_MESHNET	:= no
-USE_UPNP	:= no
-DEBUG		:= yes
+USE_AESNI	:= $(or $(USE_AESNI),yes)
+USE_STATIC	:= $(or $(USE_STATIC),no)
+USE_MESHNET	:= $(or $(USE_MESHNET),no)
+USE_UPNP	:= $(or $(USE_UPNP),no)
+DEBUG		:= $(or $(DEBUG),yes)
 
 ifeq ($(DEBUG),yes)
 	CXX_DEBUG = -g
@@ -82,13 +82,6 @@ api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 obj/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
-flags:
-	@echo $(CXXFLAGS) 
-	@echo $(NEEDED_CXXFLAGS)
-	@echo $(INCFLAGS)
-	@echo $(LDFLAGS)
-	@echo $(LDLIBS)
-
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
@@ -144,9 +137,23 @@ doxygen:
 .PHONY: install
 .PHONY: strip
 
+flags:
+	@echo $(CXXFLAGS) 
+	@echo $(NEEDED_CXXFLAGS)
+	@echo $(INCFLAGS)
+	@echo $(LDFLAGS)
+	@echo $(LDLIBS)
+	@echo $(USE_AESNI)
+	@echo $(USE_STATIC)
+	@echo $(USE_MESHNET)
+	@echo $(USE_UPNP)
+	@echo $(DEBUG)
+
 ##TODO: delete this before a PR
 testc: api api_client
 #	g++ -Ii18n -c test.c -o test.o
-	gcc -llibi2pd.so -c _test.c -o test.o
+#	gcc -llibi2pd.so -c _test.c -o test.o
+	$(CC) -g -Wall -o test.o _test.c libi2pd.a
+#	gcc -o i2pd _test.c libi2pd.a -lstdc++ -llibi2pd -Llibi2pd
 #	gcc -Ii18n -I/usr/include/c++/10 -I/usr/include/x86_64-linux-gnu/c++/10 -llibi2pd.a -c test.c -o test.o
-	g++ test.o libi2pd.so libi2pdclient.so -o test.main
+#	g++ test.o libi2pd.so libi2pdclient.so -o test.main
