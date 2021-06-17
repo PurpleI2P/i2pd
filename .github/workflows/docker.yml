@@ -25,4 +25,4 @@ jobs:
           file: contrib/docker/Dockerfile
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64,linux/ppc64le
           push: true
-          tags: ghcr.io/PurpleI2P/i2pd:latest
+          tags: ghcr.io/purplei2p/i2pd:latest
