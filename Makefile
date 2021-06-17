@@ -82,6 +82,13 @@ api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 obj/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
+flags:
+	@echo $(CXXFLAGS) 
+	@echo $(NEEDED_CXXFLAGS)
+	@echo $(INCFLAGS)
+	@echo $(LDFLAGS)
+	@echo $(LDLIBS)
+
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
@@ -139,5 +146,7 @@ doxygen:
 
 ##TODO: delete this before a PR
 testc: api api_client
-	g++ -Ii18n -c test.c -o test.o
+#	g++ -Ii18n -c test.c -o test.o
+	gcc -Ii18n -c _test.c -o test.o
+#	gcc -Ii18n -I/usr/include/c++/10 -I/usr/include/x86_64-linux-gnu/c++/10 -llibi2pd.a -c test.c -o test.o
 	g++ test.o libi2pd.so libi2pdclient.so -o test.main

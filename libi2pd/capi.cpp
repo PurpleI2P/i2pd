@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include "api.h"
 #include "capi.h"
 
 #ifdef __cplusplus
@@ -22,10 +23,10 @@ void C_TerminateI2P ()
 	return i2p::api::TerminateI2P();
 }
 
-void C_StartI2P (std::ostream *logStream)
+void C_StartI2P ()//std::ostream *logStream)
 {
-	std::shared_ptr<std::ostream> cppLogStream(logStream);
-	return i2p::api::StartI2P(cppLogStream);
+//	std::shared_ptr<std::ostream> cppLogStream(logStream);
+	return i2p::api::StartI2P(nullptr);
 }
 
 void C_StopI2P ()
@@ -80,7 +81,7 @@ void C_DestroyStream (i2p::stream::Stream *stream)
 	return i2p::api::DestroyStream(cppStream);
 }
 
+
 #ifdef __cplusplus
 }
 #endif
-

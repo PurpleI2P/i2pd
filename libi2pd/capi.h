@@ -9,17 +9,18 @@
 #ifndef CAPI_H__
 #define CAPI_H__
 
-#include "api.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include "Identity.h"
+#include "Destination.h"
+#include "Streaming.h"
+
 // initialization start and stop
 void C_InitI2P (int argc, char* argv[], const char * appName);
 void C_TerminateI2P ();
-void C_StartI2P (std::ostream *logStream = nullptr);
+void C_StartI2P (); //std::ostream *logStream = nullptr);
 // write system log to logStream, if not specified to <appName>.log in application's folder
 void C_StopI2P ();
 void C_RunPeerTest (); // should be called after UPnP
