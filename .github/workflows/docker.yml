@@ -1,29 +1,63 @@
-name: Build Docker containers
+name: Build containers
 
-on: push
+on: [push]
 
 jobs:
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+
       - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container registry
+        uses: docker/login-action@v1 
+        with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+
+      - name: Build and push trunk container
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: docker/build-push-action@v2
         with:
-          file: contrib/docker/Dockerfile
-          # platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64,linux/ppc64le
-          platforms: linux/amd64
+          context: ./contrib/docker
+          file: ./contrib/docker/Dockerfile
+          platforms: linux/amd64,linux/386
           push: true
-          no-cache: true
-          tags: ghcr.io/purplei2p/i2pd:latest
+          tags: |
+            purplei2p/i2pd:latest
+            ghcr.io/purplei2p/i2pd:latest
+
+      - name: Set env
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: echo "RELEASE_VERSION=${GITHUB_REF:10}" >> $GITHUB_ENV
+
+      - name: Build and push release container
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./contrib/docker
+          file: ./contrib/docker/Dockerfile
+          platforms: linux/amd64,linux/386
+          push: true
+          tags: |
+            purplei2p/i2pd:latest
+            purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
+            ghcr.io/purplei2p/i2pd:latest
+            ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
