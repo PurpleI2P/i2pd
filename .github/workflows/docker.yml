@@ -4,7 +4,12 @@ on: push
 
 jobs:
   docker:
+    name: For ${{ matrix.platform }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        platform: ['linux/amd64', 'linux/386', 'linux/arm64', 'linux/arm/v7']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,6 +28,6 @@ jobs:
         with:
           context: ./contrib/docker
           file: ./contrib/docker/Dockerfile
-          platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ghcr.io/purplei2p/i2pd:latest
