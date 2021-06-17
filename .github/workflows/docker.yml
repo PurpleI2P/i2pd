@@ -1,10 +1,9 @@
-name: Build Docker containers
+name: Build containers
 
 on: push
 
 jobs:
   docker:
-    name: For ${{ matrix.platform }}
     runs-on: ubuntu-latest
     permissions:
       packages: write
