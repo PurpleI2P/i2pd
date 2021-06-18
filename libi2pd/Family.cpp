@@ -13,6 +13,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Family.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -104,7 +105,7 @@ namespace data
 			certDir = certsdir + i2p::fs::dirSep + "family";
 
 		if (certDir.empty() || !i2p::fs::Exists(certDir))
-			std::string certDir = i2p::fs::DataDirPath("certificates", "family");
+			certDir = i2p::fs::DataDirPath("certificates", "family");
 
 		std::vector<std::string> files;
 		int numCertificates = 0;

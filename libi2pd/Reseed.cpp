@@ -503,7 +503,7 @@ namespace data
 			certDir = certsdir + i2p::fs::dirSep + "reseed";
 
 		if (certDir.empty() || !i2p::fs::Exists(certDir))
-			std::string certDir = i2p::fs::DataDirPath("certificates", "reseed");
+			certDir = i2p::fs::DataDirPath("certificates", "reseed");
 
 		std::vector<std::string> files;
 		int numCertificates = 0;
