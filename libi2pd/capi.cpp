@@ -13,9 +13,9 @@
 extern "C" {
 #endif
 
-void C_InitI2P (int argc, char* argv[], const char * appName)
+void C_InitI2P (int argc, char argv[], const char * appName)
 {
-	return i2p::api::InitI2P(argc, argv, appName);
+	return i2p::api::InitI2P(argc, &argv, appName);
 }
 
 void C_TerminateI2P ()
@@ -25,8 +25,9 @@ void C_TerminateI2P ()
 
 void C_StartI2P ()//std::ostream *logStream)
 {
-//	std::shared_ptr<std::ostream> cppLogStream(logStream);
-	return i2p::api::StartI2P(nullptr);
+	std::shared_ptr<std::ostream> logStream;
+	//cppLogStream(&out);
+	return i2p::api::StartI2P(logStream);
 }
 
 void C_StopI2P ()

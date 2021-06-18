@@ -2,14 +2,14 @@
 // e.g. map std::string to Go string
 
 %{
-#include "api.h"
+#include "capi.h"
 //#include "Streaming.h"
-#include "Destination.h"
+//#include "Destination.h"
 //#include "Identity.h"
 //#include "Tag.h"
 %}
 
-%include "api.h"
+%include "capi.h"
 //%include "Streaming.h"
 //%include "Destination.h"
 //%include "Identity.h"

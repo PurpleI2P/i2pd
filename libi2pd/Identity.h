@@ -20,10 +20,6 @@
 #include "Signature.h"
 #include "CryptoKey.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 namespace i2p
 {
 namespace data
@@ -247,9 +243,5 @@ namespace data
 	};
 }
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

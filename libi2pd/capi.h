@@ -9,16 +9,17 @@
 #ifndef CAPI_H__
 #define CAPI_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "Identity.h"
 #include "Destination.h"
 #include "Streaming.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // initialization start and stop
-void C_InitI2P (int argc, char* argv[], const char * appName);
+void C_InitI2P (int argc, char argv[], const char * appName);
+//void C_InitI2P (int argc, char** argv, const char * appName);
 void C_TerminateI2P ();
 void C_StartI2P (); //std::ostream *logStream = nullptr);
 // write system log to logStream, if not specified to <appName>.log in application's folder
