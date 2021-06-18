@@ -383,7 +383,7 @@ namespace transport
 		{
 			// tell out peer to now assign relay tag
 			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
-			*payload = 2; payload++; // 1 byte length
+			*payload = 2; payload++; //  1 byte length
 			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
 			htobe16buf (payload, flags);
 			payload += 2;
@@ -1073,7 +1073,10 @@ namespace transport
 				LogPrint (eLogDebug, "SSU: peer test from Charlie. We are Bob");
 				auto session = m_Server.GetPeerTestSession (nonce); // session with Alice from PeerTest
 				if (session && session->m_State == eSessionStateEstablished)
-					session->Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Alice
+				{
+					const auto& ep = session->GetRemoteEndpoint (); // Alice's endpoint as known to Bob
+					session->SendPeerTest (nonce, ep.address (), ep.port (), introKey, false, true); // send back to Alice
+				}	
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
 			}
@@ -1093,9 +1096,12 @@ namespace transport
 					if (port)
 					{
 						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
-						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
-						SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
+						if (!addr.is_unspecified () && !i2p::util::net::IsInReservedRange(addr))
+						{	
+							m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
+							SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
+						}	
 					}
 					else
 					{

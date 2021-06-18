@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.13
 LABEL authors "Mikal Villa <mikal@sigterm.no>, Darknet Villain <supervillain@riseup.net>"
 
 # Expose git branch, tag and URL variables as arguments
@@ -25,7 +25,8 @@ RUN mkdir -p "$I2PD_HOME" "$DATA_DIR" \
 # 1. install deps, clone and build.
 # 2. strip binaries.
 # 3. Purge all dependencies and other unrelated packages, including build directory.
-RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib-dev boost-dev build-base openssl-dev openssl miniupnpc-dev git \
+RUN apk update \
+    && apk --no-cache --virtual build-dependendencies add make gcc g++ libtool zlib-dev boost-dev build-base openssl-dev openssl miniupnpc-dev git \
     && mkdir -p /tmp/build \
     && cd /tmp/build && git clone -b ${GIT_BRANCH} ${REPO_URL} \
     && cd i2pd \

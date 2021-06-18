@@ -35,12 +35,12 @@ namespace i18n
 				}
 			}
 
-			std::string GetPlural (const std::string& arg, const int& n) const
+			std::string GetPlural (const std::string& arg, const std::string& arg2, const int& n) const
 			{
-				const auto it = m_Plurals.find(arg);
-				if (it == m_Plurals.end())
+				const auto it = m_Plurals.find(arg2);
+				if (it == m_Plurals.end()) // not found, fallback to english
 				{
-					return arg;
+					return n == 1 ? arg : arg2;
 				}
 				else
 				{
@@ -56,9 +56,10 @@ namespace i18n
 	};
 
 	// Add localization here with language name as namespace
-	namespace english { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
-	namespace russian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
-	namespace turkmen { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace afrikaans { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace english   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
 } // i18n

@@ -1187,7 +1187,11 @@ namespace data
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
+#if defined(__x86_64__)					
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION;
+#else
+					router->GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD;
+#endif				
 			});
 	}
 

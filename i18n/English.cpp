@@ -13,6 +13,7 @@
 #include "I18N.h"
 
 // English localization file
+// This is an example translation file without strings in it.
 
 namespace i2p
 {
@@ -33,10 +34,6 @@ namespace english // language
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days",    {"day", "days"}},
-		{"hours",   {"hour", "hours"}},
-		{"minutes", {"minute", "minutes"}},
-		{"seconds", {"second", "seconds"}},
 		{"", {"", ""}},
 	};
 

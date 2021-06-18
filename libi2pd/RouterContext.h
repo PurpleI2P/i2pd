@@ -125,7 +125,7 @@ namespace garlic
 			void SetSupportsV4 (bool supportsV4);
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
-			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
@@ -185,7 +185,7 @@ namespace garlic
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
 			// for ECIESx25519
-			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_InitialNoiseState, m_CurrentNoiseState;
+			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;

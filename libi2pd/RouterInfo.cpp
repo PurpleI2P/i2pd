@@ -554,7 +554,7 @@ namespace data
 				if (address.IsNTCP2 ())
 				{	
 					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified ())
+					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
 						 isPublished = true;
 					else
 					{
@@ -971,10 +971,10 @@ namespace data
 	{
 		if (!IsV6 ())
 		{	
-			m_SupportedTransports |= eSSUV6 | eNTCP2V6;
 			uint8_t addressCaps = AddressCaps::eV6;
 			if (IsV4 ()) addressCaps |= AddressCaps::eV4;
 			SetUnreachableAddressesTransportCaps (addressCaps);
+			UpdateSupportedTransports ();
 		}	
 	}
 
@@ -982,10 +982,10 @@ namespace data
 	{
 		if (!IsV4 ())
 		{	
-			m_SupportedTransports |= eSSUV4 | eNTCP2V4;
 			uint8_t addressCaps = AddressCaps::eV4;
 			if (IsV6 ()) addressCaps |= AddressCaps::eV6;
 			SetUnreachableAddressesTransportCaps (addressCaps);
+			UpdateSupportedTransports ();
 		}	
 	}
 
@@ -994,16 +994,23 @@ namespace data
 	{
 		if (IsV6 ())
 		{
-			m_SupportedTransports &= ~(eSSUV6 | eNTCP2V6);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
-				addr->caps &= ~AddressCaps::eV6;
-				if (addr->host.is_v6 ())
-					it = m_Addresses->erase (it);
+				if (addr->IsV6 ())
+				{	
+					if (addr->IsV4 ())
+					{	
+						addr->caps &= ~AddressCaps::eV6;
+						++it;
+					}	
+					else
+						it = m_Addresses->erase (it);
+				}	
 				else
 					++it;
 			}
+			UpdateSupportedTransports ();
 		}
 	}
 
@@ -1011,23 +1018,33 @@ namespace data
 	{
 		if (IsV4 ())
 		{
-			m_SupportedTransports &= ~(eSSUV4 | eNTCP2V4);
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
-				addr->caps &= ~AddressCaps::eV4;
-				if (addr->host.is_v4 ())
-					it = m_Addresses->erase (it);
+				if (addr->IsV4 ())
+				{	
+					if (addr->IsV6 ())
+					{	
+						addr->caps &= ~AddressCaps::eV4;
+						++it;
+					}	
+					else
+						it = m_Addresses->erase (it);
+				}	
 				else
 					++it;
 			}
+			UpdateSupportedTransports ();
 		}
 	}
 
 	void RouterInfo::EnableMesh ()
 	{
 		if (!IsMesh ())
+		{	
 			m_SupportedTransports |= eNTCP2V6Mesh;
+			m_ReachableTransports |= eNTCP2V6Mesh;
+		}	
 	}
 		
 	void RouterInfo::DisableMesh ()
@@ -1035,6 +1052,7 @@ namespace data
 		if (IsMesh ())
 		{
 			m_SupportedTransports &= ~eNTCP2V6Mesh;
+			m_ReachableTransports &= ~eNTCP2V6Mesh;
 			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
 			{
 				auto addr = *it;
@@ -1161,34 +1179,12 @@ namespace data
 			});
 	}	
 
-	bool RouterInfo::IsReachableFrom (const RouterInfo& other) const
-	{
-		auto commonTransports = m_SupportedTransports & other.m_SupportedTransports;
-		if (!commonTransports) return false;
-		if (commonTransports & eNTCP2V6Mesh) return true;
-		return (bool)GetAddress (
-			[commonTransports](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{	
-				if (address->IsPublishedNTCP2 ())
-				{
-					if ((commonTransports & eNTCP2V4) && address->IsV4 ()) return true;
-					if ((commonTransports & eNTCP2V6) && address->IsV6 ()) return true;
-				}	
-				else if (address->IsReachableSSU ())
-				{
-					if ((commonTransports & eSSUV4) && address->IsV4 ()) return true;
-					if ((commonTransports & eSSUV6) && address->IsV6 ()) return true;
-				}	
-				return false;
-			});
-	}	
-
 	void RouterInfo::SetUnreachableAddressesTransportCaps (uint8_t transports)
 	{
 		for (auto& addr: *m_Addresses)
 		{
 			// TODO: implement SSU
-			if (addr->transportStyle == eTransportNTCP && (!addr->IsPublishedNTCP2 () || addr->port))
+			if (addr->transportStyle == eTransportNTCP && !addr->IsPublishedNTCP2 ())
 			{
 				addr->caps &= ~(eV4 | eV6);
 				addr->caps |= transports;

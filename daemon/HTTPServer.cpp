@@ -138,18 +138,18 @@ namespace http {
 		int num;
 
 		if ((num = seconds / 86400) > 0) {
-			s << num << " " << tr("days", num) << ", ";
+			s << num << " " << tr("day", "days", num) << ", ";
 			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
-			s << num << " " << tr("hours", num) << ", ";
+			s << num << " " << tr("hour", "hours", num) << ", ";
 			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
-			s << num << " " << tr("minutes", num) << ", ";
+			s << num << " " << tr("minute", "minutes", num) << ", ";
 			seconds -= num * 60;
 		}
-		s << seconds << " " << tr("seconds", seconds);
+		s << seconds << " " << tr("second", "seconds", seconds);
 	}
 
 	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
@@ -691,7 +691,7 @@ namespace http {
 		if (Daemon.gracefulShutdownInterval)
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a>\r\n";
 #elif defined(WIN32_APP)
 		if (i2p::util::DaemonWin32::Instance().isGraceful)
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a>\r\n";
