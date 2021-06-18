@@ -98,7 +98,14 @@ namespace data
 
 	void Families::LoadCertificates ()
 	{
-		std::string certDir = i2p::fs::DataDirPath("certificates", "family");
+		std::string certDir;
+		std::string certsdir; i2p::config::GetOption("certsdir", certsdir);
+		if (!i2p::config::IsDefault("certsdir"))
+			certDir = certsdir + i2p::fs::dirSep + "family";
+
+		if (certDir.empty() || !i2p::fs::Exists(certDir))
+			std::string certDir = i2p::fs::DataDirPath("certificates", "family");
+
 		std::vector<std::string> files;
 		int numCertificates = 0;
 
