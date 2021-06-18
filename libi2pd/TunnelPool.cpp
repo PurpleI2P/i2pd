@@ -142,16 +142,24 @@ namespace tunnel
 	{
 		std::vector<std::shared_ptr<InboundTunnel> > v;
 		int i = 0;
+		std::shared_ptr<InboundTunnel> slowTunnel;
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (const auto& it : m_InboundTunnels)
 		{
 			if (i >= num) break;
 			if (it->IsEstablished ())
 			{
-				v.push_back (it);
-				i++;
+				if (it->IsSlow () && !slowTunnel)
+					slowTunnel = it;
+				else
+				{	
+					v.push_back (it);
+					i++;
+				}	
 			}
 		}
+		if (slowTunnel && (int)v.size () < (num/2+1))
+			v.push_back (slowTunnel);
 		return v;
 	}
 

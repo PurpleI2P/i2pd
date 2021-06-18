@@ -12,7 +12,6 @@ case "$1" in
     # Create user and group as a system user.
     if getent passwd $I2PDUSER > /dev/null 2>&1; then
       groupadd -f $I2PDUSER || true
-      usermod -s "/bin/false" -e 1 $I2PDUSER > /dev/null || true
     else
       adduser --system --quiet --group --home $I2PDHOME $I2PDUSER
     fi
@@ -23,7 +22,7 @@ case "$1" in
     chmod 640 $LOGFILE
     chown -f ${I2PDUSER}:adm $LOGFILE
     mkdir -p -m0750 $I2PDHOME
-    chown -f -R -P ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
+    chown -f -P ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
     echo "Aborting upgrade"

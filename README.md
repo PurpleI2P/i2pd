@@ -68,15 +68,15 @@ Build instructions:
 
 **Supported systems:**
 
-* GNU/Linux - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
+* GNU/Linux - [![Build on Ubuntu](https://github.com/PurpleI2P/i2pd/actions/workflows/build.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build.yml)
   * CentOS / Fedora / Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
   * Alpine, ArchLinux, openSUSE, Gentoo, Debian, Ubuntu, etc.
-* Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
-* Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
+* Windows - [![Build on Windows](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml)
+* Mac OS X - [![Build on OSX](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml)
 * Docker image - [![Build Status](https://img.shields.io/docker/cloud/build/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd/builds/)
-* Snap
-* FreeBSD
-* Android
+* Snap - [![i2pd](https://snapcraft.io/i2pd/badge.svg)](https://snapcraft.io/i2pd) [![i2pd](https://snapcraft.io/i2pd/trending.svg?name=0)](https://snapcraft.io/i2pd)
+* FreeBSD - [![Build on FreeBSD](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml)
+* Android - [![Android CI](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml/badge.svg)](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml)
 * iOS
 
 Using i2pd
