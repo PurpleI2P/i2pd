@@ -840,21 +840,33 @@ namespace data
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
+		m_ReachableTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Addresses->push_back(std::move(addr));
 	}
 
-	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, const boost::asio::ip::address& host, int port)
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, 
+		const boost::asio::ip::address& host, int port, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
 		addr->host = host;
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP;		
-		addr->caps = 0;
+		addr->caps = caps;
 		addr->date = 0;
 		addr->ntcp2.reset (new NTCP2Ext ());
 		if (port) addr->published = true;
 		memcpy (addr->ntcp2->staticKey, staticKey, 32);
 		memcpy (addr->ntcp2->iv, iv, 16);
+		if (addr->IsV4 ())
+		{
+			m_SupportedTransports |= eNTCP2V4;
+			if (addr->published) m_ReachableTransports |= eNTCP2V4;
+		}	
+		if (addr->IsV6 ())
+		{
+			m_SupportedTransports |= eNTCP2V6;
+			if (addr->published) m_ReachableTransports |= eNTCP2V6;
+		}	
 		m_Addresses->push_back(std::move(addr));
 	}
 

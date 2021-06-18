@@ -568,16 +568,21 @@ namespace i2p
 			{
 				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 				bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
-				if (ntcp2 && ntcp2Published)
+				if (ntcp2) 
 				{
-					std::string ntcp2Host;
-					if (!i2p::config::IsDefault ("ntcp2.addressv6"))
-						i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
+					if (ntcp2Published)
+					{	
+						std::string ntcp2Host;
+						if (!i2p::config::IsDefault ("ntcp2.addressv6"))
+							i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
+						else
+							ntcp2Host = "::1";
+						uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
+						if (!ntcp2Port) ntcp2Port = port;
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
+					}	
 					else
-						ntcp2Host = "::1";
-					uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
-					if (!ntcp2Port) ntcp2Port = port;
-					m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV6);
 				}
 			}
 			m_RouterInfo.EnableV6 ();
@@ -632,7 +637,7 @@ namespace i2p
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (host), ntcp2Port);
 					}
 					else
-						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
+						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV4);
 				}
 			}
 			m_RouterInfo.EnableV4 ();
