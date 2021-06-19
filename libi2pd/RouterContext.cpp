@@ -470,7 +470,8 @@ namespace i2p
 			uint8_t caps = m_RouterInfo.GetCaps ();
 			caps &= ~i2p::data::RouterInfo::eReachable;
 			caps |= i2p::data::RouterInfo::eUnreachable;
-			caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
+			if (v6 || !SupportsV6 ())
+				caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
 			m_RouterInfo.SetCaps (caps);
 		}
 		uint16_t port = 0;
