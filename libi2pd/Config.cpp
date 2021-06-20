@@ -285,7 +285,7 @@ namespace config {
 
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
-			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (default: false)")
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 
