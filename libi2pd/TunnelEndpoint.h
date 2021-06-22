@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
@@ -54,7 +55,7 @@ namespace tunnel
 
 		private:
 
-			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+			std::unordered_map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
 			std::map<std::pair<uint32_t, uint8_t>, Fragment> m_OutOfSequenceFragments; // (msgID, fragment#)->fragment
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
