@@ -9,10 +9,6 @@
 #ifndef CAPI_H__
 #define CAPI_H__
 
-#include "Identity.h"
-#include "Destination.h"
-#include "Streaming.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,19 +21,6 @@ void C_StartI2P (); //std::ostream *logStream = nullptr);
 // write system log to logStream, if not specified to <appName>.log in application's folder
 void C_StopI2P ();
 void C_RunPeerTest (); // should be called after UPnP
-
-// destinations
-i2p::client::ClientDestination *C_CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
-	const std::map<std::string, std::string> * params = nullptr);
-i2p::client::ClientDestination *C_CreateTransientLocalDestination (bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256,
-	const std::map<std::string, std::string> * params = nullptr); // transient destinations usually not published
-void C_DestroyLocalDestination (i2p::client::ClientDestination *dest);
-
-// streams
-void C_RequestLeaseSet (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote);
-i2p::stream::Stream *C_CreateStream (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote);
-void C_AcceptStream (i2p::client::ClientDestination *dest, const i2p::stream::StreamingDestination::Acceptor& acceptor);
-void C_DestroyStream (i2p::stream::Stream *stream);
 
 #ifdef __cplusplus
 }

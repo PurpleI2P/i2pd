@@ -8,6 +8,64 @@
 
 #include "api.h"
 #include "capi.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+
+// Uses the example from: https://stackoverflow.com/a/9210560
+// See also https://stackoverflow.com/questions/9210528/split-string-with-delimiters-in-c/9210560#
+// Does not handle consecutive delimiters, this is only for passing
+// lists of arguments by value to InitI2P from C_InitI2P
+char** str_split(char* a_str, const char a_delim)
+{
+    char** result    = 0;
+    size_t count     = 0;
+    char* tmp        = a_str;
+    char* last_comma = 0;
+    char delim[2];
+    delim[0] = a_delim;
+    delim[1] = 0;
+
+    /* Count how many elements will be extracted. */
+    while (*tmp)
+    {
+        if (a_delim == *tmp)
+        {
+            count++;
+            last_comma = tmp;
+        }
+        tmp++;
+    }
+
+    /* Add space for trailing token. */
+    count += last_comma < (a_str + strlen(a_str) - 1);
+
+    /* Add space for terminating null string so caller
+       knows where the list of returned strings ends. */
+    count++;
+
+    result = (char**) malloc(sizeof(char*) * count);
+
+    if (result)
+    {
+        size_t idx  = 0;
+        char* token = strtok(a_str, delim);
+
+        while (token)
+        {
+            assert(idx < count);
+            *(result + idx++) = strdup(token);
+            token = strtok(0, delim);
+        }
+        assert(idx == count - 1);
+        *(result + idx) = 0;
+    }
+
+    return result;
+}
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +73,11 @@ extern "C" {
 
 void C_InitI2P (int argc, char argv[], const char * appName)
 {
-	return i2p::api::InitI2P(argc, &argv, appName);
+	const char* delim = " ";
+	char* vargs = strdup(argv);
+	char** args = str_split(vargs, *delim);
+	std::cout << argv;
+	return i2p::api::InitI2P(argc, args, appName);
 }
 
 void C_TerminateI2P ()
@@ -39,49 +101,6 @@ void C_RunPeerTest ()
 {
 	return i2p::api::RunPeerTest();
 }
-
-i2p::client::ClientDestination *C_CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
-	const std::map<std::string, std::string> * params)
-{
-	return i2p::api::CreateLocalDestination(keys, isPublic, params).get();
-}
-
-i2p::client::ClientDestination *C_CreateTransientLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
-	const std::map<std::string, std::string> * params)
-{
-	return i2p::api::CreateLocalDestination(isPublic, sigType, params).get();
-}
-
-void C_DestroyLocalDestination (i2p::client::ClientDestination *dest)
-{
-	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
-	return i2p::api::DestroyLocalDestination(cppDest);
-}
-
-void C_RequestLeaseSet (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote)
-{
-	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
-	return i2p::api::RequestLeaseSet(cppDest, remote);
-}
-
-i2p::stream::Stream *C_CreateStream (i2p::client::ClientDestination *dest, const i2p::data::IdentHash& remote)
-{
-	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
-	return i2p::api::CreateStream(cppDest, remote).get();
-}
-
-void C_AcceptStream (i2p::client::ClientDestination *dest, const i2p::stream::StreamingDestination::Acceptor& acceptor)
-{
-	std::shared_ptr<i2p::client::ClientDestination> cppDest(dest);
-	return i2p::api::AcceptStream(cppDest, acceptor);
-}
-
-void C_DestroyStream (i2p::stream::Stream *stream)
-{
-	std::shared_ptr<i2p::stream::Stream> cppStream(stream);
-	return i2p::api::DestroyStream(cppStream);
-}
-
 
 #ifdef __cplusplus
 }

@@ -28,12 +28,6 @@ else
 	LD_DEBUG = -s
 endif
 
-ifeq ($(USE_STATIC),yes)
-	NEEDED_CXXFLAGS+= -static
-else
-
-endif
-
 ifneq (, $(findstring darwin, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
@@ -76,9 +70,9 @@ mk_obj_dir:
 	@mkdir -p obj/$(LANG_SRC_DIR)
 	@mkdir -p obj/$(DAEMON_SRC_DIR)
 
-api: mk_obj_dir  $(SHLIB) $(ARLIB)
-client: mk_obj_dir  $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-api_client: mk_obj_dir  $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+api: mk_obj_dir $(SHLIB) $(ARLIB)
+client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 langs: mk_obj_dir $(LANG_OBJS) $(SHLIB_LANG) $(ARLIB_LANG)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
@@ -97,30 +91,29 @@ obj/%.o: %.cpp
 $(I2PD): $(LANG_OBJS) $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-$(SHLIB):  $(LIB_OBJS)
+$(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(SHLIB_CLIENT):  $(LIB_CLIENT_OBJS)
+$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
 endif
 
-$(SHLIB_LANG):  $(LANG_OBJS)
+$(SHLIB_LANG): $(LANG_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(ARLIB):  $(LIB_OBJS)
+$(ARLIB): $(LIB_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_CLIENT):  $(LIB_CLIENT_OBJS)
+$(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_LANG):  $(LANG_OBJS)
+$(ARLIB_LANG): $(LANG_OBJS)
 	$(AR) -r $@ $^
-
 
 clean:
 	$(RM) -r obj
@@ -154,25 +147,3 @@ doxygen:
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip
-
-flags:
-	@echo $(CXXFLAGS) 
-	@echo $(NEEDED_CXXFLAGS)
-	@echo $(INCFLAGS)
-	@echo $(LDFLAGS)
-	@echo $(LDLIBS)
-	@echo $(USE_AESNI)
-	@echo $(USE_STATIC)
-	@echo $(USE_MESHNET)
-	@echo $(USE_UPNP)
-	@echo $(DEBUG)
-
-##TODO: delete this before a PR
-testc: api api_client
-	g++ -Ii18n -c _test.c -o test.o
-#	gcc -llibi2pd.so -c _test.c -o test.o
-#	$(CXX) $(LDFLAGS) $(LDLIBS) -static -Ii18n -Ilibi2pd -Ilibi2pd_client -g -Wall -o test.o _test.c libi2pd.a libi2pdclient.a #obj/libi2pd/*.o obj/i18n/*.o #libi2pd.so
-#	$(CXX) $(LDFLAGS) $(LDLIBS) -static -Ii18n -g -Wall -o test.o _test.c libi2pd.a libi2pdclient.a #obj/libi2pd/*.o obj/i18n/*.o #libi2pd.so
-#	gcc -o i2pd _test.c libi2pd.a -lstdc++ -llibi2pd -Llibi2pd
-#	gcc -Ii18n -I/usr/include/c++/10 -I/usr/include/x86_64-linux-gnu/c++/10 -llibi2pd.a -c test.c -o test.o
-	g++ test.o libi2pd.a libi2pdclient.a libi2pdlang.a -o test.main
