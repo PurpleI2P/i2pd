@@ -1281,7 +1281,7 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_GET_REG_STRING)
 		{
 			std::string b32 = params["b32"];
-			std::string name = params["name"];
+			std::string name = i2p::http::UrlDecode(params["name"]);
 
 			i2p::data::IdentHash ident;
 			ident.FromBase32 (b32);
