@@ -3,6 +3,8 @@ SHLIB := libi2pd.so
 ARLIB := libi2pd.a
 SHLIB_CLIENT := libi2pdclient.so
 ARLIB_CLIENT := libi2pdclient.a
+SHLIB_LANG := libi2pdlang.so
+ARLIB_LANG := libi2pdlang.a
 I2PD := i2pd
 
 LIB_SRC_DIR := libi2pd
@@ -71,6 +73,7 @@ mk_obj_dir:
 api: mk_obj_dir $(SHLIB) $(ARLIB)
 client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang: mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -85,7 +88,7 @@ obj/%.o: %.cpp
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD): $(LANG_OBJS) $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
+$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)
@@ -98,18 +101,26 @@ ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
 endif
 
+$(SHLIB_LANG): $(LANG_OBJS)
+ifneq ($(USE_STATIC),yes)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+endif
+
 $(ARLIB): $(LIB_OBJS)
 	$(AR) -r $@ $^
 
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
+$(ARLIB_LANG): $(LANG_OBJS)
+	$(AR) -r $@ $^
+
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG)
 
-strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
+strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
@@ -133,6 +144,7 @@ doxygen:
 .PHONY: api
 .PHONY: api_client
 .PHONY: client
+.PHONY: lang
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip
