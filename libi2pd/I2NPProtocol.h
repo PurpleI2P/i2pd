@@ -278,7 +278,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
-	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
@@ -307,7 +307,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);
-	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ();
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg (bool endpoint);
 
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType,

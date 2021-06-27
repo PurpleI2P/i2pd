@@ -234,7 +234,7 @@ namespace tunnel
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive
-		auto newMsg = CreateEmptyTunnelDataMsg ();
+		auto newMsg = CreateEmptyTunnelDataMsg (true);
 		EncryptTunnelMsg (msg, newMsg);
 		newMsg->from = shared_from_this ();
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);

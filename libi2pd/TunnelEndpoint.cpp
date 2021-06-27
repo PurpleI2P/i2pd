@@ -126,9 +126,7 @@ namespace tunnel
 					if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 					{
 						// this is not last message. we have to copy it
-						m_CurrentMessage.data = NewI2NPTunnelMessage ();
-						m_CurrentMessage.data->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
-						m_CurrentMessage.data->len += TUNNEL_GATEWAY_HEADER_SIZE;
+						m_CurrentMessage.data = NewI2NPTunnelMessage (true);
 						*(m_CurrentMessage.data) = *msg;
 					}
 					else

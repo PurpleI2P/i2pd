@@ -39,7 +39,7 @@ namespace tunnel
 
 	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		auto newMsg = CreateEmptyTunnelDataMsg ();
+		auto newMsg = CreateEmptyTunnelDataMsg (false);
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
@@ -87,7 +87,7 @@ namespace tunnel
 
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		auto newMsg = CreateEmptyTunnelDataMsg ();
+		auto newMsg = CreateEmptyTunnelDataMsg (true);
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 
 		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
