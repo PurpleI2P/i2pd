@@ -17,10 +17,17 @@ namespace i18n
 	{
 		public:
 			Locale (
+				const std::string& language,
 				const std::map<std::string, std::string>& strings,
 				const std::map<std::string, std::vector<std::string>>& plurals,
 				std::function<int(int)> formula
-			): m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
+			): m_Language (language), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
+
+			// Get activated language name for webconsole
+			std::string GetLanguage() const
+			{
+				return m_Language;
+			}
 
 			std::string GetString (const std::string& arg) const
 			{
@@ -50,9 +57,16 @@ namespace i18n
 			}
 
 		private:
+			const std::string m_Language;
 			const std::map<std::string, std::string> m_Strings;
 			const std::map<std::string, std::vector<std::string>> m_Plurals;
 			std::function<int(int)> m_Formula;
+	};
+
+	struct langData
+	{
+		std::string LocaleName; //localized name
+		std::function<std::shared_ptr<const i2p::i18n::Locale> (void)> LocaleFunc;
 	};
 
 	// Add localization here with language name as namespace
@@ -61,6 +75,18 @@ namespace i18n
 	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+
+	/**
+	 * That map contains international language name lower-case and name in it's language
+	 */
+	static std::map<std::string, langData> languages
+	{
+		{ "afrikaans", {"Afrikaans", i2p::i18n::afrikaans::GetLocale} },
+		{ "english", {"English", i2p::i18n::english::GetLocale} },
+		{ "russian", {"русский язык", i2p::i18n::russian::GetLocale} },
+		{ "turkmen", {"türkmen dili", i2p::i18n::turkmen::GetLocale} },
+		{ "ukrainian", {"украї́нська мо́ва", i2p::i18n::ukrainian::GetLocale} },
+	};
 
 } // i18n
 } // i2p
