@@ -198,7 +198,7 @@ namespace tunnel
 		}
 		else
 		{
-			LogPrint (eLogWarning, "TunnelMessage: First fragment of message ", msgID, " not found, saved");
+			LogPrint (eLogDebug, "TunnelMessage: First fragment of message ", msgID, " not found, saved");
 			AddOutOfSequenceFragment (msgID, fragmentNum, isLastFragment, fragment, size);
 		}
 	}
@@ -283,6 +283,7 @@ namespace tunnel
 				}	
 				else	
 					m_IncompleteMessages.erase (msgID);
+				LogPrint (eLogDebug, "TunnelMessage: All fragments of message ", msgID, " found");
 				break;
 			}
 		}
