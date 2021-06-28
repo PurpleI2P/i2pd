@@ -319,7 +319,7 @@ namespace proxy {
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
 			{
-				GenericProxyError(tr("Invalid Request"), tr("invalid request uri"));
+				GenericProxyError(tr("Invalid request"), tr("invalid request uri"));
 				return true;
 			}
 			else
