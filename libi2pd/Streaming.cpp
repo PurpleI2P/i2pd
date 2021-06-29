@@ -1050,6 +1050,7 @@ namespace stream
 				it.second->Terminate (false); // we delete here
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
+			m_LastStream = nullptr;		
 		}
 	}
 
@@ -1058,9 +1059,16 @@ namespace stream
 		uint32_t sendStreamID = packet->GetSendStreamID ();
 		if (sendStreamID)
 		{
-			auto it = m_Streams.find (sendStreamID);
-			if (it != m_Streams.end ())
-				it->second->HandleNextPacket (packet);
+			if (!m_LastStream || sendStreamID != m_LastStream->GetRecvStreamID ())
+			{	
+				auto it = m_Streams.find (sendStreamID);
+				if (it != m_Streams.end ())
+					m_LastStream = it->second;
+				else
+					m_LastStream = nullptr;
+			}
+			if (m_LastStream)
+				m_LastStream->HandleNextPacket (packet);
 			else if (packet->IsEcho () && m_Owner->IsStreamingAnswerPings ())
 			{
 				// ping
@@ -1166,7 +1174,7 @@ namespace stream
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, port);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
+		m_Streams.emplace (s->GetRecvStreamID (), s);
 		return s;
 	}
 
@@ -1174,8 +1182,8 @@ namespace stream
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		m_IncomingStreams[receiveStreamID] = s;
+		m_Streams.emplace (s->GetRecvStreamID (), s);
+		m_IncomingStreams.emplace (receiveStreamID, s);
 		return s;
 	}
 
@@ -1186,6 +1194,7 @@ namespace stream
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.erase (stream->GetRecvStreamID ());
 			m_IncomingStreams.erase (stream->GetSendStreamID ());
+			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
 	}
 

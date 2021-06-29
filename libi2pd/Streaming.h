@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,7 +11,7 @@
 
 #include <inttypes.h>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <queue>
 #include <functional>
@@ -297,12 +297,13 @@ namespace stream
 			uint16_t m_LocalPort;
 			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_StreamsMutex;
-			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
-			std::map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
+			std::unordered_map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
+			std::unordered_map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
+			std::shared_ptr<Stream> m_LastStream;
 			Acceptor m_Acceptor;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
-			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
+			std::unordered_map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
