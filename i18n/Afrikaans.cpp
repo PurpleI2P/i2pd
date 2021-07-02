@@ -18,8 +18,11 @@ namespace i2p
 {
 namespace i18n
 {
-namespace afrikaans // language
+namespace afrikaans // language namespace
 {
+	// language name in lowercase
+	static std::string language = "afrikaans";
+
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 	static int plural (int n) {
@@ -65,7 +68,7 @@ namespace afrikaans // language
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		return std::make_shared<i2p::i18n::Locale>(strings, plurals, [] (int n)->int { return plural(n); });
+		return std::make_shared<i2p::i18n::Locale>(language, strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

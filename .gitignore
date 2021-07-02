@@ -7,8 +7,10 @@ netDb
 /i2pd
 /libi2pd.a
 /libi2pdclient.a
+/libi2pdlang.a
 /libi2pd.so
 /libi2pdclient.so
+/libi2pdlang.so
 *.exe
 
 

@@ -79,7 +79,8 @@ api: mk_obj_dir $(SHLIB) $(ARLIB)
 client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
-langs: mk_obj_dir $(LANG_OBJS) $(SHLIB_LANG) $(ARLIB_LANG)
+lang: mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
+
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -94,7 +95,7 @@ obj/%.o: %.cpp
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD): $(LANG_OBJS) $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
+$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)
@@ -132,9 +133,9 @@ $(ARLIB_LANG): $(LANG_OBJS)
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG)
 
-strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
+strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
@@ -158,6 +159,7 @@ doxygen:
 .PHONY: api
 .PHONY: api_client
 .PHONY: client
+.PHONY: lang
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip

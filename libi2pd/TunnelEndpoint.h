@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,7 +10,8 @@
 #define TUNNEL_ENDPOINT_H__
 
 #include <inttypes.h>
-#include <map>
+#include <unordered_map>
+#include <vector>
 #include <string>
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
@@ -29,14 +30,15 @@ namespace tunnel
 
 		struct Fragment
 		{
+			Fragment (bool last, uint64_t t, size_t size): isLastFragment (last), receiveTime (t), data (size) {};
 			bool isLastFragment;
-			std::shared_ptr<I2NPMessage> data;
 			uint64_t receiveTime; // milliseconds since epoch
+			std::vector<uint8_t> data;
 		};
 
 		public:
 
-			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0) {};
+			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0), m_CurrentMsgID (0) {};
 			~TunnelEndpoint ();
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			void Cleanup ();
@@ -45,19 +47,24 @@ namespace tunnel
 
 		private:
 
-			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, const TunnelMessageBlockEx& m);
+			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, uint8_t fragmentNum, const uint8_t * fragment, size_t size);
+			bool ConcatFollowOnFragment (TunnelMessageBlockEx& msg, const uint8_t * fragment, size_t size) const; // true if success
+			void HandleCurrenMessageFollowOnFragment (const uint8_t * frgament, size_t size, bool isLastFragment);		
 			void HandleNextMessage (const TunnelMessageBlock& msg);
 
-			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data);
+			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, const uint8_t * fragment, size_t size);
 			bool ConcatNextOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg); // true if something added
 			void HandleOutOfSequenceFragments (uint32_t msgID, TunnelMessageBlockEx& msg);
-
+			void AddIncompleteCurrentMessage ();
+		
 		private:
 
-			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-			std::map<std::pair<uint32_t, uint8_t>, Fragment> m_OutOfSequenceFragments; // (msgID, fragment#)->fragment
+			std::unordered_map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+			std::unordered_map<uint64_t, std::unique_ptr<Fragment> > m_OutOfSequenceFragments; // ((msgID << 8) + fragment#)->fragment
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
+			TunnelMessageBlockEx m_CurrentMessage;
+			uint32_t m_CurrentMsgID;
 	};
 }
 }

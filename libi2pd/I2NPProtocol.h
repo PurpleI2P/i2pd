@@ -55,7 +55,7 @@ namespace i2p
 
 	// TunnelBuild
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
-	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 236;
+	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 218;
 	
 	//BuildRequestRecordClearText
 	const size_t BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
@@ -113,7 +113,7 @@ namespace i2p
 	const size_t SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET = SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE + 1;
 	const size_t SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET = SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4;
 	const size_t SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET = SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET + 4;
-	const size_t SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE = 172;
+	const size_t SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE = 154;
 	
 	enum I2NPMessageType
 	{
@@ -278,7 +278,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
-	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
@@ -307,7 +307,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);
-	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ();
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg (bool endpoint);
 
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType,

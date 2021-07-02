@@ -26,549 +26,549 @@ msgstr ""
 msgid "Enabled"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:141
+#: daemon/HTTPServer.cpp:147
 msgid "day"
 msgid_plural "days"
 msgstr[0] ""
 msgstr[1] ""
-#: daemon/HTTPServer.cpp:145
+
+#: daemon/HTTPServer.cpp:151
 msgid "hour"
 msgid_plural "hours"
 msgstr[0] ""
 msgstr[1] ""
-#: daemon/HTTPServer.cpp:149
+
+#: daemon/HTTPServer.cpp:155
 msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: daemon/HTTPServer.cpp:152
+#: daemon/HTTPServer.cpp:158
 msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
 
-#: daemon/HTTPServer.cpp:160 daemon/HTTPServer.cpp:188
+#. tr: Kibibit
+#: daemon/HTTPServer.cpp:166 daemon/HTTPServer.cpp:194
 msgid "KiB"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:162
+#. tr: Mebibit
+#: daemon/HTTPServer.cpp:168
 msgid "MiB"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:164
+#. tr: Gibibit
+#: daemon/HTTPServer.cpp:170
 msgid "GiB"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:181
+#: daemon/HTTPServer.cpp:187
 msgid "building"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:182
+#: daemon/HTTPServer.cpp:188
 msgid "failed"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:183
+#: daemon/HTTPServer.cpp:189
 msgid "expiring"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:184
+#: daemon/HTTPServer.cpp:190
 msgid "established"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:185
+#: daemon/HTTPServer.cpp:191
 msgid "unknown"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:187
+#: daemon/HTTPServer.cpp:193
 msgid "exploratory"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:223
+#: daemon/HTTPServer.cpp:229
 msgid "<b>i2pd</b> webconsole"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:226
+#: daemon/HTTPServer.cpp:232
 msgid "Main page"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:227 daemon/HTTPServer.cpp:683
+#: daemon/HTTPServer.cpp:233 daemon/HTTPServer.cpp:690
 msgid "Router commands"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:228
-msgid "Local destinations"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:230 daemon/HTTPServer.cpp:382
-#: daemon/HTTPServer.cpp:463 daemon/HTTPServer.cpp:469
-#: daemon/HTTPServer.cpp:599 daemon/HTTPServer.cpp:642
-#: daemon/HTTPServer.cpp:646
-msgid "LeaseSets"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:232 daemon/HTTPServer.cpp:652
-msgid "Tunnels"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:233 daemon/HTTPServer.cpp:727
-#: daemon/HTTPServer.cpp:743
-msgid "Transit tunnels"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:234 daemon/HTTPServer.cpp:792
-msgid "Transports"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:235
-msgid "I2P tunnels"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:237 daemon/HTTPServer.cpp:854
-#: daemon/HTTPServer.cpp:864
-msgid "SAM sessions"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:253 daemon/HTTPServer.cpp:1254
-#: daemon/HTTPServer.cpp:1257 daemon/HTTPServer.cpp:1260
-#: daemon/HTTPServer.cpp:1274 daemon/HTTPServer.cpp:1319
-#: daemon/HTTPServer.cpp:1322 daemon/HTTPServer.cpp:1325
-msgid "ERROR"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:260
-msgid "OK"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:261
-msgid "Testing"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:262
-msgid "Firewalled"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:263 daemon/HTTPServer.cpp:284
-#: daemon/HTTPServer.cpp:370
-msgid "Unknown"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:264 daemon/HTTPServer.cpp:394
-#: daemon/HTTPServer.cpp:395 daemon/HTTPServer.cpp:922
-#: daemon/HTTPServer.cpp:931
-msgid "Proxy"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:265
-msgid "Mesh"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:268
-msgid "Error"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:272
-msgid "Clock skew"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:275
-msgid "Offline"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:278
-msgid "Symmetric NAT"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:290
-msgid "Uptime"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:293
-msgid "Network status"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:298
-msgid "Network status v6"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:304 daemon/HTTPServer.cpp:311
-msgid "Stopping in"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:318
-msgid "Family"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:319
-msgid "Tunnel creation success rate"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:320
-msgid "Received"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:322 daemon/HTTPServer.cpp:325
-#: daemon/HTTPServer.cpp:328
-msgid "KiB/s"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:323
-msgid "Sent"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:326
-msgid "Transit"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:329
-msgid "Data path"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:332
-msgid "Hidden content. Press on text to see."
-msgstr ""
-
-#: daemon/HTTPServer.cpp:335
-msgid "Router Ident"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:337
-msgid "Router Family"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:338
-msgid "Router Caps"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:339
-msgid "Version"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:340
-msgid "Our external address"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:348
-msgid "supported"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:380
-msgid "Routers"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:381
-msgid "Floodfills"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:388 daemon/HTTPServer.cpp:908
-msgid "Client Tunnels"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:389
-msgid "Transit Tunnels"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:393
-msgid "Services"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:407 daemon/HTTPServer.cpp:419
+#: daemon/HTTPServer.cpp:234 daemon/HTTPServer.cpp:413
+#: daemon/HTTPServer.cpp:425
 msgid "Local Destinations"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:442
+#: daemon/HTTPServer.cpp:236 daemon/HTTPServer.cpp:388
+#: daemon/HTTPServer.cpp:469 daemon/HTTPServer.cpp:475
+#: daemon/HTTPServer.cpp:606 daemon/HTTPServer.cpp:649
+#: daemon/HTTPServer.cpp:653
+msgid "LeaseSets"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:238 daemon/HTTPServer.cpp:659
+msgid "Tunnels"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:239 daemon/HTTPServer.cpp:395
+#: daemon/HTTPServer.cpp:753 daemon/HTTPServer.cpp:769
+msgid "Transit Tunnels"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:240 daemon/HTTPServer.cpp:818
+msgid "Transports"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:241
+msgid "I2P tunnels"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:243 daemon/HTTPServer.cpp:880
+#: daemon/HTTPServer.cpp:890
+msgid "SAM sessions"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:259 daemon/HTTPServer.cpp:1280
+#: daemon/HTTPServer.cpp:1283 daemon/HTTPServer.cpp:1286
+#: daemon/HTTPServer.cpp:1300 daemon/HTTPServer.cpp:1345
+#: daemon/HTTPServer.cpp:1348 daemon/HTTPServer.cpp:1351
+msgid "ERROR"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:266
+msgid "OK"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:267
+msgid "Testing"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:268
+msgid "Firewalled"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:269 daemon/HTTPServer.cpp:290
+#: daemon/HTTPServer.cpp:376
+msgid "Unknown"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:270 daemon/HTTPServer.cpp:400
+#: daemon/HTTPServer.cpp:401 daemon/HTTPServer.cpp:948
+#: daemon/HTTPServer.cpp:957
+msgid "Proxy"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:271
+msgid "Mesh"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:274
+msgid "Error"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:278
+msgid "Clock skew"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:281
+msgid "Offline"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:284
+msgid "Symmetric NAT"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:296
+msgid "Uptime"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:299
+msgid "Network status"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:304
+msgid "Network status v6"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:310 daemon/HTTPServer.cpp:317
+msgid "Stopping in"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:324
+msgid "Family"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:325
+msgid "Tunnel creation success rate"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:326
+msgid "Received"
+msgstr ""
+
+#. tr: Kibibit/s
+#: daemon/HTTPServer.cpp:328 daemon/HTTPServer.cpp:331
+#: daemon/HTTPServer.cpp:334
+msgid "KiB/s"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:329
+msgid "Sent"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:332
+msgid "Transit"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:335
+msgid "Data path"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:338
+msgid "Hidden content. Press on text to see."
+msgstr ""
+
+#: daemon/HTTPServer.cpp:341
+msgid "Router Ident"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:343
+msgid "Router Family"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:344
+msgid "Router Caps"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:345
+msgid "Version"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:346
+msgid "Our external address"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:354
+msgid "supported"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:386
+msgid "Routers"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:387
+msgid "Floodfills"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:394 daemon/HTTPServer.cpp:934
+msgid "Client Tunnels"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:399
+msgid "Services"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:448
 msgid "Encrypted B33 address"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:451
+#: daemon/HTTPServer.cpp:457
 msgid "Address registration line"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:456
+#: daemon/HTTPServer.cpp:462
 msgid "Domain"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:457
+#: daemon/HTTPServer.cpp:463
 msgid "Generate"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:458
+#: daemon/HTTPServer.cpp:464
 msgid ""
 "<b>Note:</b> result string can be used only for registering 2LD domains "
 "(example.i2p). For registering subdomains please use i2pd-tools."
 msgstr ""
 
-#: daemon/HTTPServer.cpp:464
+#: daemon/HTTPServer.cpp:470
 msgid "Address"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:464
+#: daemon/HTTPServer.cpp:470
 msgid "Type"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:464
+#: daemon/HTTPServer.cpp:470
 msgid "EncType"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:474 daemon/HTTPServer.cpp:657
+#: daemon/HTTPServer.cpp:480 daemon/HTTPServer.cpp:664
 msgid "Inbound tunnels"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:479 daemon/HTTPServer.cpp:489
-#: daemon/HTTPServer.cpp:662 daemon/HTTPServer.cpp:672
-#: Means milliseconds
+#. tr: Milliseconds
+#: daemon/HTTPServer.cpp:485 daemon/HTTPServer.cpp:495
+#: daemon/HTTPServer.cpp:669 daemon/HTTPServer.cpp:679
 msgid "ms"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:484 daemon/HTTPServer.cpp:667
+#: daemon/HTTPServer.cpp:490 daemon/HTTPServer.cpp:674
 msgid "Outbound tunnels"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:496
+#: daemon/HTTPServer.cpp:502
 msgid "Tags"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:496
+#: daemon/HTTPServer.cpp:502
 msgid "Incoming"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:503 daemon/HTTPServer.cpp:506
+#: daemon/HTTPServer.cpp:509 daemon/HTTPServer.cpp:512
 msgid "Outgoing"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:504 daemon/HTTPServer.cpp:520
+#: daemon/HTTPServer.cpp:510 daemon/HTTPServer.cpp:526
 msgid "Destination"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:504
+#: daemon/HTTPServer.cpp:510
 msgid "Amount"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:511
+#: daemon/HTTPServer.cpp:517
 msgid "Incoming Tags"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:519 daemon/HTTPServer.cpp:522
+#: daemon/HTTPServer.cpp:525 daemon/HTTPServer.cpp:528
 msgid "Tags sessions"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:520
+#: daemon/HTTPServer.cpp:526
 msgid "Status"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:529 daemon/HTTPServer.cpp:584
+#: daemon/HTTPServer.cpp:535 daemon/HTTPServer.cpp:591
 msgid "Local Destination"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:538 daemon/HTTPServer.cpp:887
+#: daemon/HTTPServer.cpp:545 daemon/HTTPServer.cpp:913
 msgid "Streams"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:560
+#: daemon/HTTPServer.cpp:567
 msgid "Close stream"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:589
+#: daemon/HTTPServer.cpp:596
 msgid "I2CP session not found"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:592
+#: daemon/HTTPServer.cpp:599
 msgid "I2CP is not enabled"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:618
+#: daemon/HTTPServer.cpp:625
 msgid "Invalid"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:621
+#: daemon/HTTPServer.cpp:628
 msgid "Store type"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:622
+#: daemon/HTTPServer.cpp:629
 msgid "Expires"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:627
+#: daemon/HTTPServer.cpp:634
 msgid "Non Expired Leases"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:630
+#: daemon/HTTPServer.cpp:637
 msgid "Gateway"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:631
+#: daemon/HTTPServer.cpp:638
 msgid "TunnelID"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:632
+#: daemon/HTTPServer.cpp:639
 msgid "EndDate"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:642
+#: daemon/HTTPServer.cpp:649
 msgid "not floodfill"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:653
+#: daemon/HTTPServer.cpp:660
 msgid "Queue size"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:684
+#: daemon/HTTPServer.cpp:691
 msgid "Run peer test"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:687
+#: daemon/HTTPServer.cpp:698
 msgid "Decline transit tunnels"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:689
+#: daemon/HTTPServer.cpp:700
 msgid "Accept transit tunnels"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:692 daemon/HTTPServer.cpp:697
+#: daemon/HTTPServer.cpp:704 daemon/HTTPServer.cpp:709
 msgid "Cancel graceful shutdown"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:694 daemon/HTTPServer.cpp:699
+#: daemon/HTTPServer.cpp:706 daemon/HTTPServer.cpp:711
 msgid "Start graceful shutdown"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:701
+#: daemon/HTTPServer.cpp:714
 msgid "Force shutdown"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:704
+#: daemon/HTTPServer.cpp:717
 msgid ""
 "<b>Note:</b> any action done here are not persistent and not changes your "
 "config files."
 msgstr ""
 
-#: daemon/HTTPServer.cpp:706
+#: daemon/HTTPServer.cpp:719
 msgid "Logging level"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:714
+#: daemon/HTTPServer.cpp:727
 msgid "Transit tunnels limit"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:719
+#: daemon/HTTPServer.cpp:732 daemon/HTTPServer.cpp:744
 msgid "Change"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:743
+#: daemon/HTTPServer.cpp:736
+msgid "Change language"
+msgstr ""
+
+#: daemon/HTTPServer.cpp:769
 msgid "no transit tunnels currently built"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:848 daemon/HTTPServer.cpp:871
+#: daemon/HTTPServer.cpp:874 daemon/HTTPServer.cpp:897
 msgid "SAM disabled"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:864
+#: daemon/HTTPServer.cpp:890
 msgid "no sessions currently running"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:877
+#: daemon/HTTPServer.cpp:903
 msgid "SAM session not found"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:882
+#: daemon/HTTPServer.cpp:908
 msgid "SAM Session"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:939
+#: daemon/HTTPServer.cpp:965
 msgid "Server Tunnels"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:955
+#: daemon/HTTPServer.cpp:981
 msgid "Client Forwards"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:969
+#: daemon/HTTPServer.cpp:995
 msgid "Server Forwards"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1175
+#: daemon/HTTPServer.cpp:1201
 msgid "Unknown page"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1194
+#: daemon/HTTPServer.cpp:1220
 msgid "Invalid token"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1252 daemon/HTTPServer.cpp:1309
-#: daemon/HTTPServer.cpp:1337
+#: daemon/HTTPServer.cpp:1278 daemon/HTTPServer.cpp:1335
+#: daemon/HTTPServer.cpp:1371
 msgid "SUCCESS"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1252
+#: daemon/HTTPServer.cpp:1278
 msgid "Stream closed"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1254
+#: daemon/HTTPServer.cpp:1280
 msgid "Stream not found or already was closed"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1257
+#: daemon/HTTPServer.cpp:1283
 msgid "Destination not found"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1260
+#: daemon/HTTPServer.cpp:1286
 msgid "StreamID can't be null"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1262 daemon/HTTPServer.cpp:1327
+#: daemon/HTTPServer.cpp:1288 daemon/HTTPServer.cpp:1353
 msgid "Return to destination page"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1263 daemon/HTTPServer.cpp:1276
-msgid "You will be redirected back in 5 seconds"
+#: daemon/HTTPServer.cpp:1289 daemon/HTTPServer.cpp:1302
+#: daemon/HTTPServer.cpp:1373
+msgid "You will be redirected in 5 seconds"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1274
+#: daemon/HTTPServer.cpp:1300
 msgid "Transit tunnels count must not exceed 65535"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1275 daemon/HTTPServer.cpp:1338
+#: daemon/HTTPServer.cpp:1301 daemon/HTTPServer.cpp:1372
 msgid "Back to commands list"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1311
+#: daemon/HTTPServer.cpp:1337
 msgid "Register at reg.i2p"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1312
+#: daemon/HTTPServer.cpp:1338
 msgid "Description"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1312
+#: daemon/HTTPServer.cpp:1338
 msgid "A bit information about service on domain"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1313
+#: daemon/HTTPServer.cpp:1339
 msgid "Submit"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1319
+#: daemon/HTTPServer.cpp:1345
 msgid "Domain can't end with .b32.i2p"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1322
+#: daemon/HTTPServer.cpp:1348
 msgid "Domain must end with .i2p"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1325
+#: daemon/HTTPServer.cpp:1351
 msgid "Such destination is not found"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1333
+#: daemon/HTTPServer.cpp:1367
 msgid "Unknown command"
 msgstr ""
 
-#: daemon/HTTPServer.cpp:1337
+#: daemon/HTTPServer.cpp:1371
 msgid "Command accepted"
-msgstr ""
-
-#: daemon/HTTPServer.cpp:1339
-msgid "You will be redirected in 5 seconds"
 msgstr ""
 
 #: libi2pd_client/HTTPProxy.cpp:157
@@ -592,7 +592,7 @@ msgid "You may try to find this host on jump services below"
 msgstr ""
 
 #: libi2pd_client/HTTPProxy.cpp:273 libi2pd_client/HTTPProxy.cpp:288
-#: libi2pd_client/HTTPProxy.cpp:365
+#: libi2pd_client/HTTPProxy.cpp:322 libi2pd_client/HTTPProxy.cpp:365
 msgid "Invalid request"
 msgstr ""
 
@@ -635,10 +635,6 @@ msgstr ""
 
 #: libi2pd_client/HTTPProxy.cpp:308
 msgid "to update record"
-msgstr ""
-
-#: libi2pd_client/HTTPProxy.cpp:322
-msgid "Invalid Request"
 msgstr ""
 
 #: libi2pd_client/HTTPProxy.cpp:322

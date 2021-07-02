@@ -68,11 +68,11 @@ namespace http {
 		  << "  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
 		  << "    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
 		  << "  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
-		  << "  .wrapper { margin: 0 auto; padding: 1em; max-width: 58em; }\r\n"
-		  << "  .menu { float: left; } .menu a, .commands a { display: block; }\r\n"
+		  << "  .wrapper { margin: 0 auto; padding: 1em; max-width: 64em; }\r\n"
+		  << "  .menu { display: block; float: left; overflow: hidden; max-width: 12em; white-space: nowrap; text-overflow: ellipsis; }\r\n"
 		  << "  .listitem { display: block; font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
 		  << "  .tableitem { font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
-		  << "  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 45em; overflow: auto; }\r\n"
+		  << "  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 48em; overflow: auto; }\r\n"
 		  << "  .tunnel.established { color: #56B734; } .tunnel.expiring { color: #D3AE3F; }\r\n"
 		  << "  .tunnel.failed { color: #D33F3F; } .tunnel.building { color: #434343; }\r\n"
 		  << "  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
@@ -84,19 +84,24 @@ namespace http {
 		  << "  .slide [type=\"checkbox\"]:checked ~ div.slidecontent { display: block; margin-top: 0; padding: 0; }\r\n"
 		  << "  .disabled:after { color: #D33F3F; content: \"" << tr("Disabled") << "\" }\r\n"
 		  << "  .enabled:after  { color: #56B734; content: \"" << tr("Enabled") << "\"  }\r\n"
-		  << "  @media screen and (max-width: 980px) {\r\n" /* adaptive style */
+		  << "  @media screen and (max-width: 1150px) {\r\n" /* adaptive style */
+		  << "    .wrapper { max-width: 58em; } .menu { max-width: 10em; }\r\n"
+		  << "    .content { margin-left: 2em; max-width: 42em; }\r\n"
+		  << "  }\r\n"
+		  << "  @media screen and (max-width: 980px) {\r\n"
 		  << "    body { padding: 1.5em 0 0 0; }\r\n"
-		  << "    .menu { width: 100%; display: block; float: none; position: unset; font-size: 16px;\r\n"
+		  << "    .menu { width: 100%; max-width: unset; display: block; float: none; position: unset; font-size: 16px;\r\n"
 		  << "      text-align: center; }\r\n"
-		  << "    .menu a, .commands a { padding: 2px; }\r\n"
+		  << "    .menu a, .commands a { display: inline-block; padding: 4px; }\r\n"
 		  << "    .content { float: none; margin-left: unset; margin-top: 16px; max-width: 100%; width: 100%;\r\n"
 		  << "      text-align: center; }\r\n"
 		  << "    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
 		  << "    .header { margin: unset; font-size: 1.5em; } small {display: block}\r\n"
 		  << "    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
 		  << "      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
-		  << "    input { width: 35%; text-align: center; padding: 5px;\r\n"
+		  << "    input, select { width: 35%; text-align: center; padding: 5px;\r\n"
 		  << "      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 18px; }\r\n"
+		  << "    table.extaddr { margin: auto; text-align: unset; }\r\n"
 		  << "    textarea { width: -webkit-fill-available; height: auto; padding:5px; border:2px solid #ccc;\r\n"
 		  << "      -webkit-border-radius: 5px; border-radius: 5px; font-size: 12px; }\r\n"
 		  << "    button[type=submit] { padding: 5px 15px; background: #ccc; border: 0 none; cursor: pointer;\r\n"
@@ -127,6 +132,7 @@ namespace http {
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
 	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
+	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
@@ -157,11 +163,11 @@ namespace http {
 		s << std::fixed << std::setprecision(2);
 		auto numKBytes = (double) bytes / 1024;
 		if (numKBytes < 1024)
-			s << numKBytes << " " << tr("KiB");
+			s << numKBytes << " " << tr(/* tr: Kibibit */ "KiB");
 		else if (numKBytes < 1024 * 1024)
-			s << numKBytes / 1024 << " " << tr("MiB");
+			s << numKBytes / 1024 << " " << tr(/* tr: Mebibit */ "MiB");
 		else
-			s << numKBytes / 1024 / 1024 << " " << tr("GiB");
+			s << numKBytes / 1024 / 1024 << " " << tr(/* tr: Gibibit */ "GiB");
 	}
 
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
@@ -185,7 +191,7 @@ namespace http {
 		else stateText = tr("unknown");
 
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << (int) (bytes / 1024) << "&nbsp;" << tr("KiB") << "\r\n";
+		s << " " << (int) (bytes / 1024) << "&nbsp;" << tr(/* tr: Kibibit */ "KiB") << "\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -223,18 +229,18 @@ namespace http {
 			"<div class=\"header\">" << tr("<b>i2pd</b> webconsole") << "</div>\r\n"
 			"<div class=\"wrapper\">\r\n"
 			"<div class=\"menu\">\r\n"
-			"  <a href=\"" << webroot << "\">" << tr("Main page") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">" << tr("Router commands") << "</a>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Local destinations") << "</a>\r\n";
+			"  <a href=\"" << webroot << "\">" << tr("Main page") << "</a><br><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">" << tr("Router commands") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Local Destinations") << "</a><br>\r\n";
 		if (i2p::context.IsFloodfill ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a><br>\r\n";
 		s <<
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit tunnels") << "</a>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a>\r\n";
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit Tunnels") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a><br>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM sessions") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM sessions") << "</a><br>\r\n";
 		s <<
 			"</div>\r\n"
 			"<div class=\"content\">";
@@ -319,13 +325,13 @@ namespace http {
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " " << tr("KiB/s") << ")<br>\r\n";
+		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
 		s << "<b>" << tr("Sent") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " " << tr("KiB/s") << ")<br>\r\n";
+		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
 		s << "<b>" << tr("Transit") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " " << tr("KiB/s") << ")<br>\r\n";
+		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
 		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
 		if((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
@@ -476,7 +482,7 @@ namespace http {
 				s << "<div class=\"listitem\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
-				s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+					s << " ( " << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</div>\r\n";
 			}
@@ -534,7 +540,8 @@ namespace http {
 		if (dest)
 		{
 			ShowLeaseSetDestination (s, dest, token);
-			// show streams
+
+			// Print table with streams information
 			s << "<table>\r\n<caption>" << tr("Streams") << "</caption>\r\n<thead>\r\n<tr>";
 			s << "<th style=\"width:25px;\">StreamID</th>";
 			s << "<th style=\"width:5px;\" \\>"; // Stream closing button column
@@ -679,25 +686,29 @@ namespace http {
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		/* commands */
+
 		s << "<b>" << tr("Router commands") << "</b><br>\r\n<br>\r\n<div class=\"commands\">\r\n";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a>\r\n";
-		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a><br>\r\n";
+
+		// s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
+
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">" << tr("Decline transit tunnels") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">" << tr("Decline transit tunnels") << "</a><br>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">" << tr("Accept transit tunnels") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">" << tr("Accept transit tunnels") << "</a><br>\r\n";
+
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (Daemon.gracefulShutdownInterval)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
 #elif defined(WIN32_APP)
 		if (i2p::util::DaemonWin32::Instance().isGraceful)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a>\r\n";
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
 #endif
+
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">" << tr("Force shutdown") << "</a>\r\n";
 		s << "</div>";
 
@@ -718,13 +729,26 @@ namespace http {
 		s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
 		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
 		s << "</form>\r\n<br>\r\n";
+
+		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
+		s << "<b>" << tr("Change language") << "</b><br>\r\n";
+		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
+		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
+		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
+		s << "  <select name=\"lang\" id=\"lang\">\r\n";
+		for (const auto& it: i2p::i18n::languages)
+			s << "    <option value=\"" << it.first << "\"" << ((it.first.compare(currLang) == 0) ? " selected" : "") << ">" << it.second.LocaleName << "</option>\r\n";
+		s << "  </select>\r\n";
+		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
+		s << "</form>\r\n<br>\r\n";
+
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<b>" << tr("Transit tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				s << "<div class=\"listitem\">\r\n";
@@ -740,7 +764,7 @@ namespace http {
 		}
 		else
 		{
-			s << "<b>" << tr("Transit tunnels") << ":</b> " << tr("no transit tunnels currently built") << ".<br>\r\n";
+			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr("no transit tunnels currently built") << ".<br>\r\n";
 		}
 	}
 
@@ -1260,7 +1284,7 @@ namespace http {
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
-			s << "<p>" << tr("You will be redirected back in 5 seconds") << "</b>";
+			s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
 			redirect = "5; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
@@ -1273,7 +1297,7 @@ namespace http {
 			else {
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed 65535") << "\r\n<br>\r\n<br>\r\n";
 				s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a>\r\n<br>\r\n";
-				s << "<p>" << tr("You will be redirected back in 5 seconds") << "</b>";
+				s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
@@ -1281,7 +1305,7 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_GET_REG_STRING)
 		{
 			std::string b32 = params["b32"];
-			std::string name = params["name"];
+			std::string name = i2p::http::UrlDecode(params["name"]);
 
 			i2p::data::IdentHash ident;
 			ident.FromBase32 (b32);
@@ -1326,6 +1350,14 @@ namespace http {
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a>\r\n";
 			return;
+		}
+		else if (cmd == HTTP_COMMAND_SETLANGUAGE)
+		{
+			std::string lang = params["lang"];
+			std::string currLang = i2p::context.GetLanguage ()->GetLanguage();
+
+			if (currLang.compare(lang) != 0)
+				i2p::i18n::SetLanguage(lang);
 		}
 		else
 		{

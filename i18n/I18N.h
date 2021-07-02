@@ -17,16 +17,11 @@ namespace i18n
 {
 	inline void SetLanguage(const std::string &lang)
 	{
-		if (!lang.compare("afrikaans"))
-			i2p::context.SetLanguage (i2p::i18n::afrikaans::GetLocale());
-		else if (!lang.compare("russian"))
-			i2p::context.SetLanguage (i2p::i18n::russian::GetLocale());
-		else if (!lang.compare("turkmen"))
-			i2p::context.SetLanguage (i2p::i18n::turkmen::GetLocale());
-		else if (!lang.compare("ukrainian"))
-			i2p::context.SetLanguage (i2p::i18n::ukrainian::GetLocale());
-		else // fallback
+		const auto it = i2p::i18n::languages.find(lang);
+		if (it == i2p::i18n::languages.end()) // fallback
 			i2p::context.SetLanguage (i2p::i18n::english::GetLocale());
+		else
+			i2p::context.SetLanguage (it->second.LocaleFunc());
 	}
 
 	inline std::string translate (const std::string& arg)

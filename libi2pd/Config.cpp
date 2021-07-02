@@ -37,6 +37,7 @@ namespace config {
 			("conf", value<std::string>()->default_value(""),                 "Path to main i2pd config file (default: try ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)")
 			("tunconf", value<std::string>()->default_value(""),              "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)")
 			("tunnelsdir", value<std::string>()->default_value(""),           "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
+			("certsdir", value<std::string>()->default_value(""),             "Path to certificates used for verifying .su3, families (default: ~/.i2pd/certificates or /var/lib/i2pd/certificates")
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
@@ -284,7 +285,7 @@ namespace config {
 
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
-			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (default: false)")
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 

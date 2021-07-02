@@ -5,3 +5,6 @@ msgid\ \"(.*)\"\nmsgid_plural\ \"(.*)\"\nmsgstr\[0\]\ \"(.*)\"\nmsgstr\[1\]\ \"(
 
 msgid\ \"(.*)\"\nmsgstr\ \"(.*)\"\n
 {"$1", "$2"},\n
+
+^#:(.*)$\n
+<to empty line>

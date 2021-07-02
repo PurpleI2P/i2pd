@@ -36,10 +36,21 @@ namespace i2p
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> >();
 	}
 
-	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ()
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
-		auto msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
-		msg->Align (12);
+		I2NPMessage * msg = nullptr;
+		if (endpoint)
+		{	
+			// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
+			msg = new I2NPMessageBuffer<2*i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28>(); // reserved for alignment and NTCP 16 + 6 + 6
+			msg->Align (6);
+			msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
+		}
+		else
+		{
+			msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
+			msg->Align (12);
+		}	
 		return std::shared_ptr<I2NPMessage>(msg);
 	}
 
@@ -691,7 +702,7 @@ namespace i2p
 	
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
-		auto msg = NewI2NPTunnelMessage ();
+		auto msg = NewI2NPTunnelMessage (false);
 		msg->Concat (buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);
 		msg->FillI2NPMessageHeader (eI2NPTunnelData);
 		return msg;
@@ -699,7 +710,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload)
 	{
-		auto msg = NewI2NPTunnelMessage ();
+		auto msg = NewI2NPTunnelMessage (false);
 		htobe32buf (msg->GetPayload (), tunnelID);
 		msg->len += 4; // tunnelID
 		msg->Concat (payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
@@ -707,9 +718,9 @@ namespace i2p
 		return msg;
 	}
 
-	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ()
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg (bool endpoint)
 	{
-		auto msg = NewI2NPTunnelMessage ();
+		auto msg = NewI2NPTunnelMessage (endpoint);
 		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE;
 		return msg;
 	}

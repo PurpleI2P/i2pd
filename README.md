@@ -73,7 +73,7 @@ Build instructions:
   * Alpine, ArchLinux, openSUSE, Gentoo, Debian, Ubuntu, etc.
 * Windows - [![Build on Windows](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml)
 * Mac OS X - [![Build on OSX](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml)
-* Docker image - [![Build Status](https://img.shields.io/docker/cloud/build/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd/builds/)
+* Docker image - [![Build Status](https://img.shields.io/docker/cloud/build/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd/builds/) [![Build containers](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml)
 * Snap - [![i2pd](https://snapcraft.io/i2pd/badge.svg)](https://snapcraft.io/i2pd) [![i2pd](https://snapcraft.io/i2pd/trending.svg?name=0)](https://snapcraft.io/i2pd)
 * FreeBSD - [![Build on FreeBSD](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml)
 * Android - [![Android CI](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml/badge.svg)](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml)
