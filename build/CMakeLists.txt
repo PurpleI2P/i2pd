@@ -27,6 +27,9 @@ option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 set(CMAKE_SOURCE_DIR "..")
 
+#Handle paths nicely
+include(GNUInstallDirs)
+
 # architecture
 include(TargetArch)
 target_architecture(ARCHITECTURE)
@@ -48,8 +51,8 @@ set_target_properties(libi2pd PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pd
     EXPORT libi2pd
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
@@ -63,8 +66,8 @@ set_target_properties(libi2pdclient PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pdclient
     EXPORT libi2pdclient
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
 endif()
 
@@ -75,8 +78,8 @@ set_target_properties(libi2pdlang PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pdlang
     EXPORT libi2pdlang
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
 endif()
 
@@ -271,9 +274,6 @@ message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
-
-#Handle paths nicely
-include(GNUInstallDirs)
 
 if(WITH_BINARY)
   add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
