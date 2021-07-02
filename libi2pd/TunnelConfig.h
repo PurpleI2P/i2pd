@@ -43,6 +43,7 @@ namespace tunnel
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
 		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);
 	};
 	
 	class TunnelConfig

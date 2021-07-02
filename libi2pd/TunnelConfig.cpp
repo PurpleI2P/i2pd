@@ -147,5 +147,28 @@ namespace tunnel
 		}	
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}	
+
+	bool TunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	{
+		if (IsECIES ())
+		{
+			uint8_t nonce[12];
+			memset (nonce, 0, 12);
+			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
+				m_H, 32, m_CK, nonce, clearText, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+			{
+				LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
+				return false;
+			}	
+		}
+		else
+		{	
+			i2p::crypto::CBCDecryption decryption;
+			decryption.SetKey (replyKey);
+			decryption.SetIV (replyIV);
+			decryption.Decrypt (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText);
+		}	
+		return true;
+	}	
 }
 }

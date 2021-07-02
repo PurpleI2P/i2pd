@@ -111,31 +111,31 @@ namespace tunnel
 		TunnelHopConfig * hop = m_Config->GetLastHop ();
 		while (hop)
 		{
+			// decrypt current hop
+			auto idx = hop->recordIndex;
+			if (idx >= 0 && idx < msg[0])
+			{
+				uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
+				if (!hop->DecryptBuildResponseRecord (record, record))
+					return false;
+			}	
+			else
+			{
+				LogPrint (eLogWarning, "Tunnel: hop index ", idx, " is out of range");
+				return false;
+			}	
+			
+			// decrypt records before current hop 
 			decryption.SetKey (hop->replyKey);
-			// decrypt records before and current hop 
-			TunnelHopConfig * hop1 = hop;
+			TunnelHopConfig * hop1 = hop->prev;
 			while (hop1)
 			{
 				auto idx = hop1->recordIndex;
 				if (idx >= 0 && idx < msg[0])
 				{
 					uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
-					if (hop1 == hop && hop1->IsECIES ())
-					{
-						uint8_t nonce[12];
-						memset (nonce, 0, 12);
-						if (!i2p::crypto::AEADChaCha20Poly1305 (record, TUNNEL_BUILD_RECORD_SIZE - 16, 
-							hop->m_H, 32, hop->m_CK, nonce, record, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
-						{
-							LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
-							return false;
-						}	
-					}
-					else
-					{	
-						decryption.SetIV (hop->replyIV);
-						decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-					}	
+					decryption.SetIV (hop->replyIV);
+					decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
 				}
 				else
 					LogPrint (eLogWarning, "Tunnel: hop index ", idx, " is out of range");
