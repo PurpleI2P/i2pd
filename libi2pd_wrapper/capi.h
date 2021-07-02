@@ -17,7 +17,7 @@ extern "C" {
 void C_InitI2P (int argc, char argv[], const char * appName);
 //void C_InitI2P (int argc, char** argv, const char * appName);
 void C_TerminateI2P ();
-void C_StartI2P (); //std::ostream *logStream = nullptr);
+void C_StartI2P ();
 // write system log to logStream, if not specified to <appName>.log in application's folder
 void C_StopI2P ();
 void C_RunPeerTest (); // should be called after UPnP
