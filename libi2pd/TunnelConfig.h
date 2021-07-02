@@ -18,7 +18,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	struct TunnelHopConfig: public i2p::crypto::NoiseSymmetricState
+	struct TunnelHopConfig
 	{
 		std::shared_ptr<const i2p::data::IdentityEx> ident;
 		i2p::data::IdentHash nextIdent;
@@ -33,18 +33,42 @@ namespace tunnel
 		int recordIndex; // record # in tunnel build message
 	
 		TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r);
+		virtual ~TunnelHopConfig () {};
 	
 		void SetNextIdent (const i2p::data::IdentHash& ident);
 		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent);
 		void SetNext (TunnelHopConfig * n);
 		void SetPrev (TunnelHopConfig * p);		
 
-		bool IsECIES () const { return ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
-		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
-			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);
+		virtual bool IsECIES () const { return false; };
+		virtual void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) = 0;
+		virtual bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) = 0;
 	};
+
+	struct ElGamalTunnelHopConfig: public TunnelHopConfig
+	{
+		ElGamalTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			TunnelHopConfig (r) {};
+		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);	
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);	
+	};	
+
+	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
+	{
+		ECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			TunnelHopConfig (r) {};
+		bool IsECIES () const { return true; };	
+		void EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
+			const uint8_t * clearText, uint8_t * encrypted, BN_CTX * ctx);	
+	};
+	
+	struct LongECIESTunnelHopConfig: public ECIESTunnelHopConfig
+	{
+		LongECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			ECIESTunnelHopConfig (r) {};
+		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);		
+	};	
 	
 	class TunnelConfig
 	{
@@ -154,7 +178,11 @@ namespace tunnel
 				TunnelHopConfig * prev = nullptr;
 				for (const auto& it: peers)
 				{
-					auto hop = new TunnelHopConfig (it);
+					TunnelHopConfig * hop;
+					if (it->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+						hop = new LongECIESTunnelHopConfig (it);
+					else
+						hop = new ElGamalTunnelHopConfig (it);
 					if (prev)
 						prev->SetNext (hop);
 					else

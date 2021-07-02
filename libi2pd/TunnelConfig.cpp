@@ -78,53 +78,42 @@ namespace tunnel
 		}
 	}
 	
-	void TunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
+	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
 	{
+		// fill clear text
 		uint8_t flag = 0;
 		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
 		if (isEndpoint) flag |= TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+		uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+		htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
+		memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
+		htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
+		memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
+		memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
+		memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
+		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
+		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
+		clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
+		htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
+		htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
+		RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
+		// encrypt
 		auto encryptor = ident->CreateEncryptor (nullptr);
-		if (IsECIES ())
-		{
-			uint8_t clearText[ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
-			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
-			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
-			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
-			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
-			memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
-			clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-			memset (clearText + ECIES_BUILD_REQUEST_RECORD_MORE_FLAGS_OFFSET, 0, 3); // set to 0 for compatibility
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetMinutesSinceEpoch ());
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET, 600); // +10 minutes
-			htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
-			memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
-			if (encryptor)
-				EncryptECIES (encryptor, clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx);
-		}
-		else
-		{	
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
-			memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
-			memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
-			clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
-			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
-			if (encryptor)
-				encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
-		}	
+		if (encryptor)
+			encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
-	}
+	}	
 
-	void TunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
+	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	{
+		i2p::crypto::CBCDecryption decryption;
+		decryption.SetKey (replyKey);
+		decryption.SetIV (replyIV);
+		decryption.Decrypt (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText);
+		return true;
+	}	
+
+	void ECIESTunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
 			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		uint8_t hepk[32];
@@ -147,26 +136,43 @@ namespace tunnel
 		}	
 		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
 	}	
-
-	bool TunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	
+	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
 	{
-		if (IsECIES ())
+		// fill clear text
+		uint8_t flag = 0;
+		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
+		if (isEndpoint) flag |= TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;	
+		uint8_t clearText[ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
+		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
+		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
+		memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
+		memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
+		memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
+		memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
+		memcpy (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
+		clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
+		memset (clearText + ECIES_BUILD_REQUEST_RECORD_MORE_FLAGS_OFFSET, 0, 3); // set to 0 for compatibility
+		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetMinutesSinceEpoch ());
+		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET, 600); // +10 minutes
+		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
+		memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
+		// encrypt
+		auto encryptor = ident->CreateEncryptor (nullptr);
+		if (encryptor)
+			EncryptECIES (encryptor, clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx);
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
+	}
+
+	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	{
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
+			m_H, 32, m_CK, nonce, clearText, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
 		{
-			uint8_t nonce[12];
-			memset (nonce, 0, 12);
-			if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
-				m_H, 32, m_CK, nonce, clearText, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
-			{
-				LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
-				return false;
-			}	
-		}
-		else
-		{	
-			i2p::crypto::CBCDecryption decryption;
-			decryption.SetKey (replyKey);
-			decryption.SetIV (replyIV);
-			decryption.Decrypt (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText);
+			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
+			return false;
 		}	
 		return true;
 	}	
