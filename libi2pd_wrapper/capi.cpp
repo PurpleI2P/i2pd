@@ -85,10 +85,9 @@ void C_TerminateI2P ()
 	return i2p::api::TerminateI2P();
 }
 
-void C_StartI2P ()//std::ostream *logStream)
+void C_StartI2P ()
 {
 	std::shared_ptr<std::ostream> logStream;
-	//cppLogStream(&out);
 	return i2p::api::StartI2P(logStream);
 }
 

@@ -123,7 +123,7 @@ $(ARLIB): $(LIB_OBJS)
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_WRAP): $(LIB_OBJS)
+$(ARLIB_WRAP): $(WRAP_LIB_OBJS)
 	$(AR) -r $@ $^
 
 $(ARLIB_LANG): $(LANG_OBJS)
