@@ -113,9 +113,10 @@ namespace tunnel
 		return true;
 	}	
 
-	void ECIESTunnelHopConfig::EncryptECIES (std::shared_ptr<i2p::crypto::CryptoKeyEncryptor>& encryptor, 
-			const uint8_t * plainText, uint8_t * encrypted, BN_CTX * ctx)
+	void ECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, size_t len, uint8_t * encrypted)
 	{
+		auto encryptor = ident->CreateEncryptor (nullptr);
+		if (!encryptor) return;
 		uint8_t hepk[32];
 		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
 		i2p::crypto::InitNoiseNState (*this, hepk);
@@ -128,13 +129,19 @@ namespace tunnel
 		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, m_H, 32, 
-			m_CK + 32, nonce, encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16, true)) // encrypt
+		if (!i2p::crypto::AEADChaCha20Poly1305 (plainText, len, m_H, 32, m_CK + 32, nonce, encrypted, len + 16, true)) // encrypt
 		{	
 			LogPrint (eLogWarning, "Tunnel: Plaintext AEAD encryption failed");
 			return;
 		}	
-		MixHash (encrypted, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 16); // h = SHA256(h || ciphertext)
+		MixHash (encrypted, len + 16); // h = SHA256(h || ciphertext)
+	}	
+
+	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * encrypted, size_t len, uint8_t * clearText)
+	{
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, m_CK, nonce, clearText, len - 16, false); // decrypt
 	}	
 	
 	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
@@ -158,18 +165,46 @@ namespace tunnel
 		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 		memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
 		// encrypt
-		auto encryptor = ident->CreateEncryptor (nullptr);
-		if (encryptor)
-			EncryptECIES (encryptor, clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx);
+		EncryptECIES (clearText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 
 	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
 	{
-		uint8_t nonce[12];
-		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, TUNNEL_BUILD_RECORD_SIZE - 16, 
-			m_H, 32, m_CK, nonce, clearText, TUNNEL_BUILD_RECORD_SIZE - 16, false)) // decrypt
+		if (!DecryptECIES (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
+		{
+			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
+			return false;
+		}	
+		return true;
+	}	
+
+	void ShortECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
+	{
+		// fill clear text
+		uint8_t flag = 0;
+		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
+		if (isEndpoint) flag |= TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;	
+		uint8_t clearText[SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE ];
+		htobe32buf (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
+		htobe32buf (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
+		memcpy (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
+		clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] = flag;
+		memset (clearText + SHORT_REQUEST_RECORD_MORE_FLAGS_OFFSET, 0, 2);
+		clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE] = 0; // AES
+		htobe32buf (clearText + SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetMinutesSinceEpoch ());
+        htobe32buf (clearText + SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET , 600); // +10 minutes
+		htobe32buf (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
+		memset (clearText + SHORT_REQUEST_RECORD_PADDING_OFFSET, 0, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE - SHORT_REQUEST_RECORD_PADDING_OFFSET);
+		// TODO: derive layer and reply keys
+		// encrypt
+		EncryptECIES (clearText, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
+	}
+	
+	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	{
+		if (!DecryptECIES (encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
