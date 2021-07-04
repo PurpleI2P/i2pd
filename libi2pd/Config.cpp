@@ -213,7 +213,7 @@ namespace config {
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
-				"http://[324:9de3:fea4:f6ac::ace]:7070/"
+				"http://[324:71e:281a:9ed3::ace]:7070/"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
