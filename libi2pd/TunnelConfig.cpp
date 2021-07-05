@@ -137,11 +137,11 @@ namespace tunnel
 		MixHash (encrypted, len + 16); // h = SHA256(h || ciphertext)
 	}	
 
-	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * encrypted, size_t len, uint8_t * clearText)
+	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * key, const uint8_t * encrypted, size_t len, uint8_t * clearText)
 	{
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, m_CK, nonce, clearText, len - 16, false); // decrypt
+		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, key, nonce, clearText, len - 16, false); // decrypt
 	}	
 	
 	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
@@ -171,7 +171,7 @@ namespace tunnel
 
 	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
 	{
-		if (!DecryptECIES (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
+		if (!DecryptECIES (m_CK, encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
@@ -196,15 +196,27 @@ namespace tunnel
         htobe32buf (clearText + SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET , 600); // +10 minutes
 		htobe32buf (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 		memset (clearText + SHORT_REQUEST_RECORD_PADDING_OFFSET, 0, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE - SHORT_REQUEST_RECORD_PADDING_OFFSET);
-		// TODO: derive layer and reply keys
 		// encrypt
 		EncryptECIES (clearText, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
+		// derive reply and layer key
+		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelReplyKey", m_CK); 		
+		memcpy (replyKey, m_CK + 32, 32);
+		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelLayerKey", m_CK); 
+		memcpy (layerKey, m_CK + 32, 32);
+		if (isEndpoint)
+		{
+			i2p::crypto::HKDF (m_CK, nullptr, 0, "TunnelLayerIVKey", m_CK); 
+			memcpy (ivKey, m_CK + 32, 32);		
+			i2p::crypto::HKDF (m_CK, nullptr, 0, "RGarlicKeyAndTag", m_CK); // OTBRM garlic key m_CK + 32, tag first 8 bytes of m_CK
+		}
+		else
+			memcpy (ivKey, m_CK, 32); // last HKDF
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 	
 	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
 	{
-		if (!DecryptECIES (encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
+		if (!DecryptECIES (replyKey, encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;

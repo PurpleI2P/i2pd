@@ -59,7 +59,7 @@ namespace tunnel
 			TunnelHopConfig (r) {};
 		bool IsECIES () const { return true; };	
 		void EncryptECIES (const uint8_t * clearText, size_t len, uint8_t * encrypted);	
-		bool DecryptECIES (const uint8_t * encrypted, size_t len, uint8_t * clearText);
+		bool DecryptECIES (const uint8_t * key, const uint8_t * encrypted, size_t len, uint8_t * clearText);
 	};
 	
 	struct LongECIESTunnelHopConfig: public ECIESTunnelHopConfig

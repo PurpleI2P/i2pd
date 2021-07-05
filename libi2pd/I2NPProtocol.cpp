@@ -622,17 +622,28 @@ namespace i2p
 					return;
 				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
-				uint8_t layerKeys[64]; // (layer key, iv key)
-				i2p::crypto::HKDF (noiseState.m_CK + 32, nullptr, 0, "LayerAndIVKeys", layerKeys); // TODO: correct domain		
+				uint8_t replyKey[32], layerKey[32], ivKey[32]; 
+				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
+				memcpy (replyKey, noiseState.m_CK + 32, 32);
+				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK); 
+				memcpy (layerKey, noiseState.m_CK + 32, 32);
+				bool isEndpoint = clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
+				if (isEndpoint)
+				{
+					i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "TunnelLayerIVKey", noiseState.m_CK);
+					memcpy (ivKey, noiseState.m_CK + 32, 32);
+				}	
+				else
+					memcpy (ivKey, noiseState.m_CK , 32);
 				auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 					bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
 					clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 					bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-					layerKeys, layerKeys + 32,
+					layerKey, ivKey,
 					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
 					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
 				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-				if (clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG)
+				if (isEndpoint)
 				{
 					// we are endpoint, create OutboundTunnelBuildReply	
 					auto otbrm = NewI2NPShortMessage ();
@@ -658,14 +669,13 @@ namespace i2p
 					}	
 					otbrm->len += (payload - otbrm->GetPayload ());
 					otbrm->FillI2NPMessageHeader (eI2NPOutboundTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
-					uint8_t replyKeys[64]; // (reply key, tag)
-					i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "ReplyKeyAndTag", replyKeys); // TODO: correct domain		
+					i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK); 		
 					uint64_t tag;
-					memcpy (&tag, replyKeys + 32, 8);
+					memcpy (&tag, noiseState.m_CK, 8);
 					// send garlic to reply tunnel
 					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateTunnelGatewayMsg (bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							i2p::garlic::WrapECIESX25519AEADRatchetMessage (otbrm, replyKeys, tag)));
+							i2p::garlic::WrapECIESX25519AEADRatchetMessage (otbrm,  noiseState.m_CK + 32, tag)));
 				}
 				else
 				{	
@@ -680,7 +690,7 @@ namespace i2p
 						{
 							// TODO: fill reply
 							if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
-								noiseState.m_H, 32, noiseState.m_CK, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
+								noiseState.m_H, 32, replyKey, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 							{
 								LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
 								return;
