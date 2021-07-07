@@ -843,10 +843,14 @@ namespace i2p
 				return;
 			}
 			buf += 4;
-			if (m_ECIESSession)
-				m_ECIESSession->HandleNextMessage (buf, len);
-			else
-				LogPrint (eLogError, "Router: Session is not set for ECIES router");
+			if (!HandleECIESx25519TagMessage (buf, len)) // try tag first
+			{	
+				// then Noise_N one-time decryption
+				if (m_ECIESSession)
+					m_ECIESSession->HandleNextMessage (buf, len);
+				else
+					LogPrint (eLogError, "Router: Session is not set for ECIES router");
+			}	
 		}
 		else
 			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);

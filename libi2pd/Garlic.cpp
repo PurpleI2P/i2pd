@@ -494,22 +494,9 @@ namespace garlic
 		buf += 4; // length
 
 		bool found = false;
-		uint64_t tag;
 		if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
-		{
 			// try ECIESx25519 tag	
-			memcpy (&tag, buf, 8);
-			auto it1 = m_ECIESx25519Tags.find (tag);
-			if (it1 != m_ECIESx25519Tags.end ())
-			{
-				found = true;
-				if (it1->second.tagset->HandleNextMessage (buf, length, it1->second.index))
-					m_LastTagset = it1->second.tagset;
-				else	
-					LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");					
-				m_ECIESx25519Tags.erase (it1);
-			}
-		}
+			found = HandleECIESx25519TagMessage (buf, length);
 		if (!found)
 		{		
 			auto it = !mod ? m_Tags.find (SessionTag(buf)) : m_Tags.end (); // AES block is multiple of 16
@@ -555,6 +542,7 @@ namespace garlic
 						// try to gererate more tags for last tagset 
 						if (m_LastTagset && (m_LastTagset->GetNextIndex () - m_LastTagset->GetTrimBehind () < 3*ECIESX25519_MAX_NUM_GENERATED_TAGS))
 						{
+							uint64_t missingTag; memcpy (&missingTag, buf, 8);
 							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
 							LogPrint (eLogWarning, "Garlic: trying to generate more ECIES-X25519-AEAD-Ratchet tags");
 							for (int i = 0; i < maxTags; i++)
@@ -565,10 +553,10 @@ namespace garlic
 									LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for last tagset");
 									break;
 								}	
-								if (nextTag == tag)
+								if (nextTag == missingTag)
 								{
 									LogPrint (eLogDebug, "Garlic: Missing ECIES-X25519-AEAD-Ratchet tag was generated");
-									if (m_LastTagset->HandleNextMessage (buf, length, m_ECIESx25519Tags[tag].index))
+									if (m_LastTagset->HandleNextMessage (buf, length, m_ECIESx25519Tags[nextTag].index))
 										found = true;
 									break;
 								}	
@@ -585,6 +573,23 @@ namespace garlic
 		}
 	}
 
+	bool GarlicDestination::HandleECIESx25519TagMessage (uint8_t * buf, size_t len)
+	{
+		uint64_t tag;
+		memcpy (&tag, buf, 8);
+		auto it = m_ECIESx25519Tags.find (tag);
+		if (it != m_ECIESx25519Tags.end ())
+		{
+			if (it->second.tagset->HandleNextMessage (buf, len, it->second.index))
+				m_LastTagset = it->second.tagset;
+			else	
+				LogPrint (eLogError, "Garlic: can't handle ECIES-X25519-AEAD-Ratchet message");					
+			m_ECIESx25519Tags.erase (it);
+			return true;
+		}
+		return false;
+	}	
+		
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
