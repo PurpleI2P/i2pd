@@ -113,12 +113,13 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}	
 
-	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
+	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (uint8_t * records) const
 	{
+		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (replyKey);
 		decryption.SetIV (replyIV);
-		decryption.Decrypt (encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText);
+		decryption.Decrypt (record, TUNNEL_BUILD_RECORD_SIZE, record);
 		return true;
 	}	
 
@@ -176,11 +177,12 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 
-	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
+	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (uint8_t * records) const
 	{
+		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!DecryptECIES (m_CK, nonce, encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
+		if (!DecryptECIES (m_CK, nonce, record, TUNNEL_BUILD_RECORD_SIZE, record))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
@@ -223,12 +225,13 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 	
-	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
+	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (uint8_t * records) const
 	{
+		uint8_t * record = records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE;
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
 		nonce[4] = recordIndex; // nonce is record index
-		if (!DecryptECIES (replyKey, nonce, encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
+		if (!DecryptECIES (replyKey, nonce, record, SHORT_TUNNEL_BUILD_RECORD_SIZE, record))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;

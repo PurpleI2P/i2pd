@@ -40,9 +40,9 @@ namespace tunnel
 		void SetNext (TunnelHopConfig * n);
 		void SetPrev (TunnelHopConfig * p);		
 
-		virtual bool IsECIES () const { return false; };
+		virtual uint8_t GetRetCode (const uint8_t * records) const = 0;
 		virtual void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) = 0;
-		virtual bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const = 0;
+		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
 		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
 	};
 
@@ -50,15 +50,16 @@ namespace tunnel
 	{
 		ElGamalTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			TunnelHopConfig (r) {};
+		uint8_t GetRetCode (const uint8_t * records) const 
+		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[BUILD_RESPONSE_RECORD_RET_OFFSET]; };	
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);	
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;	
+		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 	};	
 
 	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
 	{
 		ECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			TunnelHopConfig (r) {};
-		bool IsECIES () const { return true; };	
 		void EncryptECIES (const uint8_t * clearText, size_t len, uint8_t * encrypted);	
 		bool DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const;
 	};
@@ -67,16 +68,20 @@ namespace tunnel
 	{
 		LongECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			ECIESTunnelHopConfig (r) {};
+		uint8_t GetRetCode (const uint8_t * records) const 
+		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; };		
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;		
+		bool DecryptBuildResponseRecord (uint8_t * records) const;		
 	};	
 
 	struct ShortECIESTunnelHopConfig: public ECIESTunnelHopConfig
 	{
 		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			ECIESTunnelHopConfig (r) {};
+		uint8_t GetRetCode (const uint8_t * records) const 
+		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; }; // TODO			
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;	
+		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
 	};	
 	

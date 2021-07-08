@@ -103,26 +103,22 @@ namespace tunnel
 	{
 		LogPrint (eLogDebug, "Tunnel: TunnelBuildResponse ", (int)msg[0], " records.");
 
-		i2p::crypto::CBCDecryption decryption;
 		TunnelHopConfig * hop = m_Config->GetLastHop ();
 		while (hop)
 		{
 			// decrypt current hop
-			auto idx = hop->recordIndex;
-			if (idx >= 0 && idx < msg[0])
+			if (hop->recordIndex >= 0 && hop->recordIndex < msg[0])
 			{
-				uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
-				if (!hop->DecryptBuildResponseRecord (record, record))
+				if (!hop->DecryptBuildResponseRecord (msg + 1))
 					return false;
 			}	
 			else
 			{
-				LogPrint (eLogWarning, "Tunnel: hop index ", idx, " is out of range");
+				LogPrint (eLogWarning, "Tunnel: hop index ", hop->recordIndex, " is out of range");
 				return false;
 			}	
 			
 			// decrypt records before current hop 
-			decryption.SetKey (hop->replyKey);
 			TunnelHopConfig * hop1 = hop->prev;
 			while (hop1)
 			{
@@ -140,8 +136,7 @@ namespace tunnel
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{
-			const uint8_t * record = msg + 1 + hop->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
-			uint8_t ret = record[hop->IsECIES () ? ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET : BUILD_RESPONSE_RECORD_RET_OFFSET];
+			uint8_t ret = hop->GetRetCode (msg + 1);
 			LogPrint (eLogDebug, "Tunnel: Build response ret code=", (int)ret);
 			auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
 			if (profile)
