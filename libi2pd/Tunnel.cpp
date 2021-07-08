@@ -55,7 +55,6 @@ namespace tunnel
 		uint8_t * records = msg->GetPayload () + 1;
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
 		int i = 0;
-		BN_CTX * ctx = BN_CTX_new ();
 		while (hop)
 		{
 			uint32_t msgID;
@@ -63,13 +62,10 @@ namespace tunnel
 				RAND_bytes ((uint8_t *)&msgID, 4);
 			else
 				msgID = replyMsgID;
-			int idx = recordIndicies[i];
-			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, msgID, ctx);
-			hop->recordIndex = idx;
-			i++;
+			hop->recordIndex = recordIndicies[i]; i++;
+			hop->CreateBuildRequestRecord (records, msgID);
 			hop = hop->next;
 		}
-		BN_CTX_free (ctx);
 		// fill up fake records with random data
 		for (int i = numHops; i < numRecords; i++)
 		{

@@ -41,7 +41,7 @@ namespace tunnel
 		void SetPrev (TunnelHopConfig * p);		
 
 		virtual uint8_t GetRetCode (const uint8_t * records) const = 0;
-		virtual void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) = 0;
+		virtual void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) = 0;
 		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
 		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
 	};
@@ -52,7 +52,7 @@ namespace tunnel
 			TunnelHopConfig (r) {};
 		uint8_t GetRetCode (const uint8_t * records) const 
 		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[BUILD_RESPONSE_RECORD_RET_OFFSET]; };	
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);	
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);	
 		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 	};	
 
@@ -70,7 +70,7 @@ namespace tunnel
 			ECIESTunnelHopConfig (r) {};
 		uint8_t GetRetCode (const uint8_t * records) const 
 		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; };		
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);
 		bool DecryptBuildResponseRecord (uint8_t * records) const;		
 	};	
 
@@ -80,7 +80,7 @@ namespace tunnel
 			ECIESTunnelHopConfig (r) {};
 		uint8_t GetRetCode (const uint8_t * records) const 
 		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; }; // TODO			
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);
 		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
 	};	

@@ -87,7 +87,7 @@ namespace tunnel
 		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
 	}	
 	
-	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
+	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
 	{
 		// fill clear text
 		uint8_t flag = 0;
@@ -107,9 +107,14 @@ namespace tunnel
 		htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 		RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
 		// encrypt
+		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 		auto encryptor = ident->CreateEncryptor (nullptr);
 		if (encryptor)
+		{
+			BN_CTX * ctx = BN_CTX_new ();
 			encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
+			BN_CTX_free (ctx);
+		}	
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}	
 
@@ -152,7 +157,7 @@ namespace tunnel
 		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, key, nonce, clearText, len - 16, false); // decrypt
 	}	
 	
-	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
+	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
 	{
 		// fill clear text
 		uint8_t flag = 0;
@@ -173,6 +178,7 @@ namespace tunnel
 		htobe32buf (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 		memset (clearText + ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET, 0, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - ECIES_BUILD_REQUEST_RECORD_PADDING_OFFSET);
 		// encrypt
+		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 		EncryptECIES (clearText, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
@@ -190,7 +196,7 @@ namespace tunnel
 		return true;
 	}	
 
-	void ShortECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
+	void ShortECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
 	{
 		// fill clear text
 		uint8_t flag = 0;
@@ -208,6 +214,7 @@ namespace tunnel
 		htobe32buf (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
 		memset (clearText + SHORT_REQUEST_RECORD_PADDING_OFFSET, 0, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE - SHORT_REQUEST_RECORD_PADDING_OFFSET);
 		// encrypt
+		uint8_t * record = records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE;
 		EncryptECIES (clearText, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
 		// derive reply and layer key
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelReplyKey", m_CK); 		
