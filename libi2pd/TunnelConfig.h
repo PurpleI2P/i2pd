@@ -42,7 +42,8 @@ namespace tunnel
 
 		virtual bool IsECIES () const { return false; };
 		virtual void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) = 0;
-		virtual bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) = 0;
+		virtual bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const = 0;
+		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
 	};
 
 	struct ElGamalTunnelHopConfig: public TunnelHopConfig
@@ -50,7 +51,7 @@ namespace tunnel
 		ElGamalTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			TunnelHopConfig (r) {};
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);	
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);	
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;	
 	};	
 
 	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
@@ -59,7 +60,7 @@ namespace tunnel
 			TunnelHopConfig (r) {};
 		bool IsECIES () const { return true; };	
 		void EncryptECIES (const uint8_t * clearText, size_t len, uint8_t * encrypted);	
-		bool DecryptECIES (const uint8_t * key, const uint8_t * encrypted, size_t len, uint8_t * clearText);
+		bool DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const;
 	};
 	
 	struct LongECIESTunnelHopConfig: public ECIESTunnelHopConfig
@@ -67,7 +68,7 @@ namespace tunnel
 		LongECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			ECIESTunnelHopConfig (r) {};
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);		
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;		
 	};	
 
 	struct ShortECIESTunnelHopConfig: public ECIESTunnelHopConfig
@@ -75,20 +76,21 @@ namespace tunnel
 		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			ECIESTunnelHopConfig (r) {};
 		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx);
-		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText);		
+		bool DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const;	
+		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
 	};	
 	
 	class TunnelConfig
 	{
 		public:
 
-			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers) // inbound
+			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers) // inbound
 			{
 				CreatePeers (peers);
 				m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
 			}
 
-			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers,
+			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
 				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent) // outbound
 			{
 				CreatePeers (peers);
@@ -180,8 +182,7 @@ namespace tunnel
 
 		private:
 
-			template<class Peers>
-			void CreatePeers (const Peers& peers)
+			void CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
 			{
 				TunnelHopConfig * prev = nullptr;
 				for (const auto& it: peers)

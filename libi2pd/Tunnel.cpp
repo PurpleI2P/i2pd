@@ -78,18 +78,14 @@ namespace tunnel
 		}
 
 		// decrypt real records
-		i2p::crypto::CBCDecryption decryption;
 		hop = m_Config->GetLastHop ()->prev;
 		while (hop)
 		{
-			decryption.SetKey (hop->replyKey);
 			// decrypt records after current hop
 			TunnelHopConfig * hop1 = hop->next;
 			while (hop1)
 			{
-				decryption.SetIV (hop->replyIV);
-				uint8_t * record = records + hop1->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
-				decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+				hop->DecryptRecord (records, hop1->recordIndex);
 				hop1 = hop1->next;
 			}
 			hop = hop->prev;
@@ -132,11 +128,7 @@ namespace tunnel
 			{
 				auto idx = hop1->recordIndex;
 				if (idx >= 0 && idx < msg[0])
-				{
-					uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
-					decryption.SetIV (hop->replyIV);
-					decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-				}
+					hop->DecryptRecord (msg + 1, idx);
 				else
 					LogPrint (eLogWarning, "Tunnel: hop index ", idx, " is out of range");
 				hop1 = hop1->prev;

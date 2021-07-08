@@ -77,6 +77,15 @@ namespace tunnel
 			isGateway = false;
 		}
 	}
+
+	void TunnelHopConfig::DecryptRecord (uint8_t * records, int index) const
+	{
+		uint8_t * record = records + index*TUNNEL_BUILD_RECORD_SIZE;
+		i2p::crypto::CBCDecryption decryption;
+		decryption.SetKey (replyKey);
+		decryption.SetIV (replyIV);
+		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+	}	
 	
 	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx)
 	{
@@ -104,7 +113,7 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}	
 
-	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
 	{
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (replyKey);
@@ -137,10 +146,8 @@ namespace tunnel
 		MixHash (encrypted, len + 16); // h = SHA256(h || ciphertext)
 	}	
 
-	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * key, const uint8_t * encrypted, size_t len, uint8_t * clearText)
+	bool ECIESTunnelHopConfig::DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const
 	{
-		uint8_t nonce[12];
-		memset (nonce, 0, 12);
 		return i2p::crypto::AEADChaCha20Poly1305 (encrypted, len - 16, m_H, 32, key, nonce, clearText, len - 16, false); // decrypt
 	}	
 	
@@ -169,9 +176,11 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 
-	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	bool LongECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
 	{
-		if (!DecryptECIES (m_CK, encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		if (!DecryptECIES (m_CK, nonce, encrypted, TUNNEL_BUILD_RECORD_SIZE, clearText))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
@@ -214,14 +223,26 @@ namespace tunnel
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}
 	
-	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText)
+	bool ShortECIESTunnelHopConfig::DecryptBuildResponseRecord (const uint8_t * encrypted, uint8_t * clearText) const
 	{
-		if (!DecryptECIES (replyKey, encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		nonce[4] = recordIndex; // nonce is record index
+		if (!DecryptECIES (replyKey, nonce, encrypted, SHORT_TUNNEL_BUILD_RECORD_SIZE, clearText))
 		{
 			LogPrint (eLogWarning, "Tunnel: Response AEAD decryption failed");
 			return false;
 		}	
 		return true;
+	}	
+
+	void ShortECIESTunnelHopConfig::DecryptRecord (uint8_t * records, int index) const
+	{
+		uint8_t * record = records + index*SHORT_TUNNEL_BUILD_RECORD_SIZE;
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		nonce[4] = index; // nonce is index
+		i2p::crypto::ChaCha20 (record, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, record);
 	}	
 }
 }
