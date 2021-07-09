@@ -23,10 +23,6 @@ namespace tunnel
 {
 	TunnelHopConfig::TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r)
 	{
-		RAND_bytes (layerKey, 32);
-		RAND_bytes (ivKey, 32);
-		RAND_bytes (replyKey, 32);
-		RAND_bytes (replyIV, 16);
 		RAND_bytes ((uint8_t *)&tunnelID, 4);
 		if (!tunnelID) tunnelID = 1; // tunnelID can't be zero
 		isGateway = true;
@@ -89,6 +85,11 @@ namespace tunnel
 	
 	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
 	{
+		// generate keys
+		RAND_bytes (layerKey, 32);
+		RAND_bytes (ivKey, 32);
+		RAND_bytes (replyKey, 32);
+		RAND_bytes (replyIV, 16);
 		// fill clear text
 		uint8_t flag = 0;
 		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
@@ -159,6 +160,11 @@ namespace tunnel
 	
 	void LongECIESTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
 	{
+		// generate keys
+		RAND_bytes (layerKey, 32);
+		RAND_bytes (ivKey, 32);
+		RAND_bytes (replyKey, 32);
+		RAND_bytes (replyIV, 16);
 		// fill clear text
 		uint8_t flag = 0;
 		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
@@ -216,7 +222,7 @@ namespace tunnel
 		// encrypt
 		uint8_t * record = records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE;
 		EncryptECIES (clearText, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET);
-		// derive reply and layer key
+		// derive keys
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelReplyKey", m_CK); 		
 		memcpy (replyKey, m_CK + 32, 32);
 		i2p::crypto::HKDF (m_CK, nullptr, 0, "SMTunnelLayerKey", m_CK); 
