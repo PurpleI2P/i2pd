@@ -276,7 +276,20 @@ namespace stream
 		const uint8_t * optionData = packet->GetOptionData ();
 		size_t optionSize = packet->GetOptionSize ();
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
+		{	
+			if (!m_IsAckSendScheduled)
+			{
+				uint16_t delayRequested = bufbe16toh (optionData);
+				if (delayRequested > 0 && delayRequested < m_RTT)
+				{	
+					m_IsAckSendScheduled = true;
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(delayRequested));
+					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+						shared_from_this (), std::placeholders::_1));
+				}	
+			}
 			optionData += 2;
+		}	
 
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
@@ -793,7 +806,7 @@ namespace stream
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-			for (auto it: packets)
+			for (const auto& it: packets)
 			{
 				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
 					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
