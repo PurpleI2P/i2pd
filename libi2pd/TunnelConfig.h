@@ -115,6 +115,8 @@ namespace tunnel
 				}
 			}
 
+			bool IsShort () const { return m_IsShort; }
+			
 			TunnelHopConfig * GetFirstHop () const
 			{
 				return m_FirstHop;
@@ -193,10 +195,15 @@ namespace tunnel
 				for (const auto& it: peers)
 				{
 					TunnelHopConfig * hop;
-					if (it->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-						hop = new LongECIESTunnelHopConfig (it);
+					if (m_IsShort)
+						hop = new ShortECIESTunnelHopConfig (it);
 					else
-						hop = new ElGamalTunnelHopConfig (it);
+					{	
+						if (it->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+							hop = new LongECIESTunnelHopConfig (it);
+						else
+							hop = new ElGamalTunnelHopConfig (it);
+					}	
 					if (prev)
 						prev->SetNext (hop);
 					else
@@ -209,6 +216,7 @@ namespace tunnel
 		private:
 
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
+			bool m_IsShort = false;
 	};
 
 	class ZeroHopsTunnelConfig: public TunnelConfig
