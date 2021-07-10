@@ -23,6 +23,7 @@
 #include "Tunnel.h"
 #include "TunnelPool.h"
 #include "util.h"
+#include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
 {
@@ -91,7 +92,12 @@ namespace tunnel
 
 		// send message
 		if (outboundTunnel)
+		{
+			auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
+			if (ident && ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+				msg = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());	
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
+		}	
 		else
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
 	}

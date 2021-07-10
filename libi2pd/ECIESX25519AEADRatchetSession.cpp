@@ -1133,7 +1133,7 @@ namespace garlic
 		return true;
 	}	
 		
-	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
 		auto m = NewI2NPMessage ();
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -1167,5 +1167,12 @@ namespace garlic
 		return m;
 	}
 
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey)
+	{
+		// TODO: implement without session
+		auto session = std::make_shared<ECIESX25519AEADRatchetSession>(nullptr, false);
+		session->SetRemoteStaticKey (routerPublicKey);
+		return session->WrapOneTimeMessage (msg, true);
+	}	
 }
 }

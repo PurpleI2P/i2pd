@@ -988,7 +988,7 @@ namespace data
 						{
 							uint64_t tag;
 							memcpy (&tag, excluded + 33, 8);
-							replyMsg = i2p::garlic::WrapECIESX25519AEADRatchetMessage (replyMsg, sessionKey, tag);
+							replyMsg = i2p::garlic::WrapECIESX25519Message (replyMsg, sessionKey, tag);
 						}
 						else
 						{

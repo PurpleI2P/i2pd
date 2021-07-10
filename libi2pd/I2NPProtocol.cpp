@@ -675,7 +675,7 @@ namespace i2p
 					// send garlic to reply tunnel
 					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateTunnelGatewayMsg (bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							i2p::garlic::WrapECIESX25519AEADRatchetMessage (otbrm,  noiseState.m_CK + 32, tag)));
+							i2p::garlic::WrapECIESX25519Message (otbrm,  noiseState.m_CK + 32, tag)));
 				}
 				else
 				{	
