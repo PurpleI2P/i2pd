@@ -93,9 +93,15 @@ namespace tunnel
 		// send message
 		if (outboundTunnel)
 		{
-			auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
-			if (ident && ident->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-				msg = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());	
+			if (m_Config->IsShort ())
+			{
+				auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
+				if (ident)
+				{	
+					auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
+					if (msg1) msg = msg;
+				}	
+			}	
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
 		}	
 		else
