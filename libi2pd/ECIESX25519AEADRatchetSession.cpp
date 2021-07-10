@@ -518,36 +518,7 @@ namespace garlic
 		}
 		return true;
 	}
-
-	bool ECIESX25519AEADRatchetSession::NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
-	{
-		// we are Alice, router's bpk is m_RemoteStaticKey
-		i2p::crypto::InitNoiseNState (GetNoiseState (), m_RemoteStaticKey);
-		size_t offset = 0;
-		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-		memcpy (out + offset, m_EphemeralKeys->GetPublicKey (), 32);
-		MixHash (out + offset, 32); // h = SHA256(h || aepk)
-		offset += 32;
-		uint8_t sharedSecret[32];
-		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
-		{
-			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
-			return false;
-		}	
-		MixKey (sharedSecret); 
-		uint8_t nonce[12];
-		CreateNonce (0, nonce);
-		// encrypt payload
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
-		{
-			LogPrint (eLogWarning, "Garlic: Payload for router AEAD encryption failed");
-			return false;
-		}
-		
-		m_State = eSessionStateNewSessionSent;
-		return true;
-	}
-		
+	
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
@@ -858,11 +829,6 @@ namespace garlic
 					return nullptr;
 				len += 96;
 			break;	
-			case eSessionStateForRouter:
-				if (!NewOutgoingMessageForRouter (payload.data (), payload.size (), buf, m->maxLen))
-					return nullptr;
-				len += 48;
-			break;	
 			default:
 				return nullptr;
 		}
@@ -873,9 +839,9 @@ namespace garlic
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter)
+	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
-		m_State = isForRouter ? eSessionStateForRouter : eSessionStateOneTime;
+		m_State = eSessionStateOneTime;
 		return WrapSingleMessage (msg);
 	}	
 		
@@ -1132,19 +1098,10 @@ namespace garlic
 		HandlePayload (payload.data (), len - 16, nullptr, 0);
 		return true;
 	}	
-		
-	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+
+	static size_t CreateGarlicCloveBlock (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload)
 	{
-		auto m = NewI2NPMessage ();
-		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
-		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
-		uint8_t nonce[12];
-		memset (nonce, 0, 12); // n = 0
-		size_t offset = 0;
-		memcpy (buf + offset, &tag, 8); offset += 8;
-		auto payload = buf + offset;
 		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-		size_t len = cloveSize + 3;
 		payload[0] = eECIESx25519BlkGalicClove; // clove type
 		htobe16buf (payload + 1, cloveSize); // size
 		payload += 3;
@@ -1153,14 +1110,26 @@ namespace garlic
 		htobe32buf (payload + 1, msg->GetMsgID ()); // msgID
 		htobe32buf (payload + 5, msg->GetExpiration () / 1000); // expiration in seconds
 		memcpy (payload + 9, msg->GetPayload (), msg->GetPayloadLength ());
-
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len, buf, 8, key, nonce, buf + offset, len + 16, true)) // encrypt
+		return cloveSize + 3;
+	}	
+		
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	{
+		auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		size_t offset = 0;
+		memcpy (buf + offset, &tag, 8); offset += 8;
+		auto payload = buf + offset;
+		size_t len = CreateGarlicCloveBlock (msg, payload);
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, buf, 8, key, nonce, payload, len + 16, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return nullptr;
 		}
 		offset += len + 16;
-
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
@@ -1169,10 +1138,39 @@ namespace garlic
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey)
 	{
-		// TODO: implement without session
-		auto session = std::make_shared<ECIESX25519AEADRatchetSession>(nullptr, false);
-		session->SetRemoteStaticKey (routerPublicKey);
-		return session->WrapOneTimeMessage (msg, true);
+		// Noise_N, we are Alice, routerPublicKey is Bob's
+		i2p::crypto::NoiseSymmetricState noiseState;
+		i2p::crypto::InitNoiseNState (noiseState, routerPublicKey);
+		auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		size_t offset = 0;
+		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+		memcpy (buf + offset, ephemeralKeys->GetPublicKey (), 32);
+		noiseState.MixHash (buf + offset, 32); // h = SHA256(h || aepk)
+		offset += 32;
+		uint8_t sharedSecret[32];
+		if (!ephemeralKeys->Agree (routerPublicKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return nullptr;
+		}	
+		noiseState.MixKey (sharedSecret); 
+		auto payload = buf + offset;
+		size_t len = CreateGarlicCloveBlock (msg, payload);
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		// encrypt payload
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, noiseState.m_H, 32, noiseState.m_CK + 32, nonce, payload, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload for router AEAD encryption failed");
+			return nullptr;
+		}
+		offset += len + 16;
+		htobe32buf (m->GetPayload (), offset);
+		m->len += offset + 4;
+		m->FillI2NPMessageHeader (eI2NPGarlic);
+		return m;
 	}	
 }
 }
