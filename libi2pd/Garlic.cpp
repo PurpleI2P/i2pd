@@ -754,11 +754,7 @@ namespace garlic
 		std::shared_ptr<I2NPMessage> msg)
 	{
 		if (router->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-		{
-			auto session = std::make_shared<ECIESX25519AEADRatchetSession>(this, false);
-			session->SetRemoteStaticKey (router->GetIdentity ()->GetEncryptionPublicKey ());
-			return session->WrapOneTimeMessage (msg, true);
-		}	
+			return WrapECIESX25519MessageForRouter (msg, router->GetIdentity ()->GetEncryptionPublicKey ());
 		else
 		{	
 			auto session = GetRoutingSession (router, false);
