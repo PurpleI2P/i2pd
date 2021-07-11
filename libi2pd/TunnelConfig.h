@@ -79,7 +79,7 @@ namespace tunnel
 		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
 			ECIESTunnelHopConfig (r) {};
 		uint8_t GetRetCode (const uint8_t * records) const 
-		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; }; // TODO			
+		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[SHORT_RESPONSE_RECORD_RET_OFFSET]; };		
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);
 		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20

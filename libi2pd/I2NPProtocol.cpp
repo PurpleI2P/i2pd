@@ -608,7 +608,24 @@ namespace i2p
 			LogPrint (eLogError, "I2NP: ShortTunnelBuild message of ", num, " records is too short ", len);
 			return;
 		}
-		// TODO: check replyMsgID
+		auto tunnel = i2p::tunnel::tunnels.GetPendingInboundTunnel (replyMsgID);
+		if (tunnel)
+		{
+			// endpoint of inbound tunnel
+			LogPrint (eLogDebug, "I2NP: ShortTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
+			if (tunnel->HandleTunnelBuildResponse (buf, len))
+			{
+				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);
+				i2p::tunnel::tunnels.AddInboundTunnel (tunnel);
+			}
+			else
+			{
+				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);
+			}
+			return;
+		}
 		const uint8_t * record = buf + 1;
 		for (int i = 0; i < num; i++)
 		{
@@ -688,7 +705,8 @@ namespace i2p
 						nonce[4] = j; // nonce is record #
 						if (j == i)
 						{
-							// TODO: fill reply
+							memset (reply + SHORT_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
+							reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = 0;  // TODO: correct ret code
 							if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
 								noiseState.m_H, 32, replyKey, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 							{
