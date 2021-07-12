@@ -105,7 +105,16 @@ namespace tunnel
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
 		}	
 		else
+		{
+			if (m_Config->IsShort () && m_Config->GetLastHop ())
+			{
+				// add garlic key/tag for reply
+				uint8_t key[32];
+				uint64_t tag = m_Config->GetLastHop ()->GetGarlicKey (key);
+				i2p::context.AddECIESx25519Key (key, tag);
+			}	
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
+		}	
 	}
 
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
@@ -513,8 +522,10 @@ namespace tunnel
 							}
 							case eI2NPVariableTunnelBuild:
 							case eI2NPVariableTunnelBuildReply:
+							case eI2NPShortTunnelBuild:
+							case eI2NPShortTunnelBuildReply:
 							case eI2NPTunnelBuild:
-							case eI2NPTunnelBuildReply:
+							case eI2NPTunnelBuildReply:	
 								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 							break;
 							default:

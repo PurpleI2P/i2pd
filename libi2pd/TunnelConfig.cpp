@@ -260,5 +260,13 @@ namespace tunnel
 		nonce[4] = index; // nonce is index
 		i2p::crypto::ChaCha20 (record, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, record);
 	}	
+
+	uint64_t ShortECIESTunnelHopConfig::GetGarlicKey (uint8_t * key) const
+	{
+		uint64_t tag;
+		memcpy (&tag, m_CK, 8);
+		memcpy (key, m_CK + 32, 32);
+		return tag;
+	}	
 }
 }

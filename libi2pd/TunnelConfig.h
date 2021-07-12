@@ -44,6 +44,7 @@ namespace tunnel
 		virtual void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) = 0;
 		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
 		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
+		virtual uint64_t GetGarlicKey (uint8_t * key) const { return 0; }; // return tag
 	};
 
 	struct ElGamalTunnelHopConfig: public TunnelHopConfig
@@ -83,6 +84,7 @@ namespace tunnel
 		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);
 		bool DecryptBuildResponseRecord (uint8_t * records) const;	
 		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
+		uint64_t GetGarlicKey (uint8_t * key) const override;	
 	};	
 	
 	class TunnelConfig

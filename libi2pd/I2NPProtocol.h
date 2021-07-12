@@ -136,7 +136,7 @@ namespace i2p
 		eI2NPVariableTunnelBuild = 23,
 		eI2NPVariableTunnelBuildReply = 24,
 		eI2NPShortTunnelBuild = 25,
-		eI2NPOutboundTunnelBuildReply = 26
+		eI2NPShortTunnelBuildReply = 26
 	};
 
 	const uint8_t TUNNEL_BUILD_RECORD_GATEWAY_FLAG = 0x80;
