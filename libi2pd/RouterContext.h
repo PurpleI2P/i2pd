@@ -68,11 +68,11 @@ namespace garlic
 			void Init ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
-			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const
+			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };		
+			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
 			{
-				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo,
-					[](const i2p::data::RouterInfo *) {});
+				return std::shared_ptr<i2p::data::RouterInfo> (&m_RouterInfo,
+					[](i2p::data::RouterInfo *) {});
 			}
 			std::shared_ptr<i2p::garlic::GarlicDestination> GetSharedDestination ()
 			{

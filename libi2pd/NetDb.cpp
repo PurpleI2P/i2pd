@@ -59,6 +59,18 @@ namespace data
 			Reseed ();
 		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
+
+		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
+		if (it != m_RouterInfos.end ())
+		{
+			// remove own router
+			m_RouterInfos.erase (it);
+			m_Floodfills.remove (it->second);
+		}
+		// insert own router
+		m_RouterInfos.emplace (i2p::context.GetIdentHash (), i2p::context.GetSharedRouterInfo ());
+		if (i2p::context.IsFloodfill ())
+			m_Floodfills.push_back (i2p::context.GetSharedRouterInfo ());
 		
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
@@ -162,10 +174,18 @@ namespace data
 					bool publish = false;
 					if (m_PublishReplyToken)
 					{
+						// next publishing attempt
 						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
 					}
 					else if (i2p::context.GetLastUpdateTime () > lastPublish || 
-						ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
+						ts - lastPublish >= NETDB_PUBLISH_INTERVAL) 
+					{	
+						// new publish
+						m_PublishExcluded.clear ();
+						if (i2p::context.IsFloodfill ())
+							m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // do publish to ourselves
+						publish = true;
+					}	
 					if (publish) // update timestamp and publish
 					{
 						i2p::context.UpdateTimestamp (ts);
@@ -567,8 +587,10 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
+		auto own = i2p::context.GetSharedRouterInfo ();	
 		for (auto& it: m_RouterInfos)
 		{
+			if (it.second == own) continue; // skip own
 			std::string ident = it.second->GetIdentHashBase64();
 			std::string path  = m_Storage.Path(ident);
 			if (it.second->IsUpdated ())

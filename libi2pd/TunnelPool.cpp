@@ -423,7 +423,7 @@ namespace tunnel
 	bool StandardSelectPeers(Path & peers, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
 		int start = 0;
-		auto prevHop = i2p::context.GetSharedRouterInfo ();
+		std::shared_ptr<const i2p::data::RouterInfo> prevHop = i2p::context.GetSharedRouterInfo ();
 		if(i2p::transport::transports.RoutesRestricted())
 		{
 			/** if routes are restricted prepend trusted first hop */

@@ -262,6 +262,12 @@ namespace i2p
 		if (!router) // we send own RouterInfo
 			router = context.GetSharedRouterInfo ();
 
+		if (!router->GetBuffer ())
+		{
+			LogPrint (eLogError, "I2NP: Invalid RouterInfo buffer for DatabaseStore");
+			return nullptr;
+		}
+		
 		auto m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();
 
