@@ -1108,23 +1108,23 @@ namespace garlic
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ()); 
 		// I2NP
 		payload += len;
-		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
+		uint16_t cloveSize = msg->GetPayloadLength () + 10;
 		payload[0] = eECIESx25519BlkGalicClove; // clove type
 		htobe16buf (payload + 1, cloveSize); // size
 		payload += 3;
-		*payload = 0; payload++; // flag and delivery instructions
-		*payload = msg->GetTypeID (); // I2NP msg type
-		htobe32buf (payload + 1, msg->GetMsgID ()); // msgID
-		htobe32buf (payload + 5, msg->GetExpiration () / 1000); // expiration in seconds
-		memcpy (payload + 9, msg->GetPayload (), msg->GetPayloadLength ());
+		payload[0] = 0; // flag and delivery instructions
+		payload[1] = msg->GetTypeID (); // I2NP msg type
+		htobe32buf (payload + 2, msg->GetMsgID ()); // msgID
+		htobe32buf (payload + 6, msg->GetExpiration () / 1000); // expiration in seconds
+		memcpy (payload + 10, msg->GetPayload (), msg->GetPayloadLength ());
 		len += cloveSize + 3;
-	/*	payload += cloveSize + 3;
+		payload += cloveSize;
 		// padding
 		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
 		payload[0] = eECIESx25519BlkPadding; 
 		htobe16buf (payload + 1, paddingSize); 
 		memset (payload + 3, 0, paddingSize);
-		len += paddingSize + 3;*/
+		len += paddingSize + 3;
 		return len;
 	}	
 		
