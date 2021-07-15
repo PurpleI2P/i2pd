@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -147,7 +147,8 @@ namespace garlic
 			eSessionStateNewSessionSent,
 			eSessionStateNewSessionReplySent,
 			eSessionStateEstablished,
-			eSessionStateOneTime
+			eSessionStateOneTime,
+			eSessionStateForRouter
 		};
 
 		struct DHRatchet
@@ -165,7 +166,7 @@ namespace garlic
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
-			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg);
+			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
 			
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
@@ -206,7 +207,8 @@ namespace garlic
 			bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
-						
+			bool NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
+			
 			std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first);
 			size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 			size_t CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len);
