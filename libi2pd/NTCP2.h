@@ -218,6 +218,9 @@ namespace transport
 			bool m_IsSending;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
+
+			uint16_t m_PaddingSizes[16];
+			int m_NextPaddingSize; 
 	};
 
 	class NTCP2Server: private i2p::util::RunnableServiceWithWork

@@ -332,7 +332,8 @@ namespace transport
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
+		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false),
+		m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
 		{
@@ -1058,7 +1059,15 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
-		if (paddingSize) paddingSize = rand () % paddingSize;
+		if (paddingSize) 
+		{
+			if (m_NextPaddingSize >= 16)
+			{
+				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
+				m_NextPaddingSize = 0;
+			}	
+			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
+		}	
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
 		memset (buf + 3, 0, paddingSize);
