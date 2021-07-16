@@ -1099,13 +1099,17 @@ namespace garlic
 		return true;
 	}	
 
-	static size_t CreateGarlicPayload (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload)
+	static size_t CreateGarlicPayload (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload, bool datetime)
 	{
-		size_t len = 7;
-		// DateTime
-		payload[0] = eECIESx25519BlkDateTime; 
-		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ()); 
+		size_t len = 0;
+		if (datetime)
+		{	
+			// DateTime
+			payload[0] = eECIESx25519BlkDateTime; 
+			htobe16buf (payload + 1, 4);
+			htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ()); 
+			len = 7;
+		}	
 		// I2NP
 		payload += len;
 		uint16_t cloveSize = msg->GetPayloadLength () + 10;
@@ -1120,10 +1124,10 @@ namespace garlic
 		len += cloveSize + 3;
 		payload += cloveSize;
 		// padding
-		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
+		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
 		payload[0] = eECIESx25519BlkPadding; 
 		htobe16buf (payload + 1, paddingSize); 
-		memset (payload + 3, 0, paddingSize);
+		if (paddingSize) memset (payload + 3, 0, paddingSize);
 		len += paddingSize + 3;
 		return len;
 	}	
@@ -1136,7 +1140,7 @@ namespace garlic
 		size_t offset = 0;
 		memcpy (buf + offset, &tag, 8); offset += 8;
 		auto payload = buf + offset;
-		size_t len = CreateGarlicPayload (msg, payload);
+		size_t len = CreateGarlicPayload (msg, payload, false);
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // n = 0
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, buf, 8, key, nonce, payload, len + 16, true)) // encrypt
@@ -1172,7 +1176,7 @@ namespace garlic
 		}	
 		noiseState.MixKey (sharedSecret); 
 		auto payload = buf + offset;
-		size_t len = CreateGarlicPayload (msg, payload);
+		size_t len = CreateGarlicPayload (msg, payload, true);
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
 		// encrypt payload
