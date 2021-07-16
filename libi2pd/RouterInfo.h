@@ -206,7 +206,7 @@ namespace data
 			void DisableMesh ();	
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
 			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };
-			bool IsReachableBy (SupportedTransports transport) const { return m_ReachableTransports & transport; };
+			bool IsReachableBy (uint8_t transports) const { return m_ReachableTransports & transports; };
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
