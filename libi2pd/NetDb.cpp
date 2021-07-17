@@ -473,14 +473,15 @@ namespace data
 	bool NetDb::LoadRouterInfo (const std::string & path)
 	{
 		auto r = std::make_shared<RouterInfo>(path);
-		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
-			(r->IsReachable () || !r->IsSSU (false) || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
-		{
+		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses ())
+		{	
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
-			m_RouterInfos[r->GetIdentHash ()] = r;
-			if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
-				m_Floodfills.push_back (r);
+			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
+			{	
+				if (r->IsFloodfill () && r->IsEligibleFloodfill ())
+					m_Floodfills.push_back (r);
+			}	
 		}
 		else
 		{

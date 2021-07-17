@@ -343,7 +343,8 @@ namespace data
 						int numValid = 0;
 						for (auto& it: address->ssu->introducers)
 						{
-							if ((!it.iExp || ts <= it.iExp) && it.iPort > 0 && 
+							if (!it.iExp) it.iExp = m_Timestamp/1000 + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT;
+							if (ts <= it.iExp && it.iPort > 0 && 
 							    ((it.iHost.is_v4 () && address->IsV4 ()) || (it.iHost.is_v6 () && address->IsV6 ()))) 
 								numValid++;
 							else
