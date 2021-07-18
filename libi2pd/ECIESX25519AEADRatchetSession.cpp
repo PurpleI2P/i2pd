@@ -795,8 +795,9 @@ namespace garlic
 		
 	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
-		auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);
-		size_t len = payload.size ();
+		uint8_t * payload = GetOwner ()->GetPayloadBuffer ();
+		if (!payload) return nullptr;
+		size_t len = CreatePayload (msg, m_State != eSessionStateEstablished, payload);
 		if (!len) return nullptr;
 		auto m = NewI2NPMessage (len + 100); // 96 + 4
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -805,27 +806,27 @@ namespace garlic
 		switch (m_State)
 		{
 			case eSessionStateEstablished:
-				if (!NewExistingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewExistingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 24;
 			break;
 			case eSessionStateNew:
-				if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 96;
 			break;
 			case eSessionStateNewSessionReceived:
-				if (!NewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
 			break;
 			case eSessionStateNewSessionReplySent:
-				if (!NextNewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NextNewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
 			break;
 			case eSessionStateOneTime:
-				if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen, false))
+				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen, false))
 					return nullptr;
 				len += 96;
 			break;	
@@ -845,7 +846,7 @@ namespace garlic
 		return WrapSingleMessage (msg);
 	}	
 		
-	std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first)
+	size_t ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first, uint8_t * payload)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
@@ -907,89 +908,93 @@ namespace garlic
 				payloadLen += paddingSize + 3;
 			}
 		}
-		std::vector<uint8_t> v(payloadLen);
 		if (payloadLen)
-		{	
+		{
+			if (payloadLen > I2NP_MAX_MESSAGE_SIZE)
+			{
+				LogPrint (eLogError, "Garlic: payload length ", payloadLen, " is too long");
+				return 0;
+			}	
 			m_LastSentTimestamp = ts;
 			size_t offset = 0;
 			// DateTime
 			if (first)
 			{
-				v[offset] = eECIESx25519BlkDateTime; offset++;
-				htobe16buf (v.data () + offset, 4); offset += 2;
-				htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
+				payload[offset] = eECIESx25519BlkDateTime; offset++;
+				htobe16buf (payload + offset, 4); offset += 2;
+				htobe32buf (payload + offset, ts/1000); offset += 4; // in seconds
 			}
 			// LeaseSet
 			if (leaseSet)
 			{
-				offset += CreateLeaseSetClove (leaseSet, ts, v.data () + offset, payloadLen - offset);
+				offset += CreateLeaseSetClove (leaseSet, ts, payload + offset, payloadLen - offset);
 				if (!first)
 				{
 					// ack request
-					v[offset] = eECIESx25519BlkAckRequest; offset++;
-					htobe16buf (v.data () + offset, 1); offset += 2;
-					v[offset] = 0; offset++; // flags
+					payload[offset] = eECIESx25519BlkAckRequest; offset++;
+					htobe16buf (payload + offset, 1); offset += 2;
+					payload[offset] = 0; offset++; // flags
 				}
 			}
 			// msg
 			if (msg)
-				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
+				offset += CreateGarlicClove (msg, payload + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
 			{
-				v[offset] = eECIESx25519BlkAck; offset++;
-				htobe16buf (v.data () + offset, m_AckRequests.size () * 4); offset += 2;
+				payload[offset] = eECIESx25519BlkAck; offset++;
+				htobe16buf (payload + offset, m_AckRequests.size () * 4); offset += 2;
 				for (auto& it: m_AckRequests)
 				{
-					htobe16buf (v.data () + offset, it.first); offset += 2;
-					htobe16buf (v.data () + offset, it.second); offset += 2;
+					htobe16buf (payload + offset, it.first); offset += 2;
+					htobe16buf (payload + offset, it.second); offset += 2;
 				}
 				m_AckRequests.clear ();
 			}
 			// next keys
 			if (m_SendReverseKey)
 			{
-				v[offset] = eECIESx25519BlkNextKey; offset++;
-				htobe16buf (v.data () + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
-				v[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
+				payload[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (payload + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
+				payload[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
 				int keyID = m_NextReceiveRatchet->keyID - 1;
 				if (m_NextReceiveRatchet->newKey)
 				{
-					v[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
+					payload[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
 					keyID++;
 				}
 				offset++; // flag
-				htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
+				htobe16buf (payload + offset, keyID); offset += 2; // keyid
 				if (m_NextReceiveRatchet->newKey)
 				{
-					memcpy (v.data () + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
+					memcpy (payload + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
 				m_SendReverseKey = false;
 			}
 			if (m_SendForwardKey)
 			{
-				v[offset] = eECIESx25519BlkNextKey; offset++;
-				htobe16buf (v.data () + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
-				v[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
-				if (!m_NextSendRatchet->keyID) v[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
+				payload[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (payload + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
+				payload[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
+				if (!m_NextSendRatchet->keyID) payload[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
 				offset++; // flag
-				htobe16buf (v.data () + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
+				htobe16buf (payload + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
 				if (m_NextSendRatchet->newKey)
 				{
-					memcpy (v.data () + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
+					memcpy (payload + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
 			}
 			// padding
 			if (paddingSize)
 			{
-				v[offset] = eECIESx25519BlkPadding; offset++;
-				htobe16buf (v.data () + offset, paddingSize); offset += 2;
-				memset (v.data () + offset, 0, paddingSize); offset += paddingSize;
+				payload[offset] = eECIESx25519BlkPadding; offset++;
+				htobe16buf (payload + offset, paddingSize); offset += 2;
+				memset (payload + offset, 0, paddingSize); offset += paddingSize;
 			}
 		}	
-		return v;
+		return payloadLen;
 	}
 
 	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)

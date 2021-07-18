@@ -250,7 +250,8 @@ namespace garlic
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void RemoveECIESx25519Session (const uint8_t * staticKey);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
-
+			uint8_t * GetPayloadBuffer ();
+			
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void SetLeaseSetUpdated ();
@@ -284,6 +285,7 @@ namespace garlic
 			std::mutex m_SessionsMutex;
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
+			uint8_t * m_PayloadBuffer; // for ECIESX25519AEADRatchet
 			// incoming
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;

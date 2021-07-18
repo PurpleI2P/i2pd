@@ -433,7 +433,7 @@ namespace garlic
 	}
 
 	GarlicDestination::GarlicDestination (): m_NumTags (32), // 32 tags by default
-		m_NumRatchetInboundTags (0) // 0 means standard
+		m_PayloadBuffer (nullptr), m_NumRatchetInboundTags (0) // 0 means standard
 	{
 		m_Ctx = BN_CTX_new ();
 	}
@@ -441,6 +441,8 @@ namespace garlic
 	GarlicDestination::~GarlicDestination ()
 	{
 		BN_CTX_free (m_Ctx);
+		if (m_PayloadBuffer)
+			delete[] m_PayloadBuffer;
 	}
 
 	void GarlicDestination::CleanUp ()
@@ -1121,5 +1123,12 @@ namespace garlic
 			m_ECIESx25519Sessions.erase (it);
 		}
 	}
+
+	uint8_t * GarlicDestination::GetPayloadBuffer ()
+	{
+		if (!m_PayloadBuffer)
+			m_PayloadBuffer = new uint8_t[I2NP_MAX_MESSAGE_SIZE];
+		return m_PayloadBuffer;
+	}	
 }
 }
