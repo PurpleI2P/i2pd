@@ -1164,7 +1164,7 @@ namespace data
 
 	bool RouterInfo::IsEligibleFloodfill () const 
 	{
-		// floodfill must be reachable by ipv4, >= 0.9.28 and not DSA
+		// floodfill must be reachable by ipv4, >= 0.9.38 and not DSA
 		return IsReachableBy (eNTCP2V4 | eSSUV4) && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1; 
 	}	
