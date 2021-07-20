@@ -704,7 +704,7 @@ namespace i2p
 						i2p::garlic::WrapECIESX25519Message (replyMsg,  noiseState.m_CK + 32, tag)));
 				}	
 				else	
-					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,
+					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateI2NPMessage (eI2NPShortTunnelBuild, buf, len,
 							bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 				return;
