@@ -91,14 +91,17 @@ namespace tunnel
 	{
 		public:
 
-			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers) // inbound
+			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers, 
+				bool isShort = false): // inbound
+				m_IsShort (isShort)
 			{
 				CreatePeers (peers);
 				m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
 			}
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
-				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent) // outbound
+				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort = false): // outbound
+				m_IsShort (isShort)
 			{
 				CreatePeers (peers);
 				m_FirstHop->isGateway = false;
@@ -185,7 +188,7 @@ namespace tunnel
 		protected:
 
 			// this constructor can't be called from outside
-			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr)
+			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr), m_IsShort (false)
 			{
 			}
 
@@ -218,7 +221,7 @@ namespace tunnel
 		private:
 
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
-			bool m_IsShort = false;
+			bool m_IsShort;
 	};
 
 	class ZeroHopsTunnelConfig: public TunnelConfig

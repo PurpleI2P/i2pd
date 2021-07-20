@@ -88,7 +88,7 @@ namespace tunnel
 			}
 			hop = hop->prev;
 		}
-		msg->FillI2NPMessageHeader (eI2NPVariableTunnelBuild);
+		msg->FillI2NPMessageHeader (m_Config->IsShort () ? eI2NPShortTunnelBuild : eI2NPVariableTunnelBuild);
 
 		// send message
 		if (outboundTunnel)
@@ -99,7 +99,7 @@ namespace tunnel
 				if (ident)
 				{	
 					auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
-					if (msg1) msg = msg;
+					if (msg1) msg = msg1;
 				}	
 			}	
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
