@@ -686,7 +686,7 @@ namespace i2p
 						}	
 					}
 					else
-						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, noiseState.m_CK, nonce, reply); 
+						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply); 
 					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;	
 				}
 				// send reply
