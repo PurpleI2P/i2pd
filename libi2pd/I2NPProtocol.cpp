@@ -381,7 +381,7 @@ namespace i2p
 		return g_MaxNumTransitTunnels;
 	}
 
-	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
+	static bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
 		{
@@ -470,7 +470,7 @@ namespace i2p
 		return false;
 	}
 
-	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
+	static void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
@@ -540,7 +540,7 @@ namespace i2p
 		}
 	}
 
-	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
+	static void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
 	{
 		if (i2p::context.IsECIES ())
 		{
@@ -570,13 +570,14 @@ namespace i2p
 		}
 	}
 
-	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
+	static void HandleTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len, bool isShort)
 	{
 		int num = buf[0];
-		LogPrint (eLogDebug, "I2NP: VariableTunnelBuildReplyMsg of ", num, " records replyMsgID=", replyMsgID);
-		if (len < num*BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE + 1)
+		LogPrint (eLogDebug, "I2NP: TunnelBuildReplyMsg of ", num, " records replyMsgID=", replyMsgID);
+		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
+		if (len < num*recordSize + 1)
 		{
-			LogPrint (eLogError, "I2NP: VaribleTunnelBuildReply message of ", num, " records is too short ", len);
+			LogPrint (eLogError, "I2NP: TunnelBuildReply message of ", num, " records is too short ", len);
 			return;
 		}
 
@@ -600,7 +601,7 @@ namespace i2p
 			LogPrint (eLogWarning, "I2NP: Pending tunnel for message ", replyMsgID, " not found");
 	}
 
-	void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
+	static void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{
 		if (!i2p::context.IsECIES ())
 		{
@@ -827,12 +828,14 @@ namespace i2p
 			case eI2NPVariableTunnelBuild:
 				HandleVariableTunnelBuildMsg (msgID, buf, size);
 			break;
-			case eI2NPVariableTunnelBuildReply:
-			case eI2NPShortTunnelBuildReply:	
-				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
-			break;
 			case eI2NPShortTunnelBuild:
 				HandleShortTunnelBuildMsg (msgID, buf, size);
+			break;		
+			case eI2NPVariableTunnelBuildReply:
+				HandleTunnelBuildReplyMsg (msgID, buf, size, false);
+			break;
+			case eI2NPShortTunnelBuildReply:
+				HandleTunnelBuildReplyMsg (msgID, buf, size, true);
 			break;	
 			case eI2NPTunnelBuild:
 				HandleTunnelBuildMsg (buf, size);

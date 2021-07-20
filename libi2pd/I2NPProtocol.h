@@ -304,12 +304,6 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LocalLeaseSet> leaseSet, uint32_t replyToken = 0, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel = nullptr);
 	bool IsRouterInfoMsg (std::shared_ptr<I2NPMessage> msg);
 
-	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
-	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);
-
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);
 	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg (bool endpoint);
