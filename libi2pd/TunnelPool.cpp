@@ -526,8 +526,7 @@ namespace tunnel
 				std::reverse (peers.begin (), peers.end ());
 				config = std::make_shared<TunnelConfig> (peers);
 			}
-			auto tunnel = tunnels.CreateInboundTunnel (config, outboundTunnel);
-			tunnel->SetTunnelPool (shared_from_this ());
+			auto tunnel = tunnels.CreateInboundTunnel (config, shared_from_this (), outboundTunnel);
 			if (tunnel->IsEstablished ()) // zero hops
 				TunnelCreated (tunnel);
 		}
@@ -551,10 +550,9 @@ namespace tunnel
 		{
 			config = std::make_shared<TunnelConfig>(tunnel->GetPeers ());
 		}
-		if (m_NumInboundHops == 0 || config)
+		if (!m_NumInboundHops || config)
 		{
-			auto newTunnel = tunnels.CreateInboundTunnel (config, outboundTunnel);
-			newTunnel->SetTunnelPool (shared_from_this());
+			auto newTunnel = tunnels.CreateInboundTunnel (config, shared_from_this(), outboundTunnel);
 			if (newTunnel->IsEstablished ()) // zero hops
 				TunnelCreated (newTunnel);
 		}
@@ -574,8 +572,7 @@ namespace tunnel
 				std::shared_ptr<TunnelConfig> config;
 				if (m_NumOutboundHops > 0)
 					config = std::make_shared<TunnelConfig>(peers, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ());
-				auto tunnel = tunnels.CreateOutboundTunnel (config);
-				tunnel->SetTunnelPool (shared_from_this ());
+				auto tunnel = tunnels.CreateOutboundTunnel (config, shared_from_this ());
 				if (tunnel->IsEstablished ()) // zero hops
 					TunnelCreated (tunnel);
 			}
@@ -606,8 +603,7 @@ namespace tunnel
 			}
 			if (!m_NumOutboundHops || config)
 			{
-				auto newTunnel = tunnels.CreateOutboundTunnel (config);
-				newTunnel->SetTunnelPool (shared_from_this ());
+				auto newTunnel = tunnels.CreateOutboundTunnel (config, shared_from_this ());
 				if (newTunnel->IsEstablished ()) // zero hops
 					TunnelCreated (newTunnel);
 			}
@@ -621,8 +617,7 @@ namespace tunnel
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
 		auto tunnel = tunnels.CreateInboundTunnel (
 			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()) : nullptr, 
-		    outboundTunnel);
-		tunnel->SetTunnelPool (shared_from_this ());
+		    shared_from_this (), outboundTunnel);
 		if (tunnel->IsEstablished ()) // zero hops
 			TunnelCreated (tunnel);
 	}

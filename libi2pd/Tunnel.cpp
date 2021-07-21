@@ -111,7 +111,10 @@ namespace tunnel
 				// add garlic key/tag for reply
 				uint8_t key[32];
 				uint64_t tag = m_Config->GetLastHop ()->GetGarlicKey (key);
-				i2p::context.AddECIESx25519Key (key, tag);
+				if (m_Pool && m_Pool->GetLocalDestination ())
+					m_Pool->GetLocalDestination ()->AddECIESx25519Key (key, tag);
+				else	
+					i2p::context.AddECIESx25519Key (key, tag);
 			}	
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
 		}	
@@ -710,7 +713,7 @@ namespace tunnel
 			LogPrint (eLogDebug, "Tunnel: creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
 				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () },
-					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ())
+					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()), nullptr
 			);
 		}
 	}
@@ -786,7 +789,7 @@ namespace tunnel
 			}
 			LogPrint (eLogDebug, "Tunnel: creating one hop inbound tunnel");
 			CreateTunnel<InboundTunnel> (
-				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () })
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () }), nullptr
 			);
 		}
 	}
@@ -832,9 +835,11 @@ namespace tunnel
 	}
 
 	template<class TTunnel>
-	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
+	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config, 
+	    std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto newTunnel = std::make_shared<TTunnel> (config);
+		newTunnel->SetTunnelPool (pool);
 		uint32_t replyMsgID;
 		RAND_bytes ((uint8_t *)&replyMsgID, 4);
 		AddPendingTunnel (replyMsgID, newTunnel);
@@ -842,18 +847,19 @@ namespace tunnel
 		return newTunnel;
 	}
 
-	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
+	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, 
+		std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		if (config)
-			return CreateTunnel<InboundTunnel>(config, outboundTunnel);
+			return CreateTunnel<InboundTunnel>(config, pool, outboundTunnel);
 		else
 			return CreateZeroHopsInboundTunnel ();
 	}
 
-	std::shared_ptr<OutboundTunnel> Tunnels::CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config)
+	std::shared_ptr<OutboundTunnel> Tunnels::CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool)
 	{
 		if (config)
-			return CreateTunnel<OutboundTunnel>(config);
+			return CreateTunnel<OutboundTunnel>(config, pool);
 		else
 			return CreateZeroHopsOutboundTunnel ();
 	}
@@ -889,7 +895,7 @@ namespace tunnel
 			{
 				// build symmetric outbound tunnel
 				CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
-						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()),
+						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()), nullptr,
 					GetNextOutboundTunnel ());
 			}
 			else
