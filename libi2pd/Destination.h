@@ -144,7 +144,7 @@ namespace client
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID);
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };

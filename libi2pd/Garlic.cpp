@@ -1044,10 +1044,11 @@ namespace garlic
 			{
 				LogPrint (eLogDebug, "Garlic: type local");
 				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
-				buf += (4 + 4); // msgID + expiration
+				int32_t msgID = bufbe32toh (buf); buf += 4; // msgID
+				buf += 4; // expiration
 				ptrdiff_t offset = buf - buf1;
 				if (offset <= (int)len)
-					HandleCloveI2NPMessage (typeID, buf, len - offset);
+					HandleCloveI2NPMessage (typeID, buf, len - offset, msgID);
 				else
 					LogPrint (eLogError, "Garlic: clove is too long");
 				break;
@@ -1066,13 +1067,14 @@ namespace garlic
 				}
 				uint32_t gwTunnel = bufbe32toh (buf); buf += 4;
 				I2NPMessageType typeID = (I2NPMessageType)(buf[0]); buf++; // typeid
-				buf += (4 + 4); // msgID + expiration
+				uint32_t msgID = bufbe32toh (buf); buf += 4; // msgID
+				buf += 4; // expiration
 				offset += 13;
 				if (GetTunnelPool ())
 				{
 					auto tunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel)
-						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset));
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset, msgID));
 					else
 						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
 				}
