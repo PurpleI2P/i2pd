@@ -645,6 +645,11 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
+				if (clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE]) // not AES
+				{
+					LogPrint (eLogWarning, "I2NP: Unknown layer encryption type ", clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE], " in short request record");
+					return;
+				}	
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
 				uint8_t replyKey[32], layerKey[32], ivKey[32]; 
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
@@ -659,15 +664,27 @@ namespace i2p
 				}	
 				else
 					memcpy (ivKey, noiseState.m_CK , 32);
-				auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
-					bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-					clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-					bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-					layerKey, ivKey,
-					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
-					clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-				
+
+				// check if we accept this tunnel
+				uint8_t retCode = 0;
+				if (!i2p::context.AcceptsTunnels () ||
+					i2p::tunnel::tunnels.GetTransitTunnels ().size () > g_MaxNumTransitTunnels ||
+					i2p::transport::transports.IsBandwidthExceeded () ||
+					i2p::transport::transports.IsTransitBandwidthExceeded ())
+						retCode = 30;
+				if (!retCode)
+				{	
+					// create new transit tunnel
+					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
+						bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+						bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+						layerKey, ivKey,
+						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
+						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
+					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
+				}
+					
 				// encrypt reply
 				uint8_t nonce[12];
 				memset (nonce, 0, 12);
@@ -678,7 +695,7 @@ namespace i2p
 					if (j == i)
 					{
 						memset (reply + SHORT_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
-						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = 0;  // TODO: correct ret code
+						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = retCode; 
 						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
 							noiseState.m_H, 32, replyKey, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 						{
