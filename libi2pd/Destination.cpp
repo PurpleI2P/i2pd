@@ -366,6 +366,9 @@ namespace client
 			case eI2NPDatabaseSearchReply:
 				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
+			case eI2NPShortTunnelBuildReply: // might come as garlic encrypted
+				i2p::HandleI2NPMessage (CreateI2NPMessage (typeID, payload, len, msgID));	
+			break;		
 			default:
 				LogPrint (eLogWarning, "Destination: Unexpected I2NP message type ", typeID);
 				return false;
