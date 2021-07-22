@@ -13,5 +13,5 @@ Last-Update: 2021-01-16
 -USE_UPNP       := $(or $(USE_UPNP),no)
 +USE_UPNP       := $(or $(USE_UPNP),yes)
  DEBUG          := $(or $(DEBUG),yes)
-
+ 
  ifeq ($(DEBUG),yes)
