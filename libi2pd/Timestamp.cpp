@@ -60,14 +60,14 @@ namespace util
 	{
 		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
 		boost::asio::io_service service;
-		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
-		auto it = boost::asio::ip::udp::resolver (service).resolve (query, ec);
+		auto it = boost::asio::ip::udp::resolver (service).resolve (
+			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);
 		if (!ec && it != boost::asio::ip::udp::resolver::iterator())
 		{
 			auto ep = (*it).endpoint (); // take first one
 			boost::asio::ip::udp::socket socket (service);
-			socket.open (boost::asio::ip::udp::v4 (), ec);
+			socket.open (ep.protocol (), ec);
 			if (!ec)
 			{
 				uint8_t buf[48];// 48 bytes NTP request/response
@@ -103,7 +103,7 @@ namespace util
 				LogPrint (eLogError, "Timestamp: Couldn't open UDP socket");
 		}
 		else
-			LogPrint (eLogError, "Timestamp: Couldn't resove address ", address);
+			LogPrint (eLogError, "Timestamp: Couldn't resolve address ", address);
 	}
 
 	NTPTimeSync::NTPTimeSync (): m_IsRunning (false), m_Timer (m_Service)
