@@ -36,7 +36,14 @@ namespace tunnel
 	class OutboundTunnel;
 
 	typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
-	typedef std::vector<Peer> Path;
+	struct Path
+	{
+		std::vector<Peer> peers;
+		bool isShort = true;
+	
+		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);
+		void Reverse ();
+	};
 
 	/** interface for custom tunnel peer selection algorithm */
 	struct ITunnelPeerSelector
@@ -47,9 +54,8 @@ namespace tunnel
 
 
 	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
-	// standard peer selection algorithm
-	bool StandardSelectPeers(Path & path, int hops, bool inbound, SelectHopFunc nextHop);
-
+	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
+	
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
@@ -114,8 +120,8 @@ namespace tunnel
 			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, typename TTunnels::value_type excluded) const;
-			bool SelectPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& hops, bool isInbound);
-			bool SelectExplicitPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& hops, bool isInbound);
+			bool SelectPeers (Path& path, bool isInbound);
+			bool SelectExplicitPeers (Path& path, bool isInbound);
 
 		private:
 
