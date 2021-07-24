@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,6 +16,7 @@
 #include <boost/algorithm/string.hpp>
 #include "Config.h"
 #include "Log.h"
+#include "RouterContext.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
 #include "util.h"
@@ -63,9 +64,38 @@ namespace util
 		boost::system::error_code ec;
 		auto it = boost::asio::ip::udp::resolver (service).resolve (
 			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);
-		if (!ec && it != boost::asio::ip::udp::resolver::iterator())
+		if (!ec)
 		{
-			auto ep = (*it).endpoint (); // take first one
+			bool found = false;
+			boost::asio::ip::udp::resolver::iterator end;
+			boost::asio::ip::udp::endpoint ep;
+			while (it != end)
+			{	
+				ep = *it;
+				if (!ep.address ().is_unspecified ())
+				{
+					if (ep.address ().is_v4 ())
+					{	
+						if (i2p::context.SupportsV4 ()) found = true;	
+					}
+					else if (ep.address ().is_v6 ())
+					{
+						if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+						{
+							if (i2p::context.SupportsMesh ()) found = true;
+						}	
+						else if (i2p::context.SupportsV6 ()) found = true;
+					}
+				}	
+				if (found) break;
+				it++;
+			}
+			if (!found)
+			{
+				LogPrint (eLogError, "Timestamp: can't find compatible address for ", address);
+				return;
+			}	
+				
 			boost::asio::ip::udp::socket socket (service);
 			socket.open (ep.protocol (), ec);
 			if (!ec)
