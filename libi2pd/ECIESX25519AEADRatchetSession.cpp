@@ -1104,7 +1104,8 @@ namespace garlic
 		return true;
 	}	
 
-	static size_t CreateGarlicPayload (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload, bool datetime)
+	static size_t CreateGarlicPayload (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload, 
+		bool datetime, size_t optimalSize)
 	{
 		size_t len = 0;
 		if (datetime)
@@ -1129,11 +1130,20 @@ namespace garlic
 		len += cloveSize + 3;
 		payload += cloveSize;
 		// padding
-		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
-		payload[0] = eECIESx25519BlkPadding; 
-		htobe16buf (payload + 1, paddingSize); 
-		if (paddingSize) memset (payload + 3, 0, paddingSize);
-		len += paddingSize + 3;
+		int delta = (int)optimalSize - (int)len;
+		if (delta < 0 || delta > 3) // don't create padding if we are close to optimal size
+		{
+			uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+			if (delta > 3)
+			{
+				delta -= 3;
+				if (paddingSize > delta) paddingSize %= delta;
+			}
+			payload[0] = eECIESx25519BlkPadding; 
+			htobe16buf (payload + 1, paddingSize); 
+			if (paddingSize) memset (payload + 3, 0, paddingSize);
+			len += paddingSize + 3;
+		}	
 		return len;
 	}	
 		
@@ -1145,7 +1155,7 @@ namespace garlic
 		size_t offset = 0;
 		memcpy (buf + offset, &tag, 8); offset += 8;
 		auto payload = buf + offset;
-		size_t len = CreateGarlicPayload (msg, payload, false);
+		size_t len = CreateGarlicPayload (msg, payload, false, 956); // 1003 - 8 tag - 16 Poly1305 hash - 16 I2NP header - 4 garlic length - 3 local tunnel delivery
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // n = 0
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, buf, 8, key, nonce, payload, len + 16, true)) // encrypt
@@ -1181,7 +1191,7 @@ namespace garlic
 		}	
 		noiseState.MixKey (sharedSecret); 
 		auto payload = buf + offset;
-		size_t len = CreateGarlicPayload (msg, payload, true);
+		size_t len = CreateGarlicPayload (msg, payload, true, 900); // 1003 - 32 eph key - 16 Poly1305 hash - 16 I2NP header - 4 garlic length - 35 router tunnel delivery
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
 		// encrypt payload
