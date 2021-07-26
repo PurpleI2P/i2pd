@@ -1223,24 +1223,34 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
-		uint32_t ind = rand () % m_RouterInfos.size ();
-		for (int j = 0; j < 2; j++)
+		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+		auto ind = rand () % m_RouterInfos.size ();
+		auto it = m_RouterInfos.begin ();
+		std::advance (it, ind);
+		// try random router
+		if (it != m_RouterInfos.end () && !it->second->IsUnreachable () && filter (it->second))
+			return it->second;
+		// try closest routers
+		auto it1 = it; it1++;	
+		// forward
+		while (it1 != m_RouterInfos.end ())
 		{
-			uint32_t i = 0;
-			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-			for (const auto& it: m_RouterInfos)
+			if (!it1->second->IsUnreachable () && filter (it1->second))
+				return it1->second;
+			it1++;
+		}	
+		// still not found, try from the beginning
+		if (ind)
+		{	
+			it1 = m_RouterInfos.begin ();
+			while (it1 != it || it1 != m_RouterInfos.end ())
 			{
-				if (i >= ind)
-				{
-					if (!it.second->IsUnreachable () && filter (it.second))
-						return it.second;
-				}
-				else
-					i++;
-			}
-			// we couldn't find anything, try second pass
-			ind = 0;
-		}
+				if (!it1->second->IsUnreachable () && filter (it1->second))
+				return it1->second;
+				it1++;
+			}	
+		}	       
+			
 		return nullptr; // seems we have too few routers
 	}
 
