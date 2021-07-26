@@ -1243,10 +1243,10 @@ namespace data
 		if (ind)
 		{	
 			it1 = m_RouterInfos.begin ();
-			while (it1 != it || it1 != m_RouterInfos.end ())
+			while (it1 != it && it1 != m_RouterInfos.end ())
 			{
 				if (!it1->second->IsUnreachable () && filter (it1->second))
-				return it1->second;
+					return it1->second;
 				it1++;
 			}	
 		}	       
