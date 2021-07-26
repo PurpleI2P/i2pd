@@ -131,17 +131,14 @@ namespace tunnel
 
 	void ECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, size_t len, uint8_t * encrypted)
 	{
-		auto encryptor = ident->CreateEncryptor (nullptr);
-		if (!encryptor) return;
-		uint8_t hepk[32];
-		encryptor->Encrypt (nullptr, hepk, nullptr, false); 
-		i2p::crypto::InitNoiseNState (*this, hepk);
+		if (!ident) return;
+		i2p::crypto::InitNoiseNState (*this, ident->GetEncryptionPublicKey ());
 		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		memcpy (encrypted, ephemeralKeys->GetPublicKey (), 32);  
 		MixHash (encrypted, 32); // h = SHA256(h || sepk)
 		encrypted += 32;
 		uint8_t sharedSecret[32];
-		ephemeralKeys->Agree (hepk, sharedSecret); // x25519(sesk, hepk)
+		ephemeralKeys->Agree (ident->GetEncryptionPublicKey (), sharedSecret); // x25519(sesk, hepk)
 		MixKey (sharedSecret); 
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
