@@ -1230,25 +1230,38 @@ namespace data
 		// try random router
 		if (it != m_RouterInfos.end () && !it->second->IsUnreachable () && filter (it->second))
 			return it->second;
-		// try closest routers
+		// try routers after
 		auto it1 = it; it1++;	
-		// forward
 		while (it1 != m_RouterInfos.end ())
 		{
 			if (!it1->second->IsUnreachable () && filter (it1->second))
 				return it1->second;
 			it1++;
 		}	
-		// still not found, try from the beginning
+		// still not found, try some routers before
 		if (ind)
 		{	
+			ind = rand () % ind;
 			it1 = m_RouterInfos.begin ();
-			while (it1 != it && it1 != m_RouterInfos.end ())
+			std::advance (it1, ind);
+			auto it2 = it1;
+			while (it2 != it && it2 != m_RouterInfos.end ())
 			{
-				if (!it1->second->IsUnreachable () && filter (it1->second))
-					return it1->second;
-				it1++;
-			}	
+				if (!it2->second->IsUnreachable () && filter (it2->second))
+					return it2->second;
+				it2++;
+			}
+			if (ind)
+			{	
+				// still not found, try from the begining
+				it2 = m_RouterInfos.begin ();
+				while (it2 != it1 && it2 != m_RouterInfos.end ())
+				{
+					if (!it2->second->IsUnreachable () && filter (it2->second))
+						return it2->second;
+					it2++;
+				}
+			}
 		}	       
 			
 		return nullptr; // seems we have too few routers
