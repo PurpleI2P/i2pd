@@ -505,15 +505,12 @@ namespace tunnel
 
 	bool TunnelPool::SelectExplicitPeers (Path& path, bool isInbound)
 	{
-		int size = m_ExplicitPeers->size ();
-		std::vector<int> peerIndicies;
-		for (int i = 0; i < size; i++) peerIndicies.push_back(i);
-		std::shuffle (peerIndicies.begin(), peerIndicies.end(), std::mt19937(std::random_device()()));
-
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
+		if (numHops > (int)m_ExplicitPeers->size ()) numHops = m_ExplicitPeers->size ();
+		if (!numHops) return false; 
 		for (int i = 0; i < numHops; i++)
 		{
-			auto& ident = (*m_ExplicitPeers)[peerIndicies[i]];
+			auto& ident = (*m_ExplicitPeers)[i];
 			auto r = i2p::data::netdb.FindRouter (ident);
 			if (r)
 				path.Add (r);
