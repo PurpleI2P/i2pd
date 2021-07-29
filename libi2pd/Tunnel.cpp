@@ -106,7 +106,8 @@ namespace tunnel
 		}	
 		else
 		{
-			if (m_Config->IsShort () && m_Config->GetLastHop ())
+			if (m_Config->IsShort () && m_Config->GetLastHop () &&
+			    m_Config->GetLastHop ()->ident->GetIdentHash () != m_Config->GetLastHop ()->nextIdent)
 			{
 				// add garlic key/tag for reply
 				uint8_t key[32];
