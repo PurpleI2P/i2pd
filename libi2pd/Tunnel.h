@@ -237,8 +237,8 @@ namespace tunnel
 			void ManagePendingTunnels (PendingTunnels& pendingTunnels);
 			void ManageTunnelPools (uint64_t ts);
 
-			std::shared_ptr<ZeroHopsInboundTunnel> CreateZeroHopsInboundTunnel ();
-			std::shared_ptr<ZeroHopsOutboundTunnel> CreateZeroHopsOutboundTunnel ();
+			std::shared_ptr<ZeroHopsInboundTunnel> CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool);
+			std::shared_ptr<ZeroHopsOutboundTunnel> CreateZeroHopsOutboundTunnel (std::shared_ptr<TunnelPool> pool);
 
 		private:
 

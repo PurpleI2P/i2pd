@@ -763,8 +763,8 @@ namespace tunnel
 		if (m_InboundTunnels.empty ())
 		{
 			LogPrint (eLogDebug, "Tunnel: Creating zero hops inbound tunnel");
-			CreateZeroHopsInboundTunnel ();
-			CreateZeroHopsOutboundTunnel ();
+			CreateZeroHopsInboundTunnel (nullptr);
+			CreateZeroHopsOutboundTunnel (nullptr);
 			if (!m_ExploratoryPool)
 			{
 				int ibLen; i2p::config::GetOption("exploratory.inbound.length", ibLen);
@@ -854,7 +854,7 @@ namespace tunnel
 		if (config)
 			return CreateTunnel<InboundTunnel>(config, pool, outboundTunnel);
 		else
-			return CreateZeroHopsInboundTunnel ();
+			return CreateZeroHopsInboundTunnel (pool);
 	}
 
 	std::shared_ptr<OutboundTunnel> Tunnels::CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool)
@@ -862,7 +862,7 @@ namespace tunnel
 		if (config)
 			return CreateTunnel<OutboundTunnel>(config, pool);
 		else
-			return CreateZeroHopsOutboundTunnel ();
+			return CreateZeroHopsOutboundTunnel (pool);
 	}
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
@@ -912,18 +912,20 @@ namespace tunnel
 	}
 
 
-	std::shared_ptr<ZeroHopsInboundTunnel> Tunnels::CreateZeroHopsInboundTunnel ()
+	std::shared_ptr<ZeroHopsInboundTunnel> Tunnels::CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool)		
 	{
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
+		inboundTunnel->SetTunnelPool (pool);
 		inboundTunnel->SetState (eTunnelStateEstablished);
 		m_InboundTunnels.push_back (inboundTunnel);
 		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
 		return inboundTunnel;
 	}
 
-	std::shared_ptr<ZeroHopsOutboundTunnel> Tunnels::CreateZeroHopsOutboundTunnel ()
+	std::shared_ptr<ZeroHopsOutboundTunnel> Tunnels::CreateZeroHopsOutboundTunnel (std::shared_ptr<TunnelPool> pool)
 	{
 		auto outboundTunnel = std::make_shared<ZeroHopsOutboundTunnel> ();
+		outboundTunnel->SetTunnelPool (pool);
 		outboundTunnel->SetState (eTunnelStateEstablished);
 		m_OutboundTunnels.push_back (outboundTunnel);
 		// we don't insert into m_Tunnels
