@@ -60,16 +60,7 @@ namespace garlic
 						
 		private:
 
-			union
-			{
-				uint64_t ll[8];
-				uint8_t buf[64];
-
-				const uint8_t * GetSessTagCK () const { return buf; }; // sessTag_chainKey = keydata[0:31]
-				const uint8_t * GetSessTagConstant () const { return buf + 32; }; // SESSTAG_CONSTANT = keydata[32:63]
-				uint64_t GetTag () const { return ll[4]; }; // tag = keydata[32:39]
-
-			} m_KeyData;
+			i2p::data::Tag<64> m_SessionTagKeyData;
 			uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64], m_NextRootKey[32];
 			int m_NextIndex, m_NextSymmKeyIndex;
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;

@@ -31,16 +31,16 @@ namespace garlic
 		uint8_t keydata[64];
 		i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
 		memcpy (m_NextRootKey, keydata, 32); // nextRootKey = keydata[0:31]
-		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_KeyData.buf);
+		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_SessionTagKeyData);
 		// [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64)
-		memcpy (m_SymmKeyCK, m_KeyData.buf + 32, 32);
+		memcpy (m_SymmKeyCK, (const uint8_t *)m_SessionTagKeyData + 32, 32);
 		m_NextSymmKeyIndex = 0;
 	}
 
 	void RatchetTagSet::NextSessionTagRatchet ()
 	{
-		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), nullptr, 0, "STInitialization", m_KeyData.buf); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
-		memcpy (m_SessTagConstant, m_KeyData.GetSessTagConstant (), 32);
+		i2p::crypto::HKDF (m_SessionTagKeyData, nullptr, 0, "STInitialization", m_SessionTagKeyData); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
+		memcpy (m_SessTagConstant, (const uint8_t *)m_SessionTagKeyData + 32, 32); // SESSTAG_CONSTANT = keydata[32:63]
 		m_NextIndex = 0;
 	}
 
@@ -52,8 +52,8 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Tagset ", GetTagSetID (), " is empty");
 			return 0;
 		}
-		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
-		return m_KeyData.GetTag ();
+		i2p::crypto::HKDF (m_SessionTagKeyData, m_SessTagConstant, 32, "SessionTagKeyGen", m_SessionTagKeyData); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+		return m_SessionTagKeyData.GetLL ()[4]; // tag = keydata[32:39]
 	}
 
 	void RatchetTagSet::GetSymmKey (int index, uint8_t * key)
