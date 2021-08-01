@@ -328,10 +328,11 @@ namespace tunnel
 		for (auto& msg : msgs)
 		{
 			if (!msg.data) continue;
+			m_NumSentBytes += msg.data->GetLength ();
 			switch (msg.deliveryType)
 			{
 				case eDeliveryTypeLocal:
-					i2p::HandleI2NPMessage (msg.data);
+					HandleI2NPMessage (msg.data);
 				break;
 				case eDeliveryTypeTunnel:
 					i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));

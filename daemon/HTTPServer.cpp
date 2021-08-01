@@ -492,7 +492,7 @@ namespace http {
 				s << "<div class=\"listitem\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
-				s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+					s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</div>\r\n";
 			}
