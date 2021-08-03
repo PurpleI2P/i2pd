@@ -1223,47 +1223,54 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
+		uint16_t inds[3];
+		RAND_bytes ((uint8_t *)inds, sizeof (inds));
 		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-		auto ind = rand () % m_RouterInfos.size ();
+		inds[0] %= m_RouterInfos.size ();
 		auto it = m_RouterInfos.begin ();
-		std::advance (it, ind);
+		std::advance (it, inds[0]);
 		// try random router
 		if (it != m_RouterInfos.end () && !it->second->IsUnreachable () && filter (it->second))
 			return it->second;
-		// try routers after
-		auto it1 = it; it1++;	
-		while (it1 != m_RouterInfos.end ())
+		// try some routers around
+		auto it1 = m_RouterInfos.begin ();
+		if (inds[0]) 
 		{
-			if (!it1->second->IsUnreachable () && filter (it1->second))
-				return it1->second;
-			it1++;
+			// before
+			inds[1] %= inds[0];
+			std::advance (it1, inds[1]);
 		}	
-		// still not found, try some routers before
-		if (ind)
-		{	
-			ind = rand () % ind;
-			it1 = m_RouterInfos.begin ();
-			std::advance (it1, ind);
-			auto it2 = it1;
-			while (it2 != it && it2 != m_RouterInfos.end ())
-			{
-				if (!it2->second->IsUnreachable () && filter (it2->second))
-					return it2->second;
-				it2++;
-			}
-			if (ind)
-			{	
-				// still not found, try from the begining
-				it2 = m_RouterInfos.begin ();
-				while (it2 != it1 && it2 != m_RouterInfos.end ())
-				{
-					if (!it2->second->IsUnreachable () && filter (it2->second))
-						return it2->second;
-					it2++;
-				}
-			}
-		}	       
-			
+		auto it2 = it;
+		if (inds[0] < m_RouterInfos.size () - 1)
+		{
+			// after
+			inds[2] %= (m_RouterInfos.size () - 1 - inds[0]);
+			std::advance (it2, inds[2]);
+		}
+		// it1 - from, it2 - to
+		it = it1; 	
+		while (it != it2 && it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
+		}
+		// still not found, try from the begining
+		it = m_RouterInfos.begin ();
+		while (it != it1 && it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
+		}
+		// still not found, try to the begining
+		it = it2;
+		while (it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
+		}
 		return nullptr; // seems we have too few routers
 	}
 
