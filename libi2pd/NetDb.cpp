@@ -1237,14 +1237,16 @@ namespace data
 		if (inds[0]) 
 		{
 			// before
-			inds[1] %= inds[0];
-			std::advance (it1, inds[1]);
+			inds[1] %= inds[0]; 
+			std::advance (it1, (inds[1] + inds[0])/2);
 		}	
+		else
+			it1 = it;
 		auto it2 = it;
 		if (inds[0] < m_RouterInfos.size () - 1)
 		{
 			// after
-			inds[2] %= (m_RouterInfos.size () - 1 - inds[0]);
+			inds[2] %= (m_RouterInfos.size () - 1 - inds[0]); inds[2] /= 2;
 			std::advance (it2, inds[2]);
 		}
 		// it1 - from, it2 - to
