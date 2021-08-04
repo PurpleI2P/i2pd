@@ -11,6 +11,9 @@ netDb
 /libi2pd.so
 /libi2pdclient.so
 /libi2pdlang.so
+/libi2pd.dll
+/libi2pdclient.dll
+/libi2pdlang.dll
 *.exe
 
 

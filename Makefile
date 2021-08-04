@@ -1,11 +1,20 @@
 SYS := $(shell $(CXX) -dumpmachine)
-SHLIB := libi2pd.so
+
+ifneq (, $(findstring darwin, $(SYS)))
+	SHARED_PREFIX = dylib
+else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
+	SHARED_PREFIX = dll
+else
+	SHARED_PREFIX = so
+endif
+
+SHLIB := libi2pd.$(SHARED_PREFIX)
 ARLIB := libi2pd.a
-SHLIB_LANG := libi2pdlang.so
+SHLIB_LANG := libi2pdlang.$(SHARED_PREFIX)
 ARLIB_LANG := libi2pdlang.a
-SHLIB_CLIENT := libi2pdclient.so
+SHLIB_CLIENT := libi2pdclient.$(SHARED_PREFIX)
 ARLIB_CLIENT := libi2pdclient.a
-SHLIB_WRAP := libi2pdwrapper.so
+SHLIB_WRAP := libi2pdwrapper.$(SHARED_PREFIX)
 ARLIB_WRAP := libi2pdwrapper.a
 I2PD := i2pd
 
@@ -64,22 +73,18 @@ LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
 
-all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
+## Build all code (libi2pd, libi2pdclient, libi2pdlang), link code to .a and .so (.dll on windows) and build binary
+## Windows binary is not depending on output dlls
+all: | api_client $(I2PD)
 
 mk_obj_dir:
-	@mkdir -p obj
-	@mkdir -p obj/Win32
-	@mkdir -p obj/$(LIB_SRC_DIR)
-	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
-	@mkdir -p obj/$(LANG_SRC_DIR)
-	@mkdir -p obj/$(WRAP_SRC_DIR)
-	@mkdir -p obj/$(DAEMON_SRC_DIR)
+	@mkdir -p obj/{Win32,$(LIB_SRC_DIR),$(LIB_CLIENT_SRC_DIR),$(LANG_SRC_DIR),$(WRAP_SRC_DIR),$(DAEMON_SRC_DIR)}
 
-api: mk_obj_dir $(SHLIB) $(ARLIB)
-client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
-lang: mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
+api: | mk_obj_dir $(SHLIB) $(ARLIB)
+client: | mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang: | mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
+api_client: | api client lang
+wrapper: | mk_obj_dir api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
@@ -98,14 +103,14 @@ obj/%.o: %.cpp
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-$(SHLIB): $(LIB_OBJS)
+$(SHLIB): $(LIB_OBJS) $(SHLIB_LANG)
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB_LANG)
 endif
 
-$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS)
+$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS) $(SHLIB) $(SHLIB_LANG)
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB) $(SHLIB_LANG)
 endif
 
 $(SHLIB_WRAP): $(WRAP_LIB_OBJS)
@@ -118,7 +123,7 @@ ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(ARLIB): $(LIB_OBJS)
+$(ARLIB): $(LIB_OBJS) 
 	$(AR) -r $@ $^
 
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
