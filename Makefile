@@ -68,22 +68,27 @@ NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SR
 
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
-WRAP_LIB_OBJS   += $(patsubst %.cpp,obj/%.o,$(WRAP_LIB_SRC))
 LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
+WRAP_LIB_OBJS   += $(patsubst %.cpp,obj/%.o,$(WRAP_LIB_SRC))
+DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d) $(WRAP_LIB_OBJS:.o=.d)
 
 ## Build all code (libi2pd, libi2pdclient, libi2pdlang), link it to .a and build binary
-all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(I2PD)
+all: $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(I2PD)
 
 mk_obj_dir:
-	@mkdir -p obj/{Win32,$(LIB_SRC_DIR),$(LIB_CLIENT_SRC_DIR),$(LANG_SRC_DIR),$(WRAP_SRC_DIR),$(DAEMON_SRC_DIR)}
+	@mkdir -p obj/$(LIB_SRC_DIR)
+	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
+	@mkdir -p obj/$(LANG_SRC_DIR)
+	@mkdir -p obj/$(DAEMON_SRC_DIR)
+	@mkdir -p obj/$(WRAP_SRC_DIR)
+	@mkdir -p obj/Win32
 
-api: mk_obj_dir $(SHLIB) $(ARLIB)
-client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-lang: mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
+api: $(SHLIB) $(ARLIB)
+client: $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang:  $(SHLIB_LANG) $(ARLIB_LANG)
 api_client: api client lang
-wrapper: mk_obj_dir api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
+wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -92,7 +97,7 @@ wrapper: mk_obj_dir api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 
-obj/%.o: %.cpp
+obj/%.o: %.cpp | mk_obj_dir
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
@@ -121,7 +126,7 @@ ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(ARLIB): $(LIB_OBJS) 
+$(ARLIB): $(LIB_OBJS)
 	$(AR) -r $@ $^
 
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
