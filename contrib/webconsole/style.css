@@ -1,0 +1,245 @@
+body {
+	font: 100%/1.5em sans-serif;
+	margin: 0;
+	padding: 1.5em;
+	background: #FAFAFA;
+	color: #103456;
+}
+
+a, .slide label {
+	text-decoration: none;
+	color: #894C84;
+}
+
+a:hover, .slide label:hover {
+	color: #FAFAFA;
+	background: #894C84;
+}
+
+a.button {
+	-webkit-appearance: button;
+	-moz-appearance: button;
+	appearance: button;
+	text-decoration: none;
+	color: initial;
+	padding: 0 5px;
+	border: 1px solid #894C84;
+}
+
+.header {
+	font-size: 2.5em;
+	text-align: center;
+	margin: 1em 0;
+	color: #894C84;
+}
+
+.wrapper {
+	margin: 0 auto;
+	padding: 1em;
+	max-width: 64em;
+}
+
+.menu {
+	display: block;
+	float: left;
+	overflow: hidden;
+	max-width: 12em;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.listitem {
+	display: block;
+	font-family: monospace;
+	font-size: 1.2em;
+	white-space: nowrap;
+}
+
+.tableitem {
+	font-family: monospace;
+	font-size: 1.2em;
+	white-space: nowrap;
+}
+
+.content {
+	float: left;
+	font-size: 1em;
+	margin-left: 4em;
+	max-width: 48em;
+	overflow: auto;
+}
+
+.tunnel.established {
+	color: #56B734;
+}
+
+.tunnel.expiring {
+	color: #D3AE3F;
+}
+
+.tunnel.failed {
+	color: #D33F3F;
+}
+
+.tunnel.building {
+	color: #434343;
+}
+
+caption {
+	font-size: 1.5em;
+	text-align: center;
+	color: #894C84;
+}
+
+table {
+	display: table;
+	border-collapse: collapse;
+	text-align: center;
+}
+
+table.extaddr {
+	text-align: left;
+}
+
+table.services {
+	width: 100%;
+}
+
+textarea {
+	word-break: break-all;
+}
+
+.streamdest {
+	width: 120px;
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.slide div.slidecontent, .slide [type="checkbox"] {
+	display: none;
+}
+
+.slide [type="checkbox"]:checked ~ div.slidecontent {
+	display: block;
+	margin-top: 0;
+	padding: 0;
+}
+
+.disabled {
+	color: #D33F3F;
+}
+
+.enabled {
+	color: #56B734;
+}
+
+@media screen and (max-width: 1150px) { /* adaptive style */
+	.wrapper {
+		max-width: 58em;
+	}
+	
+	.menu {
+		max-width: 10em;
+	}
+
+	.content {
+		margin-left: 2em;
+		max-width: 42em;
+	}
+}
+
+@media screen and (max-width: 980px) {
+	body {
+		padding: 1.5em 0 0 0;
+	}
+
+	.menu {
+		width: 100%;
+		max-width: unset;
+		display: block;
+		float: none;
+		position: unset;
+		font-size: 16px;
+		text-align: center;
+	}
+
+	.menu a, .commands a {
+		display: inline-block;
+		padding: 4px;
+	}
+
+	.content {
+		float: none;
+		margin-left: unset;
+		margin-top: 16px;
+		max-width: 100%;
+		width: 100%;
+		text-align: center;
+	}
+
+	a, .slide label {
+		/* margin-right: 10px; */
+		display: block;
+		/* font-size: 18px; */
+	}
+
+	.header {
+		margin: unset;
+		font-size: 1.5em;
+	}
+
+	small {
+		display: block
+	}
+
+	a.button {
+		-webkit-appearance: button;
+		-moz-appearance: button;
+		appearance: button;
+		text-decoration: none;
+		color: initial;
+		margin-top: 10px;
+		padding: 6px;
+		border: 1px solid #894c84;
+		width: -webkit-fill-available;
+	}
+
+	input, select {
+		width: 35%;
+		text-align: center;
+		padding: 5px;
+		border: 2px solid #ccc;
+		-webkit-border-radius: 5px;
+		border-radius: 5px;
+		font-size: 18px;
+	}
+
+	table.extaddr {
+		margin: auto;
+		text-align: unset;
+	}
+
+	textarea {
+		width: -webkit-fill-available;
+		height: auto;
+		padding:5px;
+		border:2px solid #ccc;
+		-webkit-border-radius: 5px;
+		border-radius: 5px;
+		font-size: 12px;
+	}
+
+	button[type=submit] {
+		padding: 5px 15px;
+		background: #ccc;
+		border: 0 none;
+		cursor: pointer;
+		-webkit-border-radius: 5px;
+		border-radius: 5px;
+		position: relative;
+		height: 36px;
+		display: -webkit-inline-box;
+		margin-top: 10px;
+	}
+}

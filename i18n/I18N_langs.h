@@ -65,7 +65,8 @@ namespace i18n
 
 	struct langData
 	{
-		std::string LocaleName; //localized name
+		std::string LocaleName; // localized name
+		std::string ShortCode;  // short language code, like "en"
 		std::function<std::shared_ptr<const i2p::i18n::Locale> (void)> LocaleFunc;
 	};
 
@@ -81,11 +82,11 @@ namespace i18n
 	 */
 	static std::map<std::string, langData> languages
 	{
-		{ "afrikaans", {"Afrikaans", i2p::i18n::afrikaans::GetLocale} },
-		{ "english", {"English", i2p::i18n::english::GetLocale} },
-		{ "russian", {"русский язык", i2p::i18n::russian::GetLocale} },
-		{ "turkmen", {"türkmen dili", i2p::i18n::turkmen::GetLocale} },
-		{ "ukrainian", {"украї́нська мо́ва", i2p::i18n::ukrainian::GetLocale} },
+		{ "afrikaans", {"Afrikaans", "af", i2p::i18n::afrikaans::GetLocale} },
+		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
+		{ "russian", {"русский язык", "ru", i2p::i18n::russian::GetLocale} },
+		{ "turkmen", {"türkmen dili", "tk", i2p::i18n::turkmen::GetLocale} },
+		{ "ukrainian", {"украї́нська мо́ва", "uk", i2p::i18n::ukrainian::GetLocale} },
 	};
 
 } // i18n
