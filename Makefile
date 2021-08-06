@@ -73,19 +73,17 @@ LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
 
-## Build all code (libi2pd, libi2pdclient, libi2pdlang), link code to .a and .so (.dll on windows) and build binary
-## Windows binary is not depending on output dlls
-all: | api_client $(I2PD)
+## Build all code (libi2pd, libi2pdclient, libi2pdlang), link it to .a and build binary
+all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(I2PD)
 
 mk_obj_dir:
 	@mkdir -p obj/{Win32,$(LIB_SRC_DIR),$(LIB_CLIENT_SRC_DIR),$(LANG_SRC_DIR),$(WRAP_SRC_DIR),$(DAEMON_SRC_DIR)}
 
-api: | mk_obj_dir $(SHLIB) $(ARLIB)
-client: | mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-lang: | mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
-api_client: | api client lang
-wrapper: | mk_obj_dir api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
-
+api: mk_obj_dir $(SHLIB) $(ARLIB)
+client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang: mk_obj_dir $(SHLIB_LANG) $(ARLIB_LANG)
+api_client: api client lang
+wrapper: mk_obj_dir api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -138,7 +136,7 @@ $(ARLIB_LANG): $(LANG_OBJS)
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG)
+	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG) $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
 	strip $^
