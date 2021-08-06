@@ -66,7 +66,7 @@ namespace http {
 		"  a, .slide label { text-decoration: none; color: #894C84; }\r\n"
 		"  a:hover, .slide label:hover { color: #FAFAFA; background: #894C84; }\r\n"
 		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
-		"    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
+		"    padding: 0 5px; border: 1px solid #894C84; }\r\n"
 		"  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
 		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 64em; }\r\n"
 		"  .menu { display: block; float: left; overflow: hidden; max-width: 12em; white-space: nowrap; text-overflow: ellipsis; }\r\n"
@@ -97,7 +97,7 @@ namespace http {
 		"    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
 		"    .header { margin: unset; font-size: 1.5em; } small {display: block}\r\n"
 		"    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
-		"      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
+		"      margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
 		"    input, select { width: 35%; text-align: center; padding: 5px;\r\n"
 		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 18px; }\r\n"
 		"    table.extaddr { margin: auto; text-align: unset; }\r\n"
@@ -119,6 +119,8 @@ namespace http {
 			std::ifstream f(styleFile, std::ifstream::binary);
 			s << f.rdbuf();
 			externalCSS = s.str();
+		} else if (externalCSS.length() != 0) { // clean up external style if file was removed
+			externalCSS = "";
 		}
 	}
 
