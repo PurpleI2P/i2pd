@@ -1,20 +1,20 @@
 SYS := $(shell $(CXX) -dumpmachine)
 
 ifneq (, $(findstring darwin, $(SYS)))
-	SHARED_PREFIX = dylib
+	SHARED_SUFFIX = dylib
 else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
-	SHARED_PREFIX = dll
+	SHARED_SUFFIX = dll
 else
-	SHARED_PREFIX = so
+	SHARED_SUFFIX = so
 endif
 
-SHLIB := libi2pd.$(SHARED_PREFIX)
+SHLIB := libi2pd.$(SHARED_SUFFIX)
 ARLIB := libi2pd.a
-SHLIB_LANG := libi2pdlang.$(SHARED_PREFIX)
+SHLIB_LANG := libi2pdlang.$(SHARED_SUFFIX)
 ARLIB_LANG := libi2pdlang.a
-SHLIB_CLIENT := libi2pdclient.$(SHARED_PREFIX)
+SHLIB_CLIENT := libi2pdclient.$(SHARED_SUFFIX)
 ARLIB_CLIENT := libi2pdclient.a
-SHLIB_WRAP := libi2pdwrapper.$(SHARED_PREFIX)
+SHLIB_WRAP := libi2pdwrapper.$(SHARED_SUFFIX)
 ARLIB_WRAP := libi2pdwrapper.a
 I2PD := i2pd
 
