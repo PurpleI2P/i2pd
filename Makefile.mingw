@@ -61,5 +61,5 @@ ifeq ($(USE_ASLR),yes)
 	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va -Wl,--dynamicbase,--export-all-symbols
 endif
 
-obj/%.o : %.rc
+obj/%.o : %.rc | mk_obj_dir
 	$(WINDRES) -i $< -o $@
