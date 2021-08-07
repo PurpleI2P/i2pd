@@ -21,7 +21,6 @@ a.button {
 	-moz-appearance: button;
 	appearance: button;
 	text-decoration: none;
-	color: initial;
 	padding: 0 5px;
 	border: 1px solid #894C84;
 }
@@ -198,7 +197,6 @@ textarea {
 		-moz-appearance: button;
 		appearance: button;
 		text-decoration: none;
-		color: initial;
 		margin-top: 10px;
 		padding: 6px;
 		border: 1px solid #894c84;
