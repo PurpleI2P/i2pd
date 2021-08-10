@@ -720,9 +720,15 @@ namespace client
 					{
 						// udp server tunnel
 						// TODO: hostnames
-						if (address.empty ()) address = "127.0.0.1";
-						auto localAddress = boost::asio::ip::address::from_string(address);
 						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
+						if (address.empty ())
+						{
+							if (!endpoint.address ().is_unspecified () && endpoint.address ().is_v6 ())
+								address = "::1";
+							else
+								address = "127.0.0.1";
+						}	
+						auto localAddress = boost::asio::ip::address::from_string(address);	
 						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port, gzip);
 						if(!isUniqueLocal)
 						{
