@@ -675,7 +675,7 @@ namespace http {
 						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
 					}
 				} else { // placeholder for alignment
-					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
 				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</span></div>\r\n";
@@ -694,7 +694,7 @@ namespace http {
 						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
 					}
 				} else { // placeholder for alignment
-					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
 				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</span></div>\r\n";
@@ -703,7 +703,9 @@ namespace http {
 		s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 
 		if (dest->GetNumIncomingTags () > 0) {
-			s << "<tr><th colspan=\"2\">" << tr("Incoming Session Tags") << " [" << dest->GetNumIncomingTags () << "]</th></tr>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("Incoming Session Tags")
+			  << " <span class=\"hide\">[</span><span class=\"count\">"
+			  << dest->GetNumIncomingTags () << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 		} else {
 			s << "<tr><th colspan=\"2\">" << tr("No Incoming Session Tags") << "</th></tr>\r\n";
 		}
@@ -921,7 +923,7 @@ namespace http {
 					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
 				}
 			} else { // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
 			}
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</span></div>\r\n";
@@ -934,7 +936,7 @@ namespace http {
 			if(it->LatencyIsKnown())
 				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">" << it->GetMeanLatency() << tr("ms") << "</span>";
 			else // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</span>\r\n</div>\r\n";
 		}
