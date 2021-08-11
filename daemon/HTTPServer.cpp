@@ -41,71 +41,108 @@
 
 namespace i2p {
 namespace http {
-	const std::string itoopieFavicon =
-		"data:image/png;base64,"
-		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACx"
-		"jwv8YQUAAAAJcEhZcwAALiIAAC4iAari3ZIAAAAHdElNRQfgCQsUNSZrkhi1AAAAGXRFWHRTb2Z0"
-		"d2FyZQBwYWludC5uZXQgNC4wLjEyQwRr7AAAAoJJREFUOE9jwAUqi4Q1oEwwcDTV1+5sETaBclGB"
-		"vb09C5QJB6kWpvFQJoOCeLC5kmjEHCgXE2SlyETLi3h6QrkM4VL+ssWSCZUgtopITLKqaOotRTEn"
-		"cbAkLqAkGtOqLBLVAWLXyWSVFkkmRiqLxuaqiWb/VBYJMAYrwgckJY25VEUzniqKhjU2y+RtCRSP"
-		"6lUXy/1jIBV5tlYxZUaFVMq2NInwIi9hO8fSfOEAqDZUoCwal6MulvOvyS7gi69K4j9zxZT/m0ps"
-		"/28ptvvvquXXryIa7QYMMdTwqi0WNtVi0GIDseXl7TnUxFKfnGlxAGp0+D8j2eH/8Ub7/9e7nf7X"
-		"+Af/B7rwt6pI0h0l0WhQADOC9DBkhSirpImHNVZKp24ukkyoshGLnN8d5fA/y13t/44Kq/8hlnL/"
-		"z7fZ/58f6vcxSNpbVUVFhV1RLNBVTsQzVYZPSwhsCAhkiIfpNMrkbO6TLf071Sfk/5ZSi/+7q6z/"
-		"P5ns+v9mj/P/CpuI/20y+aeNGYxZoVoYGmsF3aFMBAAZlCwftnF9ke3//bU2//fXWP8/UGv731Am"
-		"+V+DdNblSqnUYqhSTKAiYSOqJBrVqiaa+S3UNPr/gmyH/xuKXf63hnn/B8bIP0UxHfEyyeSNQKVM"
-		"EB1AEB2twhcTLp+gIBJUoyKasEpVJHmqskh8qryovUG/ffCHHRU2q/Tk/YuB6eGPsbExa7ZkpLu1"
-		"oLEcVDtuUCgV1w60rQzElpRUE1EVSX0BYidHiInXF4nagNhYQW60EF+ApH1ktni0A1SIITSUgVlZ"
-		"JHYnlIsfzJjIp9xZKswL5YKBHL+coKJoRDaUSzoozxHVrygQU4JykQADAwAT5b1NHtwZugAAAABJ"
-		"RU5ErkJggg==";
+	const std::string i2pdfavicon =
+		"data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'%3E%3Crect width=\'64\' height=\'64\' fill=\'%23313\' rx=\'5\'/%3E%3Ccircle cx=\'8\' cy=\'32\' r=\'4\' fill=\'%23ee6565\'/%3E%3Ccircle cx=\'20\' cy=\'32\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'32\' cy=\'8\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'32\' cy=\'20\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'32\' cy=\'32\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'32\' cy=\'44\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'32\' cy=\'56\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'44\' cy=\'32\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'56\' cy=\'32\' r=\'4\' fill=\'%23ee6565\'/%3E%3Ccircle cx=\'8\' cy=\'20\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'8\' cy=\'44\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'20\' cy=\'8\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'20\' cy=\'44\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'20\' cy=\'56\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'44\' cy=\'8\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'44\' cy=\'20\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'44\' cy=\'44\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'44\' cy=\'56\' r=\'4\' fill=\'%239ff39f\'/%3E%3Ccircle cx=\'56\' cy=\'20\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'56\' cy=\'44\' r=\'4\' fill=\'%23ffc95e\'/%3E%3Ccircle cx=\'8\' cy=\'8\' r=\'4\' fill=\'%23ee6565\'/%3E%3Ccircle cx=\'8\' cy=\'56\' r=\'4\' fill=\'%23ee6565\'/%3E%3Ccircle cx=\'56\' cy=\'8\' r=\'4\' fill=\'%23ee6565\'/%3E%3Ccircle cx=\'56\' cy=\'56\' r=\'4\' fill=\'%23ee6565\'/%3E%3C/svg%3E";
 
 	// Bundled style
 	const std::string internalCSS =
 		"<style>\r\n"
-		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
-		"  a, .slide label { text-decoration: none; color: #894C84; }\r\n"
-		"  a:hover, .slide label:hover { color: #FAFAFA; background: #894C84; }\r\n"
-		"  a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
-		"    color: initial; padding: 0 5px; border: 1px solid #894C84; }\r\n"
-		"  .header { font-size: 2.5em; text-align: center; margin: 1em 0; color: #894C84; }\r\n"
-		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 64em; }\r\n"
-		"  .menu { display: block; float: left; overflow: hidden; max-width: 12em; white-space: nowrap; text-overflow: ellipsis; }\r\n"
-		"  .listitem { display: block; font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
-		"  .tableitem { font-family: monospace; font-size: 1.2em; white-space: nowrap; }\r\n"
-		"  .content { float: left; font-size: 1em; margin-left: 4em; max-width: 48em; overflow: auto; }\r\n"
-		"  .tunnel.established { color: #56B734; } .tunnel.expiring { color: #D3AE3F; }\r\n"
-		"  .tunnel.failed { color: #D33F3F; } .tunnel.building { color: #434343; }\r\n"
-		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
-		"  table { display: table; border-collapse: collapse; text-align: center; }\r\n"
-		"  table.extaddr { text-align: left; } table.services { width: 100%; }\r\n"
-		"  textarea { word-break: break-all; }\r\n"
-		"  .streamdest { width: 120px; max-width: 240px; overflow: hidden; text-overflow: ellipsis;}\r\n"
-		"  .slide div.slidecontent, .slide [type=\"checkbox\"] { display: none; }\r\n"
-		"  .slide [type=\"checkbox\"]:checked ~ div.slidecontent { display: block; margin-top: 0; padding: 0; }\r\n"
-		"  .disabled { color: #D33F3F; } .enabled { color: #56B734; }\r\n"
-		"  @media screen and (max-width: 1150px) {\r\n" /* adaptive style */
-		"    .wrapper { max-width: 58em; } .menu { max-width: 10em; }\r\n"
-		"    .content { margin-left: 2em; max-width: 42em; }\r\n"
-		"  }\r\n"
-		"  @media screen and (max-width: 980px) {\r\n"
-		"    body { padding: 1.5em 0 0 0; }\r\n"
-		"    .menu { width: 100%; max-width: unset; display: block; float: none; position: unset; font-size: 16px;\r\n"
-		"      text-align: center; }\r\n"
-		"    .menu a, .commands a { display: inline-block; padding: 4px; }\r\n"
-		"    .content { float: none; margin-left: unset; margin-top: 16px; max-width: 100%; width: 100%;\r\n"
-		"      text-align: center; }\r\n"
-		"    a, .slide label { /* margin-right: 10px; */ display: block; /* font-size: 18px; */ }\r\n"
-		"    .header { margin: unset; font-size: 1.5em; } small {display: block}\r\n"
-		"    a.button { -webkit-appearance: button; -moz-appearance: button; appearance: button; text-decoration: none;\r\n"
-		"      color: initial; margin-top: 10px; padding: 6px; border: 1px solid #894c84; width: -webkit-fill-available; }\r\n"
-		"    input, select { width: 35%; text-align: center; padding: 5px;\r\n"
-		"      border: 2px solid #ccc; -webkit-border-radius: 5px; border-radius: 5px; font-size: 18px; }\r\n"
-		"    table.extaddr { margin: auto; text-align: unset; }\r\n"
-		"    textarea { width: -webkit-fill-available; height: auto; padding:5px; border:2px solid #ccc;\r\n"
-		"      -webkit-border-radius: 5px; border-radius: 5px; font-size: 12px; }\r\n"
-		"    button[type=submit] { padding: 5px 15px; background: #ccc; border: 0 none; cursor: pointer;\r\n"
-		"      -webkit-border-radius: 5px; border-radius: 5px; position: relative; height: 36px; display: -webkit-inline-box; margin-top: 10px; }\r\n"
-		"  }\r\n"
+		"  :root{--bodyfont:Open Sans,Noto Sans,Ubuntu,Segoe UI,sans-serif;\r\n"
+		"  --monospaced:Droid Sans Mono,Noto Mono,Lucida Console,DejaVu Sans Mono,monospace;\r\n"
+		"  --logo:url(\"data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 58 16\'%3E%3Cg fill=\'%23525\'%3E%3Ccircle cx=\'3.1\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'3.1\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'3.1\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'3.1\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'13.5\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'13.5\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'13.5\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'13.5\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'16.9\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'20.4\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'23.8\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'27.3\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'27.3\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'27.3\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'27.3\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'34.2\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'34.2\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'37.6\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'41.1\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'41.1\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'41.1\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'41.1\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'48\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'48\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'51.4\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'51.4\' cy=\'13.2\' r=\'1.2\'/%3E%3C/g%3E%3Cg fill=\'%23f0f\'%3E%3Ccircle cx=\'6.6\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'6.6\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'6.6\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'6.6\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'10\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'10\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'10\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'10\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'16.9\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'16.9\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'16.9\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'20.4\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'20.4\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'20.4\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'23.8\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'23.8\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'23.8\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'30.7\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'30.7\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'30.7\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'30.7\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'34.2\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'34.2\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'37.6\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'37.6\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'37.6\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'44.5\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'44.5\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'44.5\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'44.5\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'48\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'48\' cy=\'13.2\' r=\'1.2\'/%3E%3Ccircle cx=\'51.4\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'51.4\' cy=\'9.7\' r=\'1.2\'/%3E%3C/g%3E%3Cg fill=\'%23525\'%3E%3Ccircle cx=\'54.9\' cy=\'2.8\' r=\'1.2\'/%3E%3Ccircle cx=\'54.9\' cy=\'6.3\' r=\'1.2\'/%3E%3Ccircle cx=\'54.9\' cy=\'9.7\' r=\'1.2\'/%3E%3Ccircle cx=\'54.9\' cy=\'13.2\' r=\'1.2\'/%3E%3C/g%3E%3C/svg%3E\");\r\n"
+		"  --dropdown:url(\"data:image/svg+xml,%3Csvg viewBox=\'0 0 64 64\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'m5.29 17.93 26.71 28.14 26.71-28.14\' fill=\'none\' stroke=\'%23894C84\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'10\'/%3E%3C/svg%3E\");\r\n"
+		"  --dropdown_hover:url(\"data:image/svg+xml,%3Csvg viewBox=\'0 0 64 64\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'m5.29 17.93 26.71 28.14 26.71-28.14\' fill=\'none\' stroke=\'%23fafafa\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'10\'/%3E%3C/svg%3E\");\r\n"
+		"  --yes:url(\"data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'%3E%3Cpath fill=\'%2371c837\' d=\'M55.9 8.6a4.3 4.3 0 00-3 1.3l-31 30.8L11.3 30a4.4 4.4 0 00-6 0l-4 4.2a4.4 4.4 0 000 6L19 57.7a4.4 4.4 0 006 0l37.8-37.9a4.4 4.4 0 000-6l-4-4a4.3 4.3 0 00-3-1.3z\'/%3E%3C/svg%3E\");\r\n"
+		"  --no:url(\"data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'%3E%3Cpath fill=\'red\' d=\'M9.7 0c-1 0-2.1.4-3 1.2L1.3 7a4.2 4.2 0 000 5.8L20.6 32 1.3 51.3a4.2 4.2 0 000 5.9l5.6 5.6a4.2 4.2 0 005.9 0L32 43.5l19.2 19.3a4.2 4.2 0 005.9 0l5.6-5.6a4.2 4.2 0 000-5.9L43.5 32l19.2-19.3a4.1 4.1 0 000-5.9l-5.6-5.6a4.2 4.2 0 00-5.8 0L32 20.5 12.6 1.2A4.2 4.2 0 009.7 0z\'/%3E%3C/svg%3E\");\r\n"
+		"  --info:url(\"data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'%3E%3Cpath fill=\'%23fcf\' stroke=\'%23313\' d=\'M31.4 3a28.8 28.8 0 00-1.6.1 28.8 28.8 0 00-26.6 29 28.8 28.8 0 1057.6 0A28.8 28.8 0 0031.4 3zm.6 9.3a4.5 4.5 0 014.5 4.5 4.5 4.5 0 01-4.5 4.4 4.5 4.5 0 01-4.5-4.4 4.5 4.5 0 014.5-4.5zm-4.5 13.1h9v26.3h-9V25.4z\'/%3E%3C/svg%3E\");\r\n"
+		"  --scrollbar:#414 #101;\r\n"
+		"  --ink:#dbd;\r\n"
+		"  --notify:#5f5;\r\n"
+		"  --page:#101;\r\n"
+		"  --main-boxshadow:0 0 0 1px #000,0 0 0 3px #313,0 0 0 5px #000;\r\n"
+		"  --link:#894c84;\r\n"
+		"  --link_hover:#fafafa;\r\n"
+		"  --border:#515;\r\n"
+		"  --button-border:#313;\r\n"
+		"  --button:linear-gradient(#303,#202);\r\n"
+		"  --button_hover:linear-gradient(to bottom,#733f6f,#522d4f);\r\n"
+		"  --button_active:linear-gradient(to bottom,#202,#303);\r\n"
+		"  --active_shadow:inset 3px 3px 3px rgba(0,0,0,.6);\r\n"
+		"  --hr:linear-gradient(to right,#313,#414,#313);\r\n"
+		"  --highlight:inset 0 0 0 1px #101;\r\n"
+		"  --tr:#180018;\r\n"
+		"  --textarea:#000;\r\n"
+		"  --textarea-ink:#103456;\r\n"
+		"  --input_text:var(--button-border)}\r\n"
+		"  html,body{min-height:100%}\r\n"
+		"  html,body,textarea{scrollbar-color:var(--scrollbar)}\r\n"
+		"  body{font:14pt var(--bodyfont);margin:0;padding:0;background:var(--page);color:var(--ink);line-height:1.6;position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;display:table}\r\n"
+		"  .header{display:none}\r\n"
+		"  .wrapper{margin:0 auto;padding:5px;width:96%;display:table-cell;vertical-align:middle;text-align:center}\r\n"
+		"  #main{margin:0 auto;min-width:300px;max-width:700px;font-size:85%;border:2px solid var(--border);border-spacing:1px;box-shadow:var(--main-boxshadow)}\r\n"
+		"  .center,.center form{text-align:center!important}\r\n"
+		"  form{margin:5px 0}\r\n"
+		"  a,.slide label{text-decoration:none;color:var(--link);font-weight:600}\r\n"
+		"  a{padding:1px 8px;display:inline-block;border-radius:2px}\r\n"
+		"  .listitem a{padding:0}\r\n"
+		"  a#home{margin:10px 0 20px;padding-bottom:40px;width:calc(100% - 20px);display:inline-block;vertical-align:top;position:relative;font-size:0;background:var(--logo) no-repeat center center / auto 40px;opacity:.5}\r\n"
+		"  a#home::after{content:"";display:inline-block;width:100%;height:1px;background:var(--hr);margin:20px 0 10px;position:absolute;bottom:-20px;left:0;right:0;opacity:1}\r\n"
+		"  a#home:hover{opacity:1}\r\n"
+		"  a:hover,.slide label:hover,button:hover,select:hover,input[type=number]:focus{color:var(--link_hover);background:var(--link)}\r\n"
+		"  a.button,button,input,select{vertical-align:middle}\r\n"
+		"  select,input,button{margin:4px 2px;padding:6px 8px;font-family:var(--bodyfont);font-size:90%!important;font-weight:600;color:var(--link);border:1px solid var(--button-border);appearance:none}\r\n"
+		"  a,select,button,label{cursor:pointer}\r\n"
+		"  a.button,button{margin:4px 2px;padding:1px 8px 4px;min-width:64px;display:inline-block;font-size:90%!important;font-weight:700;text-align:center;text-decoration:none;border:1px solid var(--button-border);border-radius:2px;box-shadow:var(--highlight);background:var(--button);appearance:none}\r\n"
+		"  button{padding:6px 12px;min-width:120px}\r\n"
+		"  a.button:hover,a.button:focus{color:var(--link_hover);background:var(--button_hover)!important}\r\n"
+		"  button:active,a.button:active,.slide label:active{box-shadow:var(--highlight),var(--active_shadow);background:var(--button_active)!important}\r\n"
+		"  select,input[type=number]{min-width:150px;max-width:150px;box-sizing:border-box;background:var(--input_text)}\r\n"
+		"  input[type=number]{box-shadow:var(--highlight),var(--active_shadow);outline:none;appearance:none}\r\n"
+		"  select{padding:6px 20px 6px 8px;line-height:1.5;background:var(--dropdown) no-repeat right 8px center / 10px,var(--button);box-shadow:var(--highlight)}\r\n"
+		"  select:hover,select:focus,select:active{color:var(--link_hover);background:var(--dropdown_hover) no-repeat right 8px center / 10px,var(--button_hover)}\r\n"
+		"  .note{padding:15px 10px!important}\r\n"
+		"  .note::before{width:24px;height:22px;display:inline-block;vertical-align:middle;background:var(--info) no-repeat center center / 16px;content:\"\"}\r\n"
+		"  .notify{padding:30px 10px!important;text-align:center!important;font-size:120%;color:var(--notify)}\r\n"
+		"  .notify.error{color:red}\r\n"
+		"  #main tr{background:var(--tr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}\r\n"
+		"  #main th,#main td{padding:5px 12px;border:1px solid var(--button-border);box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}\r\n"
+		"  #main th{padding:6px 12px;font-weight:700;font-size:105%;background:linear-gradient(to bottom,#101,#000)}\r\n"
+		"  #main table th{font-size:80%}\r\n"
+		"  #main td:first-child{width:50%;text-align:right;font-weight:600}\r\n"
+		"  #main td:last-child{text-align:left}\r\n"
+		"  #navlinks{padding:0 4px 12px!important}\r\n"
+		"  .enabled,.disabled{font-size:0}\r\n"
+		"  #main .enabled{background:var(--yes) no-repeat left 12px center / 10px}\r\n"
+		"  #main .disabled{background:var(--no) no-repeat left 12px center / 10px}\r\n"
+		"  .sensitive{filter:blur(8px);display:inline-block!important;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.05;font-size:75%}\r\n"
+		"  .sensitive:hover,td:active .sensitive{max-width:300px;white-space:pre-wrap;word-break:break-all;filter:blur(0)}\r\n"
+		"  .arrowright,.arrowleft,.arrowleftright{font-size:200%!important;line-height:0}\r\n"
+		"  .listitem{padding:1px 0;display:block;width:100%;font-family:var(--monospaced);font-size:80%;white-space:nowrap;border-bottom:1px dotted var(--button-border)}\r\n"
+		"  .listitem:last-child{border-bottom:none}\r\n"
+		"  .tableitem{font-family:var(--monospaced);font-size:90%;white-space:nowrap}\r\n"
+		"  .tunnel.established{color:#56B734}\r\n"
+		"  .tunnel.expiring{color:#D3AE3F}\r\n"
+		"  .tunnel.failed{color:#D33F3F}\r\n"
+		"  .tunnel.building{color:#434343}\r\n"
+		"  caption{font-size:1.5em;text-align:center;color:var(--link)}\r\n"
+		"  table{display:table;border-collapse:collapse;text-align:center}\r\n"
+		"  table.extaddr{text-align:left}\r\n"
+		"  table.services{width:100%}\r\n"
+		"  textarea{margin:4px 0;width:calc(100% - 6px);resize:vertical;word-break:break-all;color:var(--textarea-ink);border:1px solid var(--button-border);background:var(--textarea)}\r\n"
+		"  .streamdest{width:120px;max-width:240px;overflow:hidden;text-overflow:ellipsis}\r\n"
+		"  .slide div.slidecontent,.slide [type=checkbox]{display:none}\r\n"
+		"  .slide [type=checkbox]:checked ~ div.slidecontent{margin-top:0;padding:0;display:block}\r\n"
+		"  .disabled{color:#D33F3F}\r\n"
+		"  .enabled{color:#56B734}\r\n"
+		"  .nopadding{padding:0!important}\r\n"
+		"  .slide{margin:0 0 8px}\r\n"
+		"  .slide .listitem:last-child{margin-bottom:8px!important}\r\n"
+		"  .slide label{margin:8px auto;padding:4px 0;width:calc(100% - 16px);display:block;border:1px solid var(--button-border);box-shadow:var(--highlight);background:var(--button);box-sizing:border-box}\r\n"
+		"  .slide label:hover{color:var(--link_hover);background:var(--button_hover)}\r\n"
+		"  @media screen and (max-width: 1000px) {body{font-size:13pt!important}.listitem{font-size:90%}a{padding:1px 3px}}\r\n"
+		"  @media screen and (-webkit-min-device-pixel-ratio: 1.5) {body{font-size:12pt!important}}\r\n"
+		"  @media screen and (min-width: 1200px) {#main{width:700px}}\r\n"
+		"  @media screen and (min-width: 1200px) and (min-height: 600px) {.wrapper{padding:2%}}\r\n"
 		"</style>\r\n";
 
 	// for external style sheet
@@ -188,17 +225,25 @@ namespace http {
 
 	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
 	{
-		s << std::fixed << std::setprecision(2);
+		s << std::fixed << std::setprecision(0);
 		auto numKBytes = (double) bytes / 1024;
-		if (numKBytes < 1024)
-			s << numKBytes << " " << tr(/* tr: Kibibit */ "KiB");
-		else if (numKBytes < 1024 * 1024)
-			s << numKBytes / 1024 << " " << tr(/* tr: Mebibit */ "MiB");
-		else
-			s << numKBytes / 1024 / 1024 << " " << tr(/* tr: Gibibit */ "GiB");
+		if (numKBytes < 1) {
+			s << std::fixed << std::setprecision(2);
+			s << numKBytes * 1024 << "&#8239;" << tr(/* tr: Byte */ "B");
+		} else if (numKBytes < 1024) {
+			s << numKBytes << "&#8239;" << tr(/* tr: Kibibit */ "K");
+		} else if (numKBytes < 1024 * 1024) {
+			s << std::fixed << std::setprecision(1);
+			s << numKBytes / 1024 << "&#8239;" << tr(/* tr: Mebibit */ "M");
+		} else if (numKBytes < 1024 * 1024 * 1024) {
+			s << std::fixed << std::setprecision(2);
+			s << numKBytes / 1024 / 1024 << "&#8239;" << tr(/* tr: Gibibit */ "G");
+		} else {
+			s << numKBytes / 1024 / 1024 / 1024 << "&#8239;" << tr(/* tr: Tibibit */ "T");
+		}
 	}
 
-	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
+	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, double bytes)
 	{
 		std::string state, stateText;
 		switch (eState) {
@@ -218,8 +263,21 @@ namespace http {
 		else if (state == "established") stateText = tr("established");
 		else stateText = tr("unknown");
 
-		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << (int) (bytes / 1024) << "&nbsp;" << tr(/* tr: Kibibit */ "KiB") << "\r\n";
+		s << "<span class=\"tunnel " << state << ((explr) ? " exploratory" : "")
+		  << "\" data-tooltip=\"" << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "\">"
+		  << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>";
+		s << std::fixed << std::setprecision(0);
+		if (bytes > 1024 * 1024 * 1024) {
+			s << std::fixed << std::setprecision(2);
+			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
+		} else if (bytes > 1024 * 1024) {
+			s << std::fixed << std::setprecision(1);
+			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
+		} else if (bytes > 1024) {
+			s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
+		} else {
+			s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
+		}
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -241,6 +299,14 @@ namespace http {
 		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
 		auto it = i2p::i18n::languages.find(currLang);
 		std::string langCode = it->second.ShortCode;
+		// SAM
+		auto sam = i2p::client::context.GetSAMBridge ();
+
+		std::map<std::string, std::string> params;
+		std::string page("");
+		URL url;
+		url.parse_query(params);
+		page = params["page"];
 
 		s <<
 			"<!DOCTYPE html>\r\n"
@@ -248,43 +314,47 @@ namespace http {
 			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
-			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n";
+			"  <link rel=\"shortcut icon\" href=\"" << i2pdfavicon << "\">\r\n"
+			"  <title>Purple I2P | " VERSION "</title>\r\n";
 		GetStyles(s);
 		s <<
 			"</head>\r\n"
 			"<body>\r\n"
-			"<div class=\"header\">" << tr("<b>i2pd</b> webconsole") << "</div>\r\n"
-			"<div class=\"wrapper\">\r\n"
-			"<div class=\"menu\">\r\n"
-			"  <a href=\"" << webroot << "\">" << tr("Main page") << "</a><br><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_COMMANDS << "\">" << tr("Router commands") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Local Destinations") << "</a><br>\r\n";
+			"<div class=\"wrapper\">\r\n<table id=\"main\">\r\n"
+			"<tr><td class=\"center\" colspan=\"2\"><a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a></td></tr>"
+			"<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
 		if (i2p::context.IsFloodfill ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a><br>\r\n";
+			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
 		s <<
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit Tunnels") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a><br>\r\n";
-		if (i2p::client::context.GetSAMBridge ())
-			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM sessions") << "</a><br>\r\n";
-		s <<
-			"</div>\r\n"
-			"<div class=\"content\">";
+			"<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
+			<< HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
+//			"<a title=\"" << tr("Local Service Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("Services") << "</a>\r\n"
+//			"<a title=\"" << tr("Active Transit Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit") << "</a>\r\n"
+			"<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
+			"?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
+			"<a title=\"" << tr("All active tunnels") << "\" href=\"" << webroot << "?page="
+			<< HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a>\r\n";
+		if (sam && sam->GetSessions ().size ()) {
+			s << "<a title=\"" << tr("Current SAM sessions") << "\" href=\"" << webroot << "?page="
+			  << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM Sessions") << "</a>\r\n";
+		}
+		s << "<a title=\"" << tr("Router control and temporary configuration") << "\" href=\"" << webroot
+		  << "?page=" << HTTP_PAGE_COMMANDS << "\">" << tr("Control") << "</a>\r\n</td></tr>\r\n";
 	}
 
 	static void ShowPageTail (std::stringstream& s)
 	{
 		s <<
-			"</div>\r\n</div>\r\n"
+			"</table>\r\n"
+			"</div>\r\n"
 			"</body>\r\n"
 			"</html>\r\n";
 	}
 
 	static void ShowError(std::stringstream& s, const std::string& string)
 	{
-		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
+		s << "<tr><td class=\"center error\" colspan=\"2\"><span id=\"warning\"></span>\r\n<b>" << tr("ERROR")
+		  << ":</b>&nbsp;" << string << "</td></tr>\r\n";
 	}
 
 	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
@@ -321,106 +391,148 @@ namespace http {
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
-		s << "<b>" << tr("Uptime") << ":</b> ";
+		s << "<tr id=\"version\"><td>" << tr("Version") << "</td><td>" VERSION "</td></tr>\r\n";
+		s << "<tr><td>" << tr("Uptime") << "</td><td>";
 		ShowUptime(s, i2p::context.GetUptime ());
-		s << "<br>\r\n";
-		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus ());
-		s << "<br>\r\n";
+		s << "</td></tr>\r\n";
+		if (i2p::context.SupportsV4 ())
+		{
+			s << "<tr><td>" << tr("Network Status") << "</td><td>";
+			ShowNetworkStatus (s, i2p::context.GetStatus ());
+			s << "<br>\r\n";
+		}
 		if (i2p::context.SupportsV6 ())
 		{
-			s << "<b>" << tr("Network status v6") << ":</b> ";
+			s << "<tr><td>" << tr("Network Status (IPv6)") << "</td><td>";
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
 			s << "<br>\r\n";
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
-			s << "<b>" << tr("Stopping in") << ":</b> ";
+			s << "<tr><td>" << tr("Stopping in") << "</td><td>";
 			ShowUptime(s, remains);
-			s << "<br>\r\n";
+			s << "&hellip;</td></tr>\r\n";
 		}
 #elif defined(WIN32_APP)
 		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
 			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
-			s << "<b>" << tr("Stopping in") << ":</b> ";
+			s << "<tr><td>" << tr("Stopping in") << "</td><td>";
 			ShowUptime(s, remains);
-			s << "<br>\r\n";
+			s << "&hellip;</td></tr>\r\n";
 		}
 #endif
+		s << "<tr><td>" << tr("Bandwidth") << "</td><td><span class=\"router recvd\">";
+		s << std::fixed << std::setprecision(0);
+//		s << (double) i2p::transport::transports.GetInBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s");
+		if (i2p::transport::transports.GetInBandwidth () > 1024*1024*1024 ||
+			i2p::transport::transports.GetInBandwidth () < 1024)
+			s << std::fixed << std::setprecision(2);
+		else if (i2p::transport::transports.GetInBandwidth () > 1024*1024)
+			s << std::fixed << std::setprecision(1);
+		s << (double) i2p::transport::transports.GetInBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s");
+		s << "</span> <span class=\"hide\">/</span> <span class=\"router sent\">";
+//		s << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s");
+		s << std::fixed << std::setprecision(0);
+		if (i2p::transport::transports.GetOutBandwidth () > 1024*1024*1024 ||
+			i2p::transport::transports.GetOutBandwidth () < 1024)
+			s << std::fixed << std::setprecision(2);
+		else if (i2p::transport::transports.GetOutBandwidth () > 1024*1024)
+			s << std::fixed << std::setprecision(1);
+		s << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s");
+		s << "</span></td></tr>\r\n";
+		s << "<tr><td>" << tr("Transferred") << "</td><td><span class=\"router recvd\">";
+		s << std::fixed << std::setprecision(0);
+		if (i2p::transport::transports.GetTotalReceivedBytes () > 1024*1024*1024)
+			s << std::fixed << std::setprecision(2);
+		else if (i2p::transport::transports.GetTotalReceivedBytes () > 1024*1024)
+			s << std::fixed << std::setprecision(1);
+		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
+		s << "</span> <span class=\"hide\">/</span> <span class=\"router sent\">";
+		s << std::fixed << std::setprecision(0);
+		if (i2p::transport::transports.GetTotalSentBytes () > 1024*1024*1024)
+			s << std::fixed << std::setprecision(2);
+		else if (i2p::transport::transports.GetTotalSentBytes () > 1024*1024)
+			s << std::fixed << std::setprecision(1);
+		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
+		s << "</span></td</tr>\r\n";
+		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
+			s << "<tr><td>" << tr("Transit") << "</td><td><span class=\"transit sent\">";
+			s << std::fixed << std::setprecision(0);
+			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
+				s << std::fixed << std::setprecision(2);
+			else if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024)
+				s << std::fixed << std::setprecision(1);
+			ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
+			s << std::fixed << std::setprecision(0);
+			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
+				i2p::transport::transports.GetTransitBandwidth () < 1024)
+				s << std::fixed << std::setprecision(2);
+			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
+				s << std::fixed << std::setprecision(1);
+			s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024;
+//			s << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s") << ")</span></td></tr>\r\n";
+			s << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s") << ")</span></td></tr>\r\n";
+		}
+		s << "<tr><td>" << tr("Build Success") << "</td><td>";
+		s << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%</td></tr>\r\n";
+// TODO: Move to separate routerinfo page
+/*
+		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
+		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
+		s << "<tr><td>" << tr("Router Ident") << "</td><td><span class=\"sensitive\" hidden>" << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
 		auto family = i2p::context.GetFamily ();
 		if (family.length () > 0)
-			s << "<b>"<< tr("Family") << ":</b> " << family << "<br>\r\n";
-		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
-		s << "<b>" << tr("Received") << ":</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
-		s << "<b>" << tr("Sent") << ":</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
-		s << "<b>" << tr("Transit") << ":</b> ";
-		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
-		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
-		s << "<div class='slide'>";
-		if((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
-			s << "<label for=\"slide-info\">" << tr("Hidden content. Press on text to see.") << "</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
-		}
-		if(includeHiddenContent) {
-			s << "<b>" << tr("Router Ident") << ":</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
-			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
-				s << "<b>" << tr("Router Family") << ":</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
-			s << "<b>" << tr("Router Caps") << ":</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
-			s << "<b>" << tr("Version") << ":</b> " VERSION "<br>\r\n";
-			s << "<b>"<< tr("Our external address") << ":</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
-			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+			s << "<tr><td>"<< tr("Family") << "</td><td>" << family << "<br>\r\n";
+		if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
+			s << "<tr><td>" << tr("Router Family") << "</td><td><span class=\"sensitive\" hidden>" << i2p::context.GetRouterInfo().GetProperty("family") << "</span></td></tr>\r\n";
+		for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+		{
+			s << "<tr>\r\n";
+			if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 			{
-				s << "<tr>\r\n";
-				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
-				{
-					s << "<td>NTCP2";
-					if (address->host.is_v6 ()) s << "v6";
-					s << "</td><td>" << tr("supported") << "</td>\r\n</tr>\r\n";
-					continue;
-				}
-				switch (address->transportStyle)
-				{
-					case i2p::data::RouterInfo::eTransportNTCP:
-					{
-						s << "<td>NTCP";
-						if (address->IsPublishedNTCP2 ()) s << "2";
-						if (address->host.is_v6 ()) s << "v6";
-						s << "</td>\r\n";
-						break;
-					}
-					case i2p::data::RouterInfo::eTransportSSU:
-					{
-						s << "<td>SSU";
-						if (address->host.is_v6 ())
-							s << "v6";
-						s << "</td>\r\n";
-						break;
-					}
-					default:
-						s << "<td>" << tr("Unknown") << "</td>\r\n";
-				}
-				s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n</tr>\r\n";
+				s << "<td>NTCP2";
+				if (address->host.is_v6 ()) s << "v6";
+				s << "</td><td><span class=\"enabled\">" << tr("supported") << "</span></td>\r\n</tr>\r\n";
+				continue;
 			}
-			s << "</tbody></table>\r\n";
+			switch (address->transportStyle)
+			{
+				case i2p::data::RouterInfo::eTransportNTCP:
+				{
+					s << "<td>NTCP";
+					if (address->IsPublishedNTCP2 ()) s << "2";
+					if (address->host.is_v6 ()) s << "v6";
+					s << "</td>\r\n";
+					break;
+				}
+				case i2p::data::RouterInfo::eTransportSSU:
+				{
+					s << "<td>SSU";
+					if (address->host.is_v6 ())
+						s << "v6";
+					s << "</td>\r\n";
+					break;
+				}
+				default:
+					s << "<td>" << tr("Unknown") << "</td>\r\n";
+			}
+			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
 		}
-		s << "</div>\r\n</div>\r\n";
-		if(outputFormat == OutputFormatEnum::forQtUi) {
-			s << "<br>";
-		}
-		s << "<b>" << tr("Routers") << ":</b> " << i2p::data::netdb.GetNumRouters () << " ";
-		s << "<b>" << tr("Floodfills") << ":</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
-		s << "<b>" << tr("LeaseSets") << ":</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
+*/
+		s << "<tr><td>" << tr("Routers") << "</td><td>" << i2p::data::netdb.GetNumRouters () << "</td></tr>\r\n";
+		s << "<tr><td>" << tr("Floodfills") << "</td><td>" << i2p::data::netdb.GetNumFloodfills () << "</td></tr>\r\n";
+		s << "<tr><td>" << tr("LeaseSets") << "</td><td>" << i2p::data::netdb.GetNumLeaseSets () << "</td></tr>\r\n";
 
 		size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
-		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
-		s << "<b>" << tr("Client Tunnels") << ":</b> " << std::to_string(clientTunnelCount) << " ";
-		s << "<b>" << tr("Transit Tunnels") << ":</b> " << std::to_string(transitTunnelCount) << "<br>\r\n<br>\r\n";
+		s << "<tr><td>" << tr("Service Tunnels") << "</td><td><a class=\"view\" href=\"";
+		s << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << std::to_string(clientTunnelCount) << "</a></td></tr>\r\n";
+		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels()) {
+			s << "<tr><td>" << tr("Transit Tunnels") << "</td><td><a class=\"view\" href=\"";
+			s << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << std::to_string(i2p::tunnel::tunnels.CountTransitTunnels()) << "</a></td></tr>\r\n";
+		}
 
 		if(outputFormat==OutputFormatEnum::forWebConsole) {
 			bool httpproxy  = i2p::client::context.GetHttpProxy ()         ? true : false;
@@ -429,33 +541,52 @@ namespace http {
 			bool sam        = i2p::client::context.GetSAMBridge ()         ? true : false;
 			bool i2cp       = i2p::client::context.GetI2CPServer ()        ? true : false;
 			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
-			s << "<table class=\"services\"><caption>" << tr("Services") << "</caption><tbody>\r\n";
-			s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "'>" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "'>" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "'>" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "'>" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "'>" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "'>" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-			s << "</tbody></table>\r\n";
+			if (httpproxy || socksproxy || bob || sam || i2cp || i2pcontrol) {
+				s << "<tr><th colspan=\"2\">" << tr("Active Router Services") << "</th></tr>\r\n";
+				s << "<tr><td id=\"routerservices\" class=\"center\" colspan=\"2\">";
+				if (httpproxy)
+					s << " <span class=\"routerservice\">HTTP " << tr("Proxy") << "</span> ";
+				if (socksproxy)
+					s << " <span class=\"routerservice\">SOCKS " << tr("Proxy") << "</span> ";
+				if (bob)
+					s << " <span class=\"routerservice\">BOB</span> ";
+				if (sam)
+					s << " <span class=\"routerservice\">SAM</span> ";
+				if (i2cp)
+					s << " <span class=\"routerservice\">I2CP</span> ";
+				if (i2pcontrol)
+					s << " <span class=\"routerservice\">I2PControl</span> ";
+				s << "</tr></td>";
+			}
+/*
+				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "'>" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "'>" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "'>" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "'>" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "'>" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "'>" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+*/
 		}
+
+			s << "</tbody>\r\n</table>\r\n</div>\r\n";
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("Local Destinations") << ":</b><br>\r\n<div class=\"list\">\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding\" colspan=\"2\"><div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n" << std::endl;
 		}
-		s << "</div>\r\n";
+		s << "</td></tr>\r\n";
 
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
-			s << "<br><b>I2CP "<< tr("Local Destinations") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>I2CP "<< tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding i2cp\" colspan=\"2\"><div class=\"list\">\r\n";
 			for (auto& it: i2cpServer->GetSessions ())
 			{
 				auto dest = it.second->GetDestination ();
@@ -464,155 +595,212 @@ namespace http {
 					auto ident = dest->GetIdentHash ();
 					auto& name = dest->GetNickname ();
 					s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
-					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"</div>\r\n" << std::endl;
+					s << name << " ]</a> <span class=\"arrowleftright\">&#8660;</span> <span class=\"b32\">" << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"</span></div>\r\n" << std::endl;
 				}
 			}
-			s << "</div>\r\n";
+			s << "</td></tr>\r\n";
 		}
 	}
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
-		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\">";
-		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+		s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_b64\" />\r\n"
+		  << "<label for='slide_b64'>" << tr("Base64 Address") << "</label>\r\n";
+		s << "<div class=\"slidecontent\">\r\n<div id=\"b64\">";
+		s << dest->GetIdentity ()->ToBase64 () << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
-			s << "<div class='slide'><label for='slide-b33'><b>" << tr("Encrypted B33 address") << ":</b></label>\r\n<input type=\"checkbox\" id=\"slide-b33\" />\r\n<div class=\"slidecontent\">\r\n";
-			s << blinded.ToB33 () << ".b32.i2p<br>\r\n";
-			s << "</div>\r\n</div>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("Encrypted B33 Address") << "</td</th>\r\n";
+			s << "<tr><td colspan=\"2\">" << blinded.ToB33 () << ".b32.i2p</td></tr>\r\n";
 		}
 
 		if(dest->IsPublic())
 		{
 			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 			auto base32 = dest->GetIdentHash ().ToBase32 ();
-			s << "<div class='slide'><label for='slide-regaddr'><b>" << tr("Address registration line") << "</b></label>\r\n<input type=\"checkbox\" id=\"slide-regaddr\" />\r\n<div class=\"slidecontent\">\r\n"
-			     "<form method=\"get\" action=\"" << webroot << "\">\r\n"
-			     "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_GET_REG_STRING << "\">\r\n"
-			     "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
-			     "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
-			     "  <b>" << tr("Domain") << ":</b>\r\n<input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
-			     "  <button type=\"submit\">" << tr("Generate") << "</button>\r\n"
-			     "</form>\r\n<small>" << tr("<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.") << "</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
+			s << "<tr><th class=\"left\" colspan=\"2\">" << tr("Address Registration String") << "</th></tr>\r\n"
+				 "<tr><td colspan=\"2\"><form class=\"register\" method=\"get\" action=\"" << webroot << "\">\r\n"
+				 "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_GET_REG_STRING << "\">\r\n"
+				 "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
+				 "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
+				 "  <input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
+				 "  <button type=\"submit\">" << tr("Generate") << "</button>\r\n"
+				 "</form>\r\n<div class=\"note\">";
+			  s << tr("<b>Note:</b> Result string can be used only for registering 2LD domains (example.i2p).")
+			    << " " << tr("For registering subdomains, please use i2pd-tools.");
+			  s << "</div>\r\n</td></tr>\r\n";
 		}
 
 		if(dest->GetNumRemoteLeaseSets())
 		{
-			s << "<div class='slide'><label for='slide-lease'><b>" << tr("LeaseSets") << ":</b> <i>" << dest->GetNumRemoteLeaseSets ()
-			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>"<< tr("Address") << "</th><th>" << tr("Type") << "</th><th>" << tr("EncType") << "</th></thead><tbody class=\"tableitem\">";
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_leasesets\" />\r\n"
+			  << "<label for='slide_leasesets'>" << tr("LeaseSets") << " [" << dest->GetNumRemoteLeaseSets () << "]</label>\r\n";
+			s << "<div class=\"slidecontent\">\r\n<table>\r\n<thead>\r\n<tr>"
+			  << "<th class=\"left\">" << tr("Address") << "</th>"
+			  << "<th class=\"thin\">" << tr("Type") << "</th>"
+			  << "<th class=\"thin\">" << tr("EncType") << "</th>"
+			  << "</thead>\r\n<tbody class=\"tableitem\">\r\n";
 			for(auto& it: dest->GetLeaseSets ())
-				s << "<tr><td>" << it.first.ToBase32 () << "</td><td>" << (int)it.second->GetStoreType () << "</td><td>" << (int)it.second->GetEncryptionType () <<"</td></tr>\r\n";
-			s << "</tbody></table>\r\n</div>\r\n</div>\r\n<br>\r\n";
+				s << "<tr><td class=\"left\"><span class=\"b32\">" << it.first.ToBase32 () << "</span></td>\r\n"
+				  << "<td class=\"center thin\">" << (int)it.second->GetStoreType () << "</td>"
+				  << "<td class=\"center thin\">" << (int)it.second->GetEncryptionType () <<"</td>"
+				  << "</tr>\r\n";
+			s << "</tbody>\r\n</table>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		} else
-			s << "<b>" << tr("LeaseSets") << ":</b> <i>0</i><br>\r\n<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No LeaseSets currently active") << "</th><tr>\r\n";
 
 		auto pool = dest->GetTunnelPool ();
 		if (pool)
 		{
-			s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto & it : pool->GetInboundTunnels ()) {
-				s << "<div class=\"listitem\">";
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels\" />\r\n"
+			  << "<label for='slide_tunnels'>" << tr("Tunnels") << "</label>\r\n";
+			s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
+			for (auto & it : pool->GetInboundTunnels ()) { // inbound tunnels
+				s << "<div class=\"listitem in\">"
+				  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
+				  << "<span class=\"chain inbound\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << " )";
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">"
+					  << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+				else // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
-				s << "</div>\r\n";
+				s << "</span></div>\r\n";
 			}
-			s << "<br>\r\n";
-			s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-			for (auto & it : pool->GetOutboundTunnels ()) {
-				s << "<div class=\"listitem\">";
+			for (auto & it : pool->GetOutboundTunnels ()) { // outbound tunnels
+				s << "<div class=\"listitem out\">"
+				  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
+				  << "<span class=\"chain outbound\">";
 				it->Print(s);
 				if(it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">"
+					  << it->GetMeanLatency() << tr("ms") << "</span>";
+				else // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
-				s << "</div>\r\n";
+				s << "</span></div>\r\n";
 			}
 		}
-		s << "<br>\r\n";
+		s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 
-		s << "<b>" << tr("Tags") << "</b><br>\r\n" << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
+		if (dest->GetNumIncomingTags () > 0) {
+			s << "<tr><th colspan=\"2\">" << tr("Incoming Session Tags") << " [" << dest->GetNumIncomingTags () << "]</th></tr>\r\n";
+		} else {
+			s << "<tr><th colspan=\"2\">" << tr("No Incoming Session Tags") << "</th></tr>\r\n";
+		}
 		if (!dest->GetSessions ().empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">";
 			for (const auto& it: dest->GetSessions ()) {
-				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
+				tmp_s << "<tr><td class=\"left\">" << i2p::client::context.GetAddressBook ().ToAddress(it.first)
+					  << "</td><td class=\"center thin\">" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<div class='slide'><label for='slide-tags'>" << tr("Outgoing") << ": <i>" << out_tags << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
-			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Amount") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("Outgoing Session Tags") << " [" << out_tags << "]</th></tr>\r\n"
+			  << "<tr><td class=\"center nopadding\" colspan=\"2\"><table>\r\n"
+			  << "<thead>\r\n<tr><th class=\"left\">" << tr("Destination") << "</th><th class=\"thin\">" << tr("Count")
+			  << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</td></tr>\r\n";
 		} else
-			s << tr("Outgoing") << ": <i>0</i><br>\r\n";
-		s << "<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No Outgoing Session Tags") << "</th></tr>\r\n";
 
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
-			s << "<b>ECIESx25519</b><br>\r\n" << tr("Incoming Tags") << ": <i>" << numECIESx25519Tags << "</i><br>\r\n";
+			s << "<tr><th colspan=\"2\">ECIESx25519<br>\r\n" << tr("Incoming Tags") << " [" << numECIESx25519Tags << "]</th></tr>\r\n";
 			if (!dest->GetECIESx25519Sessions ().empty ())
 			{
 				std::stringstream tmp_s; uint32_t ecies_sessions = 0;
 				for (const auto& it: dest->GetECIESx25519Sessions ()) {
-					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
+					tmp_s << "<tr><td class=\"left\">"
+					      << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ())
+					      << "</td><td class=\"center thin\">" << it.second->GetState () << "</td></tr>\r\n";
 					ecies_sessions++;
 				}
-				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
-				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n"
+				  << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide-ecies-sessions\" />\r\n"
+				  << "<label for='slide-ecies-sessions'>" << tr("Tag Sessions")
+				  << " [" << ecies_sessions << "]</label>\r\n"
+				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th class=\"left\">" << tr("Destination") << "</th><th>"
+				  << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
-				s << tr("Tags sessions") << ": <i>0</i><br>\r\n";
-			s << "<br>\r\n";
+				s << "<tr><th coslpan=\"2\">" << tr("No Tag Sessions") << "</th></tr>\r\n";
 		}
 	}
 
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token)
 	{
-		s << "<b>" << tr("Local Destination") << ":</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;
 		ident.FromBase32 (b32);
 		auto dest = i2p::client::context.FindLocalDestination (ident);
+		if (dest) {
+			std::string b32Short = b32.substr(0,6);
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destination") << " [" << b32Short << "]</span></th></tr>\r\n";
+		} else
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destination") << " [" << tr("Not Found") << "]</span></th></tr>\r\n";
 
 		if (dest)
 		{
 			ShowLeaseSetDestination (s, dest, token);
-
 			// Print table with streams information
-			s << "<table>\r\n<caption>" << tr("Streams") << "</caption>\r\n<thead>\r\n<tr>";
-			s << "<th style=\"width:25px;\">StreamID</th>";
-			s << "<th style=\"width:5px;\" \\>"; // Stream closing button column
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide-streams\" />\r\n"
+			  << "<label for='slide-streams'>" << tr("Streams") << "</label>\r\n";
+			s << "<div class=\"slidecontent\">\r\n<table>\r\n<thead>\r\n<tr>";
+			s << "<th class=\"streamid\">ID</th>";
 			s << "<th class=\"streamdest\">Destination</th>";
-			s << "<th>Sent</th>";
-			s << "<th>Received</th>";
+			s << "<th>TX</th>";
+			s << "<th>RX</th>";
 			s << "<th>Out</th>";
 			s << "<th>In</th>";
 			s << "<th>Buf</th>";
 			s << "<th>RTT</th>";
-			s << "<th>Window</th>";
+			s << "<th>Win</th>";
 			s << "<th>Status</th>";
-			s << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
+			s << "</tr>\r\n</thead>\r\n";
+			s << "<tbody class=\"tableitem\">\r\n";
 
 			for (const auto& it: dest->GetAllStreams ())
 			{
 				auto streamDest = i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ());
-				std::string streamDestShort = streamDest.substr(0,12) + "&hellip;.b32.i2p";
+				std::string streamDestShort = streamDest.substr(0,10) + "&hellip;b32.i2p";
 				s << "<tr>";
-				s << "<td>" << it->GetRecvStreamID () << "</td>";
-				if (it->GetRecvStreamID ()) {
-					s << "<td><a class=\"button\" href=\"/?cmd=" << HTTP_COMMAND_KILLSTREAM << "&b32=" << b32 << "&streamID="
-					  << it->GetRecvStreamID () << "&token=" << token << "\" title=\"" << tr("Close stream") << "\"> &#10008; </a></td>";
-				} else {
-					s << "<td \\>";
-				}
+				s << "<td class=\"center nopadding streamid\">"
+				  << "<a class=\"button\" href=\"/?cmd=" << HTTP_COMMAND_KILLSTREAM << "&b32=" << b32 << "&streamID="
+				  << it->GetRecvStreamID () << "&token=" << token << "\" title=\"" << tr("Close stream")
+				  << "\"><span class=\"close\">&#10005;</span> " << it->GetRecvStreamID () << "</a></td>";
 				s << "<td class=\"streamdest\" title=\"" << streamDest << "\">" << streamDestShort << "</td>";
-				s << "<td>" << it->GetNumSentBytes () << "</td>";
-				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
+				s << std::fixed << std::setprecision(0);
+				if (it->GetNumSentBytes () > 1024 * 1024 * 1024) {
+					s << std::fixed << std::setprecision(2);
+					s << "<td>" << (double) it->GetNumSentBytes ()  / 1024 / 1024 / 1024 << "G</td>";
+				} else if (it->GetNumSentBytes () > 1024 * 1024) {
+					s << std::fixed << std::setprecision(2);
+					s << "<td>" << (double) it->GetNumSentBytes ()  / 1024 / 1024 << "M</td>";
+				} else {
+					s << "<td>" << it->GetNumSentBytes () / 1024 << "K</td>";
+				}
+				if (it->GetNumReceivedBytes () > 1024 * 1024 * 1024) {
+					s << std::fixed << std::setprecision(2);
+					s << "<td>" << (double) it->GetNumReceivedBytes ()  / 1024 / 1024 / 1024 << "G</td>";
+				} else if (it->GetNumReceivedBytes () > 1024 * 1024) {
+					s << std::fixed << std::setprecision(1);
+					s << "<td>" << (double) it->GetNumReceivedBytes ()  / 1024 / 1024 << "M</td>";
+				} else {
+					s << "<td>" << it->GetNumReceivedBytes () / 1024 << "K</td>";
+				}
 				s << "<td>" << it->GetSendQueueSize () << "</td>";
 				s << "<td>" << it->GetReceiveQueueSize () << "</td>";
 				s << "<td>" << it->GetSendBufferSize () << "</td>";
 				s << "<td>" << it->GetRTT () << "</td>";
 				s << "<td>" << it->GetWindowSize () << "</td>";
-				s << "<td>" << (int)it->GetStatus () << "</td>";
+				s << "<td class=\"center\">" << (int) it->GetStatus () << "</td>";
 				s << "</tr>\r\n";
 			}
-			s << "</tbody>\r\n</table>";
+			s << "</tbody>\r\n</table>\r\n</div>\r\n</div>\r\n</td></tr>";
 		}
 	}
 
@@ -636,7 +824,7 @@ namespace http {
 	{
 		if (i2p::data::netdb.GetNumLeaseSets ())
 		{
-			s << "<b>" << tr("LeaseSets") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"nopadding\" colspan=\"2\">" << tr("LeaseSets") << "</th><tr>\r\n<tr><td class=\"center nopadding\"><div class=\"list\">\r\n";
 			int counter = 1;
 			// for each lease set
 			i2p::data::netdb.VisitLeaseSets(
@@ -656,8 +844,9 @@ namespace http {
 					s << "\">\r\n";
 					if (!ls->IsValid())
 						s << "<div class=\"invalid\">!! " << tr("Invalid") << " !! </div>\r\n";
-					s << "<div class=\"slide\"><label for=\"slide" << counter << "\">" << dest.ToBase32() << "</label>\r\n";
-					s << "<input type=\"checkbox\" id=\"slide" << (counter++) << "\" />\r\n<div class=\"slidecontent\">\r\n";
+					s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide" << (counter++) << "\" />\r\n"
+					  << "<label for=\"slide" << counter << "\">" << dest.ToBase32() << "</label>\r\n";
+					s << "<div class=\"slidecontent\">\r\n";
 					s << "<b>" << tr("Store type") << ":</b> " << (int)storeType << "<br>\r\n";
 					s << "<b>" << tr("Expires") << ":</b> " << ConvertTime(ls->GetExpirationTime()) << "<br>\r\n";
 					if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET || storeType == i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2)
@@ -675,53 +864,63 @@ namespace http {
 					s << "</div>\r\n</div>\r\n</div>\r\n";
 				}
 			);
+			s << "</td></tr>\r\n";
 			// end for each lease set
 		}
 		else if (!i2p::context.IsFloodfill ())
 		{
-			s << "<b>" << tr("LeaseSets") << ":</b> " << tr("not floodfill") << ".<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No LeaseSets") << " (" << tr("not floodfill") << ")</th</tr>\r\n";
 		}
 		else
 		{
-			s << "<b>" << tr("LeaseSets") << ":</b> 0<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No LeaseSets") << "</th</tr>\r\n";
 		}
 	}
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<b>" << tr("Tunnels") << ":</b><br>\r\n";
-		s << "<b>" << tr("Queue size") << ":</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n<br>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Tunnels") << "</span></th><tr>\r\n";
+		s << "<tr><th colspan=\"2\">" << tr("Queue size") << ": " << i2p::tunnel::tunnels.GetQueueSize () << "</th></tr>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
-		s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_client\" />\r\n"
+		  << "<label for='slide_tunnels_client'>" << tr("Client Tunnels") << "</label>\r\n"; // TODO: separate client & exploratory tunnels into sections
+		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
-			s << "<div class=\"listitem\">";
+			s << "<div class=\"listitem in\">"
+			  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
+			  << "<span class=\"chain inbound\">";
 			it->Print(s);
 			if(it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+			s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">" << it->GetMeanLatency() << tr("ms") << "</span>";
+			else // placeholder for alignment
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
-			s << "</div>\r\n";
+			s << "</span></div>\r\n";
 		}
-		s << "</div>\r\n<br>\r\n";
-		s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
-			s << "<div class=\"listitem\">";
+			s << "<div class=\"listitem out\">"
+			  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
+			  << "<span class=\"chain outbound\">";
 			it->Print(s);
 			if(it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">" << it->GetMeanLatency() << tr("ms") << "</span>";
+			else // placeholder for alignment
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
-			s << "</div>\r\n";
+			s << "</span>\r\n</div>\r\n";
 		}
-		s << "</div>\r\n";
+		s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 	}
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
-		s << "<b>" << tr("Router commands") << "</b><br>\r\n<br>\r\n<div class=\"commands\">\r\n";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a><br>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr><tr><td class=\"center\" colspan=\"2\">\r\n";
+		s << "  <a id=\"homelink\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a><br>\r\n";
 
 		// s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 
@@ -730,42 +929,47 @@ namespace http {
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">" << tr("Accept transit tunnels") << "</a><br>\r\n";
 
+		if (i2p::tunnel::tunnels.CountTransitTunnels()) {
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-		if (Daemon.gracefulShutdownInterval)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
-		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
+			if (Daemon.gracefulShutdownInterval)
+				s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
+			else
+				s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
 #elif defined(WIN32_APP)
-		if (i2p::util::DaemonWin32::Instance().isGraceful)
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
-		else
-			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
+			if (i2p::util::DaemonWin32::Instance().isGraceful)
+				s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
+			else
+				s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
 #endif
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">" << tr("Force shutdown") << "</a></td></tr>\r\n";
+		} else {
+			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">" << tr("Shutdown") << "</a></td></tr>\r\n";
+		}
+		s << "<tr><td class=\"center\" colspan=\"2\"><a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RELOAD_CSS << "&token=" << token << "\">"
+		  << tr("Reload external CSS styles") << "</a>\r\n</td></tr>";
 
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">" << tr("Force shutdown") << "</a><br><br>\r\n";
-		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RELOAD_CSS << "&token=" << token << "\">" << tr("Reload external CSS styles") << "</a>\r\n";
-		s << "</div>";
+		s << "<tr><td class=\"center\" colspan=\"2\">\r\n<div class=\"note\">" << tr("<b>Note:</b> Configuration changes made here persist for the duration of the router session and will not be saved to your config file.") << "</div>\r\n</td></tr>";
 
-		s << "<br>\r\n<small>" << tr("<b>Note:</b> any action done here are not persistent and not changes your config files.") << "</small>\r\n<br>\r\n";
-
-		s << "<b>" << tr("Logging level") << "</b><br>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Logging Level") << "</span></th></tr>\r\n<tr><td class=\"center\" colspan=\"2\">";
 		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
 		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
 		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
 		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
+		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a></td></tr>\r\n";
 
-		uint16_t maxTunnels = GetMaxNumTransitTunnels ();
-		s << "<b>" << tr("Transit tunnels limit") << "</b><br>\r\n";
-		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
-		s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
-		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
-		s << "</form>\r\n<br>\r\n";
+		if (i2p::context.AcceptsTunnels ()) {
+			uint16_t maxTunnels = GetMaxNumTransitTunnels ();
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Maximum Transit Tunnels") << "</span></th></tr>\r\n<tr><td class=\"center\" colspan=\"2\">\r\n";
+			s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
+			s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
+			s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
+			s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
+			s << "  <button class=\"apply\" type=\"submit\">" << tr("Change") << "</button>\r\n";
+			s << "</form>\r\n</td></tr>\r\n";
+		}
 
 		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
-		s << "<b>" << tr("Change language") << "</b><br>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Console Display Language") << "</span></th></tr>\r\n<tr><td class=\"center\" colspan=\"2\">\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
@@ -773,8 +977,8 @@ namespace http {
 		for (const auto& it: i2p::i18n::languages)
 			s << "    <option value=\"" << it.first << "\"" << ((it.first.compare(currLang) == 0) ? " selected" : "") << ">" << it.second.LocaleName << "</option>\r\n";
 		s << "  </select>\r\n";
-		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
-		s << "</form>\r\n<br>\r\n";
+		s << "  <button class=\"apply\" type=\"submit\">" << tr("Change") << "</button>\r\n";
+		s << "</form>\r\n</td></tr>\r\n";
 
 	}
 
@@ -782,23 +986,24 @@ namespace http {
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("Transit Tunnels") << "</th></tr><tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
-				s << "<div class=\"listitem\">\r\n";
+				s << "<div class=\"listitem\"><span class=\"chain transit\">";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
-					s << it->GetTunnelID () << " &#8658; ";
+					s << it->GetTunnelID () << " <span class=\"arrowright\">&#8658;</span> ";
 				else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
-					s << " &#8658; " << it->GetTunnelID ();
+					s << "<span class=\"arrowright\">&#8658;</span> " << "<span class=\"tunnelid\">" << it->GetTunnelID () << "</span>";
 				else
-					s << " &#8658; " << it->GetTunnelID () << " &#8658; ";
-				s << " " << it->GetNumTransmittedBytes () << "</div>\r\n";
+					s << "<span class=\"arrowright\">&#8658;</span> <span class=\"tunnelid\">" << it->GetTunnelID ()
+					  << "</span> <span class=\"arrowright\">&#8658;</span> ";
+				s << " <span class=\"sent\">" << it->GetNumTransmittedBytes () << "B</span></div>\r\n";
 			}
-			s << "</div>\r\n";
+			s << "</span></div></td></tr>\r\n";
 		}
 		else
 		{
-			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr("no transit tunnels currently built") << ".<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No active transit tunnels") << "</th></tr>\r\n";
 		}
 	}
 
@@ -810,44 +1015,86 @@ namespace http {
 		{
 			if (it.second && it.second->IsEstablished () && !it.second->GetRemoteEndpoint ().address ().is_v6 ())
 			{
-				tmp_s << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< it.second->GetRemoteEndpoint ().address ().to_string ();
-				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				tmp_s << "</div>\r\n" << std::endl;
+				tmp_s << "<div class=\"listitem\">";
+				if (it.second->IsOutgoing ())
+					tmp_s << "<span class=\"arrowup\">&#8657;</span>";
+				else
+					tmp_s << "<span class=\"arrowdown\">&#8659;</span>";
+				tmp_s << " <span class=\"chain\">";
+				tmp_s << "<span class=\"hop\">" << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << "</span>"
+					  << " <a target=\"_blank\" href=\"https://gwhois.org/"
+					  << it.second->GetRemoteEndpoint ().address ().to_string () << "\" data-tooltip=\""
+					  << tr("Lookup address on gwhois.org") << "\"><span class=\"host\">"
+					  << it.second->GetRemoteEndpoint ().address ().to_string () << "</span></a>";
+				tmp_s << std::fixed << std::setprecision(0);
+				if (it.second->GetNumSentBytes () > 1024 * 1024) {
+					tmp_s << std::fixed << std::setprecision(1);
+					tmp_s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 / 1024 << "M</span>";
+				} else {
+					tmp_s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 << "K</span>";
+				}
+				tmp_s << std::fixed << std::setprecision(0);
+				if (it.second->GetNumReceivedBytes () > 1024 * 1024) {
+					tmp_s << std::fixed << std::setprecision(1);
+					tmp_s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 / 1024 << "M</span>";
+				} else {
+					tmp_s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 << "K</span>";
+				}
+				tmp_s << "</span></div>\r\n" << std::endl;
 				cnt++;
 			}
 			if (it.second && it.second->IsEstablished () && it.second->GetRemoteEndpoint ().address ().is_v6 ())
 			{
-				tmp_s6 << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< "[" << it.second->GetRemoteEndpoint ().address ().to_string () << "]";
-				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				tmp_s6 << "</div>\r\n" << std::endl;
+				tmp_s6 << "<div class=\"listitem\">";
+				if (it.second->IsOutgoing ())
+					tmp_s6 << "<span class=\"arrowup\">&#8657;</span>";
+				else
+					tmp_s6 << "<span class=\"arrowdown\">&#8659;</span>";
+				tmp_s6 << " <span class=\"chain\">";
+				tmp_s6 << "<span class=\"hop\">" << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << "</span>"
+					   << " <a target=\"_blank\" href=\"https://gwhois.org/"
+					   << it.second->GetRemoteEndpoint ().address ().to_string () << "\" data-tooltip=\""
+					   << tr("Lookup address on gwhois.org") << "\"><span class=\"host\">"
+					   << it.second->GetRemoteEndpoint ().address ().to_string () << "</span></a>";
+				tmp_s6 << std::fixed << std::setprecision(0);
+				if (it.second->GetNumSentBytes () > 1024 * 1024) {
+					tmp_s6 << std::fixed << std::setprecision(1);
+					tmp_s6 << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 / 1024 << "M</span>";
+				} else {
+					tmp_s6 << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 << "K</span>";
+				}
+				tmp_s6 << " <span class=\"hide\">/</span>";
+				tmp_s6 << std::fixed << std::setprecision(0);
+				if (it.second->GetNumReceivedBytes () > 1024 * 1024) {
+					tmp_s6 << std::fixed << std::setprecision(1);
+					tmp_s6 << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 / 1024 << "M</span>";
+				} else {
+					tmp_s6 << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 << "K</span>";
+				}
+				tmp_s6 << "</span></div>\r\n" << std::endl;
 				cnt6++;
 			}
 		}
 		if (!tmp_s.str ().empty ())
 		{
-			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name
-			  << "</b> ( " << cnt << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "\" />\r\n<div class=\"slidecontent list\">"
+			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name)
+			  << "\" />\r\n<label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name
+			  << "</b> [" << cnt << "]</label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s.str () << "</div>\r\n</div>\r\n";
 		}
 		if (!tmp_s6.str ().empty ())
 		{
-			s << "<div class='slide'><label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name
-			  << "v6</b> ( " << cnt6 << " )</label>\r\n<input type=\"checkbox\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n<div class=\"slidecontent list\">"
+			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n"
+			  << "<label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name
+			  << "v6</b> [" << cnt6 << "]</label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s6.str () << "</div>\r\n</div>\r\n";
 		}
 	}
 
 	void ShowTransports (std::stringstream& s)
 	{
-		s << "<b>" << tr("Transports") << ":</b><br>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Transports") << "</span></th></tr>\r\n"
+		  << "<tr><td id=\"transports\" class=\"center nopadding\" colspan=\"2\">";
 		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
 		if (ntcp2Server)
 		{
@@ -861,38 +1108,81 @@ namespace http {
 			auto sessions = ssuServer->GetSessions ();
 			if (!sessions.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssu\" />\r\n<div class=\"slidecontent list\">";
+				s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssu\" />\r\n"
+				  << "<label for='slide_ssu'><b>SSU</b> [" << (int) sessions.size() << "]</label>\r\n"
+				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions)
 				{
-					s << "<div class=\"listitem\">\r\n";
+					s << "<div class=\"listitem SSU\">";
+					if (it.second->IsOutgoing ())
+						s << "<span class=\"arrowup\">&#8657;</span>";
+					else
+						s << "<span class=\"arrowdown\">&#8659;</span>";
+					s << " <span class=\"chain\">";
 					auto endpoint = it.second->GetRemoteEndpoint ();
-					if (it.second->IsOutgoing ()) s << " &#8658; ";
-					s << endpoint.address ().to_string () << ":" << endpoint.port ();
-					if (!it.second->IsOutgoing ()) s << " &#8658; ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+//					s << " <span class=\"host\">" << endpoint.address ().to_string () << ":" << endpoint.port () << "</span>";
+					s << " <a target=\"_blank\" href=\"https://gwhois.org/"
+					  << endpoint.address ().to_string () << "\" data-tooltip=\""
+					  << tr("Lookup address on gwhois.org") << "\"><span class=\"host\">"
+					  << endpoint.address ().to_string () << ":" << endpoint.port () << "</span></a>";
+					s << std::fixed << std::setprecision(0);
+					if (it.second->GetNumSentBytes () > 1024 * 1024) {
+						s << std::fixed << std::setprecision(1);
+						s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 / 1024 << "M</span>";
+					} else {
+						s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 << "K</span>";
+					}
+					s << " <span class=\"hide\">/</span>";
+					s << std::fixed << std::setprecision(0);
+					if (it.second->GetNumReceivedBytes () > 1024 * 1024) {
+						s << std::fixed << std::setprecision(1);
+						s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 / 1024 << "M</span>";
+					} else {
+						s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 << "K</span>";
+					}
 					if (it.second->GetRelayTag ())
-						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "</div>\r\n" << std::endl;
+						s << " <span class=\"itag\" data-tooltip=\"itag\">" << it.second->GetRelayTag () << "</span>";
+					s << "</span></div>\r\n" << std::endl;
 				}
 				s << "</div>\r\n</div>\r\n";
 			}
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssuv6\" />\r\n<div class=\"slidecontent list\">";
+				s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssuv6\" />\r\n"
+				  << "<label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n"
+				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions6)
 				{
-					s << "<div class=\"listitem\">\r\n";
+					s << "<div class=\"listitem SSU\">";
+					if (it.second->IsOutgoing ())
+						s << "<span class=\"arrowup\">&#8657;</span>";
+					else
+						s << "<span class=\"arrowdown\">&#8659;</span>";
+					s << " <span class=\"chain\">";
 					auto endpoint = it.second->GetRemoteEndpoint ();
-					if (it.second->IsOutgoing ()) s << " &#8658; ";
-					s << "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
-					if (!it.second->IsOutgoing ()) s << " &#8658; ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					s << " <span class=\"host\">" << endpoint.address ().to_string () << ":" << endpoint.port () << "</span>";
+					s << std::fixed << std::setprecision(0);
+
+					if (it.second->GetNumSentBytes () > 1024 * 1024) {
+						s << std::fixed << std::setprecision(1);
+						s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 / 1024 << "M</span>";
+					} else {
+						s << " <span class=\"sent\">" << (double) it.second->GetNumSentBytes () / 1024 << "K</span>";
+					}
+					s << " <span class=\"hide\">/</span>";
+					s << std::fixed << std::setprecision(0);
+					if (it.second->GetNumReceivedBytes () > 1024 * 1024) {
+						s << std::fixed << std::setprecision(1);
+						s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 / 1024 << "M</span>";
+					} else {
+						s << " <span class=\"recvd\">" << (double) it.second->GetNumReceivedBytes () / 1024 << "K</span>";
+					}
 					if (it.second->GetRelayTag ())
-						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "</div>\r\n" << std::endl;
+						s << " <span class=\"itag\" data-tooltip=\"itag\">" << it.second->GetRelayTag () << "</span>";
+					s << "</span>\r\n</div>\r\n" << std::endl;
 				}
-				s << "</div>\r\n</div>\r\n";
+				s << "</div>\r\n</div>\r\n</td></tr>\r\n";
 			}
 		}
 	}
@@ -907,19 +1197,20 @@ namespace http {
 			return;
 		}
 
-		if(sam->GetSessions ().size ())
+		if (sam->GetSessions ().size ())
 		{
-			s << "<b>" << tr("SAM sessions") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("SAM sessions")
+			  << "</span></th><tr>\r\n<tr><td class=\"center nopadding\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
 			{
 				auto& name = it.second->GetLocalDestination ()->GetNickname ();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
 				s << name << " (" << it.first << ")</a></div>\r\n" << std::endl;
 			}
-			s << "</div>\r\n";
+			s << "</div>\r\n</td></tr>\r\n";
 		}
 		else
-			s << "<b>" << tr("SAM sessions") << ":</b> " << tr("no sessions currently running") << ".<br>\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("No active SAM sessions") << "</th></tr>\r\n";
 	}
 
 	void ShowSAMSession (std::stringstream& s, const std::string& id)
@@ -937,12 +1228,12 @@ namespace http {
 		}
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("SAM Session") << ":</b><br>\r\n<div class=\"list\">\r\n";
+		s << "<tr><th colspan=\"2\">" << tr("SAM Session") << "</th><tr>\r\n<tr><td class=\"center nopadding\">\r\n<div class=\"list\">\r\n";
 		auto& ident = session->GetLocalDestination ()->GetIdentHash();
 		s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n";
 		s << "<br>\r\n";
-		s << "<b>" << tr("Streams") << ":</b><br>\r\n<div class=\"list\">\r\n";
+		s << "<tr><th colspan=\"2\">" << tr("Streams") << "</th><tr>\r\n<div class=\"list\">\r\n";
 		for (const auto& it: sam->ListSockets(id))
 		{
 			s << "<div class=\"listitem\">";
@@ -957,83 +1248,85 @@ namespace http {
 			s << " [" << it->GetSocket ().remote_endpoint() << "]";
 			s << "</div>\r\n";
 		}
-		s << "</div>\r\n";
+		s << "</div></td></tr>\r\n";
 	}
 
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Service Tunnels") << "</span></th></tr><tr>"
+		  << "<td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << it.second->GetName () << "</a> &#8656; ";
+			s << it.second->GetName () << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
+			s << "</span></div>\r\n"<< std::endl;
 		}
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
 		if (httpProxy)
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
+			s << "HTTP " << tr("Proxy") << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
+			s << "</span></div>\r\n"<< std::endl;
 		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
 		if (socksProxy)
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
+			s << "SOCKS " << tr("Proxy") << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
+			s << "</span></div>\r\n" << std::endl;
 		}
-		s << "</div>\r\n";
+		s << "</div></td></tr>\r\n";
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
-			s << "<br>\r\n<b>" << tr("Server Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Server Tunnels") << "</span></th></tr><tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: serverTunnels)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8658; ";
+				s << it.second->GetName () << "</a> <span class=\"arrowright\">&#8658;</span> <span class=\"b32\">";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
-				s << "</a></div>\r\n"<< std::endl;
+				s << "</span></div>\r\n" << std::endl;
 			}
-			s << "</div>\r\n";
+			s << "</div></td></tr>\r\n";
 		}
 
 		auto& clientForwards = i2p::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
 		{
-			s << "<br>\r\n<b>" << tr("Client Forwards") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Client Forwards") << "</span></th></tr><tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8656; ";
+				s << it.second->GetName () << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-				s << "</div>\r\n"<< std::endl;
+				s << "</span></div>\r\n"<< std::endl;
 			}
-			s << "</div>\r\n";
+			s << "</div></td></tr>\r\n";
 		}
 		auto& serverForwards = i2p::client::context.GetServerForwards ();
 		if (!serverForwards.empty ())
 		{
-			s << "<br>\r\n<b>" << tr("Server Forwards") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Server Forwards") << "</span></th></tr>\r\n"
+			  << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8656; ";
+				s << it.second->GetName () << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-				s << "</div>\r\n"<< std::endl;
+				s << "</span></div>\r\n"<< std::endl;
 			}
-			s << "</div>\r\n";
+			s << "</div></td></tr>\r\n";
 		}
 	}
 
@@ -1236,7 +1529,7 @@ namespace http {
 		url.parse_query(params);
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		std::string redirect = "5; url=" + webroot + "?page=commands";
+		std::string redirect = "2; url=" + webroot + "?page=commands";
 		std::string token = params["token"];
 
 		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
@@ -1299,19 +1592,21 @@ namespace http {
 				if (dest)
 				{
 					if(dest->DeleteStream (streamID))
-						s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Stream closed") << "<br>\r\n<br>\r\n";
+						s << "<tr><td class=\"notify center\" colspan=\2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
+						  << tr("Stream closed") << "</td></tr>\r\n";
 					else
-						s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Stream not found or already was closed") << "<br>\r\n<br>\r\n";
+						s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+						  << tr("Stream not found or already was closed") << "</td></tr>\r\n";
 				}
 				else
-					s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Destination not found") << "<br>\r\n<br>\r\n";
+					s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+					  << tr("Destination not found") << "</td></tr>\r\n";
 			}
 			else
-				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
+				s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("StreamID can't be null") << "</td></tr>\r\n";
 
-			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
-			s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
-			redirect = "5; url=" + webroot + "?page=local_destination&b32=" + b32;
+			redirect = "2; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
 		}
@@ -1321,9 +1616,8 @@ namespace http {
 			if (limit > 0 && limit <= 65535)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed 65535") << "\r\n<br>\r\n<br>\r\n";
-				s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a>\r\n<br>\r\n";
-				s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+				s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("Transit tunnels count must not exceed 65535") << "\r\n</td></tr>\r\n";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
@@ -1356,25 +1650,31 @@ namespace http {
 						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
 						sig[len] = 0;
 						out << "#!sig=" << sig;
-						s << "<b>" << tr("SUCCESS") << "</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\" method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
-						     "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
-						     "<b>" << tr("Register at reg.i2p") << ":</b>\r\n<br>\r\n"
-						     "<b>" << tr("Description") << ":</b>\r\n<input type=\"text\" maxlength=\"64\" name=\"desc\" placeholder=\"" << tr("A bit information about service on domain") << "\">\r\n"
-						     "<input type=\"submit\" value=\"" << tr("Submit") << "\">\r\n"
-						     "</form>\r\n<br>\r\n";
+						s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS")
+						  << "</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\""
+						  << " method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
+						  << "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
+						  << "<b>" << tr("Register at reg.i2p") << ":</b>\r\n<br>\r\n"
+						  << "<b>" << tr("Description") << ":</b>\r\n<input type=\"text\" maxlength=\"64\" name=\"desc\" placeholder=\""
+						  << tr("Short description of domain") << "\">\r\n"
+						  << "<input type=\"submit\" value=\"" << tr("Submit") << "\">\r\n"
+						  << "</form>\r\n</td></tr>\r\n";
 						delete[] signature;
 						delete[] sig;
 					}
 					else
-						s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Domain can't end with .b32.i2p") << "\r\n<br>\r\n<br>\r\n";
+						s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+						  << tr("Domain can't end with .b32.i2p") << "\r\n<br>\r\n</td></tr>\r\n";
 				}
 				else
-					s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Domain must end with .i2p") << "\r\n<br>\r\n<br>\r\n";
+					s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+					  << tr("Domain must end with .i2p") << "\r\n<br>\r\n</td></tr>\r\n";
 			}
 			else
-				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Such destination is not found") << "\r\n<br>\r\n<br>\r\n";
+				s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("No such destination found") << "\r\n<br>\r\n<</td></tr>\r\n";
 
-			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a>\r\n";
+//			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a>\r\n";
 			return;
 		}
 		else if (cmd == HTTP_COMMAND_SETLANGUAGE)
@@ -1396,9 +1696,10 @@ namespace http {
 			return;
 		}
 
-		s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Command accepted") << "<br><br>\r\n";
-		s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a><br>\r\n";
-		s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+		s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
+		  << tr("Command accepted") << "</td></tr>\r\n";
+//		s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a><br>\r\n";
+//		s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
 		res.add_header("Refresh", redirect.c_str());
 	}
 

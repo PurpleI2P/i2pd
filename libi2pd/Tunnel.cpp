@@ -46,7 +46,7 @@ namespace tunnel
 		const int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : MAX_NUM_RECORDS;
 		auto msg = numRecords <= STANDARD_NUM_RECORDS ? NewI2NPShortMessage () : NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
-		const size_t recordSize = m_Config->IsShort () ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE; 
+		const size_t recordSize = m_Config->IsShort () ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
 		msg->len += numRecords*recordSize + 1;
 		// shuffle records
 		std::vector<int> recordIndicies;
@@ -97,13 +97,13 @@ namespace tunnel
 			{
 				auto ident = m_Config->GetFirstHop () ? m_Config->GetFirstHop ()->ident : nullptr;
 				if (ident && ident->GetIdentHash () != outboundTunnel->GetNextIdentHash ()) // don't encrypt if IBGW = OBEP
-				{	
+				{
 					auto msg1 = i2p::garlic::WrapECIESX25519MessageForRouter (msg, ident->GetEncryptionPublicKey ());
 					if (msg1) msg = msg1;
-				}	
-			}	
+				}
+			}
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
-		}	
+		}
 		else
 		{
 			if (m_Config->IsShort () && m_Config->GetLastHop () &&
@@ -114,11 +114,11 @@ namespace tunnel
 				uint64_t tag = m_Config->GetLastHop ()->GetGarlicKey (key);
 				if (m_Pool && m_Pool->GetLocalDestination ())
 					m_Pool->GetLocalDestination ()->AddECIESx25519Key (key, tag);
-				else	
+				else
 					i2p::context.AddECIESx25519Key (key, tag);
-			}	
+			}
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
-		}	
+		}
 	}
 
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
@@ -133,14 +133,14 @@ namespace tunnel
 			{
 				if (!hop->DecryptBuildResponseRecord (msg + 1))
 					return false;
-			}	
+			}
 			else
 			{
 				LogPrint (eLogWarning, "Tunnel: hop index ", hop->recordIndex, " is out of range");
 				return false;
-			}	
-			
-			// decrypt records before current hop 
+			}
+
+			// decrypt records before current hop
 			TunnelHopConfig * hop1 = hop->prev;
 			while (hop1)
 			{
@@ -235,8 +235,9 @@ namespace tunnel
 		// hops are in inverted order, we must print in direct order
 		for (auto it = m_Hops.rbegin (); it != m_Hops.rend (); it++)
 		{
-			s << " &#8658; ";
+			s << " <span class=\"arrowright\">&#8658;</span> <span class=\"hop\">";
 			s << i2p::data::GetIdentHashAbbreviation ((*it)->ident->GetIdentHash ());
+			s << "</span>";
 		}
 	}
 
@@ -252,7 +253,10 @@ namespace tunnel
 	void InboundTunnel::Print (std::stringstream& s) const
 	{
 		PrintHops (s);
-		s << " &#8658; " << GetTunnelID () << ":me";
+		s << " <span class=\"arrowright zerohop\">&#8658;</span> ";
+		s << " <span class=\"tunnelid local\" data-tooltip=\"";
+		s << GetTunnelID () << "\">Local</span>";
+		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
 	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
@@ -273,7 +277,9 @@ namespace tunnel
 
 	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
 	{
-		s << " &#8658; " << GetTunnelID () << ":me";
+		s << "<span class=\"arrowright zerohop\">&#8658;</span> <span class=\"tunnelid local\" data-tooltip=\""
+		  << GetTunnelID () << "\">Local</span>";
+		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
@@ -312,9 +318,9 @@ namespace tunnel
 
 	void OutboundTunnel::Print (std::stringstream& s) const
 	{
-		s << GetTunnelID () << ":me";
+		s << "<span class=\"tunnelid local\" data-tooltip=\"" << GetTunnelID () << "\">Local</span>";
 		PrintHops (s);
-		s << " &#8658; ";
+		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
 	ZeroHopsOutboundTunnel::ZeroHopsOutboundTunnel ():
@@ -348,7 +354,10 @@ namespace tunnel
 
 	void ZeroHopsOutboundTunnel::Print (std::stringstream& s) const
 	{
-		s << GetTunnelID () << ":me &#8658; ";
+		s << "<span class=\"arrowright\">&#8658;</span> ";
+		s << "<span class=\"tunnelid local\" data-tooltip=\""
+		  << GetTunnelID () << "\">" << GetTunnelID () << "\">Local</span>";
+		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
 	Tunnels tunnels;
@@ -530,7 +539,7 @@ namespace tunnel
 							case eI2NPShortTunnelBuild:
 							case eI2NPShortTunnelBuildReply:
 							case eI2NPTunnelBuild:
-							case eI2NPTunnelBuildReply:	
+							case eI2NPTunnelBuildReply:
 								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 							break;
 							default:
@@ -561,8 +570,8 @@ namespace tunnel
 					{
 						ManageTunnelPools (ts);
 						lastPoolsTs = ts;
-					}	
-				}	
+					}
+				}
 			}
 			catch (std::exception& ex)
 			{
@@ -837,7 +846,7 @@ namespace tunnel
 	}
 
 	template<class TTunnel>
-	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config, 
+	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config,
 	    std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto newTunnel = std::make_shared<TTunnel> (config);
@@ -849,7 +858,7 @@ namespace tunnel
 		return newTunnel;
 	}
 
-	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, 
+	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config,
 		std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		if (config)
@@ -913,7 +922,7 @@ namespace tunnel
 	}
 
 
-	std::shared_ptr<ZeroHopsInboundTunnel> Tunnels::CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool)		
+	std::shared_ptr<ZeroHopsInboundTunnel> Tunnels::CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool)
 	{
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
 		inboundTunnel->SetTunnelPool (pool);
