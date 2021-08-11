@@ -1207,7 +1207,11 @@ namespace client
 	void SAMSingleSession::StopLocalDestination ()
 	{
 		localDestination->Release ();
+		// stop accepting new streams
 		localDestination->StopAcceptingStreams ();
+		// terminate existing streams
+		auto s = localDestination->GetStreamingDestination (); // TODO: take care about datagrams
+		if (s) s->Stop ();
 	}
 
 	void SAMMasterSession::Close ()
