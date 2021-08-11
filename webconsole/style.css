@@ -1,7 +1,7 @@
 :root {
 	--bodyfont: Open Sans, Noto Sans, Ubuntu, Segoe UI, sans-serif;
 	--monospaced: Droid Sans Mono, Noto Mono, Lucida Console, DejaVu Sans Mono, monospace;
-	--logo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 58 16'%3E%3Cg fill='%23525'%3E%3Ccircle cx='3.1' cy='2.8' r='1.2'/%3E%3Ccircle cx='3.1' cy='6.3' r='1.2'/%3E%3Ccircle cx='3.1' cy='9.7' r='1.2'/%3E%3Ccircle cx='3.1' cy='13.2' r='1.2'/%3E%3Ccircle cx='13.5' cy='2.8' r='1.2'/%3E%3Ccircle cx='13.5' cy='6.3' r='1.2'/%3E%3Ccircle cx='13.5' cy='9.7' r='1.2'/%3E%3Ccircle cx='13.5' cy='13.2' r='1.2'/%3E%3Ccircle cx='16.9' cy='6.3' r='1.2'/%3E%3Ccircle cx='20.4' cy='6.3' r='1.2'/%3E%3Ccircle cx='23.8' cy='9.7' r='1.2'/%3E%3Ccircle cx='27.3' cy='2.8' r='1.2'/%3E%3Ccircle cx='27.3' cy='6.3' r='1.2'/%3E%3Ccircle cx='27.3' cy='9.7' r='1.2'/%3E%3Ccircle cx='27.3' cy='13.2' r='1.2'/%3E%3Ccircle cx='34.2' cy='6.3' r='1.2'/%3E%3Ccircle cx='34.2' cy='13.2' r='1.2'/%3E%3Ccircle cx='37.6' cy='13.2' r='1.2'/%3E%3Ccircle cx='41.1' cy='2.8' r='1.2'/%3E%3Ccircle cx='41.1' cy='6.3' r='1.2'/%3E%3Ccircle cx='41.1' cy='9.7' r='1.2'/%3E%3Ccircle cx='41.1' cy='13.2' r='1.2'/%3E%3Ccircle cx='48' cy='6.3' r='1.2'/%3E%3Ccircle cx='48' cy='9.7' r='1.2'/%3E%3Ccircle cx='51.4' cy='2.8' r='1.2'/%3E%3Ccircle cx='51.4' cy='13.2' r='1.2'/%3E%3C/g%3E%3Cg fill='%23f0f'%3E%3Ccircle cx='6.6' cy='2.8' r='1.2'/%3E%3Ccircle cx='6.6' cy='6.3' r='1.2'/%3E%3Ccircle cx='6.6' cy='9.7' r='1.2'/%3E%3Ccircle cx='6.6' cy='13.2' r='1.2'/%3E%3Ccircle cx='10' cy='2.8' r='1.2'/%3E%3Ccircle cx='10' cy='6.3' r='1.2'/%3E%3Ccircle cx='10' cy='9.7' r='1.2'/%3E%3Ccircle cx='10' cy='13.2' r='1.2'/%3E%3Ccircle cx='16.9' cy='2.8' r='1.2'/%3E%3Ccircle cx='16.9' cy='9.7' r='1.2'/%3E%3Ccircle cx='16.9' cy='13.2' r='1.2'/%3E%3Ccircle cx='20.4' cy='2.8' r='1.2'/%3E%3Ccircle cx='20.4' cy='9.7' r='1.2'/%3E%3Ccircle cx='20.4' cy='13.2' r='1.2'/%3E%3Ccircle cx='23.8' cy='2.8' r='1.2'/%3E%3Ccircle cx='23.8' cy='6.3' r='1.2'/%3E%3Ccircle cx='23.8' cy='13.2' r='1.2'/%3E%3Ccircle cx='30.7' cy='2.8' r='1.2'/%3E%3Ccircle cx='30.7' cy='6.3' r='1.2'/%3E%3Ccircle cx='30.7' cy='9.7' r='1.2'/%3E%3Ccircle cx='30.7' cy='13.2' r='1.2'/%3E%3Ccircle cx='34.2' cy='2.8' r='1.2'/%3E%3Ccircle cx='34.2' cy='9.7' r='1.2'/%3E%3Ccircle cx='37.6' cy='2.8' r='1.2'/%3E%3Ccircle cx='37.6' cy='6.3' r='1.2'/%3E%3Ccircle cx='37.6' cy='9.7' r='1.2'/%3E%3Ccircle cx='44.5' cy='2.8' r='1.2'/%3E%3Ccircle cx='44.5' cy='6.3' r='1.2'/%3E%3Ccircle cx='44.5' cy='9.7' r='1.2'/%3E%3Ccircle cx='44.5' cy='13.2' r='1.2'/%3E%3Ccircle cx='48' cy='2.8' r='1.2'/%3E%3Ccircle cx='48' cy='13.2' r='1.2'/%3E%3Ccircle cx='51.4' cy='6.3' r='1.2'/%3E%3Ccircle cx='51.4' cy='9.7' r='1.2'/%3E%3C/g%3E%3Cg fill='%23525'%3E%3Ccircle cx='54.9' cy='2.8' r='1.2'/%3E%3Ccircle cx='54.9' cy='6.3' r='1.2'/%3E%3Ccircle cx='54.9' cy='9.7' r='1.2'/%3E%3Ccircle cx='54.9' cy='13.2' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
+	--logo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 19'%3E%3Cg fill='purple'%3E%3Ccircle cx='2.7' cy='2.6' r='1.2'/%3E%3Ccircle cx='2.7' cy='6' r='1.2'/%3E%3Ccircle cx='2.7' cy='9.5' r='1.2'/%3E%3Ccircle cx='2.7' cy='13' r='1.2'/%3E%3Ccircle cx='2.7' cy='16.4' r='1.2'/%3E%3Ccircle cx='9.6' cy='2.6' r='1.2'/%3E%3Ccircle cx='9.6' cy='6' r='1.2'/%3E%3Ccircle cx='9.6' cy='9.5' r='1.2'/%3E%3Ccircle cx='9.6' cy='13' r='1.2'/%3E%3Ccircle cx='9.6' cy='16.4' r='1.2'/%3E%3Ccircle cx='13' cy='6' r='1.2'/%3E%3Ccircle cx='16.5' cy='6' r='1.2'/%3E%3Ccircle cx='16.5' cy='13' r='1.2'/%3E%3Ccircle cx='19.9' cy='6' r='1.2'/%3E%3Ccircle cx='19.9' cy='13' r='1.2'/%3E%3Ccircle cx='23.4' cy='13' r='1.2'/%3E%3Ccircle cx='26.8' cy='2.6' r='1.2'/%3E%3Ccircle cx='26.8' cy='6' r='1.2'/%3E%3Ccircle cx='26.8' cy='9.5' r='1.2'/%3E%3Ccircle cx='26.8' cy='13' r='1.2'/%3E%3Ccircle cx='26.8' cy='16.4' r='1.2'/%3E%3Ccircle cx='33.7' cy='6' r='1.2'/%3E%3Ccircle cx='33.7' cy='13' r='1.2'/%3E%3Ccircle cx='33.7' cy='16.4' r='1.2'/%3E%3Ccircle cx='37.2' cy='6' r='1.2'/%3E%3Ccircle cx='37.2' cy='13' r='1.2'/%3E%3Ccircle cx='37.2' cy='16.4' r='1.2'/%3E%3Ccircle cx='40.6' cy='13' r='1.2'/%3E%3Ccircle cx='40.6' cy='16.4' r='1.2'/%3E%3Ccircle cx='44.1' cy='2.6' r='1.2'/%3E%3Ccircle cx='44.1' cy='6' r='1.2'/%3E%3Ccircle cx='44.1' cy='9.5' r='1.2'/%3E%3Ccircle cx='44.1' cy='13' r='1.2'/%3E%3Ccircle cx='44.1' cy='16.4' r='1.2'/%3E%3Ccircle cx='47.5' cy='2.6' r='1.2'/%3E%3Ccircle cx='47.5' cy='6' r='1.2'/%3E%3Ccircle cx='51' cy='2.6' r='1.2'/%3E%3Ccircle cx='51' cy='6' r='1.2'/%3E%3Ccircle cx='51' cy='13' r='1.2'/%3E%3Ccircle cx='54.4' cy='2.6' r='1.2'/%3E%3Ccircle cx='54.4' cy='6' r='1.2'/%3E%3Ccircle cx='54.4' cy='13' r='1.2'/%3E%3Ccircle cx='61.3' cy='2.6' r='1.2'/%3E%3Ccircle cx='61.3' cy='6' r='1.2'/%3E%3Ccircle cx='61.3' cy='9.5' r='1.2'/%3E%3Ccircle cx='61.3' cy='13' r='1.2'/%3E%3Ccircle cx='61.3' cy='16.4' r='1.2'/%3E%3C/g%3E%3Cg fill='%23f0f'%3E%3Ccircle cx='6.1' cy='2.6' r='1.2'/%3E%3Ccircle cx='6.1' cy='6' r='1.2'/%3E%3Ccircle cx='6.1' cy='9.5' r='1.2'/%3E%3Ccircle cx='6.1' cy='13' r='1.2'/%3E%3Ccircle cx='6.1' cy='16.4' r='1.2'/%3E%3Ccircle cx='13' cy='2.6' r='1.2'/%3E%3Ccircle cx='13' cy='9.5' r='1.2'/%3E%3Ccircle cx='13' cy='13' r='1.2'/%3E%3Ccircle cx='13' cy='16.4' r='1.2'/%3E%3Ccircle cx='16.5' cy='2.6' r='1.2'/%3E%3Ccircle cx='16.5' cy='9.5' r='1.2'/%3E%3Ccircle cx='16.5' cy='16.4' r='1.2'/%3E%3Ccircle cx='19.9' cy='2.6' r='1.2'/%3E%3Ccircle cx='19.9' cy='9.5' r='1.2'/%3E%3Ccircle cx='19.9' cy='16.4' r='1.2'/%3E%3Ccircle cx='23.4' cy='2.6' r='1.2'/%3E%3Ccircle cx='23.4' cy='6' r='1.2'/%3E%3Ccircle cx='23.4' cy='9.5' r='1.2'/%3E%3Ccircle cx='23.4' cy='16.4' r='1.2'/%3E%3Ccircle cx='30.3' cy='2.6' r='1.2'/%3E%3Ccircle cx='30.3' cy='6' r='1.2'/%3E%3Ccircle cx='30.3' cy='9.5' r='1.2'/%3E%3Ccircle cx='30.3' cy='13' r='1.2'/%3E%3Ccircle cx='30.3' cy='16.4' r='1.2'/%3E%3Ccircle cx='33.7' cy='2.6' r='1.2'/%3E%3Ccircle cx='33.7' cy='9.5' r='1.2'/%3E%3Ccircle cx='37.2' cy='2.6' r='1.2'/%3E%3Ccircle cx='37.2' cy='9.5' r='1.2'/%3E%3Ccircle cx='40.6' cy='2.6' r='1.2'/%3E%3Ccircle cx='40.6' cy='6' r='1.2'/%3E%3Ccircle cx='40.6' cy='9.5' r='1.2'/%3E%3Ccircle cx='47.5' cy='9.5' r='1.2'/%3E%3Ccircle cx='47.5' cy='13' r='1.2'/%3E%3Ccircle cx='47.5' cy='16.4' r='1.2'/%3E%3Ccircle cx='51' cy='9.5' r='1.2'/%3E%3Ccircle cx='51' cy='16.4' r='1.2'/%3E%3Ccircle cx='54.4' cy='9.5' r='1.2'/%3E%3Ccircle cx='54.4' cy='16.4' r='1.2'/%3E%3Ccircle cx='57.9' cy='2.6' r='1.2'/%3E%3Ccircle cx='57.9' cy='6' r='1.2'/%3E%3Ccircle cx='57.9' cy='9.5' r='1.2'/%3E%3Ccircle cx='57.9' cy='13' r='1.2'/%3E%3Ccircle cx='57.9' cy='16.4' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
 	--dropdown: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m5.29 17.93 26.71 28.14 26.71-28.14' fill='none' stroke='%23ae6ba8' stroke-linecap='round' stroke-linejoin='round' stroke-width='10'/%3E%3C/svg%3E");
 	--dropdown_hover: url("data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m5.29 17.93 26.71 28.14 26.71-28.14' fill='none' stroke='%23fafafa' stroke-linecap='round' stroke-linejoin='round' stroke-width='10'/%3E%3C/svg%3E");
 	--yes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2371c837' d='M55.9 8.6a4.3 4.3 0 00-3 1.3l-31 30.8L11.3 30a4.4 4.4 0 00-6 0l-4 4.2a4.4 4.4 0 000 6L19 57.7a4.4 4.4 0 006 0l37.8-37.9a4.4 4.4 0 000-6l-4-4a4.3 4.3 0 00-3-1.3z'/%3E%3C/svg%3E");
@@ -152,7 +152,7 @@ a, .slide label {
 	text-shadow: none;
 }
 
-.count:hover {
+label:hover .count {
 	background: var(--ink);
 }
 
@@ -446,9 +446,19 @@ td:last-child {
 }
 
 #navlinks {
-	padding: 10px 4px !important;
+	padding: 10px 2px !important;
 	font-size: 100%;
 	background: var(--header);
+}
+
+#navlinks a:hover {
+	background: var(--button_hover);
+}
+
+#navlinks a:active {
+	color: var(--ink-faded);
+	box-shadow: var(--highlight), var(--active_shadow), 0 0 0 1px var(--button-border);
+	background: var(--button_active);
 }
 
 .enabled, .disabled {
@@ -677,7 +687,7 @@ table.services {
 	height: 16px;
 	vertical-align: middle;
 	font-size: 0;
-	background: var(--local) no-repeat center center / 15px;
+	background: var(--local) no-repeat center center / 16px;
 }
 
 .tunnelid:not(.local) {
@@ -992,6 +1002,11 @@ input[type=checkbox]:checked + label::after {
 @media screen and (min-width: 1200px) {
 	#main {
 		width: 700px;
+	}
+
+	#navlinks a {
+		margin-top: 0;
+		margin-bottom: 0;
 	}
 
 	.tunnelid {

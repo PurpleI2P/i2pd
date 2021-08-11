@@ -1728,10 +1728,26 @@ namespace http {
 			return;
 		}
 
-		s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
-		  << tr("Command accepted") << "</td></tr>\r\n";
-//		s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a><br>\r\n";
-//		s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+		s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span>";
+		if (cmd == HTTP_COMMAND_SHUTDOWN_NOW)
+			s << tr("Immediate router shutdown initiated");
+		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
+			s << tr("Router shutdown cancelled");
+		else if (cmd == HTTP_COMMAND_RELOAD_CSS)
+			s << tr("Console CSS stylesheet reloaded");
+		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
+			s << tr("Maximum transit tunnels configured for session");
+		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
+			s << tr("Transit tunnels enabled for session");
+		else if (cmd == HTTP_COMMAND_DISABLE_TRANSIT)
+			s << tr("Transit tunnels disabled for session");
+		else if (cmd == HTTP_COMMAND_SETLANGUAGE)
+			s << tr("Console language updated");
+		else if (cmd == HTTP_COMMAND_LOGLEVEL)
+			s << tr("Log level updated for session");
+		else
+			s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Command accepted");
+		s << "</td></tr>\r\n";
 		res.add_header("Refresh", redirect.c_str());
 	}
 
