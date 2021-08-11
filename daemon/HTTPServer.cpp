@@ -559,12 +559,12 @@ namespace http {
 				s << "</tr></td>";
 			}
 /*
-				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "'>" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "'>" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "'>" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "'>" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "'>" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "'>" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "\">" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "\">" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "\">" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "\">" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "\">" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
+				s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "\">" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
 */
 		}
 
@@ -606,7 +606,7 @@ namespace http {
 	{
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_b64\" />\r\n"
-		  << "<label for='slide_b64'>" << tr("Base64 Address") << "</label>\r\n";
+		  << "<label for=\"slide_b64\">" << tr("Base64 Address") << "</label>\r\n";
 		s << "<div class=\"slidecontent\">\r\n<div id=\"b64\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		if (dest->IsEncryptedLeaseSet ())
@@ -637,7 +637,9 @@ namespace http {
 		{
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_leasesets\" />\r\n"
-			  << "<label for='slide_leasesets'>" << tr("LeaseSets") << " [" << dest->GetNumRemoteLeaseSets () << "]</label>\r\n";
+			  << "<label for=\"slide_leasesets\">" << tr("LeaseSets")
+			  << " <span class=\"hide\">[</span><span class=\"count\">" << dest->GetNumRemoteLeaseSets ()
+			  << "</span><span class=\"hide\">]</span></label>\r\n";
 			s << "<div class=\"slidecontent\">\r\n<table>\r\n<thead>\r\n<tr>"
 			  << "<th class=\"left\">" << tr("Address") << "</th>"
 			  << "<th class=\"thin\">" << tr("Type") << "</th>"
@@ -657,18 +659,24 @@ namespace http {
 		{
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels\" />\r\n"
-			  << "<label for='slide_tunnels'>" << tr("Tunnels") << "</label>\r\n";
+			  << "<label for=\"slide_tunnels\">" << tr("Tunnels") << "</label>\r\n";
 			s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetInboundTunnels ()) { // inbound tunnels
 				s << "<div class=\"listitem in\">"
 				  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
 				  << "<span class=\"chain inbound\">";
 				it->Print(s);
-				if(it->LatencyIsKnown())
-					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">"
-					  << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
-				else // placeholder for alignment
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+					}
+				} else { // placeholder for alignment
 					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</span></div>\r\n";
 			}
@@ -677,11 +685,17 @@ namespace http {
 				  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
 				  << "<span class=\"chain outbound\">";
 				it->Print(s);
-				if(it->LatencyIsKnown())
-					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">"
-					  << it->GetMeanLatency() << tr("ms") << "</span>";
-				else // placeholder for alignment
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+					}
+				} else { // placeholder for alignment
 					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</span></div>\r\n";
 			}
@@ -701,7 +715,9 @@ namespace http {
 					  << "</td><td class=\"center thin\">" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<tr><th colspan=\"2\">" << tr("Outgoing Session Tags") << " [" << out_tags << "]</th></tr>\r\n"
+			s << "<tr><th colspan=\"2\">" << tr("Outgoing Session Tags")
+			  << " <span class=\"hide\">[</span><span class=\"count\">" << out_tags
+			  << "</span><span class=\"hide\">]</span></th></tr>\r\n"
 			  << "<tr><td class=\"center nopadding\" colspan=\"2\"><table>\r\n"
 			  << "<thead>\r\n<tr><th class=\"left\">" << tr("Destination") << "</th><th class=\"thin\">" << tr("Count")
 			  << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</td></tr>\r\n";
@@ -710,7 +726,9 @@ namespace http {
 
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
-			s << "<tr><th colspan=\"2\">ECIESx25519<br>\r\n" << tr("Incoming Tags") << " [" << numECIESx25519Tags << "]</th></tr>\r\n";
+			s << "<tr><th colspan=\"2\">ECIESx25519<br>\r\n" << tr("Incoming Tags")
+			  << " <span class=\"hide\">[</span><span class=\"count\">" << numECIESx25519Tags
+			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 			if (!dest->GetECIESx25519Sessions ().empty ())
 			{
 				std::stringstream tmp_s; uint32_t ecies_sessions = 0;
@@ -722,8 +740,9 @@ namespace http {
 				}
 				s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n"
 				  << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide-ecies-sessions\" />\r\n"
-				  << "<label for='slide-ecies-sessions'>" << tr("Tag Sessions")
-				  << " [" << ecies_sessions << "]</label>\r\n"
+				  << "<label for=\"slide-ecies-sessions\">" << tr("Tag Sessions")
+				  << " <span class=\"hide\">[</span><span class=\"count\">" << ecies_sessions
+				  << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th class=\"left\">" << tr("Destination") << "</th><th>"
 				  << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
@@ -748,7 +767,7 @@ namespace http {
 			// Print table with streams information
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide-streams\" />\r\n"
-			  << "<label for='slide-streams'>" << tr("Streams") << "</label>\r\n";
+			  << "<label for=\"slide-streams\">" << tr("Streams") << "</label>\r\n";
 			s << "<div class=\"slidecontent\">\r\n<table>\r\n<thead>\r\n<tr>";
 			s << "<th class=\"streamid\">ID</th>";
 			s << "<th class=\"streamdest\">Destination</th>";
@@ -886,17 +905,24 @@ namespace http {
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_client\" />\r\n"
-		  << "<label for='slide_tunnels_client'>" << tr("Client Tunnels") << "</label>\r\n"; // TODO: separate client & exploratory tunnels into sections
+		  << "<label for=\"slide_tunnels_client\">" << tr("Client Tunnels") << "</label>\r\n"; // TODO: separate client & exploratory tunnels into sections
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
 			s << "<div class=\"listitem in\">"
 			  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
 			  << "<span class=\"chain inbound\">";
 			it->Print(s);
-			if(it->LatencyIsKnown())
-			s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">" << it->GetMeanLatency() << tr("ms") << "</span>";
-			else // placeholder for alignment
+			if(it->LatencyIsKnown()) {
+				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+				if (it->GetMeanLatency() >= 1000) {
+					s << std::fixed << std::setprecision(2);
+					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+				} else {
+					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+				}
+			} else { // placeholder for alignment
 				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---</span>";
+			}
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</span></div>\r\n";
 		}
@@ -1078,15 +1104,17 @@ namespace http {
 		if (!tmp_s.str ().empty ())
 		{
 			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name)
-			  << "\" />\r\n<label for='slide_" << boost::algorithm::to_lower_copy(name) << "'><b>" << name
-			  << "</b> [" << cnt << "]</label>\r\n<div class=\"slidecontent list\">"
+			  << "\" />\r\n<label for=\"slide_" << boost::algorithm::to_lower_copy(name) << "\">" << name
+			  << " <span class=\"hide\">[</span><span class=\"count\">" << cnt
+			  << "</span><span class=\"hide\">]</span></label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s.str () << "</div>\r\n</div>\r\n";
 		}
 		if (!tmp_s6.str ().empty ())
 		{
 			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n"
-			  << "<label for='slide_" << boost::algorithm::to_lower_copy(name) << "v6'><b>" << name
-			  << "v6</b> [" << cnt6 << "]</label>\r\n<div class=\"slidecontent list\">"
+			  << "<label for=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\">" << name
+			  << "v6 <span class=\"hide\">[</span><span class=\"count\">" << cnt6
+			  << "</span><span class=\"hide\">]</span></label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s6.str () << "</div>\r\n</div>\r\n";
 		}
 	}
@@ -1109,7 +1137,8 @@ namespace http {
 			if (!sessions.empty ())
 			{
 				s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssu\" />\r\n"
-				  << "<label for='slide_ssu'><b>SSU</b> [" << (int) sessions.size() << "]</label>\r\n"
+				  << "<label for=\"slide_ssu\">SSU <span class=\"hide\">[</span><span class=\"count\">"
+				  << (int) sessions.size() << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions)
 				{
@@ -1150,7 +1179,8 @@ namespace http {
 			if (!sessions6.empty ())
 			{
 				s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssuv6\" />\r\n"
-				  << "<label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n"
+				  << "<label for=\"slide_ssuv6\">SSUv6 <span class=\"hide\">[</span><span class=\"count\">"
+				  << (int) sessions6.size() << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions6)
 				{

@@ -252,10 +252,11 @@ namespace tunnel
 
 	void InboundTunnel::Print (std::stringstream& s) const
 	{
+		s << "<span class=\"hops\">";
 		PrintHops (s);
 		s << " <span class=\"arrowright zerohop\">&#8658;</span> ";
 		s << " <span class=\"tunnelid local\" data-tooltip=\"";
-		s << GetTunnelID () << "\">Local</span>";
+		s << GetTunnelID () << "\">Local</span></span>";
 		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
@@ -277,8 +278,9 @@ namespace tunnel
 
 	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
 	{
+		s << "<span class=\"hops\">";
 		s << "<span class=\"arrowright zerohop\">&#8658;</span> <span class=\"tunnelid local\" data-tooltip=\""
-		  << GetTunnelID () << "\">Local</span>";
+		  << GetTunnelID () << "\">Local</span></span>";
 		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
@@ -318,9 +320,10 @@ namespace tunnel
 
 	void OutboundTunnel::Print (std::stringstream& s) const
 	{
+		s << "<span class=\"hops\">";
 		s << "<span class=\"tunnelid local\" data-tooltip=\"" << GetTunnelID () << "\">Local</span>";
 		PrintHops (s);
-		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
+		s << "</span> <span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
 	ZeroHopsOutboundTunnel::ZeroHopsOutboundTunnel ():
@@ -354,9 +357,10 @@ namespace tunnel
 
 	void ZeroHopsOutboundTunnel::Print (std::stringstream& s) const
 	{
+		s << "<span class=\"hops\">";
 		s << "<span class=\"arrowright\">&#8658;</span> ";
 		s << "<span class=\"tunnelid local\" data-tooltip=\""
-		  << GetTunnelID () << "\">" << GetTunnelID () << "\">Local</span>";
+		  << GetTunnelID () << "\">" << GetTunnelID () << "\">Local</span></span>";
 		s << "<span class=\"tunnelid\">" << GetTunnelID () << "</span>";
 	}
 
