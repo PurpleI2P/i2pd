@@ -91,8 +91,8 @@ body {
 	text-align: center;
 	font: 14pt var(--bodyfont);
 	color: var(--ink);
-	background: radial-gradient(circle at center, rgba(48,0,48,.4), rgba(0,0,0,0)),
-				linear-gradient(to bottom, rgba(0,0,0,.3), rgba(32,0,32,.6), rgba(0,0,0,.3));
+	background: radial-gradient(circle at center, rgba(48,0,48,.3), rgba(0,0,0,.05)),
+				linear-gradient(to bottom, rgba(0,0,0,.3), rgba(32,0,32,.6), rgba(0,0,0,.3)), var(--page);
 }
 
 .wrapper {
@@ -510,6 +510,10 @@ td:last-child {
 	box-shadow: var(--highlight), inset 0 0 3px 3px rgba(0,0,0,.6);
 	text-align: center;
 	background: linear-gradient(to bottom, rgba(32,0,32,.5), rgba(4,0,4,.7));
+}
+
+.toast + .toast {
+	display: none;
 }
 
 #warning, #success {
@@ -963,6 +967,10 @@ input[type=checkbox]:checked + label::after {
 	color: var(--link_hover);
 	background: var(--button_hover);
 	opacity: .9;
+}
+
+.slide label:active::after {
+	transform: scale(.9);
 }
 
 .slide table {

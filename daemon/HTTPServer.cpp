@@ -112,7 +112,7 @@ namespace http {
 "--textshadow:0 1px 1px rgba(0,0,0.7)}"
 "html,body{min-height:100%;background:var(--page)}"
 "html,body,textarea{scrollbar-color:var(--scrollbar)}"
-"body{margin:0;padding:0;width:100%;height:100%;display:table;line-height:1.6;position:absolute;top:0;left:0;text-align:center;font:14pt var(--bodyfont);color:var(--ink);background:radial-gradient(circle at center,rgba(48,0,48,.4),rgba(0,0,0,0)),linear-gradient(to bottom,rgba(0,0,0,.3),rgba(32,0,32,.6),rgba(0,0,0,.3))}"
+"body{margin:0;padding:0;width:100%;height:100%;display:table;line-height:1.6;position:absolute;top:0;left:0;text-align:center;font:14pt var(--bodyfont);color:var(--ink);background:radial-gradient(circle at center,rgba(48,0,48,.3),rgba(0,0,0,.05)),linear-gradient(to bottom,rgba(0,0,0,.3),rgba(32,0,32,.6),rgba(0,0,0,.3)), var(--page)}"
 ".wrapper{margin:0 auto;padding:5px;width:100%;display:table-cell;vertical-align:middle;text-align:center}"
 ".header{display:inline-block;width:100%;vertical-align:middle;position:relative}"
 "#shutdownbutton{position:absolute;top:0;right:-10px;display:inline-block;width:40px;height:44px;font-size:0;background:var(--shutdown) no-repeat center center / 24px}"
@@ -181,6 +181,7 @@ namespace http {
 ".listitem:last-child{border-bottom:1px solid var(--button-border)}"
 ".listitem.out .arrowup,.listitem.in .arrowdown{margin:3px 8px 0 16px;float:left}"
 ".error,.notify{padding:30px 12px 40px;font-size:110%;color:#fff;box-shadow:var(--highlight),inset 0 0 3px 3px rgba(0,0,0,.6);text-align:center;background:linear-gradient(to bottom,rgba(32,0,32,.5),rgba(4,0,4,.7))}"
+".toast + .toast {display: none}"
 "#warning,#success{margin:-5px 0 10px;width:100%;height:48px;display:block;background:var(--error) no-repeat center top / 44px}"
 "#success{background:var(--success) no-repeat center top / 40px}"
 ".thin{width:1%;white-space:nowrap}"
@@ -253,6 +254,7 @@ namespace http {
 "input[type=checkbox] + label::after{content:\"+\";display:inline-block;vertical-align:middle;float:right;margin:-6px 10px 2px 0;font-size:16pt;font-weight:700;color:var(--ink);opacity:.7}"
 "input[type=checkbox]:checked + label::after{content:\"–\"}"
 ".slide label:hover{color:var(--link_hover);background:var(--button_hover);opacity:.9}"
+".slide label:active::after {transform: scale(.9)}"
 ".slide table{width:100%}"
 "@media screen and (max-width: 1000px) {"
 "body{font-size:13pt!important}"
@@ -530,7 +532,7 @@ namespace http {
 
 	static void ShowError(std::stringstream& s, const std::string& string)
 	{
-		s << "<tr><td class=\"center error\" colspan=\"2\"><span id=\"warning\"></span>\r\n<b>" << tr("ERROR")
+		s << "<tr class=\"toast\"><td class=\"center error\" colspan=\"2\"><span id=\"warning\"></span>\r\n<b>" << tr("ERROR")
 		  << ":</b>&nbsp;" << string << "</td></tr>\r\n";
 	}
 
@@ -1171,14 +1173,20 @@ namespace http {
 			s << "  <a href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">"
 			  << tr("Force shutdown") << "</a></td></tr>\r\n";
+			}
+/* only one option? displayed in the header
 		} else {
 			s << "  <a href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token="
 			  << token << "\">" << tr("Shutdown") << "</a></td></tr>\r\n";
 		}
+*/
+		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
+		if (i2p::fs::Exists(styleFile)) {
 		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\"><a href=\"" << webroot << "?cmd="
 		  << HTTP_COMMAND_RELOAD_CSS << "&token=" << token << "\">"
 		  << tr("Reload external CSS styles") << "</a>\r\n</td></tr>";
+		}
 
 		s << "<tr class=\"chrome notice\"><td class=\"center\" colspan=\"2\">\r\n<div class=\"note\">"
 		  << tr("<b>Note:</b> Configuration changes made here persist for the duration of the router session and will not be saved to your config file.")
@@ -1833,18 +1841,18 @@ namespace http {
 				if (dest)
 				{
 					if(dest->DeleteStream (streamID))
-						s << "<tr><td class=\"notify center\" colspan=\2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
+						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
 						  << tr("Stream closed") << "</td></tr>\r\n";
 					else
-						s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
 						  << tr("Stream not found or already was closed") << "</td></tr>\r\n";
 				}
 				else
-					s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
 					  << tr("Destination not found") << "</td></tr>\r\n";
 			}
 			else
-				s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
 				  << tr("StreamID can't be null") << "</td></tr>\r\n";
 
 			redirect = "2; url=" + webroot + "?page=local_destination&b32=" + b32;
@@ -1857,7 +1865,7 @@ namespace http {
 			if (limit > 0 && limit <= 65535)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<tr><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
 				  << tr("Transit tunnels count must not exceed 65535") << "\r\n</td></tr>\r\n";
 				res.add_header("Refresh", redirect.c_str());
 				return;
@@ -1891,7 +1899,7 @@ namespace http {
 						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
 						sig[len] = 0;
 						out << "#!sig=" << sig;
-						s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS")
+						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS")
 						  << "</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\""
 						  << " method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
 						  << "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
@@ -1904,15 +1912,15 @@ namespace http {
 						delete[] sig;
 					}
 					else
-						s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
 						  << tr("Domain can't end with .b32.i2p") << "\r\n<br>\r\n</td></tr>\r\n";
 				}
 				else
-					s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
 					  << tr("Domain must end with .i2p") << "\r\n<br>\r\n</td></tr>\r\n";
 			}
 			else
-				s << "<tr><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
 				  << tr("No such destination found") << "\r\n<br>\r\n<</td></tr>\r\n";
 
 //			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a>\r\n";
@@ -1928,7 +1936,11 @@ namespace http {
 		}
 		else if (cmd == HTTP_COMMAND_RELOAD_CSS)
 		{
-			LoadExtCSS();
+			std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
+			if (i2p::fs::Exists(styleFile))
+				LoadExtCSS();
+			else
+				ShowError(s, tr("No CSS file found on disk!"));
 		}
 		else
 		{
@@ -1937,14 +1949,15 @@ namespace http {
 			return;
 		}
 
-		s << "<tr><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span>";
+
+		s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span>";
 		if (cmd == HTTP_COMMAND_SHUTDOWN_NOW)
 			s << tr("Immediate router shutdown initiated");
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
 			s << tr("Router shutdown cancelled");
-		else if (cmd == HTTP_COMMAND_RELOAD_CSS)
+		else if (cmd == HTTP_COMMAND_RELOAD_CSS) {
 			s << tr("Console CSS stylesheet reloaded");
-		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
+		} else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
 			s << tr("Maximum transit tunnels configured for session");
 		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
 			s << tr("Transit tunnels enabled for session");
