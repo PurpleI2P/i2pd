@@ -152,7 +152,8 @@ namespace stream
 		eStreamStatusOpen,
 		eStreamStatusReset,
 		eStreamStatusClosing,
-		eStreamStatusClosed
+		eStreamStatusClosed,
+		eStreamStatusTerminated
 	};
 
 	class StreamingDestination;

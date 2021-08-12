@@ -104,6 +104,7 @@ namespace stream
 
 	void Stream::Terminate (bool deleteFromDestination) // shoudl be called from StreamingDestination::Stop only
 	{
+		m_Status = eStreamStatusTerminated;
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
@@ -857,12 +858,15 @@ namespace stream
 
 	void Stream::ScheduleResend ()
 	{
-		m_ResendTimer.cancel ();
-		// check for invalid value
-		if (m_RTO <= 0) m_RTO = INITIAL_RTO;
-		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
-		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
-			shared_from_this (), std::placeholders::_1));
+		if (m_Status != eStreamStatusTerminated)
+		{	
+			m_ResendTimer.cancel ();
+			// check for invalid value
+			if (m_RTO <= 0) m_RTO = INITIAL_RTO;
+			m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
+			m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
+				shared_from_this (), std::placeholders::_1));
+		}	
 	}
 
 	void Stream::HandleResendTimer (const boost::system::error_code& ecode)
