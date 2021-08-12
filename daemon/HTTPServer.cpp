@@ -307,6 +307,7 @@ namespace http {
 		URL url;
 		url.parse_query(params);
 		page = params["page"];
+		std::string token = params["token"];
 
 		s <<
 			"<!DOCTYPE html>\r\n"
@@ -321,7 +322,11 @@ namespace http {
 			"</head>\r\n"
 			"<body>\r\n"
 			"<div class=\"wrapper\">\r\n<table id=\"main\">\r\n"
-			"<tr><td class=\"center\" colspan=\"2\"><a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a></td></tr>"
+			"<tr><td class=\"center\" colspan=\"2\"><span class=\"header\">"
+			"<a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a> "
+			// placeholder for graceful shutdown button (requires token)
+			"<a id=\"shutdownbutton\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&amp;token=" << token <<
+			"\" data-tooltip=\"" << tr("Start graceful shutdown") << "\">Shutdown</a></span></td></tr>\r\n"
 			"<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
 		if (i2p::context.IsFloodfill ())
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
