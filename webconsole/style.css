@@ -138,6 +138,10 @@ b {
 	font-weight: 600;
 }
 
+.toast b {
+	font-weight: 900;
+}
+
 #main {
 	margin: 0 auto;
 	min-width: 300px;
@@ -504,7 +508,7 @@ td:last-child {
 }
 
 .error, .notify {
-	padding: 30px 12px 40px;
+	padding: 0;
 	font-size: 110%;
 	color: #fff;
 	box-shadow: var(--highlight), inset 0 0 3px 3px rgba(0,0,0,.6);
@@ -514,6 +518,18 @@ td:last-child {
 
 .toast + .toast {
 	display: none;
+}
+
+.container {
+	margin: 12px;
+	padding: 40px 20px;
+	display: inline-block;
+	width: calc(100% - 24px);
+	background: radial-gradient(at bottom center, rgba(48,8,48,.3), rgba(0,0,0,0) 70%),
+				linear-gradient(to top, rgba(160,56,160,.1), rgba(96,16,96,.1));
+	box-shadow: 0 0 0 1px rgba(255,160,255,.3), inset 0 0 0 2px #000, inset 0 0 0 3px #303;
+	box-sizing: border-box;
+	text-shadow: 0 1px 1px #000;
 }
 
 #warning, #success {

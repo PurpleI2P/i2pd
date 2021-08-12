@@ -532,8 +532,8 @@ namespace http {
 
 	static void ShowError(std::stringstream& s, const std::string& string)
 	{
-		s << "<tr class=\"toast\"><td class=\"center error\" colspan=\"2\"><span id=\"warning\"></span>\r\n<b>" << tr("ERROR")
-		  << ":</b>&nbsp;" << string << "</td></tr>\r\n";
+		s << "<tr class=\"toast\"><td class=\"center error\" colspan=\"2\"><span class=\"container\"><span id=\"warning\"></span>\r\n<b>" << tr("ERROR")
+		  << ":</b>&nbsp;" << string << "</span></td></tr>\r\n";
 	}
 
 	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
@@ -1841,19 +1841,25 @@ namespace http {
 				if (dest)
 				{
 					if(dest->DeleteStream (streamID))
-						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\2\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
-						  << tr("Stream closed") << "</td></tr>\r\n";
+						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\2\">"
+						  << "<span class=\"container\"><span id=\"success\"></span><b>" << tr("SUCCESS") << "</b>:&nbsp;"
+						  << tr("Stream closed") << "</span></td></tr>\r\n";
 					else
-						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
-						  << tr("Stream not found or already was closed") << "</td></tr>\r\n";
+						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\">"
+						  << "<span class=\"container\"><span id=\"warning\"></span>"
+						  << tr("ERROR") << "</b>:&nbsp;"
+						  << tr("Stream not found or already was closed") << "</span></td></tr>\r\n";
 				}
 				else
-					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
-					  << tr("Destination not found") << "</td></tr>\r\n";
+					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\">"
+					  << "<span class=\"container\"><span id=\"warning\"></span>"
+					  << tr("ERROR") << "</b>:&nbsp;"
+					  << tr("Destination not found") << "</span></td></tr>\r\n";
 			}
 			else
-				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
-				  << tr("StreamID can't be null") << "</td></tr>\r\n";
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\">"
+				  << "<span class=\"container\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("StreamID can't be null") << "</span></td></tr>\r\n";
 
 			redirect = "2; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
@@ -1865,8 +1871,10 @@ namespace http {
 			if (limit > 0 && limit <= 65535)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\"><span id=\"warning\"></span>" << tr("ERROR") << "</b>:&nbsp;"
-				  << tr("Transit tunnels count must not exceed 65535") << "\r\n</td></tr>\r\n";
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\2\">"
+				  << "<span class=\"container\"><span id=\"warning\"></span>"
+				  << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("Transit tunnels count must not exceed 65535") << "</span></td></tr>\r\n";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
@@ -1899,7 +1907,8 @@ namespace http {
 						auto len = i2p::data::ByteStreamToBase64 (signature, signatureLen, sig, signatureLen*2);
 						sig[len] = 0;
 						out << "#!sig=" << sig;
-						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span><b>" << tr("SUCCESS")
+						s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span class=\"container\">"
+						  << "<span id=\"success\"></span><b>" << tr("SUCCESS")
 						  << "</b>:<br>\r\n<form action=\"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/add\""
 						  << " method=\"post\" rel=\"noreferrer\" target=\"_blank\">\r\n"
 						  << "<textarea readonly name=\"record\" cols=\"80\" rows=\"10\">" << out.str () << "</textarea>\r\n<br>\r\n<br>\r\n"
@@ -1907,21 +1916,24 @@ namespace http {
 						  << "<b>" << tr("Description") << ":</b>\r\n<input type=\"text\" maxlength=\"64\" name=\"desc\" placeholder=\""
 						  << tr("Short description of domain") << "\">\r\n"
 						  << "<input type=\"submit\" value=\"" << tr("Submit") << "\">\r\n"
-						  << "</form>\r\n</td></tr>\r\n";
+						  << "</form></span></td></tr>\r\n";
 						delete[] signature;
 						delete[] sig;
 					}
 					else
-						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
-						  << tr("Domain can't end with .b32.i2p") << "\r\n<br>\r\n</td></tr>\r\n";
+						s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\"><span class=\"container\"><b>"
+						  << tr("ERROR") << "</b>:&nbsp;"
+						  << tr("Domain can't end with .b32.i2p") << "</span></td></tr>\r\n";
 				}
 				else
-					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
-					  << tr("Domain must end with .i2p") << "\r\n<br>\r\n</td></tr>\r\n";
+					s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\"><span class=\"container\">"
+					  << tr("ERROR") << "</b>:&nbsp;"
+					  << tr("Domain must end with .i2p") << "</span></td></tr>\r\n";
 			}
 			else
-				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\">" << tr("ERROR") << "</b>:&nbsp;"
-				  << tr("No such destination found") << "\r\n<br>\r\n<</td></tr>\r\n";
+				s << "<tr class=\"toast\"><td class=\"notify error center\" colspan=\"2\"><span class=\"container\">"
+				  << tr("ERROR") << "</b>:&nbsp;"
+				  << tr("No such destination found") << "</span></td></tr>\r\n";
 
 //			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a>\r\n";
 			return;
@@ -1950,7 +1962,8 @@ namespace http {
 		}
 
 
-		s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span id=\"success\"></span>";
+		s << "<tr class=\"toast\"><td class=\"notify center\" colspan=\"2\"><span class=\"container\">"
+		  << "<span id=\"success\"></span>";
 		if (cmd == HTTP_COMMAND_SHUTDOWN_NOW)
 			s << tr("Immediate router shutdown initiated");
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
@@ -1969,7 +1982,7 @@ namespace http {
 			s << tr("Log level updated for session");
 		else
 			s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Command accepted");
-		s << "</td></tr>\r\n";
+		s << "</span></td></tr>\r\n";
 		res.add_header("Refresh", redirect.c_str());
 	}
 
