@@ -938,10 +938,17 @@ namespace http {
 			  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
 			  << "<span class=\"chain outbound\">";
 			it->Print(s);
-			if(it->LatencyIsKnown())
-				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">" << it->GetMeanLatency() << tr("ms") << "</span>";
-			else // placeholder for alignment
+			if(it->LatencyIsKnown()) {
+				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+				if (it->GetMeanLatency() >= 1000) {
+					s << std::fixed << std::setprecision(2);
+					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+				} else {
+					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+				}
+			} else { // placeholder for alignment
 				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
+			}
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</span>\r\n</div>\r\n";
 		}
