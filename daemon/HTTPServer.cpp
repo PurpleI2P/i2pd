@@ -326,9 +326,12 @@ namespace http {
 		s << "<b>" << tr("Uptime") << ":</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
-		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus ());
-		s << "<br>\r\n";
+		if (i2p::context.SupportsV4 ())
+		{
+			s << "<b>" << tr("Network status") << ":</b> ";
+			ShowNetworkStatus (s, i2p::context.GetStatus ());
+			s << "<br>\r\n";
+		}
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
