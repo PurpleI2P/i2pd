@@ -606,35 +606,42 @@ namespace client
 		if (!ecode)
 		{
 			bool found = false;
-			boost::asio::ip::tcp::resolver::iterator end;
 			boost::asio::ip::tcp::endpoint ep;
-			while (it != end)
+			if (m_LocalAddress)
 			{	
-				ep = *it;
-				if (!ep.address ().is_unspecified ())
-				{
-					if (ep.address ().is_v4 ())
-					{	
-						if (!m_LocalAddress || m_LocalAddress->is_v4 ()) // look for ipv4 if not specified
-							found = true;	
-					}
-					else if (ep.address ().is_v6 ())
+				boost::asio::ip::tcp::resolver::iterator end;
+				while (it != end)
+				{	
+					ep = *it;
+					if (!ep.address ().is_unspecified ())
 					{
-						if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+						if (ep.address ().is_v4 ())
+						{	
+							if (m_LocalAddress->is_v4 ()) found = true;	
+						}
+						else if (ep.address ().is_v6 ())
 						{
-							if (m_LocalAddress && i2p::util::net::IsYggdrasilAddress (*m_LocalAddress))
+							if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+							{
+								if (i2p::util::net::IsYggdrasilAddress (*m_LocalAddress))
+									found = true;
+							}	
+							else if (m_LocalAddress->is_v6 ()) 
 								found = true;
-						}	
-						else if (m_LocalAddress && m_LocalAddress->is_v6 ()) 
-							found = true;
-					}
-				}	
-				if (found) break;
-				it++;
-			}
+						}
+					}	
+					if (found) break;
+					it++;
+				}
+			}	
+			else
+			{
+				found = true;
+				ep = *it; // first available
+			}	
 			if (!found)
 			{
-				LogPrint (eLogError, "I2PTunnel: Unable to reslove to compatible address");
+				LogPrint (eLogError, "I2PTunnel: Unable to resolve to compatible address");
 				return;
 			}	
 			
