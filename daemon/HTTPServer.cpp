@@ -483,30 +483,41 @@ namespace http {
 		page = params["page"];
 		std::string token = params["token"];
 
-		s <<
-			"<!DOCTYPE html>\r\n"
-			"<html lang=\"" << langCode << "\">\r\n"
-			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
-			"  <meta charset=\"UTF-8\">\r\n"
-			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
-			"  <link rel=\"shortcut icon\" href=\"" << i2pdfavicon << "\">\r\n"
-			"  <title>Purple I2P | " VERSION "</title>\r\n";
+		s << "<!DOCTYPE html>\r\n"
+			 "<html lang=\"" << langCode << "\">\r\n"
+			 "<head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			 "<meta charset=\"UTF-8\">\r\n"
+			 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
+			 "<link rel=\"shortcut icon\" href=\"" << i2pdfavicon << "\">\r\n"
+			 "<title>Purple I2P | " VERSION "</title>\r\n";
 		GetStyles(s);
-		s <<
-			"</head>\r\n"
-			"<body>\r\n"
-			"<div class=\"wrapper\">\r\n<table id=\"main\">\r\n"
-			"<tr><td class=\"center\" colspan=\"2\"><span class=\"header\">"
-			"<a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a> "
-			// placeholder for graceful shutdown button (requires token)
-			"<a id=\"shutdownbutton\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&amp;token=" << token <<
-			"\" data-tooltip=\"" << tr("Start graceful shutdown") << "\">Shutdown</a></span></td></tr>\r\n"
-			"<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
+		s << "</head>\r\n"
+			 "<body>\r\n"
+			 "<div class=\"wrapper\">\r\n<table id=\"main\">\r\n"
+			 "<tr><td class=\"center\" colspan=\"2\"><span class=\"header\">"
+			 "<a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a> "
+			 // TODO placeholder for graceful shutdown button (requires token)
+			 "<a id=\"shutdownbutton\" href=\"" << webroot << "?cmd="
+		  << HTTP_COMMAND_SHUTDOWN_START << "&amp;token=" << token << "\" data-tooltip=\""
+		  << tr("Start graceful shutdown") << "\">Shutdown</a>";
+		// placeholder for toggle transit (requires token)
+		if (i2p::context.AcceptsTunnels ()) {
+			s << "<a id=\"disabletransit\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_DISABLE_TRANSIT << "&amp;token=" << token
+			  << "\" data-tooltip=\"" << tr("Decline transit tunnels")
+			  << "\">No transit</a>";
+		} else {
+			s << "<a id=\"enabletransit\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_ENABLE_TRANSIT << "&amp;token=" << token
+			  << "\" data-tooltip=\"" << tr("Accept transit tunnels")
+			  << "\">Accept transit</a>";
+		}
+		s << "</span></td></tr>\r\n"
+		  << "<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
 		if (i2p::context.IsFloodfill ())
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
-		s <<
-			"<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
-			<< HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
+		s << "<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
+		  << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
 //			"<a title=\"" << tr("Local Service Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("Services") << "</a>\r\n"
 //			"<a title=\"" << tr("Active Transit Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit") << "</a>\r\n"
 			"<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
@@ -523,11 +534,10 @@ namespace http {
 
 	static void ShowPageTail (std::stringstream& s)
 	{
-		s <<
-			"</table>\r\n"
-			"</div>\r\n"
-			"</body>\r\n"
-			"</html>\r\n";
+		s << "</table>\r\n"
+			 "</div>\r\n"
+			 "</body>\r\n"
+			 "</html>\r\n";
 	}
 
 	static void ShowError(std::stringstream& s, const std::string& string)
