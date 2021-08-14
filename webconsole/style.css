@@ -1,4 +1,4 @@
-/* "purple" console theme for i2pd */
+/* "purple royale" console theme for i2pd */
 /* Author: dr|z3d */
 
 :root {
@@ -93,11 +93,7 @@ body {
 	text-align: center;
 	font: 14pt var(--bodyfont);
 	color: var(--ink);
-	background: radial-gradient(circle at center, rgba(48,0,48,.3), rgba(0,0,0,.05)),
-				linear-gradient(to bottom, rgba(0,0,0,.3), rgba(32,0,32,.6), rgba(0,0,0,.3)), var(--page);
-	background: linear-gradient(to right, rgba(0,0,0,0), rgba(16,0,16,.3), rgba(0,0,0,0)),
-				linear-gradient(to bottom, rgba(0,0,0,.3), rgba(32,0,32,.6), rgba(0,0,0,.3));
-	background: linear-gradient(to bottom, rgba(0,0,0,.4), rgba(32,0,32,.3), rgba(0,0,0,.4));
+	background: linear-gradient(to bottom, rgba(0,0,0,.1), rgba(32,0,32,.1), rgba(0,0,0,.1));
 }
 
 .wrapper {
@@ -114,6 +110,10 @@ body {
 	width: 100%;
 	vertical-align: middle;
 	position: relative;
+}
+
+a, label, button, #navlinks, .sectiontitle span, .chrome  {
+	user-select: none;
 }
 
 #shutdownbutton, #enabletransit, #disabletransit {
@@ -847,6 +847,11 @@ table.services {
 
 span[data-tooltip] {
 	position: relative;
+	text-transform: capitalize;
+}
+
+span[data-tooltip]::after {
+	font-family: var(--bodyfont);
 }
 
 .hops {

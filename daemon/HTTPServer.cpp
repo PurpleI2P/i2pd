@@ -45,7 +45,7 @@ namespace http {
 		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23405' rx='5'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23e580ff'/%3E%3Cg fill='%23d42aff'%3E%3Ccircle cx='20' cy='32' r='4'/%3E%3Ccircle cx='44' cy='32' r='4'/%3E%3Ccircle cx='32' cy='20' r='4'/%3E%3Ccircle cx='32' cy='44' r='4'/%3E%3C/g%3E%3Cg fill='%2380a'%3E%3Ccircle cx='20' cy='56' r='4'/%3E%3Ccircle cx='44' cy='8' r='4'/%3E%3Ccircle cx='44' cy='56' r='4'/%3E%3Ccircle cx='8' cy='44' r='4'/%3E%3Ccircle cx='56' cy='20' r='4'/%3E%3Ccircle cx='56' cy='44' r='4'/%3E%3Ccircle cx='8' cy='20' r='4'/%3E%3Ccircle cx='20' cy='8' r='4'/%3E%3C/g%3E%3Cg fill='%23aa00d4'%3E%3Ccircle cx='32' cy='56' r='4'/%3E%3Ccircle cx='44' cy='20' r='4'/%3E%3Ccircle cx='44' cy='44' r='4'/%3E%3Ccircle cx='8' cy='32' r='4'/%3E%3Ccircle cx='56' cy='32' r='4'/%3E%3Ccircle cx='32' cy='8' r='4'/%3E%3Ccircle cx='20' cy='44' r='4'/%3E%3Ccircle cx='20' cy='20' r='4'/%3E%3C/g%3E%3Cg fill='%23660080'%3E%3Ccircle cx='8' cy='56' r='4'/%3E%3Ccircle cx='56' cy='8' r='4'/%3E%3Ccircle cx='56' cy='56' r='4'/%3E%3Ccircle cx='8' cy='8' r='4'/%3E%3C/g%3E%3C/svg%3E";
 	// Bundled style
 	const std::string internalCSS =
-		"<style>\r\n"
+		"<style title=\"purple royale\">\r\n"
 ":root{"
 "--bodyfont:Open Sans,Noto Sans,Ubuntu,Segoe UI,sans-serif;"
 "--monospaced:Droid Sans Mono,Noto Mono,Lucida Console,DejaVu Sans Mono,monospace;"
@@ -859,12 +859,12 @@ namespace http {
 					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
 					if (it->GetMeanLatency() >= 1000) {
 						s << std::fixed << std::setprecision(2);
-						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
 					} else {
-						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
 					}
 				} else { // placeholder for alignment
-					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</span></div>\r\n";
@@ -878,12 +878,12 @@ namespace http {
 					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
 					if (it->GetMeanLatency() >= 1000) {
 						s << std::fixed << std::setprecision(2);
-						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
 					} else {
-						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
 					}
 				} else { // placeholder for alignment
-					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</span></div>\r\n";
@@ -1107,12 +1107,12 @@ namespace http {
 				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
 				if (it->GetMeanLatency() >= 1000) {
 					s << std::fixed << std::setprecision(2);
-					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
 				} else {
-					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
 				}
 			} else { // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 			}
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</span></div>\r\n";
@@ -1126,12 +1126,12 @@ namespace http {
 				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
 				if (it->GetMeanLatency() >= 1000) {
 					s << std::fixed << std::setprecision(2);
-					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span>";
+					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
 				} else {
-					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span>";
+					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
 				}
 			} else { // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span>";
+				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 			}
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</span>\r\n</div>\r\n";
