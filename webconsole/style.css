@@ -570,10 +570,13 @@ td:last-child {
 	width: 13% !important;
 }
 
+#header, #navlinks {
+	background: var(--header);
+}
+
 #navlinks {
 	padding: 10px 2px !important;
 	font-size: 100%;
-	background: var(--header);
 }
 
 #navlinks a:hover {

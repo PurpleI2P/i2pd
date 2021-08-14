@@ -495,7 +495,7 @@ namespace http {
 		s << "</head>\r\n"
 			 "<body>\r\n"
 			 "<div class=\"wrapper\">\r\n<table id=\"main\">\r\n"
-			 "<tr><td class=\"center\" colspan=\"2\"><span class=\"header\">"
+			 "<tr id=\"header\"><td class=\"center\" colspan=\"2\"><span class=\"header\">"
 			 "<a id=\"home\" href=\"" << webroot << "\">" << tr("Main page") << "</a> "
 			 // TODO placeholder for graceful shutdown button (requires token)
 			 "<a id=\"shutdownbutton\" href=\"" << webroot << "?cmd="
@@ -862,7 +862,7 @@ namespace http {
 					  << "</td><td class=\"center thin\">" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<tr><th colspan=\"2\">" << tr("Outgoing Session Tags")
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Outgoing Session Tags")
 			  << " <span class=\"hide\">[</span><span class=\"count\">" << out_tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n"
 			  << "<tr><td class=\"center nopadding\" colspan=\"2\"><table>\r\n"
@@ -873,7 +873,8 @@ namespace http {
 
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
-			s << "<tr><th colspan=\"2\">ECIESx25519<br>\r\n" << tr("Incoming Tags")
+			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>ECIESx25519</span></th></tr>";
+			s << "<tr><th colspan=\"2\">" << tr("Incoming Tags")
 			  << " <span class=\"hide\">[</span><span class=\"count\">" << numECIESx25519Tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 			if (!dest->GetECIESx25519Sessions ().empty ())
