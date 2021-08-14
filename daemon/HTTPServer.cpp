@@ -1115,7 +1115,7 @@ namespace http {
 			{
 				s << "<td>NTCP2";
 				if (address->host.is_v6 ()) s << "v6";
-				s << "</td><td><span class=\"enabled fizedsize\">" << tr("supported") << "</span></td>\r\n</tr>\r\n";
+				s << "</td><td><span class=\"enabled fixedsize\">" << tr("supported") << "</span></td>\r\n</tr>\r\n";
 				continue;
 			}
 			switch (address->transportStyle)
