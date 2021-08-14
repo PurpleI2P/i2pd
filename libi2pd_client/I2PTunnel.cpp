@@ -605,7 +605,47 @@ namespace client
 	{
 		if (!ecode)
 		{
-			auto addr = (*it).endpoint ().address ();
+			bool found = false;
+			boost::asio::ip::tcp::endpoint ep;
+			if (m_LocalAddress)
+			{	
+				boost::asio::ip::tcp::resolver::iterator end;
+				while (it != end)
+				{	
+					ep = *it;
+					if (!ep.address ().is_unspecified ())
+					{
+						if (ep.address ().is_v4 ())
+						{	
+							if (m_LocalAddress->is_v4 ()) found = true;	
+						}
+						else if (ep.address ().is_v6 ())
+						{
+							if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+							{
+								if (i2p::util::net::IsYggdrasilAddress (*m_LocalAddress))
+									found = true;
+							}	
+							else if (m_LocalAddress->is_v6 ()) 
+								found = true;
+						}
+					}	
+					if (found) break;
+					it++;
+				}
+			}	
+			else
+			{
+				found = true;
+				ep = *it; // first available
+			}	
+			if (!found)
+			{
+				LogPrint (eLogError, "I2PTunnel: Unable to resolve to compatible address");
+				return;
+			}	
+			
+			auto addr = ep.address ();
 			LogPrint (eLogInfo, "I2PTunnel: server tunnel ", (*it).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
 			Accept ();
