@@ -374,7 +374,8 @@ namespace http {
 		time_t t = divTime.quot;
 		struct tm *tm = localtime(&t);
 		char date[128];
-		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03lld", tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
+		snprintf(date, sizeof(date), "%02d/%02d/%d %02d:%02d:%02d.%03lld",
+			tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, divTime.rem);
 		return date;
 	}
 
@@ -580,7 +581,6 @@ namespace http {
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
-		s << "<tr id=\"version\"><td>" << tr("Version") << "</td><td>" VERSION "</td></tr>\r\n";
 		s << "<tr><td>" << tr("Uptime") << "</td><td>";
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "</td></tr>\r\n";
@@ -664,50 +664,6 @@ namespace http {
 		}
 		s << "<tr><td>" << tr("Build Success") << "</td><td>";
 		s << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%</td></tr>\r\n";
-// TODO: Move to separate routerinfo page
-/*
-		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
-		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
-		s << "<tr><td>" << tr("Router Ident") << "</td><td><span class=\"sensitive\" hidden>" << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
-		auto family = i2p::context.GetFamily ();
-		if (family.length () > 0)
-			s << "<tr><td>"<< tr("Family") << "</td><td>" << family << "<br>\r\n";
-		if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
-			s << "<tr><td>" << tr("Router Family") << "</td><td><span class=\"sensitive\" hidden>" << i2p::context.GetRouterInfo().GetProperty("family") << "</span></td></tr>\r\n";
-		for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
-		{
-			s << "<tr>\r\n";
-			if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
-			{
-				s << "<td>NTCP2";
-				if (address->host.is_v6 ()) s << "v6";
-				s << "</td><td><span class=\"enabled\">" << tr("supported") << "</span></td>\r\n</tr>\r\n";
-				continue;
-			}
-			switch (address->transportStyle)
-			{
-				case i2p::data::RouterInfo::eTransportNTCP:
-				{
-					s << "<td>NTCP";
-					if (address->IsPublishedNTCP2 ()) s << "2";
-					if (address->host.is_v6 ()) s << "v6";
-					s << "</td>\r\n";
-					break;
-				}
-				case i2p::data::RouterInfo::eTransportSSU:
-				{
-					s << "<td>SSU";
-					if (address->host.is_v6 ())
-						s << "v6";
-					s << "</td>\r\n";
-					break;
-				}
-				default:
-					s << "<td>" << tr("Unknown") << "</td>\r\n";
-			}
-			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
-		}
-*/
 		s << "<tr><td>" << tr("Routers") << "</td><td>" << i2p::data::netdb.GetNumRouters () << "</td></tr>\r\n";
 		s << "<tr><td>" << tr("Floodfills") << "</td><td>" << i2p::data::netdb.GetNumFloodfills () << "</td></tr>\r\n";
 		s << "<tr><td>" << tr("LeaseSets") << "</td><td>" << i2p::data::netdb.GetNumLeaseSets () << "</td></tr>\r\n";
@@ -731,7 +687,7 @@ namespace http {
 			bool i2cp       = i2p::client::context.GetI2CPServer ()        ? true : false;
 			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			if (httpproxy || socksproxy || bob || sam || i2cp || i2pcontrol) {
-				s << "<tr><th colspan=\"2\">" << tr("Active Router Services") << "</th></tr>\r\n";
+				s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>";
 				s << "<tr><td id=\"routerservices\" class=\"center\" colspan=\"2\">";
 				if (httpproxy)
 					s << " <span class=\"routerservice\">HTTP " << tr("Proxy") << "</span> ";
@@ -1141,8 +1097,54 @@ namespace http {
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
-		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
+		s << "<tr id=\"version\"><td>" << tr("Version") << "</td><td>" VERSION "</td></tr>\r\n";
+		s << "<tr><td>" << tr("Router Ident") << "</td><td><span class=\"sensitive\" hidden>"
+		  << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
+		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
+		if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
+			s << "<tr><td>" << tr("Router Family") << "</td><td><span class=\"sensitive\" hidden>"
+			  << i2p::context.GetRouterInfo().GetProperty("family") << "</span></td></tr>\r\n";
+		auto family = i2p::context.GetFamily ();
+		if (family.length () > 0)
+			s << "<tr><td>"<< tr("Family") << "</td><td>" << family << "<br>\r\n";
+		for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+		{
+			s << "<tr>\r\n";
+			if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
+			{
+				s << "<td>NTCP2";
+				if (address->host.is_v6 ()) s << "v6";
+				s << "</td><td><span class=\"enabled\">" << tr("supported") << "</span></td>\r\n</tr>\r\n";
+				continue;
+			}
+			switch (address->transportStyle)
+			{
+				case i2p::data::RouterInfo::eTransportNTCP:
+				{
+					s << "<td>NTCP";
+					if (address->IsPublishedNTCP2 ()) s << "2";
+					if (address->host.is_v6 ()) s << "v6";
+					s << "</td>\r\n";
+					break;
+				}
+				case i2p::data::RouterInfo::eTransportSSU:
+				{
+					s << "<td>SSU";
+					if (address->host.is_v6 ())
+						s << "v6";
+					s << "</td>\r\n";
+					break;
+				}
+				default:
+					s << "<td>" << tr("Unknown") << "</td>\r\n";
+			}
+			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
+		}
+		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
 
+
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr>"
 		  << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
 		s << "  <a id=\"homelink\" href=\"" << webroot << "?cmd="
@@ -1183,14 +1185,16 @@ namespace http {
 			s << "  <a href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">"
 			  << tr("Force shutdown") << "</a></td></tr>\r\n";
-			}
-/* only one option? displayed in the header
+/* TODO graceful shutdown button in header with .notify dialog if transit tunnels
+   active to offer option to shutdown immediately
+   only one option? displayed in the header
+*/
 		} else {
 			s << "  <a href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token="
 			  << token << "\">" << tr("Shutdown") << "</a></td></tr>\r\n";
 		}
-*/
+
 		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
 		if (i2p::fs::Exists(styleFile)) {
 		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\"><a href=\"" << webroot << "?cmd="

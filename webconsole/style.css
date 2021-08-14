@@ -126,6 +126,7 @@ a, label, button, #navlinks, .sectiontitle span, .chrome  {
 	font-size: 0;
 	background: var(--shutdown) no-repeat center center / 24px;
 	mix-blend-mode: luminosity;
+	display: none; /* while inactive */
 }
 
 #enabletransit, #disabletransit {
@@ -413,16 +414,20 @@ tr {
 	border-bottom: 1px solid var(--border);
 }
 
-tr#version, tr#version ~ tr:nth-child(odd), tr.chrome, .listitem:nth-child(odd) {
+tr#version, tr#version ~ tr:nth-child(odd), tr.chrome, .listitem:nth-child(odd), tr:not(.chrome):nth-child(odd) {
 	background: linear-gradient(to bottom, rgba(16,0,16,.5), rgba(8,0,8,.5));
 }
 
-tr#version ~ tr:nth-child(even), .listitem:nth-child(even) {
+tr#version ~ tr:nth-child(even), .listitem:nth-child(even), tr:not(.chrome):nth-child(even) {
 	background: linear-gradient(to bottom, rgba(32,0,32,.5), rgba(24,0,24,.5));
 }
 
 tr tr, /*tr#version, tr#version ~ tr:nth-child(odd),*/ .tableitem tr:nth-child(odd) {
 	background: var(--tr-inner) !important;
+}
+
+tr.chrome {
+	background: linear-gradient(to bottom, rgba(16,0,16,.5), rgba(8,0,8,.5)) !important;
 }
 
 .tableitem tr:nth-child(even) {
@@ -567,6 +572,10 @@ td:last-child {
 	white-space: nowrap;
 }
 
+.sectiontitle.configuration ~ tr td.thin {
+	width: 13% !important;
+}
+
 #navlinks {
 	padding: 10px 2px !important;
 	font-size: 100%;
@@ -599,7 +608,14 @@ td:last-child {
 	background: var(--no) no-repeat left 12px center / 10px;
 }
 
-.sensitive {
+#main .enabled.fixedsize {
+	margin-top: -5px;
+	width: 14px;
+	height: 14px;
+	background: var(--yes) no-repeat center center / 14px;
+}
+
+/*.sensitive {
 	filter: blur(8px);
 	display: inline-block !important;
 	max-width: 120px;
@@ -615,6 +631,10 @@ td:last-child {
 	white-space: pre-wrap;
 	word-break: break-all;
 	filter: blur(0);
+}*/
+
+.sensitive {
+	display: inline-block;
 }
 
 .arrowright, .arrowleft, .arrowleftright, .arrowup, .arrowdown {
