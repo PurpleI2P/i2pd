@@ -1178,7 +1178,7 @@ input[type=checkbox]:checked + label::after {
 
 @media screen and (min-width: 1200px) {
 	#main {
-		width: 700px;
+		width: 70%;
 	}
 
 	#navlinks a {
