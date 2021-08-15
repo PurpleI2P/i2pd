@@ -1100,7 +1100,7 @@ namespace http {
 	{
 		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
 		s << "<tr id=\"version\"><td>" << tr("Version") << "</td><td>" VERSION "</td></tr>\r\n";
-		s << "<tr><td>" << tr("Router Ident") << "</td><td><span class=\"sensitive\" hidden>"
+		s << "<tr><td>" << tr("Router Identity") << "</td><td class=\"nopadding\"><span id=\"rid\" class=\"sensitive\" hidden>"
 		  << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
 		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
 		if (!i2p::context.GetRouterInfo().GetProperty("family").empty())

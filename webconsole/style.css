@@ -71,6 +71,11 @@
 	--textshadow: 0 1px 1px rgba(0,0,0.7);
 }
 
+::selection {
+	background: #d50;
+	color: #fff;
+}
+
 html, body {
 	min-height: 100%;
 	background: var(--page);
@@ -379,6 +384,7 @@ select, option:hover, option:focus, option:active {
 	background: radial-gradient(at bottom center, rgba(48,8,48,.3), rgba(0,0,0,0) 70%),
 				linear-gradient(to bottom, rgba(32,0,32,.2), rgba(24,0,24,.2));
 	box-shadow: inset 0 0 0 1px rgba(96,0,96,.2), 0 0 0 1px #000;
+	white-space: normal;
 }
 
 .note::before {
@@ -1033,6 +1039,17 @@ input[type=checkbox]:checked + label::after {
 	width: 100%;
 }
 
+#rid {
+	margin: 5px 8px;
+	padding: 2px 4px;
+	display: inline-block;
+	font-size: 80%;
+	border-radius: 2px;
+	background: #202;
+	user-select: all;
+	word-break: break-all;
+}
+
 @media screen and (max-width: 1000px) {
 	body {
 		font-size: 13pt !important;
@@ -1095,6 +1112,18 @@ input[type=checkbox]:checked + label::after {
 
 	td:first-child {
 		width: auto;
+	}
+
+	#rid {
+		margin: 5px 10px;
+		padding: 0;
+		width: 200px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 90%;
+		background: none;
+		vertical-align: middle;
 	}
 
 	.b32, .listitem a[href*="local_destination&b32"] {
