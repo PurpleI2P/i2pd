@@ -1154,60 +1154,73 @@ namespace http {
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr>"
-		  << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
-		s << "  <a id=\"homelink\" href=\"" << webroot << "?cmd="
-		  << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">"
+		  << "<tr id=\"commands\" class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
+
+		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
+		if (i2p::fs::Exists(styleFile)) {
+//		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">"
+		s << "<a id=\"reloadcss\" class=\"cmd\" href=\"" << webroot << "?cmd="
+		  << HTTP_COMMAND_RELOAD_CSS << "&token=" << token
+		  << "\" data-tooltip=\"" << tr("Reload external CSS stylesheet") << "\">"
+		  << tr("Reload external CSS stylesheet") << "</a>";
+//		  << "\r\n</td></tr>";
+		}
+
+		s << "  <a id=\"testpeer\" class=\"cmd\" href=\"" << webroot << "?cmd="
+		  << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token
+		  << "\" data-tooltip=\"" << tr("Run peer test") << "\">"
 		  << tr("Run peer test") << "</a><br>\r\n";
 
 		// s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"" << webroot << "?cmd="
-			  << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">"
+			s << "  <a id=\"transitdecline\" class=\"cmd\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token
+			  << "\" data-tooltip=\"" << tr("Decline transit tunnels") << "\">"
 			  << tr("Decline transit tunnels") << "</a><br>\r\n";
 		else
-			s << "  <a href=\"" << webroot << "?cmd="
-			  << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">"
+			s << "  <a id=\"transitaccept\" class=\"cmd\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token
+			  << "\" data-tooltip=\"" << tr("Decline transit tunnels") << "\">"
 			  << tr("Accept transit tunnels") << "</a><br>\r\n";
 
 		if (i2p::tunnel::tunnels.CountTransitTunnels()) {
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			if (Daemon.gracefulShutdownInterval)
-				s << "  <a href=\"" << webroot << "?cmd="
-				  << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">"
+				s << "  <a id=\"shutdowncancel\" class=\"cmd\" href=\"" << webroot << "?cmd="
+				  << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token
+				  << "\" data-tooltip=\"" << tr("Cancel graceful shutdown") << "\">"
 				  << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 			else
-				s << "  <a href=\"" << webroot << "?cmd="
+				s << "  <a id=\"shutdowngraceful\" class=\"cmd\" href=\"" << webroot << "?cmd="
 				  << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token
-				  << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
+				  << "\" data-tooltip=\"" << tr("Start graceful shutdown") << "\">"
+				  << tr("Start graceful shutdown") << "</a><br>\r\n";
 #elif defined(WIN32_APP)
 			if (i2p::util::DaemonWin32::Instance().isGraceful)
-				s << "  <a href=\"" << webroot << "?cmd="
-				  << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">"
+				s << "  <a id=\"shutdowncancel\" class=\"cmd\" href=\"" << webroot << "?cmd="
+				  << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token
+				  << "\" data-tooltip=\"" << tr("Cancel graceful shutdown") << "\">"
 				  << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 			else
-				s << "  <a href=\"" << webroot << "?cmd="
-				  << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">"
+				s << "  <a id=\"shutdowngraceful\" class=\"cmd\" href=\"" << webroot << "?cmd="
+				  << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token
+				  << "\" data-tooltip=\"" << tr("Start graceful shutdown") << "\">"
 				  << tr("Start graceful shutdown") << "</a><br>\r\n";
 #endif
-			s << "  <a href=\"" << webroot << "?cmd="
-			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">"
+			s << "  <a id=\"shutdownforce\" class=\"cmd\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
+			  << "\" data-tooltip=\"" << tr("Force shutdown") << "\">"
 			  << tr("Force shutdown") << "</a></td></tr>\r\n";
 /* TODO graceful shutdown button in header with .notify dialog if transit tunnels
    active to offer option to shutdown immediately
    only one option? displayed in the header
 */
 		} else {
-			s << "  <a href=\"" << webroot << "?cmd="
-			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token="
-			  << token << "\">" << tr("Shutdown") << "</a></td></tr>\r\n";
-		}
-
-		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
-		if (i2p::fs::Exists(styleFile)) {
-		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\"><a href=\"" << webroot << "?cmd="
-		  << HTTP_COMMAND_RELOAD_CSS << "&token=" << token << "\">"
-		  << tr("Reload external CSS styles") << "</a>\r\n</td></tr>";
+			s << "  <a id=\"shutdownforce\" class=\"cmd\" href=\"" << webroot << "?cmd="
+			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
+			  << "\" data-tooltip=\"" << tr("Shutdown") << "\">"
+			  << tr("Shutdown") << "</a></td></tr>\r\n";
 		}
 
 		s << "<tr class=\"chrome notice\"><td class=\"center\" colspan=\"2\">\r\n<div class=\"note\">"

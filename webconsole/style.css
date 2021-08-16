@@ -33,8 +33,11 @@
 	--tag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23dbd' d='M63 37.9v20.3c-.2 2.3-2.6 4.5-4.9 4.7l-20.3.1a4.3 4.3 0 01-2.9-1.4L2.3 29.2a4.3 4.3 0 010-6.1L23.1 2.3a4.3 4.3 0 016.1 0l32.5 32.5c.9.8 1.3 1.9 1.3 3.2zm-9.3 5.5a7.3 7.3 0 10-10.3 10.2 7.3 7.3 0 0010.3 0 7.1 7.1 0 000-10.2z'/%3E%3C/svg%3E");
 	--shutdown: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23717' d='M16 1a3 3 0 00-3 3v9.3a3 3 0 002.9 2.9 3 3 0 003-2.8V4a3 3 0 00-3-3zm7.2 3.2a3 3 0 00-2.8 3 3 3 0 001.1 2.2 8.8 8.8 0 013.3 6.9 8.8 8.8 0 01-9.9 8.8 8.8 8.8 0 01-4.5-15.7 3 3 0 001-2.2c0-2.4-2.7-3.8-4.6-2.3a14.6 14.6 0 00-5.5 12.9 14.7 14.7 0 1023.9-13 2.8 2.8 0 00-1.9-.6z'/%3E%3C/svg%3E");
 	--shutdown_hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23900' d='M16 1a3 3 0 00-3 3v9.3a3 3 0 002.9 2.9 3 3 0 003-2.8V4a3 3 0 00-3-3zm7.2 3.2a3 3 0 00-2.8 3 3 3 0 001.1 2.2 8.8 8.8 0 013.3 6.9 8.8 8.8 0 01-9.9 8.8 8.8 8.8 0 01-4.5-15.7 3 3 0 001-2.2c0-2.4-2.7-3.8-4.6-2.3a14.6 14.6 0 00-5.5 12.9 14.7 14.7 0 1023.9-13 2.8 2.8 0 00-1.9-.6z'/%3E%3C/svg%3E");
+	--noshutdown: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%230a4' d='M32.1 12.63a3.89 3.89 0 00-3.89 3.89v12.05a3.89 3.89 0 003.76 3.76 3.89 3.89 0 003.89-3.63V16.52a3.89 3.89 0 00-3.89-3.89zm9.33 4.15a3.89 3.89 0 00-3.63 3.89 3.89 3.89 0 001.43 2.85 11.4 11.4 0 014.28 8.94 11.4 11.4 0 01-12.83 11.4 11.4 11.4 0 01-5.83-20.34 3.89 3.89 0 001.3-2.85c0-3.11-3.5-4.93-5.97-2.98a18.92 18.92 0 00-7.13 16.71 19.05 19.05 0 1030.97-16.84 3.63 3.63 0 00-2.46-.78z'/%3E%3Cpath fill='%23d40000' d='M32 1a31 31 0 100 62 31 31 0 000-62zm0 7.9c4 0 8 1 11.3 2.9a1.9 1.9 0 01.4 3l-29 28.9a1.9 1.9 0 01-3-.5A23 23 0 0132 9zm18.5 10.9a1.9 1.9 0 011.7 1 23.2 23.2 0 01-31.5 31.5 1.9 1.9 0 01-.4-3l29-29a1.9 1.9 0 011.2-.5z'/%3E%3C/svg%3E");
 	--transit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%235b5' d='M13.4 21.5H23V34h13V21.5h9.6L29.5 2.4z'/%3E%3Cpath fill='%23ae6ba8' d='M49.2 30.2l-3 1.5a.5.5 0 00-.1 0L40 37.7a.5.5 0 000 .2.5.5 0 00-.2.1.5.5 0 000 .1.5.5 0 000 .1l.5 1.5a.5.5 0 00.3.3l1.4.6a.5.5 0 00.5 0l2.9-2.3 4.5-4.6a.5.5 0 00.2-.2l.8-2a.5.5 0 00-.3-.7l-1-.5a.5.5 0 00-.4 0zm7.3 3.2l-2.2.3a.5.5 0 00-.2 0l-7 6-3 3.6a.5.5 0 000 .6l.8 1.3a.5.5 0 00.3.3l1.5.2a.5.5 0 00.4-.1l5.8-5 4-4.7a.5.5 0 000-.3l.2-1.7a.5.5 0 00-.6-.6zm-45.4 5l-9.9.6a.5.5 0 00-.5.5L1 58.2a.5.5 0 00.4.5l26 3.1a.5.5 0 00.2 0l19.3-2.1a.5.5 0 00.3-.1l9.7-9 6.4-8.6a.5.5 0 00-.1-.7l-3.8-2.8a.5.5 0 00-.6 0c-2.4 2.5-4.6 5-7 7.3l-10 8.2-19.7.5 3.3-4.3 14-.8a.5.5 0 00.6-.5l-.1-5.4a.5.5 0 00-.5-.5l-17.5-1-10.5-3.6a.5.5 0 00-.2 0z'/%3E%3C/svg%3E");
 	--notransit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%235b5' d='M12.2 36.8h12v14.4h15.6V36.8h12l-19.2-24z'/%3E%3Cpath fill='%23d40000' d='M32 1a31 31 0 100 62 31 31 0 000-62zm0 7.9c4 0 8 1 11.3 2.9a1.9 1.9 0 01.4 3l-29 28.9a1.9 1.9 0 01-3-.5A23 23 0 0132 9zm18.5 10.9a1.9 1.9 0 011.7 1 23.2 23.2 0 01-31.5 31.5 1.9 1.9 0 01-.4-3l29-29a1.9 1.9 0 011.2-.5z'/%3E%3C/svg%3E");
+	--testpeer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23e3dbdb' d='M0 0h40.5v64H0z'/%3E%3Cpath fill='%23f2484b' d='M8.9 16.1a1 1 0 01-.8-.3l-2-2.1a1 1 0 011.4-1.5L9 13.6l4.9-5a1 1 0 011.4 1.6l-5.6 5.6a1 1 0 01-.7.3z'/%3E%3Cpath fill='%236da8d6' d='M33.7 13.3H17.5a1 1 0 110-2.1h16.2a1 1 0 110 2.1zm-.5 14.4H15.4a1 1 0 110-2.2h17.8a1 1 0 110 2.2zM5.7 23.9h5.4v5.4H5.7zm27.6 16.9H15.5a1 1 0 110-2h17.8a1 1 0 110 2zM5.7 37.1h5.4v5.4H5.7zM33.3 54H15.5a1 1 0 110-2.1h17.8a1 1 0 110 2.1zM5.7 50.3h5.4v5.4H5.7z'/%3E%3Cg fill='%23eeb490' transform='translate(22.9 2) scale(.96766)'%3E%3Ccircle cx='10.8' cy='32.6' r='4'/%3E%3Ccircle cx='31.8' cy='32.6' r='4'/%3E%3C/g%3E%3Cpath fill='%23660080' d='M64 64H22.9v-7.4a6.8 6.8 0 015.9-6.7l9-3.6H49l9.1 3.6a6.8 6.8 0 015.9 6.7z'/%3E%3Cpath fill='%23aa00d4' d='M36 48.2v3.3c0 4.3 3.4 7.8 7.7 7.8 4-.1 7.2-3.4 7.2-7.6v-3.5c0-1.1-1-2.1-2-2.1H38.1c-1.3 0-2.3 1-2.3 2.1z'/%3E%3Cpath fill='%23eeb490' d='M38.4 43.5V49a5.1 5.1 0 1010.2 0v-5.5z'/%3E%3Cpath fill='%23faccb4' d='M48.6 23.4H38.4a4.4 4.4 0 00-4.4 4.3v9.9a9.6 9.6 0 0019.2 0v-9.9a4.4 4.4 0 00-4.5-4.4z'/%3E%3Cg fill='%2356545f'%3E%3Cpath d='M53 19.2s7.4 1 0 14.9v-5.8s-.5-4-3-4.3z'/%3E%3Cpath d='M48 14h-9a5.5 5.5 0 00-1.1 0c-13.9 0-4 20.8-4 20.8 0-8 5-8 5-8H48A6.4 6.4 0 0048 14z'/%3E%3C/g%3E%3C/svg%3E");
+	--reloadcss: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23e3dbdb' d='M0 0h45.71v64H0z'/%3E%3Cpath fill='%2304a' d='M19.47 39.69H4.24a1.05 1.05 0 110-2.11h15.23a1.05 1.05 0 110 2.1zm11.57 13.79H4.24a1.05 1.05 0 110-2.1h26.8a1.05 1.05 0 110 2.1zm-6-6.9H4.24a1.05 1.05 0 110-2.1h20.8a1.05 1.05 0 110 2.1zm8 13.8H4.24a1.05 1.05 0 110-2.1h28.8a1.05 1.05 0 110 2.1zM12.3 4.34q-1.52.5-2.43 1.73-.92 1.23-.92 2.8 0 .8.25 2.31.23 1.57.23 2.36 0 1.55-.7 2.47-.45.6-2.01 1.66-.82.57-1.26.82-.82.47-1.34.57 2 .29 3.6 1.98 1.55 1.71 1.55 3.73 0 .76-.23 2.28-.24 1.56-.24 2.32 0 1.48.97 2.68.92 1.17 2.37 1.68v.75h-.1q-2.4 0-4.26-1.55-1.98-1.64-1.98-4 0-.92.37-2.77.32-1.83.32-2.75 0-1.25-1.06-2.4-.95-1.03-2.24-1.5v-.95q.96-.3 2.08-1.26 1.1-.92 1.32-1.78.06-.27.06-1 0-.92-.35-2.77-.37-1.8-.37-2.74 0-2.28 2.08-3.9 1.92-1.46 4.3-1.46zm13.41 15.17q-.76.05-1.98 1.16-1.21 1.13-1.42 1.92-.1.4-.1.92 0 .94.4 2.71.36 1.83.36 2.75 0 2.35-2.05 3.96-1.92 1.49-4.32 1.49v-.7q1.48-.5 2.4-1.7.94-1.2.94-2.75 0-.8-.23-2.32-.27-1.52-.27-2.3 0-1.53.72-2.53.53-.66 2.02-1.7.82-.57 1.26-.83.82-.47 1.35-.56-2.01-.31-3.6-1.99-1.6-1.7-1.6-3.7 0-.77.2-2.32.21-1.55.21-2.3 0-1.49-.89-2.68-.93-1.16-2.38-1.65v-.77h.06q2.36 0 4.26 1.53 2.05 1.58 2.05 3.89 0 .93-.37 2.79-.36 1.84-.36 2.76 0 1.29 1.07 2.45.95 1.05 2.27 1.52z'/%3E%3Cpath fill='%23141' stroke='%23025' stroke-linejoin='round' stroke-width='3.66' d='M41.38 10.81v3.37a17.64 17.64 0 00-15.22 17.78 17.64 17.64 0 0017.42 17.86v.08h.14l3.22 3.29v-3.37a17.64 17.64 0 0015.23-17.86 17.64 17.64 0 00-17.42-17.78v0-.08h-.15zm0 11.27v5.13l4.98-5.13a10.1 10.1 0 01.58 19.76v-5.12l-5.05 5.12a10.1 10.1 0 01-8.2-9.95c0-4.76 3.3-8.78 7.69-9.8z'/%3E%3Cpath fill='%23aef' d='M43.58 14.03h1.1l-1.1 5.05v2.64a10.1 10.1 0 00-9.89 10.1 10.1 10.1 0 009.89 10.1l1.1-.15-1.1 7.83a17.57 17.57 0 01-17.42-17.64 17.64 17.64 0 0117.42-17.93z'/%3E%3Cpath fill='none' stroke='%23025' stroke-width='3.66' d='M47.02 36.8l-8.2 8.12 8.2 8.2'/%3E%3Cg fill='%2300aad4'%3E%3Cpath d='M44.67 49.9h-1.02l1.02-5.06v-2.7a10.1 10.1 0 000-20.2l-1.1.07 1.1-7.83a17.71 17.71 0 0117.5 17.86 17.64 17.64 0 01-17.5 17.86z'/%3E%3Cpath d='M46.94 53.04V36.8l-8.2 8.13z'/%3E%3C/g%3E%3Cpath fill='none' stroke='%23025' stroke-width='3.5' d='M41.3 27.13l8.2-8.12-8.27-8.27'/%3E%3Cpath fill='%23aef' d='M41.38 10.81v16.32l8.2-8.12z'/%3E%3C/svg%3E");
 	/* theme colors */
 	--scrollbar: #414 #101;
 	--ink: #dbd;
@@ -965,13 +968,14 @@ a:hover .host, a:focus .host, a:active .host {
 	background: var(--tag) no-repeat left center / 10px;
 }
 
-a[href^="https://gwhois"] {
+a[href^="https://gwhois"], .cmd {
 	position: relative;
 }
 
 span[data-tooltip]:hover::after, span[data-tooltip]:active::after,
 .itag[data-tooltip]:hover::after, .itag[data-tooltip]:active::after,
-.header a[data-tooltip][href*="cmd"]:hover::after {
+.header a[data-tooltip][href*="cmd"]:hover::after,
+.cmd[data-tooltip]:hover::after {
 	padding: 3px 6px;
 	display: inline-block;
 	position: absolute;
@@ -989,10 +993,14 @@ span[data-tooltip]:hover::after, span[data-tooltip]:active::after,
 }
 
 .header a[data-tooltip][href*="cmd"]:hover::after {
-		top: auto;
-		right: -8px;
-		bottom: 42px;
-		left: auto;
+	top: auto;
+	right: -8px;
+	bottom: 42px;
+	left: auto;
+}
+
+.cmd[data-tooltip]:hover::after {
+	left: -16px;
 }
 
 .slide label {
@@ -1050,6 +1058,51 @@ input[type=checkbox]:checked + label::after {
 	background: #202;
 	user-select: all;
 	word-break: break-all;
+}
+
+#commands br {
+	display: none;
+}
+
+.cmd {
+	margin: 4px;
+	padding: 8px;
+	display: inline-block;
+	font-size: 0;
+	width: 42px;
+	height: 42px;
+	background: #f00;
+	min-width: 0;
+	box-sizing: border-box;
+	vertical-align: middle;
+}
+
+#testpeer {
+	background: #313 var(--testpeer) no-repeat center center / 32px;
+}
+
+#transitaccept {
+	background: #313 var(--transit) no-repeat center center / 32px;
+}
+
+#transitdecline {
+	background: #313 var(--notransit) no-repeat center center / 32px;
+}
+
+#shutdownforce, #shutdowngraceful {
+	background: #313 var(--shutdown_hover) no-repeat center center / 32px; /* prompt user for forceful shutdown if garceful clicked when transit tunnels active */
+}
+
+#shutdowngraceful {
+	display: none;
+}
+
+#shutdowncancel {
+	background: #313 var(--noshutdown) no-repeat center center / 32px;
+}
+
+#reloadcss {
+	background: #313 var(--reloadcss) no-repeat center center / 32px;
 }
 
 @media screen and (max-width: 1000px) {
