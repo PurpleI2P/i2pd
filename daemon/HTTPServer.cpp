@@ -1098,7 +1098,7 @@ namespace http {
 
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
-		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
+//		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_routerinfo\" />\r\n"
