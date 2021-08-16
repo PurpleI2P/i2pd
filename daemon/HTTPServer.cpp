@@ -1099,7 +1099,13 @@ namespace http {
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
-		s << "<tr id=\"version\"><td>" << tr("Version") << "</td><td>" VERSION "</td></tr>\r\n";
+
+		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_routerinfo\" />\r\n"
+		  << "<label for=\"slide_routerinfo\">i2pd " VERSION "</label>\r\n";
+		s << "<div class=\"slidecontent\">\r\n<table id=\"routerinfos\">\r\n";
+
+
 		s << "<tr><td>" << tr("Router Identity") << "</td><td class=\"nopadding\"><span id=\"rid\" class=\"sensitive\" hidden>"
 		  << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
 		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
@@ -1143,6 +1149,7 @@ namespace http {
 			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
 		}
 		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
+		s << "</table>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
