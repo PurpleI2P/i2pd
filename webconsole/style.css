@@ -267,7 +267,8 @@ a.button, button, input, select {
 
 select, input, button {
 	margin: 4px 2px;
-	padding: 6px 8px;
+	padding: 6px 10px;
+	line-height: 1.5;
 	font-family: var(--bodyfont);
 	font-size: 90% !important;
 	font-weight: 600;
@@ -323,7 +324,7 @@ button:active, a.button:active, .slide label:active, td.streamid:active {
 }
 
 button.apply {
-	padding: 7px 12px 6px;
+	padding: 6px 12px;
 	color: transparent;
 	text-shadow: none !important;
 	background: var(--yes_btn) no-repeat center center / 14px, var(--button);
@@ -345,6 +346,7 @@ select, input[type=number] {
 	box-sizing: border-box;
 	font-size: 90% !important;
 	background: var(--input_text);
+	text-shadow: 0 1px 1px rgba(0,0,0,.6);
 }
 
 input[type=number] {
@@ -1098,7 +1100,7 @@ input[type=checkbox]:checked + label::after {
 }
 
 #testpeer {
-	background: var(--testpeer) no-repeat center center / 32px, var(--button);
+	background: var(--testpeer) no-repeat center center / 30px, var(--button);
 }
 
 #testpeer:hover, #testpeer:focus {
@@ -1106,11 +1108,11 @@ input[type=checkbox]:checked + label::after {
 }
 
 #testpeer:active {
-	background: var(--testpeer) no-repeat center center / 32px, var(--button_active);
+	background: var(--testpeer) no-repeat center center / 28px, var(--button_active);
 }
 
 #transitaccept {
-	background: var(--transit) no-repeat center center / 32px, var(--button);
+	background: var(--transit) no-repeat center center / 30px, var(--button);
 }
 
 #transitaccept:hover, #transitaccept:focus {
@@ -1118,11 +1120,11 @@ input[type=checkbox]:checked + label::after {
 }
 
 #transitaccept:active {
-	background: var(--transit) no-repeat center center / 32px, var(--button_active);
+	background: var(--transit) no-repeat center center / 28px, var(--button_active);
 }
 
 #transitdecline {
-	background: var(--notransit) no-repeat center center / 32px, var(--button);
+	background: var(--notransit) no-repeat center center / 30px, var(--button);
 }
 
 #transitdecline:hover, #transitdecline:focus {
@@ -1130,20 +1132,21 @@ input[type=checkbox]:checked + label::after {
 }
 
 #transitdecline:active {
-	background: var(--notransit) no-repeat center center / 32px, var(--button_active);
+	background: var(--notransit) no-repeat center center / 28px, var(--button_active);
 }
 
 #shutdownforce, #shutdowngraceful {
 	/* prompt user for forceful shutdown if graceful clicked when transit tunnels active */
-	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button);
+	background: var(--shutdown_hover) no-repeat center center / 30px, var(--button);
 }
 
-#shutdownforce:hover, #shutdownforce:focus {
+#shutdownforce:hover, #shutdownforce:focus,
+#shutdowngraceful:hover, #shutdowngraceful:focus {
 	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button_hover);
 }
 
-#shutdownforce:active {
-	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button_active);
+#shutdownforce:active, #shutdowngraceful:active {
+	background: var(--shutdown_hover) no-repeat center center / 28px, var(--button_active);
 }
 
 #shutdowngraceful {
@@ -1151,7 +1154,7 @@ input[type=checkbox]:checked + label::after {
 }
 
 #shutdowncancel {
-	background: var(--noshutdown) no-repeat center center / 32px, var(--button);
+	background: var(--noshutdown) no-repeat center center / 30px, var(--button);
 }
 
 #shutdowncancel:hover, #shutdowncancel:focus {
@@ -1159,11 +1162,11 @@ input[type=checkbox]:checked + label::after {
 }
 
 #shutdowncancel:active {
-	background: var(--noshutdown) no-repeat center center / 32px, var(--button_active);
+	background: var(--noshutdown) no-repeat center center / 28px, var(--button_active);
 }
 
 #reloadcss {
-	background: var(--reloadcss) no-repeat center center / 32px, var(--button);
+	background: var(--reloadcss) no-repeat center center / 30px, var(--button);
 }
 
 #reloadcss:hover, #reloadcss:focus {
@@ -1171,7 +1174,7 @@ input[type=checkbox]:checked + label::after {
 }
 
 #reloadcss:active {
-	background: var(--reloadcss) no-repeat center center / 32px, var(--button_active);
+	background: var(--reloadcss) no-repeat center center / 28px, var(--button_active);
 }
 
 #tunnelsummary td {
