@@ -518,14 +518,14 @@ namespace http {
 		  << "<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
 		if (i2p::context.IsFloodfill ())
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
-			s << "<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
-			  << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
-//			"<a title=\"" << tr("Local Service Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("Services") << "</a>\r\n"
-//			"<a title=\"" << tr("Active Transit Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit") << "</a>\r\n"
-				 "<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
-				 "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
-				 "<a title=\"" << tr("All active tunnels") << "\" href=\"" << webroot << "?page="
-			  << HTTP_PAGE_TUNNEL_SUMMARY << "\">" << tr("Tunnels") << "</a>\r\n";
+		s << "<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
+		  << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
+//			 "<a title=\"" << tr("Local Service Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("Services") << "</a>\r\n"
+//			 "<a title=\"" << tr("Active Transit Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit") << "</a>\r\n"
+			 "<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
+			 "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
+			 "<a title=\"" << tr("All active tunnels") << "\" href=\"" << webroot << "?page="
+		  << HTTP_PAGE_TUNNEL_SUMMARY << "\">" << tr("Tunnels") << "</a>\r\n";
 		if (sam && sam->GetSessions ().size ()) {
 			s << "<a title=\"" << tr("Current SAM sessions") << "\" href=\"" << webroot << "?page="
 			  << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM Sessions") << "</a>\r\n";
@@ -1046,14 +1046,15 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Tunnels") << "</span></th><tr>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Client Tunnels") << "</span></th><tr>\r\n";
 		s << "<tr><th colspan=\"2\">" << tr("Queue size") << ": " << i2p::tunnel::tunnels.GetQueueSize () << "</th></tr>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_client\" />\r\n"
-		  << "<label for=\"slide_tunnels_client\">" << tr("Client Tunnels") << "</label>\r\n"; // TODO: separate client & exploratory tunnels into sections
+		  << "<label for=\"slide_tunnels_client\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
+			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
 			s << "<div class=\"listitem in\">"
@@ -1108,9 +1109,9 @@ namespace http {
 		s << "<tr><td>" << tr("Transit") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
-		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
-		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
-		  << "<tr><td>" << tr("Exploratory + Service") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+//		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+//		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
+		s << "<tr><td>" << tr("Client") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_CLIENT_TUNNELS << "\">View</a></td></tr>\r\n"
 //		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
 		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
