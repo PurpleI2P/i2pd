@@ -170,7 +170,7 @@ b {
 
 #main {
 	margin: 0 auto;
-	min-width: 300px;
+	width: 100%;
 	max-width: 700px;
 	font-size: 85%;
 	border: 2px solid var(--border);
@@ -1211,6 +1211,10 @@ input[type=checkbox]:checked + label::after {
 		padding: 1px 3px;
 	}
 
+		.chrome a.button {
+			min-width: 40px;
+		}
+
 	.b32, .listitem a[href*="local_destination&b32"] {
 		max-width: 300px;
 		display: inline-block;
@@ -1250,10 +1254,6 @@ input[type=checkbox]:checked + label::after {
 }
 
 @media screen and (max-width: 800px) {
-	#main {
-		width: 100%;
-	}
-
 	td {
 		padding: 5px 10px;
 	}
@@ -1334,15 +1334,13 @@ input[type=checkbox]:checked + label::after {
 		height: 10px;
 		background: var(--tag) no-repeat left center / 10px
 	}
-/*
-	@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
-		#main {
-			width: 300px;
-		}
-	}*/
 }
 
 @media screen and (min-width: 1000px) {
+	#main {
+		margin: 2%;
+	}
+
 	.tunnelid[data-tooltip]:hover::after, .tunnelid[data-tooltip]:active::after {
 		display: none;
 	}
@@ -1354,10 +1352,6 @@ input[type=checkbox]:checked + label::after {
 }
 
 @media screen and (min-width: 1200px) {
-	#main {
-		width: 70%;
-	}
-
 	#navlinks a {
 		margin-top: 0;
 		margin-bottom: 0;
