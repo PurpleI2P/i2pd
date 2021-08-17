@@ -341,7 +341,8 @@ namespace http {
 			s << internalCSS;
 	}
 
-	const char HTTP_PAGE_TUNNELS[] = "tunnels";
+	const char HTTP_PAGE_TUNNEL_SUMMARY[] = "tunnel_summary";
+	const char HTTP_PAGE_CLIENT_TUNNELS[] = "client_tunnels";
 	const char HTTP_PAGE_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
 	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
@@ -517,14 +518,14 @@ namespace http {
 		  << "<tr id=\"nav\"><td id=\"navlinks\" class=\"center\" colspan=\"2\">\r\n";
 		if (i2p::context.IsFloodfill ())
 			s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a>\r\n";
-		s << "<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
-		  << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
+			s << "<a title=\"" << tr("Local destinations currently active") << "\" href=\"" << webroot << "?page="
+			  << HTTP_PAGE_LOCAL_DESTINATIONS << "\">" << tr("Destinations") << "</a>\r\n"
 //			"<a title=\"" << tr("Local Service Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("Services") << "</a>\r\n"
 //			"<a title=\"" << tr("Active Transit Tunnels") << "\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit") << "</a>\r\n"
-			"<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
-			"?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
-			"<a title=\"" << tr("All active tunnels") << "\" href=\"" << webroot << "?page="
-			<< HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a>\r\n";
+				 "<a title=\"" << tr("Router Transports and associated connections") << "\" href=\"" << webroot <<
+				 "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a>\r\n"
+				 "<a title=\"" << tr("All active tunnels") << "\" href=\"" << webroot << "?page="
+			  << HTTP_PAGE_TUNNEL_SUMMARY << "\">" << tr("Tunnels") << "</a>\r\n";
 		if (sam && sam->GetSessions ().size ()) {
 			s << "<a title=\"" << tr("Current SAM sessions") << "\" href=\"" << webroot << "?page="
 			  << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM Sessions") << "</a>\r\n";
@@ -672,11 +673,10 @@ namespace http {
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
-		s << "<tr><td>" << tr("Service Tunnels") << "</td><td><a class=\"view\" href=\"";
-		s << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << std::to_string(clientTunnelCount) << "</a></td></tr>\r\n";
+		s << "<tr><td>" << tr("Service Tunnels") << "</td><td>" << std::to_string(clientTunnelCount) << "</td></tr>\r\n";
 		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels()) {
-			s << "<tr><td>" << tr("Transit Tunnels") << "</td><td><a class=\"view\" href=\"";
-			s << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << std::to_string(i2p::tunnel::tunnels.CountTransitTunnels()) << "</a></td></tr>\r\n";
+			s << "<tr><td>" << tr("Transit Tunnels") << "</td><td>"
+			  << std::to_string(i2p::tunnel::tunnels.CountTransitTunnels()) << "</td></tr>\r\n";
 		}
 
 		if(outputFormat==OutputFormatEnum::forWebConsole) {
@@ -1096,16 +1096,35 @@ namespace http {
 		s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 	}
 
+	void ShowTunnelSummary (std::stringstream& s) {
+		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Tunnel Summary") << "</span></th></tr>\r\n";
+		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+		s << "<table id=\"tunnelsummary\">\r\n<thead>"
+		  << "<tr><th>" << tr("Type") << "</th>"
+		  << "<th class=\"in\">" << tr("Inbound") << "</th><th class=\"out\">" << tr("Outbound") << "</th>"
+		  << "<th>" << tr("View Details") << "</th></tr>\r\n</thead>\r\n";
+		if (i2p::tunnel::tunnels.CountTransitTunnels() > 0) {
+		s << "<tr><td>" << tr("Transit") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
+		}
+		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
+		  << "<tr><td>" << tr("Exploratory + Service") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_CLIENT_TUNNELS << "\">View</a></td></tr>\r\n"
+//		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
+		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
+		  ShowI2PTunnels (s);
+		s << "</td></tr>\r\n</table>\r\n";
+		s << "</td></tr>\r\n";
+	}
+
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
-//		s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Configuration") << "</span></th></tr>";
-
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_routerinfo\" />\r\n"
 		  << "<label for=\"slide_routerinfo\">i2pd " VERSION "</label>\r\n";
 		s << "<div class=\"slidecontent\">\r\n<table id=\"routerinfos\">\r\n";
-
-
 		s << "<tr><td>" << tr("Router Identity") << "</td><td class=\"nopadding\"><span id=\"rid\" class=\"sensitive\" hidden>"
 		  << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
 		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
@@ -1181,7 +1200,7 @@ namespace http {
 		else
 			s << "  <a id=\"transitaccept\" class=\"cmd\" href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token
-			  << "\" data-tooltip=\"" << tr("Decline transit tunnels") << "\">"
+			  << "\" data-tooltip=\"" << tr("Accept transit tunnels") << "\">"
 			  << tr("Accept transit tunnels") << "</a><br>\r\n";
 
 		if (i2p::tunnel::tunnels.CountTransitTunnels()) {
@@ -1538,8 +1557,10 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Service Tunnels") << "</span></th></tr><tr>"
-		  << "<td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_servicetunnels\" />\r\n"
+		  << "<label for=\"slide_servicetunnels\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "in  / out" << "</span><span class=\"hide\">]</span></label>\r\n";
+		s << "<div id=\"servicetunnels\" class=\"slidecontent list\">\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1566,7 +1587,7 @@ namespace http {
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</span></div>\r\n" << std::endl;
 		}
-		s << "</div></td></tr>\r\n";
+		s << "</div>\r\n</div>\r\n";
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
@@ -1610,7 +1631,7 @@ namespace http {
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</span></div>\r\n"<< std::endl;
 			}
-			s << "</div></td></tr>\r\n";
+			s << "</div></table>\r\n";
 		}
 	}
 
@@ -1769,35 +1790,36 @@ namespace http {
 		url.parse_query(params);
 		page = params["page"];
 
-		if (page == HTTP_PAGE_TRANSPORTS)
+		if (page == HTTP_PAGE_TRANSPORTS) {
 			ShowTransports (s);
-		else if (page == HTTP_PAGE_TUNNELS)
+		} else if (page == HTTP_PAGE_TUNNEL_SUMMARY) {
+			ShowTunnelSummary (s);
+/*
 			ShowTunnels (s);
-		else if (page == HTTP_PAGE_COMMANDS)
-		{
+			ShowI2PTunnels (s);
+			ShowTransitTunnels (s);
+*/
+		} else if (page == HTTP_PAGE_COMMANDS) {
 			uint32_t token = CreateToken ();
 			ShowCommands (s, token);
-		}
-		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
+		} else if (page == HTTP_PAGE_TRANSIT_TUNNELS) {
 			ShowTransitTunnels (s);
-		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
+		} else if (page == HTTP_PAGE_LOCAL_DESTINATIONS) {
 			ShowLocalDestinations (s);
-		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
-		{
+		} else if (page == HTTP_PAGE_LOCAL_DESTINATION) {
 			uint32_t token = CreateToken ();
 			ShowLocalDestination (s, params["b32"], token);
-		}
-		else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION)
+		} else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION) {
 			ShowI2CPLocalDestination (s, params["i2cp_id"]);
-		else if (page == HTTP_PAGE_SAM_SESSIONS)
+		} else if (page == HTTP_PAGE_SAM_SESSIONS) {
 			ShowSAMSessions (s);
-		else if (page == HTTP_PAGE_SAM_SESSION)
+		} else if (page == HTTP_PAGE_SAM_SESSION) {
 			ShowSAMSession (s, params["sam_id"]);
-		else if (page == HTTP_PAGE_I2P_TUNNELS)
-			ShowI2PTunnels (s);
-		else if (page == HTTP_PAGE_LEASESETS)
+		} else if (page == HTTP_PAGE_CLIENT_TUNNELS) {
+			ShowTunnels (s);
+		} else if (page == HTTP_PAGE_LEASESETS) {
 			ShowLeasesSets(s);
-		else {
+		} else {
 			res.code = 400;
 			ShowError(s, tr("Unknown page") + ": " + page);
 			return;

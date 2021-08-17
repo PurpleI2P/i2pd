@@ -461,6 +461,18 @@ th {
 	background: var(--th_multicolumn);
 }
 
+th.in, th.out {
+	font-size: 0;
+}
+
+th.in {
+	background: var(--arrow_down) no-repeat center center / 14px, var(--th_multicolumn);
+}
+
+th.out {
+	background: var(--arrow_up) no-repeat center center / 14px, var(--th_multicolumn);
+}
+
 th:not(.sectiontitle)[colspan="2"], #routerservices {
 	background: linear-gradient(to right, rgba(0,0,0.6), rgba(0,0,0,0), rgba(0,0,0,.6)), var(--th);
 	background: linear-gradient(to right, rgba(0,0,0,.4), rgba(0,0,0,0), rgba(0,0,0,.4)), rgba(32,0,32,.4);
@@ -1075,22 +1087,63 @@ input[type=checkbox]:checked + label::after {
 	min-width: 0;
 	box-sizing: border-box;
 	vertical-align: middle;
+	border: 1px solid var(--button-border);
+	border-radius: 2px;
+	box-shadow: var(--highlight);
+}
+
+.cmd:active {
+	box-shadow: var(--highlight), var(--active_shadow);
+	background-blend-mode: luminosity;
 }
 
 #testpeer {
-	background: #313 var(--testpeer) no-repeat center center / 32px;
+	background: var(--testpeer) no-repeat center center / 32px, var(--button);
+}
+
+#testpeer:hover, #testpeer:focus {
+	background: var(--testpeer) no-repeat center center / 32px, var(--button_hover);
+}
+
+#testpeer:active {
+	background: var(--testpeer) no-repeat center center / 32px, var(--button_active);
 }
 
 #transitaccept {
-	background: #313 var(--transit) no-repeat center center / 32px;
+	background: var(--transit) no-repeat center center / 32px, var(--button);
+}
+
+#transitaccept:hover, #transitaccept:focus {
+	background: var(--transit) no-repeat center center / 32px, var(--button_hover);
+}
+
+#transitaccept:active {
+	background: var(--transit) no-repeat center center / 32px, var(--button_active);
 }
 
 #transitdecline {
-	background: #313 var(--notransit) no-repeat center center / 32px;
+	background: var(--notransit) no-repeat center center / 32px, var(--button);
+}
+
+#transitdecline:hover, #transitdecline:focus {
+	background: var(--notransit) no-repeat center center / 32px, var(--button_hover);
+}
+
+#transitdecline:active {
+	background: var(--notransit) no-repeat center center / 32px, var(--button_active);
 }
 
 #shutdownforce, #shutdowngraceful {
-	background: #313 var(--shutdown_hover) no-repeat center center / 32px; /* prompt user for forceful shutdown if garceful clicked when transit tunnels active */
+	/* prompt user for forceful shutdown if graceful clicked when transit tunnels active */
+	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button);
+}
+
+#shutdownforce:hover, #shutdownforce:focus {
+	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button_hover);
+}
+
+#shutdownforce:active {
+	background: var(--shutdown_hover) no-repeat center center / 32px, var(--button_active);
 }
 
 #shutdowngraceful {
@@ -1098,11 +1151,48 @@ input[type=checkbox]:checked + label::after {
 }
 
 #shutdowncancel {
-	background: #313 var(--noshutdown) no-repeat center center / 32px;
+	background: var(--noshutdown) no-repeat center center / 32px, var(--button);
+}
+
+#shutdowncancel:hover, #shutdowncancel:focus {
+	background: var(--noshutdown) no-repeat center center / 32px, var(--button_hover);
+}
+
+#shutdowncancel:active {
+	background: var(--noshutdown) no-repeat center center / 32px, var(--button_active);
 }
 
 #reloadcss {
-	background: #313 var(--reloadcss) no-repeat center center / 32px;
+	background: var(--reloadcss) no-repeat center center / 32px, var(--button);
+}
+
+#reloadcss:hover, #reloadcss:focus {
+	background: var(--reloadcss) no-repeat center center / 32px, var(--button_hover);
+}
+
+#reloadcss:active {
+	background: var(--reloadcss) no-repeat center center / 32px, var(--button_active);
+}
+
+#tunnelsummary td {
+	text-align: center;
+}
+
+#tunnelsummary .button {
+	margin: 0;
+	display: inline-block;
+	width: 40px;
+	height: 16px;
+	background: var(--eye) no-repeat center center / 16px, var(--button) !important;
+	font-size: 0 !important;
+}
+
+#tunnelsummary .button:hover, #tunnelsummary .button:focus {
+	background: var(--eye_hover) no-repeat center center / 16px, var(--button_hover) !important;
+}
+
+#tunnelsummary .button:active, #tunnelsummary .button:focus {
+	background: var(--eye) no-repeat center center / 16px, var(--button_active) !important;
 }
 
 @media screen and (max-width: 1000px) {
@@ -1144,7 +1234,6 @@ input[type=checkbox]:checked + label::after {
 		display: inline-block;
 		vertical-align: middle;
 	}
-}
 
 	@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
 		body {
@@ -1155,6 +1244,7 @@ input[type=checkbox]:checked + label::after {
 			max-width: 200px !important;
 		}
 	}
+}
 
 @media screen and (max-width: 800px) {
 	#main {
@@ -1375,6 +1465,7 @@ input[type=checkbox]:checked + label::after {
 
 	.note {
 		padding: 15px 90px !important;
+	}
 }
 
 @media screen and (min-width: 1200px) and (min-height: 600px) {
