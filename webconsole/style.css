@@ -1337,10 +1337,6 @@ input[type=checkbox]:checked + label::after {
 }
 
 @media screen and (min-width: 1000px) {
-	#main {
-		margin: 2%;
-	}
-
 	.tunnelid[data-tooltip]:hover::after, .tunnelid[data-tooltip]:active::after {
 		display: none;
 	}
