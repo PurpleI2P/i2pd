@@ -76,6 +76,7 @@ namespace i18n
 	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace uzbek     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
 	/**
 	 * That map contains international language name lower-case and name in it's language
