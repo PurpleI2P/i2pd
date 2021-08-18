@@ -87,6 +87,7 @@ namespace i18n
 		{ "russian", {"русский язык", "ru", i2p::i18n::russian::GetLocale} },
 		{ "turkmen", {"türkmen dili", "tk", i2p::i18n::turkmen::GetLocale} },
 		{ "ukrainian", {"украї́нська мо́ва", "uk", i2p::i18n::ukrainian::GetLocale} },
+		{ "uzbek", {"Oʻzbek", "uz", i2p::i18n::uzbek::GetLocale} },
 	};
 
 } // i18n

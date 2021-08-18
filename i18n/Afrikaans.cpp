@@ -31,12 +31,9 @@ namespace afrikaans // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"Disabled", "Gedeaktiveer"},
-		{"Enabled", "Geaktiveer"},
 		{"failed", "Het misluk"},
 		{"unknown", "onbekend"},
 		{"Tunnels", "Tonnels"},
-		{"Transit tunnels", "Deurgang tonnels"},
 		{"I2P tunnels", "I2P tonnels"},
 		{"SAM sessions", "SAM sessies"},
 		{"OK", "LEKKER"},
@@ -54,6 +51,14 @@ namespace afrikaans // language namespace
 		{"Hidden content. Press on text to see.", "Hidden content. Druk om te sien."},
 		{"Router Ident", "Router Ident"},
 		{"Router Family", "Router Familie"},
+		{"Enabled", "Geaktiveer"},
+		{"Disabled", "Gedeaktiveer"},
+		{"Change", "Verander"},
+		{"Change language", "Verander taal"},
+		{"Description", "Beskrywing"},
+		{"Submit", "Stuur"},
+		{"Proxy error", "Proxy-fout"},
+		{"Host", "Gasheer"},
 		{"", ""},
 	};
 
