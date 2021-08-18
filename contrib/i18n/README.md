@@ -1,12 +1,12 @@
 `xgettext` command for extracting translation
-===
+---
 
 ```
 xgettext --omit-header -ctr: -ktr -ktr:1,2 daemon/HTTPServer.cpp libi2pd_client/HTTPProxy.cpp
 ```
 
 Regex for transforming gettext translations to our format:
-===
+---
 
 ```
 in:  msgid\ \"(.*)\"\nmsgid_plural\ \"(.*)\"\nmsgstr\[0\]\ \"(.*)\"\nmsgstr\[1\]\ \"(.*)\"\n(msgstr\[2\]\ \"(.*)\"\n)?(msgstr\[3\]\ \"(.*)\"\n)?(msgstr\[4\]\ \"(.*)\"\n)?(msgstr\[5\]\ \"(.*)\"\n)?
