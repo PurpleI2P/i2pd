@@ -1046,7 +1046,7 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Client Tunnels") << "</span></th><tr>\r\n";
+		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Tunnels") << "</span></th><tr>\r\n";
 		s << "<tr><th colspan=\"2\">" << tr("Queue size") << ": " << i2p::tunnel::tunnels.GetQueueSize () << "</th></tr>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
@@ -1111,7 +1111,7 @@ namespace http {
 		}
 //		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 //		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
-		s << "<tr><td>" << tr("Client") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_CLIENT_TUNNELS << "\">View</a></td></tr>\r\n"
 //		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
 		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
@@ -1247,13 +1247,20 @@ namespace http {
 		  << tr("<b>Note:</b> Configuration changes made here persist for the duration of the router session and will not be saved to your config file.")
 		  << "</div>\r\n</td></tr>";
 
+		const LogLevel loglevel = i2p::log::Logger().GetLogLevel();
 		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Logging Level") << "</span></th></tr>\r\n";
 		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">";
-		s << "<a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">none</a>\r\n";
-		s << "<a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">error</a>\r\n";
-		s << "<a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">warn</a>\r\n";
-		s << "<a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">info</a>\r\n";
-		s << "<a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">debug</a></td></tr>\r\n";
+		s << "<a class=\"button" << (loglevel == 0 ? " selected" : "")
+		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">none</a>\r\n";
+		s << "<a class=\"button" << (loglevel == 1 ? " selected" : "")
+		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">error</a>\r\n";
+		s << "<a class=\"button" << (loglevel == 2 ? " selected" : "")
+		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">warn</a>\r\n";
+		s << "<a class=\"button" << (loglevel == 3 ? " selected" : "")
+		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">info</a>\r\n";
+		s << "<a class=\"button" << (loglevel == 4 ? " selected" : "")
+		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">debug</a>"
+		  << "</td></tr>\r\n";
 
 		if (i2p::context.AcceptsTunnels ()) {
 			uint16_t maxTunnels = GetMaxNumTransitTunnels ();

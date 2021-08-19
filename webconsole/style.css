@@ -314,9 +314,13 @@ a.button:hover, a.button:focus {
 	background: var(--button_hover) !important;
 }
 
-button:active, a.button:active, .slide label:active, td.streamid:active {
+button:active, a.button:active, .slide label:active, td.streamid:active, .button.selected {
 	box-shadow: var(--highlight), var(--active_shadow);
 	background: var(--button_active) !important;
+}
+
+.button.selected {
+	pointer-events: none;
 }
 
 .streamid:hover a {
@@ -1458,6 +1462,11 @@ input[type=checkbox]:checked + label::after {
 
 	.note {
 		padding: 15px 90px !important;
+	}
+
+	.button.selected {
+		padding-left: 16px;
+		background: var(--yes) no-repeat 10px center / 12px, var(--button_active) !important;
 	}
 }
 
