@@ -342,7 +342,7 @@ namespace http {
 	}
 
 	const char HTTP_PAGE_TUNNEL_SUMMARY[] = "tunnel_summary";
-	const char HTTP_PAGE_CLIENT_TUNNELS[] = "client_tunnels";
+	const char HTTP_PAGE_LOCAL_TUNNELS[] = "local_tunnels";
 	const char HTTP_PAGE_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
 	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
@@ -1208,7 +1208,7 @@ namespace http {
 //		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 //		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
 		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
-		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_CLIENT_TUNNELS << "\">View</a></td></tr>\r\n"
+		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_TUNNELS << "\">View</a></td></tr>\r\n"
 //		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
 		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
 		  ShowI2PTunnels (s);
@@ -1919,7 +1919,7 @@ namespace http {
 			ShowSAMSessions (s);
 		} else if (page == HTTP_PAGE_SAM_SESSION) {
 			ShowSAMSession (s, params["sam_id"]);
-		} else if (page == HTTP_PAGE_CLIENT_TUNNELS) {
+		} else if (page == HTTP_PAGE_LOCAL_TUNNELS) {
 			ShowTunnels (s);
 		} else if (page == HTTP_PAGE_LEASESETS) {
 			ShowLeasesSets(s);
