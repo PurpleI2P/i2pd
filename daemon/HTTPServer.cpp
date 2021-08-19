@@ -439,20 +439,61 @@ namespace http {
 		else if (state == "established") stateText = tr("established");
 		else stateText = tr("unknown");
 
-		s << "<span class=\"tunnel " << state << ((explr) ? " exploratory" : "")
-		  << "\" data-tooltip=\"" << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "\">"
-		  << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>";
-		s << std::fixed << std::setprecision(0);
-		if (bytes > 1024 * 1024 * 1024) {
-			s << std::fixed << std::setprecision(2);
-			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
-		} else if (bytes > 1024 * 1024) {
-			s << std::fixed << std::setprecision(1);
-			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
-		} else if (bytes > 1024) {
-			s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
-		} else {
-			s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
+		if (!explr) {
+			s << "<span class=\"tunnel " << state << ((explr) ? " exploratory" : "")
+			  << "\" data-tooltip=\"" << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "\">"
+			  << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>";
+			s << std::fixed << std::setprecision(0);
+			if (bytes > 1024 * 1024 * 1024) {
+				s << std::fixed << std::setprecision(2);
+				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
+			} else if (bytes > 1024 * 1024) {
+				s << std::fixed << std::setprecision(1);
+				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
+			} else if (bytes > 1024) {
+				s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
+			} else {
+				s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
+			}
+		}
+	}
+
+	static void ShowExploratoryTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, double bytes)
+	{
+		std::string state, stateText;
+		switch (eState) {
+			case i2p::tunnel::eTunnelStateBuildReplyReceived :
+			case i2p::tunnel::eTunnelStatePending     : state = "building";    break;
+			case i2p::tunnel::eTunnelStateBuildFailed :
+			case i2p::tunnel::eTunnelStateTestFailed  :
+			case i2p::tunnel::eTunnelStateFailed      : state = "failed";      break;
+			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring";    break;
+			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
+			default: state = "unknown"; break;
+		}
+
+		if      (state == "building")    stateText = tr("building");
+		else if (state == "failed")      stateText = tr("failed");
+		else if (state == "expiring")    stateText = tr("expiring");
+		else if (state == "established") stateText = tr("established");
+		else stateText = tr("unknown");
+
+		if (explr) {
+			s << "<span class=\"tunnel " << state << " exploratory"
+			  << "\" data-tooltip=\"" << stateText << " (" << tr("exploratory") << ")" << "\">"
+			  << stateText << " (" << tr("exploratory") << ")</span>";
+			s << std::fixed << std::setprecision(0);
+			if (bytes > 1024 * 1024 * 1024) {
+				s << std::fixed << std::setprecision(2);
+				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
+			} else if (bytes > 1024 * 1024) {
+				s << std::fixed << std::setprecision(1);
+				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
+			} else if (bytes > 1024) {
+				s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
+			} else {
+				s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
+			}
 		}
 	}
 
@@ -1052,47 +1093,102 @@ namespace http {
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
-		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_client\" />\r\n"
-		  << "<label for=\"slide_tunnels_client\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
+
+
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_exploratory\" />\r\n"
+		  << "<label for=\"slide_tunnels_exploratory\">" << tr("Exploratory Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
 			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
-			s << "<div class=\"listitem in\">"
-			  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
-			  << "<span class=\"chain inbound\">";
-			it->Print(s);
-			if(it->LatencyIsKnown()) {
-				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
-				if (it->GetMeanLatency() >= 1000) {
-					s << std::fixed << std::setprecision(2);
-					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
-				} else {
-					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+			if (it->GetTunnelPool () == ExplPool) {
+				s << "<div class=\"listitem in\">"
+				  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
+				  << "<span class=\"chain inbound\">";
+				it->Print(s);
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+					}
+				} else { // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
-			} else { // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
+				ShowExploratoryTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
+				s << "</span></div>\r\n";
 			}
-			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
-			s << "</span></div>\r\n";
 		}
 		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
-			s << "<div class=\"listitem out\">"
-			  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
-			  << "<span class=\"chain outbound\">";
-			it->Print(s);
-			if(it->LatencyIsKnown()) {
-				s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
-				if (it->GetMeanLatency() >= 1000) {
-					s << std::fixed << std::setprecision(2);
-					s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
-				} else {
-					s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+			if (it->GetTunnelPool () == ExplPool) {
+				s << "<div class=\"listitem out\">"
+				  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
+				  << "<span class=\"chain outbound\">";
+				it->Print(s);
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+					}
+				} else { // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
-			} else { // placeholder for alignment
-				s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
+				ShowExploratoryTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
+				s << "</span>\r\n</div>\r\n";
 			}
-			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
-			s << "</span>\r\n</div>\r\n";
+		}
+		s << "</div>\r\n</div>\r\n</div>\r\n";
+
+
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_service\" />\r\n"
+		  << "<label for=\"slide_tunnels_service\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
+			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
+		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
+		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+			if (it->GetTunnelPool () != ExplPool) {
+				s << "<div class=\"listitem in\">"
+				  << "<span class=\"arrowdown\" data-tooltip=\"" << tr("Inbound") << "\">[" << tr("In") << "] </span>"
+				  << "<span class=\"chain inbound\">";
+				it->Print(s);
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+					}
+				} else { // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
+				}
+				ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
+				s << "</span></div>\r\n";
+			}
+		}
+		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+			if (it->GetTunnelPool () != ExplPool) {
+				s << "<div class=\"listitem out\">"
+				  << "<span class=\"arrowup\" data-tooltip=\"" << tr("Outbound") << "\">[" << tr("Out") << "] </span>"
+				  << "<span class=\"chain outbound\">";
+				it->Print(s);
+				if(it->LatencyIsKnown()) {
+					s << " <span class=\"latency\" data-tooltip=\"" << tr("Average tunnel latency") << "\">";
+					if (it->GetMeanLatency() >= 1000) {
+						s << std::fixed << std::setprecision(2);
+						s << (double) it->GetMeanLatency() / 1000 << tr(/* tr: seconds */ "s") << "</span> ";
+					} else {
+						s << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << "</span> ";
+					}
+				} else { // placeholder for alignment
+					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
+				}
+				ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
+				s << "</span>\r\n</div>\r\n";
+			}
 		}
 		s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 	}
