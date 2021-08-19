@@ -45,7 +45,7 @@
 	--ink-faded: rgba(221,187,221, .5);
 	--notify: #5f5;
 	--page: #120012;
-	--main-boxshadow: 0 0 0 1px var(--border), 0 0 0 2px #000, 0 0 0 4px #313, 0 0 0 5px #101, 0 0 0 6px #000;
+	--main-boxshadow: 0 0 0 1px var(--border), 0 0 0 2px #000, 0 0 0 4px #313, 0 0 0 5px #212, 0 0 0 6px #101;
 	--link: #ae6ba8;
 	--link_hover: #fafafa;
 	--border: #515;
@@ -102,6 +102,8 @@ body {
 	font: 14pt var(--bodyfont);
 	color: var(--ink);
 	background: linear-gradient(to bottom, rgba(0,0,0,.1), rgba(32,0,32,.1), rgba(0,0,0,.1));
+	background: linear-gradient(135deg, #000, #101, #000), linear-gradient(45deg, #000, #101, #000);
+	background-blend-mode: screen;
 }
 
 .wrapper {
