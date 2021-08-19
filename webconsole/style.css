@@ -102,8 +102,6 @@ body {
 	font: 14pt var(--bodyfont);
 	color: var(--ink);
 	background: linear-gradient(to bottom, rgba(0,0,0,.1), rgba(32,0,32,.1), rgba(0,0,0,.1));
-	background: linear-gradient(135deg, #000, #101, #000), linear-gradient(45deg, #000, #101, #000);
-	background-blend-mode: screen;
 }
 
 .wrapper {
@@ -1481,6 +1479,18 @@ input[type=checkbox]:checked + label::after {
 	.tunnelid:not(.local) {
 		padding-top: 3px;
 		padding-bottom: 1px;
+	}
+}
+
+@supports (background-blend-mode: screen) {
+	body {
+		background: linear-gradient(135deg, #000, #202, #000), linear-gradient(45deg, #000, #202, #000);
+		background-blend-mode: screen;
+	}
+	@media screen and (min-width: 1400px) {
+		body {
+			background: repeating-linear-gradient(to bottom, #000 2px, #101 4px), linear-gradient(135deg, #000, #180018, #000), linear-gradient(45deg, #000, #180018, #000);
+		}
 	}
 }
 
