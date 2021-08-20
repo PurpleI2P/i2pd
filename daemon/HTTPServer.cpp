@@ -673,7 +673,7 @@ namespace http {
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
-		s << "<tr><td>" << tr("Service Tunnels") << "</td><td>" << std::to_string(clientTunnelCount) << "</td></tr>\r\n";
+		s << "<tr><td>" << tr("Local Tunnels") << "</td><td>" << std::to_string(clientTunnelCount) << "</td></tr>\r\n";
 		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels()) {
 			s << "<tr><td>" << tr("Transit Tunnels") << "</td><td>"
 			  << std::to_string(i2p::tunnel::tunnels.CountTransitTunnels()) << "</td></tr>\r\n";
@@ -1052,8 +1052,6 @@ namespace http {
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
-
-
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_exploratory\" />\r\n"
 		  << "<label for=\"slide_tunnels_exploratory\">" << tr("Exploratory Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
 			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
@@ -1160,13 +1158,16 @@ namespace http {
 		  << "<tr><th>" << tr("Type") << "</th>"
 		  << "<th class=\"in\">" << tr("Inbound") << "</th><th class=\"out\">" << tr("Outbound") << "</th>"
 		  << "<th>" << tr("View Details") << "</th></tr>\r\n</thead>\r\n";
-		if (i2p::tunnel::tunnels.CountTransitTunnels() > 0) {
-		s << "<tr><td>" << tr("Transit") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+		size_t transitCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		if (transitCount > 0) {
+		s << "<tr><td>" << tr("Transit") << "</td><td colspan=\"2\">" << transitCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
 //		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
 //		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
-		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
+        size_t localInCount = i2p::tunnel::tunnels.CountInboundTunnels();
+        size_t localOutCount = i2p::tunnel::tunnels.CountOutboundTunnels();
+		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">" << localInCount << "</td><td class=\"out\">" << localOutCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_TUNNELS << "\">View</a></td></tr>\r\n"
 //		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
 		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
