@@ -206,7 +206,7 @@ namespace transport
 
 	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "SSU message: Session request");
+		LogPrint (eLogDebug, "SSU: Session request");
 		bool sendRelayTag = true;
 		auto headerSize = sizeof (SSUHeader);
 		if (((SSUHeader *)buf)->IsExtendedOptions ())
@@ -243,7 +243,7 @@ namespace transport
 			return;
 		}
 
-		LogPrint (eLogDebug, "SSU message: Session created");
+		LogPrint (eLogDebug, "SSU: Session created");
 		m_ConnectTimer.cancel (); // connect timer
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time
 		auto headerSize = GetSSUHeaderSize (buf);
@@ -342,7 +342,7 @@ namespace transport
 		uint32_t signedOnTime = bufbe32toh(payload);
 		if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
 		{
-			LogPrint (eLogError, "SSU message 'confirmed' time difference ", (int)ts - signedOnTime, " exceeds clock skew");
+			LogPrint (eLogError, "SSU: 'Confirmed' time difference ", (int)ts - signedOnTime, " exceeds clock skew");
 			Failed ();
 			return;
 		}
@@ -366,7 +366,7 @@ namespace transport
 		}
 		else
 		{
-			LogPrint (eLogError, "SSU message 'confirmed' signature verification failed");
+			LogPrint (eLogError, "SSU: 'Confirmed' signature verification failed");
 			Failed ();
 		}
 	}
@@ -688,7 +688,7 @@ namespace transport
 
 	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "SSU message: Relay response received");
+		LogPrint (eLogDebug, "SSU: Relay response received");
 		boost::asio::ip::address remoteIP;
 		uint16_t remotePort = 0;
 		auto remoteSize = ExtractIPAddressAndPort (buf, len, remoteIP, remotePort);
