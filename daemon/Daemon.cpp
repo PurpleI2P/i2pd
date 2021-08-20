@@ -118,16 +118,16 @@ namespace util
 
 		i2p::log::Logger().SetLogLevel(loglevel);
 		if (logstream) {
-			LogPrint(eLogInfo, "Log: will send messages to std::ostream");
+			LogPrint(eLogInfo, "Log: Sending messages to std::ostream");
 			i2p::log::Logger().SendTo (logstream);
 		} else if (logs == "file") {
 			if (logfile == "")
 				logfile = i2p::fs::DataDirPath("i2pd.log");
-			LogPrint(eLogInfo, "Log: will send messages to ", logfile);
+			LogPrint(eLogInfo, "Log: Sending messages to ", logfile);
 			i2p::log::Logger().SendTo (logfile);
 #ifndef _WIN32
 		} else if (logs == "syslog") {
-			LogPrint(eLogInfo, "Log: will send messages to syslog");
+			LogPrint(eLogInfo, "Log: Sending messages to syslog");
 			i2p::log::Logger().SendTo("i2pd", LOG_DAEMON);
 #endif
 		} else {
@@ -135,9 +135,9 @@ namespace util
 		}
 
 		LogPrint(eLogNone,  "i2pd v", VERSION, " starting");
-		LogPrint(eLogDebug, "FS: main config file: ", config);
-		LogPrint(eLogDebug, "FS: data directory: ", datadir);
-		LogPrint(eLogDebug, "FS: certificates directory: ", certsdir);
+		LogPrint(eLogDebug, "FS: Main config file: ", config);
+		LogPrint(eLogDebug, "FS: Data directory: ", datadir);
+		LogPrint(eLogDebug, "FS: Certificates directory: ", certsdir);
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
@@ -204,7 +204,7 @@ namespace util
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!i2p::config::IsDefault("port"))
 		{
-			LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
+			LogPrint(eLogInfo, "Daemon: Accepting incoming connections at port ", port);
 			i2p::context.UpdatePort (port);
 		}
 		i2p::context.SetSupportsV6 (ipv6);
@@ -252,7 +252,7 @@ namespace util
 
 		bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 		if (isFloodfill) {
-			LogPrint(eLogInfo, "Daemon: router will be floodfill");
+			LogPrint(eLogInfo, "Daemon: Router configured as floodfill");
 			i2p::context.SetFloodfill (true);
 		}
 		else
@@ -267,7 +267,7 @@ namespace util
 			if (bandwidth[0] >= 'K' && bandwidth[0] <= 'X')
 			{
 				i2p::context.SetBandwidth (bandwidth[0]);
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
+				LogPrint(eLogInfo, "Daemon: Bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
 			}
 			else
 			{
@@ -275,23 +275,23 @@ namespace util
 				if (value > 0)
 				{
 					i2p::context.SetBandwidth (value);
-					LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
+					LogPrint(eLogInfo, "Daemon: Bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
 				}
 				else
 				{
-					LogPrint(eLogInfo, "Daemon: unexpected bandwidth ", bandwidth, ". Set to 'low'");
+					LogPrint(eLogInfo, "Daemon: Unexpected bandwidth ", bandwidth, ". Set to 'low'");
 					i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
 				}
 			}
 		}
 		else if (isFloodfill)
 		{
-			LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
+			LogPrint(eLogInfo, "Daemon: Floodfill bandwidth set to 'extra'");
 			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2);
 		}
 		else
 		{
-			LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
+			LogPrint(eLogInfo, "Daemon: Bandwidth set to 'low'");
 			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
 		}
 
@@ -301,12 +301,12 @@ namespace util
 		std::string family; i2p::config::GetOption("family", family);
 		i2p::context.SetFamily (family);
 		if (family.length () > 0)
-			LogPrint(eLogInfo, "Daemon: family set to ", family);
+			LogPrint(eLogInfo, "Daemon: Router family set to ", family);
 
 		bool trust; i2p::config::GetOption("trust.enabled", trust);
 		if (trust)
 		{
-			LogPrint(eLogInfo, "Daemon: explicit trust enabled");
+			LogPrint(eLogInfo, "Daemon: Explicit trust enabled");
 			std::string fam; i2p::config::GetOption("trust.family", fam);
 			std::string routers; i2p::config::GetOption("trust.routers", routers);
 			bool restricted = false;
@@ -336,18 +336,18 @@ namespace util
 					pos = comma + 1;
 				}
 				while (comma != std::string::npos);
-				LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routers");
+				LogPrint(eLogInfo, "Daemon: Setting restricted routes to use ", idents.size(), " trusted routers");
 				i2p::transport::transports.RestrictRoutesToRouters(idents);
 				restricted = idents.size() > 0;
 			}
 			if(!restricted)
-				LogPrint(eLogError, "Daemon: no trusted routers of families specified");
+				LogPrint(eLogError, "Daemon: No trusted routers of families specified");
 		}
 
 		bool hidden; i2p::config::GetOption("trust.hidden", hidden);
 		if (hidden)
 		{
-			LogPrint(eLogInfo, "Daemon: using hidden mode");
+			LogPrint(eLogInfo, "Daemon: Hidden mode enabled");
 			i2p::data::netdb.SetHidden(true);
 		}
 
@@ -360,7 +360,7 @@ namespace util
 	bool Daemon_Singleton::start()
 	{
 		i2p::log::Logger().Start();
-		LogPrint(eLogInfo, "Daemon: starting NetDB");
+		LogPrint(eLogInfo, "Daemon: Starting NetDB");
 		i2p::data::netdb.Start();
 
 		bool upnp; i2p::config::GetOption("upnp.enabled", upnp);
@@ -379,9 +379,9 @@ namespace util
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ssu; i2p::config::GetOption("ssu", ssu);
 		bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
-		LogPrint(eLogInfo, "Daemon: starting Transports");
-		if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
-		if(!ntcp2) LogPrint(eLogInfo, "Daemon: ntcp2 disabled");
+		LogPrint(eLogInfo, "Daemon: Starting Transports");
+		if(!ssu) LogPrint(eLogInfo, "Daemon: SSU disabled");
+		if(!ntcp2) LogPrint(eLogInfo, "Daemon: NTCP2 disabled");
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
 		i2p::transport::transports.Start(ntcp2, ssu);
@@ -389,7 +389,7 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{
-			LogPrint(eLogError, "Daemon: failed to start Transports");
+			LogPrint(eLogError, "Daemon: Failed to start transports");
 			/** shut down netdb right away */
 			i2p::transport::transports.Stop();
 			i2p::data::netdb.Stop();
@@ -400,7 +400,7 @@ namespace util
 		if (http) {
 			std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 			uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-			LogPrint(eLogInfo, "Daemon: starting webconsole at ", httpAddr, ":", httpPort);
+			LogPrint(eLogInfo, "Daemon: Starting webconsole at ", httpAddr, ":", httpPort);
 			try
 			{
 				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
@@ -408,16 +408,16 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: failed to start webconsole: ", ex.what ());
+				LogPrint (eLogError, "Daemon: Failed to start webconsole: ", ex.what ());
 				ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
 			}
 		}
 
 
-		LogPrint(eLogInfo, "Daemon: starting Tunnels");
+		LogPrint(eLogInfo, "Daemon: Starting tunnels");
 		i2p::tunnel::tunnels.Start();
 
-		LogPrint(eLogInfo, "Daemon: starting Client");
+		LogPrint(eLogInfo, "Daemon: Starting client");
 		i2p::client::context.Start ();
 
 		// I2P Control Protocol
@@ -425,7 +425,7 @@ namespace util
 		if (i2pcontrol) {
 			std::string i2pcpAddr; i2p::config::GetOption("i2pcontrol.address", i2pcpAddr);
 			uint16_t    i2pcpPort; i2p::config::GetOption("i2pcontrol.port",    i2pcpPort);
-			LogPrint(eLogInfo, "Daemon: starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
+			LogPrint(eLogInfo, "Daemon: Starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
 			try
 			{
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
@@ -433,7 +433,7 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: failed to start I2PControl: ", ex.what ());
+				LogPrint (eLogError, "Daemon: Failed to start I2PControl: ", ex.what ());
 				ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 			}
 		}
@@ -442,10 +442,10 @@ namespace util
 
 	bool Daemon_Singleton::stop()
 	{
-		LogPrint(eLogInfo, "Daemon: shutting down");
-		LogPrint(eLogInfo, "Daemon: stopping Client");
+		LogPrint(eLogInfo, "Daemon: Shutting down");
+		LogPrint(eLogInfo, "Daemon: Stopping client");
 		i2p::client::context.Stop();
-		LogPrint(eLogInfo, "Daemon: stopping Tunnels");
+		LogPrint(eLogInfo, "Daemon: Stopping tunnels");
 		i2p::tunnel::tunnels.Stop();
 
 		if (d.UPnP)
@@ -460,18 +460,18 @@ namespace util
 			d.m_NTPSync = nullptr;
 		}
 
-		LogPrint(eLogInfo, "Daemon: stopping Transports");
+		LogPrint(eLogInfo, "Daemon: Stopping transports");
 		i2p::transport::transports.Stop();
-		LogPrint(eLogInfo, "Daemon: stopping NetDB");
+		LogPrint(eLogInfo, "Daemon: Stopping NetDB");
 		i2p::data::netdb.Stop();
 		if (d.httpServer) {
-			LogPrint(eLogInfo, "Daemon: stopping HTTP Server");
+			LogPrint(eLogInfo, "Daemon: Stopping HTTP Server");
 			d.httpServer->Stop();
 			d.httpServer = nullptr;
 		}
 		if (d.m_I2PControlService)
 		{
-			LogPrint(eLogInfo, "Daemon: stopping I2PControl");
+			LogPrint(eLogInfo, "Daemon: Stopping I2PControl");
 			d.m_I2PControlService->Stop ();
 			d.m_I2PControlService = nullptr;
 		}

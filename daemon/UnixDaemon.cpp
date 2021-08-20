@@ -72,7 +72,7 @@ namespace i2p
 
 				if (pid < 0) // error
 				{
-					LogPrint(eLogError, "Daemon: could not fork: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not fork: ", strerror(errno));
 					return false;
 				}
 
@@ -81,13 +81,13 @@ namespace i2p
 				int sid = setsid();
 				if (sid < 0)
 				{
-					LogPrint(eLogError, "Daemon: could not create process group.");
+					LogPrint(eLogError, "Daemon: Could not create process group.");
 					return false;
 				}
 				std::string d = i2p::fs::GetDataDir();
 				if (chdir(d.c_str()) != 0)
 				{
-					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not chdir: ", strerror(errno));
 					return false;
 				}
 
@@ -102,14 +102,14 @@ namespace i2p
 			uint16_t nfiles; i2p::config::GetOption("limits.openfiles", nfiles);
 			getrlimit(RLIMIT_NOFILE, &limit);
 			if (nfiles == 0) {
-				LogPrint(eLogInfo, "Daemon: using system limit in ", limit.rlim_cur, " max open files");
+				LogPrint(eLogInfo, "Daemon: Using system limit in ", limit.rlim_cur, " max open files");
 			} else if (nfiles <= limit.rlim_max) {
 				limit.rlim_cur = nfiles;
 				if (setrlimit(RLIMIT_NOFILE, &limit) == 0) {
-					LogPrint(eLogInfo, "Daemon: set max number of open files to ",
+					LogPrint(eLogInfo, "Daemon: Set max number of open files to ",
 						nfiles, " (system limit is ", limit.rlim_max, ")");
 				} else {
-					LogPrint(eLogError, "Daemon: can't set max number of open files: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Can't set max number of open files: ", strerror(errno));
 				}
 			} else {
 				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
@@ -122,11 +122,11 @@ namespace i2p
 				if (cfsize <= limit.rlim_max) {
 					limit.rlim_cur = cfsize;
 					if (setrlimit(RLIMIT_CORE, &limit) != 0) {
-						LogPrint(eLogError, "Daemon: can't set max size of coredump: ", strerror(errno));
+						LogPrint(eLogError, "Daemon: Can't set max size of coredump: ", strerror(errno));
 					} else if (cfsize == 0) {
 						LogPrint(eLogInfo, "Daemon: coredumps disabled");
 					} else {
-						LogPrint(eLogInfo, "Daemon: set max size of core files to ", cfsize / 1024, "Kb");
+						LogPrint(eLogInfo, "Daemon: Set max size of core files to ", cfsize / 1024, "Kb");
 					}
 				} else {
 					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
@@ -143,14 +143,14 @@ namespace i2p
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 				if (pidFH < 0)
 				{
-					LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not create pid file ", pidfile, ": ", strerror(errno));
 					return false;
 				}
 
 #ifndef ANDROID
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
 				{
-					LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not lock pid file ", pidfile, ": ", strerror(errno));
 					return false;
 				}
 #endif
@@ -159,7 +159,7 @@ namespace i2p
 				ftruncate(pidFH, 0);
 				if (write(pidFH, pid, strlen(pid)) < 0)
 				{
-					LogPrint(eLogError, "Daemon: could not write pidfile: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not write pidfile: ", strerror(errno));
 					return false;
 				}
 			}
