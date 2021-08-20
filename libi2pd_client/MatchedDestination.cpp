@@ -33,14 +33,14 @@ namespace client
 				RequestDestination(m_RemoteIdent, std::bind(&MatchedTunnelDestination::HandleFoundCurrentLeaseSet, this, std::placeholders::_1));
 		}
 		else
-			LogPrint(eLogWarning, "Destination: failed to resolve ", m_RemoteName);
+			LogPrint(eLogWarning, "Destination: Failed to resolve ", m_RemoteName);
 	}
 
 	void MatchedTunnelDestination::HandleFoundCurrentLeaseSet(std::shared_ptr<const i2p::data::LeaseSet> ls)
 	{
 		if(ls)
 		{
-			LogPrint(eLogDebug, "Destination: resolved remote lease set for ", m_RemoteName);
+			LogPrint(eLogDebug, "Destination: Resolved remote lease set for ", m_RemoteName);
 			m_RemoteLeaseSet = ls;
 		}
 		else
@@ -72,7 +72,7 @@ namespace client
 	bool MatchedTunnelDestination::SelectPeers(i2p::tunnel::Path & path, int hops, bool inbound)
 	{
 		auto pool = GetTunnelPool();
-		if(!i2p::tunnel::StandardSelectPeers(path, hops, inbound, 
+		if(!i2p::tunnel::StandardSelectPeers(path, hops, inbound,
 			std::bind(&i2p::tunnel::TunnelPool::SelectNextHop, pool, std::placeholders::_1, std::placeholders::_2)))
 			return false;
 		// more here for outbound tunnels
@@ -86,19 +86,19 @@ namespace client
 				auto leases = m_RemoteLeaseSet->GetNonExpiredLeases();
 				// pick lease
 				std::shared_ptr<i2p::data::RouterInfo> obep;
-				while(!obep && leases.size() > 0) 
+				while(!obep && leases.size() > 0)
 				{
 					auto idx = rand() % leases.size();
 					auto lease = leases[idx];
 					obep = i2p::data::netdb.FindRouter(lease->tunnelGateway);
 					leases.erase(leases.begin()+idx);
 				}
-				if(obep) 
+				if(obep)
 				{
 					path.Add (obep);
-					LogPrint(eLogDebug, "Destination: found OBEP matching IBGW");
+					LogPrint(eLogDebug, "Destination: Found OBEP matching IBGW");
 				} else
-					LogPrint(eLogWarning, "Destination: could not find proper IBGW for matched outbound tunnel");
+					LogPrint(eLogWarning, "Destination: Could not find proper IBGW for matched outbound tunnel");
 			}
 		}
 		return true;

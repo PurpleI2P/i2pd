@@ -65,7 +65,7 @@ namespace client
 			std::string samAddr; i2p::config::GetOption("sam.address", samAddr);
 			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
 			bool singleThread; i2p::config::GetOption("sam.singlethread", singleThread);
-			LogPrint(eLogInfo, "Clients: starting SAM bridge at ", samAddr, ":", samPort);
+			LogPrint(eLogInfo, "Clients: Starting SAM bridge at ", samAddr, ":", samPort);
 			try
 			{
 				m_SamBridge = new SAMBridge (samAddr, samPort, singleThread);
@@ -83,7 +83,7 @@ namespace client
 		if (bob) {
 			std::string bobAddr; i2p::config::GetOption("bob.address", bobAddr);
 			uint16_t    bobPort; i2p::config::GetOption("bob.port",    bobPort);
-			LogPrint(eLogInfo, "Clients: starting BOB command channel at ", bobAddr, ":", bobPort);
+			LogPrint(eLogInfo, "Clients: Starting BOB command channel at ", bobAddr, ":", bobPort);
 			try
 			{
 				m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
@@ -103,7 +103,7 @@ namespace client
 			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
 			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
 			bool singleThread; i2p::config::GetOption("i2cp.singlethread", singleThread);
-			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
+			LogPrint(eLogInfo, "Clients: Starting I2CP at ", i2cpAddr, ":", i2cpPort);
 			try
 			{
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort, singleThread);
@@ -130,7 +130,7 @@ namespace client
 	{
 		if (m_HttpProxy)
 		{
-			LogPrint(eLogInfo, "Clients: stopping HTTP Proxy");
+			LogPrint(eLogInfo, "Clients: Stopping HTTP Proxy");
 			m_HttpProxy->Stop();
 			delete m_HttpProxy;
 			m_HttpProxy = nullptr;
@@ -138,7 +138,7 @@ namespace client
 
 		if (m_SocksProxy)
 		{
-			LogPrint(eLogInfo, "Clients: stopping SOCKS Proxy");
+			LogPrint(eLogInfo, "Clients: Stopping SOCKS Proxy");
 			m_SocksProxy->Stop();
 			delete m_SocksProxy;
 			m_SocksProxy = nullptr;
@@ -146,21 +146,21 @@ namespace client
 
 		for (auto& it: m_ClientTunnels)
 		{
-			LogPrint(eLogInfo, "Clients: stopping I2P client tunnel on port ", it.first);
+			LogPrint(eLogInfo, "Clients: Stopping I2P client tunnel on port ", it.first);
 			it.second->Stop ();
 		}
 		m_ClientTunnels.clear ();
 
 		for (auto& it: m_ServerTunnels)
 		{
-			LogPrint(eLogInfo, "Clients: stopping I2P server tunnel");
+			LogPrint(eLogInfo, "Clients: Stopping I2P server tunnel");
 			it.second->Stop ();
 		}
 		m_ServerTunnels.clear ();
 
 		if (m_SamBridge)
 		{
-			LogPrint(eLogInfo, "Clients: stopping SAM bridge");
+			LogPrint(eLogInfo, "Clients: Stopping SAM bridge");
 			m_SamBridge->Stop ();
 			delete m_SamBridge;
 			m_SamBridge = nullptr;
@@ -168,7 +168,7 @@ namespace client
 
 		if (m_BOBCommandChannel)
 		{
-			LogPrint(eLogInfo, "Clients: stopping BOB command channel");
+			LogPrint(eLogInfo, "Clients: Stopping BOB command channel");
 			m_BOBCommandChannel->Stop ();
 			delete m_BOBCommandChannel;
 			m_BOBCommandChannel = nullptr;
@@ -176,13 +176,13 @@ namespace client
 
 		if (m_I2CPServer)
 		{
-			LogPrint(eLogInfo, "Clients: stopping I2CP");
+			LogPrint(eLogInfo, "Clients: Stopping I2CP");
 			m_I2CPServer->Stop ();
 			delete m_I2CPServer;
 			m_I2CPServer = nullptr;
 		}
 
-		LogPrint(eLogInfo, "Clients: stopping AddressBook");
+		LogPrint(eLogInfo, "Clients: Stopping AddressBook");
 		m_AddressBook.Stop ();
 
 	{
@@ -274,7 +274,7 @@ namespace client
 			s.read ((char *)buf, len);
 			if(!keys.FromBuffer (buf, len))
 			{
-				LogPrint (eLogError, "Clients: failed to load keyfile ", filename);
+				LogPrint (eLogError, "Clients: Failed to load keyfile ", filename);
 				success = false;
 			}
 			else
@@ -283,7 +283,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError, "Clients: can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
+			LogPrint (eLogError, "Clients: Can't open file ", fullPath, " .. creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
@@ -402,7 +402,7 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		std::map<std::string, std::string> params 
+		std::map<std::string, std::string> params
 		{
 			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "3" },
 			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
@@ -508,11 +508,11 @@ namespace client
 			// TODO: cleanup this in 2.8.0
 			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
 			if (i2p::fs::Exists(tunConf))
-				LogPrint(eLogWarning, "Clients: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
+				LogPrint(eLogWarning, "Clients: Please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
 			else
 				tunConf = i2p::fs::DataDirPath ("tunnels.conf");
 		}
-		LogPrint(eLogDebug, "Clients: tunnels config file: ", tunConf);
+		LogPrint(eLogDebug, "Clients: Tunnels config file: ", tunConf);
 		ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
 
 		std::string tunDir; i2p::config::GetOption("tunnelsdir", tunDir);
@@ -526,7 +526,7 @@ namespace client
 				for (auto& it: files)
 				{
 					if (it.substr(it.size() - 5) != ".conf") continue; // skip files which not ends with ".conf"
-					LogPrint(eLogDebug, "Clients: tunnels extra config file: ", it);
+					LogPrint(eLogDebug, "Clients: Tunnels extra config file: ", it);
 					ReadTunnels (it, numClientTunnels, numServerTunnels);
 				}
 			}
@@ -582,7 +582,7 @@ namespace client
 						if (it != destinations.end ())
 							localDestination = it->second;
 						else
-						{	
+						{
 							i2p::data::PrivateKeys k;
 							if(LoadPrivateKeys (k, keys, sigType, cryptoType))
 							{
@@ -597,7 +597,7 @@ namespace client
 										destinations[keys] = localDestination;
 								}
 							}
-						}	
+						}
 					}
 
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
@@ -705,17 +705,17 @@ namespace client
 					if (it != destinations.end ())
 						localDestination = it->second;
 					else
-					{	
+					{
 						i2p::data::PrivateKeys k;
 						if(!LoadPrivateKeys (k, keys, sigType, cryptoType))
 							continue;
 						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 						if (!localDestination)
-						{	
+						{
 							localDestination = CreateNewLocalDestination (k, true, &options);
 							destinations[keys] = localDestination;
-						}	
-					}	
+						}
+					}
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
 						// udp server tunnel
@@ -727,12 +727,12 @@ namespace client
 								address = "::1";
 							else
 								address = "127.0.0.1";
-						}	
-						auto localAddress = boost::asio::ip::address::from_string(address);	
+						}
+						auto localAddress = boost::asio::ip::address::from_string(address);
 						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port, gzip);
 						if(!isUniqueLocal)
 						{
-							LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
+							LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");
 							serverTunnel->SetUniqueLocal(isUniqueLocal);
 						}
 						std::lock_guard<std::mutex> lock(m_ForwardsMutex);
@@ -825,7 +825,7 @@ namespace client
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
-			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
+			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
@@ -837,7 +837,7 @@ namespace client
 					if (localDestination) localDestination->Acquire ();
 				}
 				else
-					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
+					LogPrint(eLogError, "Clients: Failed to load HTTP Proxy key");
 			}
 			try
 			{
@@ -867,12 +867,12 @@ namespace client
 			std::string socksOutProxyAddr;     i2p::config::GetOption("socksproxy.outproxy",         socksOutProxyAddr);
 			uint16_t    socksOutProxyPort;     i2p::config::GetOption("socksproxy.outproxyport",     socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",    sigType);
-			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
+			LogPrint(eLogInfo, "Clients: Starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (httpProxyKeys == socksProxyKeys && m_HttpProxy)
 			{
 				localDestination = m_HttpProxy->GetLocalDestination ();
 				localDestination->Acquire ();
-			}	
+			}
 			else if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
