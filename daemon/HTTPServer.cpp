@@ -1152,26 +1152,23 @@ namespace http {
 
 	void ShowTunnelSummary (std::stringstream& s) {
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+        size_t localInCount = i2p::tunnel::tunnels.CountInboundTunnels();
+        size_t localOutCount = i2p::tunnel::tunnels.CountOutboundTunnels();
+		size_t transitCount = i2p::tunnel::tunnels.CountTransitTunnels();
 		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Tunnel Summary") << "</span></th></tr>\r\n";
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<table id=\"tunnelsummary\">\r\n<thead>"
 		  << "<tr><th>" << tr("Type") << "</th>"
 		  << "<th class=\"in\">" << tr("Inbound") << "</th><th class=\"out\">" << tr("Outbound") << "</th>"
 		  << "<th>" << tr("View Details") << "</th></tr>\r\n</thead>\r\n";
-		size_t transitCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">" << localInCount << "</td><td class=\"out\">" << localOutCount << "</td>"
+		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_TUNNELS << "\">View</a></td></tr>\r\n";
 		if (transitCount > 0) {
 		s << "<tr><td>" << tr("Transit") << "</td><td colspan=\"2\">" << transitCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
-//		s << "<tr><td>" << tr("Exploratory") << "</td><td class=\"in\">---</td><td class=\"out\">---</td>"
-//		  << "<td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
-        size_t localInCount = i2p::tunnel::tunnels.CountInboundTunnels();
-        size_t localOutCount = i2p::tunnel::tunnels.CountOutboundTunnels();
-		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">" << localInCount << "</td><td class=\"out\">" << localOutCount << "</td>"
-		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_TUNNELS << "\">View</a></td></tr>\r\n"
-//		  << "<tr><td>" << tr("Service") << "</td><td>count in/out</td><td><a class=\"button\" href=\"#\">View</a></td></tr>\r\n"
-		  << "<tr><td class=\"center nopadding\" colspan=\"4\">";
-		  ShowI2PTunnels (s);
+		s << "<tr><td class=\"center nopadding\" colspan=\"4\">";
+		ShowI2PTunnels (s);
 		s << "</td></tr>\r\n</table>\r\n";
 		s << "</td></tr>\r\n";
 	}
