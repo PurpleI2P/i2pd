@@ -430,13 +430,12 @@ table {
 }
 
 tr {
-/*	background: var(--tr);*/
 	border-top: 1px solid var(--border);
 	border-bottom: 1px solid var(--border);
 }
 
 tr#version, tr#version ~ tr:nth-child(odd), tr.chrome, .listitem:nth-child(odd),
-tr:not(.chrome):nth-child(odd), #routerinfos tr:nth-child(odd) {
+tr:not(.chrome):nth-child(odd), #routerinfos tr:nth-child(odd), #tunnelsummary tr:nth-child(even) {
 	background: linear-gradient(to bottom, rgba(16,0,16,.5), rgba(8,0,8,.5));
 }
 
@@ -445,7 +444,7 @@ tr:not(.chrome):nth-child(even), #routerinfos tr:nth-child(even) {
 	background: linear-gradient(to bottom, rgba(32,0,32,.5), rgba(24,0,24,.5));
 }
 
-tr tr, /*tr#version, tr#version ~ tr:nth-child(odd),*/ .tableitem tr:nth-child(odd) {
+tr tr, .tableitem tr:nth-child(odd) {
 	background: var(--tr-inner);
 }
 
