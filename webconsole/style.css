@@ -102,6 +102,7 @@ body {
 	font: 14pt var(--bodyfont);
 	color: var(--ink);
 	background: linear-gradient(to bottom, rgba(0,0,0,.1), rgba(32,0,32,.1), rgba(0,0,0,.1));
+	background-attachment: fixed, fixed, fixed !important;
 }
 
 .wrapper {
