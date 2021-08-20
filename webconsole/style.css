@@ -121,8 +121,13 @@ body {
 	position: relative;
 }
 
-a, label, button, #navlinks, .sectiontitle span, .chrome  {
+a, label, button, #navlinks, .sectiontitle span, .chrome, .notify,
+#tunnelsummary th:last-child, #tunnelsummary td:last-child {
 	user-select: none;
+}
+
+.listitem a, .listitem a + span, .b32 {
+	user-select: all;
 }
 
 #shutdownbutton, #enabletransit, #disabletransit {
@@ -493,7 +498,6 @@ th.sectiontitle {
 	padding: 0 0 10px !important;
 	font-weight: 700;
 	border-bottom: none;
-/*	background: var(--section);*/
 }
 
 .sectiontitle span {
@@ -530,6 +534,10 @@ td td:first-child {
 
 td:last-child {
 	text-align: left;
+}
+
+#routerinfos td:first-child {
+	font-weight: 700;
 }
 
 .listitem, .tableitem {
