@@ -116,7 +116,7 @@ namespace data
 					int numMsgs = 0;
 					while (msg)
 					{
-						LogPrint(eLogDebug, "NetDb: got request with type ", (int) msg->GetTypeID ());
+						LogPrint(eLogDebug, "NetDb: Got request with type ", (int) msg->GetTypeID ());
 						switch (msg->GetTypeID ())
 						{
 							case eI2NPDatabaseStore:
@@ -136,7 +136,7 @@ namespace data
 								HandleNTCP2RouterInfoMsg (msg);
 							break;
 							default: // WTF?
-								LogPrint (eLogError, "NetDb: unexpected message type ", (int) msg->GetTypeID ());
+								LogPrint (eLogError, "NetDb: Unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
 						}
 						if (numMsgs > 100) break;
@@ -214,7 +214,7 @@ namespace data
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "NetDb: runtime exception: ", ex.what ());
+				LogPrint (eLogError, "NetDb: Runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -700,10 +700,10 @@ namespace data
 		auto dest = m_Requests.CreateRequest (destination, exploritory, requestComplete); // non-exploratory
 		if (!dest)
 		{
-			LogPrint (eLogWarning, "NetDb: destination ", destination.ToBase64(), " is requested already");
+			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
 			return;
 		}
-		LogPrint(eLogInfo, "NetDb: destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
+		LogPrint(eLogInfo, "NetDb: Destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
 		// direct
 		transports.SendMessage (from, dest->CreateRequestMessage (nullptr, nullptr));
 	}
