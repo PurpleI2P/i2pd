@@ -439,61 +439,20 @@ namespace http {
 		else if (state == "established") stateText = tr("established");
 		else stateText = tr("unknown");
 
-		if (!explr) {
-			s << "<span class=\"tunnel " << state << ((explr) ? " exploratory" : "")
-			  << "\" data-tooltip=\"" << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "\">"
-			  << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>";
-			s << std::fixed << std::setprecision(0);
-			if (bytes > 1024 * 1024 * 1024) {
-				s << std::fixed << std::setprecision(2);
-				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
-			} else if (bytes > 1024 * 1024) {
-				s << std::fixed << std::setprecision(1);
-				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
-			} else if (bytes > 1024) {
-				s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
-			} else {
-				s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
-			}
-		}
-	}
-
-	static void ShowExploratoryTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, double bytes)
-	{
-		std::string state, stateText;
-		switch (eState) {
-			case i2p::tunnel::eTunnelStateBuildReplyReceived :
-			case i2p::tunnel::eTunnelStatePending     : state = "building";    break;
-			case i2p::tunnel::eTunnelStateBuildFailed :
-			case i2p::tunnel::eTunnelStateTestFailed  :
-			case i2p::tunnel::eTunnelStateFailed      : state = "failed";      break;
-			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring";    break;
-			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
-			default: state = "unknown"; break;
-		}
-
-		if      (state == "building")    stateText = tr("building");
-		else if (state == "failed")      stateText = tr("failed");
-		else if (state == "expiring")    stateText = tr("expiring");
-		else if (state == "established") stateText = tr("established");
-		else stateText = tr("unknown");
-
-		if (explr) {
-			s << "<span class=\"tunnel " << state << " exploratory"
-			  << "\" data-tooltip=\"" << stateText << " (" << tr("exploratory") << ")" << "\">"
-			  << stateText << " (" << tr("exploratory") << ")</span>";
-			s << std::fixed << std::setprecision(0);
-			if (bytes > 1024 * 1024 * 1024) {
-				s << std::fixed << std::setprecision(2);
-				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
-			} else if (bytes > 1024 * 1024) {
-				s << std::fixed << std::setprecision(1);
-				s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
-			} else if (bytes > 1024) {
-				s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
-			} else {
-				s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
-			}
+		s << "<span class=\"tunnel " << state << ((explr) ? " exploratory" : "")
+		  << "\" data-tooltip=\"" << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "\">"
+		  << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>";
+		s << std::fixed << std::setprecision(0);
+		if (bytes > 1024 * 1024 * 1024) {
+			s << std::fixed << std::setprecision(2);
+			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span>\r\n";
+		} else if (bytes > 1024 * 1024) {
+			s << std::fixed << std::setprecision(1);
+			s << " <span class=\"transferred\">" << (double) (bytes / 1024 / 1024) << "M</span>\r\n";
+		} else if (bytes > 1024) {
+			s << " <span class=\"transferred\">" << (int) (bytes / 1024) << "K</span>\r\n";
+		} else {
+			s << " <span class=\"transferred\">" << (int) (bytes) << "B</span>\r\n";
 		}
 	}
 
@@ -1116,7 +1075,7 @@ namespace http {
 				} else { // placeholder for alignment
 					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
-				ShowExploratoryTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
+				ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 				s << "</span></div>\r\n";
 			}
 		}
@@ -1137,7 +1096,7 @@ namespace http {
 				} else { // placeholder for alignment
 					s << " <span class=\"latency unknown\" data-tooltip=\"" << tr("Unknown tunnel latency") << "\">---&nbsp;</span> ";
 				}
-				ShowExploratoryTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
+				ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 				s << "</span>\r\n</div>\r\n";
 			}
 		}
