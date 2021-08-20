@@ -129,10 +129,10 @@ namespace log {
 		else if (level == "info")  { m_MinLevel = eLogInfo;  }
 		else if (level == "debug") { m_MinLevel = eLogDebug; }
 		else {
-			LogPrint(eLogError, "Log: unknown loglevel: ", level);
+			LogPrint(eLogError, "Log: Unknown loglevel: ", level);
 			return;
 		}
-		LogPrint(eLogInfo, "Log: min messages level set to ", level);
+		LogPrint(eLogInfo, "Log: Logging level set to ", level);
 	}
 
 	const char * Log::TimeAsString(std::time_t t) {
@@ -212,7 +212,7 @@ namespace log {
 			m_LogStream = os;
 			return;
 		}
-		LogPrint(eLogError, "Log: can't open file ", path);
+		LogPrint(eLogError, "Log: Can't open file ", path);
 	}
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {

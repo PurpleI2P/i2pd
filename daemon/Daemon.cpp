@@ -389,7 +389,7 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{
-			LogPrint(eLogError, "Daemon: Failed to start transports");
+			LogPrint(eLogError, "Daemon: Failed to start Transports");
 			/** shut down netdb right away */
 			i2p::transport::transports.Stop();
 			i2p::data::netdb.Stop();
@@ -400,7 +400,7 @@ namespace util
 		if (http) {
 			std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 			uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-			LogPrint(eLogInfo, "Daemon: Starting webconsole at ", httpAddr, ":", httpPort);
+			LogPrint(eLogInfo, "Daemon: Starting Webconsole at ", httpAddr, ":", httpPort);
 			try
 			{
 				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
@@ -408,16 +408,16 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: Failed to start webconsole: ", ex.what ());
+				LogPrint (eLogError, "Daemon: Failed to start Webconsole: ", ex.what ());
 				ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
 			}
 		}
 
 
-		LogPrint(eLogInfo, "Daemon: Starting tunnels");
+		LogPrint(eLogInfo, "Daemon: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
 
-		LogPrint(eLogInfo, "Daemon: Starting client");
+		LogPrint(eLogInfo, "Daemon: Starting Client");
 		i2p::client::context.Start ();
 
 		// I2P Control Protocol
@@ -443,9 +443,9 @@ namespace util
 	bool Daemon_Singleton::stop()
 	{
 		LogPrint(eLogInfo, "Daemon: Shutting down");
-		LogPrint(eLogInfo, "Daemon: Stopping client");
+		LogPrint(eLogInfo, "Daemon: Stopping Client");
 		i2p::client::context.Stop();
-		LogPrint(eLogInfo, "Daemon: Stopping tunnels");
+		LogPrint(eLogInfo, "Daemon: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
 
 		if (d.UPnP)
@@ -460,7 +460,7 @@ namespace util
 			d.m_NTPSync = nullptr;
 		}
 
-		LogPrint(eLogInfo, "Daemon: Stopping transports");
+		LogPrint(eLogInfo, "Daemon: Stopping Transports");
 		i2p::transport::transports.Stop();
 		LogPrint(eLogInfo, "Daemon: Stopping NetDB");
 		i2p::data::netdb.Stop();

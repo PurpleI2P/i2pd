@@ -377,7 +377,7 @@ namespace net
 	const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6)
 	{
 #ifdef _WIN32
-		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
+		LogPrint(eLogError, "NetIface: Cannot get address by interface name, not implemented on WIN32");
 		if(ipv6)
 			return boost::asio::ip::address::from_string("::1");
 		else
@@ -413,10 +413,10 @@ namespace net
 		if(ipv6)
 		{
 			fallback = "::1";
-			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
+			LogPrint(eLogWarning, "NetIface: Can't find ipv6 address for interface ", ifname);
 		} else {
 			fallback = "127.0.0.1";
-			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
+			LogPrint(eLogWarning, "NetIface: Can't find ipv4 address for interface ", ifname);
 		}
 		return boost::asio::ip::address::from_string(fallback);
 #endif
@@ -425,14 +425,14 @@ namespace net
 	static bool IsYggdrasilAddress (const uint8_t addr[16])
 	{
 		return addr[0] == 0x02 || addr[0] == 0x03;
-	}	
+	}
 
 	bool IsYggdrasilAddress (const boost::asio::ip::address& addr)
 	{
 		if (!addr.is_v6 ()) return false;
 		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
-	}	
-	
+	}
+
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
 #if defined(_WIN32)
@@ -479,7 +479,7 @@ namespace net
 			}
 			pCurrAddresses = pCurrAddresses->Next;
 		}
-		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with yggdrasil network address not found");
 		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
@@ -504,7 +504,7 @@ namespace net
 				cur = cur->ifa_next;
 			}
 		}
-		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with yggdrasil network address not found");
 		if(addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif
@@ -517,11 +517,11 @@ namespace net
 		GetMTUWindows(addr, 0);
 #else
 		GetMTUUnix(addr, 0);
-#endif	
+#endif
 		return mtu > 0;
-	}	
-	
-	bool IsInReservedRange (const boost::asio::ip::address& host) 
+	}
+
+	bool IsInReservedRange (const boost::asio::ip::address& host)
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if (host.is_unspecified ()) return false;

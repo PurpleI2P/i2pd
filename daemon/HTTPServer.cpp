@@ -461,7 +461,7 @@ namespace http {
 		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
 			i2p::log::Logger().SetLogLevel(level);
 		else {
-			LogPrint(eLogError, "HTTPServer: unknown loglevel set attempted");
+			LogPrint(eLogError, "HTTPServer: Unknown loglevel set attempted");
 			return;
 		}
 		i2p::log::Logger().Reopen ();
@@ -1765,7 +1765,7 @@ namespace http {
 			if (expected == provided) return true;
 		}
 
-		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
+		LogPrint(eLogWarning, "HTTPServer: Auth failure from ", m_Socket->remote_endpoint().address ());
 		return false;
 	}
 
@@ -1775,7 +1775,7 @@ namespace http {
 		std::string content;
 		HTTPRes res;
 
-		LogPrint(eLogDebug, "HTTPServer: request: ", req.uri);
+		LogPrint(eLogDebug, "HTTPServer: Request: ", req.uri);
 
 		if (needAuth && !CheckAuth(req)) {
 			res.code = 401;
@@ -2146,7 +2146,7 @@ namespace http {
 				pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
 			}
 			i2p::config::SetOption("http.pass", pass);
-			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
+			LogPrint(eLogInfo, "HTTPServer: Password set to ", pass);
 		}
 
 		m_IsRunning = true;
@@ -2199,7 +2199,7 @@ namespace http {
 		if (ecode)
 		{
 			if(newSocket) newSocket->close();
-			LogPrint(eLogError, "HTTP Server: error handling accept ", ecode.message());
+			LogPrint(eLogError, "HTTP Server: Error handling accept ", ecode.message());
 			if(ecode != boost::asio::error::operation_aborted)
 				Accept();
 			return;

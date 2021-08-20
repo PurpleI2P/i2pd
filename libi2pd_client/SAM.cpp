@@ -567,7 +567,7 @@ namespace client
 			Connect (leaseSet);
 		else
 		{
-			LogPrint (eLogError, "SAM: destination to connect not found");
+			LogPrint (eLogError, "SAM: Destination to connect not found");
 			SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
 		}
 	}
@@ -603,7 +603,7 @@ namespace client
 
 	void SAMSocket::ProcessStreamForward (char * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "SAM: stream forward: ", buf);
+		LogPrint (eLogDebug, "SAM: Stream forward: ", buf);
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		std::string& id = params[SAM_PARAM_ID];
