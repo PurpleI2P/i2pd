@@ -1176,12 +1176,12 @@ namespace http {
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_routerinfo\" />\r\n"
 		  << "<label for=\"slide_routerinfo\">i2pd " VERSION "</label>\r\n";
 		s << "<div class=\"slidecontent\">\r\n<table id=\"routerinfos\">\r\n";
-		s << "<tr><td>" << tr("Router Identity") << "</td><td class=\"nopadding\"><span id=\"rid\" class=\"sensitive\" hidden>"
+		s << "<tr><td>" << tr("Router Identity") << "</td><td class=\"nopadding\"><span id=\"rid\">"
 		  << i2p::context.GetRouterInfo().GetIdentHashBase64() << "</span></td></tr>\r\n";
 		s << "<tr><td>" << tr("Router Caps") << "</td><td>" << i2p::context.GetRouterInfo().GetProperty("caps") << "</td></tr>\r\n";
 		if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
-			s << "<tr><td>" << tr("Router Family") << "</td><td><span class=\"sensitive\" hidden>"
-			  << i2p::context.GetRouterInfo().GetProperty("family") << "</span></td></tr>\r\n";
+			s << "<tr><td>" << tr("Router Family") << "</td><td>"
+			  << i2p::context.GetRouterInfo().GetProperty("family") << "</td></tr>\r\n";
 		auto family = i2p::context.GetFamily ();
 		if (family.length () > 0)
 			s << "<tr><td>"<< tr("Family") << "</td><td>" << family << "<br>\r\n";
@@ -1216,12 +1216,12 @@ namespace http {
 				default:
 					s << "<td>" << tr("Unknown") << "</td>\r\n";
 			}
-			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
+			s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n</tr>\r\n";
 		}
 		s << "<tr><td>" << tr("Uptime") << "</td><td>";
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "</td></tr>\r\n";
-		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
+		s << "<tr><td>" << tr("Data path") << "</td><td>" << i2p::fs::GetUTF8DataDir() << "</td></tr>\r\n";
 		s << "</table>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 
 
