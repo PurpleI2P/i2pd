@@ -526,7 +526,7 @@ namespace transport
 					}
 				}
 			}
-			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
+			LogPrint (eLogInfo, "Transports: No compatible NTCP2 or SSU addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
