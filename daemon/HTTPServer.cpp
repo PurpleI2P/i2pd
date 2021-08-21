@@ -582,9 +582,6 @@ namespace http {
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
-		s << "<tr><td>" << tr("Uptime") << "</td><td>";
-		ShowUptime(s, i2p::context.GetUptime ());
-		s << "</td></tr>\r\n";
 		if (i2p::context.SupportsV4 ())
 		{
 			s << "<tr><td>" << tr("Network Status") << "</td><td>";
@@ -1221,6 +1218,9 @@ namespace http {
 			}
 			s << "<td><span class=\"sensitive\" hidden>" << address->host.to_string() << ":" << address->port << "</span></td>\r\n</tr>\r\n";
 		}
+		s << "<tr><td>" << tr("Uptime") << "</td><td>";
+		ShowUptime(s, i2p::context.GetUptime ());
+		s << "</td></tr>\r\n";
 		s << "<tr><td>" << tr("Data path") << "</td><td><span class=\"sensitive\">" << i2p::fs::GetUTF8DataDir() << "</span></td></tr>\r\n";
 		s << "</table>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 
@@ -1807,6 +1807,10 @@ namespace http {
 		}
 		// HTML head start
 		ShowPageHead (s);
+		if (req.uri.find("summary") != std::string::npos ||
+			req.uri.find("commands") != std::string::npos ||
+			(req.uri.find("local_destinations") != std::string::npos && req.uri.find("b32") == std::string::npos))
+			res.add_header("Refresh", "10");
 		if (req.uri.find("page=") != std::string::npos) {
 			HandlePage (req, res, s);
 		} else if (req.uri.find("cmd=") != std::string::npos) {
