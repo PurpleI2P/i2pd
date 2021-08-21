@@ -1346,18 +1346,23 @@ namespace http {
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<tr><th colspan=\"2\">" << tr("Transit Tunnels") << "</th></tr><tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><th colspan=\"2\">" << tr("Transit Tunnels") << "</th></tr>"
+			  << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				s << "<div class=\"listitem\"><span class=\"chain transit\">";
+				s << "<span class=\"sent\">" << it->GetNumTransmittedBytes () << "B</span> ";
+				s << "<span class=\"tunnelid\">" << it->GetTunnelID () << "</span> ";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
-					s << it->GetTunnelID () << " <span class=\"arrowright\">&#8658;</span> ";
+					s << "<span class=\"role ibgw\" data-tooltip=\"" << tr("inbound gateway") << "\">"
+					  << tr("inbound gateway") << "</span>";
 				else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
-					s << "<span class=\"arrowright\">&#8658;</span> " << "<span class=\"tunnelid\">" << it->GetTunnelID () << "</span>";
+					s << "<span class=\"role obep\"data-tooltip=\"" << tr("outbound endpoint") << "\">"
+					  << tr("outbound endpoint") << "</span>";
 				else
-					s << "<span class=\"arrowright\">&#8658;</span> <span class=\"tunnelid\">" << it->GetTunnelID ()
-					  << "</span> <span class=\"arrowright\">&#8658;</span> ";
-				s << " <span class=\"sent\">" << it->GetNumTransmittedBytes () << "B</span></div>\r\n";
+					s << "<span class=\"role ptcp\" data-tooltip=\"" << tr("participant") << "\">"
+					  << tr("participant") << "</span>";
+				s << "</div>\r\n";
 			}
 			s << "</span></div></td></tr>\r\n";
 		}
