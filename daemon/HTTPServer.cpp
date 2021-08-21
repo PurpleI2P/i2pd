@@ -1809,7 +1809,8 @@ namespace http {
 		ShowPageHead (s);
 		if (req.uri.find("summary") != std::string::npos ||
 			req.uri.find("commands") != std::string::npos ||
-			(req.uri.find("local_destinations") != std::string::npos && req.uri.find("b32") == std::string::npos))
+			(req.uri.find("local_destinations") != std::string::npos &&
+			 req.uri.find("b32") == std::string::npos))
 			res.add_header("Refresh", "10");
 		if (req.uri.find("page=") != std::string::npos) {
 			HandlePage (req, res, s);
@@ -1817,7 +1818,7 @@ namespace http {
 			HandleCommand (req, res, s);
 		} else {
 			ShowStatus (s, true, i2p::http::OutputFormatEnum::forWebConsole);
-			res.add_header("Refresh", "10");
+			res.add_header("Refresh", "5");
 		}
 		ShowPageTail (s);
 
@@ -2114,6 +2115,7 @@ namespace http {
 		reply.add_header("X-Content-Type-Options", "nosniff");
 		reply.add_header("X-XSS-Protection", "1; mode=block");
 		reply.add_header("Content-Type", "text/html");
+		reply.add_header("Server", "i2pd " VERSION " webconsole" );
 		reply.body = content;
 
 		m_SendBuffer = reply.to_string();
