@@ -56,33 +56,38 @@ cd build
 %endif
 %endif
 
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
+
+%if 0%{?fedora} >= 36
+	pushd redhat-linux-build
+%else
+	%if 0%{?fedora} >= 33
+		pushd %{_target_platform}
+	%endif
 %endif
 
 %if 0%{?mageia} > 7
-pushd build
+	pushd build
 %endif
 
 make %{?_smp_mflags}
 
 %if 0%{?fedora} >= 33
-popd
+	popd
 %endif
 
 %if 0%{?mageia} > 7
-popd
+	popd
 %endif
 
 %install
 pushd build
 
 %if 0%{?fedora} >= 33
-pushd %{_target_platform}
+	pushd %{_target_platform}
 %endif
 
 %if 0%{?mageia}
-pushd build
+	pushd build
 %endif
 
 chrpath -d i2pd
