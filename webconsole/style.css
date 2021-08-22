@@ -653,9 +653,9 @@ td:last-child {
 }
 
 .role {
-	margin-left: 4px;
-	width: 20px;
-	height: 20px;
+	margin: -2px 3px -2px 4px;
+	width: 24px;
+	height: 24px;
 	display: inline-block;
 	vertical-align: middle;
 	font-size: 0;
@@ -666,15 +666,15 @@ td:last-child {
 }
 
 .ibgw {
-	background: var(--ibgw) no-repeat center center / 20px;
+	background: var(--ibgw) no-repeat center center / 24px;
 }
 
 .obep {
-	background: var(--obep) no-repeat center center / 20px;
+	background: var(--obep) no-repeat center center / 24px;
 }
 
 .ptcp {
-	background: var(--ptcp) no-repeat center center / 20px;
+	background: var(--ptcp) no-repeat center center / 24px;
 }
 
 .arrowright, .arrowleft, .arrowleftright, .arrowup, .arrowdown {
