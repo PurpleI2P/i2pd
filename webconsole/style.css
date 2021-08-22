@@ -496,10 +496,11 @@ th:not(.sectiontitle)[colspan="2"], .slide label {
 	font-size: 95%;
 }
 
-th.sectiontitle {
+th.sectiontitle, .sectiontitle {
 	padding: 0 0 10px !important;
 	font-weight: 700;
 	border-bottom: none;
+	background: var(--th_multicolumn);
 }
 
 .sectiontitle span {

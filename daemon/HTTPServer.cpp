@@ -1164,7 +1164,7 @@ namespace http {
 		s << "<tr><td>" << tr("Transit") << "</td><td colspan=\"2\">" << transitCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
-		s << "<tr><td class=\"center nopadding\" colspan=\"4\">";
+		s << "<tr><td class=\"center nopadding\" colspan=\"2\">";
 		ShowI2PTunnels (s);
 		s << "</td></tr>\r\n</table>\r\n";
 		s << "</td></tr>\r\n";
@@ -1623,10 +1623,14 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_servicetunnels\" />\r\n"
 		  << "<label for=\"slide_servicetunnels\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
 		  << "in  / out" << "</span><span class=\"hide\">]</span></label>\r\n";
 		s << "<div id=\"servicetunnels\" class=\"slidecontent list\">\r\n";
+//		s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Client Tunnels") << "</span></th></tr>";
+		s << "<div class=\"list\">\r\n";
+		s << "<div class=\"sectiontitle\"><span>" << tr("Client Tunnels") << "</span></div>";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1657,7 +1661,9 @@ namespace http {
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Server Tunnels") << "</span></th></tr><tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Server Tunnels") << "</span></th></tr>\r\n";
+			s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+			s << "<div class=\"list\">\r\n";
 			for (auto& it: serverTunnels)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1667,13 +1673,14 @@ namespace http {
 				s << ":" << it.second->GetLocalPort ();
 				s << "</span></div>\r\n" << std::endl;
 			}
-			s << "</div></td></tr>\r\n";
+			s << "</div>\r\n</div>\r\n</td></tr>\r\n";
 		}
 
 		auto& clientForwards = i2p::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Client Forwards") << "</span></th></tr><tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Client Forwards") << "</span></th></tr>"
+			  << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1687,8 +1694,9 @@ namespace http {
 		auto& serverForwards = i2p::client::context.GetServerForwards ();
 		if (!serverForwards.empty ())
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Server Forwards") << "</span></th></tr>\r\n"
-			  << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Server Forwards") << "</span></th></tr>\r\n";
+			s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+			s << "<div class=\"list\">\r\n";
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1812,7 +1820,7 @@ namespace http {
 		}
 		// HTML head start
 		ShowPageHead (s);
-		if (req.uri.find("summary") != std::string::npos ||
+		if (/*req.uri.find("summary") != std::string::npos ||*/
 			req.uri.find("commands") != std::string::npos ||
 			(req.uri.find("local_destinations") != std::string::npos &&
 			 req.uri.find("b32") == std::string::npos))
