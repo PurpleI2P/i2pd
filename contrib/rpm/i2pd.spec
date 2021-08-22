@@ -9,9 +9,9 @@ URL:           https://github.com/PurpleI2P/i2pd
 Source0:       https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%version.tar.gz
 
 %if 0%{?rhel} == 7
-BuildRequires: cmake3
+	BuildRequires: cmake3
 %else
-BuildRequires: cmake
+	BuildRequires: cmake
 %endif
 
 BuildRequires: chrpath
@@ -54,33 +54,41 @@ cd build
 %endif
 %endif
 
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
+%if 0%{?fedora} >= 36
+	pushd redhat-linux-build
+%else
+	%if 0%{?fedora} >= 33
+		pushd %{_target_platform}
+	%endif
 %endif
 
 %if 0%{?mageia} > 7
-pushd build
+	pushd build
 %endif
 
 make %{?_smp_mflags}
 
 %if 0%{?fedora} >= 33
-popd
+	popd
 %endif
 
 %if 0%{?mageia} > 7
-popd
+	popd
 %endif
 
 %install
 pushd build
 
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
+%if 0%{?fedora} >= 36
+	pushd redhat-linux-build
+%else
+	%if 0%{?fedora} >= 33
+		pushd %{_target_platform}
+	%endif
 %endif
 
 %if 0%{?mageia}
-pushd build
+	pushd build
 %endif
 
 chrpath -d i2pd

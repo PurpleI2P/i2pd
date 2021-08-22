@@ -11,9 +11,9 @@ URL:           https://github.com/PurpleI2P/i2pd
 Source0:       https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
 %if 0%{?rhel} == 7
-BuildRequires: cmake3
+	BuildRequires: cmake3
 %else
-BuildRequires: cmake
+	BuildRequires: cmake
 %endif
 
 BuildRequires: chrpath
@@ -82,8 +82,12 @@ make %{?_smp_mflags}
 %install
 pushd build
 
-%if 0%{?fedora} >= 33
-	pushd %{_target_platform}
+%if 0%{?fedora} >= 36
+	pushd redhat-linux-build
+%else
+	%if 0%{?fedora} >= 33
+		pushd %{_target_platform}
+	%endif
 %endif
 
 %if 0%{?mageia}
