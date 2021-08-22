@@ -10,14 +10,14 @@
 - Process DELAY_REQUESTED streaming option
 - "certsdir" options for certificates location
 - Keep own RouterInfo in NetBb
-- Pick ECIES routers only for tunneln on non-x64
+- Pick ECIES routers only for tunnels on non-x64
 - NTP sync through ipv6
-- Allow ipv6 adresses for UDP server tunnels
+- Allow ipv6 addresses for UDP server tunnels
 ### Changed
 - Rekey of all routers to ECIES
 - Better distribution for random tunnel's peer selection
 - Yggdrasil reseed for v0.4, added two more
-- Encyption type 0,4 by default for server tunnels
+- Encryption type 0,4 by default for server tunnels
 - Handle i2cp.dontPublishLeaseSet param for all destinations 
 - reg.i2p for subscriptions
 - LeaseSet type 3 by default
@@ -30,14 +30,18 @@
 - Set minimal version for floodfill to 0.9.38
 - Eliminate extra lookups for sequential fragments on tunnel endpoint
 - Consistent path for explicit peers
+- Always create new tunnel from exploratory pool
+- Don't try to connect to a router not reachable from us
+- Mark additional ipv6 addresses/nets as reserved (#1679)
 ### Fixed
 - Zero-hop tunnels
 - Crash upon SAM session termination
-- Build with boost < 1.55.0 
+- Build with boost < 1.55.0
 - Address type for NTCP2 acceptors
 - Check of ipv4/ipv6 address
-- Requst router to send to if not in NetDb
-- Count outbound traffic for zero-hop tunnels 
+- Request router to send to if not in NetDb
+- Count outbound traffic for zero-hop tunnels
+- URLdecode domain for registration string generator in webconsole
 
 ## [2.38.0] - 2021-05-17
 ### Added
