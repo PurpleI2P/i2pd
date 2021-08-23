@@ -1351,7 +1351,21 @@ namespace http {
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				s << "<div class=\"listitem\"><span class=\"chain transit\">";
-				s << "<span class=\"sent\">" << it->GetNumTransmittedBytes () << "B</span> ";
+
+				double bytes = it->GetNumTransmittedBytes ();
+				s << std::fixed << std::setprecision(0);
+				if (bytes > 1024 * 1024 * 1024) {
+					s << std::fixed << std::setprecision(2);
+					s << "<span class=\"sent\">" << (double) (bytes / 1024 / 1024 / 1024) << "G</span> ";
+				} else if (bytes > 1024 * 1024) {
+					s << std::fixed << std::setprecision(1);
+					s << "<span class=\"sent\">" << (double) (bytes / 1024 / 1024) << "M</span> ";
+				} else if (bytes > 1024) {
+					s << "<span class=\"sent\">" << (int) (bytes / 1024) << "K</span> ";
+				} else {
+					s << "<span class=\"sent\">" << (int) (bytes) << "B</span> ";
+				}
+
 				s << "<span class=\"tunnelid\">" << it->GetTunnelID () << "</span> ";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
 					s << "<span class=\"role ibgw\" data-tooltip=\"" << tr("inbound gateway") << "\">"
@@ -1623,14 +1637,13 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
+		s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Service Tunnels") << "</span></th></tr>";
 		s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
-		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_servicetunnels\" />\r\n"
-		  << "<label for=\"slide_servicetunnels\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
-		  << "in  / out" << "</span><span class=\"hide\">]</span></label>\r\n";
-		s << "<div id=\"servicetunnels\" class=\"slidecontent list\">\r\n";
-//		s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Client Tunnels") << "</span></th></tr>";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_client_tunnels\" />\r\n"
+		  << "<label for=\"slide_client_tunnels\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
+		s << "<div id=\"client_tunnels\" class=\"slidecontent list\">\r\n";
 		s << "<div class=\"list\">\r\n";
-		s << "<div class=\"sectiontitle\"><span>" << tr("Client Tunnels") << "</span></div>";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1657,12 +1670,15 @@ namespace http {
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</span></div>\r\n" << std::endl;
 		}
-		s << "</div>\r\n</div>\r\n";
+		s << "</div>\r\n</div>\r\n</div>\r\n";
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
-			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Server Tunnels") << "</span></th></tr>\r\n";
-			s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+			s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_server_tunnels\" />\r\n"
+			  << "<label for=\"slide_server_tunnels\">" << tr("Server Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
+			  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
+			s << "<div id=\"server_tunnels\" class=\"slidecontent list\">\r\n";
 			s << "<div class=\"list\">\r\n";
 			for (auto& it: serverTunnels)
 			{
@@ -1673,14 +1689,18 @@ namespace http {
 				s << ":" << it.second->GetLocalPort ();
 				s << "</span></div>\r\n" << std::endl;
 			}
-			s << "</div>\r\n</div>\r\n</td></tr>\r\n";
+			s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		}
 
 		auto& clientForwards = i2p::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Client Forwards") << "</span></th></tr>"
-			  << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n<div class=\"list\">\r\n";
+		s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_client_forwards\" />\r\n"
+		  << "<label for=\"slide_client_forwards\">" << tr("Client Forwards") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
+		s << "<div id=\"client_forwards\" class=\"slidecontent list\">\r\n";
+		s << "<div class=\"list\">\r\n";
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
@@ -1689,24 +1709,28 @@ namespace http {
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</span></div>\r\n"<< std::endl;
 			}
-			s << "</div></td></tr>\r\n";
+			s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		}
 		auto& serverForwards = i2p::client::context.GetServerForwards ();
 		if (!serverForwards.empty ())
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Server Forwards") << "</span></th></tr>\r\n";
-			s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
-			s << "<div class=\"list\">\r\n";
+		s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
+		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_server_forwards\" />\r\n"
+		  << "<label for=\"slide_server_forwards\">" << tr("Server Forwards") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
+		s << "<div id=\"server_forwards\" class=\"slidecontent list\">\r\n";
+		s << "<div class=\"list\">\r\n";
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> <span class=\"arrowleft\">&#8656;</span> <span class=\"b32\">";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</span></div>\r\n"<< std::endl;
 			}
-			s << "</div></table>\r\n";
+			s << "</div>\r\n</div>\r\n</div>\r\n</td></tr>\r\n";
 		}
+//		s << "</div></table>\r\n";
 	}
 
 	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):

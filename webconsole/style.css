@@ -509,7 +509,7 @@ th.sectiontitle, .sectiontitle {
 	display: inline-block;
 	white-space: nowrap;
 	line-height: 1.6;
-	font-size: 98%;
+	font-size: 11.5pt;
 	border: 1px solid var(--button-border);
 	border-top: none;
 	border-radius: 0 0 4px 4px;
@@ -1234,9 +1234,9 @@ input[type=checkbox]:checked + label::after {
 		padding: 1px 3px;
 	}
 
-		.chrome a.button {
-			min-width: 40px;
-		}
+	.chrome a.button {
+		min-width: 40px;
+	}
 
 	.b32, .listitem a[href*="local_destination&b32"] {
 		max-width: 300px;
@@ -1263,6 +1263,10 @@ input[type=checkbox]:checked + label::after {
 		margin-top: 2px;
 		display: inline-block;
 		vertical-align: middle;
+	}
+
+	.sectiontitle span {
+		font-size: 10.5pt;
 	}
 
 	@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
