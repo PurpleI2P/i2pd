@@ -148,6 +148,7 @@ getent passwd i2pd >/dev/null || \
 %changelog
 * Mon Aug 23 2021 orignal <i2porignal@yandex.ru> - 2.39.0
 - update to 2.39.0
+- fixed build on fedora 36
 
 * Mon May 17 2021 orignal <i2porignal@yandex.ru> - 2.38.0
 - update to 2.38.0
