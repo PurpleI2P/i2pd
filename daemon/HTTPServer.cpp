@@ -1346,8 +1346,8 @@ namespace http {
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<tr><th colspan=\"2\">" << tr("Transit Tunnels") << "</th></tr>"
-			  << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
 				s << "<div class=\"listitem\"><span class=\"chain transit\">";
