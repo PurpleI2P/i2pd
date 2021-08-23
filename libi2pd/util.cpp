@@ -344,7 +344,7 @@ namespace net
 			if(fd > 0)
 			{
 				ifreq ifr;
-				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
+				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ-1); // set interface for query
 				if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
 					mtu = ifr.ifr_mtu; // MTU
 				else
