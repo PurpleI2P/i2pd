@@ -54,8 +54,12 @@ cd build
 %endif
 %endif
 
+%if 0%{?fedora} >= 36
+pushd redhat-linux-build
+%else
 %if 0%{?fedora} >= 33
 pushd %{_target_platform}
+%endif
 %endif
 
 %if 0%{?mageia} > 7
@@ -75,8 +79,12 @@ popd
 %install
 pushd build
 
+%if 0%{?fedora} >= 36
+pushd redhat-linux-build
+%else
 %if 0%{?fedora} >= 33
 pushd %{_target_platform}
+%endif
 %endif
 
 %if 0%{?mageia}
