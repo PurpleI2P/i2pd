@@ -500,7 +500,7 @@ th, .slide label {
 	border-top: 1px solid var(--border) !important;
 }
 
-.chrome td {
+.chrome td, #last td {
 	border-bottom: 1px solid var(--border) !important;
 }
 
@@ -512,7 +512,6 @@ th, .slide label {
 }
 
 .sectiontitle span {
-	margin-top: -1px;
 	padding: 4px 12px;
 	min-width: 50%;
 	display: inline-block;
@@ -520,7 +519,7 @@ th, .slide label {
 	line-height: 1.6;
 	font-size: 11.5pt;
 	border: 1px solid var(--border);
-/*	border-top: none;*/
+	border-top: none;
 	border-radius: 0 0 4px 4px;
 	box-shadow: var(--highlight), 0 2px 2px rgba(0,0,0,.4);
 	background: radial-gradient(at top center, rgba(64,16,64,.4), rgba(0,0,0,0) 50%), var(--sectiontitle);

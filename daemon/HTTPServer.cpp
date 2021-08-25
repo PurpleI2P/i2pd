@@ -641,7 +641,7 @@ namespace http {
 		else if (i2p::transport::transports.GetTotalSentBytes () > 1024*1024)
 			s << std::fixed << std::setprecision(1);
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << "</span></td</tr>\r\n";
+		s << "</span></td></tr>\r\n";
 		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
 			s << "<tr><td>" << tr("Transit") << "</td><td><span class=\"transit sent\">";
 			s << std::fixed << std::setprecision(0);
@@ -670,9 +670,13 @@ namespace http {
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
-		s << "<tr><td>" << tr("Local Tunnels") << "</td><td>" << std::to_string(clientTunnelCount) << "</td></tr>\r\n";
+		if (!(i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels()))
+			s << "<tr id=\"last\">";
+		else
+			s << "<tr>";
+		s << "<td>" << tr("Local Tunnels") << "</td><td>" << std::to_string(clientTunnelCount) << "</td></tr>\r\n";
 		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels()) {
-			s << "<tr><td>" << tr("Transit Tunnels") << "</td><td>"
+			s << "<tr id=\"last\"><td>" << tr("Transit Tunnels") << "</td><td>"
 			  << std::to_string(i2p::tunnel::tunnels.CountTransitTunnels()) << "</td></tr>\r\n";
 		}
 
@@ -684,8 +688,9 @@ namespace http {
 			bool i2cp       = i2p::client::context.GetI2CPServer ()        ? true : false;
 			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			if (httpproxy || socksproxy || bob || sam || i2cp || i2pcontrol) {
-				s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>";
-				s << "<tr><td id=\"routerservices\" class=\"center\" colspan=\"2\">";
+				s << "<tr class=\"center sectiontitle configuration\">"
+				  << "<th colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>\r\n";
+				s << "<tr><td colspan=\"2\" class=\"center\">";
 				if (httpproxy)
 					s << " <span class=\"routerservice\">HTTP " << tr("Proxy") << "</span> ";
 				if (socksproxy)
@@ -697,8 +702,8 @@ namespace http {
 				if (i2cp)
 					s << " <span class=\"routerservice\">I2CP</span> ";
 				if (i2pcontrol)
-					s << " <span class=\"routerservice\">I2PControl</span> ";
-				s << "</tr></td>";
+					s << " <span class=\"routerservice\">I2PControl</span>";
+				s << "</td></tr>\r\n";
 			}
 /*
 				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "\">" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
@@ -710,7 +715,7 @@ namespace http {
 */
 		}
 
-			s << "</tbody>\r\n</table>\r\n</div>\r\n";
+			s << "</tbody>\r\n";
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
