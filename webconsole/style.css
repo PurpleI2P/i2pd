@@ -487,16 +487,24 @@ th.out {
 	background: var(--arrow_up) no-repeat center center / 14px, var(--th_multicolumn);
 }
 
-th:not(.sectiontitle)[colspan="2"], #routerservices {
+th, #routerservices {
 	background: linear-gradient(to right, rgba(0,0,0.6), rgba(0,0,0,0), rgba(0,0,0,.6)), var(--th);
 	background: linear-gradient(to right, rgba(0,0,0,.4), rgba(0,0,0,0), rgba(0,0,0,.4)), rgba(32,0,32,.4);
 }
 
-th:not(.sectiontitle)[colspan="2"], .slide label {
+th, .slide label {
 	font-size: 95%;
 }
 
-th.sectiontitle, .sectiontitle {
+.sectiontitle, .sectiontitle th, .chrome td {
+	border-top: 1px solid var(--border) !important;
+}
+
+.chrome td {
+	border-bottom: 1px solid var(--border) !important;
+}
+
+.sectiontitle th {
 	padding: 0 0 10px !important;
 	font-weight: 700;
 	border-bottom: none;
@@ -504,14 +512,15 @@ th.sectiontitle, .sectiontitle {
 }
 
 .sectiontitle span {
+	margin-top: -1px;
 	padding: 4px 12px;
 	min-width: 50%;
 	display: inline-block;
 	white-space: nowrap;
 	line-height: 1.6;
 	font-size: 11.5pt;
-	border: 1px solid var(--button-border);
-	border-top: none;
+	border: 1px solid var(--border);
+/*	border-top: none;*/
 	border-radius: 0 0 4px 4px;
 	box-shadow: var(--highlight), 0 2px 2px rgba(0,0,0,.4);
 	background: radial-gradient(at top center, rgba(64,16,64,.4), rgba(0,0,0,0) 50%), var(--sectiontitle);
@@ -607,12 +616,16 @@ td:last-child {
 	white-space: nowrap;
 }
 
-.sectiontitle.configuration ~ tr td.thin {
+/*.sectiontitle.configuration ~ tr td.thin {
 	width: 13% !important;
-}
+}*/
 
 #header, #navlinks {
 	background: var(--header);
+}
+
+#header td, #navlinks {
+	border: 1px solid var(--border);
 }
 
 #navlinks {
@@ -1050,12 +1063,10 @@ span[data-tooltip]:hover::after, span[data-tooltip]:active::after,
 	padding: 6px 0 6px 20px;
 	width: 100%;
 	display: block;
-	border: 1px solid var(--button-border);
+	border: 1px solid var(--border);
 	border-left: none;
 	border-right: none;
 	box-shadow: var(--highlight);
-	background: var(--button);
-	background: var(--th);
 	background: linear-gradient(to bottom, rgba(48,8,48,.5), rgba(0,0,0,.8));
 	box-sizing: border-box;
 	color: var(--ink);
@@ -1203,6 +1214,27 @@ input[type=checkbox]:checked + label::after {
 
 #reloadcss:active {
 	background: var(--reloadcss) no-repeat center center / 28px, var(--button_active);
+}
+
+#tunnelsummary {
+	position: relative;
+}
+
+#tunnelsummary tr:last-child, #tunnelsummary, #tunnelsummary tr:last-child td {
+	border-bottom: none;
+}
+
+#tunnelsummary::after {
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	right: 0;
+	z-index: 10;
+	content: "";
+	display: inline-block;
+	width: 100%;
+	height: 1px;
+	background: var(--border);
 }
 
 #tunnelsummary td {

@@ -684,7 +684,7 @@ namespace http {
 			bool i2cp       = i2p::client::context.GetI2CPServer ()        ? true : false;
 			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			if (httpproxy || socksproxy || bob || sam || i2cp || i2pcontrol) {
-				s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>";
+				s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>";
 				s << "<tr><td id=\"routerservices\" class=\"center\" colspan=\"2\">";
 				if (httpproxy)
 					s << " <span class=\"routerservice\">HTTP " << tr("Proxy") << "</span> ";
@@ -716,7 +716,7 @@ namespace http {
 	void ShowLocalDestinations (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding\" colspan=\"2\"><div class=\"list\">\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding\" colspan=\"2\"><div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
@@ -728,7 +728,7 @@ namespace http {
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>I2CP "<< tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding i2cp\" colspan=\"2\"><div class=\"list\">\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>I2CP "<< tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding i2cp\" colspan=\"2\"><div class=\"list\">\r\n";
 			for (auto& it: i2cpServer->GetSessions ())
 			{
 				auto dest = it.second->GetDestination ();
@@ -859,7 +859,7 @@ namespace http {
 					  << "</td><td class=\"center thin\">" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Outgoing Session Tags")
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Outgoing Session Tags")
 			  << " <span class=\"hide\">[</span><span class=\"count\">" << out_tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n"
 			  << "<tr><td class=\"center nopadding\" colspan=\"2\"><table>\r\n"
@@ -870,7 +870,7 @@ namespace http {
 
 		auto numECIESx25519Tags = dest->GetNumIncomingECIESx25519Tags ();
 		if (numECIESx25519Tags > 0) {
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>ECIESx25519</span></th></tr>";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>ECIESx25519</span></th></tr>";
 			s << "<tr><th colspan=\"2\">" << tr("Incoming Tags")
 			  << " <span class=\"hide\">[</span><span class=\"count\">" << numECIESx25519Tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
@@ -902,9 +902,9 @@ namespace http {
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest) {
 			std::string b32Short = b32.substr(0,6);
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destination") << " [" << b32Short << "]</span></th></tr>\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination") << " [" << b32Short << "]</span></th></tr>\r\n";
 		} else
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Destination") << " [" << tr("Not Found") << "]</span></th></tr>\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination") << " [" << tr("Not Found") << "]</span></th></tr>\r\n";
 
 		if (dest)
 		{
@@ -1043,7 +1043,7 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Local Tunnels") << "</span></th><tr>\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Tunnels") << "</span></th><tr>\r\n";
 		s << "<tr><th colspan=\"2\">" << tr("Queue size") << ": " << i2p::tunnel::tunnels.GetQueueSize () << "</th></tr>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
@@ -1100,7 +1100,7 @@ namespace http {
 
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_service\" />\r\n"
 		  << "<label for=\"slide_tunnels_service\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
-			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
+			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: flag individual services by name
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
 			if (it->GetTunnelPool () != ExplPool) {
@@ -1152,7 +1152,7 @@ namespace http {
         size_t localInCount = i2p::tunnel::tunnels.CountInboundTunnels();
         size_t localOutCount = i2p::tunnel::tunnels.CountOutboundTunnels();
 		size_t transitCount = i2p::tunnel::tunnels.CountTransitTunnels();
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Tunnel Summary") << "</span></th></tr>\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Tunnel Summary") << "</span></th></tr>\r\n";
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<table id=\"tunnelsummary\">\r\n<thead>"
 		  << "<tr><th>" << tr("Type") << "</th>"
@@ -1164,9 +1164,9 @@ namespace http {
 		s << "<tr><td>" << tr("Transit") << "</td><td colspan=\"2\">" << transitCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
+		s << "</td></tr>\r\n</table>\r\n";
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">";
 		ShowI2PTunnels (s);
-		s << "</td></tr>\r\n</table>\r\n";
 		s << "</td></tr>\r\n";
 	}
 
@@ -1226,7 +1226,7 @@ namespace http {
 
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr>"
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr>"
 		  << "<tr id=\"commands\" class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
 
 		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
@@ -1301,7 +1301,7 @@ namespace http {
 		  << "</div>\r\n</td></tr>";
 
 		const LogLevel loglevel = i2p::log::Logger().GetLogLevel();
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Logging Level") << "</span></th></tr>\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Logging Level") << "</span></th></tr>\r\n";
 		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">";
 		s << "<a class=\"button" << (loglevel == 0 ? " selected" : "")
 		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">none</a>\r\n";
@@ -1317,7 +1317,7 @@ namespace http {
 
 		if (i2p::context.AcceptsTunnels ()) {
 			uint16_t maxTunnels = GetMaxNumTransitTunnels ();
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Maximum Transit Tunnels") << "</span></th></tr>\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Maximum Transit Tunnels") << "</span></th></tr>\r\n";
 			s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
 			s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 			s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
@@ -1328,7 +1328,7 @@ namespace http {
 		}
 
 		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Console Display Language") << "</span></th></tr>\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Console Display Language") << "</span></th></tr>\r\n";
 		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
@@ -1347,7 +1347,7 @@ namespace http {
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
 			int count = i2p::tunnel::tunnels.GetTransitTunnels().size();
-			s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
+			s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div ";
 			if (count > 8)
@@ -1481,7 +1481,7 @@ namespace http {
 
 	void ShowTransports (std::stringstream& s)
 	{
-		s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("Transports") << "</span></th></tr>\r\n"
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Transports") << "</span></th></tr>\r\n"
 		  << "<tr><td id=\"transports\" class=\"center nopadding\" colspan=\"2\">";
 		auto ntcp2Server = i2p::transport::transports.GetNTCP2Server ();
 		if (ntcp2Server)
@@ -1589,7 +1589,7 @@ namespace http {
 
 		if (sam->GetSessions ().size ())
 		{
-			s << "<tr><th class=\"sectiontitle\" colspan=\"2\"><span>" << tr("SAM sessions")
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("SAM sessions")
 			  << "</span></th><tr>\r\n<tr><td class=\"center nopadding\">\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
 			{
@@ -1644,7 +1644,7 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr><th class=\"sectiontitle\" colspan=\"4\"><span>" << tr("Service Tunnels") << "</span></th></tr>";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"4\"><span>" << tr("Service Tunnels") << "</span></th></tr>";
 		s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_client_tunnels\" />\r\n"
 		  << "<label for=\"slide_client_tunnels\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
