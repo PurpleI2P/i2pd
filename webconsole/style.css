@@ -955,7 +955,7 @@ a:hover .host, a:focus .host, a:active .host {
 	text-align: right;
 }
 
-.latency {
+.latency, .expiry {
 	padding: 2px 5px 2px 20px;
 	min-width: 40px;
 	display: inline-block;
@@ -964,6 +964,11 @@ a:hover .host, a:focus .host, a:active .host {
 	float: right;
 	background: var(--page) var(--time) no-repeat 5px center / 13px;
 	border-radius: 2px;
+}
+
+.expiry {
+	margin-left: 10px;
+	float: none;
 }
 
 .latency.unknown {
@@ -1410,6 +1415,12 @@ input[type=checkbox]:checked + label::after {
 		text-align: center;
 	}
 
+	#transit.list {
+		columns: 2;
+		column-gap: 1px;
+		column-rule: 1px solid var(--border2);
+	}
+
 	.hops {
 		min-width: 280px;
 		display: inline-block;
@@ -1469,10 +1480,14 @@ input[type=checkbox]:checked + label::after {
 		background-position: 5px center;
 	}
 
-	.latency {
+	.latency, .expiry {
 		padding-top: 3px;
 		padding-bottom: 3px;
 		margin-left: 12px;
+	}
+
+	.expiry {
+    	float: right;
 	}
 
 	.transferred {

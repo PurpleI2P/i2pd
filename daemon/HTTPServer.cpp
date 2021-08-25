@@ -1346,10 +1346,16 @@ namespace http {
 	{
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
+			int count = i2p::tunnel::tunnels.GetTransitTunnels().size();
 			s << "<tr><th class=\"sectiontitle configuration\" colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
-			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n<div class=\"list\">\r\n";
+			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
+			s << "<div ";
+			if (count > 8)
+				s << "id=\"transit\" ";
+			s << "class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
+				const auto& expiry = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
 				s << "<div class=\"listitem\"><span class=\"chain transit\">";
 
 				double bytes = it->GetNumTransmittedBytes ();
@@ -1365,7 +1371,8 @@ namespace http {
 				} else {
 					s << "<span class=\"sent\">" << (int) (bytes) << "B</span> ";
 				}
-
+				// TODO: tunnel expiry per tunnel, not most recent
+				//s << "<span class=\"expiry\">" << expiry << tr("s" /* translation: seconds */) << "</span> ";
 				s << "<span class=\"tunnelid\">" << it->GetTunnelID () << "</span> ";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
 					s << "<span class=\"role ibgw\" data-tooltip=\"" << tr("inbound gateway") << "\">"
@@ -1844,7 +1851,7 @@ namespace http {
 		}
 		// HTML head start
 		ShowPageHead (s);
-		if (/*req.uri.find("summary") != std::string::npos ||*/
+		if (req.uri.find("summary") != std::string::npos ||
 			req.uri.find("commands") != std::string::npos ||
 			(req.uri.find("local_destinations") != std::string::npos &&
 			 req.uri.find("b32") == std::string::npos))
