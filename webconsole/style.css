@@ -1112,6 +1112,18 @@ input[type=checkbox]:checked + label::after {
 	word-break: break-all;
 }
 
+ #loglevel {
+	margin-top: 9px;
+}
+
+#commands {
+	margin-top: 11px;
+}
+
+#consolelang, #maxtransit {
+	margin-top: 16px;
+}
+
 #commands br {
 	display: none;
 }

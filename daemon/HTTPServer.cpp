@@ -1231,8 +1231,8 @@ namespace http {
 
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Router Commands") << "</span></th></tr>"
-		  << "<tr id=\"commands\" class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Router Commands") << "</span>"
+		  << "<div id=\"commands\" class=\"chrome\">\r\n";
 
 		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
 		if (i2p::fs::Exists(styleFile)) {
@@ -1298,7 +1298,7 @@ namespace http {
 			s << "  <a id=\"shutdownforce\" class=\"cmd\" href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
 			  << "\" data-tooltip=\"" << tr("Shutdown") << "\">"
-			  << tr("Shutdown") << "</a></td></tr>\r\n";
+			  << tr("Shutdown") << "</a></div></th></tr>\r\n";
 		}
 
 		s << "<tr class=\"chrome notice\"><td class=\"center\" colspan=\"2\">\r\n<div class=\"note\">"
@@ -1306,8 +1306,8 @@ namespace http {
 		  << "</div>\r\n</td></tr>";
 
 		const LogLevel loglevel = i2p::log::Logger().GetLogLevel();
-		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Logging Level") << "</span></th></tr>\r\n";
-		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Logging Level") << "</span>\r\n";
+		s << "<div id=\"loglevel\" class=\"chrome\">";
 		s << "<a class=\"button" << (loglevel == 0 ? " selected" : "")
 		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">none</a>\r\n";
 		s << "<a class=\"button" << (loglevel == 1 ? " selected" : "")
@@ -1318,23 +1318,23 @@ namespace http {
 		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">info</a>\r\n";
 		s << "<a class=\"button" << (loglevel == 4 ? " selected" : "")
 		  << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">debug</a>"
-		  << "</td></tr>\r\n";
+		  << "</div>\r\n</th></tr>\r\n";
 
 		if (i2p::context.AcceptsTunnels ()) {
 			uint16_t maxTunnels = GetMaxNumTransitTunnels ();
-			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Maximum Transit Tunnels") << "</span></th></tr>\r\n";
-			s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Maximum Transit Tunnels") << "</span>\r\n";
+			s << "<div id=\"maxtransit\" class=\"chrome\">\r\n";
 			s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 			s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
 			s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
 			s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
 			s << "  <button class=\"apply\" type=\"submit\">" << tr("Change") << "</button>\r\n";
-			s << "</form>\r\n</td></tr>\r\n";
+			s << "</form>\r\n</div>\r\n</th></tr>\r\n";
 		}
 
 		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
-		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Console Display Language") << "</span></th></tr>\r\n";
-		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Console Display Language") << "</span>\r\n";
+		s << "<div id=\"consolelang\" class=\"chrome\">\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
@@ -1343,7 +1343,7 @@ namespace http {
 			s << "    <option value=\"" << it.first << "\"" << ((it.first.compare(currLang) == 0) ? " selected" : "") << ">" << it.second.LocaleName << "</option>\r\n";
 		s << "  </select>\r\n";
 		s << "  <button class=\"apply\" type=\"submit\">" << tr("Change") << "</button>\r\n";
-		s << "</form>\r\n</td></tr>\r\n";
+		s << "</form>\r\n</div>\r\n</th></tr>\r\n";
 
 	}
 
