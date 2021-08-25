@@ -1456,6 +1456,10 @@ input[type=checkbox]:checked + label::after {
 		column-rule: 1px solid var(--border2);
 	}
 
+	#transit.list .listitem:nth-child(even):last-child {
+		border-bottom: none;
+	}
+
 	.hops {
 		min-width: 280px;
 		display: inline-block;
