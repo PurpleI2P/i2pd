@@ -1260,6 +1260,10 @@ input[type=checkbox]:checked + label::after {
 		display: none;
 	}
 
+	.chain.transit .tunnelid {
+		display: inline-block;
+	}
+
 	.tunnel, .latency {
 		margin: 1px 6px 0 4px;
 	}
@@ -1487,7 +1491,7 @@ input[type=checkbox]:checked + label::after {
 	}
 
 	.expiry {
-    	float: right;
+		float: right;
 	}
 
 	.transferred {
