@@ -626,7 +626,8 @@ namespace http {
 		s << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s");
 		s << "</span>";
 
-		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
+		if ((i2p::context.AcceptsTunnels() || i2p::tunnel::tunnels.CountTransitTunnels()) &&
+			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
 			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
 				i2p::transport::transports.GetTransitBandwidth () < 1024)
 				s << std::fixed << std::setprecision(2);
@@ -654,7 +655,8 @@ namespace http {
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
 		s << "</span>";
 
-		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
+		if ((i2p::context.AcceptsTunnels() || i2p::tunnel::tunnels.CountTransitTunnels()) &&
+			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
 			s << " <span class=\"hide\">/</span> <span class=\"transit sent\">";
 			s << std::fixed << std::setprecision(0);
 			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
