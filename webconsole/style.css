@@ -519,12 +519,12 @@ th, .slide label {
 }
 
 .sectiontitle span:not(.routerservice):not(.hide):not(.badge) {
-	padding: 4px 12px;
+	padding: 2px 12px 4px;
 	min-width: 50%;
 	display: inline-block;
 	white-space: nowrap;
 	line-height: 1.6;
-	font-size: 11.5pt;
+	font-size: 11pt;
 	border: 1px solid var(--border);
 	border-top: none;
 	border-radius: 0 0 4px 4px;
