@@ -214,7 +214,7 @@ a, .slide label {
 	font-weight: 700;
 }
 
-.count {
+.badge {
 	margin: -1px 0 -1px 3px;
 	padding: 0 10px;
 	display: inline-block;
@@ -226,7 +226,7 @@ a, .slide label {
 	text-shadow: none;
 }
 
-label:hover .count {
+label:hover .badge {
 	background: var(--ink);
 }
 
@@ -246,12 +246,17 @@ a#home {
 	display: inline-block;
 	font-size: 0;
 	background: var(--logo) no-repeat center center / auto 40px;
-	opacity: .5;
+	opacity: .75;
 	vertical-align: top;
 }
 
 a#home:hover {
 	opacity: 1;
+}
+
+a#home:active {
+	opacity: .75;
+	transform: scale(.9);
 }
 
 a.view {
@@ -1316,6 +1321,7 @@ input[type=checkbox]:checked + label::after {
 	}
 
 	.router.sent, .router.recvd, .transit.sent {
+		min-width: 48px;
 		padding-left: 15px;
 		background-size: 12px;
 	}

@@ -633,7 +633,8 @@ namespace http {
 				s << std::fixed << std::setprecision(2);
 			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
 				s << std::fixed << std::setprecision(1);
-			s << " <span class=\"hide\">/</span> <span class=\"transit sent\">";
+			s << " <span class=\"hide\">/</span> <span class=\"transit sent\" data-tooltip=\"";
+			s << tr("Transit bandwidth usage") << "\">";
 			s << (double) i2p::transport::transports.GetTransitBandwidth () / 1024;
 			s << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s") << "</span>";
 		}
@@ -657,7 +658,8 @@ namespace http {
 
 		if ((i2p::context.AcceptsTunnels() || i2p::tunnel::tunnels.CountTransitTunnels()) &&
 			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
-			s << " <span class=\"hide\">/</span> <span class=\"transit sent\">";
+			s << " <span class=\"hide\">/</span> <span class=\"transit sent\" data-tooltip=\"";
+			s << tr("Total transit data transferred") << "\">";
 			s << std::fixed << std::setprecision(0);
 			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
 				s << std::fixed << std::setprecision(2);
@@ -815,7 +817,7 @@ namespace http {
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_leasesets\" />\r\n"
 			  << "<label for=\"slide_leasesets\">" << tr("LeaseSets")
-			  << " <span class=\"hide\">[</span><span class=\"count\">" << dest->GetNumRemoteLeaseSets ()
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << dest->GetNumRemoteLeaseSets ()
 			  << "</span><span class=\"hide\">]</span></label>\r\n";
 			s << "<div class=\"slidecontent\">\r\n<table>\r\n<thead>\r\n<tr>"
 			  << "<th class=\"left\">" << tr("Address") << "</th>"
@@ -881,7 +883,7 @@ namespace http {
 
 		if (dest->GetNumIncomingTags () > 0) {
 			s << "<tr><th colspan=\"2\">" << tr("Incoming Session Tags")
-			  << " <span class=\"hide\">[</span><span class=\"count\">"
+			  << " <span class=\"hide\">[</span><span class=\"badge\">"
 			  << dest->GetNumIncomingTags () << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 		} else {
 			s << "<tr><th colspan=\"2\">" << tr("No Incoming Session Tags") << "</th></tr>\r\n";
@@ -895,7 +897,7 @@ namespace http {
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
 			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Outgoing Session Tags")
-			  << " <span class=\"hide\">[</span><span class=\"count\">" << out_tags
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << out_tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n"
 			  << "<tr><td class=\"center nopadding\" colspan=\"2\"><table>\r\n"
 			  << "<thead>\r\n<tr><th class=\"left\">" << tr("Destination") << "</th><th class=\"thin\">" << tr("Count")
@@ -907,7 +909,7 @@ namespace http {
 		if (numECIESx25519Tags > 0) {
 			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>ECIESx25519</span></th></tr>";
 			s << "<tr><th colspan=\"2\">" << tr("Incoming Tags")
-			  << " <span class=\"hide\">[</span><span class=\"count\">" << numECIESx25519Tags
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << numECIESx25519Tags
 			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 			if (!dest->GetECIESx25519Sessions ().empty ())
 			{
@@ -921,7 +923,7 @@ namespace http {
 				s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n"
 				  << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide-ecies-sessions\" />\r\n"
 				  << "<label for=\"slide-ecies-sessions\">" << tr("Tag Sessions")
-				  << " <span class=\"hide\">[</span><span class=\"count\">" << ecies_sessions
+				  << " <span class=\"hide\">[</span><span class=\"badge\">" << ecies_sessions
 				  << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th class=\"left\">" << tr("Destination") << "</th><th>"
 				  << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
@@ -937,9 +939,13 @@ namespace http {
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest) {
 			std::string b32Short = b32.substr(0,6);
-			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination") << " [" << b32Short << "]</span></th></tr>\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination")
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << b32Short
+			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 		} else
-			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination") << " [" << tr("Not Found") << "]</span></th></tr>\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destination")
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << tr("Not Found")
+			  << "</span><span class=\"hide\">]</span></th></tr>\r\n";
 
 		if (dest)
 		{
@@ -1085,7 +1091,7 @@ namespace http {
 
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_exploratory\" />\r\n"
-		  << "<label for=\"slide_tunnels_exploratory\">" << tr("Exploratory Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
+		  << "<label for=\"slide_tunnels_exploratory\">" << tr("Exploratory Tunnels") << " <span class=\"hide\">[</span><span class=\"badge\">" << "in/out"
 			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: separate client & exploratory tunnels into sections and flag individual services?
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
@@ -1134,7 +1140,7 @@ namespace http {
 
 
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_tunnels_service\" />\r\n"
-		  << "<label for=\"slide_tunnels_service\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">" << "in/out"
+		  << "<label for=\"slide_tunnels_service\">" << tr("Service Tunnels") << " <span class=\"hide\">[</span><span class=\"badge\">" << "in/out"
 			  << "</span><span class=\"hide\">]</span></label>\r\n"; // TODO: flag individual services by name
 		s << "<div class=\"slidecontent\">\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
@@ -1500,7 +1506,7 @@ namespace http {
 		{
 			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name)
 			  << "\" />\r\n<label for=\"slide_" << boost::algorithm::to_lower_copy(name) << "\">" << name
-			  << " <span class=\"hide\">[</span><span class=\"count\">" << cnt
+			  << " <span class=\"hide\">[</span><span class=\"badge\">" << cnt
 			  << "</span><span class=\"hide\">]</span></label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s.str () << "</div>\r\n</div>\r\n";
 		}
@@ -1508,7 +1514,7 @@ namespace http {
 		{
 			s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\" />\r\n"
 			  << "<label for=\"slide_" << boost::algorithm::to_lower_copy(name) << "v6\">" << name
-			  << "v6 <span class=\"hide\">[</span><span class=\"count\">" << cnt6
+			  << "v6 <span class=\"hide\">[</span><span class=\"badge\">" << cnt6
 			  << "</span><span class=\"hide\">]</span></label>\r\n<div class=\"slidecontent list\">"
 			  << tmp_s6.str () << "</div>\r\n</div>\r\n";
 		}
@@ -1532,7 +1538,7 @@ namespace http {
 			if (!sessions.empty ())
 			{
 				s << "<div class=\"slide\"><input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssu\" />\r\n"
-				  << "<label for=\"slide_ssu\">SSU <span class=\"hide\">[</span><span class=\"count\">"
+				  << "<label for=\"slide_ssu\">SSU <span class=\"hide\">[</span><span class=\"badge\">"
 				  << (int) sessions.size() << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions)
@@ -1574,7 +1580,7 @@ namespace http {
 			if (!sessions6.empty ())
 			{
 				s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_ssuv6\" />\r\n"
-				  << "<label for=\"slide_ssuv6\">SSUv6 <span class=\"hide\">[</span><span class=\"count\">"
+				  << "<label for=\"slide_ssuv6\">SSUv6 <span class=\"hide\">[</span><span class=\"badge\">"
 				  << (int) sessions6.size() << "</span><span class=\"hide\">]</span></label>\r\n"
 				  << "<div class=\"slidecontent list\">\r\n";
 				for (const auto& it: sessions6)
@@ -1682,7 +1688,7 @@ namespace http {
 		s << "<tr class=\"sectiontitle\"><th colspan=\"4\"><span>" << tr("Service Tunnels") << "</span></th></tr>";
 		s << "<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_client_tunnels\" />\r\n"
-		  << "<label for=\"slide_client_tunnels\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "<label for=\"slide_client_tunnels\">" << tr("Client Tunnels") << " <span class=\"hide\">[</span><span class=\"badge\">"
 		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
 		s << "<div id=\"client_tunnels\" class=\"slidecontent list\">\r\n";
 		s << "<div class=\"list\">\r\n";
@@ -1718,7 +1724,7 @@ namespace http {
 		if (!serverTunnels.empty ()) {
 			s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 			s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_server_tunnels\" />\r\n"
-			  << "<label for=\"slide_server_tunnels\">" << tr("Server Tunnels") << " <span class=\"hide\">[</span><span class=\"count\">"
+			  << "<label for=\"slide_server_tunnels\">" << tr("Server Tunnels") << " <span class=\"hide\">[</span><span class=\"badge\">"
 			  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
 			s << "<div id=\"server_tunnels\" class=\"slidecontent list\">\r\n";
 			s << "<div class=\"list\">\r\n";
@@ -1739,7 +1745,7 @@ namespace http {
 		{
 		s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_client_forwards\" />\r\n"
-		  << "<label for=\"slide_client_forwards\">" << tr("Client Forwards") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "<label for=\"slide_client_forwards\">" << tr("Client Forwards") << " <span class=\"hide\">[</span><span class=\"badge\">"
 		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
 		s << "<div id=\"client_forwards\" class=\"slidecontent list\">\r\n";
 		s << "<div class=\"list\">\r\n";
@@ -1758,7 +1764,7 @@ namespace http {
 		{
 		s << "\r\n</td></tr>\r\n<tr><td class=\"center nopadding i2ptunnels\" colspan=\"4\">\r\n";
 		s << "<div class=\"slide\">\r\n<input hidden type=\"checkbox\" class=\"toggle\" id=\"slide_server_forwards\" />\r\n"
-		  << "<label for=\"slide_server_forwards\">" << tr("Server Forwards") << " <span class=\"hide\">[</span><span class=\"count\">"
+		  << "<label for=\"slide_server_forwards\">" << tr("Server Forwards") << " <span class=\"hide\">[</span><span class=\"badge\">"
 		  << "in / out" << "</span><span class=\"hide\">]</span></label>\r\n";
 		s << "<div id=\"server_forwards\" class=\"slidecontent list\">\r\n";
 		s << "<div class=\"list\">\r\n";
