@@ -577,8 +577,9 @@ namespace data
 
 	void NetDb::SaveUpdated ()
 	{
-		int updatedCount = 0, deletedCount = 0;
+		int updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
 		auto total = m_RouterInfos.size ();
+		auto totalFloodfills = m_Floodfills.size ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		auto uptime = i2p::context.GetUptime ();
@@ -603,8 +604,9 @@ namespace data
 				updatedCount++;
 				continue;
 			}
-			// make router reachable back if too few routers
-			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)
+			// make router reachable back if too few routers or floodfills
+			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS ||
+			    (it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))	
 				it.second->SetUnreachable (false);
 			// find & mark expired routers
 			if (!it.second->IsReachable () && it.second->IsSSU (false))
@@ -618,6 +620,7 @@ namespace data
 
 			if (it.second->IsUnreachable ())
 			{
+				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
