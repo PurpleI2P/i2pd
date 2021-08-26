@@ -737,14 +737,6 @@ namespace http {
 					s << " <span class=\"routerservice\">I2PControl</span>";
 				s << "</div>\r\n</th></tr>\r\n";
 			}
-/*
-				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "\">" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "SOCKS " << tr("Proxy") << "</td><td class='" << (socksproxy ? "enabled" : "disabled") << "\">" << (socksproxy ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "BOB"                   << "</td><td class='" << (bob        ? "enabled" : "disabled") << "\">" << (bob        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "SAM"                   << "</td><td class='" << (sam        ? "enabled" : "disabled") << "\">" << (sam        ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "I2CP"                  << "</td><td class='" << (i2cp       ? "enabled" : "disabled") << "\">" << (i2cp       ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-				s << "<tr><td>" << "I2PControl"            << "</td><td class='" << (i2pcontrol ? "enabled" : "disabled") << "\">" << (i2pcontrol ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
-*/
 		}
 
 			s << "</tbody>\r\n";
@@ -753,19 +745,21 @@ namespace http {
 	void ShowLocalDestinations (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding\" colspan=\"2\"><div class=\"list\">\r\n";
+		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Client Destinations")
+		  << "</span></th></tr>\r\n<tr><td class=\"center nopadding\" colspan=\"2\"><div class=\"list\">\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a></div>\r\n" << std::endl;
 		}
-		s << "</td></tr>\r\n";
+		s << "</div>\r\n</td></tr>\r\n";
 
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
-			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>I2CP "<< tr("Local Destinations") << "</span></th></tr>\r\n<tr><td class=\"center nopadding i2cp\" colspan=\"2\"><div class=\"list\">\r\n";
+			s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>I2CP " << tr("Server Destinations")
+			  << "</span></th></tr>\r\n<tr><td class=\"center nopadding i2cp\" colspan=\"2\"><div class=\"list\">\r\n";
 			for (auto& it: i2cpServer->GetSessions ())
 			{
 				auto dest = it.second->GetDestination ();
@@ -774,10 +768,11 @@ namespace http {
 					auto ident = dest->GetIdentHash ();
 					auto& name = dest->GetNickname ();
 					s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
-					s << name << " ]</a> <span class=\"arrowleftright\">&#8660;</span> <span class=\"b32\">" << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"</span></div>\r\n" << std::endl;
+					s << name << " ]</a> <span class=\"arrowleftright\">&#8660;</span> <span class=\"b32\">"
+					  << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"</span></div>\r\n" << std::endl;
 				}
 			}
-			s << "</td></tr>\r\n";
+			s << "</div>\r\n</td></tr>\r\n";
 		}
 	}
 
@@ -1272,12 +1267,10 @@ namespace http {
 
 		std::string styleFile = i2p::fs::DataDirPath ("webconsole/style.css");
 		if (i2p::fs::Exists(styleFile)) {
-//		s << "<tr class=\"chrome\"><td class=\"center\" colspan=\"2\">"
 		s << "<a id=\"reloadcss\" class=\"cmd\" href=\"" << webroot << "?cmd="
 		  << HTTP_COMMAND_RELOAD_CSS << "&token=" << token
 		  << "\" data-tooltip=\"" << tr("Reload external CSS stylesheet") << "\">"
 		  << tr("Reload external CSS stylesheet") << "</a>";
-//		  << "\r\n</td></tr>";
 		}
 
 		s << "  <a id=\"testpeer\" class=\"cmd\" href=\"" << webroot << "?cmd="
@@ -1326,6 +1319,7 @@ namespace http {
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
 			  << "\" data-tooltip=\"" << tr("Force shutdown") << "\">"
 			  << tr("Force shutdown") << "</a></th></tr>\r\n";
+
 /* TODO graceful shutdown button in header with .notify dialog if transit tunnels
    active to offer option to shutdown immediately
    only one option? displayed in the header
@@ -1334,9 +1328,9 @@ namespace http {
 			s << "  <a id=\"shutdownforce\" class=\"cmd\" href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
 			  << "\" data-tooltip=\"" << tr("Shutdown") << "\">"
-			  << tr("Shutdown") << "</a></div></th></tr>\r\n";
+			  << tr("Shutdown") << "</a>";
 		}
-
+		s << "</div></th></tr>\r\n";
 		s << "<tr class=\"chrome notice\"><td class=\"center\" colspan=\"2\">\r\n<div class=\"note\">"
 		  << tr("<b>Note:</b> Configuration changes made here persist for the duration of the router session and will not be saved to your config file.")
 		  << "</div>\r\n</td></tr>";
