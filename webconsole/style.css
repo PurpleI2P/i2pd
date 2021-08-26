@@ -418,7 +418,7 @@ select, option:hover, option:focus, option:active {
 .routerservice {
 	display: inline-block;
 	margin: 4px 2px;
-	padding: 0 10px 0 25px;
+	padding: 2px 10px 2px 25px;
 	background: #303 var(--yes) no-repeat 8px center / 10px;
 	border-radius: 2px;
 	text-align: left;
@@ -443,7 +443,7 @@ tr:not(.chrome):nth-child(odd), #routerinfos tr:nth-child(odd), #tunnelsummary t
 }
 
 tr#version ~ tr:nth-child(even), .listitem:nth-child(even),
-tr:not(.chrome):nth-child(even), #routerinfos tr:nth-child(even) {
+tr:not(.chrome):nth-child(even), #routerinfos tr:nth-child(even), #tunnelsummary tr:nth-child(odd) {
 	background: linear-gradient(to bottom, rgba(32,0,32,.5), rgba(24,0,24,.5));
 }
 
@@ -511,7 +511,7 @@ th, .slide label {
 	background: var(--th_multicolumn);
 }
 
-.sectiontitle span {
+.sectiontitle span:not(.routerservice) {
 	padding: 4px 12px;
 	min-width: 50%;
 	display: inline-block;
@@ -1116,8 +1116,12 @@ input[type=checkbox]:checked + label::after {
 	margin-top: 9px;
 }
 
-#commands {
+#commands, #routerservices {
 	margin-top: 11px;
+}
+
+#routerservices {
+	background: none;
 }
 
 #consolelang, #maxtransit {
@@ -1246,6 +1250,18 @@ input[type=checkbox]:checked + label::after {
 	width: 100%;
 	height: 1px;
 	background: var(--border);
+}
+
+#tunnelsummary th {
+	background: var(--th_multicolumn);
+}
+
+#tunnelsummary th.in {
+	background: var(--arrow_down) no-repeat center center / 14px, var(--th_multicolumn);
+}
+
+#tunnelsummary th.out {
+	background: var(--arrow_up) no-repeat center center / 14px, var(--th_multicolumn);
 }
 
 #tunnelsummary td {

@@ -689,8 +689,8 @@ namespace http {
 			bool i2pcontrol;  i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
 			if (httpproxy || socksproxy || bob || sam || i2cp || i2pcontrol) {
 				s << "<tr class=\"center sectiontitle configuration\">"
-				  << "<th colspan=\"2\"><span>" << tr("Router Services") << "</span></th></tr>\r\n";
-				s << "<tr><td colspan=\"2\" class=\"center\">";
+				  << "<th colspan=\"2\"><span>" << tr("Router Services") << "</span>\r\n";
+				s << "<div id=\"routerservices\" class=\"center\">";
 				if (httpproxy)
 					s << " <span class=\"routerservice\">HTTP " << tr("Proxy") << "</span> ";
 				if (socksproxy)
@@ -703,7 +703,7 @@ namespace http {
 					s << " <span class=\"routerservice\">I2CP</span> ";
 				if (i2pcontrol)
 					s << " <span class=\"routerservice\">I2PControl</span>";
-				s << "</td></tr>\r\n";
+				s << "</div>\r\n</th></tr>\r\n";
 			}
 /*
 				s << "<tr><td>" << "HTTP " << tr("Proxy")  << "</td><td class='" << (httpproxy  ? "enabled" : "disabled") << "\">" << (httpproxy  ? tr("Enabled") : tr("Disabled")) << "</td></tr>\r\n";
@@ -1162,14 +1162,14 @@ namespace http {
 		s << "<table id=\"tunnelsummary\">\r\n<thead>"
 		  << "<tr><th>" << tr("Type") << "</th>"
 		  << "<th class=\"in\">" << tr("Inbound") << "</th><th class=\"out\">" << tr("Outbound") << "</th>"
-		  << "<th>" << tr("View Details") << "</th></tr>\r\n</thead>\r\n";
+		  << "<th>" << tr("View Details") << "</th></tr></thead>\r\n";
 		s << "<tr><td>" << tr("Local") << "</td><td class=\"in\">" << localInCount << "</td><td class=\"out\">" << localOutCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_TUNNELS << "\">View</a></td></tr>\r\n";
 		if (transitCount > 0) {
 		s << "<tr><td>" << tr("Transit") << "</td><td colspan=\"2\">" << transitCount << "</td>"
 		  << "<td><a class=\"button\" href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">View</a></td></tr>\r\n";
 		}
-		s << "</td></tr>\r\n</table>\r\n";
+		s << "</table>\r\n";
 		s << "<tr><td class=\"center nopadding\" colspan=\"2\">";
 		ShowI2PTunnels (s);
 		s << "</td></tr>\r\n";
@@ -1289,7 +1289,7 @@ namespace http {
 			s << "  <a id=\"shutdownforce\" class=\"cmd\" href=\"" << webroot << "?cmd="
 			  << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token
 			  << "\" data-tooltip=\"" << tr("Force shutdown") << "\">"
-			  << tr("Force shutdown") << "</a></td></tr>\r\n";
+			  << tr("Force shutdown") << "</a></th></tr>\r\n";
 /* TODO graceful shutdown button in header with .notify dialog if transit tunnels
    active to offer option to shutdown immediately
    only one option? displayed in the header
