@@ -517,7 +517,7 @@ th, .slide label {
 	background: var(--th_multicolumn);
 }
 
-.sectiontitle span:not(.routerservice) {
+.sectiontitle span:not(.routerservice):not(.hide):not(.badge) {
 	padding: 4px 12px;
 	min-width: 50%;
 	display: inline-block;
