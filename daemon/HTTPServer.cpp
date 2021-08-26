@@ -610,7 +610,6 @@ namespace http {
 #endif
 		s << "<tr><td>" << tr("Bandwidth") << "</td><td><span class=\"router recvd\">";
 		s << std::fixed << std::setprecision(0);
-//		s << (double) i2p::transport::transports.GetInBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s");
 		if (i2p::transport::transports.GetInBandwidth () > 1024*1024*1024 ||
 			i2p::transport::transports.GetInBandwidth () < 1024)
 			s << std::fixed << std::setprecision(2);
@@ -618,7 +617,6 @@ namespace http {
 			s << std::fixed << std::setprecision(1);
 		s << (double) i2p::transport::transports.GetInBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s");
 		s << "</span> <span class=\"hide\">/</span> <span class=\"router sent\">";
-//		s << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s");
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetOutBandwidth () > 1024*1024*1024 ||
 			i2p::transport::transports.GetOutBandwidth () < 1024)
@@ -626,7 +624,20 @@ namespace http {
 		else if (i2p::transport::transports.GetOutBandwidth () > 1024*1024)
 			s << std::fixed << std::setprecision(1);
 		s << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s");
-		s << "</span></td></tr>\r\n";
+		s << "</span>";
+
+		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
+			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
+				i2p::transport::transports.GetTransitBandwidth () < 1024)
+				s << std::fixed << std::setprecision(2);
+			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
+				s << std::fixed << std::setprecision(1);
+			s << " <span class=\"hide\">/</span> <span class=\"transit sent\">";
+			s << (double) i2p::transport::transports.GetTransitBandwidth () / 1024;
+			s << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s") << "</span>";
+		}
+
+		s << "</td></tr>\r\n";
 		s << "<tr><td>" << tr("Transferred") << "</td><td><span class=\"router recvd\">";
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetTotalReceivedBytes () > 1024*1024*1024)
@@ -641,7 +652,23 @@ namespace http {
 		else if (i2p::transport::transports.GetTotalSentBytes () > 1024*1024)
 			s << std::fixed << std::setprecision(1);
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << "</span></td></tr>\r\n";
+		s << "</span>";
+
+		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
+			s << " <span class=\"hide\">/</span> <span class=\"transit sent\">";
+			s << std::fixed << std::setprecision(0);
+			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
+				s << std::fixed << std::setprecision(2);
+			else if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024)
+				s << std::fixed << std::setprecision(1);
+			ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
+			s << std::fixed << std::setprecision(0);
+			s << "</span>";
+		}
+
+		s << "</td></tr>\r\n";
+
+/*
 		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
 			s << "<tr><td>" << tr("Transit") << "</td><td><span class=\"transit sent\">";
 			s << std::fixed << std::setprecision(0);
@@ -657,9 +684,10 @@ namespace http {
 			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
 				s << std::fixed << std::setprecision(1);
 			s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024;
-//			s << "&#8239;" << tr(/* tr: Kibibit/s */ "KiB/s") << ")</span></td></tr>\r\n";
-			s << "&#8239;" << tr(/* tr: Kibibit/s */ "K/s") << ")</span></td></tr>\r\n";
+			s << "&#8239;" << tr("K/s") << ")</span></td></tr>\r\n";
 		}
+*/
+
 		s << "<tr><td>" << tr("Build Success") << "</td><td>";
 		s << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%</td></tr>\r\n";
 		s << "<tr><td>" << tr("Routers") << "</td><td>" << i2p::data::netdb.GetNumRouters () << "</td></tr>\r\n";
@@ -1355,7 +1383,7 @@ namespace http {
 			s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div ";
-			if (count > 8)
+			if (count > 7)
 				s << "id=\"transit\" ";
 			s << "class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
