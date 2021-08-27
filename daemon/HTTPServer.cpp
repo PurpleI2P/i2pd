@@ -669,29 +669,7 @@ namespace http {
 			s << std::fixed << std::setprecision(0);
 			s << "</span>";
 		}
-
 		s << "</td></tr>\r\n";
-
-/*
-		if (i2p::context.AcceptsTunnels () && i2p::tunnel::tunnels.CountTransitTunnels()) {
-			s << "<tr><td>" << tr("Transit") << "</td><td><span class=\"transit sent\">";
-			s << std::fixed << std::setprecision(0);
-			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
-				s << std::fixed << std::setprecision(2);
-			else if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024)
-				s << std::fixed << std::setprecision(1);
-			ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-			s << std::fixed << std::setprecision(0);
-			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
-				i2p::transport::transports.GetTransitBandwidth () < 1024)
-				s << std::fixed << std::setprecision(2);
-			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
-				s << std::fixed << std::setprecision(1);
-			s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024;
-			s << "&#8239;" << tr("K/s") << ")</span></td></tr>\r\n";
-		}
-*/
-
 		s << "<tr><td>" << tr("Build Success") << "</td><td>";
 		s << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%</td></tr>\r\n";
 		s << "<tr><td>" << tr("Routers") << "</td><td>" << i2p::data::netdb.GetNumRouters () << "</td></tr>\r\n";
@@ -1382,7 +1360,9 @@ namespace http {
 		if(i2p::tunnel::tunnels.CountTransitTunnels())
 		{
 			int count = i2p::tunnel::tunnels.GetTransitTunnels().size();
-			s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Transit Tunnels") << "</span></th></tr>";
+			s << "<tr class=\"sectiontitle configuration\"><th colspan=\"2\"><span>" << tr("Transit Tunnels");
+			s << " <span class=\"hide\">[</span><span class=\"badge\">" << count << "</span><span class=\"hide\">]</span>"
+			  << "</span></th></tr>";
 			s << "<tr><td class=\"center nopadding\" colspan=\"2\">\r\n";
 			s << "<div ";
 			if (count > 7)
