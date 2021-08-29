@@ -880,7 +880,7 @@ namespace i2p
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, true) : false;
+		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx) : false;
 	}
 
 	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data)
@@ -889,11 +889,8 @@ namespace i2p
 			return DecryptECIESTunnelBuildRecord (encrypted, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 		else
 		{
-			if (!m_TunnelDecryptor) return false;	
-			BN_CTX * ctx = BN_CTX_new ();
-			bool success = m_TunnelDecryptor->Decrypt (encrypted, data, ctx, false);
-			BN_CTX_free (ctx);
-			return success;
+			LogPrint (eLogError, "Router: Non-ECIES router is not longer supported");
+			return false;
 		}
 	}
 
@@ -903,7 +900,7 @@ namespace i2p
 		m_CurrentNoiseState = m_InitialNoiseState;
 		m_CurrentNoiseState.MixHash (encrypted, 32); // h = SHA256(h || sepk)
 		uint8_t sharedSecret[32];
-		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr, false))
+		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr))
 		{
 			LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
 			return false;
@@ -928,7 +925,7 @@ namespace i2p
 			return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 		else
 		{
-			LogPrint (eLogWarning, "Router: Can't decrypt short request record on non-ECIES router");
+			LogPrint (eLogError, "Router: Can't decrypt short request record on non-ECIES router");
 			return false;
 		}	 
 	}	

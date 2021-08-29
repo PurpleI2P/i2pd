@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -451,15 +451,15 @@ namespace crypto
 		BN_CTX_end (ctx);
 	}
 
-	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted,
-		uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
+		uint8_t * data, BN_CTX * ctx)
 	{
 		BN_CTX_start (ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
 		BN_sub (x, elgp, x); BN_sub_word (x, 1); // x = elgp - x- 1
-		BN_bin2bn (zeroPadding ? encrypted + 1 : encrypted, 256, a);
-		BN_bin2bn (zeroPadding ? encrypted + 258 : encrypted + 256, 256, b);
+		BN_bin2bn (encrypted + 1, 256, a);
+		BN_bin2bn (encrypted + 258, 256, b);
 		// m = b*(a^x mod p) mod p
 		BN_mod_exp (x, a, x, elgp, ctx);
 		BN_mod_mul (b, b, x, elgp, ctx);
@@ -552,7 +552,7 @@ namespace crypto
 		BN_CTX_end (ctx);
 	}
 
-	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		bool ret = true;
 		BN_CTX_start (ctx);
@@ -561,16 +561,8 @@ namespace crypto
 		int len = BN_num_bytes (q);
 		// point for shared secret
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
-		if (zeroPadding)
-		{
-			BN_bin2bn (encrypted + 1, len, x);
-			BN_bin2bn (encrypted + 1 + len, len, y);
-		}
-		else
-		{
-			BN_bin2bn (encrypted, len, x);
-			BN_bin2bn (encrypted + len, len, y);
-		}
+		BN_bin2bn (encrypted + 1, len, x);
+		BN_bin2bn (encrypted + 1 + len, len, y);
 		auto p = EC_POINT_new (curve);
 		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
 		{
@@ -587,10 +579,7 @@ namespace crypto
 			CBCDecryption decryption;
 			decryption.SetKey (shared);
 			decryption.SetIV (iv);
-			if (zeroPadding)
-				decryption.Decrypt (encrypted + 258, 256, m);
-			else
-				decryption.Decrypt (encrypted + 256, 256, m);
+			decryption.Decrypt (encrypted + 258, 256, m);
 			// verify and copy
 			uint8_t hash[32];
 			SHA256 (m + 33, 222, hash);
