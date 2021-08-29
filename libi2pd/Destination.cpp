@@ -1249,9 +1249,9 @@ namespace client
 	{
 		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 			if (m_ECIESx25519EncryptionKey && m_ECIESx25519EncryptionKey->decryptor)
-				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data, ctx, true);
+				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data, ctx);
 		if (m_StandardEncryptionKey && m_StandardEncryptionKey->decryptor)
-			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data, ctx, true);
+			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data, ctx);
 		else
 			LogPrint (eLogError, "Destinations: Decryptor is not set");
 		return false;

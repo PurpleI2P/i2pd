@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -55,9 +55,9 @@ namespace client
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
 	{
 		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
-			return m_ECIESx25519Decryptor->Decrypt (encrypted, data, ctx, true);
+			return m_ECIESx25519Decryptor->Decrypt (encrypted, data, ctx);
 		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
+			return m_Decryptor->Decrypt (encrypted, data, ctx);
 		else
 			LogPrint (eLogError, "I2CP: Decryptor is not set");
 		return false;

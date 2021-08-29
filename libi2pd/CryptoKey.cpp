@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -31,10 +31,10 @@ namespace crypto
 		memcpy (m_PrivateKey, priv, 256);
 	}
 
-	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (!ctx) return false;
-		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, zeroPadding);
+		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx);
 	}
 
 	ECIESP256Encryptor::ECIESP256Encryptor (const uint8_t * pub)
@@ -72,10 +72,10 @@ namespace crypto
 		if (m_PrivateKey) BN_free (m_PrivateKey);
 	}
 
-	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (m_Curve && m_PrivateKey)
-			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx, zeroPadding);
+			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx);
 		return false;
 	}
 
@@ -130,10 +130,10 @@ namespace crypto
 		if (m_PrivateKey) BN_free (m_PrivateKey);
 	}
 
-	bool ECIESGOSTR3410Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESGOSTR3410Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (m_PrivateKey)
-			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data, ctx, zeroPadding);
+			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data, ctx);
 		return false;
 	}
 
@@ -171,7 +171,7 @@ namespace crypto
 		m_StaticKeys.SetPrivateKey (priv, calculatePublic);
 	}
 
-	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx)
 	{
 		return m_StaticKeys.Agree (epub, sharedSecret);
 	}
