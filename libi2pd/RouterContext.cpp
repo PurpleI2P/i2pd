@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -878,9 +878,9 @@ namespace i2p
 		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
 	}
 
-	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
+	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
-		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx) : false;
+		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data) : false;
 	}
 
 	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data)
@@ -900,7 +900,7 @@ namespace i2p
 		m_CurrentNoiseState = m_InitialNoiseState;
 		m_CurrentNoiseState.MixHash (encrypted, 32); // h = SHA256(h || sepk)
 		uint8_t sharedSecret[32];
-		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret, nullptr))
+		if (!m_TunnelDecryptor->Decrypt (encrypted, sharedSecret))
 		{
 			LogPrint (eLogWarning, "Router: Incorrect ephemeral public key");
 			return false;

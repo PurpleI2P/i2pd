@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -254,12 +254,12 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
-	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		if (!m_EncryptionKey) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted, true);
 	}
 
 	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
@@ -658,11 +658,11 @@ namespace data
 		return offset - 1;
 	}
 
-	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		auto encryptor = m_Encryptor; // TODO: atomic
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted, true);
 	}
 
 	uint64_t LeaseSet2::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const

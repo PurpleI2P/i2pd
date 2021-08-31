@@ -239,7 +239,7 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
 		{
 			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
 			return false;
@@ -263,7 +263,7 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			if (!GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
+			if (!GetOwner ()->Decrypt (fs, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
 			{
 				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
 				return false;
@@ -492,7 +492,7 @@ namespace garlic
 		// KDF2
 		if (isStatic)
 		{	
-			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
+			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
 			MixKey (sharedSecret); 
 		}
 		else
@@ -639,7 +639,7 @@ namespace garlic
 			return false;
 		}	
 		MixKey (sharedSecret);
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
 
 		uint8_t nonce[12];
@@ -1084,7 +1084,7 @@ namespace garlic
 		// we are Bob
 		m_CurrentNoiseState.MixHash (buf, 32);
 		uint8_t sharedSecret[32];
-		if (!GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (buf, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
 		{
 			LogPrint (eLogWarning, "Garlic: Incorrect N ephemeral public key");
 			return false;

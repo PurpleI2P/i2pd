@@ -21,7 +21,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyEncryptor () {};
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding) = 0;
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) = 0;
 	};
 
 	class CryptoKeyDecryptor
@@ -29,7 +29,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyDecryptor () {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) = 0; 
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data) = 0; 
 			virtual size_t GetPublicKeyLen () const = 0; // we need it to set key in LS2
 	};
 
@@ -39,7 +39,7 @@ namespace crypto
 		public:
 
 			ElGamalEncryptor (const uint8_t * pub);
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding) override; // 222 bytes data, 512/514 bytes encrypted
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override; // 222 bytes data, 512/514 bytes encrypted
 
 		private:
 
@@ -51,7 +51,7 @@ namespace crypto
 		public:
 
 			ElGamalDecryptor (const uint8_t * priv);
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) override; // 514 bytes encrypted, 222 bytes data
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override; // 514 bytes encrypted, 222 bytes data
 			size_t GetPublicKeyLen () const override { return 256; };
 
 		private:
@@ -67,7 +67,7 @@ namespace crypto
 
 			ECIESP256Encryptor (const uint8_t * pub);
 			~ECIESP256Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding) override;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override;
 
 		private:
 
@@ -82,7 +82,7 @@ namespace crypto
 
 			ECIESP256Decryptor (const uint8_t * priv);
 			~ECIESP256Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) override;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
 			size_t GetPublicKeyLen () const override { return 64; };
 
 		private:
@@ -101,7 +101,7 @@ namespace crypto
 
 			ECIESGOSTR3410Encryptor (const uint8_t * pub);
 			~ECIESGOSTR3410Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding) override;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override;
 
 		private:
 
@@ -115,7 +115,7 @@ namespace crypto
 
 			ECIESGOSTR3410Decryptor (const uint8_t * priv);
 			~ECIESGOSTR3410Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) override;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
 			size_t GetPublicKeyLen () const override { return 64; };
 
 		private:
@@ -133,7 +133,7 @@ namespace crypto
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
 			~ECIESX25519AEADRatchetEncryptor () {};
-			void Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool) override;
+			void Encrypt (const uint8_t *, uint8_t * pub, bool) override;
 			// copies m_PublicKey to pub
 
 		private:
@@ -147,7 +147,7 @@ namespace crypto
 
 			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic = false);
 			~ECIESX25519AEADRatchetDecryptor () {};
-			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx) override;
+			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret) override;
 			// agree with static and return in sharedSecret (32 bytes)
 			size_t GetPublicKeyLen () const override { return 32; };
 			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); };

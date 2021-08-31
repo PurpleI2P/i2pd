@@ -398,8 +398,9 @@ namespace crypto
 	}
 
 // ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		// everything, but a, because a might come from table
 		BIGNUM * k = BN_CTX_get (ctx);
@@ -449,11 +450,12 @@ namespace crypto
 		}
 		BN_free (a);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 	}
 
-	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
-		uint8_t * data, BN_CTX * ctx)
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
@@ -466,6 +468,7 @@ namespace crypto
 		uint8_t m[255];
 		bn2buf (b, m, 255);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
 		if (memcmp (m + 1, hash, 32))
@@ -499,8 +502,9 @@ namespace crypto
 	}
 
 // ECIES
-	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * q = BN_CTX_get (ctx);
 		EC_GROUP_get_order(curve, q, ctx);
@@ -550,11 +554,13 @@ namespace crypto
 			encryption.Encrypt (m, 256, encrypted + 256);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 	}
 
-	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
+	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data)
 	{
 		bool ret = true;
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * q = BN_CTX_get (ctx);
 		EC_GROUP_get_order(curve, q, ctx);
@@ -599,6 +605,7 @@ namespace crypto
 
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 		return ret;
 	}
 

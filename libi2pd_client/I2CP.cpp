@@ -52,12 +52,12 @@ namespace client
 		}	
 	}	
 		
-	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
+	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
 		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD && m_ECIESx25519Decryptor)
-			return m_ECIESx25519Decryptor->Decrypt (encrypted, data, ctx);
+			return m_ECIESx25519Decryptor->Decrypt (encrypted, data);
 		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data);
 		else
 			LogPrint (eLogError, "I2CP: decryptor is not set");
 		return false;

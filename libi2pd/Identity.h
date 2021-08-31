@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -222,7 +222,7 @@ namespace data
 			virtual ~RoutingDestination () {};
 
 			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const = 0; // encrypt data for
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
@@ -234,7 +234,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
