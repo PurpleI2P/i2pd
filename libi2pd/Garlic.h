@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -279,7 +279,6 @@ namespace garlic
 
 		private:
 
-			BN_CTX * m_Ctx; // incoming
 			// outgoing sessions
 			int m_NumTags;
 			std::mutex m_SessionsMutex;

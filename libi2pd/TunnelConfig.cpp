@@ -111,11 +111,7 @@ namespace tunnel
 		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 		auto encryptor = ident->CreateEncryptor (nullptr);
 		if (encryptor)
-		{
-			BN_CTX * ctx = BN_CTX_new ();
-			encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
-			BN_CTX_free (ctx);
-		}	
+			encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, false);
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 	}	
 

@@ -1155,11 +1155,11 @@ namespace data
 		return m_Profile;
 	}
 
-	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted, true);
 	}
 
 	bool RouterInfo::IsEligibleFloodfill () const

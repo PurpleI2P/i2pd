@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -164,9 +164,7 @@ namespace garlic
 			RAND_bytes (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv);
-			BN_CTX * ctx = BN_CTX_new ();
-			m_Destination->Encrypt ((uint8_t *)&elGamal, buf, ctx);
-			BN_CTX_free (ctx);
+			m_Destination->Encrypt ((uint8_t *)&elGamal, buf);
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;
@@ -435,12 +433,10 @@ namespace garlic
 	GarlicDestination::GarlicDestination (): m_NumTags (32), // 32 tags by default
 		m_PayloadBuffer (nullptr), m_NumRatchetInboundTags (0) // 0 means standard
 	{
-		m_Ctx = BN_CTX_new ();
 	}
 
 	GarlicDestination::~GarlicDestination ()
 	{
-		BN_CTX_free (m_Ctx);
 		if (m_PayloadBuffer)
 			delete[] m_PayloadBuffer;
 	}
@@ -531,7 +527,7 @@ namespace garlic
 				// try ElGamal/AES first if leading block is 514
 				ElGamalBlock elGamal;
 				if (mod == 2 && length >= 514 && SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ELGAMAL) &&
-					Decrypt (buf, (uint8_t *)&elGamal, m_Ctx, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
+					Decrypt (buf, (uint8_t *)&elGamal, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL))
 				{
 					auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 					uint8_t iv[32]; // IV is first 16 bytes
@@ -777,7 +773,7 @@ namespace garlic
 		{
 			ECIESX25519AEADRatchetSessionPtr session;
 			uint8_t staticKey[32];
-			destination->Encrypt (nullptr, staticKey, nullptr); // we are supposed to get static key
+			destination->Encrypt (nullptr, staticKey); // we are supposed to get static key
 			auto it = m_ECIESx25519Sessions.find (staticKey);
 			if (it != m_ECIESx25519Sessions.end ())
 			{

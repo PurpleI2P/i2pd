@@ -243,7 +243,7 @@ namespace data
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 
 			bool IsDestination () const { return false; };
 

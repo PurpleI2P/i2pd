@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -254,7 +254,7 @@ namespace client
 			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const;
