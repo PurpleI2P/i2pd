@@ -21,7 +21,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyEncryptor () {};
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) = 0;
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) = 0;
 	};
 
 	class CryptoKeyDecryptor
@@ -39,7 +39,7 @@ namespace crypto
 		public:
 
 			ElGamalEncryptor (const uint8_t * pub);
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override; // 222 bytes data, 512/514 bytes encrypted
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) override; // 222 bytes data, 514 bytes encrypted
 
 		private:
 
@@ -67,7 +67,7 @@ namespace crypto
 
 			ECIESP256Encryptor (const uint8_t * pub);
 			~ECIESP256Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) override;
 
 		private:
 
@@ -101,7 +101,7 @@ namespace crypto
 
 			ECIESGOSTR3410Encryptor (const uint8_t * pub);
 			~ECIESGOSTR3410Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) override;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) override;
 
 		private:
 
@@ -133,7 +133,7 @@ namespace crypto
 
 			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
 			~ECIESX25519AEADRatchetEncryptor () {};
-			void Encrypt (const uint8_t *, uint8_t * pub, bool) override;
+			void Encrypt (const uint8_t *, uint8_t * pub) override;
 			// copies m_PublicKey to pub
 
 		private:

@@ -82,48 +82,6 @@ namespace tunnel
 		decryption.SetIV (replyIV);
 		decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
 	}	
-	
-	void ElGamalTunnelHopConfig::CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID)
-	{
-		// generate keys
-		RAND_bytes (layerKey, 32);
-		RAND_bytes (ivKey, 32);
-		RAND_bytes (replyKey, 32);
-		RAND_bytes (replyIV, 16);
-		// fill clear text
-		uint8_t flag = 0;
-		if (isGateway) flag |= TUNNEL_BUILD_RECORD_GATEWAY_FLAG;
-		if (isEndpoint) flag |= TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
-		uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
-		memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
-		memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
-		memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
-		clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
-		htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
-		RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
-		// encrypt
-		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
-		auto encryptor = ident->CreateEncryptor (nullptr);
-		if (encryptor)
-			encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, false);
-		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
-	}	
-
-	bool ElGamalTunnelHopConfig::DecryptBuildResponseRecord (uint8_t * records) const
-	{
-		uint8_t * record = records + recordIndex*TUNNEL_BUILD_RECORD_SIZE;
-		i2p::crypto::CBCDecryption decryption;
-		decryption.SetKey (replyKey);
-		decryption.SetIV (replyIV);
-		decryption.Decrypt (record, TUNNEL_BUILD_RECORD_SIZE, record);
-		return true;
-	}	
 
 	void ECIESTunnelHopConfig::EncryptECIES (const uint8_t * plainText, size_t len, uint8_t * encrypted)
 	{
@@ -261,5 +219,32 @@ namespace tunnel
 		memcpy (key, m_CK + 32, 32);
 		return tag;
 	}	
+
+	void TunnelConfig::CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
+	{
+		TunnelHopConfig * prev = nullptr;
+		for (const auto& it: peers)
+		{
+			TunnelHopConfig * hop = nullptr;
+			if (m_IsShort)
+				hop = new ShortECIESTunnelHopConfig (it);
+			else
+			{
+				if (it->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+					hop = new LongECIESTunnelHopConfig (it);
+				else
+					LogPrint (eLogError, "Tunnel: ElGamal router is not supported");
+			}
+			if (hop)
+			{	
+				if (prev)
+					prev->SetNext (hop);
+				else
+					m_FirstHop = hop;
+				prev = hop;
+			}	
+		}
+		m_LastHop = prev;
+	}
 }
 }

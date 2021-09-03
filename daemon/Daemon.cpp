@@ -134,7 +134,7 @@ namespace util
 			// use stdout -- default
 		}
 
-		LogPrint(eLogNone,  "i2pd v", VERSION, " starting");
+		LogPrint(eLogNone,  "i2pd v", VERSION, " starting...");
 		LogPrint(eLogDebug, "FS: Main config file: ", config);
 		LogPrint(eLogDebug, "FS: Data directory: ", datadir);
 		LogPrint(eLogDebug, "FS: Certificates directory: ", certsdir);

@@ -398,7 +398,7 @@ namespace crypto
 	}
 
 // ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted)
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
@@ -436,18 +436,11 @@ namespace crypto
 		BN_bin2bn (m, 255, b);
 		BN_mod_mul (b, b1, b, elgp, ctx);
 		// copy a and b
-		if (zeroPadding)
-		{
-			encrypted[0] = 0;
-			bn2buf (a, encrypted + 1, 256);
-			encrypted[257] = 0;
-			bn2buf (b, encrypted + 258, 256);
-		}
-		else
-		{
-			bn2buf (a, encrypted, 256);
-			bn2buf (b, encrypted + 256, 256);
-		}
+		encrypted[0] = 0;
+		bn2buf (a, encrypted + 1, 256);
+		encrypted[257] = 0;
+		bn2buf (b, encrypted + 258, 256);
+		
 		BN_free (a);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
@@ -502,7 +495,7 @@ namespace crypto
 	}
 
 // ECIES
-	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted)
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
@@ -516,19 +509,10 @@ namespace crypto
 		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
-		if (zeroPadding)
-		{
-			encrypted[0] = 0;
-			bn2buf (x, encrypted + 1, len);
-			bn2buf (y, encrypted + 1 + len, len);
-			RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
-		}
-		else
-		{
-			bn2buf (x, encrypted, len);
-			bn2buf (y, encrypted + len, len);
-			RAND_bytes (encrypted + 2*len, 256 - 2*len);
-		}
+		encrypted[0] = 0;
+		bn2buf (x, encrypted + 1, len);
+		bn2buf (y, encrypted + 1 + len, len);
+		RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
 		// encryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx);
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
@@ -545,13 +529,8 @@ namespace crypto
 		CBCEncryption encryption;
 		encryption.SetKey (shared);
 		encryption.SetIV (iv);
-		if (zeroPadding)
-		{
-			encrypted[257] = 0;
-			encryption.Encrypt (m, 256, encrypted + 258);
-		}
-		else
-			encryption.Encrypt (m, 256, encrypted + 256);
+		encrypted[257] = 0;
+		encryption.Encrypt (m, 256, encrypted + 258);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);

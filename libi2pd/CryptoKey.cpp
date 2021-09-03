@@ -20,9 +20,9 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 256);
 	}
 
-	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
-		ElGamalEncrypt (m_PublicKey, data, encrypted, zeroPadding);
+		ElGamalEncrypt (m_PublicKey, data, encrypted);
 	}
 
 	ElGamalDecryptor::ElGamalDecryptor (const uint8_t * priv)
@@ -52,10 +52,10 @@ namespace crypto
 		if (m_PublicKey) EC_POINT_free (m_PublicKey);
 	}
 
-	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
 		if (m_Curve && m_PublicKey)
-			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, zeroPadding);
+			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted);
 	}
 
 	ECIESP256Decryptor::ECIESP256Decryptor (const uint8_t * priv)
@@ -112,10 +112,10 @@ namespace crypto
 		if (m_PublicKey) EC_POINT_free (m_PublicKey);
 	}
 
-	void ECIESGOSTR3410Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ECIESGOSTR3410Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
 		if (m_PublicKey)
-			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted, zeroPadding);
+			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted);
 	}
 
 	ECIESGOSTR3410Decryptor::ECIESGOSTR3410Decryptor (const uint8_t * priv)
@@ -159,7 +159,7 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 32);
 	}
 
-	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, bool)
+	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub)
 	{
 		memcpy (pub, m_PublicKey, 32);
 	}

@@ -259,7 +259,7 @@ namespace data
 		if (!m_EncryptionKey) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
@@ -662,7 +662,7 @@ namespace data
 	{
 		auto encryptor = m_Encryptor; // TODO: atomic
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	uint64_t LeaseSet2::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const
