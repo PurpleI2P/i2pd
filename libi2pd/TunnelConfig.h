@@ -47,16 +47,6 @@ namespace tunnel
 		virtual uint64_t GetGarlicKey (uint8_t * key) const { return 0; }; // return tag
 	};
 
-	struct ElGamalTunnelHopConfig: public TunnelHopConfig
-	{
-		ElGamalTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
-			TunnelHopConfig (r) {};
-		uint8_t GetRetCode (const uint8_t * records) const
-		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[BUILD_RESPONSE_RECORD_RET_OFFSET]; };
-		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID);
-		bool DecryptBuildResponseRecord (uint8_t * records) const;
-	};
-
 	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
 	{
 		ECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
@@ -194,29 +184,7 @@ namespace tunnel
 
 		private:
 
-			void CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
-			{
-				TunnelHopConfig * prev = nullptr;
-				for (const auto& it: peers)
-				{
-					TunnelHopConfig * hop;
-					if (m_IsShort)
-						hop = new ShortECIESTunnelHopConfig (it);
-					else
-					{
-						if (it->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-							hop = new LongECIESTunnelHopConfig (it);
-						else
-							hop = new ElGamalTunnelHopConfig (it);
-					}
-					if (prev)
-						prev->SetNext (hop);
-					else
-						m_FirstHop = hop;
-					prev = hop;
-				}
-				m_LastHop = prev;
-			}
+			void CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers);
 
 		private:
 

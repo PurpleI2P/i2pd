@@ -453,7 +453,7 @@ namespace tunnel
 			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
-			if (r && !r->GetProfile ()->IsBad () && 
+			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () && 
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsReachable ())))) // first inbound must be reachable
 			{
 				prevHop = r;
@@ -469,6 +469,7 @@ namespace tunnel
 			{	
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
 				hop = i2p::transport::transports.GetRandomPeer ();
+				if (!hop->IsECIES ()) hop = nullptr;
 			}	
 			if (!hop)
 			{
@@ -513,7 +514,15 @@ namespace tunnel
 			auto& ident = (*m_ExplicitPeers)[i];
 			auto r = i2p::data::netdb.FindRouter (ident);
 			if (r)
-				path.Add (r);
+			{	
+				if (r->IsECIES ())	
+					path.Add (r);
+				else
+				{	
+					LogPrint (eLogError, "Tunnels: ElGamal router ", ident.ToBase64 (), " is not supported");
+					return false;	
+				}		
+			}	
 			else
 			{
 				LogPrint (eLogInfo, "Tunnels: Can't find router for ", ident.ToBase64 ());

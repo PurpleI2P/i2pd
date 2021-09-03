@@ -108,12 +108,12 @@ namespace crypto
 	};
 
 	// ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false); // 222 bytes data, 514 bytes encrypted with zeropadding, 512 without
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted); // 222 bytes data, 514 bytes encrypted 
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data); // 514 bytes encrypted, 222 data
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
 
 	// ECIES
-	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false); // 222 bytes data, 514 bytes encrypted with zeropadding, 512 without
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted); // 222 bytes data, 514 bytes encrypted
 	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data); // 514 bytes encrypted, 222 data
 	void GenerateECIESKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub);
 

@@ -191,6 +191,7 @@ namespace data
 			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
+			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;

@@ -1159,7 +1159,7 @@ namespace data
 	{
 		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	bool RouterInfo::IsEligibleFloodfill () const 
