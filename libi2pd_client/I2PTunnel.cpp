@@ -303,7 +303,7 @@ namespace client
 							m_ProxyConnectionSent = true;
 						}
 						else
-							m_OutHeader << line << "\n";
+						m_OutHeader << line << "\n";
 					}
 				}
 				else
@@ -888,7 +888,8 @@ namespace client
 		LogPrint(eLogInfo, "UDPServer: done");
 	}
 
-	void I2PUDPServerTunnel::Start() {
+	void I2PUDPServerTunnel::Start()
+	{
 		m_LocalDest->Start();
 	}
 
@@ -1064,8 +1065,9 @@ namespace client
 		else
 			LogPrint(eLogWarning, "UDP Client: not tracking udp session using port ", (int) toPort);
 	}
-		
-	I2PUDPClientTunnel::~I2PUDPClientTunnel() {
+
+	I2PUDPClientTunnel::~I2PUDPClientTunnel()
+	{
 		auto dgram = m_LocalDest->GetDatagramDestination();
 		if (dgram) dgram->ResetReceiver();
 
