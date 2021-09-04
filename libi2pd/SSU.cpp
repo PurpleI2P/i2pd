@@ -548,7 +548,7 @@ namespace transport
 				}
 				if (!introducer)
 				{
-					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no compatibe non-expired introducers presented");
+					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router, no compatible introducers");
 					return;
 				}
 

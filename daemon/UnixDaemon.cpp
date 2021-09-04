@@ -42,7 +42,7 @@ void handle_signal(int sig)
 			{
 				i2p::context.SetAcceptsTunnels (false);
 				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
-				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
+				LogPrint(eLogInfo, "Graceful shutdown in ", Daemon.gracefulShutdownInterval, " seconds");
 			}
 			else
 				Daemon.running = 0;

@@ -509,7 +509,7 @@ namespace client
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
 		if (tunConf.empty ())
 			tunConf = i2p::fs::DataDirPath ("tunnels.conf");
-		
+
 		LogPrint(eLogDebug, "Clients: Tunnels config file: ", tunConf);
 		ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
 
@@ -755,9 +755,10 @@ namespace client
 							LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
 						}
 						else
+						{
 							ins.first->second->isUpdated = true;
 							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
-
+						}
 						continue;
 					}
 
