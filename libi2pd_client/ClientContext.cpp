@@ -713,7 +713,10 @@ namespace client
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					auto it = destinations.find (keys);
 					if (it != destinations.end ())
+					{	
 						localDestination = it->second;
+						localDestination->SetPublic (true);
+					}	
 					else
 					{
 						i2p::data::PrivateKeys k;
@@ -725,6 +728,8 @@ namespace client
 							localDestination = CreateNewLocalDestination (k, true, &options);
 							destinations[keys] = localDestination;
 						}
+						else
+							localDestination->SetPublic (true);
 					}
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
