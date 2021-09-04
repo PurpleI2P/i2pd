@@ -18,7 +18,6 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
-#include "I18N_langs.h"
 
 namespace i2p
 {
@@ -146,10 +145,6 @@ namespace garlic
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
-			// i18n
-			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
-			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
-
 		protected:
 
 			// implements GarlicDestination
@@ -186,9 +181,6 @@ namespace garlic
 			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
 			// for ECIESx25519
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
-
-			// i18n
-			std::shared_ptr<const i2p::i18n::Locale> m_Language;
 	};
 
 	extern RouterContext context;
