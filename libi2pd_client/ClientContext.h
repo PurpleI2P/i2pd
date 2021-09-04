@@ -121,8 +121,7 @@ namespace client
 			void CleanupUDP(const boost::system::error_code & ecode);
 			void ScheduleCleanupUDP();
 
-			template<typename Visitor>
-			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
+			void VisitTunnels (bool clean);
 
 			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);

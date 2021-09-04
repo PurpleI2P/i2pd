@@ -888,7 +888,8 @@ namespace client
 		LogPrint(eLogInfo, "UDPServer: Done");
 	}
 
-	void I2PUDPServerTunnel::Start() {
+	void I2PUDPServerTunnel::Start()
+	{
 		m_LocalDest->Start();
 	}
 
@@ -1065,7 +1066,8 @@ namespace client
 			LogPrint(eLogWarning, "UDP Client: Not tracking UDP session using port ", (int) toPort);
 	}
 
-	I2PUDPClientTunnel::~I2PUDPClientTunnel() {
+	I2PUDPClientTunnel::~I2PUDPClientTunnel()
+	{
 		auto dgram = m_LocalDest->GetDatagramDestination();
 		if (dgram) dgram->ResetReceiver();
 

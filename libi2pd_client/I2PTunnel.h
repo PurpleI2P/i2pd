@@ -254,6 +254,10 @@ namespace client
 			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			UDPSessionPtr m_LastSession;
+
+		public:
+
+			bool isUpdated; // transient, used during reload only
 	};
 
 	class I2PUDPClientTunnel
@@ -283,7 +287,7 @@ namespace client
 			void TryResolving();
 
 		private:
-			
+
 			const std::string m_Name;
 			std::mutex m_SessionsMutex;
 			std::unordered_map<uint16_t, std::shared_ptr<UDPConvo> > m_Sessions; // maps i2p port -> local udp convo
@@ -298,6 +302,10 @@ namespace client
 			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
 			std::shared_ptr<UDPConvo> m_LastSession;
+
+		public:
+
+			bool isUpdated; // transient, used during reload only
 	};
 
 	class I2PServerTunnel: public I2PService

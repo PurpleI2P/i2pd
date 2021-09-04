@@ -200,6 +200,8 @@ namespace client
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
+
+		m_SharedLocalDestination->Release ();
 		m_SharedLocalDestination = nullptr;
 	}
 
@@ -209,14 +211,6 @@ namespace client
 		/*std::string config; i2p::config::GetOption("conf", config);
 		i2p::config::ParseConfig(config);*/
 
-		// handle tunnels
-		// reset isUpdated for each tunnel
-		VisitTunnels ([](I2PService * s)->bool { s->isUpdated = false; return true; });
-		// reload tunnels
-		ReadTunnels();
-		// delete not updated tunnels (not in config anymore)
-		VisitTunnels ([](I2PService * s)->bool { return s->isUpdated; });
-
 		// change shared local destination
 		m_SharedLocalDestination->Release ();
 		CreateNewSharedLocalDestination ();
@@ -225,6 +219,7 @@ namespace client
 		if (m_HttpProxy)
 		{
 			m_HttpProxy->Stop ();
+			delete m_HttpProxy;
 			m_HttpProxy = nullptr;
 		}
 		ReadHttpProxy ();
@@ -233,9 +228,18 @@ namespace client
 		if (m_SocksProxy)
 		{
 			m_SocksProxy->Stop ();
+			delete m_SocksProxy;
 			m_SocksProxy = nullptr;
 		}
 		ReadSocksProxy ();
+
+		// handle tunnels
+		// reset isUpdated for each tunnel
+		VisitTunnels (false);
+		// reload tunnels
+		ReadTunnels();
+		// delete not updated tunnels (not in config anymore)
+		VisitTunnels (true);
 
 		// delete unused destinations
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -504,20 +508,15 @@ namespace client
 		int numClientTunnels = 0, numServerTunnels = 0;
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
 		if (tunConf.empty ())
-		{
-			// TODO: cleanup this in 2.8.0
-			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
-			if (i2p::fs::Exists(tunConf))
-				LogPrint(eLogWarning, "Clients: Please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
-			else
-				tunConf = i2p::fs::DataDirPath ("tunnels.conf");
-		}
+			tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+		
 		LogPrint(eLogDebug, "Clients: Tunnels config file: ", tunConf);
 		ReadTunnels (tunConf, numClientTunnels, numServerTunnels);
 
 		std::string tunDir; i2p::config::GetOption("tunnelsdir", tunDir);
 		if (tunDir.empty ())
 			tunDir = i2p::fs::DataDirPath ("tunnels.d");
+
 		if (i2p::fs::Exists (tunDir))
 		{
 			std::vector<std::string> files;
@@ -609,10 +608,18 @@ namespace client
 
 						bool gzip = section.second.get (I2P_CLIENT_TUNNEL_GZIP, true);
 						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort, gzip);
-						if(m_ClientForwards.insert(std::make_pair(end, clientTunnel)).second)
+
+						auto ins = m_ClientForwards.insert(std::make_pair(end, clientTunnel));
+						if (ins.second)
+						{
 							clientTunnel->Start();
+							numClientTunnels++;
+						}
 						else
+						{
+							ins.first->second->isUpdated = true;
 							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
+						}
 
 					} else {
 						boost::asio::ip::tcp::endpoint clientEndpoint;
@@ -666,13 +673,16 @@ namespace client
 							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
 							{
 								LogPrint (eLogInfo, "Clients: I2P client tunnel destination updated");
+								ins.first->second->Stop ();
 								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
+								ins.first->second->Start ();
 							}
 							ins.first->second->isUpdated = true;
 							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
 						}
 					}
 				}
+
 				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
 					|| type == I2P_TUNNELS_SECTION_TYPE_HTTP
 					|| type == I2P_TUNNELS_SECTION_TYPE_IRC
@@ -736,16 +746,16 @@ namespace client
 							serverTunnel->SetUniqueLocal(isUniqueLocal);
 						}
 						std::lock_guard<std::mutex> lock(m_ForwardsMutex);
-						if(m_ServerForwards.insert(
-							std::make_pair(
-								std::make_pair(
-									localDestination->GetIdentHash(), port),
-								serverTunnel)).second)
+						auto ins = m_ServerForwards.insert(std::make_pair(
+							std::make_pair(localDestination->GetIdentHash(), port),
+							serverTunnel));
+						if (ins.second)
 						{
 							serverTunnel->Start();
 							LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
 						}
 						else
+							ins.first->second->isUpdated = true;
 							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
 
 						continue;
@@ -795,7 +805,9 @@ namespace client
 						if (ins.first->second->GetLocalDestination () != serverTunnel->GetLocalDestination ())
 						{
 							LogPrint (eLogInfo, "Clients: I2P server tunnel destination updated");
+							ins.first->second->Stop ();
 							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
+							ins.first->second->Start ();
 						}
 						ins.first->second->isUpdated = true;
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
@@ -920,27 +932,51 @@ namespace client
 		}
 	}
 
-	template<typename Container, typename Visitor>
-	void VisitTunnelsContainer (Container& c, Visitor v)
+	void ClientContext::VisitTunnels (bool clean)
 	{
-		for (auto it = c.begin (); it != c.end ();)
+		for (auto it = m_ClientTunnels.begin (); it != m_ClientTunnels.end ();)
 		{
-			if (!v (it->second.get ()))
-			{
+			if(clean && !it->second->isUpdated) {
 				it->second->Stop ();
-				it = c.erase (it);
+				it = m_ClientTunnels.erase(it);
+			} else {
+				it->second->isUpdated = false;
+				it++;
 			}
-			else
+		}
+
+		for (auto it = m_ServerTunnels.begin (); it != m_ServerTunnels.end ();)
+			{
+			if(clean && !it->second->isUpdated) {
+				it->second->Stop ();
+				it = m_ServerTunnels.erase(it);
+			} else {
+				it->second->isUpdated = false;
+				it++;
+			}
+		}
+
+		for (auto it = m_ClientForwards.begin (); it != m_ClientForwards.end ();)
+		{
+			if(clean && !it->second->isUpdated) {
+				it->second = nullptr;
+				it = m_ClientForwards.erase(it);
+			} else {
+				it->second->isUpdated = false;
 				it++;
 		}
 	}
 
-	template<typename Visitor>
-	void ClientContext::VisitTunnels (Visitor v)
+		for (auto it = m_ServerForwards.begin (); it != m_ServerForwards.end ();)
 	{
-		VisitTunnelsContainer (m_ClientTunnels, v);
-		VisitTunnelsContainer (m_ServerTunnels, v);
-		// TODO: implement UDP forwards
+			if(clean && !it->second->isUpdated) {
+				it->second = nullptr;
+				it = m_ServerForwards.erase(it);
+			} else {
+				it->second->isUpdated = false;
+				it++;
+			}
+		}
 	}
 }
 }
