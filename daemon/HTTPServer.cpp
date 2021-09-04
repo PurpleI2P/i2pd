@@ -596,14 +596,14 @@ namespace http {
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
-			s << "<tr><td>" << tr("Stopping in") << "</td><td>";
+			s << "<tr><td>" << tr("Shutdown") << "</td><td>";
 			ShowUptime(s, remains);
 			s << "&hellip;</td></tr>\r\n";
 		}
 #elif defined(WIN32_APP)
 		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
 			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
-			s << "<tr><td>" << tr("Stopping in") << "</td><td>";
+			s << "<tr><td>" << tr("Shutdown") << "</td><td>";
 			ShowUptime(s, remains);
 			s << "&hellip;</td></tr>\r\n";
 		}
