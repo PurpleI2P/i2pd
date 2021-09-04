@@ -757,8 +757,9 @@ namespace client
 						else
 						{
 							ins.first->second->isUpdated = true;
-							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, " already exists");
 						}
+
 						continue;
 					}
 
