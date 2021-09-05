@@ -1181,8 +1181,8 @@ namespace data
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsPeerTesting (v4) &&
-					!excluded.count (router->GetIdentHash ());
+				return !router->IsHidden () && router->IsECIES () && 
+					router->IsPeerTesting (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
 
@@ -1191,7 +1191,7 @@ namespace data
 		return GetRandomRouter (
 			[](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsSSUV6 ();
+				return !router->IsHidden () && router->IsECIES () && router->IsSSUV6 ();
 			});
 	}
 
@@ -1200,8 +1200,8 @@ namespace data
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ()) &&
-					!router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
+				return !router->IsHidden () && router->IsECIES () && !router->IsFloodfill () && // floodfills don't send relay tag
+					router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
 
