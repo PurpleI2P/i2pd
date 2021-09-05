@@ -495,12 +495,15 @@ th.out {
 }
 
 th, #routerservices {
-	background: linear-gradient(to right, rgba(0,0,0.6), rgba(0,0,0,0), rgba(0,0,0,.6)), var(--th);
 	background: linear-gradient(to right, rgba(0,0,0,.4), rgba(0,0,0,0), rgba(0,0,0,.4)), rgba(32,0,32,.4);
 }
 
-th, .slide label {
+.slide label {
 	font-size: 95%;
+}
+
+th {
+	font-size: 90%;
 }
 
 .sectiontitle, .sectiontitle th, .chrome td {
@@ -514,6 +517,7 @@ th, .slide label {
 .sectiontitle th {
 	padding: 0 0 10px !important;
 	font-weight: 700;
+	font-size: 95%;
 	border-bottom: none;
 	background: var(--th_multicolumn);
 }
