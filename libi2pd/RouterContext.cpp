@@ -43,11 +43,8 @@ namespace i2p
 		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
 		m_TunnelDecryptor = m_Keys.CreateDecryptor (nullptr);
 		UpdateRouterInfo ();
-		if (IsECIES ())
-		{
-			i2p::crypto::InitNoiseNState (m_InitialNoiseState, GetIdentity ()->GetEncryptionPublicKey ());
-			m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(m_InitialNoiseState);
-		}
+		i2p::crypto::InitNoiseNState (m_InitialNoiseState, GetIdentity ()->GetEncryptionPublicKey ());
+		m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(m_InitialNoiseState);
 	}
 
 	void RouterContext::CreateNewRouter ()
@@ -833,27 +830,22 @@ namespace i2p
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
-		if (IsECIES ())
+		uint8_t * buf = msg->GetPayload ();
+		uint32_t len = bufbe32toh (buf);
+		if (len > msg->GetLength ())
 		{
-			uint8_t * buf = msg->GetPayload ();
-			uint32_t len = bufbe32toh (buf);
-			if (len > msg->GetLength ())
-			{
-				LogPrint (eLogWarning, "Router: garlic message length ", len, " exceeds I2NP message length ", msg->GetLength ());
-				return;
-			}
-			buf += 4;
-			if (!HandleECIESx25519TagMessage (buf, len)) // try tag first
-			{	
-				// then Noise_N one-time decryption
-				if (m_ECIESSession)
-					m_ECIESSession->HandleNextMessage (buf, len);
-				else
-					LogPrint (eLogError, "Router: Session is not set for ECIES router");
-			}	
+			LogPrint (eLogWarning, "Router: garlic message length ", len, " exceeds I2NP message length ", msg->GetLength ());
+			return;
 		}
-		else
-			i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
+		buf += 4;
+		if (!HandleECIESx25519TagMessage (buf, len)) // try tag first
+		{	
+			// then Noise_N one-time decryption
+			if (m_ECIESSession)
+				m_ECIESSession->HandleNextMessage (buf, len);
+			else
+				LogPrint (eLogError, "Router: Session is not set for ECIES router");
+		}	
 	}
 
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
@@ -885,13 +877,7 @@ namespace i2p
 
 	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data)
 	{
-		if (IsECIES ())
-			return DecryptECIESTunnelBuildRecord (encrypted, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE);
-		else
-		{
-			LogPrint (eLogError, "Router: Non-ECIES router is not longer supported");
-			return false;
-		}
+		return DecryptECIESTunnelBuildRecord (encrypted, data, ECIES_BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 	}
 
 	bool RouterContext::DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize)
@@ -921,13 +907,7 @@ namespace i2p
 
 	bool RouterContext::DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data)
 	{
-		if (IsECIES ())
-			return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
-		else
-		{
-			LogPrint (eLogError, "Router: Can't decrypt short request record on non-ECIES router");
-			return false;
-		}	 
+		return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 	}	
 		
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
