@@ -472,7 +472,7 @@ namespace http {
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 
 		// Page language
-		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
+		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
 		auto it = i2p::i18n::languages.find(currLang);
 		std::string langCode = it->second.ShortCode;
 		// SAM
@@ -1340,7 +1340,7 @@ namespace http {
 			s << "</form>\r\n</div>\r\n</th></tr>\r\n";
 		}
 
-		std::string currLang = i2p::context.GetLanguage ()->GetLanguage(); // get current used language
+		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
 		s << "<tr class=\"sectiontitle\"><th colspan=\"2\"><span>" << tr("Console Display Language") << "</span>\r\n";
 		s << "<div id=\"consolelang\" class=\"chrome\">\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
@@ -2123,7 +2123,7 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_SETLANGUAGE)
 		{
 			std::string lang = params["lang"];
-			std::string currLang = i2p::context.GetLanguage ()->GetLanguage();
+			std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage();
 
 			if (currLang.compare(lang) != 0)
 				i2p::i18n::SetLanguage(lang);

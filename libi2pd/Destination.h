@@ -139,6 +139,7 @@ namespace client
 			void SetLeaseSetUpdated ();
 
 			bool IsPublic () const { return m_IsPublic; };
+			void SetPublic (bool pub) { m_IsPublic = pub; }; 
 
 		protected:
 

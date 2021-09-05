@@ -22,6 +22,7 @@
 #include "BOB.h"
 #include "I2CP.h"
 #include "AddressBook.h"
+#include "I18N_langs.h"
 
 namespace i2p
 {
@@ -102,6 +103,10 @@ namespace client
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
+			// i18n
+			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
+			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
+		
 		private:
 
 			void ReadTunnels ();
@@ -149,6 +154,9 @@ namespace client
 
 			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
 
+			// i18n
+			std::shared_ptr<const i2p::i18n::Locale> m_Language;
+		
 		public:
 
 			// for HTTP
