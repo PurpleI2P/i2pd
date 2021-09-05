@@ -129,7 +129,7 @@ namespace util
 		pthread_set_name_np(pthread_self(), name);
 #elif defined(__NetBSD__)
 		pthread_setname_np(pthread_self(), "%s", (void *)name);
-#else
+#elif !defined(__gnu_hurd__)
 		pthread_setname_np(pthread_self(), name);
 #endif
 	}
