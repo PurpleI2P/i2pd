@@ -469,7 +469,7 @@ namespace tunnel
 			{	
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
 				hop = i2p::transport::transports.GetRandomPeer ();
-				if (!hop->IsECIES ()) hop = nullptr;
+				if (hop && !hop->IsECIES ()) hop = nullptr;
 			}	
 			if (!hop)
 			{
