@@ -469,7 +469,7 @@ namespace tunnel
 			{
 				LogPrint (eLogInfo, "Tunnels: No suitable peer found for first hop, trying existing connections");
 				hop = i2p::transport::transports.GetRandomPeer ();
-				if (!hop->IsECIES ()) hop = nullptr;
+				if (hop && !hop->IsECIES ()) hop = nullptr;
 			}
 			if (!hop)
 			{
