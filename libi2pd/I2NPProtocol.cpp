@@ -528,11 +528,6 @@ namespace i2p
 
 	static void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{
-		if (!i2p::context.IsECIES ())
-		{
-			LogPrint (eLogWarning, "I2NP: ShortTunnelBuild can be handled by ECIES router only");
-			return;
-		}
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: ShortTunnelBuild ", num, " records");
 		if (len < num*SHORT_TUNNEL_BUILD_RECORD_SIZE + 1)
