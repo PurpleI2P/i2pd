@@ -55,8 +55,10 @@ namespace data
 		Load ();
 
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
-		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
+		if (m_RouterInfos.size () < threshold || m_Floodfills.size () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
+		{	
 			Reseed ();
+		}	
 		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
