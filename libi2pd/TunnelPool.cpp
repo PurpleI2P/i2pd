@@ -113,6 +113,17 @@ namespace tunnel
 		if (!m_IsActive) return;
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			if (createdTunnel->IsRecreated ())
+			{	
+				// find and mark old tunnel as expired
+				createdTunnel->SetRecreated (false);
+				for (auto& it: m_InboundTunnels)
+					if (it->IsRecreated () && it->GetNextIdentHash () == createdTunnel->GetNextIdentHash ())
+					{
+						it->SetState (eTunnelStateExpiring);
+						break;
+					}	
+			}	
 			m_InboundTunnels.insert (createdTunnel);
 		}
 		if (m_LocalDestination)
@@ -577,6 +588,8 @@ namespace tunnel
 			auto newTunnel = tunnels.CreateInboundTunnel (config, shared_from_this(), outboundTunnel);
 			if (newTunnel->IsEstablished ()) // zero hops
 				TunnelCreated (newTunnel);
+			else
+				newTunnel->SetRecreated (true);
 		}
 	}
 
