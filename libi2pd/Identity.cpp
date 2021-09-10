@@ -42,7 +42,7 @@ namespace data
 	}
 
 	IdentityEx::IdentityEx ():
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0)
 	{
 	}
 
@@ -119,11 +119,15 @@ namespace data
 			m_StandardIdentity.certificate[0] = CERTIFICATE_TYPE_KEY;
 			htobe16buf (m_StandardIdentity.certificate + 1, m_ExtendedLen);
 			// fill extended buffer
-			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
 			htobe16buf (m_ExtendedBuffer, type);
 			htobe16buf (m_ExtendedBuffer + 2, cryptoType);
 			if (excessLen && excessBuf)
 			{
+				if (excessLen > MAX_EXTENDED_BUFFER_SIZE - 4)
+				{
+					LogPrint (eLogError, "Identity: Unexpected excessive signing key len ", excessLen);
+					excessLen = MAX_EXTENDED_BUFFER_SIZE - 4;
+				}	
 				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
 				delete[] excessBuf;
 			}
@@ -136,7 +140,6 @@ namespace data
 			memset (m_StandardIdentity.certificate, 0, sizeof (m_StandardIdentity.certificate));
 			m_IdentHash = m_StandardIdentity.Hash ();
 			m_ExtendedLen = 0;
-			m_ExtendedBuffer = nullptr;
 		}
 		CreateVerifier ();
 	}
@@ -154,26 +157,25 @@ namespace data
 	}
 
 	IdentityEx::IdentityEx (const uint8_t * buf, size_t len):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0)
 	{
 		FromBuffer (buf, len);
 	}
 
 	IdentityEx::IdentityEx (const IdentityEx& other):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0)
 	{
 		*this = other;
 	}
 
 	IdentityEx::IdentityEx (const Identity& standard):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_ExtendedLen (0)
 	{
 		*this = standard;
 	}
 
 	IdentityEx::~IdentityEx ()
 	{
-		delete[] m_ExtendedBuffer;
 		delete m_Verifier;
 	}
 
@@ -182,15 +184,12 @@ namespace data
 		memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		m_IdentHash = other.m_IdentHash;
 
-		delete[] m_ExtendedBuffer;
 		m_ExtendedLen = other.m_ExtendedLen;
 		if (m_ExtendedLen > 0)
 		{
-			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+			if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) m_ExtendedLen = MAX_EXTENDED_BUFFER_SIZE;
 			memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
 		}
-		else
-			m_ExtendedBuffer = nullptr;
 
 		delete m_Verifier;
 		m_Verifier = nullptr;
@@ -203,8 +202,6 @@ namespace data
 		m_StandardIdentity = standard;
 		m_IdentHash = m_StandardIdentity.Hash ();
 
-		delete[] m_ExtendedBuffer;
-		m_ExtendedBuffer = nullptr;
 		m_ExtendedLen = 0;
 
 		delete m_Verifier;
@@ -222,15 +219,12 @@ namespace data
 		}
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
-		if(m_ExtendedBuffer) delete[] m_ExtendedBuffer;
-		m_ExtendedBuffer = nullptr;
-
 		m_ExtendedLen = bufbe16toh (m_StandardIdentity.certificate + 1);
 		if (m_ExtendedLen)
 		{
 			if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len)
 			{
-				m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+				if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) m_ExtendedLen = MAX_EXTENDED_BUFFER_SIZE;
 				memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
 			}
 			else
@@ -241,10 +235,7 @@ namespace data
 			}
 		}
 		else
-		{
 			m_ExtendedLen = 0;
-			m_ExtendedBuffer = nullptr;
-		}
 		SHA256(buf, GetFullLen (), m_IdentHash);
 
 		delete m_Verifier;
@@ -258,7 +249,7 @@ namespace data
 		const size_t fullLen = GetFullLen();
 		if (fullLen > len) return 0; // buffer is too small and may overflow somewhere else
 		memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
-		if (m_ExtendedLen > 0 && m_ExtendedBuffer)
+		if (m_ExtendedLen > 0)
 			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
 		return fullLen;
 	}
