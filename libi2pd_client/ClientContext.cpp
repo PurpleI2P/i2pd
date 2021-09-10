@@ -963,6 +963,7 @@ namespace client
 			}
 		}
 
+		/* // TODO: Write correct UDP tunnels stop
 		for (auto it = m_ClientForwards.begin (); it != m_ClientForwards.end ();)
 		{
 			if(clean && !it->second->isUpdated) {
@@ -983,7 +984,7 @@ namespace client
 				it->second->isUpdated = false;
 				it++;
 			}
-		}
+		} */
 	}
 }
 }
