@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -140,7 +140,7 @@ namespace transport
 							if (bitfield & mask)
 							{
 								if (fragment < numSentFragments)
-									it->second->fragments[fragment].reset (nullptr);
+									it->second->fragments[fragment] = nullptr;
 							}
 							fragment++;
 							mask <<= 1;
@@ -182,9 +182,9 @@ namespace transport
 				auto msg = NewI2NPShortMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID,
-					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;
+					m_Session.GetServer ().GetIncompleteMessagesPool ().AcquireShared (msg))).first;
 			}
-			std::unique_ptr<IncompleteMessage>& incompleteMessage = it->second;
+			auto& incompleteMessage = it->second;
 			// mark fragment as received
 			if (fragmentNum < 64)
 				incompleteMessage->receivedFragmentsBits |= (0x01 << fragmentNum);
@@ -224,8 +224,8 @@ namespace transport
 				{
 					// missing fragment
 					LogPrint (eLogWarning, "SSU: Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);
-					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
-					if (incompleteMessage->savedFragments.insert (std::unique_ptr<Fragment>(savedFragment)).second)	
+					auto savedFragment = m_Session.GetServer ().GetFragmentsPool ().AcquireShared (fragmentNum, buf, fragmentSize, isLast);
+					if (incompleteMessage->savedFragments.insert (savedFragment).second)	
 						incompleteMessage->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
 					else
 						LogPrint (eLogWarning, "SSU: Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
@@ -313,8 +313,8 @@ namespace transport
 		if (m_SentMessages.empty ()) // schedule resend at first message only
 			ScheduleResend ();
 
-		auto ret = m_SentMessages.insert (std::make_pair (msgID, std::unique_ptr<SentMessage>(new SentMessage)));
-		std::unique_ptr<SentMessage>& sentMessage = ret.first->second;
+		auto ret = m_SentMessages.insert (std::make_pair (msgID, m_Session.GetServer ().GetSentMessagesPool ().AcquireShared ()));
+		auto& sentMessage = ret.first->second;
 		if (ret.second)
 		{
 			sentMessage->nextResendTime = i2p::util::GetSecondsSinceEpoch () + RESEND_INTERVAL;
@@ -328,7 +328,7 @@ namespace transport
 		uint32_t fragmentNum = 0;
 		while (len > 0 && fragmentNum <= 127)
 		{
-			Fragment * fragment = new Fragment;
+			auto fragment = m_Session.GetServer ().GetFragmentsPool ().AcquireShared ();
 			fragment->fragmentNum = fragmentNum;
 			uint8_t	* payload = fragment->buf + sizeof (SSUHeader);
 			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
@@ -358,7 +358,7 @@ namespace transport
 				size += padding;
 			}	
 			fragment->len = size;
-			fragments.push_back (std::unique_ptr<Fragment> (fragment));
+			fragments.push_back (fragment);
 
 			// encrypt message with session key
 			uint8_t buf[SSU_V4_MAX_PACKET_SIZE + 18];

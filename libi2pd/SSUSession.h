@@ -89,7 +89,8 @@ namespace transport
 			void Done ();
 			void Failed ();
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-
+			SSUServer& GetServer () { return m_Server; };
+			
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
