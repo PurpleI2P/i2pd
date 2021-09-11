@@ -919,6 +919,11 @@ namespace transport
 			}
 			if (numDeleted > 0)
 				LogPrint (eLogDebug, "SSU: ", numDeleted, " peer tests have been expired");
+			// some cleaups. TODO: use separate timer
+			m_FragmentsPool.CleanUp ();
+			m_IncompleteMessagesPool.CleanUp ();
+			m_SentMessagesPool.CleanUp ();
+			
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}
