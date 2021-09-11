@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -76,7 +76,7 @@ namespace tunnel
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
-			void SetIsRecreated () { m_IsRecreated = true; };
+			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
 			int GetNumHops () const { return m_Hops.size (); };
 			virtual bool IsInbound() const = 0;
 
@@ -111,7 +111,7 @@ namespace tunnel
 			std::vector<std::unique_ptr<TunnelHop> > m_Hops;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
-			bool m_IsRecreated;
+			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace 
 			uint64_t m_Latency; // in milliseconds
 	};
 

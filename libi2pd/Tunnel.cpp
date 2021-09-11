@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -705,7 +705,7 @@ namespace tunnel
 							// let it die if the tunnel pool has been reconfigured and this is old
 							if (pool && tunnel->GetNumHops() == pool->GetNumOutboundHops())
 							{
-								tunnel->SetIsRecreated ();
+								tunnel->SetRecreated (true);
 								pool->RecreateOutboundTunnel (tunnel);
 							}
 						}
@@ -759,7 +759,7 @@ namespace tunnel
 							// let it die if the tunnel pool was reconfigured and has different number of hops
 							if (pool && tunnel->GetNumHops() == pool->GetNumInboundHops())
 							{
-								tunnel->SetIsRecreated ();
+								tunnel->SetRecreated (true);
 								pool->RecreateInboundTunnel (tunnel);
 							}
 						}
