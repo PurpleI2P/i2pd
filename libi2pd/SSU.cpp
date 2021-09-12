@@ -53,7 +53,7 @@ namespace transport
 		}
 		catch ( std::exception & ex )
 		{
-			LogPrint (eLogError, "SSU: failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
+			LogPrint (eLogError, "SSU: Failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv4 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
 		}
 	}
@@ -83,7 +83,7 @@ namespace transport
 		}
 		catch ( std::exception & ex )
 		{
-			LogPrint (eLogError, "SSU: failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
+			LogPrint (eLogError, "SSU: Failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv6 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
 		}
 	}
@@ -156,7 +156,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU: server runtime exception: ", ex.what ());
+				LogPrint (eLogError, "SSU: Server runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -173,7 +173,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU: receivers runtime exception: ", ex.what ());
+				LogPrint (eLogError, "SSU: Receivers runtime exception: ", ex.what ());
 				if (m_IsRunning)
 				{
 					// restart socket
@@ -249,7 +249,7 @@ namespace transport
 
 		if (ec)
 		{
-			LogPrint (eLogError, "SSU: send exception: ", ec.message (), " while trying to send data to ", to.address (), ":", to.port (), " (length: ", len, ")");
+			LogPrint (eLogError, "SSU: Send exception: ", ec.message (), " while trying to send data to ", to.address (), ":", to.port (), " (length: ", len, ")");
 		}
 	}
 
@@ -318,7 +318,7 @@ namespace transport
 			delete packet;
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "SSU: receive error: code ", ecode.value(), ": ", ecode.message ());
+				LogPrint (eLogError, "SSU: Receive error: code ", ecode.value(), ": ", ecode.message ());
 				m_Socket.close ();
 				OpenSocket ();
 				Receive ();
@@ -409,7 +409,7 @@ namespace transport
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
 						(*sessions)[packet->from] = session;
-						LogPrint (eLogDebug, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+						LogPrint (eLogDebug, "SSU: New session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
 				if (session)
@@ -548,7 +548,7 @@ namespace transport
 				}
 				if (!introducer)
 				{
-					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no compatibe non-expired introducers presented");
+					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router, no compatible introducers");
 					return;
 				}
 
@@ -797,7 +797,7 @@ namespace transport
 				if (sessions.empty () && !introducers.empty ())
 				{
 					// bump creation time for previous introducers if no new sessions found
-					LogPrint (eLogDebug, "SSU: no new introducers found. Trying to reuse existing");
+					LogPrint (eLogDebug, "SSU: No new introducers found. Trying to reuse existing");
 					for (const auto& it : introducers)
 					{
 						auto session = FindSession (it);
@@ -847,7 +847,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogDebug, "SSU: can't find more introducers");
+						LogPrint (eLogDebug, "SSU: Can't find more introducers");
 						break;
 					}
 				}
@@ -945,10 +945,10 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
+						LogPrint (eLogWarning, "SSU: Remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
 					m_Service.post ([session]
 						{
-							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							LogPrint (eLogWarning, "SSU: No activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
 							session->Failed ();
 						});
 				}
@@ -973,10 +973,10 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
+						LogPrint (eLogWarning, "SSU: Remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
 					m_Service.post ([session]
 						{
-							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							LogPrint (eLogWarning, "SSU: No activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
 							session->Failed ();
 						});
 				}

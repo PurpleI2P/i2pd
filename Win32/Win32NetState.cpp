@@ -32,7 +32,7 @@ void SubscribeToEvents()
 			Result = pNetworkListManager->IsConnectedToInternet(&IsConnect);
 			if (SUCCEEDED(Result)) {
 				i2p::transport::transports.SetOnline (true);
-				LogPrint(eLogInfo, "NetState: current state: ", IsConnect == VARIANT_TRUE ? "connected" : "disconnected");
+				LogPrint(eLogInfo, "NetState: Current state: ", IsConnect == VARIANT_TRUE ? "connected" : "disconnected");
 			}
 
 			Result = pNetworkListManager->QueryInterface(IID_IConnectionPointContainer, (void **)&pCPContainer);
@@ -79,7 +79,7 @@ void UnSubscribeFromEvents()
 	}
 	catch (std::exception& ex)
 	{
-		LogPrint (eLogError, "NetState: received exception: ", ex.what ());
+		LogPrint (eLogError, "NetState: Received exception: ", ex.what ());
 	}
 }
 

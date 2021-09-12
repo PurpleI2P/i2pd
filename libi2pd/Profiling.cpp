@@ -73,7 +73,7 @@ namespace data
 
 		if (!i2p::fs::Exists(path))
 		{
-			LogPrint(eLogWarning, "Profiling: no profile yet for ", ident);
+			LogPrint(eLogWarning, "Profiling: No profile yet for ", ident);
 			return;
 		}
 
@@ -194,7 +194,7 @@ namespace data
 				continue;
 			}
 			if (((now - st.st_mtime) / 3600) >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
-				LogPrint(eLogDebug, "Profiling: removing expired peer profile: ", path);
+				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
 				i2p::fs::Remove(path);
 			}
 		}
