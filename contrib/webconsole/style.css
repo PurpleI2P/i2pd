@@ -227,6 +227,20 @@ a, .slide label {
 	text-shadow: none;
 }
 
+#netstatus .badge {
+	margin: 0 4px;
+	padding: 1px 6px;
+	font-weight: 600;
+}
+
+#netstatus > .badge {
+	margin-left: 0;
+}
+
+#netstatus > .badge ~ .badge {
+	margin-left: 8px;
+}
+
 label:hover .badge {
 	background: var(--ink);
 }
