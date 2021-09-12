@@ -427,10 +427,12 @@ namespace http {
 
 	static void GetStyles (std::stringstream& s)
 	{
-		if (externalCSS.length() != 0)
+		if (externalCSS.length() != 0) {
 			s << "<style>\r\n" << externalCSS << "</style>\r\n";
-		else
+		} else {
 			s << internalCSS;
+			externalCSS = "";
+		}
 	}
 
 	const char HTTP_PAGE_TUNNEL_SUMMARY[] = "tunnel_summary";
@@ -674,18 +676,16 @@ namespace http {
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
-		if (i2p::context.SupportsV4 ())
-		{
-			s << "<tr><td>" << tr("Network Status") << "</td><td>";
+		s << "<tr><td>" << tr("Network Status") << "</td><td id=\"netstatus\">";
+		if (i2p::context.SupportsV4 ()) {
+			s << "<span class=\"badge\">" >> tr("IPv4") << "</span>";
 			ShowNetworkStatus (s, i2p::context.GetStatus ());
-			s << "<br>\r\n";
 		}
-		if (i2p::context.SupportsV6 ())
-		{
-			s << "<tr><td>" << tr("Network Status (IPv6)") << "</td><td>";
+		if (i2p::context.SupportsV6 ()) {
+			s << "<span class=\"badge\">" >> tr("IPv6") << "</span>";
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
-			s << "<br>\r\n";
 		}
+		s << "</td></tr>\r\n";
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<tr><td>" << tr("Shutdown") << "</td><td>";
