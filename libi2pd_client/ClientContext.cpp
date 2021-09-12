@@ -699,7 +699,7 @@ namespace client
 						accessList=section.second.get (I2P_SERVER_TUNNEL_WHITE_LIST, "");
 					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
-					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
+					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, false);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
