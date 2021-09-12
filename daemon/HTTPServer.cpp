@@ -678,11 +678,11 @@ namespace http {
 	{
 		s << "<tr><td>" << tr("Network Status") << "</td><td id=\"netstatus\">";
 		if (i2p::context.SupportsV4 ()) {
-			s << "<span class=\"badge\">" >> tr("IPv4") << "</span>";
+			s << "<span class=\"badge\">" << tr("IPv4") << "</span> ";
 			ShowNetworkStatus (s, i2p::context.GetStatus ());
 		}
 		if (i2p::context.SupportsV6 ()) {
-			s << "<span class=\"badge\">" >> tr("IPv6") << "</span>";
+			s << "<span class=\"badge\">" << tr("IPv6") << "</span> ";
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
 		}
 		s << "</td></tr>\r\n";
@@ -703,7 +703,8 @@ namespace http {
 		s << "<tr><td>" << tr("Bandwidth") << "</td><td><span class=\"router recvd\">";
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetInBandwidth () > 1024*1024*1024 ||
-			i2p::transport::transports.GetInBandwidth () < 1024)
+			i2p::transport::transports.GetInBandwidth () < 1024 &&
+			i2p::transport::transports.GetInBandwidth () > 0)
 			s << std::fixed << std::setprecision(2);
 		else if (i2p::transport::transports.GetInBandwidth () > 1024*1024)
 			s << std::fixed << std::setprecision(1);
@@ -711,7 +712,8 @@ namespace http {
 		s << "</span> <span class=\"hide\">/</span> <span class=\"router sent\">";
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetOutBandwidth () > 1024*1024*1024 ||
-			i2p::transport::transports.GetOutBandwidth () < 1024)
+			i2p::transport::transports.GetOutBandwidth () < 1024 &&
+			i2p::transport::transports.GetOutBandwidth () > 0)
 			s << std::fixed << std::setprecision(2);
 		else if (i2p::transport::transports.GetOutBandwidth () > 1024*1024)
 			s << std::fixed << std::setprecision(1);
@@ -720,8 +722,10 @@ namespace http {
 
 		if ((i2p::context.AcceptsTunnels() || i2p::tunnel::tunnels.CountTransitTunnels()) &&
 			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
+			s << std::fixed << std::setprecision(0);
 			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
-				i2p::transport::transports.GetTransitBandwidth () < 1024)
+				i2p::transport::transports.GetTransitBandwidth () < 1024 &&
+				i2p::transport::transports.GetTransitBandwidth () > 0)
 				s << std::fixed << std::setprecision(2);
 			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
 				s << std::fixed << std::setprecision(1);
@@ -752,13 +756,12 @@ namespace http {
 			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
 			s << " <span class=\"hide\">/</span> <span class=\"transit sent\" data-tooltip=\"";
 			s << tr("Total transit data transferred") << "\">";
-			s << std::fixed << std::setprecision(0);
+			s << std::fixed << std::setprecision(0); // should set 0 bytes to no decimal places, but doesn't!
 			if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024*1024)
 				s << std::fixed << std::setprecision(2);
 			else if (i2p::transport::transports.GetTotalTransitTransmittedBytes () > 1024*1024)
 				s << std::fixed << std::setprecision(1);
 			ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-			s << std::fixed << std::setprecision(0);
 			s << "</span>";
 		}
 		s << "</td></tr>\r\n";
