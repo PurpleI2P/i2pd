@@ -144,6 +144,7 @@ namespace transport
 			i2p::util::MemoryPool<Fragment> m_FragmentsPool;
 			i2p::util::MemoryPool<IncompleteMessage> m_IncompleteMessagesPool;
 			i2p::util::MemoryPool<SentMessage> m_SentMessagesPool;
+			i2p::util::MemoryPoolMt<SSUPacket> m_PacketsPool;
 			
 		public:
 			// for HTTP only

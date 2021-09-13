@@ -255,14 +255,14 @@ namespace transport
 
 	void SSUServer::Receive ()
 	{
-		SSUPacket * packet = new SSUPacket ();
+		SSUPacket * packet = m_PacketsPool.AcquireMt ();
 		m_Socket.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from,
 			std::bind (&SSUServer::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet));
 	}
 
 	void SSUServer::ReceiveV6 ()
 	{
-		SSUPacket * packet = new SSUPacket ();
+		SSUPacket * packet = m_PacketsPool.AcquireMt ();
 		m_SocketV6.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from,
 			std::bind (&SSUServer::HandleReceivedFromV6, this, std::placeholders::_1, std::placeholders::_2, packet));
 	}
@@ -293,7 +293,7 @@ namespace transport
 			{
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = new SSUPacket ();
+					packet = m_PacketsPool.AcquireMt ();
 					packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from, 0, ec);
 					if (!ec)
 					{
@@ -304,7 +304,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: receive_from error: code ", ec.value(), ": ", ec.message ());
-						delete packet;
+						m_PacketsPool.ReleaseMt (packet);
 						break;
 					}
 				}
@@ -315,7 +315,7 @@ namespace transport
 		}
 		else
 		{
-			delete packet;
+			m_PacketsPool.ReleaseMt (packet);
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: receive error: code ", ecode.value(), ": ", ecode.message ());
@@ -352,7 +352,7 @@ namespace transport
 			{
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = new SSUPacket ();
+					packet = m_PacketsPool.AcquireMt ();
 					packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from, 0, ec);
 					if (!ec)
 					{
@@ -363,7 +363,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: v6 receive_from error: code ", ec.value(), ": ", ec.message ());
-						delete packet;
+						m_PacketsPool.ReleaseMt (packet);;
 						break;
 					}
 				}
@@ -374,7 +374,7 @@ namespace transport
 		}
 		else
 		{
-			delete packet;
+			m_PacketsPool.ReleaseMt (packet);
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: v6 receive error: code ", ecode.value(), ": ", ecode.message ());
@@ -421,8 +421,8 @@ namespace transport
 				if (session) session->FlushData ();
 				session = nullptr;
 			}
-			delete packet;
 		}
+		m_PacketsPool.ReleaseMt (packets);
 		if (session) session->FlushData ();
 	}
 
