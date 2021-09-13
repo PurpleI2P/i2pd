@@ -425,17 +425,17 @@ namespace http {
 			std::ifstream f(styleFile, std::ifstream::binary);
 			s << f.rdbuf();
 			externalCSS = s.str();
+		} else if (externalCSS.length() != 0) { // clean up external style if file was removed
+			externalCSS = "";
 		}
 	}
 
 	static void GetStyles (std::stringstream& s)
 	{
-		if (externalCSS.length() != 0) {
+		if (externalCSS.length() != 0)
 			s << "<style>\r\n" << externalCSS << "</style>\r\n";
-		} else {
+		else
 			s << internalCSS;
-			externalCSS = "";
-		}
 	}
 
 	const char HTTP_PAGE_TUNNEL_SUMMARY[] = "tunnel_summary";
