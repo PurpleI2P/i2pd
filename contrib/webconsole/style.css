@@ -228,7 +228,7 @@ a, .slide label {
 }
 
 #netstatus .badge {
-	margin: 0 4px 0 8px;
+	margin: 0 8px 0 0;
 	padding: 1px 6px;
 	font-weight: 600;
 }
