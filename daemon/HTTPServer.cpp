@@ -145,9 +145,7 @@ namespace http {
 "a,.slide label{text-decoration:none;color:var(--link);font-weight:600}"
 ".slide label{font-weight:700}"
 ".badge{margin:0 0 1px 4px;padding:0 10px 2px;display:inline-block;vertical-align:baseline;font-size:85%;border-radius:2px;background:var(--ink-darker);color:var(--page);text-shadow:none}"
-"#netstatus .badge{margin:0 4px;padding:1px 6px;font-weight:600}"
-"#netstatus > .badge{margin-left:0}"
-"#netstatus > .badge ~ .badge{margin-left:8px}"
+"#netstatus .badge{margin:0 8px 0 0;padding:1px 6px;font-weight:600}"
 "label:hover .badge{background:var(--ink)}"
 "a{padding:1px 8px;display:inline-block;border-radius:2px}"
 ".listitem a{padding:0 1px}"
@@ -680,10 +678,7 @@ namespace http {
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)
 	{
 		s << "<tr><td>" << tr("Network Status") << "</td><td id=\"netstatus\">";
-		if (i2p::context.SupportsV4 ()) {
-			s << "<span class=\"badge\">" << tr("IPv4") << "</span> ";
-			ShowNetworkStatus (s, i2p::context.GetStatus ());
-		}
+		ShowNetworkStatus (s, i2p::context.GetStatus ());
 		if (i2p::context.SupportsV6 ()) {
 			s << "<span class=\"badge\">" << tr("IPv6") << "</span> ";
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());

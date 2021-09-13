@@ -228,17 +228,9 @@ a, .slide label {
 }
 
 #netstatus .badge {
-	margin: 0 4px;
+	margin: 0 8px 0 0;
 	padding: 1px 6px;
 	font-weight: 600;
-}
-
-#netstatus > .badge {
-	margin-left: 0;
-}
-
-#netstatus > .badge ~ .badge {
-	margin-left: 8px;
 }
 
 label:hover .badge {
