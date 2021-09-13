@@ -145,7 +145,7 @@ namespace http {
 "a,.slide label{text-decoration:none;color:var(--link);font-weight:600}"
 ".slide label{font-weight:700}"
 ".badge{margin:0 0 1px 4px;padding:0 10px 2px;display:inline-block;vertical-align:baseline;font-size:85%;border-radius:2px;background:var(--ink-darker);color:var(--page);text-shadow:none}"
-"#netstatus .badge{margin:0 8px 0 0;padding:1px 6px;font-weight:600}"
+"#netstatus .badge{margin:0 4px 0 8px;padding:1px 6px;font-weight:600}"
 "label:hover .badge{background:var(--ink)}"
 "a{padding:1px 8px;display:inline-block;border-radius:2px}"
 ".listitem a{padding:0 1px}"
