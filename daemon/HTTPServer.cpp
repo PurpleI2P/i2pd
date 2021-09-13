@@ -701,7 +701,7 @@ namespace http {
 		s << "<tr><td>" << tr("Bandwidth") << "</td><td><span class=\"router recvd\">";
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetInBandwidth () > 1024*1024*1024 ||
-			i2p::transport::transports.GetInBandwidth () < 1024 &&
+			i2p::transport::transports.GetInBandwidth () < 10240 &&
 			i2p::transport::transports.GetInBandwidth () > 0)
 			s << std::fixed << std::setprecision(2);
 		else if (i2p::transport::transports.GetInBandwidth () > 1024*1024)
@@ -710,7 +710,7 @@ namespace http {
 		s << "</span> <span class=\"hide\">/</span> <span class=\"router sent\">";
 		s << std::fixed << std::setprecision(0);
 		if (i2p::transport::transports.GetOutBandwidth () > 1024*1024*1024 ||
-			i2p::transport::transports.GetOutBandwidth () < 1024 &&
+			i2p::transport::transports.GetOutBandwidth () < 10240 &&
 			i2p::transport::transports.GetOutBandwidth () > 0)
 			s << std::fixed << std::setprecision(2);
 		else if (i2p::transport::transports.GetOutBandwidth () > 1024*1024)
@@ -722,7 +722,7 @@ namespace http {
 			(i2p::transport::transports.GetTotalReceivedBytes () > 0)) {
 			s << std::fixed << std::setprecision(0);
 			if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024*1024 ||
-				i2p::transport::transports.GetTransitBandwidth () < 1024 &&
+				i2p::transport::transports.GetTransitBandwidth () < 10240 &&
 				i2p::transport::transports.GetTransitBandwidth () > 0)
 				s << std::fixed << std::setprecision(2);
 			else if (i2p::transport::transports.GetTransitBandwidth () > 1024*1024)
