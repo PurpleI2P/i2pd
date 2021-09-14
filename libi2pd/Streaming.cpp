@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1040,6 +1040,8 @@ namespace stream
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
+		if (m_Gzip)
+			m_Deflator.reset (new i2p::data::GzipDeflator);
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -1296,13 +1298,17 @@ namespace stream
 	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
 		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
 	{
+		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
-		size_t size = (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)?
-			i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len):
-			m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+
+		if (m_Gzip && m_Deflator)
+			size = m_Deflator->Deflate (payload, len, buf, msg->maxLen - msg->len);
+		else
+			size = i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len);
+
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length

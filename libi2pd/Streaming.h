@@ -312,7 +312,7 @@ namespace stream
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
-			i2p::data::GzipDeflator m_Deflator;
+			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
 
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };

@@ -40,7 +40,7 @@ namespace i2p
 	{
 		I2NPMessage * msg = nullptr;
 		if (endpoint)
-		{	
+		{
 			// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
 			msg = new I2NPMessageBuffer<2*i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28>(); // reserved for alignment and NTCP 16 + 6 + 6
 			msg->Align (6);
@@ -50,7 +50,7 @@ namespace i2p
 		{
 			msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
 			msg->Align (12);
-		}	
+		}
 		return std::shared_ptr<I2NPMessage>(msg);
 	}
 
@@ -222,12 +222,12 @@ namespace i2p
 		{
 			memcpy (buf + 33, replyTag, 8); // 8 bytes tag
 			buf += 41;
-		}	
-		else	
-		{		
+		}
+		else
+		{
 			memcpy (buf + 33, replyTag, 32); // 32 bytes tag
 			buf += 65;
-		}	
+		}
 
 		m->len += (buf - m->GetPayload ());
 		m->FillI2NPMessageHeader (eI2NPDatabaseLookup);
@@ -267,7 +267,7 @@ namespace i2p
 			LogPrint (eLogError, "I2NP: Invalid RouterInfo buffer for DatabaseStore");
 			return nullptr;
 		}
-		
+
 		auto m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();
 
@@ -285,12 +285,12 @@ namespace i2p
 				buf += 32; // reply tunnel gateway
 			}
 			else
-			{	
+			{
 				memset (buf, 0, 4); // zero tunnelID means direct reply
 				buf += 4;
 				memcpy (buf, context.GetIdentHash (), 32);
 				buf += 32;
-			}	
+			}
 		}
 
 		uint8_t * sizePtr = buf;
@@ -303,7 +303,7 @@ namespace i2p
 		{
 			i2p::data::GzipDeflator deflator;
 			size = deflator.Deflate (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
-		}		
+		}
 		if (size)
 		{
 			htobe16buf (sizePtr, size); // size
@@ -427,14 +427,14 @@ namespace i2p
 						{
 							LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
 							return false;
-						}	
+						}
 					}
 					else
-					{	
+					{
 						encryption.SetKey (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
-						encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);	
+						encryption.SetIV (clearText + ECIES_BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
 						encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
-					}	
+					}
 				}
 				return true;
 			}
@@ -561,7 +561,7 @@ namespace i2p
 				LogPrint (eLogDebug, "I2NP: Short request record ", i, " is ours");
 				uint8_t clearText[SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE];
 				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
-				{	
+				{
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
@@ -569,7 +569,7 @@ namespace i2p
 				{
 					LogPrint (eLogWarning, "I2NP: Unknown layer encryption type ", clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE], " in short request record");
 					return;
-				}	
+				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
 				uint8_t replyKey[32], layerKey[32], ivKey[32]; 
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
@@ -581,7 +581,7 @@ namespace i2p
 				{
 					i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "TunnelLayerIVKey", noiseState.m_CK);
 					memcpy (ivKey, noiseState.m_CK + 32, 32);
-				}	
+				}
 				else
 					memcpy (ivKey, noiseState.m_CK , 32);
 
@@ -593,7 +593,7 @@ namespace i2p
 					i2p::transport::transports.IsTransitBandwidthExceeded ())
 						retCode = 30;
 				if (!retCode)
-				{	
+				{
 					// create new transit tunnel
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 						bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -604,13 +604,13 @@ namespace i2p
 						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
 					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
 				}
-					
+
 				// encrypt reply
 				uint8_t nonce[12];
 				memset (nonce, 0, 12);
 				uint8_t * reply = buf + 1;
 				for (int j = 0; j < num; j++)
-				{	
+				{
 					nonce[4] = j; // nonce is record #
 					if (j == i)
 					{
@@ -621,29 +621,29 @@ namespace i2p
 						{
 							LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
 							return;
-						}	
+						}
 					}
 					else
 						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply); 
-					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;	
+					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;
 				}
 				// send reply
 				if (isEndpoint)
-				{	
+				{
 					auto replyMsg = NewI2NPShortMessage ();
 					replyMsg->Concat (buf, len);
 					replyMsg->FillI2NPMessageHeader (eI2NPShortTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
 					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), 
 						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // reply IBGW is not local?
 					{
-						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK); 		
+						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK); 
 						uint64_t tag;
 						memcpy (&tag, noiseState.m_CK, 8);
 						// we send it to reply tunnel
 						transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateTunnelGatewayMsg (bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
 							i2p::garlic::WrapECIESX25519Message (replyMsg,  noiseState.m_CK + 32, tag)));
-					}	
+					}
 					else
 					{
 						// IBGW is local
@@ -653,18 +653,18 @@ namespace i2p
 							tunnel->SendTunnelDataMsg (replyMsg);
 						else
 							LogPrint (eLogWarning, "I2NP: Tunnel ", tunnelID, " not found for short tunnel build reply");
-					}	
-				}	
-				else	
+					}
+				}
+				else
 					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateI2NPMessage (eI2NPShortTunnelBuild, buf, len,
 							bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 				return;
-			}	
+			}
 			record += SHORT_TUNNEL_BUILD_RECORD_SIZE;
-		}	
-	}	
-	
+		}
+	}
+
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
 		auto msg = NewI2NPTunnelMessage (false);
@@ -781,13 +781,13 @@ namespace i2p
 			break;
 			case eI2NPShortTunnelBuild:
 				HandleShortTunnelBuildMsg (msgID, buf, size);
-			break;		
+			break;
 			case eI2NPVariableTunnelBuildReply:
 				HandleTunnelBuildReplyMsg (msgID, buf, size, false);
 			break;
 			case eI2NPShortTunnelBuildReply:
 				HandleTunnelBuildReplyMsg (msgID, buf, size, true);
-			break;	
+			break;
 			case eI2NPTunnelBuild:
 				HandleTunnelBuildMsg (buf, size);
 			break;
@@ -844,8 +844,8 @@ namespace i2p
 				case eI2NPVariableTunnelBuildReply:
 				case eI2NPTunnelBuild:
 				case eI2NPTunnelBuildReply:
-				case eI2NPShortTunnelBuild:	
-				case eI2NPShortTunnelBuildReply:		
+				case eI2NPShortTunnelBuild:
+				case eI2NPShortTunnelBuildReply:
 					// forward to tunnel thread
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
