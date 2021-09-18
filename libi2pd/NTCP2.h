@@ -34,6 +34,7 @@ namespace transport
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+	const int NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT = 3; // 3 seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD = 25*60; // 25 minuntes
 
@@ -132,7 +133,8 @@ namespace transport
 			void TerminateByTimeout ();
 			void Done ();
 			void Close () { m_Socket.close (); }; // for accept
-
+			void DeleteNextReceiveBuffer (uint64_t ts);
+			
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
@@ -151,6 +153,7 @@ namespace transport
 			void Established ();
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
+			void CreateNextReceivedBuffer (size_t size);
 			void KeyDerivationFunctionDataPhase ();
 			void SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey);
 
@@ -206,6 +209,7 @@ namespace transport
 #endif
 			uint16_t m_NextReceivedLen;
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
+			size_t m_NextReceivedBufferSize;
 			union
 			{
 				uint8_t buf[8];
@@ -215,7 +219,7 @@ namespace transport
 
 			i2p::I2NPMessagesHandler m_Handler;
 
-			bool m_IsSending;
+			bool m_IsSending, m_IsReceiving;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
 
