@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,14 +32,12 @@ namespace i2p
 namespace transport
 {
 	NTCP2Establisher::NTCP2Establisher ():
-		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr)
+		m_SessionConfirmedBuffer (nullptr)
 	{
 	}
 
 	NTCP2Establisher::~NTCP2Establisher ()
 	{
-		delete[] m_SessionRequestBuffer;
-		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
 	}
 
@@ -112,9 +110,8 @@ namespace transport
 	void NTCP2Establisher::CreateSessionRequestMessage ()
 	{
 		// create buffer and fill padding
-		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
+		auto paddingLength = rand () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
 		m_SessionRequestBufferLen = paddingLength + 64;
-		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
 		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
@@ -152,9 +149,8 @@ namespace transport
 
 	void NTCP2Establisher::CreateSessionCreatedMessage ()
 	{
-		auto paddingLen = rand () % (287 - 64);
+		auto paddingLen = rand () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
-		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen];
 		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
@@ -463,7 +459,6 @@ namespace transport
 		}
 		else
 		{
-			m_Establisher->m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
 			// we receive first 64 bytes (32 Y, and 32 ChaCha/Poly frame) first
 			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer, 64), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -486,7 +481,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session request is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -539,7 +534,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session created is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -742,7 +737,6 @@ namespace transport
 	void NTCP2Session::ServerLogin ()
 	{
 		m_Establisher->CreateEphemeralKey ();
-		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 			std::placeholders::_1, std::placeholders::_2));

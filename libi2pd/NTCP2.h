@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,6 +28,8 @@ namespace transport
 {
 
 	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;
+	const size_t NTCP2_SESSION_REQUEST_MAX_SIZE = 287;
+	const size_t NTCP2_SESSION_CREATED_MAX_SIZE = 287;
 	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
 
 	const int NTCP2_CONNECT_TIMEOUT = 5; // 5 seconds
@@ -40,7 +42,7 @@ namespace transport
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
-
+	
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -116,7 +118,8 @@ namespace transport
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len;
 
-		uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
+		uint8_t m_SessionRequestBuffer[NTCP2_SESSION_REQUEST_MAX_SIZE], 
+			m_SessionCreatedBuffer[NTCP2_SESSION_CREATED_MAX_SIZE], * m_SessionConfirmedBuffer;
 		size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 
 	};
