@@ -332,8 +332,8 @@ namespace transport
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false),
-		m_NextPaddingSize (16)
+		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
+		m_IsSending (false), m_IsReceiving (false), m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
 		{
@@ -405,7 +405,30 @@ namespace transport
 		htole64buf (nonce + 4, seqn);
 	}
 
+	void NTCP2Session::CreateNextReceivedBuffer (size_t size)
+	{		
+		if (m_NextReceivedBuffer)
+		{
+			if (size <= m_NextReceivedBufferSize)
+				return; // buffer is good, do nothing
+			else
+				delete[] m_NextReceivedBuffer;
+		}
+		m_NextReceivedBuffer = new uint8_t[size];
+		m_NextReceivedBufferSize = size;
+	}	
 
+	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
+	{
+		if (m_NextReceivedBuffer && !m_IsReceiving && 
+		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+		{
+			delete[] m_NextReceivedBuffer;
+			m_NextReceivedBuffer = nullptr;
+			m_NextReceivedBufferSize = 0;
+		}	
+	}	
+		
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t k[64];
@@ -759,8 +782,7 @@ namespace transport
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			if (m_NextReceivedLen >= 16)
 			{
-				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
-				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+				CreateNextReceivedBuffer (m_NextReceivedLen);
 				boost::system::error_code ec;
 				size_t moreBytes = m_Socket.available(ec);
 				if (!ec && moreBytes >= m_NextReceivedLen)
@@ -787,6 +809,7 @@ namespace transport
 		const int one = 1;
 		setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
 #endif
+		m_IsReceiving = true;
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -810,7 +833,7 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP2: received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
-				delete[] m_NextReceivedBuffer; m_NextReceivedBuffer = nullptr; // we don't need received buffer anymore
+				m_IsReceiving = false;
 				ReceiveLength ();
 			}
 			else
@@ -1448,6 +1471,8 @@ namespace transport
 					LogPrint (eLogDebug, "NTCP2: No activity for ", session->GetTerminationTimeout (), " seconds");
 					session->TerminateByTimeout (); // it doesn't change m_NTCP2Session right a way
 				}
+				else
+					it.second->DeleteNextReceiveBuffer (ts);
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{
