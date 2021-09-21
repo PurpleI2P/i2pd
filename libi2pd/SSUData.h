@@ -40,6 +40,7 @@ namespace transport
 	const int MAX_NUM_RESENDS = 5;
 	const int DECAY_INTERVAL = 20; // in seconds
 	const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
+	const int RECEIVED_MESSAGES_CLEANUP_TIMEOUT = 40; // in seconds
 	const unsigned int MAX_NUM_RECEIVED_MESSAGES = 1000; // how many msgID we store for duplicates check
 	const int MAX_OUTGOING_WINDOW_SIZE = 200; // how many unacked message we can store
 	// data flags
@@ -128,7 +129,7 @@ namespace transport
 			SSUSession& m_Session;
 			std::unordered_map<uint32_t, std::shared_ptr<IncompleteMessage> > m_IncompleteMessages;
 			std::unordered_map<uint32_t, std::shared_ptr<SentMessage> > m_SentMessages;
-			std::unordered_set<uint32_t> m_ReceivedMessages;
+			std::unordered_map<uint32_t, uint64_t> m_ReceivedMessages; // msgID -> timestamp in seconds
 			boost::asio::deadline_timer m_ResendTimer, m_IncompleteMessagesCleanupTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;

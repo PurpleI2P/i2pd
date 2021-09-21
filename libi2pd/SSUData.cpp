@@ -246,8 +246,8 @@ namespace transport
 				{
 					if (!m_ReceivedMessages.count (msgID))
 					{
-						m_ReceivedMessages.insert (msgID);
 						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
+						m_ReceivedMessages.emplace (msgID, m_LastMessageReceivedTime);
 						if (!msg->IsExpired ())
 						{
 							m_Handler.PutNextMessage (msg);
@@ -511,10 +511,21 @@ namespace transport
 				else
 					++it;
 			}
-			// decay
-			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES ||
-				i2p::util::GetSecondsSinceEpoch () > m_LastMessageReceivedTime + DECAY_INTERVAL)
+		
+			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES || ts > m_LastMessageReceivedTime + DECAY_INTERVAL)
+				// decay
 				m_ReceivedMessages.clear ();
+			else
+			{
+				// delete old received messages	
+				for (auto it = m_ReceivedMessages.begin (); it != m_ReceivedMessages.end ();)
+				{
+					if (ts > it->second + RECEIVED_MESSAGES_CLEANUP_TIMEOUT)
+						it = m_ReceivedMessages.erase (it);
+					else
+						++it;
+				}		
+			}		
 
 			ScheduleIncompleteMessagesCleanup ();
 		}
