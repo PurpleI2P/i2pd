@@ -952,6 +952,8 @@ namespace transport
 							session->Failed ();
 						});
 				}
+				else
+					it.second->CleanUp ();
 			ScheduleTermination ();
 		}
 	}
@@ -980,6 +982,8 @@ namespace transport
 							session->Failed ();
 						});
 				}
+				else
+					it.second->CleanUp ();
 			ScheduleTerminationV6 ();
 		}
 	}

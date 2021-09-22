@@ -1004,6 +1004,12 @@ namespace transport
 		}
 	}
 
+	void SSUSession::CleanUp ()
+	{
+		m_Data.CleanUp ();
+		// TODO: clean up m_RelayRequests
+	}	
+
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes

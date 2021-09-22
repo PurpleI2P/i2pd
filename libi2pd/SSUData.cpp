@@ -33,7 +33,6 @@ namespace transport
 
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.GetService ()),
-		m_IncompleteMessagesCleanupTimer (session.GetService ()),
 		m_MaxPacketSize (session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE),
 		m_PacketSize (m_MaxPacketSize), m_LastMessageReceivedTime (0)
 	{
@@ -45,13 +44,11 @@ namespace transport
 
 	void SSUData::Start ()
 	{
-		ScheduleIncompleteMessagesCleanup ();
 	}
 
 	void SSUData::Stop ()
 	{
 		m_ResendTimer.cancel ();
-		m_IncompleteMessagesCleanupTimer.cancel ();
 		m_IncompleteMessages.clear ();
 		m_SentMessages.clear ();
 		m_ReceivedMessages.clear ();
@@ -487,48 +484,34 @@ namespace transport
 		}
 	}
 
-	void SSUData::ScheduleIncompleteMessagesCleanup ()
+	void SSUData::CleanUp ()
 	{
-		m_IncompleteMessagesCleanupTimer.cancel ();
-		m_IncompleteMessagesCleanupTimer.expires_from_now (boost::posix_time::seconds(INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT));
-		auto s = m_Session.shared_from_this();
-		m_IncompleteMessagesCleanupTimer.async_wait ([s](const boost::system::error_code& ecode)
-			{ s->m_Data.HandleIncompleteMessagesCleanupTimer (ecode); });
-	}
-
-	void SSUData::HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
 		{
-			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
+			if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
 			{
-				if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
-				{
-					LogPrint (eLogWarning, "SSU: message ", it->first, " was not completed in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds, deleted");
-					it = m_IncompleteMessages.erase (it);
-				}
+				LogPrint (eLogWarning, "SSU: message ", it->first, " was not completed in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds, deleted");
+				it = m_IncompleteMessages.erase (it);
+			}
+			else
+				++it;
+		}
+	
+		if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES || ts > m_LastMessageReceivedTime + DECAY_INTERVAL)
+			// decay
+			m_ReceivedMessages.clear ();
+		else
+		{
+			// delete old received messages	
+			for (auto it = m_ReceivedMessages.begin (); it != m_ReceivedMessages.end ();)
+			{
+				if (ts > it->second + RECEIVED_MESSAGES_CLEANUP_TIMEOUT)
+					it = m_ReceivedMessages.erase (it);
 				else
 					++it;
-			}
-		
-			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES || ts > m_LastMessageReceivedTime + DECAY_INTERVAL)
-				// decay
-				m_ReceivedMessages.clear ();
-			else
-			{
-				// delete old received messages	
-				for (auto it = m_ReceivedMessages.begin (); it != m_ReceivedMessages.end ();)
-				{
-					if (ts > it->second + RECEIVED_MESSAGES_CLEANUP_TIMEOUT)
-						it = m_ReceivedMessages.erase (it);
-					else
-						++it;
-				}		
 			}		
-
-			ScheduleIncompleteMessagesCleanup ();
-		}
-	}
+		}		
+	}	
 }
 }

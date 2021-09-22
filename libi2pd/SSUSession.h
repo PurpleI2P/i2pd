@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -106,6 +106,7 @@ namespace transport
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
 			
 			void FlushData ();
+			void CleanUp ();
 
 		private:
 

@@ -13,7 +13,6 @@
 #include <string.h>
 #include <unordered_map>
 #include <vector>
-#include <unordered_set>
 #include <memory>
 #include <boost/asio.hpp>
 #include "I2NPProtocol.h"
@@ -101,7 +100,8 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-
+			void CleanUp ();
+			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
 			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
@@ -120,17 +120,13 @@ namespace transport
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
-			void ScheduleIncompleteMessagesCleanup ();
-			void HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode);
-
-
 		private:
 
 			SSUSession& m_Session;
 			std::unordered_map<uint32_t, std::shared_ptr<IncompleteMessage> > m_IncompleteMessages;
 			std::unordered_map<uint32_t, std::shared_ptr<SentMessage> > m_SentMessages;
 			std::unordered_map<uint32_t, uint64_t> m_ReceivedMessages; // msgID -> timestamp in seconds
-			boost::asio::deadline_timer m_ResendTimer, m_IncompleteMessagesCleanupTimer;
+			boost::asio::deadline_timer m_ResendTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;
 			uint32_t m_LastMessageReceivedTime; // in second
