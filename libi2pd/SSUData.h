@@ -100,7 +100,7 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-			void CleanUp ();
+			void CleanUp (uint64_t ts);
 			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();

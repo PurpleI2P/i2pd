@@ -484,9 +484,8 @@ namespace transport
 		}
 	}
 
-	void SSUData::CleanUp ()
+	void SSUData::CleanUp (uint64_t ts)
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
 		{
 			if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)

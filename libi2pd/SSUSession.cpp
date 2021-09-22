@@ -730,7 +730,7 @@ namespace transport
 					(remoteIP.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled)) 
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
 				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
-				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
+				m_Server.CreateDirectSession (it->second.first, remoteEndpoint, false);
 			}
 			// delete request
 			m_RelayRequests.erase (it);
@@ -905,7 +905,8 @@ namespace transport
 		}
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
-		m_RelayRequests[nonce] = to;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		m_RelayRequests.emplace (nonce, std::make_pair (to, ts));
 		SendRelayRequest (introducer, nonce);
 	}
 
@@ -1004,10 +1005,16 @@ namespace transport
 		}
 	}
 
-	void SSUSession::CleanUp ()
+	void SSUSession::CleanUp (uint64_t ts)
 	{
-		m_Data.CleanUp ();
-		// TODO: clean up m_RelayRequests
+		m_Data.CleanUp (ts);
+		for (auto it = m_RelayRequests.begin (); it != m_RelayRequests.end ();)
+		{
+			if (ts > it->second.second + SSU_CONNECT_TIMEOUT)
+				it =  m_RelayRequests.erase (it);
+			else
+				++it;
+		}
 	}	
 
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)

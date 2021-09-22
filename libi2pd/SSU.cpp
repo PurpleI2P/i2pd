@@ -930,7 +930,8 @@ namespace transport
 
 	void SSUServer::ScheduleTermination ()
 	{
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		uint64_t timeout = SSU_TERMINATION_CHECK_TIMEOUT + (rand () % SSU_TERMINATION_CHECK_TIMEOUT)/5;
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(timeout));
 		m_TerminationTimer.async_wait (std::bind (&SSUServer::HandleTerminationTimer,
 			this, std::placeholders::_1));
 	}
@@ -953,14 +954,15 @@ namespace transport
 						});
 				}
 				else
-					it.second->CleanUp ();
+					it.second->CleanUp (ts);
 			ScheduleTermination ();
 		}
 	}
 
 	void SSUServer::ScheduleTerminationV6 ()
 	{
-		m_TerminationTimerV6.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		uint64_t timeout = SSU_TERMINATION_CHECK_TIMEOUT + (rand () % SSU_TERMINATION_CHECK_TIMEOUT)/5;
+		m_TerminationTimerV6.expires_from_now (boost::posix_time::seconds(timeout));
 		m_TerminationTimerV6.async_wait (std::bind (&SSUServer::HandleTerminationTimerV6,
 			this, std::placeholders::_1));
 	}
@@ -983,7 +985,7 @@ namespace transport
 						});
 				}
 				else
-					it.second->CleanUp ();
+					it.second->CleanUp (ts);
 			ScheduleTerminationV6 ();
 		}
 	}
