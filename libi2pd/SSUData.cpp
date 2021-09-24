@@ -310,7 +310,7 @@ namespace transport
 		if (m_SentMessages.empty ()) // schedule resend at first message only
 			ScheduleResend ();
 
-		auto ret = m_SentMessages.insert (std::make_pair (msgID, m_Session.GetServer ().GetSentMessagesPool ().AcquireShared ()));
+		auto ret = m_SentMessages.emplace (msgID, m_Session.GetServer ().GetSentMessagesPool ().AcquireShared ());
 		auto& sentMessage = ret.first->second;
 		if (ret.second)
 		{

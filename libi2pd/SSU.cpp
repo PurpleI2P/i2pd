@@ -218,7 +218,7 @@ namespace transport
 
 	void SSUServer::AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay)
 	{
-		m_Relays[tag] = relay;
+		m_Relays.emplace (tag, relay);
 	}
 
 	void SSUServer::RemoveRelay (uint32_t tag)
