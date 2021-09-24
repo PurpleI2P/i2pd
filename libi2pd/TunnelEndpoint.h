@@ -10,9 +10,9 @@
 #define TUNNEL_ENDPOINT_H__
 
 #include <inttypes.h>
-#include <unordered_map>
 #include <vector>
 #include <string>
+#include <boost/container/flat_map.hpp>
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 
@@ -59,8 +59,8 @@ namespace tunnel
 		
 		private:
 
-			std::unordered_map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-			std::unordered_map<uint64_t, std::unique_ptr<Fragment> > m_OutOfSequenceFragments; // ((msgID << 8) + fragment#)->fragment
+			boost::container::flat_map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+			boost::container::flat_map<uint64_t, std::unique_ptr<Fragment> > m_OutOfSequenceFragments; // ((msgID << 8) + fragment#)->fragment
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
 			TunnelMessageBlockEx m_CurrentMessage;
