@@ -139,7 +139,7 @@ namespace transport
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
 			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
-			boost::container::flat_map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
+			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
 
 			i2p::util::MemoryPool<Fragment> m_FragmentsPool;
 			i2p::util::MemoryPool<IncompleteMessage> m_IncompleteMessagesPool;

@@ -12,9 +12,10 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <map>
+#include <unordered_map>
 #include <memory>
 #include <boost/asio.hpp>
-#include <boost/container/flat_map.hpp>
 #include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -123,9 +124,9 @@ namespace transport
 		private:
 
 			SSUSession& m_Session;
-			boost::container::flat_map<uint32_t, std::shared_ptr<IncompleteMessage> > m_IncompleteMessages;
-			boost::container::flat_map<uint32_t, std::shared_ptr<SentMessage> > m_SentMessages;
-			boost::container::flat_map<uint32_t, uint64_t> m_ReceivedMessages; // msgID -> timestamp in seconds
+			std::map<uint32_t, std::shared_ptr<IncompleteMessage> > m_IncompleteMessages;
+			std::map<uint32_t, std::shared_ptr<SentMessage> > m_SentMessages;
+			std::unordered_map<uint32_t, uint64_t> m_ReceivedMessages; // msgID -> timestamp in seconds
 			boost::asio::deadline_timer m_ResendTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;
