@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -153,16 +153,22 @@ namespace client
 			void Stop ();
 
 			const char* GetName() { return m_Name.c_str (); }
-
+			void SetKeepAliveInterval (uint32_t keepAliveInterval);
+			
 		private:
 
 			std::shared_ptr<const Address> GetAddress ();
+			
+			void ScheduleKeepAliveTimer ();
+			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
 		private:
 
 			std::string m_Name, m_Destination;
 			std::shared_ptr<const Address> m_Address;
 			int m_DestinationPort;
+			uint32_t m_KeepAliveInterval;
+			std::unique_ptr<boost::asio::deadline_timer> m_KeepAliveTimer;
 	};
 
 

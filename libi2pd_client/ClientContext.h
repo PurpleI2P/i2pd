@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -48,6 +48,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
 	const char I2P_CLIENT_TUNNEL_MATCH_TUNNELS[] = "matchtunnels";
 	const char I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT[] = "connecttimeout";
+	const char I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL[] = "keepaliveinterval";
 	const char I2P_SERVER_TUNNEL_HOST[] = "host";
 	const char I2P_SERVER_TUNNEL_HOST_OVERRIDE[] = "hostoverride";
 	const char I2P_SERVER_TUNNEL_PORT[] = "port";

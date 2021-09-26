@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -652,6 +652,13 @@ namespace client
 							auto tun = std::make_shared<I2PClientTunnel> (name, dest, address, port, localDestination, destinationPort);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
+
+							uint32_t keepAlive = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL, 0);
+							if (keepAlive)
+							{
+								tun->SetKeepAliveInterval (keepAlive);
+								LogPrint(eLogInfo, "Clients: I2P Client tunnel keep alive interval set to ", keepAlive);
+							}
 						}
 
 						uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);

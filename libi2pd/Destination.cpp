@@ -1096,6 +1096,31 @@ namespace client
 			return nullptr;
 	}
 
+	void ClientDestination::SendPing (const i2p::data::IdentHash& to)
+	{
+		if (m_StreamingDestination)
+		{	
+			auto leaseSet = FindLeaseSet (to);
+			if (leaseSet)
+				m_StreamingDestination->SendPing (leaseSet);
+			else
+				RequestDestination (to,
+					[s = m_StreamingDestination](std::shared_ptr<const i2p::data::LeaseSet> ls)
+					{
+						if (ls) s->SendPing (ls);
+					});
+		}	
+	}	
+
+	void ClientDestination::SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to)
+	{
+		RequestDestinationWithEncryptedLeaseSet (to,
+			[s = m_StreamingDestination](std::shared_ptr<const i2p::data::LeaseSet> ls)
+			{
+				if (ls) s->SendPing (ls);
+			});                                      
+	}	
+		
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (int port) const
 	{
 		if (port)

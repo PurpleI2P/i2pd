@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -532,7 +532,7 @@ namespace client
 	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination,
 		const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort):
 		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination),
-		m_DestinationPort (destinationPort)
+		m_DestinationPort (destinationPort), m_KeepAliveInterval (0)
 	{
 	}
 
@@ -540,14 +540,24 @@ namespace client
 	{
 		TCPIPAcceptor::Start ();
 		GetAddress ();
+		if (m_KeepAliveInterval)
+			ScheduleKeepAliveTimer ();
 	}
 
 	void I2PClientTunnel::Stop ()
 	{
 		TCPIPAcceptor::Stop();
 		m_Address = nullptr;
+		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
 	}
 
+	void I2PClientTunnel::SetKeepAliveInterval (uint32_t keepAliveInterval)
+	{
+		m_KeepAliveInterval = keepAliveInterval;
+		if (m_KeepAliveInterval)
+			m_KeepAliveTimer.reset (new boost::asio::deadline_timer (GetLocalDestination ()->GetService ()));
+	}	
+		
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
 	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
@@ -569,6 +579,31 @@ namespace client
 			return nullptr;
 	}
 
+	void I2PClientTunnel::ScheduleKeepAliveTimer ()
+	{
+		if (m_KeepAliveTimer)
+		{
+			m_KeepAliveTimer->expires_from_now (boost::posix_time::seconds(m_KeepAliveInterval));
+			m_KeepAliveTimer->async_wait (std::bind (&I2PClientTunnel::HandleKeepAliveTimer,
+				this, std::placeholders::_1));
+		}	
+	}	
+
+	void I2PClientTunnel::HandleKeepAliveTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_Address && m_Address->IsValid ())
+			{	
+				if (m_Address->IsIdentHash ())
+					GetLocalDestination ()->SendPing (m_Address->identHash);
+				else
+					GetLocalDestination ()->SendPing (m_Address->blindedPublicKey);
+			}	
+			ScheduleKeepAliveTimer ();
+		}
+	}	
+		
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address,
 		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
