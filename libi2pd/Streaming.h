@@ -179,7 +179,8 @@ namespace stream
 			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
-
+			void SendPing ();
+			
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
@@ -268,6 +269,7 @@ namespace stream
 			void Stop ();
 
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
+			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void DeleteStream (std::shared_ptr<Stream> stream);
 			bool DeleteStream (uint32_t recvStreamID);
 			void SetAcceptor (const Acceptor& acceptor);
