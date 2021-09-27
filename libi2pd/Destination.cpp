@@ -1104,18 +1104,22 @@ namespace client
 			if (leaseSet)
 				m_StreamingDestination->SendPing (leaseSet);
 			else
+			{	
+				auto s = m_StreamingDestination;
 				RequestDestination (to,
-					[s = m_StreamingDestination](std::shared_ptr<const i2p::data::LeaseSet> ls)
+					[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
 					{
 						if (ls) s->SendPing (ls);
 					});
+			}		
 		}	
 	}	
 
 	void ClientDestination::SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to)
 	{
+		auto s = m_StreamingDestination;
 		RequestDestinationWithEncryptedLeaseSet (to,
-			[s = m_StreamingDestination](std::shared_ptr<const i2p::data::LeaseSet> ls)
+			[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
 			{
 				if (ls) s->SendPing (ls);
 			});                                      
