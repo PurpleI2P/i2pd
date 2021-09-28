@@ -964,7 +964,8 @@ namespace client
 		RemotePort(remotePort), m_LastPort (0),
 		m_cancel_resolve(false)
 	{
-		m_LocalSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
+		m_LocalSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU));
+		m_LocalSocket.set_option (boost::asio::socket_base::reuse_address (true));
 
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
@@ -991,7 +992,8 @@ namespace client
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
 		if(ec) {
-			LogPrint(eLogError, "UDP Client: ", ec.message());
+			LogPrint(eLogError, "UDP Client: Reading from socket error: ", ec.message(), ". Restarting listener...");
+			RecvFromLocal(); // Restart listener and continue work
 			return;
 		}
 		if(!m_RemoteIdent) {
@@ -1016,7 +1018,7 @@ namespace client
 		auto ts = i2p::util::GetMillisecondsSinceEpoch();
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		auto session = m_LocalDest->GetDatagramDestination()->GetSession (*m_RemoteIdent);
-		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)		
+		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		else
 			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
