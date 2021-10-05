@@ -71,6 +71,7 @@ namespace tunnel
 			std::shared_ptr<const TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const;
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const;
+			bool IsShortBuildMessage () const { return m_IsShortBuildMessage; };
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state);
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
@@ -109,8 +110,10 @@ namespace tunnel
 
 			std::shared_ptr<const TunnelConfig> m_Config;
 			std::vector<std::unique_ptr<TunnelHop> > m_Hops;
+			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
+			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace 
 			uint64_t m_Latency; // in milliseconds
 	};

@@ -495,6 +495,8 @@ namespace tunnel
 			}	
 			prevHop = hop;
 			path.Add (hop);
+			if (i == numHops - 1)
+				path.farEndTransports = hop->GetCompatibleTransports (inbound);
 		}
 		return true;
 	}
@@ -527,7 +529,11 @@ namespace tunnel
 			if (r)
 			{	
 				if (r->IsECIES ())	
+				{	
 					path.Add (r);
+					if (i == numHops - 1)
+						path.farEndTransports = r->GetCompatibleTransports (isInbound);
+				}	
 				else
 				{	
 					LogPrint (eLogError, "Tunnels: ElGamal router ", ident.ToBase64 (), " is not supported");
@@ -557,7 +563,7 @@ namespace tunnel
 			if (m_NumInboundHops > 0)
 			{
 				path.Reverse ();
-				config = std::make_shared<TunnelConfig> (path.peers, path.isShort);
+				config = std::make_shared<TunnelConfig> (path.peers, path.isShort, path.farEndTransports);
 			}
 			auto tunnel = tunnels.CreateInboundTunnel (config, shared_from_this (), outboundTunnel);
 			if (tunnel->IsEstablished ()) // zero hops
@@ -581,7 +587,7 @@ namespace tunnel
 		std::shared_ptr<TunnelConfig> config;
 		if (m_NumInboundHops > 0 && tunnel->GetPeers().size())
 		{
-			config = std::make_shared<TunnelConfig>(tunnel->GetPeers ());
+			config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), tunnel->IsShortBuildMessage ());
 		}
 		if (!m_NumInboundHops || config)
 		{
@@ -606,7 +612,8 @@ namespace tunnel
 			{
 				std::shared_ptr<TunnelConfig> config;
 				if (m_NumOutboundHops > 0)
-					config = std::make_shared<TunnelConfig>(path.peers, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash (), path.isShort);
+					config = std::make_shared<TunnelConfig>(path.peers, inboundTunnel->GetNextTunnelID (), 
+						inboundTunnel->GetNextIdentHash (), path.isShort, path.farEndTransports);
 
 				std::shared_ptr<OutboundTunnel> tunnel;
 				if (path.isShort)
@@ -643,7 +650,8 @@ namespace tunnel
 			std::shared_ptr<TunnelConfig> config;
 			if (m_NumOutboundHops > 0 && tunnel->GetPeers().size())
 			{
-				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ());
+				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (), 
+					inboundTunnel->GetNextIdentHash (), inboundTunnel->IsShortBuildMessage ());
 			}
 			if (!m_NumOutboundHops || config)
 			{
@@ -660,7 +668,8 @@ namespace tunnel
 	{
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
 		auto tunnel = tunnels.CreateInboundTunnel (
-			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()) : nullptr, 
+			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers (),
+				outboundTunnel->IsShortBuildMessage ()) : nullptr, 
 		    shared_from_this (), outboundTunnel);
 		if (tunnel->IsEstablished ()) // zero hops
 			TunnelCreated (tunnel);

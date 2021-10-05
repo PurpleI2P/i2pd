@@ -82,16 +82,17 @@ namespace tunnel
 		public:
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
-				bool isShort = false): // inbound
-				m_IsShort (isShort)
+				bool isShort, i2p::data::RouterInfo::CompatibleTransports farEndTransports = 0): // inbound
+				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
 			{
 				CreatePeers (peers);
 				m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
 			}
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
-				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort = false): // outbound
-				m_IsShort (isShort)
+				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort,
+			    i2p::data::RouterInfo::CompatibleTransports farEndTransports = 0): // outbound
+				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
 			{
 				CreatePeers (peers);
 				m_FirstHop->isGateway = false;
@@ -112,6 +113,11 @@ namespace tunnel
 
 			bool IsShort () const { return m_IsShort; }
 
+			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const
+			{
+				return m_FarEndTransports;
+			}		
+			
 			TunnelHopConfig * GetFirstHop () const
 			{
 				return m_FirstHop;
@@ -178,7 +184,8 @@ namespace tunnel
 		protected:
 
 			// this constructor can't be called from outside
-			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr), m_IsShort (false)
+			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr), m_IsShort (false),
+				m_FarEndTransports (0)
 			{
 			}
 
@@ -190,6 +197,7 @@ namespace tunnel
 
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
 			bool m_IsShort;
+			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 	};
 
 	class ZeroHopsTunnelConfig: public TunnelConfig

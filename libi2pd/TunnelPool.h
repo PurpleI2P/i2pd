@@ -40,6 +40,7 @@ namespace tunnel
 	{
 		std::vector<Peer> peers;
 		bool isShort = true;
+		i2p::data::RouterInfo::CompatibleTransports farEndTransports = 0;
 	
 		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);
 		void Reverse ();

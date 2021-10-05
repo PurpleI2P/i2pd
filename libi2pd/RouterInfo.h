@@ -67,7 +67,8 @@ namespace data
 				eSSUV6 = 0x08,
 				eNTCP2V6Mesh = 0x10	
 			};
-
+			typedef uint8_t CompatibleTransports;
+		
 			enum Caps
 			{
 				eFloodfill = 0x01,
@@ -206,9 +207,10 @@ namespace data
 			void EnableMesh ();
 			void DisableMesh ();	
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
-			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };
-			bool IsReachableBy (uint8_t transports) const { return m_ReachableTransports & transports; };
-			bool HasValidAddresses () const { return m_SupportedTransports; };
+			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };	
+			bool IsReachableBy (CompatibleTransports transports) const { return m_ReachableTransports & transports; };
+			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; };	
+			bool HasValidAddresses () const { return m_SupportedTransports; };	
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
@@ -273,7 +275,8 @@ namespace data
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
-			uint8_t m_SupportedTransports, m_ReachableTransports, m_Caps;
+			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
+			uint8_t m_Caps;
 			int m_Version;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};

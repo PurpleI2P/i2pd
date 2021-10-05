@@ -31,8 +31,9 @@ namespace tunnel
 {
 	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config):
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
-		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false),
-		m_Latency (0)
+		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr), 
+		m_State (eTunnelStatePending), m_FarEndTransports (0),
+		m_IsRecreated (false), m_Latency (0)
 	{
 	}
 
@@ -180,6 +181,8 @@ namespace tunnel
 				m_Hops.push_back (std::unique_ptr<TunnelHop>(tunnelHop));
 				hop = hop->prev;
 			}
+			m_IsShortBuildMessage = m_Config->IsShort ();
+			m_FarEndTransports = m_Config->GetFarEndTransports ();
 			m_Config = nullptr;
 		}
 		if (established) m_State = eTunnelStateEstablished;
@@ -715,7 +718,7 @@ namespace tunnel
 			LogPrint (eLogDebug, "Tunnel: creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
 				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () },
-					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()), nullptr
+					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash (), false), nullptr
 			);
 		}
 	}
@@ -791,7 +794,7 @@ namespace tunnel
 			}
 			LogPrint (eLogDebug, "Tunnel: creating one hop inbound tunnel");
 			CreateTunnel<InboundTunnel> (
-				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () }), nullptr
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () }, false), nullptr
 			);
 		}
 	}
@@ -897,7 +900,7 @@ namespace tunnel
 			{
 				// build symmetric outbound tunnel
 				CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
-						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()), nullptr,
+						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash (), false), nullptr,
 					GetNextOutboundTunnel ());
 			}
 			else
