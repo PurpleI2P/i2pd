@@ -610,6 +610,9 @@ namespace tunnel
 			Path path;
 			if (SelectPeers (path, false))
 			{
+				if (m_LocalDestination && !m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
+					path.isShort = false; // because can't handle ECIES encrypted reply
+				
 				std::shared_ptr<TunnelConfig> config;
 				if (m_NumOutboundHops > 0)
 					config = std::make_shared<TunnelConfig>(path.peers, inboundTunnel->GetNextTunnelID (), 
