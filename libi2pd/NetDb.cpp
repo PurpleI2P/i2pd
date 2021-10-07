@@ -963,7 +963,8 @@ namespace data
 				if (router)
 				{
 					LogPrint (eLogDebug, "NetDb: requested RouterInfo ", key, " found");
-					router->LoadBuffer ();
+					if (!router->GetBuffer ())
+						router->LoadBuffer (m_Storage.Path (router->GetIdentHashBase64 ()));
 					if (router->GetBuffer ())
 						replyMsg = CreateDatabaseStoreMsg (router);
 				}

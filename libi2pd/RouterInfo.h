@@ -226,7 +226,7 @@ namespace data
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
-			const uint8_t * LoadBuffer (); // load if necessary
+			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			int GetBufferLen () const { return m_BufferLen; };
 			void CreateBuffer (const PrivateKeys& privateKeys);
 
@@ -252,8 +252,8 @@ namespace data
 
 		private:
 
-			bool LoadFile ();
-			void ReadFromFile ();
+			bool LoadFile (const std::string& fullPath);
+			void ReadFromFile (const std::string& fullPath);
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer (bool verifySignature);
 			void WriteToStream (std::ostream& s) const;
@@ -267,7 +267,7 @@ namespace data
 
 		private:
 
-			std::string m_FullPath, m_Family;
+			std::string m_Family;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;

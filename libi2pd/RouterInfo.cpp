@@ -35,12 +35,12 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
-		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false),
-		m_SupportedTransports (0), m_ReachableTransports (0), m_Caps (0), m_Version (0)
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0),
+		m_ReachableTransports (0), m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-		ReadFromFile ();
+		ReadFromFile (fullPath);
 	}
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
@@ -113,16 +113,16 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
-	bool RouterInfo::LoadFile ()
+	bool RouterInfo::LoadFile (const std::string& fullPath)
 	{
-		std::ifstream s(m_FullPath, std::ifstream::binary);
+		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())
 		{
 			s.seekg (0,std::ios::end);
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
 			{
-				LogPrint(eLogError, "RouterInfo: File", m_FullPath, " is malformed");
+				LogPrint(eLogError, "RouterInfo: File", fullPath, " is malformed");
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
@@ -131,15 +131,15 @@ namespace data
 		}
 		else
 		{
-			LogPrint (eLogError, "RouterInfo: Can't open file ", m_FullPath);
+			LogPrint (eLogError, "RouterInfo: Can't open file ", fullPath);
 			return false;
 		}
 		return true;
 	}
 
-	void RouterInfo::ReadFromFile ()
+	void RouterInfo::ReadFromFile (const std::string& fullPath)
 	{
-		if (LoadFile ())
+		if (LoadFile (fullPath))
 			ReadFromBuffer (false);
 		else
 			m_IsUnreachable = true;
@@ -748,11 +748,11 @@ namespace data
 		return bufbe64toh (buf + size) > m_Timestamp;
 	}
 
-	const uint8_t * RouterInfo::LoadBuffer ()
+	const uint8_t * RouterInfo::LoadBuffer (const std::string& fullPath)
 	{
 		if (!m_Buffer)
 		{
-			if (LoadFile ())
+			if (LoadFile (fullPath))
 				LogPrint (eLogDebug, "RouterInfo: Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
 		}
 		return m_Buffer;
@@ -783,8 +783,8 @@ namespace data
 
 	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
-		m_FullPath = fullPath;
-		if (!m_Buffer) {
+		if (!m_Buffer) 
+		{
 			LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL");
 			return false;
 		}
