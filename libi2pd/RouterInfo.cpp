@@ -194,6 +194,7 @@ namespace data
 		auto addresses = boost::make_shared<Addresses>();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;
+		addresses->reserve (numAddresses);
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;

@@ -13,7 +13,6 @@
 #include <string>
 #include <map>
 #include <vector>
-#include <list>
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -157,7 +156,7 @@ namespace data
 				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); };
 				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
 			};
-			typedef std::list<std::shared_ptr<Address> > Addresses;
+			typedef std::vector<std::shared_ptr<Address> > Addresses;
 
 			RouterInfo ();
 			RouterInfo (const std::string& fullPath);
