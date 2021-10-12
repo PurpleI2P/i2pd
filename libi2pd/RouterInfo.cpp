@@ -187,13 +187,14 @@ namespace data
 
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
+		if (!s) return;
 		m_Caps = 0;
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
 		auto addresses = boost::make_shared<Addresses>();
 		uint8_t numAddresses;
-		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;
+		s.read ((char *)&numAddresses, sizeof (numAddresses)); 
 		addresses->reserve (numAddresses);
 		for (int i = 0; i < numAddresses; i++)
 		{
@@ -282,7 +283,11 @@ namespace data
 						if (s) continue; else return;
 					}
 					if (index >= address->ssu->introducers.size ())
+					{	
+						if (address->ssu->introducers.empty ()) // first time
+							address->ssu->introducers.reserve (3);
 						address->ssu->introducers.resize (index + 1);
+					}	
 					Introducer& introducer = address->ssu->introducers.at (index);
 					if (!strcmp (key, "ihost"))
 					{
