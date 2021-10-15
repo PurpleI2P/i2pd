@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -31,16 +31,16 @@ namespace garlic
 		uint8_t keydata[64];
 		i2p::crypto::HKDF (rootKey, k, 32, "KDFDHRatchetStep", keydata); // keydata = HKDF(rootKey, k, "KDFDHRatchetStep", 64)
 		memcpy (m_NextRootKey, keydata, 32); // nextRootKey = keydata[0:31]
-		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_KeyData.buf);
+		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "TagAndKeyGenKeys", m_SessionTagKeyData);
 		// [sessTag_ck, symmKey_ck] = HKDF(keydata[32:63], ZEROLEN, "TagAndKeyGenKeys", 64)
-		memcpy (m_SymmKeyCK, m_KeyData.buf + 32, 32);
+		memcpy (m_SymmKeyCK, (const uint8_t *)m_SessionTagKeyData + 32, 32);
 		m_NextSymmKeyIndex = 0;
 	}
 
 	void RatchetTagSet::NextSessionTagRatchet ()
 	{
-		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), nullptr, 0, "STInitialization", m_KeyData.buf); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
-		memcpy (m_SessTagConstant, m_KeyData.GetSessTagConstant (), 32);
+		i2p::crypto::HKDF (m_SessionTagKeyData, nullptr, 0, "STInitialization", m_SessionTagKeyData); // [sessTag_ck, sesstag_constant] = HKDF(sessTag_ck, ZEROLEN, "STInitialization", 64)
+		memcpy (m_SessTagConstant, (const uint8_t *)m_SessionTagKeyData + 32, 32); // SESSTAG_CONSTANT = keydata[32:63]
 		m_NextIndex = 0;
 	}
 
@@ -52,8 +52,8 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Tagset ", GetTagSetID (), " is empty");
 			return 0;
 		}
-		i2p::crypto::HKDF (m_KeyData.GetSessTagCK (), m_SessTagConstant, 32, "SessionTagKeyGen", m_KeyData.buf); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
-		return m_KeyData.GetTag ();
+		i2p::crypto::HKDF (m_SessionTagKeyData, m_SessTagConstant, 32, "SessionTagKeyGen", m_SessionTagKeyData); // [sessTag_ck, tag] = HKDF(sessTag_chainkey, SESSTAG_CONSTANT, "SessionTagKeyGen", 64)
+		return m_SessionTagKeyData.GetLL ()[4]; // tag = keydata[32:39]
 	}
 
 	void RatchetTagSet::GetSymmKey (int index, uint8_t * key)
@@ -239,7 +239,7 @@ namespace garlic
 		MixHash (m_Aepk, 32); // h = SHA256(h || aepk)
 
 		uint8_t sharedSecret[32];
-		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (m_Aepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
 		{
 			LogPrint (eLogWarning, "Garlic: Incorrect Alice ephemeral key");
 			return false;
@@ -263,7 +263,7 @@ namespace garlic
 		{
 			// static key, fs is apk
 			memcpy (m_RemoteStaticKey, fs, 32);
-			if (!GetOwner ()->Decrypt (fs, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
+			if (!GetOwner ()->Decrypt (fs, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, apk)
 			{
 				LogPrint (eLogWarning, "Garlic: Incorrect Alice static key");
 				return false;
@@ -492,7 +492,7 @@ namespace garlic
 		// KDF2
 		if (isStatic)
 		{	
-			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
+			GetOwner ()->Decrypt (m_RemoteStaticKey, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bpk)
 			MixKey (sharedSecret); 
 		}
 		else
@@ -518,36 +518,7 @@ namespace garlic
 		}
 		return true;
 	}
-
-	bool ECIESX25519AEADRatchetSession::NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
-	{
-		// we are Alice, router's bpk is m_RemoteStaticKey
-		i2p::crypto::InitNoiseNState (GetNoiseState (), m_RemoteStaticKey);
-		size_t offset = 0;
-		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-		memcpy (out + offset, m_EphemeralKeys->GetPublicKey (), 32);
-		MixHash (out + offset, 32); // h = SHA256(h || aepk)
-		offset += 32;
-		uint8_t sharedSecret[32];
-		if (!m_EphemeralKeys->Agree (m_RemoteStaticKey, sharedSecret)) // x25519(aesk, bpk)
-		{
-			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
-			return false;
-		}	
-		MixKey (sharedSecret); 
-		uint8_t nonce[12];
-		CreateNonce (0, nonce);
-		// encrypt payload
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, m_H, 32, m_CK + 32, nonce, out + offset, len + 16, true)) // encrypt
-		{
-			LogPrint (eLogWarning, "Garlic: Payload for router AEAD encryption failed");
-			return false;
-		}
-		
-		m_State = eSessionStateNewSessionSent;
-		return true;
-	}
-		
+	
 	bool ECIESX25519AEADRatchetSession::NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen)
 	{
 		// we are Bob
@@ -668,7 +639,7 @@ namespace garlic
 			return false;
 		}	
 		MixKey (sharedSecret);
-		GetOwner ()->Decrypt (bepk, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
+		GetOwner ()->Decrypt (bepk, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD); // x25519 (ask, bepk)
 		MixKey (sharedSecret);
 
 		uint8_t nonce[12];
@@ -824,8 +795,9 @@ namespace garlic
 		
 	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
-		auto payload = CreatePayload (msg, m_State != eSessionStateEstablished);
-		size_t len = payload.size ();
+		uint8_t * payload = GetOwner ()->GetPayloadBuffer ();
+		if (!payload) return nullptr;
+		size_t len = CreatePayload (msg, m_State != eSessionStateEstablished, payload);
 		if (!len) return nullptr;
 		auto m = NewI2NPMessage (len + 100); // 96 + 4
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -834,34 +806,29 @@ namespace garlic
 		switch (m_State)
 		{
 			case eSessionStateEstablished:
-				if (!NewExistingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewExistingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 24;
 			break;
 			case eSessionStateNew:
-				if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 96;
 			break;
 			case eSessionStateNewSessionReceived:
-				if (!NewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
 			break;
 			case eSessionStateNewSessionReplySent:
-				if (!NextNewSessionReplyMessage (payload.data (), payload.size (), buf, m->maxLen))
+				if (!NextNewSessionReplyMessage (payload, len, buf, m->maxLen))
 					return nullptr;
 				len += 72;
 			break;
 			case eSessionStateOneTime:
-				if (!NewOutgoingSessionMessage (payload.data (), payload.size (), buf, m->maxLen, false))
+				if (!NewOutgoingSessionMessage (payload, len, buf, m->maxLen, false))
 					return nullptr;
 				len += 96;
-			break;	
-			case eSessionStateForRouter:
-				if (!NewOutgoingMessageForRouter (payload.data (), payload.size (), buf, m->maxLen))
-					return nullptr;
-				len += 48;
 			break;	
 			default:
 				return nullptr;
@@ -873,13 +840,13 @@ namespace garlic
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter)
+	std::shared_ptr<I2NPMessage> ECIESX25519AEADRatchetSession::WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
-		m_State = isForRouter ? eSessionStateForRouter : eSessionStateOneTime;
+		m_State = eSessionStateOneTime;
 		return WrapSingleMessage (msg);
 	}	
 		
-	std::vector<uint8_t> ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first)
+	size_t ECIESX25519AEADRatchetSession::CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first, uint8_t * payload)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
@@ -941,89 +908,93 @@ namespace garlic
 				payloadLen += paddingSize + 3;
 			}
 		}
-		std::vector<uint8_t> v(payloadLen);
 		if (payloadLen)
-		{	
+		{
+			if (payloadLen > I2NP_MAX_MESSAGE_SIZE)
+			{
+				LogPrint (eLogError, "Garlic: payload length ", payloadLen, " is too long");
+				return 0;
+			}	
 			m_LastSentTimestamp = ts;
 			size_t offset = 0;
 			// DateTime
 			if (first)
 			{
-				v[offset] = eECIESx25519BlkDateTime; offset++;
-				htobe16buf (v.data () + offset, 4); offset += 2;
-				htobe32buf (v.data () + offset, ts/1000); offset += 4; // in seconds
+				payload[offset] = eECIESx25519BlkDateTime; offset++;
+				htobe16buf (payload + offset, 4); offset += 2;
+				htobe32buf (payload + offset, ts/1000); offset += 4; // in seconds
 			}
 			// LeaseSet
 			if (leaseSet)
 			{
-				offset += CreateLeaseSetClove (leaseSet, ts, v.data () + offset, payloadLen - offset);
+				offset += CreateLeaseSetClove (leaseSet, ts, payload + offset, payloadLen - offset);
 				if (!first)
 				{
 					// ack request
-					v[offset] = eECIESx25519BlkAckRequest; offset++;
-					htobe16buf (v.data () + offset, 1); offset += 2;
-					v[offset] = 0; offset++; // flags
+					payload[offset] = eECIESx25519BlkAckRequest; offset++;
+					htobe16buf (payload + offset, 1); offset += 2;
+					payload[offset] = 0; offset++; // flags
 				}
 			}
 			// msg
 			if (msg)
-				offset += CreateGarlicClove (msg, v.data () + offset, payloadLen - offset);
+				offset += CreateGarlicClove (msg, payload + offset, payloadLen - offset);
 			// ack
 			if (m_AckRequests.size () > 0)
 			{
-				v[offset] = eECIESx25519BlkAck; offset++;
-				htobe16buf (v.data () + offset, m_AckRequests.size () * 4); offset += 2;
+				payload[offset] = eECIESx25519BlkAck; offset++;
+				htobe16buf (payload + offset, m_AckRequests.size () * 4); offset += 2;
 				for (auto& it: m_AckRequests)
 				{
-					htobe16buf (v.data () + offset, it.first); offset += 2;
-					htobe16buf (v.data () + offset, it.second); offset += 2;
+					htobe16buf (payload + offset, it.first); offset += 2;
+					htobe16buf (payload + offset, it.second); offset += 2;
 				}
 				m_AckRequests.clear ();
 			}
 			// next keys
 			if (m_SendReverseKey)
 			{
-				v[offset] = eECIESx25519BlkNextKey; offset++;
-				htobe16buf (v.data () + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
-				v[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
+				payload[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (payload + offset, m_NextReceiveRatchet->newKey ? 35 : 3); offset += 2;
+				payload[offset] = ECIESX25519_NEXT_KEY_REVERSE_KEY_FLAG;
 				int keyID = m_NextReceiveRatchet->keyID - 1;
 				if (m_NextReceiveRatchet->newKey)
 				{
-					v[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
+					payload[offset] |= ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG;
 					keyID++;
 				}
 				offset++; // flag
-				htobe16buf (v.data () + offset, keyID); offset += 2; // keyid
+				htobe16buf (payload + offset, keyID); offset += 2; // keyid
 				if (m_NextReceiveRatchet->newKey)
 				{
-					memcpy (v.data () + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
+					memcpy (payload + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
 				m_SendReverseKey = false;
 			}
 			if (m_SendForwardKey)
 			{
-				v[offset] = eECIESx25519BlkNextKey; offset++;
-				htobe16buf (v.data () + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
-				v[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
-				if (!m_NextSendRatchet->keyID) v[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
+				payload[offset] = eECIESx25519BlkNextKey; offset++;
+				htobe16buf (payload + offset, m_NextSendRatchet->newKey ? 35 : 3); offset += 2;
+				payload[offset] = m_NextSendRatchet->newKey ? ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG : ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
+				if (!m_NextSendRatchet->keyID) payload[offset] |= ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG; // for first key only
 				offset++; // flag
-				htobe16buf (v.data () + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
+				htobe16buf (payload + offset, m_NextSendRatchet->keyID); offset += 2; // keyid
 				if (m_NextSendRatchet->newKey)
 				{
-					memcpy (v.data () + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
+					memcpy (payload + offset, m_NextSendRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
 			}
 			// padding
 			if (paddingSize)
 			{
-				v[offset] = eECIESx25519BlkPadding; offset++;
-				htobe16buf (v.data () + offset, paddingSize); offset += 2;
-				memset (v.data () + offset, 0, paddingSize); offset += paddingSize;
+				payload[offset] = eECIESx25519BlkPadding; offset++;
+				htobe16buf (payload + offset, paddingSize); offset += 2;
+				memset (payload + offset, 0, paddingSize); offset += paddingSize;
 			}
 		}	
-		return v;
+		return payloadLen;
 	}
 
 	size_t ECIESX25519AEADRatchetSession::CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len)
@@ -1113,7 +1084,7 @@ namespace garlic
 		// we are Bob
 		m_CurrentNoiseState.MixHash (buf, 32);
 		uint8_t sharedSecret[32];
-		if (!GetOwner ()->Decrypt (buf, sharedSecret, nullptr, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
+		if (!GetOwner ()->Decrypt (buf, sharedSecret, i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)) // x25519(bsk, aepk)
 		{
 			LogPrint (eLogWarning, "Garlic: Incorrect N ephemeral public key");
 			return false;
@@ -1132,40 +1103,108 @@ namespace garlic
 		HandlePayload (payload.data (), len - 16, nullptr, 0);
 		return true;
 	}	
+
+	static size_t CreateGarlicPayload (std::shared_ptr<const I2NPMessage> msg, uint8_t * payload, 
+		bool datetime, size_t optimalSize)
+	{
+		size_t len = 0;
+		if (datetime)
+		{	
+			// DateTime
+			payload[0] = eECIESx25519BlkDateTime; 
+			htobe16buf (payload + 1, 4);
+			htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ()); 
+			len = 7;
+		}	
+		// I2NP
+		payload += len;
+		uint16_t cloveSize = msg->GetPayloadLength () + 10;
+		payload[0] = eECIESx25519BlkGalicClove; // clove type
+		htobe16buf (payload + 1, cloveSize); // size
+		payload += 3;
+		payload[0] = 0; // flag and delivery instructions
+		payload[1] = msg->GetTypeID (); // I2NP msg type
+		htobe32buf (payload + 2, msg->GetMsgID ()); // msgID
+		htobe32buf (payload + 6, msg->GetExpiration () / 1000); // expiration in seconds
+		memcpy (payload + 10, msg->GetPayload (), msg->GetPayloadLength ());
+		len += cloveSize + 3;
+		payload += cloveSize;
+		// padding
+		int delta = (int)optimalSize - (int)len;
+		if (delta < 0 || delta > 3) // don't create padding if we are close to optimal size
+		{
+			uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+			if (delta > 3)
+			{
+				delta -= 3;
+				if (paddingSize > delta) paddingSize %= delta;
+			}
+			payload[0] = eECIESx25519BlkPadding; 
+			htobe16buf (payload + 1, paddingSize); 
+			if (paddingSize) memset (payload + 3, 0, paddingSize);
+			len += paddingSize + 3;
+		}	
+		return len;
+	}	
 		
-	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
 		auto m = NewI2NPMessage ();
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
-		uint8_t nonce[12];
-		memset (nonce, 0, 12); // n = 0
 		size_t offset = 0;
 		memcpy (buf + offset, &tag, 8); offset += 8;
 		auto payload = buf + offset;
-		uint16_t cloveSize = msg->GetPayloadLength () + 9 + 1;
-		size_t len = cloveSize + 3;
-		payload[0] = eECIESx25519BlkGalicClove; // clove type
-		htobe16buf (payload + 1, cloveSize); // size
-		payload += 3;
-		*payload = 0; payload++; // flag and delivery instructions
-		*payload = msg->GetTypeID (); // I2NP msg type
-		htobe32buf (payload + 1, msg->GetMsgID ()); // msgID
-		htobe32buf (payload + 5, msg->GetExpiration () / 1000); // expiration in seconds
-		memcpy (payload + 9, msg->GetPayload (), msg->GetPayloadLength ());
-
-		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + offset, len, buf, 8, key, nonce, buf + offset, len + 16, true)) // encrypt
+		size_t len = CreateGarlicPayload (msg, payload, false, 956); // 1003 - 8 tag - 16 Poly1305 hash - 16 I2NP header - 4 garlic length - 3 local tunnel delivery
+		uint8_t nonce[12];
+		memset (nonce, 0, 12); // n = 0
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, buf, 8, key, nonce, payload, len + 16, true)) // encrypt
 		{
 			LogPrint (eLogWarning, "Garlic: Payload section AEAD encryption failed");
 			return nullptr;
 		}
 		offset += len + 16;
-
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
 		return m;
 	}
 
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey)
+	{
+		// Noise_N, we are Alice, routerPublicKey is Bob's
+		i2p::crypto::NoiseSymmetricState noiseState;
+		i2p::crypto::InitNoiseNState (noiseState, routerPublicKey);
+		auto m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
+		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+		size_t offset = 0;
+		auto ephemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+		memcpy (buf + offset, ephemeralKeys->GetPublicKey (), 32);
+		noiseState.MixHash (buf + offset, 32); // h = SHA256(h || aepk)
+		offset += 32;
+		uint8_t sharedSecret[32];
+		if (!ephemeralKeys->Agree (routerPublicKey, sharedSecret)) // x25519(aesk, bpk)
+		{
+			LogPrint (eLogWarning, "Garlic: Incorrect Bob static key");
+			return nullptr;
+		}	
+		noiseState.MixKey (sharedSecret); 
+		auto payload = buf + offset;
+		size_t len = CreateGarlicPayload (msg, payload, true, 900); // 1003 - 32 eph key - 16 Poly1305 hash - 16 I2NP header - 4 garlic length - 35 router tunnel delivery
+		uint8_t nonce[12];
+		memset (nonce, 0, 12);
+		// encrypt payload
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len, noiseState.m_H, 32, noiseState.m_CK + 32, nonce, payload, len + 16, true)) // encrypt
+		{
+			LogPrint (eLogWarning, "Garlic: Payload for router AEAD encryption failed");
+			return nullptr;
+		}
+		offset += len + 16;
+		htobe32buf (m->GetPayload (), offset);
+		m->len += offset + 4;
+		m->FillI2NPMessageHeader (eI2NPGarlic);
+		return m;
+	}	
 }
 }

@@ -75,6 +75,9 @@ namespace fs {
 	/** @brief Returns datadir path */
 	const std::string & GetDataDir();
 
+	/** @brief Returns certsdir path */
+	const std::string & GetCertsDir();
+
 	/** @brief Returns datadir path in UTF-8 encoding */
 	const std::string GetUTF8DataDir();
 
@@ -90,7 +93,20 @@ namespace fs {
 	 *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/
 	 *   Unix: /var/lib/i2pd/ (system=1) >> ~/.i2pd/ or /tmp/i2pd/
 	 */
-	void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
+	 void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
+
+	/**
+	 * @brief Set certsdir either from cmdline option or using autodetection
+	 * @param cmdline_param  Value of cmdline parameter --certsdir=<something>
+	 *
+	 * Examples of autodetected paths:
+	 *
+	 *   Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd\certificates
+	 *   Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd\certificates
+	 *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/certificates
+	 *   Unix: /var/lib/i2pd/certificates (system=1) >> ~/.i2pd/ or /tmp/i2pd/certificates
+	 */
+	 void SetCertsDir(const std::string & cmdline_certsdir);
 
 	/**
 	 * @brief Create subdirectories inside datadir

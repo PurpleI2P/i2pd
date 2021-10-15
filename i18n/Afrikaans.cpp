@@ -13,14 +13,16 @@
 #include "I18N.h"
 
 // Afrikaans localization file
-// This is an example translation file without strings in it.
 
 namespace i2p
 {
 namespace i18n
 {
-namespace afrikaans // language
+namespace afrikaans // language namespace
 {
+	// language name in lowercase
+	static std::string language = "afrikaans";
+
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 	static int plural (int n) {
@@ -29,12 +31,9 @@ namespace afrikaans // language
 
 	static std::map<std::string, std::string> strings
 	{
-		{"Disabled", "Gedeaktiveer"},
-		{"Enabled", "Geaktiveer"},
 		{"failed", "Het misluk"},
 		{"unknown", "onbekend"},
 		{"Tunnels", "Tonnels"},
-		{"Transit tunnels", "Deurgang tonnels"},
 		{"I2P tunnels", "I2P tonnels"},
 		{"SAM sessions", "SAM sessies"},
 		{"OK", "LEKKER"},
@@ -52,6 +51,14 @@ namespace afrikaans // language
 		{"Hidden content. Press on text to see.", "Hidden content. Druk om te sien."},
 		{"Router Ident", "Router Ident"},
 		{"Router Family", "Router Familie"},
+		{"Enabled", "Geaktiveer"},
+		{"Disabled", "Gedeaktiveer"},
+		{"Change", "Verander"},
+		{"Change language", "Verander taal"},
+		{"Description", "Beskrywing"},
+		{"Submit", "Stuur"},
+		{"Proxy error", "Proxy-fout"},
+		{"Host", "Gasheer"},
 		{"", ""},
 	};
 
@@ -66,7 +73,7 @@ namespace afrikaans // language
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		return std::make_shared<i2p::i18n::Locale>(strings, plurals, [] (int n)->int { return plural(n); });
+		return std::make_shared<i2p::i18n::Locale>(language, strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

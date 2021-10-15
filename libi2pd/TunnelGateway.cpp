@@ -215,7 +215,7 @@ namespace tunnel
 		const auto& tunnelDataMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto& tunnelMsg : tunnelDataMsgs)
 		{
-			auto newMsg = CreateEmptyTunnelDataMsg ();
+			auto newMsg = CreateEmptyTunnelDataMsg (false);
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg, newMsg);
 			htobe32buf (newMsg->GetPayload (), m_Tunnel->GetNextTunnelID ());
 			newMsg->FillI2NPMessageHeader (eI2NPTunnelData);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -51,14 +51,19 @@ namespace util
 			MemoryPool (): m_Head (nullptr) {}
 			~MemoryPool ()
 			{
+				CleanUp ();
+			}
+
+			void CleanUp ()
+			{
 				while (m_Head)
 				{
 					auto tmp = m_Head;
 					m_Head = static_cast<T*>(*(void * *)m_Head); // next
 					::operator delete ((void *)tmp);
 				}
-			}
-
+			}		
+			
 			template<typename... TArgs>
 			T * Acquire (TArgs&&... args)
 			{

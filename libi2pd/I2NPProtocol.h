@@ -55,32 +55,11 @@ namespace i2p
 
 	// TunnelBuild
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
-	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 236;
+	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 218;
 	
-	//BuildRequestRecordClearText
-	const size_t BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
-	const size_t BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET = BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET + 4;
-	const size_t BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET = BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET + 32;
-	const size_t BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET = BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET + 4;
-	const size_t BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET = BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET + 32;
-	const size_t BUILD_REQUEST_RECORD_IV_KEY_OFFSET = BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET + 32;
-	const size_t BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET = BUILD_REQUEST_RECORD_IV_KEY_OFFSET + 32;
-	const size_t BUILD_REQUEST_RECORD_REPLY_IV_OFFSET = BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET + 32;
-	const size_t BUILD_REQUEST_RECORD_FLAG_OFFSET = BUILD_REQUEST_RECORD_REPLY_IV_OFFSET + 16;
-	const size_t BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET = BUILD_REQUEST_RECORD_FLAG_OFFSET + 1;
-	const size_t BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET = BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4;
-	const size_t BUILD_REQUEST_RECORD_PADDING_OFFSET = BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET + 4;
-	const size_t BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE = 222;
-
 	// BuildRequestRecordEncrypted
 	const size_t BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0;
 	const size_t BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET = BUILD_REQUEST_RECORD_TO_PEER_OFFSET + 16;
-
-	// BuildResponseRecord
-	const size_t BUILD_RESPONSE_RECORD_HASH_OFFSET = 0;
-	const size_t BUILD_RESPONSE_RECORD_PADDING_OFFSET = 32;
-	const size_t BUILD_RESPONSE_RECORD_PADDING_SIZE = 495;
-	const size_t BUILD_RESPONSE_RECORD_RET_OFFSET = BUILD_RESPONSE_RECORD_PADDING_OFFSET + BUILD_RESPONSE_RECORD_PADDING_SIZE;
 
 	// ECIES BuildRequestRecordClearText
 	const size_t ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
@@ -113,7 +92,12 @@ namespace i2p
 	const size_t SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET = SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE + 1;
 	const size_t SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET = SHORT_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4;
 	const size_t SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET = SHORT_REQUEST_RECORD_REQUEST_EXPIRATION_OFFSET + 4;
-	const size_t SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE = 172;
+	const size_t SHORT_REQUEST_RECORD_PADDING_OFFSET = SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET + 4;
+	const size_t SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE = 154;
+
+	// ShortResponseRecord
+	const size_t SHORT_RESPONSE_RECORD_OPTIONS_OFFSET = 0;
+	const size_t SHORT_RESPONSE_RECORD_RET_OFFSET = 201;
 	
 	enum I2NPMessageType
 	{
@@ -131,7 +115,7 @@ namespace i2p
 		eI2NPVariableTunnelBuild = 23,
 		eI2NPVariableTunnelBuildReply = 24,
 		eI2NPShortTunnelBuild = 25,
-		eI2NPOutboundTunnelBuildReply = 26
+		eI2NPShortTunnelBuildReply = 26
 	};
 
 	const uint8_t TUNNEL_BUILD_RECORD_GATEWAY_FLAG = 0x80;
@@ -278,7 +262,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
-	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
@@ -299,15 +283,9 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LocalLeaseSet> leaseSet, uint32_t replyToken = 0, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel = nullptr);
 	bool IsRouterInfoMsg (std::shared_ptr<I2NPMessage> msg);
 
-	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
-	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);
-
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);
-	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ();
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg (bool endpoint);
 
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType,

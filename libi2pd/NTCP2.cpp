@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,14 +32,12 @@ namespace i2p
 namespace transport
 {
 	NTCP2Establisher::NTCP2Establisher ():
-		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr)
+		m_SessionConfirmedBuffer (nullptr)
 	{
 	}
 
 	NTCP2Establisher::~NTCP2Establisher ()
 	{
-		delete[] m_SessionRequestBuffer;
-		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
 	}
 
@@ -112,9 +110,8 @@ namespace transport
 	void NTCP2Establisher::CreateSessionRequestMessage ()
 	{
 		// create buffer and fill padding
-		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
+		auto paddingLength = rand () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
 		m_SessionRequestBufferLen = paddingLength + 64;
-		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
 		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
@@ -152,9 +149,8 @@ namespace transport
 
 	void NTCP2Establisher::CreateSessionCreatedMessage ()
 	{
-		auto paddingLen = rand () % (287 - 64);
+		auto paddingLen = rand () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
-		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen];
 		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
@@ -332,7 +328,8 @@ namespace transport
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
+		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
+		m_IsSending (false), m_IsReceiving (false), m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
 		{
@@ -404,7 +401,30 @@ namespace transport
 		htole64buf (nonce + 4, seqn);
 	}
 
+	void NTCP2Session::CreateNextReceivedBuffer (size_t size)
+	{		
+		if (m_NextReceivedBuffer)
+		{
+			if (size <= m_NextReceivedBufferSize)
+				return; // buffer is good, do nothing
+			else
+				delete[] m_NextReceivedBuffer;
+		}
+		m_NextReceivedBuffer = new uint8_t[size];
+		m_NextReceivedBufferSize = size;
+	}	
 
+	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
+	{
+		if (m_NextReceivedBuffer && !m_IsReceiving && 
+		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+		{
+			delete[] m_NextReceivedBuffer;
+			m_NextReceivedBuffer = nullptr;
+			m_NextReceivedBufferSize = 0;
+		}	
+	}	
+		
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t k[64];
@@ -439,7 +459,6 @@ namespace transport
 		}
 		else
 		{
-			m_Establisher->m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
 			// we receive first 64 bytes (32 Y, and 32 ChaCha/Poly frame) first
 			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer, 64), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -462,7 +481,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session request is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -515,7 +534,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session created is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -718,7 +737,6 @@ namespace transport
 	void NTCP2Session::ServerLogin ()
 	{
 		m_Establisher->CreateEphemeralKey ();
-		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 			std::placeholders::_1, std::placeholders::_2));
@@ -758,8 +776,7 @@ namespace transport
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			if (m_NextReceivedLen >= 16)
 			{
-				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
-				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+				CreateNextReceivedBuffer (m_NextReceivedLen);
 				boost::system::error_code ec;
 				size_t moreBytes = m_Socket.available(ec);
 				if (!ec && moreBytes >= m_NextReceivedLen)
@@ -786,6 +803,7 @@ namespace transport
 		const int one = 1;
 		setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
 #endif
+		m_IsReceiving = true;
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -809,7 +827,7 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP2: received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
-				delete[] m_NextReceivedBuffer; m_NextReceivedBuffer = nullptr; // we don't need received buffer anymore
+				m_IsReceiving = false;
 				ReceiveLength ();
 			}
 			else
@@ -1058,7 +1076,15 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
-		if (paddingSize) paddingSize = rand () % paddingSize;
+		if (paddingSize) 
+		{
+			if (m_NextPaddingSize >= 16)
+			{
+				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
+				m_NextPaddingSize = 0;
+			}	
+			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
+		}	
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
 		memset (buf + 3, 0, paddingSize);
@@ -1439,6 +1465,8 @@ namespace transport
 					LogPrint (eLogDebug, "NTCP2: No activity for ", session->GetTerminationTimeout (), " seconds");
 					session->TerminateByTimeout (); // it doesn't change m_NTCP2Session right a way
 				}
+				else
+					it.second->DeleteNextReceiveBuffer (ts);
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{

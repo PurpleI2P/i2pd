@@ -470,6 +470,20 @@ namespace client
 				if (pos != std::string::npos)
 					addr = addr.substr(0, pos); // remove comments
 
+				pos = name.find(".b32.i2p");
+				if (pos != std::string::npos)
+				{
+					LogPrint (eLogError, "Addressbook: skipped adding of b32 address: ", name);
+					continue;
+				}
+
+				pos = name.find(".i2p");
+				if (pos == std::string::npos)
+				{
+					LogPrint (eLogError, "Addressbook: malformed domain: ", name);
+					continue;
+				}
+
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
 				if (!ident->FromBase64(addr)) {
 					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);

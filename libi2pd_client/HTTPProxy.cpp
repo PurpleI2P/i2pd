@@ -295,7 +295,7 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host") <<" " << m_RequestURL.host << " " << tr("added to router's addressbook from helper") << ". ";
-				ss << tr("Click") << " <a href=\"" << full_url << "\">" << tr("here") << "</a> " << tr("to proceed") << ".";
+				ss << tr("Click here to proceed:") << " <a href=\"" << full_url << "\">" << tr("Continue") << "</a>.";
 				GenericProxyInfo(tr("Addresshelper found"), ss.str());
 				return true; /* request processed */
 			}
@@ -304,8 +304,8 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
-				ss << tr("Click") << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
-				ss << jump << "&update=true\">" << tr("here") << "</a> " << tr("to update record") << ".";
+				ss << tr("Click here to update record:") << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
+				ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
 				GenericProxyInfo(tr("Addresshelper found"), ss.str());
 				return true; /* request processed */
 			}
@@ -319,7 +319,7 @@ namespace proxy {
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
 			{
-				GenericProxyError(tr("Invalid Request"), tr("invalid request uri"));
+				GenericProxyError(tr("Invalid request"), tr("invalid request uri"));
 				return true;
 			}
 			else

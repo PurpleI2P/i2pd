@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,9 +11,9 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include <unordered_map>
 #include <vector>
-#include <unordered_set>
+#include <map>
+#include <unordered_map>
 #include <memory>
 #include <boost/asio.hpp>
 #include "I2NPProtocol.h"
@@ -40,6 +40,7 @@ namespace transport
 	const int MAX_NUM_RESENDS = 5;
 	const int DECAY_INTERVAL = 20; // in seconds
 	const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
+	const int RECEIVED_MESSAGES_CLEANUP_TIMEOUT = 40; // in seconds
 	const unsigned int MAX_NUM_RECEIVED_MESSAGES = 1000; // how many msgID we store for duplicates check
 	const int MAX_OUTGOING_WINDOW_SIZE = 200; // how many unacked message we can store
 	// data flags
@@ -64,7 +65,7 @@ namespace transport
 
 	struct FragmentCmp
 	{
-		bool operator() (const std::unique_ptr<Fragment>& f1, const std::unique_ptr<Fragment>& f2) const
+		bool operator() (const std::shared_ptr<Fragment>& f1, const std::shared_ptr<Fragment>& f2) const
 		{
 			return f1->fragmentNum < f2->fragmentNum;
 		};
@@ -76,7 +77,7 @@ namespace transport
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
 		uint64_t receivedFragmentsBits;
-		std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
+		std::set<std::shared_ptr<Fragment>, FragmentCmp> savedFragments;
 
 		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), 
 			lastFragmentInsertTime (0), receivedFragmentsBits (0) {};
@@ -85,7 +86,7 @@ namespace transport
 
 	struct SentMessage
 	{
-		std::vector<std::unique_ptr<Fragment> > fragments;
+		std::vector<std::shared_ptr<Fragment> > fragments;
 		uint32_t nextResendTime; // in seconds
 		int numResends;
 	};
@@ -100,7 +101,8 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-
+			void CleanUp (uint64_t ts);
+			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
 			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
@@ -119,17 +121,13 @@ namespace transport
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
-			void ScheduleIncompleteMessagesCleanup ();
-			void HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode);
-
-
 		private:
 
 			SSUSession& m_Session;
-			std::unordered_map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
-			std::unordered_map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
-			std::unordered_set<uint32_t> m_ReceivedMessages;
-			boost::asio::deadline_timer m_ResendTimer, m_IncompleteMessagesCleanupTimer;
+			std::map<uint32_t, std::shared_ptr<IncompleteMessage> > m_IncompleteMessages;
+			std::map<uint32_t, std::shared_ptr<SentMessage> > m_SentMessages;
+			std::unordered_map<uint32_t, uint64_t> m_ReceivedMessages; // msgID -> timestamp in seconds
+			boost::asio::deadline_timer m_ResendTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;
 			uint32_t m_LastMessageReceivedTime; // in second

@@ -1,5 +1,6 @@
+
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -59,16 +60,7 @@ namespace garlic
 						
 		private:
 
-			union
-			{
-				uint64_t ll[8];
-				uint8_t buf[64];
-
-				const uint8_t * GetSessTagCK () const { return buf; }; // sessTag_chainKey = keydata[0:31]
-				const uint8_t * GetSessTagConstant () const { return buf + 32; }; // SESSTAG_CONSTANT = keydata[32:63]
-				uint64_t GetTag () const { return ll[4]; }; // tag = keydata[32:39]
-
-			} m_KeyData;
+			i2p::data::Tag<64> m_SessionTagKeyData;
 			uint8_t m_SessTagConstant[32], m_SymmKeyCK[32], m_CurrentSymmKeyCK[64], m_NextRootKey[32];
 			int m_NextIndex, m_NextSymmKeyIndex;
 			std::unordered_map<int, i2p::data::Tag<32> > m_ItermediateSymmKeys;
@@ -147,8 +139,7 @@ namespace garlic
 			eSessionStateNewSessionSent,
 			eSessionStateNewSessionReplySent,
 			eSessionStateEstablished,
-			eSessionStateOneTime,
-			eSessionStateForRouter
+			eSessionStateOneTime
 		};
 
 		struct DHRatchet
@@ -166,7 +157,7 @@ namespace garlic
 
 			bool HandleNextMessage (uint8_t * buf, size_t len, std::shared_ptr<ReceiveRatchetTagSet> receiveTagset, int index = 0);
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
-			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg, bool isForRouter = false);
+			std::shared_ptr<I2NPMessage> WrapOneTimeMessage (std::shared_ptr<const I2NPMessage> msg);
 			
 			const uint8_t * GetRemoteStaticKey () const { return m_RemoteStaticKey; }
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
@@ -207,9 +198,8 @@ namespace garlic
 			bool NewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NextNewSessionReplyMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
 			bool NewExistingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
-			bool NewOutgoingMessageForRouter (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen);
-			
-			std::vector<uint8_t> CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first);
+						
+			size_t CreatePayload (std::shared_ptr<const I2NPMessage> msg, bool first, uint8_t * payload);
 			size_t CreateGarlicClove (std::shared_ptr<const I2NPMessage> msg, uint8_t * buf, size_t len);
 			size_t CreateLeaseSetClove (std::shared_ptr<const i2p::data::LocalLeaseSet> ls, uint64_t ts, uint8_t * buf, size_t len);
 
@@ -256,8 +246,10 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_CurrentNoiseState;
 	};	
 	
-	std::shared_ptr<I2NPMessage> WrapECIESX25519AEADRatchetMessage (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey);
 }
 }
 
 #endif
+

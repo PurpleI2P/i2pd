@@ -1,23 +1,37 @@
 SYS := $(shell $(CXX) -dumpmachine)
-SHLIB := libi2pd.so
+
+ifneq (, $(findstring darwin, $(SYS)))
+	SHARED_SUFFIX = dylib
+else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
+	SHARED_SUFFIX = dll
+else
+	SHARED_SUFFIX = so
+endif
+
+SHLIB := libi2pd.$(SHARED_SUFFIX)
 ARLIB := libi2pd.a
-SHLIB_CLIENT := libi2pdclient.so
+SHLIB_LANG := libi2pdlang.$(SHARED_SUFFIX)
+ARLIB_LANG := libi2pdlang.a
+SHLIB_CLIENT := libi2pdclient.$(SHARED_SUFFIX)
 ARLIB_CLIENT := libi2pdclient.a
+SHLIB_WRAP := libi2pdwrapper.$(SHARED_SUFFIX)
+ARLIB_WRAP := libi2pdwrapper.a
 I2PD := i2pd
 
 LIB_SRC_DIR := libi2pd
 LIB_CLIENT_SRC_DIR := libi2pd_client
+WRAP_SRC_DIR := libi2pd_wrapper
 LANG_SRC_DIR := i18n
 DAEMON_SRC_DIR := daemon
 
 # import source files lists
 include filelist.mk
 
-USE_AESNI	:= yes
-USE_STATIC	:= no
-USE_MESHNET	:= no
-USE_UPNP	:= no
-DEBUG		:= yes
+USE_AESNI	:= $(or $(USE_AESNI),yes)
+USE_STATIC	:= $(or $(USE_STATIC),no)
+USE_MESHNET	:= $(or $(USE_MESHNET),no)
+USE_UPNP	:= $(or $(USE_UPNP),no)
+DEBUG		:= $(or $(DEBUG),yes)
 
 ifeq ($(DEBUG),yes)
 	CXX_DEBUG = -g
@@ -56,21 +70,25 @@ LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d)
+WRAP_LIB_OBJS   += $(patsubst %.cpp,obj/%.o,$(WRAP_LIB_SRC))
+DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d) $(WRAP_LIB_OBJS:.o=.d)
 
-all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
+## Build all code (libi2pd, libi2pdclient, libi2pdlang), link it to .a and build binary
+all: $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(I2PD)
 
 mk_obj_dir:
-	@mkdir -p obj
-	@mkdir -p obj/Win32
 	@mkdir -p obj/$(LIB_SRC_DIR)
 	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
 	@mkdir -p obj/$(LANG_SRC_DIR)
 	@mkdir -p obj/$(DAEMON_SRC_DIR)
+	@mkdir -p obj/$(WRAP_SRC_DIR)
+	@mkdir -p obj/Win32
 
-api: mk_obj_dir $(SHLIB) $(ARLIB)
-client: mk_obj_dir $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+api: $(SHLIB) $(ARLIB)
+client: $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang:  $(SHLIB_LANG) $(ARLIB_LANG)
+api_client: api client lang
+wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -79,23 +97,33 @@ api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 
-obj/%.o: %.cpp
+obj/%.o: %.cpp | mk_obj_dir
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD): $(LANG_OBJS) $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
+$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-$(SHLIB): $(LIB_OBJS)
+$(SHLIB): $(LIB_OBJS) $(SHLIB_LANG)
+ifneq ($(USE_STATIC),yes)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB_LANG)
+endif
+
+$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS) $(SHLIB) $(SHLIB_LANG)
+ifneq ($(USE_STATIC),yes)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB) $(SHLIB_LANG)
+endif
+
+$(SHLIB_WRAP): $(WRAP_LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(SHLIB_CLIENT): $(LIB_CLIENT_OBJS)
+$(SHLIB_LANG): $(LANG_OBJS)
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
 $(ARLIB): $(LIB_OBJS)
@@ -104,12 +132,18 @@ $(ARLIB): $(LIB_OBJS)
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
+$(ARLIB_WRAP): $(WRAP_LIB_OBJS)
+	$(AR) -r $@ $^
+
+$(ARLIB_LANG): $(LANG_OBJS)
+	$(AR) -r $@ $^
+
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG) $(SHLIB_WRAP) $(ARLIB_WRAP)
 
-strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
+strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
@@ -133,6 +167,7 @@ doxygen:
 .PHONY: api
 .PHONY: api_client
 .PHONY: client
+.PHONY: lang
 .PHONY: mk_obj_dir
 .PHONY: install
 .PHONY: strip

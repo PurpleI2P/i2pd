@@ -1,7 +1,0 @@
-Regex for transforming gettext translations to our format
-
-msgid\ \"(.*)\"\nmsgid_plural\ \"(.*)\"\nmsgstr\[0\]\ \"(.*)\"\nmsgstr\[1\]\ \"(.*)\"\n(msgstr\[2\]\ \"(.*)\"\n)?(msgstr\[3\]\ \"(.*)\"\n)?(msgstr\[4\]\ \"(.*)\"\n)?(msgstr\[5\]\ \"(.*)\"\n)?
-#{"$2", {"$3", "$4", "$6", "$8", "$10"}},\n
-
-msgid\ \"(.*)\"\nmsgstr\ \"(.*)\"\n
-{"$1", "$2"},\n

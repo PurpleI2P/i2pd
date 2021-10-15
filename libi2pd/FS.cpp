@@ -24,6 +24,7 @@ namespace i2p {
 namespace fs {
 	std::string appName = "i2pd";
 	std::string dataDir = "";
+	std::string certsDir = "";
 #ifdef _WIN32
 	std::string dirSep = "\\";
 #else
@@ -40,6 +41,10 @@ namespace fs {
 
 	const std::string & GetDataDir () {
 		return dataDir;
+	}
+
+	const std::string & GetCertsDir () {
+		return certsDir;
 	}
 
 	const std::string GetUTF8DataDir () {
@@ -124,6 +129,21 @@ namespace fs {
 		}
 		return;
 #endif
+	}
+
+	void SetCertsDir(const std::string & cmdline_certsdir) {
+		if (cmdline_certsdir != "")
+		{
+			if (cmdline_certsdir[cmdline_certsdir.length()-1] == '/')
+				certsDir = cmdline_certsdir.substr(0, cmdline_certsdir.size()-1); // strip trailing slash
+			else
+				certsDir = cmdline_certsdir;
+		}
+		else
+		{
+			certsDir = i2p::fs::DataDirPath("certificates");
+		}
+		return;
 	}
 
 	bool Init() {

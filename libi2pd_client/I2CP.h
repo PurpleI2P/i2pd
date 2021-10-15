@@ -83,7 +83,7 @@ namespace client
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;			
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const; // for 4 only
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };

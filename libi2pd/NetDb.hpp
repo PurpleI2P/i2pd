@@ -36,6 +36,7 @@ namespace i2p
 namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
+	const int NETDB_MIN_FLOODFILLS = 5;
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
@@ -44,7 +45,8 @@ namespace data
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15; 
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
-	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 28); // 0.9.28
+	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 38); // 0.9.38
+	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;

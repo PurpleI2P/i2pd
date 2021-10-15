@@ -55,10 +55,24 @@ namespace data
 		Load ();
 
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
-		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
+		if (m_RouterInfos.size () < threshold || m_Floodfills.size () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
+		{	
 			Reseed ();
+		}	
 		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
+
+		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
+		if (it != m_RouterInfos.end ())
+		{
+			// remove own router
+			m_RouterInfos.erase (it);
+			m_Floodfills.remove (it->second);
+		}
+		// insert own router
+		m_RouterInfos.emplace (i2p::context.GetIdentHash (), i2p::context.GetSharedRouterInfo ());
+		if (i2p::context.IsFloodfill ())
+			m_Floodfills.push_back (i2p::context.GetSharedRouterInfo ());
 		
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
@@ -162,10 +176,18 @@ namespace data
 					bool publish = false;
 					if (m_PublishReplyToken)
 					{
+						// next publishing attempt
 						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
 					}
 					else if (i2p::context.GetLastUpdateTime () > lastPublish || 
-						ts - lastPublish >= NETDB_PUBLISH_INTERVAL) publish = true;
+						ts - lastPublish >= NETDB_PUBLISH_INTERVAL) 
+					{	
+						// new publish
+						m_PublishExcluded.clear ();
+						if (i2p::context.IsFloodfill ())
+							m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // do publish to ourselves
+						publish = true;
+					}	
 					if (publish) // update timestamp and publish
 					{
 						i2p::context.UpdateTimestamp (ts);
@@ -453,14 +475,15 @@ namespace data
 	bool NetDb::LoadRouterInfo (const std::string & path)
 	{
 		auto r = std::make_shared<RouterInfo>(path);
-		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
-			(r->IsReachable () || !r->IsSSU (false) || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
-		{
+		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses ())
+		{	
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
-			m_RouterInfos[r->GetIdentHash ()] = r;
-			if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
-				m_Floodfills.push_back (r);
+			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
+			{	
+				if (r->IsFloodfill () && r->IsEligibleFloodfill ())
+					m_Floodfills.push_back (r);
+			}	
 		}
 		else
 		{
@@ -556,8 +579,9 @@ namespace data
 
 	void NetDb::SaveUpdated ()
 	{
-		int updatedCount = 0, deletedCount = 0;
+		int updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
 		auto total = m_RouterInfos.size ();
+		auto totalFloodfills = m_Floodfills.size ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		auto uptime = i2p::context.GetUptime ();
@@ -567,8 +591,10 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
+		auto own = i2p::context.GetSharedRouterInfo ();	
 		for (auto& it: m_RouterInfos)
 		{
+			if (it.second == own) continue; // skip own
 			std::string ident = it.second->GetIdentHashBase64();
 			std::string path  = m_Storage.Path(ident);
 			if (it.second->IsUpdated ())
@@ -580,8 +606,9 @@ namespace data
 				updatedCount++;
 				continue;
 			}
-			// make router reachable back if too few routers
-			if (it.second->IsUnreachable () && total - deletedCount < NETDB_MIN_ROUTERS)	
+			// make router reachable back if too few routers or floodfills
+			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS ||
+			    (it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))	
 				it.second->SetUnreachable (false); 
 			// find & mark expired routers
 			if (!it.second->IsReachable () && it.second->IsSSU (false))
@@ -595,6 +622,7 @@ namespace data
 
 			if (it.second->IsUnreachable ())
 			{
+				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
@@ -935,7 +963,8 @@ namespace data
 				if (router)
 				{
 					LogPrint (eLogDebug, "NetDb: requested RouterInfo ", key, " found");
-					router->LoadBuffer ();
+					if (!router->GetBuffer ())
+						router->LoadBuffer (m_Storage.Path (router->GetIdentHashBase64 ()));
 					if (router->GetBuffer ())
 						replyMsg = CreateDatabaseStoreMsg (router);
 				}
@@ -988,7 +1017,7 @@ namespace data
 						{
 							uint64_t tag;
 							memcpy (&tag, excluded + 33, 8);
-							replyMsg = i2p::garlic::WrapECIESX25519AEADRatchetMessage (replyMsg, sessionKey, tag);
+							replyMsg = i2p::garlic::WrapECIESX25519Message (replyMsg, sessionKey, tag);
 						}
 						else
 						{
@@ -1145,7 +1174,8 @@ namespace data
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
-						router->IsReachableFrom (*compatibleWith));
+						router->IsReachableFrom (*compatibleWith)) && 
+					router->IsECIES ();
 			});
 	}
 
@@ -1154,8 +1184,8 @@ namespace data
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsPeerTesting (v4) &&
-					!excluded.count (router->GetIdentHash ());
+				return !router->IsHidden () && router->IsECIES () && 
+					router->IsPeerTesting (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
 
@@ -1164,7 +1194,7 @@ namespace data
 		return GetRandomRouter (
 			[](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsSSUV6 ();
+				return !router->IsHidden () && router->IsECIES () && router->IsSSUV6 ();
 			});
 	}
 
@@ -1173,8 +1203,8 @@ namespace data
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ()) &&
-					!router->IsHidden () && !router->IsFloodfill (); // floodfills don't send relay tag
+				return !router->IsHidden () && router->IsECIES () && !router->IsFloodfill () && // floodfills don't send relay tag
+					router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
 
@@ -1186,8 +1216,9 @@ namespace data
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
 						router->IsReachableFrom (*compatibleWith)) &&
-					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
-					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION;
+					(router->GetCaps () & RouterInfo::eHighBandwidth) &&			
+					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
+					router->IsECIES ();
 			});
 	}
 
@@ -1196,23 +1227,55 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
-		uint32_t ind = rand () % m_RouterInfos.size ();
-		for (int j = 0; j < 2; j++)
+		uint16_t inds[3];
+		RAND_bytes ((uint8_t *)inds, sizeof (inds));
+		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+		inds[0] %= m_RouterInfos.size ();
+		auto it = m_RouterInfos.begin ();
+		std::advance (it, inds[0]);
+		// try random router
+		if (it != m_RouterInfos.end () && !it->second->IsUnreachable () && filter (it->second))
+			return it->second;
+		// try some routers around
+		auto it1 = m_RouterInfos.begin ();
+		if (inds[0]) 
 		{
-			uint32_t i = 0;
-			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-			for (const auto& it: m_RouterInfos)
-			{
-				if (i >= ind)
-				{
-					if (!it.second->IsUnreachable () && filter (it.second))
-						return it.second;
-				}
-				else
-					i++;
-			}
-			// we couldn't find anything, try second pass
-			ind = 0;
+			// before
+			inds[1] %= inds[0]; 
+			std::advance (it1, (inds[1] + inds[0])/2);
+		}	
+		else
+			it1 = it;
+		auto it2 = it;
+		if (inds[0] < m_RouterInfos.size () - 1)
+		{
+			// after
+			inds[2] %= (m_RouterInfos.size () - 1 - inds[0]); inds[2] /= 2;
+			std::advance (it2, inds[2]);
+		}
+		// it1 - from, it2 - to
+		it = it1; 	
+		while (it != it2 && it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
+		}
+		// still not found, try from the begining
+		it = m_RouterInfos.begin ();
+		while (it != it1 && it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
+		}
+		// still not found, try to the begining
+		it = it2;
+		while (it != m_RouterInfos.end ())
+		{
+			if (!it->second->IsUnreachable () && filter (it->second))
+				return it->second;
+			it++;
 		}
 		return nullptr; // seems we have too few routers
 	}

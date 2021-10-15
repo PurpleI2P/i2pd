@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -21,6 +21,9 @@ namespace datagram
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
 		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
+		if (m_Gzip)
+			m_Deflator.reset (new i2p::data::GzipDeflator);
+
 		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();
 		m_From.resize (identityLen);
 		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);
@@ -152,11 +155,16 @@ namespace datagram
 		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
 		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
+		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
-		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
-			i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
+
+		if (m_Gzip && m_Deflator)
+			size = m_Deflator->Deflate (payloads, buf, msg->maxLen - msg->len);
+		else
+			size = i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
+
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
