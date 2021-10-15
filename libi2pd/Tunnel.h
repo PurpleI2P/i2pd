@@ -132,7 +132,7 @@ namespace tunnel
 			void Print (std::stringstream& s) const;
 
 			// implements TunnelBase
-			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
 
 			bool IsInbound() const { return false; }
 
@@ -148,7 +148,7 @@ namespace tunnel
 		public:
 
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
-			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
+			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg);
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
 			bool IsInbound() const { return true; }
