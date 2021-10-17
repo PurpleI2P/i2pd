@@ -247,7 +247,7 @@ namespace transport
 						m_ReceivedMessages.emplace (msgID, m_LastMessageReceivedTime);
 						if (!msg->IsExpired ())
 						{
-							m_Handler.PutNextMessage (msg);
+							m_Handler.PutNextMessage (std::move (msg));
 						}
 						else
 							LogPrint (eLogDebug, "SSU: message expired");

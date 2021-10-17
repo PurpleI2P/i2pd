@@ -860,7 +860,7 @@ namespace i2p
 		Flush ();
 	}
 
-	void I2NPMessagesHandler::PutNextMessage (std::shared_ptr<I2NPMessage> msg)
+	void I2NPMessagesHandler::PutNextMessage (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (msg)
 		{

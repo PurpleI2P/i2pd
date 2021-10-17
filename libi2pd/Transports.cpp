@@ -389,7 +389,7 @@ namespace transport
 		{
 			// we send it to ourself
 			for (auto& it: msgs)
-				m_LoopbackHandler.PutNextMessage (it);
+				m_LoopbackHandler.PutNextMessage (std::move (it));
 			m_LoopbackHandler.Flush ();
 			return;
 		}

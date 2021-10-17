@@ -301,7 +301,7 @@ namespace tunnel
 		public:
 
 			~I2NPMessagesHandler ();
-			void PutNextMessage (std::shared_ptr<I2NPMessage> msg);
+			void PutNextMessage (std::shared_ptr<I2NPMessage>&& msg);
 			void Flush ();
 
 		private:

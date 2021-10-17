@@ -876,11 +876,12 @@ namespace transport
 						break;
 					}
 					auto nextMsg = NewI2NPMessage (size);
-					nextMsg->Align (12); // for possible tunnel msg
+					nextMsg->Align (6); // for possible tunnel msg
+					nextMsg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
 					nextMsg->FromNTCP2 ();
-					m_Handler.PutNextMessage (nextMsg);
+					m_Handler.PutNextMessage (std::move (nextMsg));
 					break;
 				}
 				case eNTCP2BlkTermination:
