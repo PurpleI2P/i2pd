@@ -1,10 +1,16 @@
 CXX = clang++
 CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++11 -DMAC_OSX
-INCFLAGS = -I/usr/local/include
+INCFLAGS := -I/usr/local/include
 LDFLAGS := -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDFLAGS += -Wl,-dead_strip
 LDFLAGS += -Wl,-dead_strip_dylibs
 LDFLAGS += -Wl,-bind_at_load
+
+$(shell brew ls openssl@1.1 > /dev/null 2>&1)
+ifeq ($(.SHELLSTATUS),0)
+	INCFLAGS := -I/usr/local/opt/openssl@1.1/include $(INCFLAGS)
+	LDFLAGS += -L/usr/local/opt/openssl@1.1/lib
+endif
 
 ifeq ($(USE_STATIC),yes)
 	LDLIBS = -lz /usr/local/lib/libcrypto.a /usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
