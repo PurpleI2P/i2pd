@@ -185,7 +185,7 @@ namespace transport
 			auto& incompleteMessage = it->second;
 			// mark fragment as received
 			if (fragmentNum < 64)
-				incompleteMessage->receivedFragmentsBits |= (0x01 << fragmentNum);
+				incompleteMessage->receivedFragmentsBits |= (uint64_t(0x01) << fragmentNum);
 			else
 				LogPrint (eLogWarning, "SSU: Fragment number ", fragmentNum, " exceeds 64");
 			

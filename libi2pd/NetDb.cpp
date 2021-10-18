@@ -66,8 +66,8 @@ namespace data
 		if (it != m_RouterInfos.end ())
 		{
 			// remove own router
-			m_RouterInfos.erase (it);
 			m_Floodfills.remove (it->second);
+			m_RouterInfos.erase (it);
 		}
 		// insert own router
 		m_RouterInfos.emplace (i2p::context.GetIdentHash (), i2p::context.GetSharedRouterInfo ());

@@ -534,7 +534,7 @@ namespace garlic
 			LogPrint (eLogError, "Garlic: Can't encode elligator");
 			return false;
 		}
-		memcpy (m_NSREncodedKey, out + offset, 56); // for possible next NSR
+		memcpy (m_NSREncodedKey, out + offset, 32); // for possible next NSR
 		memcpy (m_NSRH, m_H, 32);
 		offset += 32;
 		// KDF for Reply Key Section
