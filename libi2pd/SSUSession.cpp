@@ -303,7 +303,7 @@ namespace transport
 			}	
 			else
 			{	
-				LogPrint (eLogError, "SSU: Wrong external address ", ourIP.to_string ());
+				LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 				Failed ();
 			}	
 		}
@@ -609,7 +609,7 @@ namespace transport
 		{
 			*payload = 16;
 			payload++; // size
-			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Charlie's IP V6
 			payload += 16; // address
 		}	
 		htobe16buf (payload, to.port ()); // Charlie's port
@@ -703,7 +703,7 @@ namespace transport
 		if (!i2p::util::net::IsInReservedRange (ourIP))
 			i2p::context.UpdateAddress (ourIP);
 		else
-			LogPrint (eLogWarning, "SSU: Wrong external address ", ourIP.to_string ());
+			LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 		if (ourIP.is_v4 ())
 		{	
 			if (ourPort != m_Server.GetPort ())
@@ -1301,7 +1301,7 @@ namespace transport
 			ip = boost::asio::ip::address_v6 (bytes);
 		}	
 		else
-			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+			LogPrint (eLogWarning, "SSU: Address size ", int(size), " is not supported");
 		buf += size;
 		port = bufbe16toh (buf);
 		return s;

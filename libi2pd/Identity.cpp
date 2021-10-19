@@ -19,7 +19,8 @@ namespace data
 	Identity& Identity::operator=(const Keys& keys)
 	{
 		// copy public and signing keys together
-		memcpy (publicKey, keys.publicKey, sizeof (publicKey) + sizeof (signingKey));
+		memcpy (publicKey, keys.publicKey, sizeof (publicKey));
+		memcpy (signingKey, keys.signingKey, sizeof (signingKey));
 		memset (certificate, 0, sizeof (certificate));
 		return *this;
 	}
