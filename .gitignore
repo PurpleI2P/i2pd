@@ -260,6 +260,7 @@ docs/generated
 build/Makefile
 
 # debian stuff
+debian/i2pd.1.gz
 .pc/
 
 # qt 

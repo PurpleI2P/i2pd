@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := all
+
 SYS := $(shell $(CXX) -dumpmachine)
 
 ifneq (, $(findstring darwin, $(SYS)))
