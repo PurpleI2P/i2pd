@@ -38,20 +38,14 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
-		I2NPMessage * msg = nullptr;
 		if (endpoint)
-		{
-			// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
-			msg = new I2NPMessageBuffer<2*i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28>(); // reserved for alignment and NTCP 16 + 6 + 6
-			msg->Align (6);
-			msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
-		}
+			return i2p::tunnel::tunnels.NewI2NPTunnelMessage ();
 		else
 		{
-			msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
+			auto msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
 			msg->Align (12);
+			return std::shared_ptr<I2NPMessage>(msg);	
 		}
-		return std::shared_ptr<I2NPMessage>(msg);
 	}
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)

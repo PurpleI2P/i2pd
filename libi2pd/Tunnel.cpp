@@ -488,7 +488,7 @@ namespace tunnel
 		i2p::util::SetThreadName("Tunnels");
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
-		uint64_t lastTs = 0, lastPoolsTs = 0;
+		uint64_t lastTs = 0, lastPoolsTs = 0, lastMemoryPoolTs = 0;
 		while (m_IsRunning)
 		{
 			try
@@ -563,6 +563,11 @@ namespace tunnel
 					{
 						ManageTunnelPools (ts);
 						lastPoolsTs = ts;
+					}	
+					if (ts - lastMemoryPoolTs >= 120) // manage memory pool every 2 minutes
+					{
+						m_I2NPTunnelMessagesMemoryPool.CleanUpMt ();
+						lastMemoryPoolTs = ts;
 					}	
 				}	
 			}
@@ -935,6 +940,15 @@ namespace tunnel
 		return outboundTunnel;
 	}
 
+	std::shared_ptr<I2NPMessage> Tunnels::NewI2NPTunnelMessage ()
+	{
+		// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
+		auto msg = m_I2NPTunnelMessagesMemoryPool.AcquireSharedMt (); 
+		msg->Align (6);
+		msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
+		return msg;
+	}	
+		
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
 	{
 		int timeout = 0;
