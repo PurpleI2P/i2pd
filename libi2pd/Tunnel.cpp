@@ -566,6 +566,7 @@ namespace tunnel
 					}	
 					if (ts - lastMemoryPoolTs >= 120) // manage memory pool every 2 minutes
 					{
+						m_I2NPTunnelEndpointMessagesMemoryPool.CleanUpMt ();
 						m_I2NPTunnelMessagesMemoryPool.CleanUpMt ();
 						lastMemoryPoolTs = ts;
 					}	
@@ -940,13 +941,22 @@ namespace tunnel
 		return outboundTunnel;
 	}
 
-	std::shared_ptr<I2NPMessage> Tunnels::NewI2NPTunnelMessage ()
+	std::shared_ptr<I2NPMessage> Tunnels::NewI2NPTunnelMessage (bool endpoint)
 	{
-		// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
-		auto msg = m_I2NPTunnelMessagesMemoryPool.AcquireSharedMt (); 
-		msg->Align (6);
-		msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
-		return msg;
+		if (endpoint)
+		{	
+			// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
+			auto msg = m_I2NPTunnelEndpointMessagesMemoryPool.AcquireSharedMt (); 
+			msg->Align (6);
+			msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
+			return msg;
+		}	
+		else
+		{
+			auto msg = m_I2NPTunnelMessagesMemoryPool.AcquireSharedMt (); 
+			msg->Align (12);
+			return msg;
+		}	
 	}	
 		
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
