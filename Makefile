@@ -29,11 +29,17 @@ DAEMON_SRC_DIR := daemon
 # import source files lists
 include filelist.mk
 
-USE_AESNI	:= $(or $(USE_AESNI),yes)
-USE_STATIC	:= $(or $(USE_STATIC),no)
-USE_MESHNET	:= $(or $(USE_MESHNET),no)
-USE_UPNP	:= $(or $(USE_UPNP),no)
-DEBUG		:= $(or $(DEBUG),yes)
+USE_AESNI       := $(or $(USE_AESNI),yes)
+USE_STATIC      := $(or $(USE_STATIC),no)
+USE_MESHNET     := $(or $(USE_MESHNET),no)
+USE_UPNP        := $(or $(USE_UPNP),no)
+DEBUG           := $(or $(DEBUG),yes)
+
+# for debugging purposes only, when commit hash needed in trunk builds in i2pd version string
+USE_GIT_VERSION := $(or $(USE_GIT_VERSION),no)
+
+# for MacOS only, waiting for "1", not "yes"
+HOMEBREW        := $(or $(HOMEBREW),0)
 
 ifeq ($(DEBUG),yes)
 	CXX_DEBUG = -g
@@ -64,6 +70,11 @@ endif
 
 ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
+endif
+
+ifeq ($(USE_GIT_VERSION),yes)
+	GIT_VERSION := $(shell git describe --tags)
+	NEEDED_CXXFLAGS += -DGITVER=\"$(GIT_VERSION)\"
 endif
 
 NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR)
