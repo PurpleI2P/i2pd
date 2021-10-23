@@ -478,7 +478,7 @@ namespace data
 					if (terminator) terminator[0] = 0;
 				}
 				// extract RSA key (we need n only, e = 65537)
-				RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
+				const RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
 				const BIGNUM * n, * e, * d;
 				RSA_get0_key(key, &n, &e, &d);
 				PublicKey value;
