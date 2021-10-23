@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -158,8 +158,7 @@ namespace tunnel
 	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
 		m_CurrentTunnelDataMsg = nullptr;
-		m_CurrentTunnelDataMsg = NewI2NPShortMessage ();
-		m_CurrentTunnelDataMsg->Align (12);
+		m_CurrentTunnelDataMsg = NewI2NPTunnelMessage (true); // tunnel endpoint is at least of two tunnel messages size
 		// we reserve space for padding
 		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE;
 		m_CurrentTunnelDataMsg->len = m_CurrentTunnelDataMsg->offset;
