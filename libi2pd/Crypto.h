@@ -39,7 +39,9 @@
 #       define OPENSSL_HKDF 1
 #       define OPENSSL_EDDSA 1
 #       define OPENSSL_X25519 1
-#       define OPENSSL_SIPHASH 1
+#		if (OPENSSL_VERSION_NUMBER < 0x030000000) // 3.0.0, regression in SipHash
+#       	define OPENSSL_SIPHASH 1
+#		endif
 #   endif
 #   if !defined OPENSSL_NO_CHACHA && !defined OPENSSL_NO_POLY1305 // some builds might not include them
 #       define OPENSSL_AEAD_CHACHA20_POLY1305 1
