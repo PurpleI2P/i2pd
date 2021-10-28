@@ -68,7 +68,7 @@ namespace tunnel
 		public:
 
 			Tunnel (std::shared_ptr<const TunnelConfig> config);
-			~Tunnel ();
+			virtual ~Tunnel ();
 
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 
