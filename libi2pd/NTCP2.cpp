@@ -911,13 +911,11 @@ namespace transport
 	void NTCP2Session::SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf)
 	{
 #if OPENSSL_SIPHASH
-		if (!m_SendMDCtx) return;
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8);
 		size_t l = 8;
 		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);	
 #else
-		if (!m_SendSipKey) return;
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 #endif
 		// length must be in BigEndian
@@ -1117,7 +1115,13 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
-		if (!m_SendKey) return;
+		if (!m_SendKey ||
+#if OPENSSL_SIPHASH
+		    !m_SendMDCtx
+#else
+		    !m_SendSipKey
+#endif		    
+		    ) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block
 		m_NextSendBuffer[2] = eNTCP2BlkTermination;
