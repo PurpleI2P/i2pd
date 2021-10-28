@@ -910,12 +910,14 @@ namespace transport
 
 	void NTCP2Session::SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf)
 	{
-		#if OPENSSL_SIPHASH
+#if OPENSSL_SIPHASH
+		if (!m_SendMDCtx) return;
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8);
 		size_t l = 8;
-		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);
+		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);	
 #else
+		if (!m_SendSipKey) return;
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 #endif
 		// length must be in BigEndian
