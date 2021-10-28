@@ -205,7 +205,6 @@ namespace transport
 			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32];
 			const uint8_t * m_SendKey, * m_ReceiveKey;
 #if OPENSSL_SIPHASH
-			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
 			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
 #else
 			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;

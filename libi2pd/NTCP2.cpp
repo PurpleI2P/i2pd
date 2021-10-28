@@ -323,9 +323,10 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_Establisher (new NTCP2Establisher),
-		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
+#else
+		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
 		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
@@ -352,8 +353,6 @@ namespace transport
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
 #if OPENSSL_SIPHASH
-		if (m_SendSipKey) EVP_PKEY_free (m_SendSipKey);
-		if (m_ReceiveSipKey) EVP_PKEY_free (m_ReceiveSipKey);
 		if (m_SendMDCtx) EVP_MD_CTX_destroy (m_SendMDCtx);
 		if (m_ReceiveMDCtx) EVP_MD_CTX_destroy (m_ReceiveMDCtx);
 #endif
@@ -711,17 +710,19 @@ namespace transport
 	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
 	{
 #if OPENSSL_SIPHASH
-		m_SendSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
+		EVP_PKEY * sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
 		m_SendMDCtx = EVP_MD_CTX_create ();
 		EVP_PKEY_CTX *ctx = nullptr;
-		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, m_SendSipKey);
+		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
-
-		m_ReceiveSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
+		EVP_PKEY_free (sipKey);
+		
+		sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
 		m_ReceiveMDCtx = EVP_MD_CTX_create ();
 		ctx = nullptr;
-		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, m_ReceiveSipKey);
+		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+		EVP_PKEY_free (sipKey);
 #else
 		m_SendSipKey = sendSipKey;
 		m_ReceiveSipKey = receiveSipKey;
@@ -1114,7 +1115,7 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
-		if (!m_SendKey || !m_SendSipKey) return;
+		if (!m_SendKey) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block
 		m_NextSendBuffer[2] = eNTCP2BlkTermination;
