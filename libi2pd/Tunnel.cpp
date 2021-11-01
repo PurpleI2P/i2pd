@@ -366,7 +366,6 @@ namespace tunnel
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
 	{
-		std::unique_lock<std::recursive_mutex> l(m_TunnelsMutex);
 		auto it = m_Tunnels.find(tunnelID);
 		if (it != m_Tunnels.end ())
 			return it->second;
@@ -375,13 +374,11 @@ namespace tunnel
 
 	std::shared_ptr<InboundTunnel> Tunnels::GetPendingInboundTunnel (uint32_t replyMsgID)
 	{
-		std::unique_lock<std::mutex> l(m_PendingInboundTunnelsMutex);
 		return GetPendingTunnel (replyMsgID, m_PendingInboundTunnels);
 	}
 
 	std::shared_ptr<OutboundTunnel> Tunnels::GetPendingOutboundTunnel (uint32_t replyMsgID)
 	{
-		std::unique_lock<std::mutex> l(m_PendingOutboundTunnelsMutex);
 		return GetPendingTunnel (replyMsgID, m_PendingOutboundTunnels);
 	}
 
@@ -462,11 +459,9 @@ namespace tunnel
 
 	void Tunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
-		std::unique_lock<std::recursive_mutex> l(m_TunnelsMutex);
-		if (m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second) {
-			std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
+		if (m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second)
 			m_TransitTunnels.push_back (tunnel);
-		} else
+		else
 			LogPrint (eLogError, "Tunnel: tunnel with id ", tunnel->GetTunnelID (), " already exists");
 	}
 
@@ -621,10 +616,7 @@ namespace tunnel
 
 	void Tunnels::ManagePendingTunnels ()
 	{
-		std::unique_lock<std::mutex> li(m_PendingInboundTunnelsMutex);
 		ManagePendingTunnels (m_PendingInboundTunnels);
-		li.unlock();
-		std::unique_lock<std::mutex> lo(m_PendingOutboundTunnelsMutex);
 		ManagePendingTunnels (m_PendingOutboundTunnels);
 	}
 
@@ -684,7 +676,6 @@ namespace tunnel
 
 	void Tunnels::ManageOutboundTunnels ()
 	{
-		std::unique_lock<std::recursive_mutex> l(m_OutboundTunnelsMutex);
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		{
 			for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
@@ -739,8 +730,6 @@ namespace tunnel
 
 	void Tunnels::ManageInboundTunnels ()
 	{
-		std::unique_lock<std::recursive_mutex> lt(m_TunnelsMutex);
-		std::unique_lock<std::recursive_mutex> li(m_InboundTunnelsMutex);
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		{
 			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
@@ -797,7 +786,6 @@ namespace tunnel
 			return;
 		}
 
-		std::unique_lock<std::recursive_mutex> lo(m_OutboundTunnelsMutex);
 		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
 		{
 			// trying to create one more inbound tunnel
@@ -818,8 +806,6 @@ namespace tunnel
 
 	void Tunnels::ManageTransitTunnels ()
 	{
-		std::unique_lock<std::recursive_mutex> lt(m_TunnelsMutex);
-		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
 		{
@@ -890,20 +876,17 @@ namespace tunnel
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
 	{
-		std::unique_lock<std::mutex> l(m_PendingInboundTunnelsMutex);
 		m_PendingInboundTunnels[replyMsgID] = tunnel;
 	}
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel)
 	{
-		std::unique_lock<std::mutex> l(m_PendingOutboundTunnelsMutex);
 		m_PendingOutboundTunnels[replyMsgID] = tunnel;
 	}
 
 	void Tunnels::AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel)
 	{
 		// we don't need to insert it to m_Tunnels
-		std::unique_lock<std::recursive_mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
 		if (pool && pool->IsActive ())
@@ -914,10 +897,8 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel)
 	{
-		std::unique_lock<std::recursive_mutex> l(m_TunnelsMutex);
 		if (m_Tunnels.emplace (newTunnel->GetTunnelID (), newTunnel).second)
 		{
-			std::unique_lock<std::recursive_mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.push_back (newTunnel);
 			auto pool = newTunnel->GetTunnelPool ();
 			if (!pool)
@@ -945,8 +926,6 @@ namespace tunnel
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
 		inboundTunnel->SetTunnelPool (pool);
 		inboundTunnel->SetState (eTunnelStateEstablished);
-		std::unique_lock<std::recursive_mutex> lt(m_TunnelsMutex);
-		std::unique_lock<std::recursive_mutex> li(m_InboundTunnelsMutex);
 		m_InboundTunnels.push_back (inboundTunnel);
 		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
 		return inboundTunnel;
@@ -957,7 +936,6 @@ namespace tunnel
 		auto outboundTunnel = std::make_shared<ZeroHopsOutboundTunnel> ();
 		outboundTunnel->SetTunnelPool (pool);
 		outboundTunnel->SetState (eTunnelStateEstablished);
-		std::unique_lock<std::recursive_mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.push_back (outboundTunnel);
 		// we don't insert into m_Tunnels
 		return outboundTunnel;
@@ -986,7 +964,6 @@ namespace tunnel
 		int timeout = 0;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		// TODO: possible race condition with I2PControl
-		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 		for (const auto& it : m_TransitTunnels)
 		{
 			int t = it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
@@ -997,19 +974,19 @@ namespace tunnel
 
 	size_t Tunnels::CountTransitTunnels() const
 	{
-		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
+		// TODO: locking
 		return m_TransitTunnels.size();
 	}
 
 	size_t Tunnels::CountInboundTunnels() const
 	{
-		std::unique_lock<std::recursive_mutex> l(m_InboundTunnelsMutex);
+		// TODO: locking
 		return m_InboundTunnels.size();
 	}
 
 	size_t Tunnels::CountOutboundTunnels() const
 	{
-		std::unique_lock<std::recursive_mutex> l(m_OutboundTunnelsMutex);
+		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
 }

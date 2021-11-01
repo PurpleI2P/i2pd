@@ -68,7 +68,7 @@ namespace tunnel
 		public:
 
 			Tunnel (std::shared_ptr<const TunnelConfig> config);
-			virtual ~Tunnel ();
+			~Tunnel ();
 
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 
@@ -254,18 +254,12 @@ namespace tunnel
 			bool m_IsRunning;
 			std::thread * m_Thread;
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
-			mutable std::mutex m_PendingInboundTunnelsMutex;
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
-			mutable std::mutex m_PendingOutboundTunnelsMutex;
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
-			mutable std::recursive_mutex m_InboundTunnelsMutex;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
-			mutable std::recursive_mutex m_OutboundTunnelsMutex;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
-			mutable std::mutex m_TransitTunnelsMutex;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
-			mutable std::recursive_mutex m_TunnelsMutex;
-			mutable std::mutex m_PoolsMutex;
+			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;

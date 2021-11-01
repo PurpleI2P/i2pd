@@ -128,7 +128,6 @@ namespace tunnel
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> m_LocalDestination;
 			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels;
-			mutable std::mutex m_ExplicitPeersMutex;
 			std::shared_ptr<std::vector<i2p::data::IdentHash> > m_ExplicitPeers;
 			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first

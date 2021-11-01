@@ -59,7 +59,6 @@ namespace tunnel
 
 	void TunnelPool::SetExplicitPeers (std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers)
 	{
-		std::unique_lock<std::mutex> l(m_ExplicitPeersMutex);
 		m_ExplicitPeers = explicitPeers;
 		if (m_ExplicitPeers)
 		{
@@ -93,7 +92,6 @@ namespace tunnel
 				it->SetTunnelPool (nullptr);
 			m_OutboundTunnels.clear ();
 		}
-		std::unique_lock<std::mutex> l(m_TestsMutex);
 		m_Tests.clear ();
 	}
 
@@ -137,11 +135,10 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			std::unique_lock<std::mutex> lt(m_TestsMutex);
 			for (auto& it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
 
-			std::unique_lock<std::mutex> li(m_InboundTunnelsMutex);
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.erase (expiredTunnel);
 		}
 	}
@@ -160,11 +157,10 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			std::unique_lock<std::mutex> lt(m_TestsMutex);
 			for (auto& it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;
 
-			std::unique_lock<std::mutex> lo(m_OutboundTunnelsMutex);
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.erase (expiredTunnel);
 		}
 	}
@@ -269,7 +265,7 @@ namespace tunnel
 	{
 		int num = 0;
 		{
-			std::unique_lock<std::mutex> lo(m_OutboundTunnelsMutex);
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
@@ -278,11 +274,10 @@ namespace tunnel
 
 		num = 0;
 		{
-			std::unique_lock<std::mutex> li(m_InboundTunnelsMutex);
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		std::unique_lock<std::mutex> lo(m_OutboundTunnelsMutex);
 		if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0)
 		{
 			for (auto it: m_OutboundTunnels)
@@ -292,7 +287,6 @@ namespace tunnel
 				if (num >= m_NumInboundTunnels) break;
 			}	
 		}	
-		lo.unlock();
 		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();
 
@@ -317,7 +311,7 @@ namespace tunnel
 				if (it.second.first->GetState () == eTunnelStateTestFailed)
 				{
 					it.second.first->SetState (eTunnelStateFailed);
-					std::unique_lock<std::mutex> lo(m_OutboundTunnelsMutex);
+					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 					m_OutboundTunnels.erase (it.second.first);
 				}
 				else
@@ -329,7 +323,7 @@ namespace tunnel
 				{
 					it.second.second->SetState (eTunnelStateFailed);
 					{
-						std::unique_lock<std::mutex> li(m_InboundTunnelsMutex);
+						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 						m_InboundTunnels.erase (it.second.second);
 					}
 					if (m_LocalDestination)
@@ -341,10 +335,7 @@ namespace tunnel
 		}
 
 		// new tests
-		std::unique_lock<std::mutex> lt(m_TestsMutex);
-		std::unique_lock<std::mutex> lo(m_OutboundTunnelsMutex);
 		auto it1 = m_OutboundTunnels.begin ();
-		std::unique_lock<std::mutex> li(m_InboundTunnelsMutex);
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
 		{
@@ -364,6 +355,7 @@ namespace tunnel
 				uint32_t msgID;
 				RAND_bytes ((uint8_t *)&msgID, 4);
 				{
+					std::unique_lock<std::mutex> l(m_TestsMutex);
 					m_Tests[msgID] = std::make_pair (*it1, *it2);
 				}
 				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
@@ -388,7 +380,7 @@ namespace tunnel
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessGarlicMessage (msg);
 		else
-			LogPrint (eLogWarning, "Tunnels: local destination doesn't exist, garlic message dropped");
+			LogPrint (eLogWarning, "Tunnels: local destination doesn't exist, dropped");
 	}
 
 	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
@@ -436,7 +428,7 @@ namespace tunnel
 			if (m_LocalDestination)
 				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
 			else
-				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, delivery status message dropped");
+				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
 		}
 	}
 
@@ -520,16 +512,13 @@ namespace tunnel
 			if (m_CustomPeerSelector)
 				return m_CustomPeerSelector->SelectPeers(path, numHops, isInbound);
 		}
-
 		// explicit peers in use
-		std::lock_guard<std::mutex> lock(m_ExplicitPeersMutex);
 		if (m_ExplicitPeers) return SelectExplicitPeers (path, isInbound);
 		return StandardSelectPeers(path, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, std::placeholders::_1, std::placeholders::_2));
 	}
 
 	bool TunnelPool::SelectExplicitPeers (Path& path, bool isInbound)
 	{
-		std::unique_lock<std::mutex> l(m_ExplicitPeersMutex);
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
 		if (numHops > (int)m_ExplicitPeers->size ()) numHops = m_ExplicitPeers->size ();
 		if (!numHops) return false; 
