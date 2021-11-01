@@ -128,7 +128,6 @@ namespace tunnel
 			}	
 			m_InboundTunnels.insert (createdTunnel);
 		}
-		std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
 		if (m_LocalDestination)
 			m_LocalDestination->SetLeaseSetUpdated ();
 	}
@@ -266,16 +265,6 @@ namespace tunnel
 		return tunnel;
 	}
 
-	std::shared_ptr<i2p::garlic::GarlicDestination> TunnelPool::GetLocalDestination () const {
-		std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
-		return m_LocalDestination;
-	}
-
-	void TunnelPool::SetLocalDestination (std::shared_ptr<i2p::garlic::GarlicDestination> destination) {
-		std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
-		m_LocalDestination = destination;
-	}
-
 	void TunnelPool::CreateTunnels ()
 	{
 		int num = 0;
@@ -307,7 +296,6 @@ namespace tunnel
 		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();
 
-		std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
 		if (num < m_NumInboundTunnels && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
 			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
 	}
@@ -344,7 +332,6 @@ namespace tunnel
 						std::unique_lock<std::mutex> li(m_InboundTunnelsMutex);
 						m_InboundTunnels.erase (it.second.second);
 					}
-					std::unique_lock<std::mutex> ld(m_LocalDestinationMutex);
 					if (m_LocalDestination)
 						m_LocalDestination->SetLeaseSetUpdated ();
 				}
@@ -398,7 +385,6 @@ namespace tunnel
 		
 	void TunnelPool::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessGarlicMessage (msg);
 		else
@@ -447,7 +433,6 @@ namespace tunnel
 		}
 		else
 		{
-			std::unique_lock<std::mutex> l(m_LocalDestinationMutex);
 			if (m_LocalDestination)
 				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
 			else
@@ -636,10 +621,8 @@ namespace tunnel
 			Path path;
 			if (SelectPeers (path, false))
 			{
-				std::unique_lock<std::mutex> ld(m_LocalDestinationMutex);
 				if (m_LocalDestination && !m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 					path.isShort = false; // because can't handle ECIES encrypted reply
-				ld.unlock();
 				
 				std::shared_ptr<TunnelConfig> config;
 				if (m_NumOutboundHops > 0)
