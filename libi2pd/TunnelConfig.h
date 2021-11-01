@@ -99,7 +99,7 @@ namespace tunnel
 				m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
 			}
 
-			~TunnelConfig ()
+			virtual ~TunnelConfig ()
 			{
 				TunnelHopConfig * hop = m_FirstHop;
 
