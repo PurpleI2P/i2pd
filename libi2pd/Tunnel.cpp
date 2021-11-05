@@ -32,7 +32,7 @@ namespace tunnel
 	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config):
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
 		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr), 
-		m_State (eTunnelStatePending), m_FarEndTransports (0),
+		m_State (eTunnelStatePending), m_FarEndTransports (i2p::data::RouterInfo::eAllTransports),
 		m_IsRecreated (false), m_Latency (0)
 	{
 	}

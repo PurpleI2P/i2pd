@@ -555,18 +555,6 @@ namespace client
 				shared_from_this (), std::placeholders::_1));
 			return;
 		}
-		auto outbound = m_Pool->GetNextOutboundTunnel ();
-		if (!outbound)
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
-			return;
-		}
-		auto inbound = m_Pool->GetNextInboundTunnel ();
-		if (!inbound)
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
-			return;
-		}
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 		if (!floodfill)
 		{
@@ -575,6 +563,18 @@ namespace client
 			return;
 		}
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
+		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
+		if (!outbound)
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
+			return;
+		}
+		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
+		if (!inbound)
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
+			return;
+		}
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
 		auto msg = WrapMessageForRouter (floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound));
@@ -751,10 +751,10 @@ namespace client
 		std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		if (!request->replyTunnel || !request->replyTunnel->IsEstablished ())
-			request->replyTunnel = m_Pool->GetNextInboundTunnel ();
+			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true));
 		if (!request->replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
 		if (!request->outboundTunnel || !request->outboundTunnel->IsEstablished ())
-			request->outboundTunnel = m_Pool->GetNextOutboundTunnel ();
+			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false));
 		if (!request->outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
 
 		if (request->replyTunnel && request->outboundTunnel)

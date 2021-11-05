@@ -64,7 +64,8 @@ namespace data
 				eNTCP2V6 = 0x02,
 				eSSUV4 = 0x04,
 				eSSUV6 = 0x08,
-				eNTCP2V6Mesh = 0x10	
+				eNTCP2V6Mesh = 0x10,
+				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
 		
