@@ -562,7 +562,6 @@ namespace client
 			m_ExcludedFloodfills.clear ();
 			return;
 		}
-		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
 		if (!outbound)
 		{
@@ -575,6 +574,7 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
 			return;
 		}
+		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
 		auto msg = WrapMessageForRouter (floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound));

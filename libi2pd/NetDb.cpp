@@ -681,8 +681,8 @@ namespace data
 			else
 			{
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-				auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;
+				auto outbound = pool ? pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
+				auto inbound = pool ? pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
 				if (outbound &&	inbound)
 					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, dest->CreateRequestMessage (floodfill, inbound));
 				else
@@ -1129,8 +1129,8 @@ namespace data
 			{
 				// otherwise through exploratory	
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;	
+				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
+				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;	
 				if (inbound && outbound)
 					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, 
 						CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound));	
