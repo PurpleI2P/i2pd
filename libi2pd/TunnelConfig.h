@@ -185,7 +185,7 @@ namespace tunnel
 
 			// this constructor can't be called from outside
 			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr), m_IsShort (false),
-				m_FarEndTransports (0)
+				m_FarEndTransports (i2p::data::RouterInfo::eAllTransports)
 			{
 			}
 
