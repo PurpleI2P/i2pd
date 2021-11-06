@@ -588,9 +588,7 @@ namespace tunnel
 		LogPrint (eLogDebug, "Tunnels: Re-creating destination inbound tunnel...");
 		std::shared_ptr<TunnelConfig> config;
 		if (m_NumInboundHops > 0 && tunnel->GetPeers().size())
-		{
-			config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), tunnel->IsShortBuildMessage ());
-		}
+			config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), tunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
 		if (!m_NumInboundHops || config)
 		{
 			auto newTunnel = tunnels.CreateInboundTunnel (config, shared_from_this(), outboundTunnel);
@@ -657,7 +655,7 @@ namespace tunnel
 			if (m_NumOutboundHops > 0 && tunnel->GetPeers().size())
 			{
 				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (), 
-					inboundTunnel->GetNextIdentHash (), inboundTunnel->IsShortBuildMessage ());
+					inboundTunnel->GetNextIdentHash (), inboundTunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
 			}
 			if (!m_NumOutboundHops || config)
 			{
