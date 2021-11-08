@@ -7,7 +7,7 @@
  *
  ******************************************************************
  *
- * This is styles heet for webconsole, with @media selectors for adaptive
+ * This is style sheet for webconsole, with @media selectors for adaptive
  * view on desktop and mobile devices, respecting preferred user's color
  * scheme used in system/browser.
  *
@@ -22,7 +22,7 @@
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--main-bg-color: #121212;
+		--main-bg-color: #181818;
 		--main-text-color: #156A3D;
 		--main-link-color: #894C84;
 	}
@@ -63,7 +63,7 @@ a.button {
 .wrapper {
 	margin: 0 auto;
 	padding: 1em;
-	max-width: 64em;
+	max-width: 60em;
 }
 
 .menu {
@@ -92,7 +92,7 @@ a.button {
 .content {
 	float: left;
 	font-size: 1em;
-	margin-left: 2em;
+	margin-left: 4em;
 	padding: 4px;
 	max-width: 50em;
 	overflow: auto;
@@ -192,7 +192,7 @@ input[type=number]::-webkit-inner-spin-button {
 
 @media screen and (max-width: 1150px) { /* adaptive style */
 	.wrapper {
-		max-width: 60em;
+		max-width: 56em;
 	}
 	
 	.menu {
@@ -201,7 +201,7 @@ input[type=number]::-webkit-inner-spin-button {
 
 	.content {
 		margin-left: 2em;
-		max-width: 46em;
+		max-width: 44em;
 	}
 }
 
