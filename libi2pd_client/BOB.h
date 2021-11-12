@@ -63,7 +63,7 @@ namespace client
 	const char BOB_HELP_OUTPORT[] = "outport <PORT_NUMBER> - Set the outbound port that nickname contacts.";
 	const char BOB_HELP_INHOST[] = "inhost <HOSTNAME|IP> - Set the inbound hostname or IP.";
 	const char BOB_HELP_INPORT[] = "inport <PORT_NUMBER> - Set the inbound port number nickname listens on.";
-	const char BOB_HELP_QUIET[] = "quiet <True|False> - Wether to send the incoming destination.";
+	const char BOB_HELP_QUIET[] = "quiet <True|False> - Whether to send the incoming destination.";
 	const char BOB_HELP_LOOKUP[] = "lookup <I2P_HOSTNAME> - Look up an I2P hostname.";
 	const char BOB_HELP_CLEAR[] = "clear - Clear the current nickname out of the list.";
 	const char BOB_HELP_LIST[] = "list - List all tunnels.";

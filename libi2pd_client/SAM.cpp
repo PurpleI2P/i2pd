@@ -936,7 +936,7 @@ namespace client
 			else // closed by peer
 			{
 				uint8_t * buff = new uint8_t[SAM_SOCKET_BUFFER_SIZE];
-				// get remaning data
+				// get remaining data
 				auto len = m_Stream->ReadSome (buff, SAM_SOCKET_BUFFER_SIZE);
 				if (len > 0) // still some data
 				{

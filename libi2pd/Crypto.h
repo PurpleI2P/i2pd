@@ -106,7 +106,7 @@ namespace crypto
 			BN_CTX * m_Ctx;
 			uint8_t m_PrivateKey[32];
 #endif
-			bool m_IsElligatorIneligible = false; // true if definitly ineligible
+			bool m_IsElligatorIneligible = false; // true if definitely ineligible
 	};
 
 	// ElGamal

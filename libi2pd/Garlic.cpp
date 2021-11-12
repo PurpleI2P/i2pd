@@ -271,7 +271,7 @@ namespace garlic
 				(*numCloves)++;
 			}
 		}
-		if (msg) // clove message ifself if presented
+		if (msg) // clove message itself if presented
 		{
 			size += CreateGarlicClove (payload + size, msg, m_Destination ? m_Destination->IsDestination () : false);
 			(*numCloves)++;
@@ -542,7 +542,7 @@ namespace garlic
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
 					{
-						// try to gererate more tags for last tagset 
+						// try to generate more tags for last tagset 
 						if (m_LastTagset && (m_LastTagset->GetNextIndex () - m_LastTagset->GetTrimBehind () < 3*ECIESX25519_MAX_NUM_GENERATED_TAGS))
 						{
 							uint64_t missingTag; memcpy (&missingTag, buf, 8);

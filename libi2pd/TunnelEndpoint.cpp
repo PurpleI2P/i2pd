@@ -30,7 +30,7 @@ namespace tunnel
 		m_NumReceivedBytes += TUNNEL_DATA_MSG_SIZE;
 
 		uint8_t * decrypted = msg->GetPayload () + 20; // 4 + 16
-		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, TUNNEL_DATA_ENCRYPTED_SIZE - 4); // witout 4-byte checksum
+		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, TUNNEL_DATA_ENCRYPTED_SIZE - 4); // without 4-byte checksum
 		if (zero)
 		{
 			uint8_t * fragment = zero + 1;
