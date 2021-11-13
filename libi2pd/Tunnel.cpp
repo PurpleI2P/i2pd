@@ -156,6 +156,7 @@ namespace tunnel
 		}
 
 		bool established = true;
+		size_t numHops = 0;
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{
@@ -168,18 +169,20 @@ namespace tunnel
 				// if any of participants declined the tunnel is not established
 				established = false;
 			hop = hop->next;
+			numHops++;
 		}
 		if (established)
 		{
 			// create tunnel decryptions from layer and iv keys in reverse order
+			m_Hops.resize (numHops);
 			hop = m_Config->GetLastHop ();
+			int i = 0;               
 			while (hop)
 			{
-				auto tunnelHop = new TunnelHop;
-				tunnelHop->ident = hop->ident;
-				tunnelHop->decryption.SetKeys (hop->layerKey, hop->ivKey);
-				m_Hops.push_back (std::unique_ptr<TunnelHop>(tunnelHop));
+				m_Hops[i].ident = hop->ident;
+				m_Hops[i].decryption.SetKeys (hop->layerKey, hop->ivKey);
 				hop = hop->prev;
+				i++;
 			}
 			m_IsShortBuildMessage = m_Config->IsShort ();
 			m_FarEndTransports = m_Config->GetFarEndTransports ();
@@ -201,7 +204,7 @@ namespace tunnel
 		uint8_t * outPayload = out->GetPayload () + 4;
 		for (auto& it: m_Hops)
 		{
-			it->decryption.Decrypt (inPayload, outPayload);
+			it.decryption.Decrypt (inPayload, outPayload);
 			inPayload = outPayload;
 		}
 	}
@@ -222,8 +225,8 @@ namespace tunnel
 	{
 		// hops are in inverted order
 		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > ret;
-		for (auto& it: m_Hops)
-			ret.push_back (it->ident);
+		for (const auto& it: m_Hops)
+			ret.push_back (it.ident);
 		return ret;
 	}
 
@@ -239,7 +242,7 @@ namespace tunnel
 		for (auto it = m_Hops.rbegin (); it != m_Hops.rend (); it++)
 		{
 			s << " &#8658; ";
-			s << i2p::data::GetIdentHashAbbreviation ((*it)->ident->GetIdentHash ());
+			s << i2p::data::GetIdentHashAbbreviation ((*it).ident->GetIdentHash ());
 		}
 	}
 

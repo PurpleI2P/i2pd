@@ -114,7 +114,7 @@ namespace tunnel
 		private:
 
 			std::shared_ptr<const TunnelConfig> m_Config;
-			std::vector<std::unique_ptr<TunnelHop> > m_Hops;
+			std::vector<TunnelHop> m_Hops;
 			bool m_IsShortBuildMessage;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
