@@ -681,7 +681,7 @@ namespace transport
 					auto addr = ri.GetNTCP2AddressWithStaticKey (m_Establisher->m_RemoteStaticKey);
 					if (!addr)
 					{
-						LogPrint (eLogError, "NTCP2: No NTCP2 address wth static key found in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: No NTCP2 address with static key found in SessionConfirmed");
 						Terminate ();
 						return;
 					}
@@ -973,7 +973,7 @@ namespace transport
 		{
 			// allocate send buffer
 			m_NextSendBuffer = new uint8_t[287]; // can be any size > 16, we just allocate 287 frequently
-			// crate padding block
+			// create padding block
 			auto paddingLen = CreatePaddingBlock (totalLen, m_NextSendBuffer, 287 - 16);
 			// and padding block to encrypt and send
 			if (paddingLen)

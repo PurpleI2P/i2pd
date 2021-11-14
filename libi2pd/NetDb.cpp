@@ -1261,7 +1261,7 @@ namespace data
 				return it->second;
 			it++;
 		}
-		// still not found, try from the begining
+		// still not found, try from the beginning
 		it = m_RouterInfos.begin ();
 		while (it != it1 && it != m_RouterInfos.end ())
 		{
@@ -1269,7 +1269,7 @@ namespace data
 				return it->second;
 			it++;
 		}
-		// still not found, try to the begining
+		// still not found, try to the beginning
 		it = it2;
 		while (it != m_RouterInfos.end ())
 		{

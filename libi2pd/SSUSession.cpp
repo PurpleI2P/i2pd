@@ -1020,7 +1020,7 @@ namespace transport
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes
-		boost::asio::ip::address addr; // Alice's addresss
+		boost::asio::ip::address addr; // Alice's address
 		uint16_t port = 0; // and port
 		auto size = ExtractIPAddressAndPort (buf + 4, len - 4, addr, port);
 		if (port && (size != 7) && (size != 19))

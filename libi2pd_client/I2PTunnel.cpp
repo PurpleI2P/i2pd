@@ -205,7 +205,7 @@ namespace client
 			}
 			else // closed by peer
 			{
-				// get remaning data
+				// get remaining data
 				auto len = m_Stream->ReadSome (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE);
 				if (len > 0) // still some data
 					Write (m_StreamBuffer, len);

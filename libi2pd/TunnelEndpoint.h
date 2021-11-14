@@ -49,7 +49,7 @@ namespace tunnel
 
 			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, uint8_t fragmentNum, const uint8_t * fragment, size_t size);
 			bool ConcatFollowOnFragment (TunnelMessageBlockEx& msg, const uint8_t * fragment, size_t size) const; // true if success
-			void HandleCurrenMessageFollowOnFragment (const uint8_t * frgament, size_t size, bool isLastFragment);		
+			void HandleCurrenMessageFollowOnFragment (const uint8_t * fragment, size_t size, bool isLastFragment);		
 			void HandleNextMessage (const TunnelMessageBlock& msg);
 
 			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, const uint8_t * fragment, size_t size);
