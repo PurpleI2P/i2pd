@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -164,7 +164,7 @@ namespace datagram
 			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 
 			i2p::data::GzipInflator m_Inflator;
-			i2p::data::GzipDeflator m_Deflator;
+			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
 			std::vector<uint8_t> m_From, m_Signature;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};

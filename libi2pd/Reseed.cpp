@@ -478,7 +478,7 @@ namespace data
 					if (terminator) terminator[0] = 0;
 				}
 				// extract RSA key (we need n only, e = 65537)
-				RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
+				const RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
 				const BIGNUM * n, * e, * d;
 				RSA_get0_key(key, &n, &e, &d);
 				PublicKey value;
@@ -497,7 +497,8 @@ namespace data
 
 	void Reseeder::LoadCertificates ()
 	{
-		std::string certDir = i2p::fs::DataDirPath("certificates", "reseed");
+		std::string certDir = i2p::fs::GetCertsDir() + i2p::fs::dirSep + "reseed";
+
 		std::vector<std::string> files;
 		int numCertificates = 0;
 

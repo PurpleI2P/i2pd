@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -345,10 +345,11 @@ namespace client
 	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
 		I2NPMessageType typeID = (I2NPMessageType)(buf[I2NP_HEADER_TYPEID_OFFSET]);
-		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE);
+		uint32_t msgID = bufbe32toh (buf + I2NP_HEADER_MSGID_OFFSET);
+		LeaseSetDestination::HandleCloveI2NPMessage (typeID, buf + I2NP_HEADER_SIZE, GetI2NPMessageLength(buf, len) - I2NP_HEADER_SIZE, msgID);
 	}
 
-	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len)
+	bool LeaseSetDestination::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
 	{
 		switch (typeID)
 		{
@@ -365,6 +366,9 @@ namespace client
 			case eI2NPDatabaseSearchReply:
 				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
+			case eI2NPShortTunnelBuildReply: // might come as garlic encrypted
+				i2p::HandleI2NPMessage (CreateI2NPMessage (typeID, payload, len, msgID));	
+			break;		
 			default:
 				LogPrint (eLogWarning, "Destination: Unexpected I2NP message type ", typeID);
 				return false;
@@ -551,23 +555,23 @@ namespace client
 				shared_from_this (), std::placeholders::_1));
 			return;
 		}
-		auto outbound = m_Pool->GetNextOutboundTunnel ();
-		if (!outbound)
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
-			return;
-		}
-		auto inbound = m_Pool->GetNextInboundTunnel ();
-		if (!inbound)
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
-			return;
-		}
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 		if (!floodfill)
 		{
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			m_ExcludedFloodfills.clear ();
+			return;
+		}
+		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
+		if (!outbound)
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
+			return;
+		}
+		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
+		if (!inbound)
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
 			return;
 		}
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
@@ -747,10 +751,10 @@ namespace client
 		std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		if (!request->replyTunnel || !request->replyTunnel->IsEstablished ())
-			request->replyTunnel = m_Pool->GetNextInboundTunnel ();
+			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true));
 		if (!request->replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
 		if (!request->outboundTunnel || !request->outboundTunnel->IsEstablished ())
-			request->outboundTunnel = m_Pool->GetNextOutboundTunnel ();
+			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false));
 		if (!request->outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
 
 		if (request->replyTunnel && request->outboundTunnel)
@@ -1092,6 +1096,35 @@ namespace client
 			return nullptr;
 	}
 
+	void ClientDestination::SendPing (const i2p::data::IdentHash& to)
+	{
+		if (m_StreamingDestination)
+		{	
+			auto leaseSet = FindLeaseSet (to);
+			if (leaseSet)
+				m_StreamingDestination->SendPing (leaseSet);
+			else
+			{	
+				auto s = m_StreamingDestination;
+				RequestDestination (to,
+					[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
+					{
+						if (ls) s->SendPing (ls);
+					});
+			}		
+		}	
+	}	
+
+	void ClientDestination::SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to)
+	{
+		auto s = m_StreamingDestination;
+		RequestDestinationWithEncryptedLeaseSet (to,
+			[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
+			{
+				if (ls) s->SendPing (ls);
+			});                                      
+	}	
+		
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (int port) const
 	{
 		if (port)
@@ -1241,13 +1274,13 @@ namespace client
 		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
 	}
 
-	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const
+	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
 	{
 		if (preferredCrypto == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 			if (m_ECIESx25519EncryptionKey && m_ECIESx25519EncryptionKey->decryptor)
-				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data, ctx, true);
+				return m_ECIESx25519EncryptionKey->decryptor->Decrypt (encrypted, data);
 		if (m_StandardEncryptionKey && m_StandardEncryptionKey->decryptor)
-			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data, ctx, true);
+			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data);
 		else
 			LogPrint (eLogError, "Destinations: decryptor is not set");
 		return false;

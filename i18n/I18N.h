@@ -9,7 +9,7 @@
 #ifndef __I18N_H__
 #define __I18N_H__
 
-#include "RouterContext.h"
+#include "ClientContext.h"
 
 namespace i2p
 {
@@ -17,24 +17,21 @@ namespace i18n
 {
 	inline void SetLanguage(const std::string &lang)
 	{
-		if (!lang.compare("russian"))
-			i2p::context.SetLanguage (i2p::i18n::russian::GetLocale());
-		else if (!lang.compare("turkmen"))
-			i2p::context.SetLanguage (i2p::i18n::turkmen::GetLocale());
-		else if (!lang.compare("ukrainian"))
-			i2p::context.SetLanguage (i2p::i18n::ukrainian::GetLocale());
-		else // fallback
-			i2p::context.SetLanguage (i2p::i18n::english::GetLocale());
+		const auto it = i2p::i18n::languages.find(lang);
+		if (it == i2p::i18n::languages.end()) // fallback
+			i2p::client::context.SetLanguage (i2p::i18n::english::GetLocale());
+		else
+			i2p::client::context.SetLanguage (it->second.LocaleFunc());
 	}
 
 	inline std::string translate (const std::string& arg)
 	{
-		return i2p::context.GetLanguage ()->GetString (arg);
+		return i2p::client::context.GetLanguage ()->GetString (arg);
 	}
 
-	inline std::string translate (const std::string& arg, const int& n)
+	inline std::string translate (const std::string& arg, const std::string& arg2, const int& n)
 	{
-		return i2p::context.GetLanguage ()->GetPlural (arg, n);
+		return i2p::client::context.GetLanguage ()->GetPlural (arg, arg2, n);
 	}
 } // i18n
 } // i2p

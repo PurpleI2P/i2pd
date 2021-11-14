@@ -79,23 +79,23 @@ namespace client
 		if(!inbound && m_RemoteLeaseSet)
 		{
 			if(m_RemoteLeaseSet->IsExpired())
-			{
 				ResolveCurrentLeaseSet();
-			}
 			if(m_RemoteLeaseSet && !m_RemoteLeaseSet->IsExpired())
 			{
 				// remote lease set is good
 				auto leases = m_RemoteLeaseSet->GetNonExpiredLeases();
 				// pick lease
 				std::shared_ptr<i2p::data::RouterInfo> obep;
-				while(!obep && leases.size() > 0) {
+				while(!obep && leases.size() > 0) 
+				{
 					auto idx = rand() % leases.size();
 					auto lease = leases[idx];
 					obep = i2p::data::netdb.FindRouter(lease->tunnelGateway);
 					leases.erase(leases.begin()+idx);
 				}
-				if(obep) {
-					path.push_back(obep->GetRouterIdentity());
+				if(obep) 
+				{
+					path.Add (obep);
 					LogPrint(eLogDebug, "Destination: found OBEP matching IBGW");
 				} else
 					LogPrint(eLogWarning, "Destination: could not find proper IBGW for matched outbound tunnel");

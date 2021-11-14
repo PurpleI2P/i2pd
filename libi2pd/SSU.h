@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,6 +18,7 @@
 #include <mutex>
 #include <boost/asio.hpp>
 #include "Crypto.h"
+#include "util.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -63,6 +64,10 @@ namespace transport
 			void DeleteAllSessions ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
+			i2p::util::MemoryPool<Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
+			i2p::util::MemoryPool<IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
+			i2p::util::MemoryPool<SentMessage>& GetSentMessagesPool () { return m_SentMessagesPool; };
+			
 			uint16_t GetPort () const { return m_Endpoint.port (); };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			
@@ -136,6 +141,11 @@ namespace transport
 			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
 
+			i2p::util::MemoryPool<Fragment> m_FragmentsPool;
+			i2p::util::MemoryPool<IncompleteMessage> m_IncompleteMessagesPool;
+			i2p::util::MemoryPool<SentMessage> m_SentMessagesPool;
+			i2p::util::MemoryPoolMt<SSUPacket> m_PacketsPool;
+			
 		public:
 			// for HTTP only
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };

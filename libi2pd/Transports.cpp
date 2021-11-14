@@ -389,7 +389,7 @@ namespace transport
 		{
 			// we send it to ourself
 			for (auto& it: msgs)
-				m_LoopbackHandler.PutNextMessage (it);
+				m_LoopbackHandler.PutNextMessage (std::move (it));
 			m_LoopbackHandler.Flush ();
 			return;
 		}
@@ -401,7 +401,7 @@ namespace transport
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				if (!r || r->IsUnreachable () || !r->IsCompatible (i2p::context.GetRouterInfo ())) return;
+				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
 				{
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
@@ -447,7 +447,7 @@ namespace transport
 					std::shared_ptr<const RouterInfo::Address> address;
 					if (!peer.numAttempts) // NTCP2 ipv6
 					{
-						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsNTCP2V6 ())
+						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsReachableBy (RouterInfo::eNTCP2V6))
 						{	
 							address = peer.router->GetPublishedNTCP2V6Address ();
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
@@ -457,7 +457,7 @@ namespace transport
 					}
 					if (!address && peer.numAttempts == 1) // NTCP2 ipv4	
 					{	
-						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsNTCP2 (true) && !peer.router->IsUnreachable ())
+						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsReachableBy (RouterInfo::eNTCP2V4))
 						{	
 							address = peer.router->GetPublishedNTCP2V4Address ();
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
@@ -485,7 +485,7 @@ namespace transport
 					std::shared_ptr<const RouterInfo::Address> address;
 					if (peer.numAttempts == 2) // SSU ipv6
 					{
-						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsSSUV6 ())
+						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsReachableBy (RouterInfo::eSSUV6))
 						{
 							address = peer.router->GetSSUV6Address ();
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
@@ -495,7 +495,7 @@ namespace transport
 					}
 					if (!address && peer.numAttempts == 3) // SSU ipv4
 					{
-						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsSSU (true))
+						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsReachableBy (RouterInfo::eSSUV4))
 						{
 							address = peer.router->GetSSUAddress (true);
 							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))

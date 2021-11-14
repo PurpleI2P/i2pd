@@ -7,8 +7,13 @@ netDb
 /i2pd
 /libi2pd.a
 /libi2pdclient.a
+/libi2pdlang.a
 /libi2pd.so
 /libi2pdclient.so
+/libi2pdlang.so
+/libi2pd.dll
+/libi2pdclient.dll
+/libi2pdlang.dll
 *.exe
 
 
@@ -255,6 +260,7 @@ docs/generated
 build/Makefile
 
 # debian stuff
+debian/i2pd.1.gz
 .pc/
 
 # qt 

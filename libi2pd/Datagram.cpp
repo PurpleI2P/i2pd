@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -21,6 +21,9 @@ namespace datagram
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
 		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
 	{
+		if (m_Gzip)
+			m_Deflator.reset (new i2p::data::GzipDeflator);
+
 		auto identityLen = m_Owner->GetIdentity ()->GetFullLen ();
 		m_From.resize (identityLen);
 		m_Owner->GetIdentity ()->ToBuffer (m_From.data (), identityLen);
@@ -152,11 +155,16 @@ namespace datagram
 		const std::vector<std::pair<const uint8_t *, size_t> >& payloads,
 		uint16_t fromPort, uint16_t toPort, bool isRaw, bool checksum)
 	{
+		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
-		size_t size = m_Gzip ? m_Deflator.Deflate (payloads, buf, msg->maxLen - msg->len) :
-			i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
+
+		if (m_Gzip && m_Deflator)
+			size = m_Deflator->Deflate (payloads, buf, msg->maxLen - msg->len);
+		else
+			size = i2p::data::GzipNoCompression (payloads, buf, msg->maxLen - msg->len);
+
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length
@@ -363,8 +371,6 @@ namespace datagram
 		{
 			// no current path, make one
 			path = std::make_shared<i2p::garlic::GarlicRoutingPath>();
-			path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel();
-			if (!path->outboundTunnel) return nullptr;
 
 			if (m_RemoteLeaseSet)
 			{
@@ -378,6 +384,11 @@ namespace datagram
 				}
 				else
 					return nullptr;
+				
+				auto leaseRouter = i2p::data::netdb.FindRouter (path->remoteLease->tunnelGateway);
+				path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(nullptr,
+					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
+				if (!path->outboundTunnel) return nullptr;
 			}
 			else
 			{

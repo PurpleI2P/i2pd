@@ -1,4 +1,5 @@
-CXXFLAGS += -Wall -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1 -I../libi2pd/ -pthread -Wl,--unresolved-symbols=ignore-in-object-files
+CXXFLAGS += -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1 -pthread -Wl,--unresolved-symbols=ignore-in-object-files
+INCFLAGS += -I../libi2pd
 
 TESTS = test-gost test-gost-sig test-base-64 test-x25519 test-aeadchacha20poly1305 test-blinding test-elligator
 

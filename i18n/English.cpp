@@ -13,13 +13,17 @@
 #include "I18N.h"
 
 // English localization file
+// This is an example translation file without strings in it.
 
 namespace i2p
 {
 namespace i18n
 {
-namespace english // language
+namespace english // language namespace
 {
+	// language name in lowercase
+	static std::string language = "english";
+
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 	static int plural (int n) {
@@ -33,16 +37,12 @@ namespace english // language
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days",    {"day", "days"}},
-		{"hours",   {"hour", "hours"}},
-		{"minutes", {"minute", "minutes"}},
-		{"seconds", {"second", "seconds"}},
 		{"", {"", ""}},
 	};
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
 	{
-		return std::make_shared<i2p::i18n::Locale>(strings, plurals, [] (int n)->int { return plural(n); });
+		return std::make_shared<i2p::i18n::Locale>(language, strings, plurals, [] (int n)->int { return plural(n); });
 	}
 
 } // language

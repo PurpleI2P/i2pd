@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -84,8 +84,9 @@ namespace data
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
 
+	const size_t MAX_EXTENDED_BUFFER_SIZE = 8; // cryptoKeyType + signingKeyType + 4 extra bytes of P521 
 	class IdentityEx
-	{
+	{			
 		public:
 
 			IdentityEx ();
@@ -137,7 +138,7 @@ namespace data
 			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
 			mutable std::mutex m_VerifierMutex;
 			size_t m_ExtendedLen;
-			uint8_t * m_ExtendedBuffer;
+			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; 
 	};
 
 	class PrivateKeys // for eepsites
@@ -222,7 +223,7 @@ namespace data
 			virtual ~RoutingDestination () {};
 
 			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const = 0; // encrypt data for
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
@@ -234,7 +235,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

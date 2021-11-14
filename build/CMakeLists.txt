@@ -27,6 +27,9 @@ option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 set(CMAKE_SOURCE_DIR "..")
 
+#Handle paths nicely
+include(GNUInstallDirs)
+
 # architecture
 include(TargetArch)
 target_architecture(ARCHITECTURE)
@@ -48,8 +51,8 @@ set_target_properties(libi2pd PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pd
     EXPORT libi2pd
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
@@ -63,12 +66,22 @@ set_target_properties(libi2pdclient PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pdclient
     EXPORT libi2pdclient
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
 endif()
 
 FILE(GLOB LANG_SRC ${LANG_SRC_DIR}/*.cpp)
+add_library(libi2pdlang ${LANG_SRC})
+set_target_properties(libi2pdlang PROPERTIES PREFIX "")
+
+if(WITH_LIBRARY)
+  install(TARGETS libi2pdlang
+    EXPORT libi2pdlang
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT Libraries)
+endif()
 
 set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
@@ -198,10 +211,11 @@ if(WITH_PCH)
   )
   target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
   target_compile_options(libi2pdclient PRIVATE -include libi2pd/stdafx.h)
+  target_compile_options(libi2pdlang PRIVATE -include libi2pd/stdafx.h)
   target_link_libraries(libi2pd stdafx)
 endif()
 
-target_link_libraries(libi2pdclient libi2pd)
+target_link_libraries(libi2pdclient libi2pd libi2pdlang)
 
 find_package(Boost COMPONENTS system filesystem program_options date_time REQUIRED)
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -261,11 +275,8 @@ message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
 
-#Handle paths nicely
-include(GNUInstallDirs)
-
 if(WITH_BINARY)
-  add_executable("${PROJECT_NAME}" ${LANG_SRC} ${DAEMON_SRC})
+  add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
 
   if(WITH_STATIC)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
@@ -295,7 +306,7 @@ if(WITH_BINARY)
   endif()
 
   target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")

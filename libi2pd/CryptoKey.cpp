@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,10 +20,9 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 256);
 	}
 
-	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
-		if (!ctx) return;
-		ElGamalEncrypt (m_PublicKey, data, encrypted, ctx, zeroPadding);
+		ElGamalEncrypt (m_PublicKey, data, encrypted);
 	}
 
 	ElGamalDecryptor::ElGamalDecryptor (const uint8_t * priv)
@@ -31,10 +30,9 @@ namespace crypto
 		memcpy (m_PrivateKey, priv, 256);
 	}
 
-	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
 	{
-		if (!ctx) return false;
-		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, zeroPadding);
+		return ElGamalDecrypt (m_PrivateKey, encrypted, data);
 	}
 
 	ECIESP256Encryptor::ECIESP256Encryptor (const uint8_t * pub)
@@ -54,10 +52,10 @@ namespace crypto
 		if (m_PublicKey) EC_POINT_free (m_PublicKey);
 	}
 
-	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
 		if (m_Curve && m_PublicKey)
-			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, ctx, zeroPadding);
+			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted);
 	}
 
 	ECIESP256Decryptor::ECIESP256Decryptor (const uint8_t * priv)
@@ -72,10 +70,10 @@ namespace crypto
 		if (m_PrivateKey) BN_free (m_PrivateKey);
 	}
 
-	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
 	{
 		if (m_Curve && m_PrivateKey)
-			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx, zeroPadding);
+			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data);
 		return false;
 	}
 
@@ -114,10 +112,10 @@ namespace crypto
 		if (m_PublicKey) EC_POINT_free (m_PublicKey);
 	}
 
-	void ECIESGOSTR3410Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ECIESGOSTR3410Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
 	{
 		if (m_PublicKey)
-			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted, ctx, zeroPadding);
+			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted);
 	}
 
 	ECIESGOSTR3410Decryptor::ECIESGOSTR3410Decryptor (const uint8_t * priv)
@@ -130,10 +128,10 @@ namespace crypto
 		if (m_PrivateKey) BN_free (m_PrivateKey);
 	}
 
-	bool ECIESGOSTR3410Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESGOSTR3410Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
 	{
 		if (m_PrivateKey)
-			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data, ctx, zeroPadding);
+			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data);
 		return false;
 	}
 
@@ -161,7 +159,7 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 32);
 	}
 
-	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub, BN_CTX *, bool)
+	void ECIESX25519AEADRatchetEncryptor::Encrypt (const uint8_t *, uint8_t * pub)
 	{
 		memcpy (pub, m_PublicKey, 32);
 	}
@@ -171,7 +169,7 @@ namespace crypto
 		m_StaticKeys.SetPrivateKey (priv, calculatePublic);
 	}
 
-	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESX25519AEADRatchetDecryptor::Decrypt (const uint8_t * epub, uint8_t * sharedSecret)
 	{
 		return m_StaticKeys.Agree (epub, sharedSecret);
 	}

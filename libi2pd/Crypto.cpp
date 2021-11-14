@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -398,8 +398,9 @@ namespace crypto
 	}
 
 // ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		// everything, but a, because a might come from table
 		BIGNUM * k = BN_CTX_get (ctx);
@@ -435,37 +436,32 @@ namespace crypto
 		BN_bin2bn (m, 255, b);
 		BN_mod_mul (b, b1, b, elgp, ctx);
 		// copy a and b
-		if (zeroPadding)
-		{
-			encrypted[0] = 0;
-			bn2buf (a, encrypted + 1, 256);
-			encrypted[257] = 0;
-			bn2buf (b, encrypted + 258, 256);
-		}
-		else
-		{
-			bn2buf (a, encrypted, 256);
-			bn2buf (b, encrypted + 256, 256);
-		}
+		encrypted[0] = 0;
+		bn2buf (a, encrypted + 1, 256);
+		encrypted[257] = 0;
+		bn2buf (b, encrypted + 258, 256);
+		
 		BN_free (a);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 	}
 
-	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted,
-		uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
 		BN_sub (x, elgp, x); BN_sub_word (x, 1); // x = elgp - x- 1
-		BN_bin2bn (zeroPadding ? encrypted + 1 : encrypted, 256, a);
-		BN_bin2bn (zeroPadding ? encrypted + 258 : encrypted + 256, 256, b);
+		BN_bin2bn (encrypted + 1, 256, a);
+		BN_bin2bn (encrypted + 258, 256, b);
 		// m = b*(a^x mod p) mod p
 		BN_mod_exp (x, a, x, elgp, ctx);
 		BN_mod_mul (b, b, x, elgp, ctx);
 		uint8_t m[255];
 		bn2buf (b, m, 255);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
 		if (memcmp (m + 1, hash, 32))
@@ -499,8 +495,9 @@ namespace crypto
 	}
 
 // ECIES
-	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted)
 	{
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * q = BN_CTX_get (ctx);
 		EC_GROUP_get_order(curve, q, ctx);
@@ -512,19 +509,10 @@ namespace crypto
 		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
-		if (zeroPadding)
-		{
-			encrypted[0] = 0;
-			bn2buf (x, encrypted + 1, len);
-			bn2buf (y, encrypted + 1 + len, len);
-			RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
-		}
-		else
-		{
-			bn2buf (x, encrypted, len);
-			bn2buf (y, encrypted + len, len);
-			RAND_bytes (encrypted + 2*len, 256 - 2*len);
-		}
+		encrypted[0] = 0;
+		bn2buf (x, encrypted + 1, len);
+		bn2buf (y, encrypted + 1 + len, len);
+		RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
 		// encryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx);
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
@@ -541,36 +529,25 @@ namespace crypto
 		CBCEncryption encryption;
 		encryption.SetKey (shared);
 		encryption.SetIV (iv);
-		if (zeroPadding)
-		{
-			encrypted[257] = 0;
-			encryption.Encrypt (m, 256, encrypted + 258);
-		}
-		else
-			encryption.Encrypt (m, 256, encrypted + 256);
+		encrypted[257] = 0;
+		encryption.Encrypt (m, 256, encrypted + 258);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 	}
 
-	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding)
+	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data)
 	{
 		bool ret = true;
+		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * q = BN_CTX_get (ctx);
 		EC_GROUP_get_order(curve, q, ctx);
 		int len = BN_num_bytes (q);
 		// point for shared secret
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
-		if (zeroPadding)
-		{
-			BN_bin2bn (encrypted + 1, len, x);
-			BN_bin2bn (encrypted + 1 + len, len, y);
-		}
-		else
-		{
-			BN_bin2bn (encrypted, len, x);
-			BN_bin2bn (encrypted + len, len, y);
-		}
+		BN_bin2bn (encrypted + 1, len, x);
+		BN_bin2bn (encrypted + 1 + len, len, y);
 		auto p = EC_POINT_new (curve);
 		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
 		{
@@ -587,10 +564,7 @@ namespace crypto
 			CBCDecryption decryption;
 			decryption.SetKey (shared);
 			decryption.SetIV (iv);
-			if (zeroPadding)
-				decryption.Decrypt (encrypted + 258, 256, m);
-			else
-				decryption.Decrypt (encrypted + 256, 256, m);
+			decryption.Decrypt (encrypted + 258, 256, m);
 			// verify and copy
 			uint8_t hash[32];
 			SHA256 (m + 33, 222, hash);
@@ -610,6 +584,7 @@ namespace crypto
 
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
 		return ret;
 	}
 
@@ -1302,7 +1277,7 @@ namespace crypto
 			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
 		}
 		if (info.length () > 0)
-			EVP_PKEY_CTX_add1_hkdf_info (pctx, info.c_str (), info.length ());
+			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.c_str (), info.length ());
 		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
 #else

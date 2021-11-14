@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -303,7 +303,7 @@ namespace client
 							m_ProxyConnectionSent = true;
 						}
 						else
-							m_OutHeader << line << "\n";
+						m_OutHeader << line << "\n";
 					}
 				}
 				else
@@ -532,7 +532,7 @@ namespace client
 	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination,
 		const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort):
 		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination),
-		m_DestinationPort (destinationPort)
+		m_DestinationPort (destinationPort), m_KeepAliveInterval (0)
 	{
 	}
 
@@ -540,14 +540,24 @@ namespace client
 	{
 		TCPIPAcceptor::Start ();
 		GetAddress ();
+		if (m_KeepAliveInterval)
+			ScheduleKeepAliveTimer ();
 	}
 
 	void I2PClientTunnel::Stop ()
 	{
 		TCPIPAcceptor::Stop();
 		m_Address = nullptr;
+		if (m_KeepAliveTimer) m_KeepAliveTimer->cancel ();
 	}
 
+	void I2PClientTunnel::SetKeepAliveInterval (uint32_t keepAliveInterval)
+	{
+		m_KeepAliveInterval = keepAliveInterval;
+		if (m_KeepAliveInterval)
+			m_KeepAliveTimer.reset (new boost::asio::deadline_timer (GetLocalDestination ()->GetService ()));
+	}	
+		
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
 	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
@@ -569,6 +579,31 @@ namespace client
 			return nullptr;
 	}
 
+	void I2PClientTunnel::ScheduleKeepAliveTimer ()
+	{
+		if (m_KeepAliveTimer)
+		{
+			m_KeepAliveTimer->expires_from_now (boost::posix_time::seconds(m_KeepAliveInterval));
+			m_KeepAliveTimer->async_wait (std::bind (&I2PClientTunnel::HandleKeepAliveTimer,
+				this, std::placeholders::_1));
+		}	
+	}	
+
+	void I2PClientTunnel::HandleKeepAliveTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_Address && m_Address->IsValid ())
+			{	
+				if (m_Address->IsIdentHash ())
+					GetLocalDestination ()->SendPing (m_Address->identHash);
+				else
+					GetLocalDestination ()->SendPing (m_Address->blindedPublicKey);
+			}	
+			ScheduleKeepAliveTimer ();
+		}
+	}	
+		
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address,
 		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
@@ -605,7 +640,47 @@ namespace client
 	{
 		if (!ecode)
 		{
-			auto addr = (*it).endpoint ().address ();
+			bool found = false;
+			boost::asio::ip::tcp::endpoint ep;
+			if (m_LocalAddress)
+			{	
+				boost::asio::ip::tcp::resolver::iterator end;
+				while (it != end)
+				{	
+					ep = *it;
+					if (!ep.address ().is_unspecified ())
+					{
+						if (ep.address ().is_v4 ())
+						{	
+							if (m_LocalAddress->is_v4 ()) found = true;	
+						}
+						else if (ep.address ().is_v6 ())
+						{
+							if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+							{
+								if (i2p::util::net::IsYggdrasilAddress (*m_LocalAddress))
+									found = true;
+							}	
+							else if (m_LocalAddress->is_v6 ()) 
+								found = true;
+						}
+					}	
+					if (found) break;
+					it++;
+				}
+			}	
+			else
+			{
+				found = true;
+				ep = *it; // first available
+			}	
+			if (!found)
+			{
+				LogPrint (eLogError, "I2PTunnel: Unable to resolve to compatible address");
+				return;
+			}	
+			
+			auto addr = ep.address ();
 			LogPrint (eLogInfo, "I2PTunnel: server tunnel ", (*it).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
 			Accept ();
@@ -848,7 +923,8 @@ namespace client
 		LogPrint(eLogInfo, "UDPServer: done");
 	}
 
-	void I2PUDPServerTunnel::Start() {
+	void I2PUDPServerTunnel::Start()
+	{
 		m_LocalDest->Start();
 	}
 
@@ -888,7 +964,8 @@ namespace client
 		RemotePort(remotePort), m_LastPort (0),
 		m_cancel_resolve(false)
 	{
-		m_LocalSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU ));
+		m_LocalSocket.set_option (boost::asio::socket_base::receive_buffer_size (I2P_UDP_MAX_MTU));
+		m_LocalSocket.set_option (boost::asio::socket_base::reuse_address (true));
 
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
@@ -915,7 +992,8 @@ namespace client
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
 		if(ec) {
-			LogPrint(eLogError, "UDP Client: ", ec.message());
+			LogPrint(eLogError, "UDP Client: Reading from socket error: ", ec.message(), ". Restarting listener...");
+			RecvFromLocal(); // Restart listener and continue work
 			return;
 		}
 		if(!m_RemoteIdent) {
@@ -940,7 +1018,7 @@ namespace client
 		auto ts = i2p::util::GetMillisecondsSinceEpoch();
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		auto session = m_LocalDest->GetDatagramDestination()->GetSession (*m_RemoteIdent);
-		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)		
+		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		else
 			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
@@ -1024,8 +1102,9 @@ namespace client
 		else
 			LogPrint(eLogWarning, "UDP Client: not tracking udp session using port ", (int) toPort);
 	}
-		
-	I2PUDPClientTunnel::~I2PUDPClientTunnel() {
+
+	I2PUDPClientTunnel::~I2PUDPClientTunnel()
+	{
 		auto dgram = m_LocalDest->GetDatagramDestination();
 		if (dgram) dgram->ResetReceiver();
 

@@ -129,7 +129,7 @@ namespace util
 		pthread_set_name_np(pthread_self(), name);
 #elif defined(__NetBSD__)
 		pthread_setname_np(pthread_self(), "%s", (void *)name);
-#else
+#elif !defined(__gnu_hurd__)
 		pthread_setname_np(pthread_self(), name);
 #endif
 	}
@@ -344,7 +344,7 @@ namespace net
 			if(fd > 0)
 			{
 				ifreq ifr;
-				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
+				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ-1); // set interface for query
 				if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
 					mtu = ifr.ifr_mtu; // MTU
 				else
@@ -555,7 +555,10 @@ namespace net
 			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
-				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("ff00::",     "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+				address_pair_v6("::",         "::"),
+				address_pair_v6("::1",        "::1")
 			};
 
 			boost::asio::ip::address_v6::bytes_type ipv6_address = host.to_v6 ().to_bytes ();

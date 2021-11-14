@@ -94,6 +94,11 @@ namespace util
 
 		i2p::config::GetOption("daemon", isDaemon);
 
+		std::string certsdir; i2p::config::GetOption("certsdir", certsdir);
+		i2p::fs::SetCertsDir(certsdir);
+
+		certsdir = i2p::fs::GetCertsDir();
+
 		std::string logs     = ""; i2p::config::GetOption("log",      logs);
 		std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
 		std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
@@ -129,9 +134,10 @@ namespace util
 			// use stdout -- default
 		}
 
-		LogPrint(eLogNone,  "i2pd v", VERSION, " starting");
+		LogPrint(eLogNone,  "i2pd v", VERSION, " (", I2P_VERSION, ") starting");
 		LogPrint(eLogDebug, "FS: main config file: ", config);
 		LogPrint(eLogDebug, "FS: data directory: ", datadir);
+		LogPrint(eLogDebug, "FS: certificates directory: ", certsdir);
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);

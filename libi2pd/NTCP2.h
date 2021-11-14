@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,18 +28,21 @@ namespace transport
 {
 
 	const size_t NTCP2_UNENCRYPTED_FRAME_MAX_SIZE = 65519;
+	const size_t NTCP2_SESSION_REQUEST_MAX_SIZE = 287;
+	const size_t NTCP2_SESSION_CREATED_MAX_SIZE = 287;
 	const int NTCP2_MAX_PADDING_RATIO = 6; // in %
 
 	const int NTCP2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+	const int NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT = 3; // 3 seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD = 25*60; // 25 minuntes
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
-
+	
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -115,7 +118,8 @@ namespace transport
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len;
 
-		uint8_t * m_SessionRequestBuffer, * m_SessionCreatedBuffer, * m_SessionConfirmedBuffer;
+		uint8_t m_SessionRequestBuffer[NTCP2_SESSION_REQUEST_MAX_SIZE], 
+			m_SessionCreatedBuffer[NTCP2_SESSION_CREATED_MAX_SIZE], * m_SessionConfirmedBuffer;
 		size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 
 	};
@@ -132,7 +136,8 @@ namespace transport
 			void TerminateByTimeout ();
 			void Done ();
 			void Close () { m_Socket.close (); }; // for accept
-
+			void DeleteNextReceiveBuffer (uint64_t ts);
+			
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
@@ -151,6 +156,7 @@ namespace transport
 			void Established ();
 
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
+			void CreateNextReceivedBuffer (size_t size);
 			void KeyDerivationFunctionDataPhase ();
 			void SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey);
 
@@ -199,13 +205,13 @@ namespace transport
 			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32];
 			const uint8_t * m_SendKey, * m_ReceiveKey;
 #if OPENSSL_SIPHASH
-			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
 			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
 #else
 			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;
 #endif
 			uint16_t m_NextReceivedLen;
 			uint8_t * m_NextReceivedBuffer, * m_NextSendBuffer;
+			size_t m_NextReceivedBufferSize;
 			union
 			{
 				uint8_t buf[8];
@@ -215,9 +221,12 @@ namespace transport
 
 			i2p::I2NPMessagesHandler m_Handler;
 
-			bool m_IsSending;
+			bool m_IsSending, m_IsReceiving;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
+
+			uint16_t m_PaddingSizes[16];
+			int m_NextPaddingSize; 
 	};
 
 	class NTCP2Server: private i2p::util::RunnableServiceWithWork

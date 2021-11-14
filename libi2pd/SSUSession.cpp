@@ -303,7 +303,7 @@ namespace transport
 			}	
 			else
 			{	
-				LogPrint (eLogError, "SSU: Wrong external address ", ourIP.to_string ());
+				LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 				Failed ();
 			}	
 		}
@@ -383,7 +383,7 @@ namespace transport
 		{
 			// tell out peer to now assign relay tag
 			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
-			*payload = 2; payload++; // 1 byte length
+			*payload = 2; payload++; //  1 byte length
 			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
 			htobe16buf (payload, flags);
 			payload += 2;
@@ -609,7 +609,7 @@ namespace transport
 		{
 			*payload = 16;
 			payload++; // size
-			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Charlie's IP V6
 			payload += 16; // address
 		}	
 		htobe16buf (payload, to.port ()); // Charlie's port
@@ -703,7 +703,7 @@ namespace transport
 		if (!i2p::util::net::IsInReservedRange (ourIP))
 			i2p::context.UpdateAddress (ourIP);
 		else
-			LogPrint (eLogWarning, "SSU: Wrong external address ", ourIP.to_string ());
+			LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 		if (ourIP.is_v4 ())
 		{	
 			if (ourPort != m_Server.GetPort ())
@@ -730,7 +730,7 @@ namespace transport
 					(remoteIP.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled)) 
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
 				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
-				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
+				m_Server.CreateDirectSession (it->second.first, remoteEndpoint, false);
 			}
 			// delete request
 			m_RelayRequests.erase (it);
@@ -905,7 +905,8 @@ namespace transport
 		}
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
-		m_RelayRequests[nonce] = to;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		m_RelayRequests.emplace (nonce, std::make_pair (to, ts));
 		SendRelayRequest (introducer, nonce);
 	}
 
@@ -1004,6 +1005,18 @@ namespace transport
 		}
 	}
 
+	void SSUSession::CleanUp (uint64_t ts)
+	{
+		m_Data.CleanUp (ts);
+		for (auto it = m_RelayRequests.begin (); it != m_RelayRequests.end ();)
+		{
+			if (ts > it->second.second + SSU_CONNECT_TIMEOUT)
+				it =  m_RelayRequests.erase (it);
+			else
+				++it;
+		}
+	}	
+
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes
@@ -1073,7 +1086,10 @@ namespace transport
 				LogPrint (eLogDebug, "SSU: peer test from Charlie. We are Bob");
 				auto session = m_Server.GetPeerTestSession (nonce); // session with Alice from PeerTest
 				if (session && session->m_State == eSessionStateEstablished)
-					session->Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Alice
+				{
+					const auto& ep = session->GetRemoteEndpoint (); // Alice's endpoint as known to Bob
+					session->SendPeerTest (nonce, ep.address (), ep.port (), introKey, false, true); // send back to Alice
+				}	
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
 			}
@@ -1093,9 +1109,12 @@ namespace transport
 					if (port)
 					{
 						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
-						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
-						SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
+						if (!addr.is_unspecified () && !i2p::util::net::IsInReservedRange(addr))
+						{	
+							m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
+							SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
+						}	
 					}
 					else
 					{
@@ -1282,7 +1301,7 @@ namespace transport
 			ip = boost::asio::ip::address_v6 (bytes);
 		}	
 		else
-			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
+			LogPrint (eLogWarning, "SSU: Address size ", int(size), " is not supported");
 		buf += size;
 		port = bufbe16toh (buf);
 		return s;

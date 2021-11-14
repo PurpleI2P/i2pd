@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -153,16 +153,22 @@ namespace client
 			void Stop ();
 
 			const char* GetName() { return m_Name.c_str (); }
-
+			void SetKeepAliveInterval (uint32_t keepAliveInterval);
+			
 		private:
 
 			std::shared_ptr<const Address> GetAddress ();
+			
+			void ScheduleKeepAliveTimer ();
+			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
 		private:
 
 			std::string m_Name, m_Destination;
 			std::shared_ptr<const Address> m_Address;
 			int m_DestinationPort;
+			uint32_t m_KeepAliveInterval;
+			std::unique_ptr<boost::asio::deadline_timer> m_KeepAliveTimer;
 	};
 
 
@@ -254,6 +260,10 @@ namespace client
 			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			UDPSessionPtr m_LastSession;
+
+		public:
+
+			bool isUpdated; // transient, used during reload only
 	};
 
 	class I2PUDPClientTunnel
@@ -283,7 +293,7 @@ namespace client
 			void TryResolving();
 
 		private:
-			
+
 			const std::string m_Name;
 			std::mutex m_SessionsMutex;
 			std::unordered_map<uint16_t, std::shared_ptr<UDPConvo> > m_Sessions; // maps i2p port -> local udp convo
@@ -298,6 +308,10 @@ namespace client
 			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
 			std::shared_ptr<UDPConvo> m_LastSession;
+
+		public:
+
+			bool isUpdated; // transient, used during reload only
 	};
 
 	class I2PServerTunnel: public I2PService

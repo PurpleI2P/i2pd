@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -104,6 +104,7 @@ namespace stream
 
 	void Stream::Terminate (bool deleteFromDestination) // shoudl be called from StreamingDestination::Stop only
 	{
+		m_Status = eStreamStatusTerminated;
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
@@ -276,7 +277,20 @@ namespace stream
 		const uint8_t * optionData = packet->GetOptionData ();
 		size_t optionSize = packet->GetOptionSize ();
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
+		{	
+			if (!m_IsAckSendScheduled)
+			{
+				uint16_t delayRequested = bufbe16toh (optionData);
+				if (delayRequested > 0 && delayRequested < m_RTT)
+				{	
+					m_IsAckSendScheduled = true;
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(delayRequested));
+					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+						shared_from_this (), std::placeholders::_1));
+				}	
+			}
 			optionData += 2;
+		}	
 
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
@@ -476,7 +490,7 @@ namespace stream
 			handler(boost::system::error_code ());
 		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
 	}
-
+	
 	void Stream::SendBuffer ()
 	{
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
@@ -651,6 +665,42 @@ namespace stream
 		LogPrint (eLogDebug, "Streaming: Quick Ack sent. ", (int)numNacks, " NACKs");
 	}
 
+	void Stream::SendPing ()
+	{
+		Packet p;
+		uint8_t * packet = p.GetBuffer ();
+		size_t size = 0;
+		htobe32buf (packet, m_RecvStreamID);
+		size += 4; // sendStreamID
+		memset (packet + size, 0, 14); 
+		size += 14; // all zeroes    
+		uint16_t flags = PACKET_FLAG_ECHO | PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_FROM_INCLUDED;
+		bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
+		if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+		htobe16buf (packet + size, flags);
+		size += 2; // flags
+		size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
+		size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
+		uint8_t * optionsSize = packet + size; // set options size later
+		size += 2; // options size
+		m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
+		size += identityLen; // from
+		if (isOfflineSignature)
+		{
+			const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
+			memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
+			size += offlineSignature.size (); // offline signature
+		}
+		uint8_t * signature = packet + size; // set it later
+		memset (signature, 0, signatureLen); // zeroes for now
+		size += signatureLen; // signature
+		htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);		
+		p.len = size;
+		SendPackets (std::vector<Packet *> { &p });
+		LogPrint (eLogDebug, "Streaming: Ping of ", p.len, " bytes sent");
+	}	
+		
 	void Stream::Close ()
 	{
 		LogPrint(eLogDebug, "Streaming: closing stream with sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ", status=", m_Status);
@@ -778,13 +828,6 @@ namespace stream
 				m_RTO = m_RTT*1.5; // TODO: implement it better
 			}
 		}
-		if (!m_CurrentOutboundTunnel || !m_CurrentOutboundTunnel->IsEstablished ())
-			m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
-		if (!m_CurrentOutboundTunnel)
-		{
-			LogPrint (eLogError, "Streaming: No outbound tunnels in the pool, sSID=", m_SendStreamID);
-			return;
-		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate || // excluded from LeaseSet
@@ -792,8 +835,23 @@ namespace stream
 			UpdateCurrentRemoteLease (true);
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
+			if (!m_CurrentOutboundTunnel)
+			{
+				auto leaseRouter = i2p::data::netdb.FindRouter (m_CurrentRemoteLease->tunnelGateway);
+				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
+					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
+			}	
+			else if (!m_CurrentOutboundTunnel->IsEstablished ())
+				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
+			if (!m_CurrentOutboundTunnel)
+			{
+				LogPrint (eLogError, "Streaming: No outbound tunnels in the pool, sSID=", m_SendStreamID);
+				m_CurrentRemoteLease = nullptr;
+				return;
+			}
+			
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-			for (auto it: packets)
+			for (const auto& it: packets)
 			{
 				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
 					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
@@ -844,12 +902,15 @@ namespace stream
 
 	void Stream::ScheduleResend ()
 	{
-		m_ResendTimer.cancel ();
-		// check for invalid value
-		if (m_RTO <= 0) m_RTO = INITIAL_RTO;
-		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
-		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
-			shared_from_this (), std::placeholders::_1));
+		if (m_Status != eStreamStatusTerminated)
+		{	
+			m_ResendTimer.cancel ();
+			// check for invalid value
+			if (m_RTO <= 0) m_RTO = INITIAL_RTO;
+			m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
+			m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
+				shared_from_this (), std::placeholders::_1));
+		}	
 	}
 
 	void Stream::HandleResendTimer (const boost::system::error_code& ecode)
@@ -1023,6 +1084,8 @@ namespace stream
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
+		if (m_Gzip)
+			m_Deflator.reset (new i2p::data::GzipDeflator);
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -1050,6 +1113,7 @@ namespace stream
 				it.second->Terminate (false); // we delete here
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
+			m_LastStream = nullptr;		
 		}
 	}
 
@@ -1058,9 +1122,16 @@ namespace stream
 		uint32_t sendStreamID = packet->GetSendStreamID ();
 		if (sendStreamID)
 		{
-			auto it = m_Streams.find (sendStreamID);
-			if (it != m_Streams.end ())
-				it->second->HandleNextPacket (packet);
+			if (!m_LastStream || sendStreamID != m_LastStream->GetRecvStreamID ())
+			{	
+				auto it = m_Streams.find (sendStreamID);
+				if (it != m_Streams.end ())
+					m_LastStream = it->second;
+				else
+					m_LastStream = nullptr;
+			}
+			if (m_LastStream)
+				m_LastStream->HandleNextPacket (packet);
 			else if (packet->IsEcho () && m_Owner->IsStreamingAnswerPings ())
 			{
 				// ping
@@ -1076,6 +1147,13 @@ namespace stream
 		}
 		else
 		{
+			if (packet->IsEcho ())
+			{
+				// pong
+				LogPrint (eLogInfo, "Streaming: Pong received rSID=", packet->GetReceiveStreamID ());
+				DeletePacket (packet);
+				return;
+			}	
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
@@ -1166,16 +1244,22 @@ namespace stream
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, port);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
+		m_Streams.emplace (s->GetRecvStreamID (), s);
 		return s;
 	}
 
+	void  StreamingDestination::SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote)
+	{
+		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, 0);
+		s->SendPing ();
+	}	
+		
 	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream (uint32_t receiveStreamID)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		m_IncomingStreams[receiveStreamID] = s;
+		m_Streams.emplace (s->GetRecvStreamID (), s);
+		m_IncomingStreams.emplace (receiveStreamID, s);
 		return s;
 	}
 
@@ -1186,6 +1270,7 @@ namespace stream
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.erase (stream->GetRecvStreamID ());
 			m_IncomingStreams.erase (stream->GetSendStreamID ());
+			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
 	}
 
@@ -1270,13 +1355,17 @@ namespace stream
 	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
 		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
 	{
+		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
-		size_t size = (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)?
-			i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len):
-			m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+
+		if (m_Gzip && m_Deflator)
+			size = m_Deflator->Deflate (payload, len, buf, msg->maxLen - msg->len);
+		else
+			size = i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len);
+
 		if (size)
 		{
 			htobe32buf (msg->GetPayload (), size); // length

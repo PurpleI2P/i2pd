@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,6 +16,7 @@
 #include <boost/algorithm/string.hpp>
 #include "Config.h"
 #include "Log.h"
+#include "RouterContext.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
 #include "util.h"
@@ -60,14 +61,43 @@ namespace util
 	{
 		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
 		boost::asio::io_service service;
-		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
-		auto it = boost::asio::ip::udp::resolver (service).resolve (query, ec);
-		if (!ec && it != boost::asio::ip::udp::resolver::iterator())
+		auto it = boost::asio::ip::udp::resolver (service).resolve (
+			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);
+		if (!ec)
 		{
-			auto ep = (*it).endpoint (); // take first one
+			bool found = false;
+			boost::asio::ip::udp::resolver::iterator end;
+			boost::asio::ip::udp::endpoint ep;
+			while (it != end)
+			{	
+				ep = *it;
+				if (!ep.address ().is_unspecified ())
+				{
+					if (ep.address ().is_v4 ())
+					{	
+						if (i2p::context.SupportsV4 ()) found = true;	
+					}
+					else if (ep.address ().is_v6 ())
+					{
+						if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+						{
+							if (i2p::context.SupportsMesh ()) found = true;
+						}	
+						else if (i2p::context.SupportsV6 ()) found = true;
+					}
+				}	
+				if (found) break;
+				it++;
+			}
+			if (!found)
+			{
+				LogPrint (eLogError, "Timestamp: can't find compatible address for ", address);
+				return;
+			}	
+				
 			boost::asio::ip::udp::socket socket (service);
-			socket.open (boost::asio::ip::udp::v4 (), ec);
+			socket.open (ep.protocol (), ec);
 			if (!ec)
 			{
 				uint8_t buf[48];// 48 bytes NTP request/response
@@ -103,7 +133,7 @@ namespace util
 				LogPrint (eLogError, "Timestamp: Couldn't open UDP socket");
 		}
 		else
-			LogPrint (eLogError, "Timestamp: Couldn't resove address ", address);
+			LogPrint (eLogError, "Timestamp: Couldn't resolve address ", address);
 	}
 
 	NTPTimeSync::NTPTimeSync (): m_IsRunning (false), m_Timer (m_Service)

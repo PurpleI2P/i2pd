@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -32,14 +32,12 @@ namespace i2p
 namespace transport
 {
 	NTCP2Establisher::NTCP2Establisher ():
-		m_SessionRequestBuffer (nullptr), m_SessionCreatedBuffer (nullptr), m_SessionConfirmedBuffer (nullptr)
+		m_SessionConfirmedBuffer (nullptr)
 	{
 	}
 
 	NTCP2Establisher::~NTCP2Establisher ()
 	{
-		delete[] m_SessionRequestBuffer;
-		delete[] m_SessionCreatedBuffer;
 		delete[] m_SessionConfirmedBuffer;
 	}
 
@@ -112,9 +110,8 @@ namespace transport
 	void NTCP2Establisher::CreateSessionRequestMessage ()
 	{
 		// create buffer and fill padding
-		auto paddingLength = rand () % (287 - 64); // message length doesn't exceed 287 bytes
+		auto paddingLength = rand () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
 		m_SessionRequestBufferLen = paddingLength + 64;
-		m_SessionRequestBuffer = new uint8_t[m_SessionRequestBufferLen];
 		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// encrypt X
 		i2p::crypto::CBCEncryption encryption;
@@ -152,9 +149,8 @@ namespace transport
 
 	void NTCP2Establisher::CreateSessionCreatedMessage ()
 	{
-		auto paddingLen = rand () % (287 - 64);
+		auto paddingLen = rand () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
-		m_SessionCreatedBuffer = new uint8_t[m_SessionCreatedBufferLen];
 		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
 		// encrypt Y
 		i2p::crypto::CBCEncryption encryption;
@@ -327,12 +323,14 @@ namespace transport
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_Establisher (new NTCP2Establisher),
-		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
+#else
+		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), m_IsSending (false)
+		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
+		m_IsSending (false), m_IsReceiving (false), m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
 		{
@@ -355,8 +353,6 @@ namespace transport
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
 #if OPENSSL_SIPHASH
-		if (m_SendSipKey) EVP_PKEY_free (m_SendSipKey);
-		if (m_ReceiveSipKey) EVP_PKEY_free (m_ReceiveSipKey);
 		if (m_SendMDCtx) EVP_MD_CTX_destroy (m_SendMDCtx);
 		if (m_ReceiveMDCtx) EVP_MD_CTX_destroy (m_ReceiveMDCtx);
 #endif
@@ -404,7 +400,30 @@ namespace transport
 		htole64buf (nonce + 4, seqn);
 	}
 
+	void NTCP2Session::CreateNextReceivedBuffer (size_t size)
+	{		
+		if (m_NextReceivedBuffer)
+		{
+			if (size <= m_NextReceivedBufferSize)
+				return; // buffer is good, do nothing
+			else
+				delete[] m_NextReceivedBuffer;
+		}
+		m_NextReceivedBuffer = new uint8_t[size];
+		m_NextReceivedBufferSize = size;
+	}	
 
+	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
+	{
+		if (m_NextReceivedBuffer && !m_IsReceiving && 
+		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+		{
+			delete[] m_NextReceivedBuffer;
+			m_NextReceivedBuffer = nullptr;
+			m_NextReceivedBufferSize = 0;
+		}	
+	}	
+		
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t k[64];
@@ -439,7 +458,6 @@ namespace transport
 		}
 		else
 		{
-			m_Establisher->m_SessionCreatedBuffer = new uint8_t[287]; // TODO: determine actual max size
 			// we receive first 64 bytes (32 Y, and 32 ChaCha/Poly frame) first
 			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer, 64), boost::asio::transfer_all (),
 				std::bind(&NTCP2Session::HandleSessionCreatedReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -462,7 +480,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session request is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionRequestPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -515,7 +533,7 @@ namespace transport
 			{
 				if (paddingLen > 0)
 				{
-					if (paddingLen <= 287 - 64) // session created is 287 bytes max
+					if (paddingLen <= NTCP2_SESSION_CREATED_MAX_SIZE - 64) // session created is 287 bytes max
 					{
 						boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionCreatedBuffer + 64, paddingLen), boost::asio::transfer_all (),
 							std::bind(&NTCP2Session::HandleSessionCreatedPaddingReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -692,17 +710,19 @@ namespace transport
 	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
 	{
 #if OPENSSL_SIPHASH
-		m_SendSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
+		EVP_PKEY * sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
 		m_SendMDCtx = EVP_MD_CTX_create ();
 		EVP_PKEY_CTX *ctx = nullptr;
-		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, m_SendSipKey);
+		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
-
-		m_ReceiveSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
+		EVP_PKEY_free (sipKey);
+		
+		sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
 		m_ReceiveMDCtx = EVP_MD_CTX_create ();
 		ctx = nullptr;
-		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, m_ReceiveSipKey);
+		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+		EVP_PKEY_free (sipKey);
 #else
 		m_SendSipKey = sendSipKey;
 		m_ReceiveSipKey = receiveSipKey;
@@ -718,7 +738,6 @@ namespace transport
 	void NTCP2Session::ServerLogin ()
 	{
 		m_Establisher->CreateEphemeralKey ();
-		m_Establisher->m_SessionRequestBuffer = new uint8_t[287]; // 287 bytes max for now
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
 			std::placeholders::_1, std::placeholders::_2));
@@ -758,8 +777,7 @@ namespace transport
 			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
 			if (m_NextReceivedLen >= 16)
 			{
-				if (m_NextReceivedBuffer) delete[] m_NextReceivedBuffer;
-				m_NextReceivedBuffer = new uint8_t[m_NextReceivedLen];
+				CreateNextReceivedBuffer (m_NextReceivedLen);
 				boost::system::error_code ec;
 				size_t moreBytes = m_Socket.available(ec);
 				if (!ec && moreBytes >= m_NextReceivedLen)
@@ -786,6 +804,7 @@ namespace transport
 		const int one = 1;
 		setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
 #endif
+		m_IsReceiving = true;
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceived, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -809,7 +828,7 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP2: received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
-				delete[] m_NextReceivedBuffer; m_NextReceivedBuffer = nullptr; // we don't need received buffer anymore
+				m_IsReceiving = false;
 				ReceiveLength ();
 			}
 			else
@@ -857,12 +876,16 @@ namespace transport
 						LogPrint (eLogError, "NTCP2: I2NP block is too long ", size);
 						break;
 					}
-					auto nextMsg = NewI2NPMessage (size);
-					nextMsg->Align (12); // for possible tunnel msg
+					auto nextMsg = (frame[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
-					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
-					nextMsg->FromNTCP2 ();
-					m_Handler.PutNextMessage (nextMsg);
+					if (nextMsg->len <= nextMsg->maxLen)
+					{	
+						memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
+						nextMsg->FromNTCP2 ();
+						m_Handler.PutNextMessage (std::move (nextMsg));
+					}	
+					else
+						LogPrint (eLogError, "NTCP2: I2NP block is too long for I2NP message");
 					break;
 				}
 				case eNTCP2BlkTermination:
@@ -887,11 +910,11 @@ namespace transport
 
 	void NTCP2Session::SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf)
 	{
-		#if OPENSSL_SIPHASH
+#if OPENSSL_SIPHASH
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8);
 		size_t l = 8;
-		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);
+		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);	
 #else
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 #endif
@@ -1058,7 +1081,15 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
-		if (paddingSize) paddingSize = rand () % paddingSize;
+		if (paddingSize) 
+		{
+			if (m_NextPaddingSize >= 16)
+			{
+				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
+				m_NextPaddingSize = 0;
+			}	
+			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
+		}	
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
 		memset (buf + 3, 0, paddingSize);
@@ -1084,7 +1115,13 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
-		if (!m_SendKey || !m_SendSipKey) return;
+		if (!m_SendKey ||
+#if OPENSSL_SIPHASH
+		    !m_SendMDCtx
+#else
+		    !m_SendSipKey
+#endif		    
+		    ) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block
 		m_NextSendBuffer[2] = eNTCP2BlkTermination;
@@ -1170,7 +1207,7 @@ namespace transport
 				if (!address) continue;
 				if (address->IsPublishedNTCP2 () && address->port)
 				{
-					if (address->host.is_v4())
+					if (address->IsV4())
 					{
 						try
 						{
@@ -1189,7 +1226,7 @@ namespace transport
 						auto conn = std::make_shared<NTCP2Session>(*this);
 						m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this, conn, std::placeholders::_1));
 					}
-					else if (address->host.is_v6() && (context.SupportsV6 () || context.SupportsMesh ()))
+					else if (address->IsV6() && (context.SupportsV6 () || context.SupportsMesh ()))
 					{
 						m_NTCP2V6Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService ()));
 						try
@@ -1201,7 +1238,11 @@ namespace transport
 							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address
 							{
 								// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+#if (BOOST_VERSION >= 105500)
 								typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#else
+								typedef boost::asio::detail::socket_option::integer<IPPROTO_IPV6, IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#endif
 								m_NTCP2V6Acceptor->set_option (ipv6PreferAddr(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_NONCGA));
 							}
 #endif
@@ -1435,6 +1476,8 @@ namespace transport
 					LogPrint (eLogDebug, "NTCP2: No activity for ", session->GetTerminationTimeout (), " seconds");
 					session->TerminateByTimeout (); // it doesn't change m_NTCP2Session right a way
 				}
+				else
+					it.second->DeleteNextReceiveBuffer (ts);
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{

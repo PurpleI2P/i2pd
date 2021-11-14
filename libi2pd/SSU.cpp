@@ -70,7 +70,11 @@ namespace transport
 			if (m_EndpointV6.address() == boost::asio::ip::address().from_string("::")) // only if not binded to address
 			{
 				// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
+#if (BOOST_VERSION >= 105500)
 				typedef boost::asio::detail::socket_option::integer<BOOST_ASIO_OS_DEF(IPPROTO_IPV6), IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#else
+				typedef boost::asio::detail::socket_option::integer<IPPROTO_IPV6, IPV6_ADDR_PREFERENCES> ipv6PreferAddr;
+#endif
 				m_SocketV6.set_option (ipv6PreferAddr(IPV6_PREFER_SRC_PUBLIC | IPV6_PREFER_SRC_HOME | IPV6_PREFER_SRC_NONCGA));
 			}
 #endif
@@ -214,7 +218,7 @@ namespace transport
 
 	void SSUServer::AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay)
 	{
-		m_Relays[tag] = relay;
+		m_Relays.emplace (tag, relay);
 	}
 
 	void SSUServer::RemoveRelay (uint32_t tag)
@@ -251,14 +255,14 @@ namespace transport
 
 	void SSUServer::Receive ()
 	{
-		SSUPacket * packet = new SSUPacket ();
+		SSUPacket * packet = m_PacketsPool.AcquireMt ();
 		m_Socket.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from,
 			std::bind (&SSUServer::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet));
 	}
 
 	void SSUServer::ReceiveV6 ()
 	{
-		SSUPacket * packet = new SSUPacket ();
+		SSUPacket * packet = m_PacketsPool.AcquireMt ();
 		m_SocketV6.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from,
 			std::bind (&SSUServer::HandleReceivedFromV6, this, std::placeholders::_1, std::placeholders::_2, packet));
 	}
@@ -289,7 +293,7 @@ namespace transport
 			{
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = new SSUPacket ();
+					packet = m_PacketsPool.AcquireMt ();
 					packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from, 0, ec);
 					if (!ec)
 					{
@@ -300,7 +304,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: receive_from error: code ", ec.value(), ": ", ec.message ());
-						delete packet;
+						m_PacketsPool.ReleaseMt (packet);
 						break;
 					}
 				}
@@ -311,7 +315,7 @@ namespace transport
 		}
 		else
 		{
-			delete packet;
+			m_PacketsPool.ReleaseMt (packet);
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: receive error: code ", ecode.value(), ": ", ecode.message ());
@@ -348,7 +352,7 @@ namespace transport
 			{
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = new SSUPacket ();
+					packet = m_PacketsPool.AcquireMt ();
 					packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from, 0, ec);
 					if (!ec)
 					{
@@ -359,7 +363,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: v6 receive_from error: code ", ec.value(), ": ", ec.message ());
-						delete packet;
+						m_PacketsPool.ReleaseMt (packet);;
 						break;
 					}
 				}
@@ -370,7 +374,7 @@ namespace transport
 		}
 		else
 		{
-			delete packet;
+			m_PacketsPool.ReleaseMt (packet);
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: v6 receive error: code ", ecode.value(), ": ", ecode.message ());
@@ -417,8 +421,8 @@ namespace transport
 				if (session) session->FlushData ();
 				session = nullptr;
 			}
-			delete packet;
 		}
+		m_PacketsPool.ReleaseMt (packets);
 		if (session) session->FlushData ();
 	}
 
@@ -915,13 +919,19 @@ namespace transport
 			}
 			if (numDeleted > 0)
 				LogPrint (eLogDebug, "SSU: ", numDeleted, " peer tests have been expired");
+			// some cleaups. TODO: use separate timer
+			m_FragmentsPool.CleanUp ();
+			m_IncompleteMessagesPool.CleanUp ();
+			m_SentMessagesPool.CleanUp ();
+			
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}
 
 	void SSUServer::ScheduleTermination ()
 	{
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		uint64_t timeout = SSU_TERMINATION_CHECK_TIMEOUT + (rand () % SSU_TERMINATION_CHECK_TIMEOUT)/5;
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(timeout));
 		m_TerminationTimer.async_wait (std::bind (&SSUServer::HandleTerminationTimer,
 			this, std::placeholders::_1));
 	}
@@ -943,13 +953,16 @@ namespace transport
 							session->Failed ();
 						});
 				}
+				else
+					it.second->CleanUp (ts);
 			ScheduleTermination ();
 		}
 	}
 
 	void SSUServer::ScheduleTerminationV6 ()
 	{
-		m_TerminationTimerV6.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		uint64_t timeout = SSU_TERMINATION_CHECK_TIMEOUT + (rand () % SSU_TERMINATION_CHECK_TIMEOUT)/5;
+		m_TerminationTimerV6.expires_from_now (boost::posix_time::seconds(timeout));
 		m_TerminationTimerV6.async_wait (std::bind (&SSUServer::HandleTerminationTimerV6,
 			this, std::placeholders::_1));
 	}
@@ -971,6 +984,8 @@ namespace transport
 							session->Failed ();
 						});
 				}
+				else
+					it.second->CleanUp (ts);
 			ScheduleTerminationV6 ();
 		}
 	}

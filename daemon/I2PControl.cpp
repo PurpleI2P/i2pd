@@ -406,7 +406,7 @@ namespace client
 
 	void I2PControlService::UptimeHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.uptime", (int)i2p::context.GetUptime ()*1000);
+		InsertParam (results, "i2p.router.uptime", std::to_string (i2p::context.GetUptime ()*1000LL));
 	}
 
 	void I2PControlService::VersionHandler (std::ostringstream& results)

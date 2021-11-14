@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -254,12 +254,12 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
-	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		if (!m_EncryptionKey) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
@@ -658,11 +658,11 @@ namespace data
 		return offset - 1;
 	}
 
-	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		auto encryptor = m_Encryptor; // TODO: atomic
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	uint64_t LeaseSet2::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const
@@ -912,6 +912,11 @@ namespace data
 		uint8_t blindedPriv[64], blindedPub[128]; // 64 and 128 max
 		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
+		if (!blindedSigner)
+		{
+			LogPrint (eLogError, "LeaseSet2: Can't create blinded signer for signature type ", blindedKey.GetSigType ());
+			return;
+		}	
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKey.GetBlindedSigType ()); offset += 2; // Blinded Public Key Sig Type
 		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key

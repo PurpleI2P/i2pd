@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -89,7 +89,8 @@ namespace transport
 			void Done ();
 			void Failed ();
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-
+			SSUServer& GetServer () { return m_Server; };
+			
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
@@ -105,6 +106,7 @@ namespace transport
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
 			
 			void FlushData ();
+			void CleanUp (uint64_t ts);
 
 		private:
 
@@ -168,7 +170,7 @@ namespace transport
 			SSUData m_Data;
 			bool m_IsDataReceived;
 			std::unique_ptr<SignedData> m_SignedData; // we need it for SessionConfirmed only
-			std::map<uint32_t, std::shared_ptr<const i2p::data::RouterInfo> > m_RelayRequests; // nonce->Charlie
+			std::map<uint32_t, std::pair <std::shared_ptr<const i2p::data::RouterInfo>, uint64_t > > m_RelayRequests; // nonce->(Charlie, timestamp)
 			std::shared_ptr<i2p::crypto::DHKeys> m_DHKeysPair; // X - for client and Y - for server
 	};
 }

@@ -36,7 +36,15 @@ namespace tunnel
 	class OutboundTunnel;
 
 	typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
-	typedef std::vector<Peer> Path;
+	struct Path
+	{
+		std::vector<Peer> peers;
+		bool isShort = true;
+		i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports;
+	
+		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);
+		void Reverse ();
+	};
 
 	/** interface for custom tunnel peer selection algorithm */
 	struct ITunnelPeerSelector
@@ -47,9 +55,8 @@ namespace tunnel
 
 
 	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
-	// standard peer selection algorithm
-	bool StandardSelectPeers(Path & path, int hops, bool inbound, SelectHopFunc nextHop);
-
+	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
+	
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
@@ -69,8 +76,10 @@ namespace tunnel
 			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
 			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
-			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr) const;
-			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;
+			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr,
+				i2p::data::RouterInfo::CompatibleTransports compatible = i2p::data::RouterInfo::eAllTransports) const;
+			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr,
+				i2p::data::RouterInfo::CompatibleTransports compatible = i2p::data::RouterInfo::eAllTransports) const;
 			std::shared_ptr<OutboundTunnel> GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const;
 			void TestTunnels ();
 			void ManageTunnels (uint64_t ts);
@@ -113,9 +122,10 @@ namespace tunnel
 			void CreateOutboundTunnel ();
 			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
 			template<class TTunnels>
-			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, typename TTunnels::value_type excluded) const;
-			bool SelectPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& hops, bool isInbound);
-			bool SelectExplicitPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& hops, bool isInbound);
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
+				typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible) const;
+			bool SelectPeers (Path& path, bool isInbound);
+			bool SelectExplicitPeers (Path& path, bool isInbound);
 
 		private:
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,7 +18,6 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
-#include "I18N_langs.h"
 
 namespace i2p
 {
@@ -68,11 +67,11 @@ namespace garlic
 			void Init ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
-			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const
+			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };		
+			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
 			{
-				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo,
-					[](const i2p::data::RouterInfo *) {});
+				return std::shared_ptr<i2p::data::RouterInfo> (&m_RouterInfo,
+					[](i2p::data::RouterInfo *) {});
 			}
 			std::shared_ptr<i2p::garlic::GarlicDestination> GetSharedDestination ()
 			{
@@ -124,8 +123,7 @@ namespace garlic
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
-			bool IsECIES () const { return GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
-			std::unique_ptr<i2p::crypto::NoiseSymmetricState>& GetCurrentNoiseState () { return m_CurrentNoiseState; };
+			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
@@ -134,7 +132,7 @@ namespace garlic
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 			void SetLeaseSetUpdated () {};
 
@@ -146,15 +144,11 @@ namespace garlic
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
-			// i18n
-			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
-			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
-
 		protected:
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID);
 
 		private:
 
@@ -185,10 +179,7 @@ namespace garlic
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
 			// for ECIESx25519
-			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_InitialNoiseState, m_CurrentNoiseState;
-
-			// i18n
-			std::shared_ptr<const i2p::i18n::Locale> m_Language;
+			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 	};
 
 	extern RouterContext context;

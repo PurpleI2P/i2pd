@@ -37,6 +37,7 @@ namespace config {
 			("conf", value<std::string>()->default_value(""),                 "Path to main i2pd config file (default: try ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)")
 			("tunconf", value<std::string>()->default_value(""),              "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)")
 			("tunnelsdir", value<std::string>()->default_value(""),           "Path to extra tunnels' configs folder (default: ~/.i2pd/tunnels.d or /var/lib/i2pd/tunnels.d")
+			("certsdir", value<std::string>()->default_value(""),             "Path to certificates used for verifying .su3, families (default: ~/.i2pd/certificates or /var/lib/i2pd/certificates")
 			("pidfile", value<std::string>()->default_value(""),              "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
 			("log", value<std::string>()->default_value(""),                  "Logs destination: stdout, file, syslog (stdout if not set)")
 			("logfile", value<std::string>()->default_value(""),              "Path to logfile (stdout if not set, autodetect if daemon)")
@@ -212,7 +213,9 @@ namespace config {
 				"https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
-				"http://[324:9de3:fea4:f6ac::ace]:7070/"
+				"http://[324:71e:281a:9ed3::ace]:7070/,"
+			    "http://[301:65b9:c7cd:9a36::1]:18801/,"
+			    "http://[320:8936:ec1a:31f1::216]/"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
@@ -221,7 +224,7 @@ namespace config {
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value(""), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.subscriptions", value<std::string>()->default_value("http://reg.i2p/hosts.txt"), "AddressBook subscriptions URLs, separated by comma")
 			("addressbook.hostsfile", value<std::string>()->default_value(""),     "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
@@ -284,7 +287,7 @@ namespace config {
 
 		options_description meshnets("Meshnet transports options");
 		meshnets.add_options()
-			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (deafult: false)")
+			("meshnets.yggdrasil", bool_switch()->default_value(false),              "Support transports through the Yggdrasil (default: false)")
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 
