@@ -72,6 +72,7 @@ namespace i18n
 
 	// Add localization here with language name as namespace
 	namespace afrikaans { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace armenian  { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace english   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -84,6 +85,7 @@ namespace i18n
 	static std::map<std::string, langData> languages
 	{
 		{ "afrikaans", {"Afrikaans", "af", i2p::i18n::afrikaans::GetLocale} },
+		{ "armenian", {"հայերէն", "hy", i2p::i18n::armenian::GetLocale} },
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "russian", {"русский язык", "ru", i2p::i18n::russian::GetLocale} },
 		{ "turkmen", {"türkmen dili", "tk", i2p::i18n::turkmen::GetLocale} },
