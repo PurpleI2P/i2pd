@@ -68,7 +68,7 @@ namespace armenian // language namespace
 		{"Family", "Խմբատեսակ"},
 		{"Tunnel creation success rate", "Հաջողությամբ կառուցված թունելներ"},
 		{"Received", "Ստացվել է"},
-		{"KiB/s", "КиБ/с"}, "ԿիԲ/վ"
+		{"KiB/s", "ԿիԲ/վ"},
 		{"Sent", "Ուղարկվել է"},
 		{"Transit", "Տարանցում"},
 		{"Data path", "Տվյալների ուղին"},
@@ -115,7 +115,7 @@ namespace armenian // language namespace
 		{"Non Expired Leases",  "Չսպառված Lease-եր"},
 		{"Gateway", "Դարպաս"},
 		{"TunnelID", "Թունելի ID"},
-		{"EndDate", "Ավարտ" },
+		{"EndDate", "Ավարտ"},
 		{"not floodfill", "ոչ floodfill-ներ"},
 		{"Queue size", "Հերթի չափսը"},
 		{"Run peer test", "Գործարկել փորձարկումը"},
@@ -202,7 +202,7 @@ namespace armenian // language namespace
 		{"hours",   {"ժամ", "ժամ"}},
 		{"minutes", {"րոպե", "րոպե"}},
 		{"seconds", {"վարկյան", "վարկյան"}},
-		{"", {"", "", ""}},
+		{"", {"", ""}},
 	};
 
 	std::shared_ptr<const i2p::i18n::Locale> GetLocale()
