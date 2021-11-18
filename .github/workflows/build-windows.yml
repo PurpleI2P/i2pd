@@ -26,8 +26,8 @@ jobs:
         install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
     - name: Git describe
-        id: ghd
-        uses: proudust/gh-describe@v1
+      id: ghd
+      uses: proudust/gh-describe@v1
     - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
