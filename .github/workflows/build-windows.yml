@@ -8,14 +8,14 @@ defaults:
 
 jobs:
   build:
-    name: Building for ${{ matrix.arch }}
+    name: Building using ${{ matrix.arch }} toolchain
     runs-on: windows-latest
     strategy:
       fail-fast: true
       matrix:
         include: [
-          { msystem: MINGW64, arch: x86_64 },
-          { msystem: MINGW32, arch: i686   }
+          { msystem: MINGW64, arch: x86_64, arch_short: x64 },
+          { msystem: MINGW32, arch: i686, arch_short: x86   }
         ]
     steps:
     - uses: actions/checkout@v2
@@ -25,11 +25,12 @@ jobs:
         msystem: ${{ matrix.msystem }}
         install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
-    - name: build application
+    - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
-        make USE_UPNP=yes DEBUG=no -j3
+        make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes -j3
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
+        name: i2pd-${{ matrix.arch_short }}.exe
         path: i2pd.exe

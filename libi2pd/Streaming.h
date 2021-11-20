@@ -111,7 +111,7 @@ namespace stream
 			buf = new uint8_t[len];
 			memcpy (buf, b, len);
 		}
-		SendBuffer (size_t l): // creat empty buffer
+		SendBuffer (size_t l): // create empty buffer
 			len(l), offset (0)	
 		{
 			buf = new uint8_t[len];
@@ -366,7 +366,7 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
 			{
-				// itermediate iterrupt
+				// itermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
 				AsyncReceive (buffer, handler, remainingTimeout);
 			}

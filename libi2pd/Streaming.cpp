@@ -102,7 +102,7 @@ namespace stream
 		LogPrint (eLogDebug, "Streaming: Stream deleted");
 	}
 
-	void Stream::Terminate (bool deleteFromDestination) // shoudl be called from StreamingDestination::Stop only
+	void Stream::Terminate (bool deleteFromDestination) // should be called from StreamingDestination::Stop only
 	{
 		m_Status = eStreamStatusTerminated;
 		m_AckSendTimer.cancel ();
