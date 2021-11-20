@@ -19,16 +19,14 @@ namespace i2p
 namespace tunnel
 {
 	TunnelGatewayBuffer::TunnelGatewayBuffer ():
-		m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0)
+		m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0), m_NonZeroRandomBuffer (nullptr)
 	{
-		RAND_bytes (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
-		for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
-			if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
 	}
 
 	TunnelGatewayBuffer::~TunnelGatewayBuffer ()
 	{
 		ClearTunnelDataMsgs ();
+		if (m_NonZeroRandomBuffer) delete[] m_NonZeroRandomBuffer;
 	}
 
 	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
@@ -183,6 +181,13 @@ namespace tunnel
 		if (paddingSize > 0)
 		{
 			// non-zero padding
+			if (!m_NonZeroRandomBuffer) // first time?
+			{
+				m_NonZeroRandomBuffer = new uint8_t[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
+				RAND_bytes (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
+				for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
+					if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
+			}	
 			auto randomOffset = rand () % (TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize + 1);
 			memcpy (buf + 24, m_NonZeroRandomBuffer + randomOffset, paddingSize);
 		}
