@@ -117,7 +117,7 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, m_Name, ": runtime exception: ", ex.what ());
+				LogPrint (eLogError, m_Name, ": Runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -176,7 +176,7 @@ namespace net
 
 		if(dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
@@ -188,7 +188,7 @@ namespace net
 
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv4 address, this is not supported");
+				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv4 address, this is not supported");
 
 			for(int i = 0; pUnicast != nullptr; ++i)
 			{
@@ -205,7 +205,7 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv4 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv4 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
@@ -230,7 +230,7 @@ namespace net
 
 		if(dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
@@ -242,7 +242,7 @@ namespace net
 			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv6 address, this is not supported");
+				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv6 address, this is not supported");
 
 			for(int i = 0; pUnicast != nullptr; ++i)
 			{
@@ -270,7 +270,7 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv6 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv6 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
@@ -302,7 +302,7 @@ namespace net
 		}
 		else
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
+			LogPrint(eLogError, "NetIface: GetMTU(): Address family is not supported");
 			return fallback;
 		}
 	}
@@ -355,7 +355,7 @@ namespace net
 				LogPrint(eLogError, "NetIface: Failed to create datagram socket");
 		}
 		else
-			LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
+			LogPrint(eLogWarning, "NetIface: Interface for local address", localAddress.to_string(), " not found");
 		freeifaddrs(ifaddr);
 
 		return mtu;
@@ -377,7 +377,7 @@ namespace net
 	const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6)
 	{
 #ifdef _WIN32
-		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
+		LogPrint(eLogError, "NetIface: Cannot get address by interface name, not implemented on WIN32");
 		if(ipv6)
 			return boost::asio::ip::address::from_string("::1");
 		else
@@ -413,10 +413,10 @@ namespace net
 		if(ipv6)
 		{
 			fallback = "::1";
-			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
+			LogPrint(eLogWarning, "NetIface: Cannot find IPv6 address for interface ", ifname);
 		} else {
 			fallback = "127.0.0.1";
-			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
+			LogPrint(eLogWarning, "NetIface: Cannot find IPv4 address for interface ", ifname);
 		}
 		return boost::asio::ip::address::from_string(fallback);
 #endif
@@ -479,7 +479,7 @@ namespace net
 			}
 			pCurrAddresses = pCurrAddresses->Next;
 		}
-		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
 		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
@@ -504,7 +504,7 @@ namespace net
 				cur = cur->ifa_next;
 			}
 		}
-		LogPrint(eLogWarning, "NetIface: interface with yggdrasil network address not found");
+		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
 		if(addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif

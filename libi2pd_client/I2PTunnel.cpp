@@ -87,7 +87,7 @@ namespace client
 		boost::system::error_code ec;
 		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0), ec);
 		if (ec)
-			LogPrint (eLogError, "I2PTunnel: can't bind ourIP to ", ourIP.to_string (), ": ", ec.message ());	
+			LogPrint (eLogError, "I2PTunnel: Can't bind ourIP to ", ourIP.to_string (), ": ", ec.message ());	
 
 	}
 #endif
@@ -122,7 +122,7 @@ namespace client
 			boost::system::error_code ec;
 			m_Socket->bind (boost::asio::ip::tcp::endpoint (localAddress, 0), ec);
 			if (ec)
-				LogPrint (eLogError, "I2PTunnel: can't bind to ", localAddress.to_string (), ": ", ec.message ());	
+				LogPrint (eLogError, "I2PTunnel: Can't bind to ", localAddress.to_string (), ": ", ec.message ());	
 		}	
 		Connect (false);
 	}	
@@ -155,7 +155,7 @@ namespace client
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
+				LogPrint (eLogError, "I2PTunnel: Read error: ", ecode.message ());
 				Terminate ();
 			}
 		}
@@ -183,7 +183,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: write error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: Write error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -221,7 +221,7 @@ namespace client
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
+				LogPrint (eLogError, "I2PTunnel: Stream read error: ", ecode.message ());
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
 				else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen ())
@@ -246,12 +246,12 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: connect error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: Connect error: ", ecode.message ());
 			Terminate ();
 		}
 		else
 		{
-			LogPrint (eLogDebug, "I2PTunnel: connected");
+			LogPrint (eLogDebug, "I2PTunnel: Connected");
 			if (m_IsQuiet)
 				StreamReceive ();
 			else
@@ -505,7 +505,7 @@ namespace client
 		if (stream)
 		{
 			if (Kill()) return;
-			LogPrint (eLogDebug, "I2PTunnel: new connection");
+			LogPrint (eLogDebug, "I2PTunnel: New connection");
 			auto connection = std::make_shared<I2PTunnelConnection>(GetOwner(), m_Socket, stream);
 			GetOwner()->AddHandler (connection);
 			connection->I2PConnect ();
@@ -681,7 +681,7 @@ namespace client
 			}	
 			
 			auto addr = ep.address ();
-			LogPrint (eLogInfo, "I2PTunnel: server tunnel ", (*it).host_name (), " has been resolved to ", addr);
+			LogPrint (eLogInfo, "I2PTunnel: Server tunnel ", (*it).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
 			Accept ();
 		}
@@ -702,7 +702,7 @@ namespace client
 		if (!ec)
 			m_LocalAddress.reset (new boost::asio::ip::address (addr));
 		else
-			LogPrint (eLogError, "I2PTunnel: can't set local address ", localAddress);
+			LogPrint (eLogError, "I2PTunnel: Can't set local address ", localAddress);
 	}	
 		
 	void I2PServerTunnel::Accept ()
@@ -829,7 +829,7 @@ namespace client
 			if (s->Identity.GetLL()[0] == ih.GetLL()[0] && remotePort == s->RemotePort)
 			{
 				/** found existing session */
-				LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
+				LogPrint(eLogDebug, "UDPServer: Found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
 				return s;
 			}
 		}
@@ -874,7 +874,7 @@ namespace client
 	{
 		if(!ecode)
 		{
-			LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
+			LogPrint(eLogDebug, "UDPSession: Forward ", len, "B from ", FromEndpoint);
 			auto ts = i2p::util::GetMillisecondsSinceEpoch();
 			auto session = m_Destination->GetSession (Identity);
 			if (ts > LastActivity + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
@@ -892,7 +892,7 @@ namespace client
 				numPackets++;
 			}	
 			if (numPackets > 0)
-				LogPrint(eLogDebug, "UDPSession: forward more ", numPackets, "packets B from ", FromEndpoint);
+				LogPrint(eLogDebug, "UDPSession: Forward more ", numPackets, "packets B from ", FromEndpoint);
 			m_Destination->FlushSendQueue (session);
 			LastActivity = ts;
 			Receive();
@@ -920,7 +920,7 @@ namespace client
 		auto dgram = m_LocalDest->GetDatagramDestination();
 		if (dgram) dgram->ResetReceiver();
 
-		LogPrint(eLogInfo, "UDPServer: done");
+		LogPrint(eLogInfo, "UDPServer: Done");
 	}
 
 	void I2PUDPServerTunnel::Start()
@@ -997,7 +997,7 @@ namespace client
 			return;
 		}
 		if(!m_RemoteIdent) {
-			LogPrint(eLogWarning, "UDP Client: remote endpoint not resolved yet");
+			LogPrint(eLogWarning, "UDP Client: Remote endpoint not resolved yet");
 			RecvFromLocal();
 			return; // drop, remote not resolved
 		}
@@ -1016,7 +1016,7 @@ namespace client
 		}	
 		// send off to remote i2p destination
 		auto ts = i2p::util::GetMillisecondsSinceEpoch();
-		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
+		LogPrint(eLogDebug, "UDP Client: Send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		auto session = m_LocalDest->GetDatagramDestination()->GetSession (*m_RemoteIdent);
 		if (ts > m_LastSession->second + I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL)
 			m_LocalDest->GetDatagramDestination()->SendDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
@@ -1035,7 +1035,7 @@ namespace client
 			numPackets++;
 		}	
 		if (numPackets)
-			LogPrint(eLogDebug, "UDP Client: sent ", numPackets, " more packets to ", m_RemoteIdent->ToBase32());
+			LogPrint(eLogDebug, "UDP Client: Sent ", numPackets, " more packets to ", m_RemoteIdent->ToBase32());
 		m_LocalDest->GetDatagramDestination()->FlushSendQueue (session);
 		
 		// mark convo as active
@@ -1058,12 +1058,12 @@ namespace client
 		std::shared_ptr<const Address> addr;
 		while(!(addr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)
 		{
-			LogPrint(eLogWarning, "UDP Tunnel: failed to lookup ", m_RemoteDest);
+			LogPrint(eLogWarning, "UDP Tunnel: Failed to lookup ", m_RemoteDest);
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 		if(m_cancel_resolve)
 		{
-			LogPrint(eLogError, "UDP Tunnel: lookup of ", m_RemoteDest, " was cancelled");
+			LogPrint(eLogError, "UDP Tunnel: Lookup of ", m_RemoteDest, " was cancelled");
 			return;
 		}
 		if (!addr || !addr->IsIdentHash ())
@@ -1073,7 +1073,7 @@ namespace client
 		}
 		m_RemoteIdent = new i2p::data::IdentHash;
 		*m_RemoteIdent = addr->identHash;
-		LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
+		LogPrint(eLogInfo, "UDP Tunnel: Resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
 	}
 
 	void I2PUDPClientTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
@@ -1081,7 +1081,7 @@ namespace client
 		if(m_RemoteIdent && from.GetIdentHash() == *m_RemoteIdent)
 			HandleRecvFromI2PRaw (fromPort, toPort, buf, len);
 		else
-			LogPrint(eLogWarning, "UDP Client: unwarranted traffic from ", from.GetIdentHash().ToBase32());
+			LogPrint(eLogWarning, "UDP Client: Unwarranted traffic from ", from.GetIdentHash().ToBase32());
 	}
 
 	void I2PUDPClientTunnel::HandleRecvFromI2PRaw(uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
@@ -1093,14 +1093,14 @@ namespace client
 			// found convo
 			if (len > 0) 
 			{
-				LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", m_RemoteIdent ? m_RemoteIdent->ToBase32() : "");
+				LogPrint(eLogDebug, "UDP Client: Got ", len, "B from ", m_RemoteIdent ? m_RemoteIdent->ToBase32() : "");
 				m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second->first);
 				// mark convo as active
 				itr->second->second = i2p::util::GetMillisecondsSinceEpoch();
 			}
 		}
 		else
-			LogPrint(eLogWarning, "UDP Client: not tracking udp session using port ", (int) toPort);
+			LogPrint(eLogWarning, "UDP Client: Not tracking udp session using port ", (int) toPort);
 	}
 
 	I2PUDPClientTunnel::~I2PUDPClientTunnel()

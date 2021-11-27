@@ -75,7 +75,7 @@ namespace i2p
 	{
 		auto msg = NewI2NPMessage (len);
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Message length ", len, " exceeds max length ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID);
 		return msg;
 	}
@@ -90,7 +90,7 @@ namespace i2p
 			msg->from = from;
 		}
 		else
-			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
+			LogPrint (eLogError, "I2NP: Message length ", len, " exceeds max length");
 		return msg;
 	}
 
@@ -171,7 +171,7 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, 
-	    const uint8_t * replyTag, bool replyECIES)
+			const uint8_t * replyTag, bool replyECIES)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -685,7 +685,7 @@ namespace i2p
 		htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
 		msg->len += TUNNEL_GATEWAY_HEADER_SIZE;
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Tunnel gateway buffer overflow ", msg->maxLen);
 		msg->FillI2NPMessageHeader (eI2NPTunnelGateway);
 		return msg;
 	}
@@ -716,7 +716,7 @@ namespace i2p
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Tunnel gateway buffer overflow ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID); // create content message
 		len = msg->GetLength ();
 		msg->offset -= gatewayMsgOffset;
@@ -731,13 +731,13 @@ namespace i2p
 	{
 		if (len < I2NP_HEADER_SIZE_OFFSET + 2)
 		{
-			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
 			return len;
 		}
 		auto l = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
 		if (l > len)
 		{
-			LogPrint (eLogError, "I2NP: message length ", l, " exceeds buffer length ", len);
+			LogPrint (eLogError, "I2NP: Message length ", l, " exceeds buffer length ", len);
 			l = len;
 		}
 		return l;
@@ -747,18 +747,18 @@ namespace i2p
 	{
 		if (len < I2NP_HEADER_SIZE)
 		{
-			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
 			return;
 		}
 		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
 		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);
-		LogPrint (eLogDebug, "I2NP: msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
+		LogPrint (eLogDebug, "I2NP: Msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
 		uint8_t * buf = msg + I2NP_HEADER_SIZE;
 		auto size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
 		len -= I2NP_HEADER_SIZE;
 		if (size > len)
 		{
-			LogPrint (eLogError, "I2NP: payload size ", size, " exceeds buffer length ", len);
+			LogPrint (eLogError, "I2NP: Payload size ", size, " exceeds buffer length ", len);
 			size = len;
 		}
 		switch (typeID)

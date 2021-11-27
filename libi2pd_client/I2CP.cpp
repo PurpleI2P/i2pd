@@ -59,7 +59,7 @@ namespace client
 		if (m_Decryptor)
 			return m_Decryptor->Decrypt (encrypted, data);
 		else
-			LogPrint (eLogError, "I2CP: decryptor is not set");
+			LogPrint (eLogError, "I2CP: Decryptor is not set");
 		return false;
 	}
 
@@ -392,7 +392,7 @@ namespace client
 		if (m_SessionID != 0xFFFF)
 		{	
 			m_Owner.RemoveSession (GetSessionID ());
-			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " terminated");
+			LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " terminated");
 			m_SessionID = 0xFFFF;
 		}	
 	}
@@ -416,7 +416,7 @@ namespace client
 				m_SendQueue.Add (sendBuf);
 			else	
 			{	
-				LogPrint (eLogWarning, "I2CP: send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);	
+				LogPrint (eLogWarning, "I2CP: Send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);	
 				return;	
 			}		
 		}		
@@ -524,7 +524,7 @@ namespace client
 		size_t offset = identity->FromBuffer (buf, len);
 		if (!offset)
 		{
-			LogPrint (eLogError, "I2CP: create session malformed identity");
+			LogPrint (eLogError, "I2CP: Create session malformed identity");
 			SendSessionStatusMessage (3); // invalid
 			return;
 		}
@@ -532,7 +532,7 @@ namespace client
 		offset += 2;
 		if (optionsSize > len - offset)
 		{
-			LogPrint (eLogError, "I2CP: options size ", optionsSize, "exceeds message size");
+			LogPrint (eLogError, "I2CP: Options size ", optionsSize, "exceeds message size");
 			SendSessionStatusMessage (3); // invalid
 			return;
 		}
@@ -550,18 +550,18 @@ namespace client
 					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
 					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
 				SendSessionStatusMessage (1); // created
-				LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");
+				LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
 				m_Destination->Start ();
 			}
 			else
 			{
-				LogPrint (eLogError, "I2CP: session already exists");
+				LogPrint (eLogError, "I2CP: Session already exists");
 				SendSessionStatusMessage (4); // refused
 			}
 		}
 		else
 		{
-			LogPrint (eLogError, "I2CP: create session signature verification failed");
+			LogPrint (eLogError, "I2CP: Create session signature verification failed");
 			SendSessionStatusMessage (3); // invalid
 		}
 	}
@@ -569,7 +569,7 @@ namespace client
 	void I2CPSession::DestroySessionMessageHandler (const uint8_t * buf, size_t len)
 	{
 		SendSessionStatusMessage (0); // destroy
-		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
+		LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " destroyed");
 		Terminate ();
 	}
 
@@ -604,29 +604,29 @@ namespace client
 							{
 								if(m_Destination->Reconfigure(opts))
 								{
-									LogPrint(eLogInfo, "I2CP: reconfigured destination");
+									LogPrint(eLogInfo, "I2CP: Reconfigured destination");
 									status = 2; // updated
 								}
 								else
-									LogPrint(eLogWarning, "I2CP: failed to reconfigure destination");
+									LogPrint(eLogWarning, "I2CP: Failed to reconfigure destination");
 							}
 							else
-								LogPrint(eLogError, "I2CP: invalid reconfigure message signature");
+								LogPrint(eLogError, "I2CP: Invalid reconfigure message signature");
 						}
 						else
-							LogPrint(eLogError, "I2CP: mapping size mismatch");
+							LogPrint(eLogError, "I2CP: Mapping size mismatch");
 					}
 					else
-						LogPrint(eLogError, "I2CP: destination mismatch");
+						LogPrint(eLogError, "I2CP: Destination mismatch");
 				}
 				else
-					LogPrint(eLogError, "I2CP: malfromed destination");
+					LogPrint(eLogError, "I2CP: Malfromed destination");
 			}
 			else
-				LogPrint(eLogError, "I2CP: session mismatch");
+				LogPrint(eLogError, "I2CP: Session mismatch");
 		}
 		else
-			LogPrint(eLogError, "I2CP: short message");
+			LogPrint(eLogError, "I2CP: Short message");
 		SendSessionStatusMessage (status);
 	}
 
@@ -668,7 +668,7 @@ namespace client
 			}
 		}
 		else
-			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+			LogPrint (eLogError, "I2CP: Unexpected sessionID ", sessionID);
 	}
 
 	void I2CPSession::CreateLeaseSet2MessageHandler (const uint8_t * buf, size_t len)
@@ -683,7 +683,7 @@ namespace client
 				i2p::data::LeaseSet2 ls (storeType, buf + offset, len - offset); // outer layer only for encrypted
 				if (!ls.IsValid ())
 				{
-					LogPrint (eLogError, "I2CP: invalid LeaseSet2 of type ", storeType);
+					LogPrint (eLogError, "I2CP: Invalid LeaseSet2 of type ", storeType);
 					return;
 				}
 				offset += ls.GetBufferLen ();
@@ -709,7 +709,7 @@ namespace client
 			}
 		}
 		else
-			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+			LogPrint (eLogError, "I2CP: Unexpected sessionID ", sessionID);
 	}
 
 	void I2CPSession::SendMessageMessageHandler (const uint8_t * buf, size_t len)
@@ -735,14 +735,14 @@ namespace client
 						m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
 					}
 					else
-						LogPrint(eLogError, "I2CP: cannot send message, too big");
+						LogPrint(eLogError, "I2CP: Cannot send message, too big");
 				}
 				else
-					LogPrint(eLogError, "I2CP: invalid identity");
+					LogPrint(eLogError, "I2CP: Invalid identity");
 			}
 		}
 		else
-			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+			LogPrint (eLogError, "I2CP: Unexpected sessionID ", sessionID);
 	}
 
 	void I2CPSession::SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len)
@@ -770,7 +770,7 @@ namespace client
 					if (!addr || !addr->IsIdentHash ())
 					{
 						// TODO: handle blinded addresses
-						LogPrint (eLogError, "I2CP: address ", name, " not found");
+						LogPrint (eLogError, "I2CP: Address ", name, " not found");
 						SendHostReplyMessage (requestID, nullptr);
 						return;
 					}
@@ -779,7 +779,7 @@ namespace client
 					break;
 				}
 				default:
-					LogPrint (eLogError, "I2CP: request type ", (int)buf[10], " is not supported");
+					LogPrint (eLogError, "I2CP: Request type ", (int)buf[10], " is not supported");
 					SendHostReplyMessage (requestID, nullptr);
 					return;
 			}
@@ -805,7 +805,7 @@ namespace client
 				SendHostReplyMessage (requestID, nullptr);
 		}
 		else
-			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+			LogPrint (eLogError, "I2CP: Unexpected sessionID ", sessionID);
 	}
 
 	void I2CPSession::SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity)
@@ -900,7 +900,7 @@ namespace client
 				m_SendQueue.Add (sendBuf);
 			else	
 			{	
-				LogPrint (eLogWarning, "I2CP: send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);	
+				LogPrint (eLogWarning, "I2CP: Send queue size exceeds ", I2CP_MAX_SEND_QUEUE_SIZE);	
 				return;	
 			}		
 		}		
@@ -980,15 +980,15 @@ namespace client
 			auto ep = socket->remote_endpoint (ec);
 			if (!ec)
 			{
-				LogPrint (eLogDebug, "I2CP: new connection from ", ep);
+				LogPrint (eLogDebug, "I2CP: New connection from ", ep);
 				auto session = std::make_shared<I2CPSession>(*this, socket);
 				session->Start ();
 			}
 			else
-				LogPrint (eLogError, "I2CP: incoming connection error ", ec.message ());
+				LogPrint (eLogError, "I2CP: Incoming connection error ", ec.message ());
 		}
 		else
-			LogPrint (eLogError, "I2CP: accept error: ", ecode.message ());
+			LogPrint (eLogError, "I2CP: Accept error: ", ecode.message ());
 
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
@@ -999,7 +999,7 @@ namespace client
 		if (!session) return false;
 		if (!m_Sessions.insert({session->GetSessionID (), session}).second)
 		{
-			LogPrint (eLogError, "I2CP: duplicate session id ", session->GetSessionID ());
+			LogPrint (eLogError, "I2CP: Duplicate session id ", session->GetSessionID ());
 			return false;
 		}
 		return true;

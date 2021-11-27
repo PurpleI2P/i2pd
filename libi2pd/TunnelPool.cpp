@@ -307,7 +307,7 @@ namespace tunnel
 
 		for (auto& it: tests)
 		{
-			LogPrint (eLogWarning, "Tunnels: test of tunnel ", it.first, " failed");
+			LogPrint (eLogWarning, "Tunnels: Test of tunnel ", it.first, " failed");
 			// if test failed again with another tunnel we consider it failed
 			if (it.second.first)
 			{
@@ -383,7 +383,7 @@ namespace tunnel
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessGarlicMessage (msg);
 		else
-			LogPrint (eLogWarning, "Tunnels: local destination doesn't exist, dropped");
+			LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
 	}
 
 	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
@@ -408,7 +408,7 @@ namespace tunnel
 		if (found)
 		{
 			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
-			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", dlt, " milliseconds");
+			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
 			uint64_t latency = dlt / 2;
 			// restore from test failed state if any
 			if (test.first)

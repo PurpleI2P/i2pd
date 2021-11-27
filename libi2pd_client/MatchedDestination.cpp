@@ -33,14 +33,14 @@ namespace client
 				RequestDestination(m_RemoteIdent, std::bind(&MatchedTunnelDestination::HandleFoundCurrentLeaseSet, this, std::placeholders::_1));
 		}
 		else
-			LogPrint(eLogWarning, "Destination: failed to resolve ", m_RemoteName);
+			LogPrint(eLogWarning, "Destination: Failed to resolve ", m_RemoteName);
 	}
 
 	void MatchedTunnelDestination::HandleFoundCurrentLeaseSet(std::shared_ptr<const i2p::data::LeaseSet> ls)
 	{
 		if(ls)
 		{
-			LogPrint(eLogDebug, "Destination: resolved remote lease set for ", m_RemoteName);
+			LogPrint(eLogDebug, "Destination: Resolved remote lease set for ", m_RemoteName);
 			m_RemoteLeaseSet = ls;
 		}
 		else
@@ -96,9 +96,9 @@ namespace client
 				if(obep) 
 				{
 					path.Add (obep);
-					LogPrint(eLogDebug, "Destination: found OBEP matching IBGW");
+					LogPrint(eLogDebug, "Destination: Found OBEP matching IBGW");
 				} else
-					LogPrint(eLogWarning, "Destination: could not find proper IBGW for matched outbound tunnel");
+					LogPrint(eLogWarning, "Destination: Could not find proper IBGW for matched outbound tunnel");
 			}
 		}
 		return true;

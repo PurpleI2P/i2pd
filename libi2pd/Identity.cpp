@@ -215,7 +215,7 @@ namespace data
 	{
 		if (len < DEFAULT_IDENTITY_SIZE)
 		{
-			LogPrint (eLogError, "Identity: buffer length ", len, " is too small");
+			LogPrint (eLogError, "Identity: Buffer length ", len, " is too small");
 			return 0;
 		}
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
@@ -509,7 +509,7 @@ namespace data
 			if (m_Public->GetSignatureLen () + ret > len) return 0;
 			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret))
 			{
-				LogPrint (eLogError, "Identity: offline signature verification failed");
+				LogPrint (eLogError, "Identity: Offline signature verification failed");
 				return 0;
 			}
 			ret += m_Public->GetSignatureLen ();

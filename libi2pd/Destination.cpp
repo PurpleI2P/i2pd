@@ -56,7 +56,7 @@ namespace client
 				it = params->find (I2CP_PARAM_TAGS_TO_SEND);
 				if (it != params->end ())
 					numTags = std::stoi(it->second);
-				LogPrint (eLogInfo, "Destination: parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
+				LogPrint (eLogInfo, "Destination: Parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
 				it = params->find (I2CP_PARAM_RATCHET_INBOUND_TAGS);
 				if (it != params->end ())
 					SetNumRatchetInboundTags (std::stoi(it->second));
@@ -112,7 +112,7 @@ namespace client
 					m_LeaseSetPrivKey.reset (new i2p::data::Tag<32>());
 					if (m_LeaseSetPrivKey->FromBase64 (it->second) != 32)
 					{
-						LogPrint(eLogError, "Destination: invalid value i2cp.leaseSetPrivKey ", it->second);
+						LogPrint(eLogError, "Destination: Invalid value i2cp.leaseSetPrivKey ", it->second);
 						m_LeaseSetPrivKey.reset (nullptr);
 					}
 				}
@@ -120,7 +120,7 @@ namespace client
 		}
 		catch (std::exception & ex)
 		{
-			LogPrint(eLogError, "Destination: unable to parse parameters for destination: ", ex.what());
+			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 		SetNumTags (numTags);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty);
@@ -136,7 +136,7 @@ namespace client
 					auto minlatency = std::stoi(itr->second);
 					if ( minlatency > 0 && maxlatency > 0 ) {
 						// set tunnel pool latency
-						LogPrint(eLogInfo, "Destination: requiring tunnel latency [", minlatency, "ms, ", maxlatency, "ms]");
+						LogPrint(eLogInfo, "Destination: Requiring tunnel latency [", minlatency, "ms, ", maxlatency, "ms]");
 						m_Pool->RequireLatency(minlatency, maxlatency);
 					}
 				}
@@ -251,7 +251,7 @@ namespace client
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
+				LogPrint (eLogWarning, "Destination: Remote LeaseSet expired");
 				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 				m_RemoteLeaseSets.erase (ident);
 				return nullptr;
@@ -618,7 +618,7 @@ namespace client
 			auto ls = GetLeaseSetMt ();
 			if (!ls)
 			{
-				LogPrint (eLogWarning, "Destination: couldn't verify LeaseSet for ", GetIdentHash().ToBase32());
+				LogPrint (eLogWarning, "Destination: Couldn't verify LeaseSet for ", GetIdentHash().ToBase32());
 				return;
 			}
 			auto s = shared_from_this ();
@@ -630,7 +630,7 @@ namespace client
 						if (*ls == *leaseSet)
 						{
 							// we got latest LeasetSet
-							LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", s->GetIdentHash().ToBase32());
+							LogPrint (eLogDebug, "Destination: Published LeaseSet verified for ", s->GetIdentHash().ToBase32());
 							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));
 							return;
@@ -639,7 +639,7 @@ namespace client
 							LogPrint (eLogDebug, "Destination: LeaseSet is different than just published for ", s->GetIdentHash().ToBase32());
 					}
 					else
-						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", s->GetIdentHash().ToBase32());
+						LogPrint (eLogWarning, "Destination: Couldn't find published LeaseSet for ", s->GetIdentHash().ToBase32());
 					// we have to publish again
 					s->Publish ();
 				});
@@ -966,7 +966,7 @@ namespace client
 		}
 		catch (std::exception & ex)
 		{
-			LogPrint(eLogError, "Destination: unable to parse parameters for destination: ", ex.what());
+			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 	}
 
@@ -1042,7 +1042,7 @@ namespace client
 					LogPrint (eLogError, "Destination: Missing raw datagram destination");
 			break;
 			default:
-				LogPrint (eLogError, "Destination: Data: unexpected protocol ", buf[9]);
+				LogPrint (eLogError, "Destination: Data: Unexpected protocol ", buf[9]);
 		}
 	}
 
@@ -1050,7 +1050,7 @@ namespace client
 	{
 		if (!streamRequestComplete)
 		{
-			LogPrint (eLogError, "Destination: request callback is not specified in CreateStream");
+			LogPrint (eLogError, "Destination: Request callback is not specified in CreateStream");
 			return;
 		}
 		auto leaseSet = FindLeaseSet (dest);
@@ -1074,7 +1074,7 @@ namespace client
 	{
 		if (!streamRequestComplete)
 		{
-			LogPrint (eLogError, "Destination: request callback is not specified in CreateStream");
+			LogPrint (eLogError, "Destination: Request callback is not specified in CreateStream");
 			return;
 		}
 		auto s = GetSharedFromThis ();
@@ -1282,7 +1282,7 @@ namespace client
 		if (m_StandardEncryptionKey && m_StandardEncryptionKey->decryptor)
 			return m_StandardEncryptionKey->decryptor->Decrypt (encrypted, data);
 		else
-			LogPrint (eLogError, "Destinations: decryptor is not set");
+			LogPrint (eLogError, "Destinations: Decryptor is not set");
 		return false;
 	}
 

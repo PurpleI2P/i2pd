@@ -128,7 +128,7 @@ namespace transport
 				m_Queue.push (pair);
 		}
 		else
-			LogPrint(eLogError, "Transports: return null DHKeys");
+			LogPrint(eLogError, "Transports: Return null DHKeys");
 	}
 
 	Transports transports;
@@ -192,10 +192,10 @@ namespace transport
 						i2p::context.SetStatus (eRouterStatusProxy);
 					}
 					else
-						LogPrint(eLogError, "Transports: unsupported NTCP2 proxy URL ", ntcp2proxy);
+						LogPrint(eLogError, "Transports: Unsupported NTCP2 proxy URL ", ntcp2proxy);
 				}
 				else
-					LogPrint(eLogError, "Transports: invalid NTCP2 proxy url ", ntcp2proxy);
+					LogPrint(eLogError, "Transports: Invalid NTCP2 proxy URL ", ntcp2proxy);
 			}
 			else
 				m_NTCP2Server = new NTCP2Server ();
@@ -335,7 +335,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Transports: runtime exception: ", ex.what ());
+				LogPrint (eLogError, "Transports: Runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -426,7 +426,7 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: delayed messages queue size to ",
+				LogPrint (eLogWarning, "Transports: Delayed messages queue size to ",
 					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
@@ -554,13 +554,13 @@ namespace transport
 		{
 			if (r)
 			{
-				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, Trying to connect");
+				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
 				it->second.router = r;
 				ConnectToPeer (ident, it->second);
 			}
 			else
 			{
-				LogPrint (eLogWarning, "Transports: RouterInfo not found, Failed to send messages");
+				LogPrint (eLogWarning, "Transports: RouterInfo not found, failed to send messages");
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (it);
 			}
@@ -571,7 +571,7 @@ namespace transport
 	{
 		if (RoutesRestricted())
 		{
-			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
+			LogPrint(eLogInfo, "Transports: Restricted routes enabled, not detecting IP");
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;
 		}
@@ -586,7 +586,7 @@ namespace transport
 		if (RoutesRestricted() || !m_SSUServer) return;
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
-			LogPrint (eLogInfo, "Transports: Started peer test ipv4");
+			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
 			std::set<i2p::data::IdentHash> excluded;
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
@@ -608,11 +608,11 @@ namespace transport
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv4");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
-			LogPrint (eLogInfo, "Transports: Started peer test ipv6");
+			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
 			std::set<i2p::data::IdentHash> excluded;
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
@@ -634,7 +634,7 @@ namespace transport
 				}
 			}
 			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test ipv6");
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
 		}	
 	}
 
@@ -680,7 +680,7 @@ namespace transport
 			{
 				if(RoutesRestricted() && ! IsRestrictedPeer(ident)) {
 					// not trusted
-					LogPrint(eLogWarning, "Transports: closing untrusted inbound connection from ", ident.ToBase64());
+					LogPrint(eLogWarning, "Transports: Closing untrusted inbound connection from ", ident.ToBase64());
 					session->Done();
 					return;
 				}

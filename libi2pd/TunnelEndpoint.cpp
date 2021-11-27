@@ -40,7 +40,7 @@ namespace tunnel
 			SHA256(fragment, TUNNEL_DATA_MSG_SIZE -(fragment - msg->GetPayload ()) + 16, hash); // payload + iv
 			if (memcmp (hash, decrypted, 4))
 			{
-				LogPrint (eLogError, "TunnelMessage: checksum verification failed");
+				LogPrint (eLogError, "TunnelMessage: Checksum verification failed");
 				return;
 			}
 			// process fragments
@@ -118,7 +118,7 @@ namespace tunnel
 					// check message size
 					if (msg->len > msg->maxLen)
 					{
-						LogPrint (eLogError, "TunnelMessage: fragment is too long ", (int)size);
+						LogPrint (eLogError, "TunnelMessage: Fragment is too long ", (int)size);
 						m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
 						return;
 					}
@@ -156,7 +156,7 @@ namespace tunnel
 			}
 		}
 		else
-			LogPrint (eLogError, "TunnelMessage: zero not found");
+			LogPrint (eLogError, "TunnelMessage: Zero not found");
 	}
 
 	void TunnelEndpoint::HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, 
@@ -264,7 +264,7 @@ namespace tunnel
 		std::unique_ptr<Fragment> f(new Fragment (isLastFragment, i2p::util::GetMillisecondsSinceEpoch (), size)); 
 		memcpy (f->data.data (), fragment, size);
 		if (!m_OutOfSequenceFragments.emplace ((uint64_t)msgID << 32 | fragmentNum, std::move (f)).second)
-			LogPrint (eLogInfo, "TunnelMessage: duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
+			LogPrint (eLogInfo, "TunnelMessage: Duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
 	}
 
 	void TunnelEndpoint::HandleOutOfSequenceFragments (uint32_t msgID, TunnelMessageBlockEx& msg)
@@ -318,11 +318,11 @@ namespace tunnel
 	{
 		if (!m_IsInbound && msg.data->IsExpired ())
 		{
-			LogPrint (eLogInfo, "TunnelMessage: message expired");
+			LogPrint (eLogInfo, "TunnelMessage: Message expired");
 			return;
 		}
 		uint8_t typeID = msg.data->GetTypeID ();
-		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
+		LogPrint (eLogDebug, "TunnelMessage: Handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		// catch RI or reply with new list of routers
 		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
 			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)

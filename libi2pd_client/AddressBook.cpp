@@ -119,7 +119,7 @@ namespace client
 		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 		if (!f.is_open ())	{
-			LogPrint (eLogError, "Addressbook: can't open file ", path);
+			LogPrint (eLogError, "Addressbook: Can't open file ", path);
 			return;
 		}
 		size_t len = address->GetFullLen ();
@@ -169,7 +169,7 @@ namespace client
 			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
 			return 0;
 		}
-		LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
+		LogPrint(eLogInfo, "Addressbook: Using index file ", indexPath);
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded from storage");
 
 		return num;
@@ -187,7 +187,7 @@ namespace client
 	{
 		if (addresses.empty()) 
 		{
-			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
+			LogPrint(eLogWarning, "Addressbook: Not saving empty addressbook");
 			return 0;
 		}
 
@@ -210,7 +210,7 @@ namespace client
 						num++;
 					}	
 					else
-						LogPrint (eLogWarning, "Addressbook: invalid address ", it.first);
+						LogPrint (eLogWarning, "Addressbook: Invalid address ", it.first);
 				}
 				LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 			}	
@@ -265,7 +265,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::ResetEtags ()
 	{
-		LogPrint (eLogError, "Addressbook: resetting eTags");
+		LogPrint (eLogError, "Addressbook: Resetting eTags");
 		for (boost::filesystem::directory_iterator it (etagsPath); it != boost::filesystem::directory_iterator (); ++it)
 		{
 			if (!boost::filesystem::is_regular_file (it->status ()))
@@ -334,17 +334,17 @@ namespace client
 		}
 		if (m_IsDownloading)
 		{
-			LogPrint (eLogInfo, "Addressbook: subscriptions are downloading, abort");
+			LogPrint (eLogInfo, "Addressbook: Subscriptions are downloading, abort");
 			for (int i = 0; i < 30; i++)
 			{
 				if (!m_IsDownloading)
 				{
-					LogPrint (eLogInfo, "Addressbook: subscriptions download complete");
+					LogPrint (eLogInfo, "Addressbook: Subscriptions download complete");
 					break;
 				}
 				std::this_thread::sleep_for (std::chrono::seconds (1)); // wait for 1 seconds
 			}
-			LogPrint (eLogError, "Addressbook: subscription download timeout");
+			LogPrint (eLogError, "Addressbook: Subscription download timeout");
 			m_IsDownloading = false;
 		}
 		if (m_Storage)
@@ -397,7 +397,7 @@ namespace client
 		if (pos != std::string::npos)
 		{
 			m_Addresses[address] = std::make_shared<Address>(jump.substr (0, pos));
-			LogPrint (eLogInfo, "Addressbook: added ", address," -> ", jump);
+			LogPrint (eLogInfo, "Addressbook: Added ", address," -> ", jump);
 		}
 		else
 		{
@@ -407,10 +407,10 @@ namespace client
 			{
 				m_Storage->AddAddress (ident);
 				m_Addresses[address] = std::make_shared<Address>(ident->GetIdentHash ());
-				LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
+				LogPrint (eLogInfo, "Addressbook: Added ", address," -> ", ToAddress(ident->GetIdentHash ()));
 			}
 			else
-				LogPrint (eLogError, "Addressbook: malformed address ", jump);
+				LogPrint (eLogError, "Addressbook: Malformed address ", jump);
 		}
 	}
 
@@ -473,20 +473,20 @@ namespace client
 				pos = name.find(".b32.i2p");
 				if (pos != std::string::npos)
 				{
-					LogPrint (eLogError, "Addressbook: skipped adding of b32 address: ", name);
+					LogPrint (eLogError, "Addressbook: Skipped adding of b32 address: ", name);
 					continue;
 				}
 
 				pos = name.find(".i2p");
 				if (pos == std::string::npos)
 				{
-					LogPrint (eLogError, "Addressbook: malformed domain: ", name);
+					LogPrint (eLogError, "Addressbook: Malformed domain: ", name);
 					continue;
 				}
 
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
 				if (!ident->FromBase64(addr)) {
-					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
+					LogPrint (eLogError, "Addressbook: Malformed address ", addr, " for ", name);
 					incomplete = f.eof ();
 					continue;
 				}
@@ -500,7 +500,7 @@ namespace client
 						it->second->identHash = ident->GetIdentHash ();
 						m_Storage->AddAddress (ident);
 						m_Storage->RemoveAddress (it->second->identHash);
-						LogPrint (eLogInfo, "Addressbook: updated host: ", name);
+						LogPrint (eLogInfo, "Addressbook: Updated host: ", name);
 					}
 				}
 				else
@@ -508,7 +508,7 @@ namespace client
 					m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
 					m_Storage->AddAddress (ident);
 					if (is_update)
-						LogPrint (eLogInfo, "Addressbook: added new host: ", name);
+						LogPrint (eLogInfo, "Addressbook: Added new host: ", name);
 				}
 			}
 			else
@@ -556,7 +556,7 @@ namespace client
 			}
 		}
 		else
-			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
+			LogPrint (eLogError, "Addressbook: Subscriptions already loaded");
 	}
 
 	void AddressBook::LoadLocal ()
@@ -641,7 +641,7 @@ namespace client
 				this, std::placeholders::_1));
 		}
 		else
-			LogPrint (eLogError, "Addressbook: can't start subscriptions: missing shared local destination");
+			LogPrint (eLogError, "Addressbook: Can't start subscriptions: missing shared local destination");
 	}
 
 	void AddressBook::StopSubscriptions ()
@@ -656,7 +656,7 @@ namespace client
 		{
 			auto dest = i2p::client::context.GetSharedLocalDestination ();
 			if (!dest) {
-				LogPrint(eLogWarning, "Addressbook: missing local destination, skip subscription update");
+				LogPrint(eLogWarning, "Addressbook: Missing local destination, skip subscription update");
 				return;
 			}
 			if (!m_IsDownloading && dest->IsReady ())
@@ -664,7 +664,7 @@ namespace client
 				if (!m_IsLoaded)
 				{
 					// download it from default subscription
-					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
+					LogPrint (eLogInfo, "Addressbook: Trying to download it from default subscription.");
 					std::string defaultSubURL; i2p::config::GetOption("addressbook.defaulturl", defaultSubURL);
 					if (!m_DefaultSubscription)
 						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, defaultSubURL);
@@ -802,7 +802,7 @@ namespace client
 		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link);
 		if (!url.parse(m_Link))
 		{
-			LogPrint(eLogError, "Addressbook: failed to parse url: ", m_Link);
+			LogPrint(eLogError, "Addressbook: Failed to parse url: ", m_Link);
 			return false;
 		}
 		auto addr = m_Book.GetAddress (url.host);
@@ -841,7 +841,7 @@ namespace client
 		}
 		if (m_Etag.empty() && m_LastModified.empty()) {
 			m_Book.GetEtag (m_Ident, m_Etag, m_LastModified);
-			LogPrint (eLogDebug, "Addressbook: loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
+			LogPrint (eLogDebug, "Addressbook: Loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
 		}
 		/* save url parts for later use */
 		std::string dest_host = url.host;
@@ -886,7 +886,7 @@ namespace client
 			// wait 1 more second
 			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT + 1)) == std::cv_status::timeout)
 			{
-				LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
+				LogPrint (eLogError, "Addressbook: Subscriptions request timeout expired");
 				numAttempts++;
 				if (numAttempts > 5) end = true;
 			}
@@ -899,35 +899,35 @@ namespace client
 		int res_head_len = res.parse(response);
 		if (res_head_len < 0)
 		{
-			LogPrint(eLogError, "Addressbook: can't parse http response from ", dest_host);
+			LogPrint(eLogError, "Addressbook: Can't parse http response from ", dest_host);
 			return false;
 		}
 		if (res_head_len == 0)
 		{
-			LogPrint(eLogError, "Addressbook: incomplete http response from ", dest_host, ", interrupted by timeout");
+			LogPrint(eLogError, "Addressbook: Incomplete http response from ", dest_host, ", interrupted by timeout");
 			return false;
 		}
 		/* assert: res_head_len > 0 */
 		response.erase(0, res_head_len);
 		if (res.code == 304)
 		{
-			LogPrint (eLogInfo, "Addressbook: no updates from ", dest_host, ", code 304");
+			LogPrint (eLogInfo, "Addressbook: No updates from ", dest_host, ", code 304");
 			return false;
 		}
 		if (res.code != 200)
 		{
-			LogPrint (eLogWarning, "Adressbook: can't get updates from ", dest_host, ", response code ", res.code);
+			LogPrint (eLogWarning, "Adressbook: Can't get updates from ", dest_host, ", response code ", res.code);
 			return false;
 		}
 		int len = res.content_length();
 		if (response.empty())
 		{
-			LogPrint(eLogError, "Addressbook: empty response from ", dest_host, ", expected ", len, " bytes");
+			LogPrint(eLogError, "Addressbook: Empty response from ", dest_host, ", expected ", len, " bytes");
 			return false;
 		}
 		if (!res.is_gzipped () && len > 0 && len != (int) response.length())
 		{
-			LogPrint(eLogError, "Addressbook: response size mismatch, expected: ", len, ", got: ", response.length(), "bytes");
+			LogPrint(eLogError, "Addressbook: Response size mismatch, expected: ", len, ", got: ", response.length(), "bytes");
 			return false;
 		}
 		/* assert: res.code == 200 */
@@ -948,13 +948,13 @@ namespace client
 			inflator.Inflate ((const uint8_t *) response.data(), response.length(), out);
 			if (out.fail())
 			{
-				LogPrint(eLogError, "Addressbook: can't gunzip http response");
+				LogPrint(eLogError, "Addressbook: Can't gunzip http response");
 				return false;
 			}
 			response = out.str();
 		}
 		std::stringstream ss(response);
-		LogPrint (eLogInfo, "Addressbook: got update from ", dest_host);
+		LogPrint (eLogInfo, "Addressbook: Got update from ", dest_host);
 		m_Book.LoadHostsFromStream (ss, true);
 		return true;
 	}

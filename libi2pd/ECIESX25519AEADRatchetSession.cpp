@@ -314,7 +314,7 @@ namespace garlic
 						GetOwner ()->HandleECIESx25519GarlicClove (buf + offset, size);
 				break;
 				case eECIESx25519BlkNextKey:
-					LogPrint (eLogDebug, "Garlic: next key");
+					LogPrint (eLogDebug, "Garlic: Next key");
 					if (receiveTagset)
 						HandleNextKey (buf + offset, size, receiveTagset);
 					else
@@ -322,7 +322,7 @@ namespace garlic
 				break;
 				case eECIESx25519BlkAck:
 				{
-					LogPrint (eLogDebug, "Garlic: ack");
+					LogPrint (eLogDebug, "Garlic: Ack");
 					int numAcks = size >> 2; // /4
 					auto offset1 = offset;
 					for (auto i = 0; i < numAcks; i++)
@@ -334,24 +334,24 @@ namespace garlic
 				}
 				case eECIESx25519BlkAckRequest:
 				{
-					LogPrint (eLogDebug, "Garlic: ack request");
+					LogPrint (eLogDebug, "Garlic: Ack request");
 					m_AckRequests.push_back ({receiveTagset->GetTagSetID (), index});
 					break;
 				}
 				case eECIESx25519BlkTermination:
-					LogPrint (eLogDebug, "Garlic: termination");
+					LogPrint (eLogDebug, "Garlic: Termination");
 					if (GetOwner ())
 						GetOwner ()->RemoveECIESx25519Session (m_RemoteStaticKey);
 					if (receiveTagset) receiveTagset->Expire ();
 				break;
 				case eECIESx25519BlkDateTime:
-					LogPrint (eLogDebug, "Garlic: datetime");
+					LogPrint (eLogDebug, "Garlic: Datetime");
 				break;
 				case eECIESx25519BlkOptions:
-					LogPrint (eLogDebug, "Garlic: options");
+					LogPrint (eLogDebug, "Garlic: Options");
 				break;
 				case eECIESx25519BlkPadding:
-					LogPrint (eLogDebug, "Garlic: padding");
+					LogPrint (eLogDebug, "Garlic: Padding");
 				break;
 				default:
 					LogPrint (eLogWarning, "Garlic: Unknown block type ", (int)blk);
@@ -381,7 +381,7 @@ namespace garlic
 				newTagset->NextSessionTagRatchet ();
 				m_SendTagset = newTagset;
 				m_SendForwardKey = false;
-				LogPrint (eLogDebug, "Garlic: next send tagset ", newTagset->GetTagSetID (), " created");
+				LogPrint (eLogDebug, "Garlic: Next send tagset ", newTagset->GetTagSetID (), " created");
 			}
 			else
 				LogPrint (eLogDebug, "Garlic: Unexpected next key ", keyID);
@@ -424,7 +424,7 @@ namespace garlic
 			GenerateMoreReceiveTags (newTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
 				GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MAX_NUM_GENERATED_TAGS);
 			receiveTagset->Expire ();
-			LogPrint (eLogDebug, "Garlic: next receive tagset ", tagsetID, " created");
+			LogPrint (eLogDebug, "Garlic: Next receive tagset ", tagsetID, " created");
 		}
 	}
 
@@ -446,7 +446,7 @@ namespace garlic
 			m_NextSendRatchet->key = i2p::transport::transports.GetNextX25519KeysPair ();
 
 		m_SendForwardKey = true;
-		LogPrint (eLogDebug, "Garlic: new send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
+		LogPrint (eLogDebug, "Garlic: New send ratchet ", m_NextSendRatchet->newKey ? "new" : "old", " key ", m_NextSendRatchet->keyID, " created");
 	}
 
 	bool ECIESX25519AEADRatchetSession::NewOutgoingSessionMessage (const uint8_t * payload, size_t len, uint8_t * out, size_t outLen, bool isStatic)
@@ -618,7 +618,7 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::HandleNewOutgoingSessionReply (uint8_t * buf, size_t len)
 	{
 		// we are Alice
-		LogPrint (eLogDebug, "Garlic: reply received");
+		LogPrint (eLogDebug, "Garlic: Reply received");
 		const uint8_t * tag = buf;
 		buf += 8; len -= 8; // tag
 		uint8_t bepk[32]; // Bob's ephemeral key
@@ -700,7 +700,7 @@ namespace garlic
 		uint64_t tag = m_SendTagset->GetNextSessionTag ();
 		if (!tag)
 		{
-			LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for send tagset");
+			LogPrint (eLogError, "Garlic: Can't create new ECIES-X25519-AEAD-Ratchet tag for send tagset");
 			if (GetOwner ())
 				GetOwner ()->RemoveECIESx25519Session (m_RemoteStaticKey);
 			return false;
@@ -776,7 +776,7 @@ namespace garlic
 				if (receiveTagset->IsNS ())
 				{	
 					// our of sequence NSR 
-					LogPrint (eLogDebug, "Garlic: check for out of order NSR with index ", index);
+					LogPrint (eLogDebug, "Garlic: Check for out of order NSR with index ", index);
 					if (receiveTagset->GetNextIndex () - index < ECIESX25519_NSR_NUM_GENERATED_TAGS/2)
 						GenerateMoreReceiveTags (receiveTagset, ECIESX25519_NSR_NUM_GENERATED_TAGS);
 					return HandleNewOutgoingSessionReply (buf, len);
@@ -912,7 +912,7 @@ namespace garlic
 		{
 			if (payloadLen > I2NP_MAX_MESSAGE_SIZE)
 			{
-				LogPrint (eLogError, "Garlic: payload length ", payloadLen, " is too long");
+				LogPrint (eLogError, "Garlic: Payload length ", payloadLen, " is too long");
 				return 0;
 			}	
 			m_LastSentTimestamp = ts;
@@ -1056,7 +1056,7 @@ namespace garlic
 				auto tag = GetOwner ()->AddECIESx25519SessionNextTag (receiveTagset);
 				if (!tag)
 				{
-					LogPrint (eLogError, "Garlic: can't create new ECIES-X25519-AEAD-Ratchet tag for receive tagset");
+					LogPrint (eLogError, "Garlic: Can't create new ECIES-X25519-AEAD-Ratchet tag for receive tagset");
 					break;
 				}	
 			}	
