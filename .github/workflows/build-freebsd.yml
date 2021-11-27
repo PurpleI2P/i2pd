@@ -4,15 +4,16 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     name: with UPnP
     steps:
     - uses: actions/checkout@v2
     - name: Test in FreeBSD
       id: test
-      uses: vmactions/freebsd-vm@v0.1.4
+      uses: vmactions/freebsd-vm@v0.1.5
       with:
         usesh: true
+        mem: 2048
         prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc 
         run: |
           cd build
