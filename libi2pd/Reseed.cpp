@@ -84,15 +84,15 @@ namespace data
 	{
 		bool ipv6;	i2p::config::GetOption("ipv6", ipv6);
 		bool ipv4;	i2p::config::GetOption("ipv4", ipv4);
-		
+
 		std::vector<std::string> httpsReseedHostList;
 		if (ipv4 || ipv6)
-		{	
+		{
 			std::string reseedURLs; i2p::config::GetOption("reseed.urls", reseedURLs);
 			if (!reseedURLs.empty ())
 				boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
 		}
-			
+
 		std::vector<std::string> yggReseedHostList;
 		if (!i2p::util::net::GetYggdrasilAddress ().is_unspecified ())
 		{
@@ -100,7 +100,7 @@ namespace data
 			std::string yggReseedURLs; i2p::config::GetOption("reseed.yggurls", yggReseedURLs);
 			if (!yggReseedURLs.empty ())
 				boost::split(yggReseedHostList, yggReseedURLs, boost::is_any_of(","), boost::token_compress_on);
-		}	
+		}
 
 		if (httpsReseedHostList.empty () && yggReseedHostList.empty())
 		{
@@ -113,7 +113,7 @@ namespace data
 		{
 			auto ind = rand () % (httpsReseedHostList.size () + yggReseedHostList.size ());
 			bool isHttps = ind < httpsReseedHostList.size ();
-			std::string reseedUrl = isHttps ? httpsReseedHostList[ind] : 
+			std::string reseedUrl = isHttps ? httpsReseedHostList[ind] :
 				yggReseedHostList[ind - httpsReseedHostList.size ()];
 			reseedUrl += "i2pseeds.su3";
 			auto num = ReseedFromSU3Url (reseedUrl, isHttps);
@@ -680,30 +680,30 @@ namespace data
 			auto it = boost::asio::ip::tcp::resolver(service).resolve (
 				boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
 			if (!ecode)
-			{	
+			{
 				bool connected = false;
 				boost::asio::ip::tcp::resolver::iterator end;
 				while (it != end)
-				{	
+				{
 					boost::asio::ip::tcp::endpoint ep = *it;
 					if ((ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
 					    (ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
-					{	
+					{
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)
 						{
 							connected = true;
 							break;
-						}	
-					}	
+						}
+					}
 					it++;
 				}
 				if (!connected)
 				{
 					LogPrint(eLogError, "Reseed: Failed to connect to ", url.host);
 					return "";
-				}	
-			}	
+				}
+			}
 		}
 		if (!ecode)
 		{
@@ -762,12 +762,12 @@ namespace data
 			data = out.str();
 		}
 		return data;
-	}	
+	}
 
 	std::string Reseeder::YggdrasilRequest (const std::string& address)
 	{
 		i2p::http::URL url;
-		if (!url.parse(address)) 
+		if (!url.parse(address))
 		{
 			LogPrint(eLogError, "Reseed: Failed to parse url: ", address);
 			return "";
@@ -776,7 +776,7 @@ namespace data
 		if (!url.port) url.port = 80;
 
 		boost::system::error_code ecode;
-		boost::asio::io_service service;		
+		boost::asio::io_service service;
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
 
 		if (url.host.length () < 2) return ""; // assume []
@@ -789,9 +789,9 @@ namespace data
 			return ReseedRequest (s, url.to_string());
 		}
 		else
-			LogPrint (eLogError, "Reseed: Couldn't connect to Yggdrasil ", url.host, ": ", ecode.message ());	
-		
+			LogPrint (eLogError, "Reseed: Couldn't connect to Yggdrasil ", url.host, ": ", ecode.message ());
+
 		return "";
-	}	
+	}
 }
 }

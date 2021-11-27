@@ -425,14 +425,14 @@ namespace net
 	static bool IsYggdrasilAddress (const uint8_t addr[16])
 	{
 		return addr[0] == 0x02 || addr[0] == 0x03;
-	}	
+	}
 
 	bool IsYggdrasilAddress (const boost::asio::ip::address& addr)
 	{
 		if (!addr.is_v6 ()) return false;
 		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
-	}	
-	
+	}
+
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
 #if defined(_WIN32)
@@ -517,11 +517,11 @@ namespace net
 		GetMTUWindows(addr, 0);
 #else
 		GetMTUUnix(addr, 0);
-#endif	
+#endif
 		return mtu > 0;
-	}	
-	
-	bool IsInReservedRange (const boost::asio::ip::address& host) 
+	}
+
+	bool IsInReservedRange (const boost::asio::ip::address& host)
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if (host.is_unspecified ()) return false;

@@ -329,7 +329,7 @@ namespace transport
 		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
+		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0),
 		m_IsSending (false), m_IsReceiving (false), m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
@@ -401,7 +401,7 @@ namespace transport
 	}
 
 	void NTCP2Session::CreateNextReceivedBuffer (size_t size)
-	{		
+	{
 		if (m_NextReceivedBuffer)
 		{
 			if (size <= m_NextReceivedBufferSize)
@@ -411,19 +411,19 @@ namespace transport
 		}
 		m_NextReceivedBuffer = new uint8_t[size];
 		m_NextReceivedBufferSize = size;
-	}	
+	}
 
 	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
 	{
-		if (m_NextReceivedBuffer && !m_IsReceiving && 
+		if (m_NextReceivedBuffer && !m_IsReceiving &&
 		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
 		{
 			delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = nullptr;
 			m_NextReceivedBufferSize = 0;
-		}	
-	}	
-		
+		}
+	}
+
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t k[64];
@@ -716,7 +716,7 @@ namespace transport
 		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
 		EVP_PKEY_free (sipKey);
-		
+
 		sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
 		m_ReceiveMDCtx = EVP_MD_CTX_create ();
 		ctx = nullptr;
@@ -879,11 +879,11 @@ namespace transport
 					auto nextMsg = (frame[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					if (nextMsg->len <= nextMsg->maxLen)
-					{	
+					{
 						memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
 						nextMsg->FromNTCP2 ();
 						m_Handler.PutNextMessage (std::move (nextMsg));
-					}	
+					}
 					else
 						LogPrint (eLogError, "NTCP2: I2NP block is too long for I2NP message");
 					break;
@@ -914,7 +914,7 @@ namespace transport
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8);
 		size_t l = 8;
-		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);	
+		EVP_DigestSignFinal (m_SendMDCtx, m_SendIV.buf, &l);
 #else
 		i2p::crypto::Siphash<8> (m_SendIV.buf, m_SendIV.buf, 8, m_SendSipKey);
 #endif
@@ -1081,15 +1081,15 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
-		if (paddingSize) 
+		if (paddingSize)
 		{
 			if (m_NextPaddingSize >= 16)
 			{
 				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
 				m_NextPaddingSize = 0;
-			}	
+			}
 			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
-		}	
+		}
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
 		memset (buf + 3, 0, paddingSize);
@@ -1120,7 +1120,7 @@ namespace transport
 		    !m_SendMDCtx
 #else
 		    !m_SendSipKey
-#endif		    
+#endif
 		    ) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block

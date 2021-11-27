@@ -29,7 +29,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyDecryptor () {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data) = 0; 
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data) = 0;
 			virtual size_t GetPublicKeyLen () const = 0; // we need it to set key in LS2
 	};
 

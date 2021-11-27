@@ -225,7 +225,7 @@ namespace transport
 		}
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int err = UPNPCOMMAND_SUCCESS;
-		
+
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
 		if (err == UPNPCOMMAND_SUCCESS)
 		{

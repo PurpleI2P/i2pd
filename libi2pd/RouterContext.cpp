@@ -566,10 +566,10 @@ namespace i2p
 			{
 				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 				bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
-				if (ntcp2) 
+				if (ntcp2)
 				{
 					if (ntcp2Published)
-					{	
+					{
 						std::string ntcp2Host;
 						if (!i2p::config::IsDefault ("ntcp2.addressv6"))
 							i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
@@ -578,7 +578,7 @@ namespace i2p
 						uint16_t ntcp2Port; i2p::config::GetOption ("ntcp2.port", ntcp2Port);
 						if (!ntcp2Port) ntcp2Port = port;
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address::from_string (ntcp2Host), ntcp2Port);
-					}	
+					}
 					else
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV6);
 				}
@@ -839,13 +839,13 @@ namespace i2p
 		}
 		buf += 4;
 		if (!HandleECIESx25519TagMessage (buf, len)) // try tag first
-		{	
+		{
 			// then Noise_N one-time decryption
 			if (m_ECIESSession)
 				m_ECIESSession->HandleNextMessage (buf, len);
 			else
 				LogPrint (eLogError, "Router: Session is not set for ECIES router");
-		}	
+		}
 	}
 
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
@@ -881,7 +881,7 @@ namespace i2p
 	}
 
 	bool RouterContext::DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize)
-	{	
+	{
 		// m_InitialNoiseState is h = SHA256(h || hepk)
 		m_CurrentNoiseState = m_InitialNoiseState;
 		m_CurrentNoiseState.MixHash (encrypted, 32); // h = SHA256(h || sepk)
@@ -895,7 +895,7 @@ namespace i2p
 		encrypted += 32;
 		uint8_t nonce[12];
 		memset (nonce, 0, 12);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, clearTextSize, m_CurrentNoiseState.m_H, 32, 
+		if (!i2p::crypto::AEADChaCha20Poly1305 (encrypted, clearTextSize, m_CurrentNoiseState.m_H, 32,
 			m_CurrentNoiseState.m_CK + 32, nonce, data, clearTextSize, false)) // decrypt
 		{
 			LogPrint (eLogWarning, "Router: Tunnel record AEAD decryption failed");
@@ -908,8 +908,8 @@ namespace i2p
 	bool RouterContext::DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data)
 	{
 		return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
-	}	
-		
+	}
+
 	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
 	{
 		if (!m_StaticKeys)

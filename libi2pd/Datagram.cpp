@@ -303,7 +303,7 @@ namespace datagram
 			}
 		}
 
-		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) 
+		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ())
 		{
 			bool found = false;
 			for (auto& it: m_PendingRoutingSessions)
@@ -384,7 +384,7 @@ namespace datagram
 				}
 				else
 					return nullptr;
-				
+
 				auto leaseRouter = i2p::data::netdb.FindRouter (path->remoteLease->tunnelGateway);
 				path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);

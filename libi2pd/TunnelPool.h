@@ -30,7 +30,7 @@ namespace tunnel
 	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
 	const int TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY = 16;
 	const int TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY = 16;
-	
+
 	class Tunnel;
 	class InboundTunnel;
 	class OutboundTunnel;
@@ -41,7 +41,7 @@ namespace tunnel
 		std::vector<Peer> peers;
 		bool isShort = true;
 		i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports;
-	
+
 		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);
 		void Reverse ();
 	};
@@ -56,7 +56,7 @@ namespace tunnel
 
 	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
 	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
-	
+
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
@@ -122,7 +122,7 @@ namespace tunnel
 			void CreateOutboundTunnel ();
 			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
 			template<class TTunnels>
-			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels,
 				typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible) const;
 			bool SelectPeers (Path& path, bool isInbound);
 			bool SelectExplicitPeers (Path& path, bool isInbound);

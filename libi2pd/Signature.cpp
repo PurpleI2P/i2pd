@@ -115,7 +115,7 @@ namespace crypto
 			m_MDCtx = EVP_MD_CTX_create ();
 			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, pkey);
 		}
-		EVP_PKEY_free (pkey);	
+		EVP_PKEY_free (pkey);
 	}
 
 	EDDSA25519Signer::~EDDSA25519Signer ()

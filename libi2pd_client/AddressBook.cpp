@@ -35,7 +35,7 @@ namespace client
 	class AddressBookFilesystemStorage: public AddressBookStorage
 	{
 		public:
-		
+
 			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32")
 			{
 				i2p::config::GetOption("persist.addressbook", m_IsPersist);
@@ -62,7 +62,7 @@ namespace client
 		private:
 
 			i2p::fs::HashedStorage storage;
-			std::string etagsPath, indexPath, localPath;	
+			std::string etagsPath, indexPath, localPath;
 			bool m_IsPersist;
 			std::string m_HostsFile; // file to dump hosts.txt, empty if not used
 	};
@@ -185,7 +185,7 @@ namespace client
 
 	int AddressBookFilesystemStorage::Save (const std::map<std::string, std::shared_ptr<Address> >& addresses)
 	{
-		if (addresses.empty()) 
+		if (addresses.empty())
 		{
 			LogPrint(eLogWarning, "Addressbook: Not saving empty addressbook");
 			return 0;
@@ -200,7 +200,7 @@ namespace client
 				for (const auto& it: addresses)
 				{
 					if (it.second->IsValid ())
-					{	
+					{
 						f << it.first << ",";
 						if (it.second->IsIdentHash ())
 							f << it.second->identHash.ToBase32 ();
@@ -208,15 +208,15 @@ namespace client
 							f << it.second->blindedPublicKey->ToB33 ();
 						f << std::endl;
 						num++;
-					}	
+					}
 					else
 						LogPrint (eLogWarning, "Addressbook: Invalid address ", it.first);
 				}
 				LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
-			}	
+			}
 			else
 				LogPrint (eLogWarning, "Addressbook: Can't open ", indexPath);
-		}	
+		}
 		if (!m_HostsFile.empty ())
 		{
 			// dump full hosts.txt
@@ -226,18 +226,18 @@ namespace client
 				for (const auto& it: addresses)
 				{
 					std::shared_ptr<const i2p::data::IdentityEx> addr;
-					if (it.second->IsIdentHash ()) 
-					{	
+					if (it.second->IsIdentHash ())
+					{
 						addr = GetAddress (it.second->identHash);
 						if (addr)
 							f << it.first << "=" << addr->ToBase64 () << std::endl;
-					}	
-				}	
-			}	
+					}
+				}
+			}
 			else
 				LogPrint (eLogWarning, "Addressbook: Can't open ", m_HostsFile);
-		}	
-		
+		}
+
 		return num;
 	}
 
@@ -495,7 +495,7 @@ namespace client
 				if (it != m_Addresses.end ()) // already exists ?
 				{
 					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash () &&  // address changed?
-						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA 
+						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA
 					{
 						it->second->identHash = ident->GetIdentHash ();
 						m_Storage->AddAddress (ident);

@@ -40,10 +40,10 @@ namespace tunnel
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
 	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
-	
+
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
-	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6 
-	
+	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
+
 	enum TunnelState
 	{
 		eTunnelStatePending,
@@ -106,7 +106,7 @@ namespace tunnel
 
 			bool LatencyIsKnown() const { return m_Latency > 0; }
 			bool IsSlow () const { return LatencyIsKnown() && (int)m_Latency > HIGH_LATENCY_PER_HOP*GetNumHops (); }
-			
+
 		protected:
 
 			void PrintHops (std::stringstream& s) const;
@@ -119,7 +119,7 @@ namespace tunnel
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
-			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace 
+			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace
 			uint64_t m_Latency; // in milliseconds
 	};
 
@@ -225,11 +225,11 @@ namespace tunnel
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
 
 			std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
-			
+
 		private:
 
 			template<class TTunnel>
-			std::shared_ptr<TTunnel> CreateTunnel (std::shared_ptr<TunnelConfig> config, 
+			std::shared_ptr<TTunnel> CreateTunnel (std::shared_ptr<TunnelConfig> config,
 			    std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 
 			template<class TTunnel>
@@ -266,7 +266,7 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-			
+
 			// some stats
 			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
 

@@ -395,8 +395,8 @@ namespace client
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
 			{
-				if (!first) results << ","; 
-				else first = false;		
+				if (!first) results << ",";
+				else first = false;
 				(this->*(it1->second))(results);
 			}
 			else

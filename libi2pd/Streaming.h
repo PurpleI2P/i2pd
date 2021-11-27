@@ -112,10 +112,10 @@ namespace stream
 			memcpy (buf, b, len);
 		}
 		SendBuffer (size_t l): // create empty buffer
-			len(l), offset (0)	
+			len(l), offset (0)
 		{
 			buf = new uint8_t[len];
-		}	
+		}
 		~SendBuffer ()
 		{
 			delete[] buf;
@@ -180,7 +180,7 @@ namespace stream
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
 			void SendPing ();
-			
+
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };

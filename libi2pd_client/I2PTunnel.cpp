@@ -87,7 +87,7 @@ namespace client
 		boost::system::error_code ec;
 		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0), ec);
 		if (ec)
-			LogPrint (eLogError, "I2PTunnel: Can't bind ourIP to ", ourIP.to_string (), ": ", ec.message ());	
+			LogPrint (eLogError, "I2PTunnel: Can't bind ourIP to ", ourIP.to_string (), ": ", ec.message ());
 
 	}
 #endif
@@ -122,11 +122,11 @@ namespace client
 			boost::system::error_code ec;
 			m_Socket->bind (boost::asio::ip::tcp::endpoint (localAddress, 0), ec);
 			if (ec)
-				LogPrint (eLogError, "I2PTunnel: Can't bind to ", localAddress.to_string (), ": ", ec.message ());	
-		}	
+				LogPrint (eLogError, "I2PTunnel: Can't bind to ", localAddress.to_string (), ": ", ec.message ());
+		}
 		Connect (false);
-	}	
-		
+	}
+
 	void I2PTunnelConnection::Terminate ()
 	{
 		if (Kill()) return;
@@ -177,8 +177,8 @@ namespace client
 						s->Terminate ();
 				});
 			}
-	}	
-		
+	}
+
 	void I2PTunnelConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
 		if (ecode)
@@ -326,7 +326,7 @@ namespace client
 	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
-		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), 
+		I2PTunnelConnection (owner, stream, socket, target), m_Host (host),
 		m_HeaderSent (false), m_ResponseHeaderSent (false), m_From (stream->GetRemoteIdentity ())
 	{
 	}
@@ -368,7 +368,7 @@ namespace client
 					m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
 					m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
 				}
-				
+
 				m_OutHeader << "\r\n"; // end of header
 				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_InHeader.str ("");
@@ -404,11 +404,11 @@ namespace client
 						};
 						bool matched = false;
 						for (const auto& it: excluded)
-							if (!line.compare(0, it.length (), it)) 
+							if (!line.compare(0, it.length (), it))
 							{
 								matched = true;
-								break;	
-							}	
+								break;
+							}
 						if (!matched)
 							m_OutHeader << line << "\n";
 					}
@@ -425,12 +425,12 @@ namespace client
 				m_ResponseHeaderSent = true;
 				I2PTunnelConnection::WriteToStream ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 				m_OutHeader.str ("");
-			}	
+			}
 			else
 				Receive ();
-		}		
+		}
 	}
-		
+
 	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass):
@@ -556,8 +556,8 @@ namespace client
 		m_KeepAliveInterval = keepAliveInterval;
 		if (m_KeepAliveInterval)
 			m_KeepAliveTimer.reset (new boost::asio::deadline_timer (GetLocalDestination ()->GetService ()));
-	}	
-		
+	}
+
 	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
 	std::shared_ptr<const Address> I2PClientTunnel::GetAddress ()
 	{
@@ -586,24 +586,24 @@ namespace client
 			m_KeepAliveTimer->expires_from_now (boost::posix_time::seconds(m_KeepAliveInterval));
 			m_KeepAliveTimer->async_wait (std::bind (&I2PClientTunnel::HandleKeepAliveTimer,
 				this, std::placeholders::_1));
-		}	
-	}	
+		}
+	}
 
 	void I2PClientTunnel::HandleKeepAliveTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			if (m_Address && m_Address->IsValid ())
-			{	
+			{
 				if (m_Address->IsIdentHash ())
 					GetLocalDestination ()->SendPing (m_Address->identHash);
 				else
 					GetLocalDestination ()->SendPing (m_Address->blindedPublicKey);
-			}	
+			}
 			ScheduleKeepAliveTimer ();
 		}
-	}	
-		
+	}
+
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address,
 		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
@@ -643,16 +643,16 @@ namespace client
 			bool found = false;
 			boost::asio::ip::tcp::endpoint ep;
 			if (m_LocalAddress)
-			{	
+			{
 				boost::asio::ip::tcp::resolver::iterator end;
 				while (it != end)
-				{	
+				{
 					ep = *it;
 					if (!ep.address ().is_unspecified ())
 					{
 						if (ep.address ().is_v4 ())
-						{	
-							if (m_LocalAddress->is_v4 ()) found = true;	
+						{
+							if (m_LocalAddress->is_v4 ()) found = true;
 						}
 						else if (ep.address ().is_v6 ())
 						{
@@ -660,26 +660,26 @@ namespace client
 							{
 								if (i2p::util::net::IsYggdrasilAddress (*m_LocalAddress))
 									found = true;
-							}	
-							else if (m_LocalAddress->is_v6 ()) 
+							}
+							else if (m_LocalAddress->is_v6 ())
 								found = true;
 						}
-					}	
+					}
 					if (found) break;
 					it++;
 				}
-			}	
+			}
 			else
 			{
 				found = true;
 				ep = *it; // first available
-			}	
+			}
 			if (!found)
 			{
 				LogPrint (eLogError, "I2PTunnel: Unable to resolve to compatible address");
 				return;
-			}	
-			
+			}
+
 			auto addr = ep.address ();
 			LogPrint (eLogInfo, "I2PTunnel: Server tunnel ", (*it).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
@@ -703,8 +703,8 @@ namespace client
 			m_LocalAddress.reset (new boost::asio::ip::address (addr));
 		else
 			LogPrint (eLogError, "I2PTunnel: Can't set local address ", localAddress);
-	}	
-		
+	}
+
 	void I2PServerTunnel::Accept ()
 	{
 		if (m_PortDestination)
@@ -738,7 +738,7 @@ namespace client
 			AddHandler (conn);
 			if (m_LocalAddress)
 				conn->Connect (*m_LocalAddress);
-			else	
+			else
 				conn->Connect (m_IsUniqueLocal);
 		}
 	}
@@ -793,9 +793,9 @@ namespace client
 		{
 			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
 			m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-		}	
-	}	
-		
+		}
+	}
+
 	void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
@@ -883,20 +883,20 @@ namespace client
 				m_Destination->SendRawDatagram(session, m_Buffer, len, LocalPort, RemotePort);
 			size_t numPackets = 0;
 			while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
-			{	
+			{
 				boost::system::error_code ec;
 				size_t moreBytes = IPSocket.available(ec);
 				if (ec || !moreBytes) break;
 				len = IPSocket.receive_from (boost::asio::buffer (m_Buffer, I2P_UDP_MAX_MTU), FromEndpoint, 0, ec);
-				m_Destination->SendRawDatagram (session, m_Buffer, len, LocalPort, RemotePort);			
+				m_Destination->SendRawDatagram (session, m_Buffer, len, LocalPort, RemotePort);
 				numPackets++;
-			}	
+			}
 			if (numPackets > 0)
 				LogPrint(eLogDebug, "UDPSession: Forward more ", numPackets, "packets B from ", FromEndpoint);
 			m_Destination->FlushSendQueue (session);
 			LastActivity = ts;
 			Receive();
-		} 
+		}
 		else
 			LogPrint(eLogError, "UDPSession: ", ecode.message());
 	}
@@ -912,7 +912,7 @@ namespace client
 		m_LocalDest->Start();
 		auto dgram = m_LocalDest->CreateDatagramDestination(gzip);
 		dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-		dgram->SetRawReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));	
+		dgram->SetRawReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 	}
 
 	I2PUDPServerTunnel::~I2PUDPServerTunnel()
@@ -1011,9 +1011,9 @@ namespace client
 			{
 				m_LastSession = std::make_shared<UDPConvo>(boost::asio::ip::udp::endpoint(m_RecvEndpoint), 0);
 				m_Sessions.emplace (remotePort, m_LastSession);
-			}	
+			}
 			m_LastPort = remotePort;
-		}	
+		}
 		// send off to remote i2p destination
 		auto ts = i2p::util::GetMillisecondsSinceEpoch();
 		LogPrint(eLogDebug, "UDP Client: Send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
@@ -1024,20 +1024,20 @@ namespace client
 			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 		size_t numPackets = 0;
 		while (numPackets < i2p::datagram::DATAGRAM_SEND_QUEUE_MAX_SIZE)
-		{	
+		{
 			boost::system::error_code ec;
 			size_t moreBytes = m_LocalSocket.available(ec);
 			if (ec || !moreBytes) break;
 			transferred = m_LocalSocket.receive_from (boost::asio::buffer (m_RecvBuff, I2P_UDP_MAX_MTU), m_RecvEndpoint, 0, ec);
 			remotePort = m_RecvEndpoint.port();
 			// TODO: check remotePort
-			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);			
+			m_LocalDest->GetDatagramDestination()->SendRawDatagram (session, m_RecvBuff, transferred, remotePort, RemotePort);
 			numPackets++;
-		}	
+		}
 		if (numPackets)
 			LogPrint(eLogDebug, "UDP Client: Sent ", numPackets, " more packets to ", m_RemoteIdent->ToBase32());
 		m_LocalDest->GetDatagramDestination()->FlushSendQueue (session);
-		
+
 		// mark convo as active
 		if (m_LastSession)
 			m_LastSession->second = ts;
@@ -1091,7 +1091,7 @@ namespace client
 		if(itr != m_Sessions.end())
 		{
 			// found convo
-			if (len > 0) 
+			if (len > 0)
 			{
 				LogPrint(eLogDebug, "UDP Client: Got ", len, "B from ", m_RemoteIdent ? m_RemoteIdent->ToBase32() : "");
 				m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second->first);

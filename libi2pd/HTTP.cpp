@@ -14,9 +14,9 @@
 #include "Base.h"
 #include "HTTP.h"
 
-namespace i2p 
+namespace i2p
 {
-namespace http 
+namespace http
 {
 	const std::vector<std::string> HTTP_METHODS = {
 		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
@@ -476,14 +476,14 @@ namespace http
 		return ptr;
 	}
 
-	std::string UrlDecode(const std::string& data, bool allow_null) 
+	std::string UrlDecode(const std::string& data, bool allow_null)
 	{
 		std::string decoded(data);
 		size_t pos = 0;
-		while ((pos = decoded.find('%', pos)) != std::string::npos) 
+		while ((pos = decoded.find('%', pos)) != std::string::npos)
 		{
 			char c = strtol(decoded.substr(pos + 1, 2).c_str(), NULL, 16);
-			if (c == '\0' && !allow_null) 
+			if (c == '\0' && !allow_null)
 			{
 				pos += 3;
 				continue;
@@ -494,10 +494,10 @@ namespace http
 		return decoded;
 	}
 
-	bool MergeChunkedResponse (std::istream& in, std::ostream& out) 
+	bool MergeChunkedResponse (std::istream& in, std::ostream& out)
 	{
 		std::string hexLen;
-		while (!in.eof ()) 
+		while (!in.eof ())
 		{
 			std::getline (in, hexLen);
 			errno = 0;
@@ -522,6 +522,6 @@ namespace http
 		if (user.empty () && pass.empty ()) return "";
 		return "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
 	}
-	
+
 } // http
 } // i2p

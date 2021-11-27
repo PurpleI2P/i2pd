@@ -79,7 +79,7 @@ namespace transport
 		uint64_t receivedFragmentsBits;
 		std::set<std::shared_ptr<Fragment>, FragmentCmp> savedFragments;
 
-		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), 
+		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0),
 			lastFragmentInsertTime (0), receivedFragmentsBits (0) {};
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};
@@ -102,7 +102,7 @@ namespace transport
 			void Start ();
 			void Stop ();
 			void CleanUp (uint64_t ts);
-			
+
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
 			void Send (std::shared_ptr<i2p::I2NPMessage> msg);

@@ -340,7 +340,7 @@ namespace crypto
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 		private:
-			
+
 			EVP_MD_CTX * m_MDCtx;
 			EDDSA25519SignerCompat * m_Fallback;
 	};

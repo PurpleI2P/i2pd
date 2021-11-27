@@ -77,7 +77,7 @@ namespace data
 			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
 			m_IsValid = false;
 			return;
-		}	
+		}
 		uint8_t num = m_Buffer[size];
 		size++; // num
 		LogPrint (eLogDebug, "LeaseSet: Read num=", (int)num);
@@ -87,13 +87,13 @@ namespace data
 			m_IsValid = false;
 			return;
 		}
-		if (size + num*LEASE_SIZE > m_BufferLen) 
-		{	
+		if (size + num*LEASE_SIZE > m_BufferLen)
+		{
 			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
 			m_IsValid = false;
 			return;
-		}	
-		
+		}
+
 		UpdateLeasesBegin ();
 		// process leases
 		m_ExpirationTime = 0;
@@ -121,13 +121,13 @@ namespace data
 
 		// verify
 		if (verifySignature)
-		{	
+		{
 			auto signedSize = leases - m_Buffer;
 			if (signedSize + m_Identity->GetSignatureLen () > m_BufferLen)
 			{
 				LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", m_BufferLen);
 				m_IsValid = false;
-			}	
+			}
 			else if (!m_Identity->Verify (m_Buffer, signedSize, leases))
 			{
 				LogPrint (eLogWarning, "LeaseSet: Verification failed");
@@ -863,17 +863,17 @@ namespace data
 		}
 		// update expiration
 		if (expirationTime)
-		{		
+		{
 			SetExpirationTime (expirationTime*1000LL);
 			auto expires = (int)expirationTime - timestamp;
 			htobe16buf (expiresBuf, expires > 0 ? expires : 0);
-		}	
+		}
 		else
 		{
 			// no tunnels or withdraw
 			SetExpirationTime (timestamp*1000LL);
 			memset (expiresBuf, 0, 2); // expires immeditely
-		}		
+		}
 		// sign
 		keys.Sign (m_Buffer, offset, m_Buffer + offset); // LS + leading store type
 	}
@@ -916,7 +916,7 @@ namespace data
 		{
 			LogPrint (eLogError, "LeaseSet2: Can't create blinded signer for signature type ", blindedKey.GetSigType ());
 			return;
-		}	
+		}
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKey.GetBlindedSigType ()); offset += 2; // Blinded Public Key Sig Type
 		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key

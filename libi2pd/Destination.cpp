@@ -89,7 +89,7 @@ namespace client
 					bool dontpublish = false;
 					i2p::config::GetOption (it->second, dontpublish);
 					m_IsPublic = !dontpublish;
-				}	
+				}
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
 					m_LeaseSetType = std::stoi(it->second);
@@ -367,8 +367,8 @@ namespace client
 				HandleDatabaseSearchReplyMessage (payload, len);
 			break;
 			case eI2NPShortTunnelBuildReply: // might come as garlic encrypted
-				i2p::HandleI2NPMessage (CreateI2NPMessage (typeID, payload, len, msgID));	
-			break;		
+				i2p::HandleI2NPMessage (CreateI2NPMessage (typeID, payload, len, msgID));
+			break;
 			default:
 				LogPrint (eLogWarning, "Destination: Unexpected I2NP message type ", typeID);
 				return false;
@@ -395,7 +395,7 @@ namespace client
 				LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 				auto it = m_RemoteLeaseSets.find (key);
-				if (it != m_RemoteLeaseSets.end () && 
+				if (it != m_RemoteLeaseSets.end () &&
 				    it->second->GetStoreType () == buf[DATABASE_STORE_TYPE_OFFSET]) // update only if same type
 				{
 					leaseSet = it->second;
@@ -487,7 +487,7 @@ namespace client
 					i2p::data::IdentHash peerHash (buf + 33 + i*32);
 					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 					{
-						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); 
+						LogPrint (eLogInfo, "Destination: Found new floodfill, request it");
 						i2p::data::netdb.RequestDestination (peerHash, nullptr, false); // through exploratory
 					}
 				}
@@ -767,11 +767,11 @@ namespace client
 			uint8_t replyKey[32], replyTag[32];
 			RAND_bytes (replyKey, 32); // random session key
 			RAND_bytes (replyTag, isECIES ? 8 : 32); // random session tag
-			if (isECIES)	
+			if (isECIES)
 				AddECIESx25519Key (replyKey, replyTag);
-			else	
+			else
 				AddSessionKey (replyKey, replyTag);
-			auto msg = WrapMessageForRouter (nextFloodfill, CreateLeaseSetDatabaseLookupMsg (dest, 
+			auto msg = WrapMessageForRouter (nextFloodfill, CreateLeaseSetDatabaseLookupMsg (dest,
 				request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
 			request->outboundTunnel->SendTunnelDataMsg (
 				{
@@ -866,8 +866,8 @@ namespace client
 
 	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
 		bool isPublic, const std::map<std::string, std::string> * params):
-		LeaseSetDestination (service, isPublic, params), 
-		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY), 
+		LeaseSetDestination (service, isPublic, params),
+		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(service)
@@ -916,11 +916,11 @@ namespace client
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
 			if (it == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
-			{	
+			{
 				m_ECIESx25519EncryptionKey.reset (encryptionKey);
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
-					SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Rathets must use LeaseSet2 
-			}	
+					SetLeaseSetType (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2); // Rathets must use LeaseSet2
+			}
 			else
 				m_StandardEncryptionKey.reset (encryptionKey);
 		}
@@ -939,7 +939,7 @@ namespace client
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 					i2p::config::GetOption (it->second, m_IsStreamingAnswerPings);
-				
+
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
 					// authentication for encrypted LeaseSet
@@ -1099,21 +1099,21 @@ namespace client
 	void ClientDestination::SendPing (const i2p::data::IdentHash& to)
 	{
 		if (m_StreamingDestination)
-		{	
+		{
 			auto leaseSet = FindLeaseSet (to);
 			if (leaseSet)
 				m_StreamingDestination->SendPing (leaseSet);
 			else
-			{	
+			{
 				auto s = m_StreamingDestination;
 				RequestDestination (to,
 					[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
 					{
 						if (ls) s->SendPing (ls);
 					});
-			}		
-		}	
-	}	
+			}
+		}
+	}
 
 	void ClientDestination::SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to)
 	{
@@ -1122,9 +1122,9 @@ namespace client
 			[s](std::shared_ptr<const i2p::data::LeaseSet> ls)
 			{
 				if (ls) s->SendPing (ls);
-			});                                      
-	}	
-		
+			});
+	}
+
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (int port) const
 	{
 		if (port)
@@ -1182,18 +1182,18 @@ namespace client
 				auto ret = it->second;
 				m_StreamingDestinationsByPorts.erase (it);
 				return ret;
-			}	
+			}
 		}
 		return nullptr;
-	}	
-		
+	}
+
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination (bool gzip)
 	{
 		if (m_DatagramDestination == nullptr)
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis (), gzip);
 		return m_DatagramDestination;
-	}		
-		
+	}
+
 	std::vector<std::shared_ptr<const i2p::stream::Stream> > ClientDestination::GetAllStreams () const
 	{
 		std::vector<std::shared_ptr<const i2p::stream::Stream> > ret;

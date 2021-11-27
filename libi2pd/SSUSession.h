@@ -90,7 +90,7 @@ namespace transport
 			void Failed ();
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			SSUServer& GetServer () { return m_Server; };
-			
+
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
@@ -104,7 +104,7 @@ namespace transport
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
-			
+
 			void FlushData ();
 			void CleanUp (uint64_t ts);
 
@@ -149,7 +149,7 @@ namespace transport
 			void Reset ();
 
 			static size_t ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port); // returns actual buf size
-			
+
 		private:
 
 			friend class SSUData; // TODO: change in later

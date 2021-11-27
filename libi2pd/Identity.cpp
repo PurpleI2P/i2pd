@@ -53,9 +53,9 @@ namespace data
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
 			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
-		}	
-		else	
-			memcpy (m_StandardIdentity.publicKey, publicKey, 256); 
+		}
+		else
+			memcpy (m_StandardIdentity.publicKey, publicKey, 256);
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;
@@ -128,7 +128,7 @@ namespace data
 				{
 					LogPrint (eLogError, "Identity: Unexpected excessive signing key len ", excessLen);
 					excessLen = MAX_EXTENDED_BUFFER_SIZE - 4;
-				}	
+				}
 				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
 				delete[] excessBuf;
 			}
@@ -480,7 +480,7 @@ namespace data
 		size_t ret = m_Public->FromBuffer (buf, len);
 		auto cryptoKeyLen = GetPrivateKeyLen ();
 		if (!ret || ret + cryptoKeyLen > len) return 0; // overflow
-		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen); 
+		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen);
 		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
@@ -654,9 +654,9 @@ namespace data
 	size_t PrivateKeys::GetPrivateKeyLen () const
 	{
 		// private key length always 256, but type 4
-		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256; 
-	}	
-		
+		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256;
+	}
+
 	uint8_t * PrivateKeys::GetPadding()
 	{
 		if(m_Public->GetSigningKeyType () == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
@@ -681,7 +681,7 @@ namespace data
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
-			break;	
+			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);

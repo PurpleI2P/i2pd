@@ -115,7 +115,7 @@ namespace garlic
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
 			virtual bool IsReadyToSend () const { return true; };
-			virtual bool IsTerminated () const { return !GetOwner (); }; 
+			virtual bool IsTerminated () const { return !GetOwner (); };
 			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
 
 			void SetLeaseSetUpdated ()
@@ -251,7 +251,7 @@ namespace garlic
 			void RemoveECIESx25519Session (const uint8_t * staticKey);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
 			uint8_t * GetPayloadBuffer ();
-			
+
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void SetLeaseSetUpdated ();

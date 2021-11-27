@@ -56,7 +56,7 @@ namespace i2p
 	// TunnelBuild
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
 	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 218;
-	
+
 	// BuildRequestRecordEncrypted
 	const size_t BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0;
 	const size_t BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET = BUILD_REQUEST_RECORD_TO_PEER_OFFSET + 16;
@@ -98,7 +98,7 @@ namespace i2p
 	// ShortResponseRecord
 	const size_t SHORT_RESPONSE_RECORD_OPTIONS_OFFSET = 0;
 	const size_t SHORT_RESPONSE_RECORD_RET_OFFSET = 201;
-	
+
 	enum I2NPMessageType
 	{
 		eI2NPDummyMsg = 0,
@@ -273,8 +273,8 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
-		const std::set<i2p::data::IdentHash>& excludedFloodfills, 
-	    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, 
+		const std::set<i2p::data::IdentHash>& excludedFloodfills,
+	    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel,
 	    const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
 	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 

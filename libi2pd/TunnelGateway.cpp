@@ -187,7 +187,7 @@ namespace tunnel
 				RAND_bytes (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
 				for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
 					if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
-			}	
+			}
 			auto randomOffset = rand () % (TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize + 1);
 			memcpy (buf + 24, m_NonZeroRandomBuffer + randomOffset, paddingSize);
 		}

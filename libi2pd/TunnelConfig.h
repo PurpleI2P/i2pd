@@ -116,8 +116,8 @@ namespace tunnel
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const
 			{
 				return m_FarEndTransports;
-			}		
-			
+			}
+
 			TunnelHopConfig * GetFirstHop () const
 			{
 				return m_FirstHop;

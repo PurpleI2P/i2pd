@@ -230,7 +230,7 @@ namespace transport
 			auto pair = std::make_shared<i2p::crypto::DHKeys> ();
 			pair->GenerateKeys ();
 			m_DHKeysPair = pair;
-		}	
+		}
 		CreateAESandMacKey (buf + headerSize);
 		SendSessionCreated (buf + headerSize, sendRelayTag);
 	}
@@ -259,7 +259,7 @@ namespace transport
 		s.Insert (y, 256); // y
 		payload += 256;
 		boost::asio::ip::address ourIP;
-		uint16_t ourPort = 0; 
+		uint16_t ourPort = 0;
 		auto addressAndPortLen = ExtractIPAddressAndPort (payload, len, ourIP, ourPort);
 		if (!addressAndPortLen) return;
 		uint8_t * ourAddressAndPort = payload + 1;
@@ -297,15 +297,15 @@ namespace transport
 		{
 			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 			if (!i2p::util::net::IsInReservedRange (ourIP))
-			{	
+			{
 				i2p::context.UpdateAddress (ourIP);
-				SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen); 
-			}	
+				SendSessionConfirmed (y, ourAddressAndPort, addressAndPortLen);
+			}
 			else
-			{	
+			{
 				LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 				Failed ();
-			}	
+			}
 		}
 		else
 		{
@@ -317,7 +317,7 @@ namespace transport
 	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SSU: Session confirmed received");
-		m_ConnectTimer.cancel (); 
+		m_ConnectTimer.cancel ();
 		auto headerSize = GetSSUHeaderSize (buf);
 		if (headerSize >= len)
 		{
@@ -331,7 +331,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU: Session confirmed identity size ", identitySize, " exceeds packet length ", len);
 			return;
-		}	
+		}
 		payload += 2; // size of identity fragment
 		auto identity = std::make_shared<i2p::data::IdentityEx> (payload, identitySize);
 		auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
@@ -357,7 +357,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU: Session confirmed message is too short ", len);
 			return;
-		}	
+		}
 		// verify signature
 		if (m_SignedData && m_SignedData->Verify (m_RemoteIdentity, payload))
 		{
@@ -599,19 +599,19 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		// Charlie
 		if (isV4)
-		{	
+		{
 			*payload = 4;
 			payload++; // size
 			memcpy (payload, to.address ().to_v4 ().to_bytes ().data (), 4); // Charlie's IP V4
 			payload += 4; // address
-		}	
+		}
 		else
 		{
 			*payload = 16;
 			payload++; // size
 			memcpy (payload, to.address ().to_v6 ().to_bytes ().data (), 16); // Charlie's IP V6
 			payload += 16; // address
-		}	
+		}
 		htobe16buf (payload, to.port ()); // Charlie's port
 		payload += 2; // port
 		// Alice
@@ -705,15 +705,15 @@ namespace transport
 		else
 			LogPrint (eLogError, "SSU: External address ", ourIP.to_string (), " is in reserved range");
 		if (ourIP.is_v4 ())
-		{	
+		{
 			if (ourPort != m_Server.GetPort ())
-			{	
+			{
 				if (i2p::context.GetStatus () == eRouterStatusTesting)
 					i2p::context.SetError (eRouterErrorSymmetricNAT);
 			}
 			else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
 				i2p::context.SetStatus (eRouterStatusTesting);
-		}	
+		}
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);
@@ -727,7 +727,7 @@ namespace transport
 				// now we do
 				LogPrint (eLogInfo, "SSU: RelayReponse connecting to endpoint ", remoteEndpoint);
 				if ((remoteIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusFirewalled) ||
-					(remoteIP.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled)) 
+					(remoteIP.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled))
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
 				// we assume that HolePunch has been sent by this time and our SessionRequest will go through
 				m_Server.CreateDirectSession (it->second.first, remoteEndpoint, false);
@@ -803,7 +803,7 @@ namespace transport
 		htobe16buf (out + len + 16, (netid == I2PD_NET_ID) ? encryptedLen : encryptedLen ^ ((netid - 2) << 8));
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
 	}
-		
+
 	void SSUSession::Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey)
 	{
 		if (len < sizeof (SSUHeader))
@@ -1015,7 +1015,7 @@ namespace transport
 			else
 				++it;
 		}
-	}	
+	}
 
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
@@ -1039,17 +1039,17 @@ namespace transport
 					LogPrint (eLogDebug, "SSU: Peer test from Bob. We are Alice");
 					if (IsV6 ())
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusTesting) 
-						{	
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+						{
 							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
 							m_Server.RescheduleIntroducersUpdateTimerV6 ();
-						}	
-					}	
+						}
+					}
 					else if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
-					{	
+					{
 						i2p::context.SetStatus (eRouterStatusFirewalled);
 						m_Server.RescheduleIntroducersUpdateTimer ();
-					}	
+					}
 				}
 				else
 				{
@@ -1058,7 +1058,7 @@ namespace transport
 						LogPrint (eLogWarning, "SSU: First peer test from Charlie through established session. We are Alice");
 					if (IsV6 ())
 						i2p::context.SetStatusV6 (eRouterStatusOK);
-					else	
+					else
 						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, true, false); // to Charlie
@@ -1074,8 +1074,8 @@ namespace transport
 					// peer test successive
 					LogPrint (eLogDebug, "SSU: Second peer test from Charlie. We are Alice");
 					if (IsV6 ())
-						i2p::context.SetStatusV6 (eRouterStatusOK);		
-					else		
+						i2p::context.SetStatusV6 (eRouterStatusOK);
+					else
 						i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.RemovePeerTest (nonce);
 				}
@@ -1089,7 +1089,7 @@ namespace transport
 				{
 					const auto& ep = session->GetRemoteEndpoint (); // Alice's endpoint as known to Bob
 					session->SendPeerTest (nonce, ep.address (), ep.port (), introKey, false, true); // send back to Alice
-				}	
+				}
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
 			}
@@ -1111,10 +1111,10 @@ namespace transport
 						LogPrint (eLogDebug, "SSU: Peer test from Bob. We are Charlie");
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
 						if (!addr.is_unspecified () && !i2p::util::net::IsInReservedRange(addr))
-						{	
+						{
 							m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 							SendPeerTest (nonce, addr, port, introKey); // to Alice with her address received from Bob
-						}	
+						}
 					}
 					else
 					{
@@ -1281,12 +1281,12 @@ namespace transport
 		if (!len) return 0;
 		uint8_t size = *buf;
 		size_t s = 1 + size + 2; // size + address + port
-		if (len < s) 
+		if (len < s)
 		{
 			LogPrint (eLogWarning, "SSU: Address is too short ", len);
 			port = 0;
 			return len;
-		}	
+		}
 		buf++; // size
 		if (size == 4)
 		{
@@ -1299,12 +1299,12 @@ namespace transport
 			boost::asio::ip::address_v6::bytes_type bytes;
 			memcpy (bytes.data (), buf, 16);
 			ip = boost::asio::ip::address_v6 (bytes);
-		}	
+		}
 		else
 			LogPrint (eLogWarning, "SSU: Address size ", int(size), " is not supported");
 		buf += size;
 		port = bufbe16toh (buf);
 		return s;
-	}	
+	}
 }
 }

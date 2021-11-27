@@ -80,7 +80,7 @@ namespace client
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";
-	const char SAM_VALUE_MASTER[] = "MASTER";	
+	const char SAM_VALUE_MASTER[] = "MASTER";
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
 
@@ -188,14 +188,14 @@ namespace client
 		std::string Name;
 		SAMSessionType Type;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
-		
+
 		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
 		virtual ~SAMSession () {};
-		
+
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
 		virtual void StopLocalDestination () = 0;
 		virtual void Close () { CloseStreams (); };
-		
+
 		void CloseStreams ();
 	};
 
@@ -208,15 +208,15 @@ namespace client
 
 		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
 		void StopLocalDestination ();
-	};	
+	};
 
 	struct SAMMasterSession: public SAMSingleSession
 	{
 		std::set<std::string> subsessions;
 		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
 			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
-		void Close ();	
-	};	
+		void Close ();
+	};
 
 	struct SAMSubSession: public SAMSession
 	{
@@ -227,8 +227,8 @@ namespace client
 		// implements SAMSession
 		std::shared_ptr<ClientDestination> GetLocalDestination ();
 		void StopLocalDestination ();
-	};	
-	
+	};
+
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:

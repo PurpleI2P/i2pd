@@ -923,7 +923,7 @@ namespace transport
 			m_FragmentsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_SentMessagesPool.CleanUp ();
-			
+
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}

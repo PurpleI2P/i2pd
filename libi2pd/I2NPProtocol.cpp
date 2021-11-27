@@ -170,8 +170,8 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
-		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, 
-			const uint8_t * replyTag, bool replyECIES)
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey,
+		    const uint8_t * replyTag, bool replyECIES)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -243,8 +243,8 @@ namespace i2p
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, 
-		uint32_t replyToken, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router,
+	    uint32_t replyToken, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		if (!router) // we send own RouterInfo
 			router = context.GetSharedRouterInfo ();
@@ -398,7 +398,7 @@ namespace i2p
 					retCode = 30; // always reject with bandwidth reason (30)
 
 				memset (record + ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
-				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode; 
+				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode;
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
@@ -409,7 +409,7 @@ namespace i2p
 						uint8_t nonce[12];
 						memset (nonce, 0, 12);
 						auto& noiseState = i2p::context.GetCurrentNoiseState ();
-						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
+						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16,
 							noiseState.m_H, 32, noiseState.m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 						{
 							LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
@@ -547,7 +547,7 @@ namespace i2p
 			{
 				LogPrint (eLogDebug, "I2NP: Short request record ", i, " is ours");
 				uint8_t clearText[SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
+				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText))
 				{
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
@@ -558,10 +558,10 @@ namespace i2p
 					return;
 				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
-				uint8_t replyKey[32], layerKey[32], ivKey[32]; 
+				uint8_t replyKey[32], layerKey[32], ivKey[32];
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
 				memcpy (replyKey, noiseState.m_CK + 32, 32);
-				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK); 
+				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK);
 				memcpy (layerKey, noiseState.m_CK + 32, 32);
 				bool isEndpoint = clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
 				if (isEndpoint)
@@ -602,8 +602,8 @@ namespace i2p
 					if (j == i)
 					{
 						memset (reply + SHORT_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
-						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = retCode; 
-						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
+						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = retCode;
+						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16,
 							noiseState.m_H, 32, replyKey, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 						{
 							LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
@@ -611,7 +611,7 @@ namespace i2p
 						}
 					}
 					else
-						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply); 
+						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply);
 					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;
 				}
 				// send reply
@@ -620,10 +620,10 @@ namespace i2p
 					auto replyMsg = NewI2NPShortMessage ();
 					replyMsg->Concat (buf, len);
 					replyMsg->FillI2NPMessageHeader (eI2NPShortTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
-					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), 
+					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (),
 						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // reply IBGW is not local?
 					{
-						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK); 
+						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK);
 						uint64_t tag;
 						memcpy (&tag, noiseState.m_CK, 8);
 						// we send it to reply tunnel

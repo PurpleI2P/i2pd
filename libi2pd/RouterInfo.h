@@ -52,7 +52,7 @@ namespace data
 	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
 	const uint8_t COST_SSU_DIRECT = 9;
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
-	
+
 	const int MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
@@ -68,7 +68,7 @@ namespace data
 				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
-		
+
 			enum Caps
 			{
 				eFloodfill = 0x01,
@@ -86,7 +86,7 @@ namespace data
 				eSSUTesting = 0x04,
 				eSSUIntroducer = 0x08
 			};
-		
+
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -150,7 +150,7 @@ namespace data
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (published || !ssu->introducers.empty ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
-				
+
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
 
@@ -173,14 +173,14 @@ namespace data
 			int GetVersion () const { return m_Version; };
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
-			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const; 
-			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const; 
+			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
+			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
-			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv, 
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
@@ -196,28 +196,28 @@ namespace data
 			bool IsSSU (bool v4only = true) const;
 			bool IsSSUV6 () const;
 			bool IsNTCP2 (bool v4only = true) const;
-			bool IsNTCP2V6 () const;	
+			bool IsNTCP2V6 () const;
 			bool IsV6 () const;
 			bool IsV4 () const;
-			bool IsMesh () const;	
+			bool IsMesh () const;
 			void EnableV6 ();
 			void DisableV6 ();
 			void EnableV4 ();
 			void DisableV4 ();
 			void EnableMesh ();
-			void DisableMesh ();	
-			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };	
-			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };	
+			void DisableMesh ();
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };
 			bool IsReachableBy (CompatibleTransports transports) const { return m_ReachableTransports & transports; };
-			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; };	
-			bool HasValidAddresses () const { return m_SupportedTransports; };	
+			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; };
+			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
-			bool IsPeerTesting (bool v4) const;	
-			bool IsIntroducer (bool v4) const;	
-		
+			bool IsPeerTesting (bool v4) const;
+			bool IsIntroducer (bool v4) const;
+
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps);
 			void SetCaps (const char * caps);

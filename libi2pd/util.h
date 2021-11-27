@@ -58,8 +58,8 @@ namespace util
 			{
 				CleanUp (m_Head);
 				m_Head = nullptr;
-			}		
-			
+			}
+
 			template<typename... TArgs>
 			T * Acquire (TArgs&&... args)
 			{
@@ -104,8 +104,8 @@ namespace util
 					head = static_cast<T*>(*(void * *)head); // next
 					::operator delete ((void *)tmp);
 				}
-			}	
-			
+			}
+
 		protected:
 
 			T * m_Head;
@@ -152,11 +152,11 @@ namespace util
 				{
 					std::lock_guard<std::mutex> l(m_Mutex);
 					head = this->m_Head;
-					this->m_Head = nullptr;	
+					this->m_Head = nullptr;
 				}
 				if (head) this->CleanUp (head);
-			}	
-			
+			}
+
 		private:
 
 			std::mutex m_Mutex;

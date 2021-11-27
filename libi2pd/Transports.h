@@ -60,7 +60,7 @@ namespace transport
 			std::mutex m_AcquiredMutex;
 	};
 	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
-	
+
 	struct Peer
 	{
 		int numAttempts;

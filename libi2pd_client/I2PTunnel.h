@@ -49,7 +49,7 @@ namespace client
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
 			void Connect (bool isUniqueLocal = true);
 			void Connect (const boost::asio::ip::address& localAddress);
-		
+
 		protected:
 
 			void Terminate ();
@@ -59,7 +59,7 @@ namespace client
 			virtual void Write (const uint8_t * buf, size_t len); // can be overloaded
 			void HandleWrite (const boost::system::error_code& ecode);
 			virtual void WriteToStream (const uint8_t * buf, size_t len); // can be overloaded
-		
+
 			void StreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleConnect (const boost::system::error_code& ecode);
@@ -105,7 +105,7 @@ namespace client
 		protected:
 
 			void Write (const uint8_t * buf, size_t len);
-			void WriteToStream (const uint8_t * buf, size_t len); 
+			void WriteToStream (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -154,11 +154,11 @@ namespace client
 
 			const char* GetName() { return m_Name.c_str (); }
 			void SetKeepAliveInterval (uint32_t keepAliveInterval);
-			
+
 		private:
 
 			std::shared_ptr<const Address> GetAddress ();
-			
+
 			void ScheduleKeepAliveTimer ();
 			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
@@ -174,8 +174,8 @@ namespace client
 
 	/** 2 minute timeout for udp sessions */
 	const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
-	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds	
-	
+	const uint64_t I2P_UDP_REPLIABLE_DATAGRAM_INTERVAL = 100; // in milliseconds
+
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = 64*1024;
 
@@ -330,7 +330,7 @@ namespace client
 			bool IsUniqueLocal () const { return m_IsUniqueLocal; }
 
 			void SetLocalAddress (const std::string& localAddress);
-			
+
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
 			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };

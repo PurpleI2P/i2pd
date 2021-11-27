@@ -167,8 +167,8 @@ namespace http
 	 */
 	bool MergeChunkedResponse (std::istream& in, std::ostream& out);
 
-	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass); 
-		
+	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass);
+
 } // http
 } // i2p
 

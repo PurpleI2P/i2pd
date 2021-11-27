@@ -107,7 +107,7 @@ namespace client
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
 			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
-		
+
 		private:
 
 			void ReadTunnels ();
@@ -157,7 +157,7 @@ namespace client
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;
-		
+
 		public:
 
 			// for HTTP

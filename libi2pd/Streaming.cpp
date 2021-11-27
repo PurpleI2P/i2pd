@@ -27,12 +27,12 @@ namespace stream
 	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
 	{
 		if (buf)
-		{	
+		{
 			m_Buffers.push_back (buf);
 			m_Size += buf->len;
-		}	
-	}	
-	
+		}
+	}
+
 	size_t SendBufferQueue::Get (uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
@@ -277,20 +277,20 @@ namespace stream
 		const uint8_t * optionData = packet->GetOptionData ();
 		size_t optionSize = packet->GetOptionSize ();
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
-		{	
+		{
 			if (!m_IsAckSendScheduled)
 			{
 				uint16_t delayRequested = bufbe16toh (optionData);
 				if (delayRequested > 0 && delayRequested < m_RTT)
-				{	
+				{
 					m_IsAckSendScheduled = true;
 					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(delayRequested));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
-				}	
+				}
 			}
 			optionData += 2;
-		}	
+		}
 
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
@@ -391,10 +391,10 @@ namespace stream
 			p.len = payloadLen + 22;
 			SendPackets (std::vector<Packet *> { &p });
 			LogPrint (eLogDebug, "Streaming: Pong of ", p.len, " bytes sent");
-		}	
+		}
 		m_LocalDestination.DeletePacket (packet);
-	}	
-		
+	}
+
 	void Stream::ProcessAck (Packet * packet)
 	{
 		bool acknowledged = false;
@@ -490,7 +490,7 @@ namespace stream
 			handler(boost::system::error_code ());
 		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
 	}
-	
+
 	void Stream::SendBuffer ()
 	{
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
@@ -672,8 +672,8 @@ namespace stream
 		size_t size = 0;
 		htobe32buf (packet, m_RecvStreamID);
 		size += 4; // sendStreamID
-		memset (packet + size, 0, 14); 
-		size += 14; // all zeroes    
+		memset (packet + size, 0, 14);
+		size += 14; // all zeroes
 		uint16_t flags = PACKET_FLAG_ECHO | PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_FROM_INCLUDED;
 		bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
 		if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
@@ -695,12 +695,12 @@ namespace stream
 		memset (signature, 0, signatureLen); // zeroes for now
 		size += signatureLen; // signature
 		htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);		
+		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 		p.len = size;
 		SendPackets (std::vector<Packet *> { &p });
 		LogPrint (eLogDebug, "Streaming: Ping of ", p.len, " bytes sent");
-	}	
-		
+	}
+
 	void Stream::Close ()
 	{
 		LogPrint(eLogDebug, "Streaming: closing stream with sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ", status=", m_Status);
@@ -840,7 +840,7 @@ namespace stream
 				auto leaseRouter = i2p::data::netdb.FindRouter (m_CurrentRemoteLease->tunnelGateway);
 				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
-			}	
+			}
 			else if (!m_CurrentOutboundTunnel->IsEstablished ())
 				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
 			if (!m_CurrentOutboundTunnel)
@@ -849,7 +849,7 @@ namespace stream
 				m_CurrentRemoteLease = nullptr;
 				return;
 			}
-			
+
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (const auto& it: packets)
 			{
@@ -903,14 +903,14 @@ namespace stream
 	void Stream::ScheduleResend ()
 	{
 		if (m_Status != eStreamStatusTerminated)
-		{	
+		{
 			m_ResendTimer.cancel ();
 			// check for invalid value
 			if (m_RTO <= 0) m_RTO = INITIAL_RTO;
 			m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
 			m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 				shared_from_this (), std::placeholders::_1));
-		}	
+		}
 	}
 
 	void Stream::HandleResendTimer (const boost::system::error_code& ecode)
@@ -1008,16 +1008,16 @@ namespace stream
 			{
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), m_RemoteLeaseSet ? " expired" : " not found");
 				if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
-				{	
+				{
 					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
 						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
 					return; // we keep m_RemoteLeaseSet for possible next request
-				}	
-				else	
-				{	
-					m_RemoteLeaseSet = nullptr;	
+				}
+				else
+				{
+					m_RemoteLeaseSet = nullptr;
 					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
-				}			
+				}
 			}
 			else
 			{
@@ -1113,7 +1113,7 @@ namespace stream
 				it.second->Terminate (false); // we delete here
 			m_Streams.clear ();
 			m_IncomingStreams.clear ();
-			m_LastStream = nullptr;		
+			m_LastStream = nullptr;
 		}
 	}
 
@@ -1123,7 +1123,7 @@ namespace stream
 		if (sendStreamID)
 		{
 			if (!m_LastStream || sendStreamID != m_LastStream->GetRecvStreamID ())
-			{	
+			{
 				auto it = m_Streams.find (sendStreamID);
 				if (it != m_Streams.end ())
 					m_LastStream = it->second;
@@ -1138,7 +1138,7 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: Ping received sSID=", sendStreamID);
 				auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);
 				s->HandlePing (packet);
-			}		
+			}
 			else
 			{
 				LogPrint (eLogInfo, "Streaming: Unknown stream sSID=", sendStreamID);
@@ -1153,7 +1153,7 @@ namespace stream
 				LogPrint (eLogInfo, "Streaming: Pong received rSID=", packet->GetReceiveStreamID ());
 				DeletePacket (packet);
 				return;
-			}	
+			}
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
@@ -1252,8 +1252,8 @@ namespace stream
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, 0);
 		s->SendPing ();
-	}	
-		
+	}
+
 	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream (uint32_t receiveStreamID)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this);

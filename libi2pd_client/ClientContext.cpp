@@ -406,7 +406,7 @@ namespace client
 
 	void ClientContext::CreateNewSharedLocalDestination ()
 	{
-		std::map<std::string, std::string> params 
+		std::map<std::string, std::string> params
 		{
 			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "3" },
 			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
@@ -720,10 +720,10 @@ namespace client
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					auto it = destinations.find (keys);
 					if (it != destinations.end ())
-					{	
+					{
 						localDestination = it->second;
 						localDestination->SetPublic (true);
-					}	
+					}
 					else
 					{
 						i2p::data::PrivateKeys k;
@@ -767,10 +767,10 @@ namespace client
 							LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
 						}
 						else
-						{	
+						{
 							ins.first->second->isUpdated = true;
 							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, " already exists");
-						}	
+						}
 
 						continue;
 					}
