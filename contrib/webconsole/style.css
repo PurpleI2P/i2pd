@@ -63,7 +63,7 @@ a.button {
 .wrapper {
 	margin: 0 auto;
 	padding: 1em;
-	max-width: 60em;
+	max-width: 64em;
 }
 
 .menu {
@@ -92,7 +92,7 @@ a.button {
 .content {
 	float: left;
 	font-size: 1em;
-	margin-left: 4em;
+	margin-left: 2em;
 	padding: 4px;
 	max-width: 50em;
 	overflow: auto;
@@ -192,16 +192,11 @@ input[type=number]::-webkit-inner-spin-button {
 
 @media screen and (max-width: 1150px) { /* adaptive style */
 	.wrapper {
-		max-width: 56em;
-	}
-	
-	.menu {
-		max-width: 10em;
+		max-width: 58em;
 	}
 
 	.content {
-		margin-left: 2em;
-		max-width: 44em;
+		max-width: 40em;
 	}
 }
 
