@@ -49,7 +49,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install devscripts
-        debchange -v "`git describe --tags`-stretch" -M --distribution stretch "trunk build"
+        debchange -v "`git describe --tags`-stretch" -b -M --distribution stretch "trunk build"
     - uses: singingwolfboy/build-dpkg-stretch@v1
       id: build
       with:
@@ -73,7 +73,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install devscripts
-        debchange -v "`git describe --tags`-buster" -M --distribution buster "trunk build"
+        debchange -v "`git describe --tags`-buster" -b -M --distribution buster "trunk build"
     - uses: singingwolfboy/build-dpkg-buster@v1
       id: build
       with:
