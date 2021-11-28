@@ -21,7 +21,7 @@ set MSYSTEM=MINGW32
 
 set "xSH=%WD%bash -lc"
 
-set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d"
+set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d contrib/webconsole"
 
 REM detecting number of processors
 set /a threads=%NUMBER_OF_PROCESSORS%

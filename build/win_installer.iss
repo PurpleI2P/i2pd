@@ -47,6 +47,7 @@ Source: ..\contrib\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyif
 Source: ..\contrib\tunnels.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\certificates\*; DestDir: {userappdata}\i2pd\certificates; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 Source: ..\contrib\tunnels.d\*; DestDir: {userappdata}\i2pd\tunnels.d; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
+Source: ..\contrib\webconsole\*; DestDir: {userappdata}\i2pd\webconsole; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 
 [Icons]
 Name: {group}\I2Pd; Filename: {app}\i2pd.exe
