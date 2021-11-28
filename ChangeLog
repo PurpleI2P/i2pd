@@ -10,11 +10,12 @@
 - Windows menu item for opening datadir
 - Reseed if too few floodfills
 - Don't publish old and replacing tunnel in LeaseSet
+- Webconsole light/dark theme depending on system settings (via CSS)
 ### Changed
 - Set gzip compression to false by default
 - Build tunnel through ECIES routers only
 - Removed ElGamal support for tunnels
-- Moved webconsole resource to separate file
+- Moved webconsole resources to separate file
 - Pick tunnels with compatible transport with another tunnel of floodfill
 - Use common cleanup timer for all SSU sessions
 - Reduced memory usage

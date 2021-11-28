@@ -50,7 +50,7 @@ echo Preparing configuration files and README for packaging...
 %xSH% "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
 
 REM converting configuration files to DOS format (usable in default notepad)
-%xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/*" >> build\build.log 2>&1
+%xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/* contrib/webconsole/style.css" >> build\build.log 2>&1
 
 REM starting building
 set MSYSTEM=MINGW32
@@ -61,13 +61,15 @@ set MSYSTEM=MINGW64
 set bitness=64
 call :BUILDING
 
-REM building for WinXP
-set "WD=C:\msys64-xp\usr\bin\"
-set MSYSTEM=MINGW32
-set bitness=32
-set "xSH=%WD%bash -lc"
-call :BUILDING_XP
-echo.
+IF exist C:\msys64-xp\ (
+  REM building for WinXP
+  set "WD=C:\msys64-xp\usr\bin\"
+  set MSYSTEM=MINGW32
+  set bitness=32
+  set "xSH=%WD%bash -lc"
+  call :BUILDING_XP
+  echo.
+)
 
 REM compile installer
 C:\PROGRA~2\INNOSE~1\ISCC.exe /dI2Pd_TextVer="%tag%" /dI2Pd_Ver="%reltag%.0" build\win_installer.iss >> build\build.log 2>&1
