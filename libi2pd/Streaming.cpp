@@ -182,6 +182,7 @@ namespace stream
 					m_IsAckSendScheduled = true;
 					auto ackTimeout = m_RTT/10;
 					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+					else if (ackTimeout < MIN_SEND_ACK_TIMEOUT) ackTimeout = MIN_SEND_ACK_TIMEOUT;
 					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ackTimeout));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
