@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -249,8 +249,8 @@ namespace client
 			std::list<std::shared_ptr<SAMSocket> > ListSockets(const std::string & id) const;
 
 			/** send raw data to remote endpoint from our UDP Socket */
-			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
-
+			void SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep);
+			
 			void AddSocket(std::shared_ptr<SAMSocket> socket);
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
 

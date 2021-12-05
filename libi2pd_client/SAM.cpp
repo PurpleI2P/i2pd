@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1115,19 +1115,9 @@ namespace client
 			if (ep)
 			{
 				// udp forward enabled
-				size_t bsz = base64.size();
-				size_t sz = bsz + 1 + len;
-				// build datagram body
-				uint8_t * data = new uint8_t[sz];
-				// Destination
-				memcpy(data, base64.c_str(), bsz);
-				// linefeed
-				data[bsz] = '\n';
-				// Payload
-				memcpy(data+bsz+1, buf, len);
-				// send to remote endpoint
-				m_Owner.SendTo(data, sz, ep);
-				delete [] data;
+				const char lf = '\n';
+				// send to remote endpoint, { destination, linefeed, payload }
+				m_Owner.SendTo({ {(const uint8_t *)base64.c_str(), base64.size()}, {(const uint8_t *)&lf, 1}, {buf, len} }, *ep);
 			}
 			else
 			{
@@ -1156,7 +1146,7 @@ namespace client
 			auto ep = session->UDPEndpoint;
 			if (ep)
 				// udp forward enabled
-				m_Owner.SendTo(buf, len, ep);
+				m_Owner.SendTo({ {buf, len} }, *ep);
 			else
 			{
 #ifdef _MSC_VER
@@ -1453,14 +1443,11 @@ namespace client
 		return list;
 	}
 
-	void SAMBridge::SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote)
+	void SAMBridge::SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep)
 	{
-		if(remote)
-		{
-			m_DatagramSocket.send_to(boost::asio::buffer(buf, len), *remote);
-		}
-	}
-
+		m_DatagramSocket.send_to (bufs, ep);
+	}	
+		
 	void SAMBridge::ReceiveDatagram ()
 	{
 		m_DatagramSocket.async_receive_from (
