@@ -225,7 +225,9 @@ namespace config {
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value("http://reg.i2p/hosts.txt"), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.subscriptions", value<std::string>()->default_value(
+				"http://reg.i2p/hosts.txt"
+			),                                                                     "AddressBook subscriptions URLs, separated by comma")
 			("addressbook.hostsfile", value<std::string>()->default_value(""),     "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
