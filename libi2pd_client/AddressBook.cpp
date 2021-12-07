@@ -540,8 +540,9 @@ namespace client
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 				LogPrint (eLogWarning, "Addressbook: subscriptions.txt usage is deprecated, use config file instead");
 			}
-			else if (!i2p::config::IsDefault("addressbook.subscriptions"))
+			else
 			{
+				LogPrint (eLogInfo, "Addressbook: Loading subscriptions from config file");
 				// using config file items
 				std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
 				std::vector<std::string> subsList;
@@ -549,7 +550,6 @@ namespace client
 
 				for (const auto& s: subsList)
 				{
-					if (s.empty () || s[0] == '#') continue; // skip empty line or comment
 					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
