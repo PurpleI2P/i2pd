@@ -216,7 +216,8 @@ namespace config {
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
 				"http://[301:65b9:c7cd:9a36::1]:18801/,"
-				"http://[320:8936:ec1a:31f1::216]/"
+				"http://[320:8936:ec1a:31f1::216]/,"
+			    "http://[306:3834:97b9:a00a::1]/"                                                   
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
