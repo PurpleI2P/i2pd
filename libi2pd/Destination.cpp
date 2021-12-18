@@ -555,25 +555,45 @@ namespace client
 				shared_from_this (), std::placeholders::_1));
 			return;
 		}
+		if (!m_Pool->GetInboundTunnels ().size () || !m_Pool->GetOutboundTunnels ().size ())
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. Destination is not ready");
+			return;
+		}
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 		if (!floodfill)
 		{
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			m_ExcludedFloodfills.clear ();
 			return;
-		}
+		}	
 		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
-		if (!outbound)
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
-			return;
-		}
 		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
-		if (!inbound)
+		if (!outbound || !inbound)
 		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
-			return;
-		}
+			LogPrint (eLogInfo, "Destination: No compatiable tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
+			m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
+			floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
+			if (floodfill)
+			{
+				outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
+				if (outbound)
+				{	
+					inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
+					if (!inbound)
+						LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
+				}	
+				else
+					LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
+			}	
+			else
+				LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
+			if (!floodfill || !outbound || !inbound)
+			{
+				m_ExcludedFloodfills.clear ();
+				return;
+			}	
+		}	
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
