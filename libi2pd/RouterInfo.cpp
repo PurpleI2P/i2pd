@@ -368,9 +368,10 @@ namespace data
 					}
 				}
 			}
-			if (supportedTransports)
+			if (supportedTransports) 
 			{
-				addresses->push_back(address);
+				if (!(m_SupportedTransports & supportedTransports)) // avoid duplicates
+					addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
@@ -384,6 +385,8 @@ namespace data
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;
 		s.seekg (numPeers*32, std::ios_base::cur); // TODO: read peers
 		// read properties
+		m_Version = 0;
+		bool isNetId = false;
 		uint16_t size, r = 0;
 		s.read ((char *)&size, sizeof (size)); if (!s) return;
 		size = be16toh (size);
@@ -416,10 +419,14 @@ namespace data
 				}
 			}
 			// check netId
-			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != i2p::context.GetNetID ())
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID))
 			{
-				LogPrint (eLogError, "RouterInfo: Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
-				m_IsUnreachable = true;
+				isNetId = true;
+				if (atoi (value) != i2p::context.GetNetID ())
+				{	
+					LogPrint (eLogError, "RouterInfo: Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
+					m_IsUnreachable = true;
+				}	
 			}
 			// family
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY))
@@ -439,7 +446,7 @@ namespace data
 			if (!s) return;
 		}
 
-		if (!m_SupportedTransports)
+		if (!m_SupportedTransports || !isNetId || !m_Version)
 			SetUnreachable (true);
 	}
 
