@@ -35,11 +35,10 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
-		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0),
-		m_ReachableTransports (0), m_Caps (0), m_Version (0)
+		m_Buffer (nullptr), m_IsUpdated (false), m_IsUnreachable (false), 
+		m_SupportedTransports (0),m_ReachableTransports (0), m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
-		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile (fullPath);
 	}
 
@@ -50,7 +49,7 @@ namespace data
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
-			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+			m_Buffer = new uint8_t[len];
 			memcpy (m_Buffer, buf, len);
 			m_BufferLen = len;
 			ReadFromBuffer (true);
@@ -89,8 +88,13 @@ namespace data
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			m_Properties.clear ();
 			// copy buffer
+			if (m_Buffer && m_BufferLen < len)
+			{
+				delete[] m_Buffer;
+				m_Buffer = nullptr;
+			}	
 			if (!m_Buffer)
-				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+				m_Buffer = new uint8_t[len];
 			memcpy (m_Buffer, buf, len);
 			m_BufferLen = len;
 			// skip identity
@@ -126,7 +130,8 @@ namespace data
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
-			if (!m_Buffer) m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+			if (m_Buffer) delete[] m_Buffer;
+			m_Buffer = new uint8_t[m_BufferLen];
 			s.read((char *)m_Buffer, m_BufferLen);
 		}
 		else
@@ -147,6 +152,11 @@ namespace data
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
 	{
+		if (!m_Buffer)
+		{
+			m_IsUnreachable = true;
+			return;
+		}	
 		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
 		if (identityLen >= m_BufferLen)
