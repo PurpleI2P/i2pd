@@ -30,6 +30,7 @@
 #include "NetDbRequests.h"
 #include "Family.h"
 #include "version.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -120,6 +121,7 @@ namespace data
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
+			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -175,6 +177,8 @@ namespace data
 
 			std::set<IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken = 0;
+
+			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
 	};
 
 	extern NetDb netdb;

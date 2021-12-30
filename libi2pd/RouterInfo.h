@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <array>
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -158,6 +159,7 @@ namespace data
 				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
 			};
 			typedef std::vector<std::shared_ptr<Address> > Addresses;
+			typedef std::array<uint8_t, MAX_RI_BUFFER_SIZE> Buffer;
 
 			RouterInfo ();
 			RouterInfo (const std::string& fullPath);
@@ -225,7 +227,7 @@ namespace data
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
-			const uint8_t * GetBuffer () const { return m_Buffer; };
+			const uint8_t * GetBuffer () const { return m_Buffer->data (); };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			int GetBufferLen () const { return m_BufferLen; };
 			void CreateBuffer (const PrivateKeys& privateKeys);
@@ -238,7 +240,7 @@ namespace data
 			void SaveProfile () { if (m_Profile) m_Profile->Save (GetIdentHash ()); };
 
 			void Update (const uint8_t * buf, size_t len);
-			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
+			void DeleteBuffer () { m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			/** return true if we are in a router family and the signature is valid */
@@ -269,7 +271,7 @@ namespace data
 
 			std::string m_Family;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
-			uint8_t * m_Buffer;
+			std::shared_ptr<Buffer> m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9

@@ -40,7 +40,7 @@ namespace data
 		m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
-		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];	
+		m_Buffer = netdb.NewRouterInfoBuffer ();
 		ReadFromFile (fullPath);
 	}
 
@@ -51,8 +51,8 @@ namespace data
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
-			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-			memcpy (m_Buffer, buf, len);
+			m_Buffer = netdb.NewRouterInfoBuffer ();
+			memcpy (m_Buffer->data (), buf, len);
 			m_BufferLen = len;
 			ReadFromBuffer (true);
 		}
@@ -66,7 +66,6 @@ namespace data
 
 	RouterInfo::~RouterInfo ()
 	{
-		delete[] m_Buffer;
 	}
 
 	void RouterInfo::Update (const uint8_t * buf, size_t len)
@@ -91,13 +90,13 @@ namespace data
 			m_Properties.clear ();
 			// copy buffer
 			if (!m_Buffer)
-				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-			memcpy (m_Buffer, buf, len);
+				m_Buffer = netdb.NewRouterInfoBuffer ();
+			memcpy (m_Buffer->data (), buf, len);
 			m_BufferLen = len;
 			// skip identity
 			size_t identityLen = m_RouterIdentity->GetFullLen ();
 			// read new RI
-			std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
+			std::stringstream str (std::string ((char *)m_Buffer->data () + identityLen, m_BufferLen - identityLen));
 			ReadFromStream (str);
 			// don't delete buffer until saved to the file
 		}
@@ -128,8 +127,8 @@ namespace data
 			}
 			s.seekg(0, std::ios::beg);
 			if (!m_Buffer)
-				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-			s.read((char *)m_Buffer, m_BufferLen);
+				m_Buffer = netdb.NewRouterInfoBuffer ();
+			s.read((char *)m_Buffer->data (), m_BufferLen);
 		}
 		else
 		{
@@ -154,7 +153,7 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}	
-		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
+		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer->data (), m_BufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
 		if (identityLen >= m_BufferLen)
 		{
@@ -173,7 +172,7 @@ namespace data
 			}
 			// verify signature
 			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();
-			if (l < 0 || !m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
+			if (l < 0 || !m_RouterIdentity->Verify ((uint8_t *)m_Buffer->data (), l, (uint8_t *)m_Buffer->data () + l))
 			{
 				LogPrint (eLogError, "RouterInfo: Signature verification failed");
 				m_IsUnreachable = true;
@@ -183,7 +182,7 @@ namespace data
 		}
 		// parse RI
 		std::stringstream str;
-		str.write ((const char *)m_Buffer + identityLen, m_BufferLen - identityLen);
+		str.write ((const char *)m_Buffer->data () + identityLen, m_BufferLen - identityLen);
 		ReadFromStream (str);
 		if (!str)
 		{
@@ -775,7 +774,7 @@ namespace data
 			if (LoadFile (fullPath))
 				LogPrint (eLogDebug, "RouterInfo: Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
 		}
-		return m_Buffer;
+		return m_Buffer->data ();
 	}
 
 	void RouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
@@ -789,12 +788,12 @@ namespace data
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
 		if (!m_Buffer)
-			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+			m_Buffer = netdb.NewRouterInfoBuffer ();
 		if (m_BufferLen + signatureLen < MAX_RI_BUFFER_SIZE)
 		{
-			memcpy (m_Buffer, s.str ().c_str (), m_BufferLen);
+			memcpy (m_Buffer->data (), s.str ().c_str (), m_BufferLen);
 			// signature
-			privateKeys.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
+			privateKeys.Sign ((uint8_t *)m_Buffer->data (), m_BufferLen, (uint8_t *)m_Buffer->data () + m_BufferLen);
 			m_BufferLen += signatureLen;
 		}
 		else
@@ -813,7 +812,7 @@ namespace data
 			LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
 			return false;
 		}
-		f.write ((char *)m_Buffer, m_BufferLen);
+		f.write ((char *)m_Buffer->data (), m_BufferLen);
 		return true;
 	}
 

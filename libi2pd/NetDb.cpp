@@ -659,6 +659,8 @@ namespace data
 						++it;
 			}
 		}
+
+		m_RouterInfoBuffersPool.CleanUpMt ();	
 	}
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
