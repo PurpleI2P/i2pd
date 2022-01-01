@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -596,10 +596,9 @@ namespace data
 		{
 			if (it.second == own) continue; // skip own
 			std::string ident = it.second->GetIdentHashBase64();
-			std::string path  = m_Storage.Path(ident);
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (path);
+				it.second->SaveToFile (m_Storage.Path(ident));
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();
@@ -630,6 +629,9 @@ namespace data
 			}
 		} // m_RouterInfos iteration
 
+		m_RouterInfoBuffersPool.CleanUpMt ();
+		m_RouterInfoAddressesPool.CleanUpMt ();	
+			
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: Saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
@@ -658,9 +660,7 @@ namespace data
 					else
 						++it;
 			}
-		}
-
-		m_RouterInfoBuffersPool.CleanUpMt ();	
+		}	
 	}
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)

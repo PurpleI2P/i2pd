@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -122,6 +122,7 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
+			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -179,6 +180,7 @@ namespace data
 			uint32_t m_PublishReplyToken = 0;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
+			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;
 	};
 
 	extern NetDb netdb;

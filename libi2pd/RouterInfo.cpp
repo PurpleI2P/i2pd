@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -205,7 +205,7 @@ namespace data
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			auto address = std::make_shared<Address>();
+			auto address = netdb.NewRouterInfoAddress ();
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
