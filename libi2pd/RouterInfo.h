@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -54,7 +54,7 @@ namespace data
 	const uint8_t COST_SSU_DIRECT = 9;
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
 
-	const int MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
+	const size_t MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -158,14 +158,23 @@ namespace data
 				bool IsV4 () const { return (caps & AddressCaps::eV4) || (host.is_v4 () && !host.is_unspecified ()); };
 				bool IsV6 () const { return (caps & AddressCaps::eV6) || (host.is_v6 () && !host.is_unspecified ()); };
 			};
+
+			class Buffer: public std::array<uint8_t, MAX_RI_BUFFER_SIZE>
+			{
+				public:
+
+					Buffer () = default;
+					Buffer (const uint8_t * buf, size_t len);
+			};
+		
 			typedef std::vector<std::shared_ptr<Address> > Addresses;
-			typedef std::array<uint8_t, MAX_RI_BUFFER_SIZE> Buffer;
 
 			RouterInfo ();
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
-			RouterInfo (const uint8_t * buf, int len);
+			RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len);
+			RouterInfo (const uint8_t * buf, size_t len);
 			~RouterInfo ();
 
 			std::shared_ptr<const IdentityEx> GetRouterIdentity () const { return m_RouterIdentity; };

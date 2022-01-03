@@ -29,6 +29,12 @@ namespace i2p
 {
 namespace data
 {
+	RouterInfo::Buffer::Buffer (const uint8_t * buf, size_t len)
+	{
+		if (len > size ()) len = size ();
+		memcpy (data (), buf, len);
+	}		
+	
 	RouterInfo::RouterInfo (): m_Buffer (nullptr)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
@@ -44,15 +50,14 @@ namespace data
 		ReadFromFile (fullPath);
 	}
 
-	RouterInfo::RouterInfo (const uint8_t * buf, int len):
+	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0),
 		m_ReachableTransports (0), m_Caps (0), m_Version (0)
 	{
-		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
-			m_Buffer = netdb.NewRouterInfoBuffer ();
-			memcpy (m_Buffer->data (), buf, len);
+			m_Addresses = boost::make_shared<Addresses>(); // create empty list
+			m_Buffer = buf;
 			m_BufferLen = len;
 			ReadFromBuffer (true);
 		}
@@ -62,7 +67,12 @@ namespace data
 			m_Buffer = nullptr;
 			m_IsUnreachable = true;
 		}
-	}
+	}	
+		
+	RouterInfo::RouterInfo (const uint8_t * buf, size_t len):
+		RouterInfo (std::make_shared<Buffer> (buf, len), len)
+	{
+	}		
 
 	RouterInfo::~RouterInfo ()
 	{
@@ -205,7 +215,7 @@ namespace data
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			auto address = netdb.NewRouterInfoAddress ();
+			auto address = std::make_shared<Address> ();
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));

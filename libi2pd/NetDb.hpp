@@ -122,8 +122,7 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
-			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
-
+			
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
 		private:
@@ -180,7 +179,6 @@ namespace data
 			uint32_t m_PublishReplyToken = 0;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
-			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;
 	};
 
 	extern NetDb netdb;
