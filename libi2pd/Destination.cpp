@@ -571,7 +571,7 @@ namespace client
 		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
 		if (!outbound || !inbound)
 		{
-			LogPrint (eLogInfo, "Destination: No compatiable tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
+			LogPrint (eLogInfo, "Destination: No compatible tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
 			m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 			floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 			if (floodfill)
