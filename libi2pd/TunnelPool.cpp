@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -338,7 +338,9 @@ namespace tunnel
 		}
 
 		// new tests
+		std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
 		auto it1 = m_OutboundTunnels.begin ();
+		std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
 		{
