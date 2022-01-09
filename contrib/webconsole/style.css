@@ -15,16 +15,18 @@
 */
 
 :root {
-	--main-bg-color: #FAFAFA;
+	--main-bg-color: #fafafa;
 	--main-text-color: #103456;
-	--main-link-color: #894C84;
+	--main-link-color: #894c84;
+	--main-link-hover-color: #fafafa;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--main-bg-color: #181818;
-		--main-text-color: #156A3D;
-		--main-link-color: #894C84;
+		--main-bg-color: #242424;
+		--main-text-color: #17ab5c;
+		--main-link-color: #bf64b7;
+		--main-link-hover-color: #000000;
 	}
 }
 
@@ -42,7 +44,7 @@ a, .slide label {
 }
 
 a:hover, .slide label:hover, button[type=submit]:hover {
-	color: #FAFAFA;
+	color: var(--main-link-hover-color);
 	background: var(--main-link-color);
 }
 
