@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021, The PurpleI2P Project
+* Copyright (c) 2021-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -74,19 +74,21 @@ namespace i18n
 	namespace afrikaans { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace armenian  { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace english   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace german    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace uzbek     { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 
 	/**
-	 * That map contains international language name lower-case and name in it's language
+	 * That map contains international language name lower-case, name in it's language and it's code
 	 */
 	static std::map<std::string, langData> languages
 	{
 		{ "afrikaans", {"Afrikaans", "af", i2p::i18n::afrikaans::GetLocale} },
 		{ "armenian", {"հայերէն", "hy", i2p::i18n::armenian::GetLocale} },
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
+		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
 		{ "russian", {"русский язык", "ru", i2p::i18n::russian::GetLocale} },
 		{ "turkmen", {"türkmen dili", "tk", i2p::i18n::turkmen::GetLocale} },
 		{ "ukrainian", {"украї́нська мо́ва", "uk", i2p::i18n::ukrainian::GetLocale} },

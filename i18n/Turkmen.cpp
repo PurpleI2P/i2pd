@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021, The PurpleI2P Project
+* Copyright (c) 2021-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -198,7 +198,6 @@ namespace turkmen // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		// ShowUptime
 		{"days",    {"gün", "gün"}},
 		{"hours",   {"sagat", "sagat"}},
 		{"minutes", {"minut", "minut"}},
