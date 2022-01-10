@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -65,7 +65,7 @@ namespace client
 
 			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
-			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value) const;
+			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes = true) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;
 
 			// methods

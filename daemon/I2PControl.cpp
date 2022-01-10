@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2022, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <stdio.h>
 #include <sstream>
 #include <openssl/x509.h>
@@ -278,11 +286,16 @@ namespace client
 		ss << "\"" << name << "\":" << value;
 	}
 
-	void I2PControlService::InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value) const
+	void I2PControlService::InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes) const
 	{
 		ss << "\"" << name << "\":";
 		if (value.length () > 0)
-			ss << "\"" << value << "\"";
+		{	
+			if (quotes)
+				ss << "\"" << value << "\"";
+			else
+				ss << value;
+		}	
 		else
 			ss << "null";
 	}
@@ -406,7 +419,7 @@ namespace client
 
 	void I2PControlService::UptimeHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.uptime", std::to_string (i2p::context.GetUptime ()*1000LL));
+		InsertParam (results, "i2p.router.uptime", std::to_string (i2p::context.GetUptime ()*1000LL), false);
 	}
 
 	void I2PControlService::VersionHandler (std::ostringstream& results)
