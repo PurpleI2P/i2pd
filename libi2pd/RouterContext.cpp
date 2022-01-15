@@ -157,7 +157,7 @@ namespace i2p
 
 		if (addressCaps)
 			routerInfo.SetUnreachableAddressesTransportCaps (addressCaps);
-		routerInfo.SetCaps (caps); // caps + L
+		routerInfo.UpdateCaps (caps); // caps + L
 		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
@@ -349,10 +349,10 @@ namespace i2p
 	{
 		m_IsFloodfill = floodfill;
 		if (floodfill)
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eFloodfill);
+			m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eFloodfill);
 		else
 		{
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
+			m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
 			// we don't publish number of routers and leaseset for non-floodfill
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS);
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS);
@@ -414,7 +414,7 @@ namespace i2p
 			// no break here, extra + high means 'X'
 			case high : caps |= i2p::data::RouterInfo::eHighBandwidth; break;
 		}
-		m_RouterInfo.SetCaps (caps);
+		m_RouterInfo.UpdateCaps (caps);
 		UpdateRouterInfo ();
 		m_BandwidthLimit = limit;
 	}
@@ -469,7 +469,7 @@ namespace i2p
 			caps |= i2p::data::RouterInfo::eUnreachable;
 			if (v6 || !SupportsV6 ())
 				caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
-			m_RouterInfo.SetCaps (caps);
+			m_RouterInfo.UpdateCaps (caps);
 		}
 		uint16_t port = 0;
 		// delete previous introducers
@@ -501,7 +501,7 @@ namespace i2p
 			caps |= i2p::data::RouterInfo::eReachable;
 			if (m_IsFloodfill)
 				caps |= i2p::data::RouterInfo::eFloodfill;
-			m_RouterInfo.SetCaps (caps);
+			m_RouterInfo.UpdateCaps (caps);
 		}
 		uint16_t port = 0;
 		// delete previous introducers

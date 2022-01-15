@@ -478,7 +478,6 @@ namespace data
 		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses ())
 		{
 			r->DeleteBuffer ();
-			r->ClearProperties (); // properties are not used for regular routers
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
 			{
 				if (r->IsFloodfill () && r->IsEligibleFloodfill ())

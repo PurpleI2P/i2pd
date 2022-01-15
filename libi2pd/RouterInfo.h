@@ -181,6 +181,7 @@ namespace data
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
+			virtual void SetProperty (const std::string& key, const std::string& value) {}; 
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
@@ -194,10 +195,6 @@ namespace data
 				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
-			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
-			void DeleteProperty (const std::string& key); // called from RouterContext only
-			std::string GetProperty (const std::string& key) const; // called from RouterContext only
-			void ClearProperties () { m_Properties.clear (); };
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
@@ -229,8 +226,7 @@ namespace data
 			bool IsIntroducer (bool v4) const;
 
 			uint8_t GetCaps () const { return m_Caps; };
-			void SetCaps (uint8_t caps);
-			void SetCaps (const char * caps);
+			void SetCaps (uint8_t caps) { m_Caps = caps; };
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
 			bool IsUnreachable () const { return m_IsUnreachable; };
@@ -266,7 +262,7 @@ namespace data
 			void UpdateBuffer (const uint8_t * buf, size_t len);
 			void SetBufferLen (size_t len) { m_BufferLen = len; };
 			void RefreshTimestamp ();
-			void WriteToStream (std::ostream& s) const;
+			const Addresses& GetAddresses () const { return *m_Addresses; };
 		
 		private:
 
@@ -275,12 +271,10 @@ namespace data
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer (bool verifySignature);
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
-			void WriteString (const std::string& str, std::ostream& s) const;
 			void ExtractCaps (const char * value);
 			uint8_t ExtractAddressCaps (const char * value) const;
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
-			void UpdateCapsProperty ();
 
 		private:
 
@@ -290,7 +284,6 @@ namespace data
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
-			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
 			uint8_t m_Caps;
@@ -304,6 +297,22 @@ namespace data
 
 			LocalRouterInfo () = default;
 			void CreateBuffer (const PrivateKeys& privateKeys);
+			void UpdateCaps (uint8_t caps);
+
+			void SetProperty (const std::string& key, const std::string& value) override; 
+			void DeleteProperty (const std::string& key); 
+			std::string GetProperty (const std::string& key) const; 
+			void ClearProperties () { m_Properties.clear (); };
+			
+		private:
+
+			void WriteToStream (std::ostream& s) const;
+			void UpdateCapsProperty ();
+			void WriteString (const std::string& str, std::ostream& s) const;
+			
+		private:
+
+			std::map<std::string, std::string> m_Properties;		
 	};	
 }
 }

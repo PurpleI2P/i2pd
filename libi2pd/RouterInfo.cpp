@@ -97,7 +97,6 @@ namespace data
 			m_ReachableTransports = 0;
 			m_Caps = 0;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
-			m_Properties.clear ();
 			// copy buffer
 			UpdateBuffer (buf, len);
 			// skip identity
@@ -411,7 +410,7 @@ namespace data
 			r += ReadString (value, 255, s);
 			s.seekg (1, std::ios_base::cur); r++; // ;
 			if (!s) return;
-			m_Properties[key] = value;
+			SetProperty (key, value);
 
 			// extract caps
 			if (!strcmp (key, "caps"))
@@ -529,243 +528,6 @@ namespace data
 		return caps;
 	}
 
-	void RouterInfo::UpdateCapsProperty ()
-	{
-		std::string caps;
-		if (m_Caps & eFloodfill)
-		{
-			if (m_Caps & eExtraBandwidth) caps += (m_Caps & eHighBandwidth) ?
-				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
-				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			else
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-			caps += CAPS_FLAG_FLOODFILL; // floodfill
-		}
-		else
-		{
-			if (m_Caps & eExtraBandwidth)
-				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
-			else
-				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
-		}
-		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
-		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
-		if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
-
-		SetProperty ("caps", caps);
-	}
-
-	void RouterInfo::WriteToStream (std::ostream& s) const
-	{
-		uint64_t ts = htobe64 (m_Timestamp);
-		s.write ((const char *)&ts, sizeof (ts));
-
-		// addresses
-		uint8_t numAddresses = m_Addresses->size ();
-		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (const auto& addr_ptr : *m_Addresses)
-		{
-			const Address& address = *addr_ptr;
-			// calculate cost
-			uint8_t cost = 0x7f;
-			if (address.transportStyle == eTransportNTCP)
-				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
-			else if (address.transportStyle == eTransportSSU)
-				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
-			s.write ((const char *)&cost, sizeof (cost));
-			s.write ((const char *)&address.date, sizeof (address.date));
-			std::stringstream properties;
-			bool isPublished = false;
-			if (address.transportStyle == eTransportNTCP)
-			{
-				if (address.IsNTCP2 ())
-				{
-					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
-						 isPublished = true;
-					else
-					{
-						WriteString ("caps", properties);
-						properties << '=';
-						std::string caps;
-						if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-						if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-						if (caps.empty ()) caps += CAPS_FLAG_V4;
-						WriteString (caps, properties);
-						properties << ';';
-					}
-				}
-				else
-					continue; // don't write NTCP address
-			}
-			else if (address.transportStyle == eTransportSSU)
-			{
-				WriteString ("SSU", s);
-				// caps
-				WriteString ("caps", properties);
-				properties << '=';
-				std::string caps;
-				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (address.host.is_v4 ())
-				{
-					if (address.published)
-					{
-						isPublished = true;
-						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-					}
-					else
-						caps += CAPS_FLAG_V4;
-				}
-				else if (address.host.is_v6 ())
-				{
-					if (address.published)
-					{
-						isPublished = true;
-						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-					}
-					else
-						caps += CAPS_FLAG_V6;
-				}
-				else
-				{
-					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-					if (caps.empty ()) caps += CAPS_FLAG_V4;
-				}
-				WriteString (caps, properties);
-				properties << ';';
-			}
-			else
-				WriteString ("", s);
-
-			if (isPublished)
-			{
-				WriteString ("host", properties);
-				properties << '=';
-				WriteString (address.host.to_string (), properties);
-				properties << ';';
-			}
-			if (address.transportStyle == eTransportSSU)
-			{
-				// write introducers if any
-				if (!address.ssu->introducers.empty())
-				{
-					int i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						if (introducer.iExp) // expiration is specified
-						{
-							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
-							properties << '=';
-							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
-							properties << ';';
-						}
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						WriteString (introducer.iHost.to_string (), properties);
-						properties << ';';
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						char value[64];
-						size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
-						value[l] = 0;
-						WriteString (value, properties);
-						properties << ';';
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
-						properties << ';';
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
-						properties << ';';
-						i++;
-					}
-				}
-				// write intro key
-				WriteString ("key", properties);
-				properties << '=';
-				char value[64];
-				size_t l = ByteStreamToBase64 (address.ssu->key, 32, value, 64);
-				value[l] = 0;
-				WriteString (value, properties);
-				properties << ';';
-				// write mtu
-				if (address.ssu->mtu)
-				{
-					WriteString ("mtu", properties);
-					properties << '=';
-					WriteString (boost::lexical_cast<std::string>(address.ssu->mtu), properties);
-					properties << ';';
-				}
-			}
-
-			if (address.IsNTCP2 () && isPublished)
-			{
-				// publish i for NTCP2
-				WriteString ("i", properties); properties << '=';
-				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
-			}
-
-			if (isPublished || address.ssu)
-			{
-				WriteString ("port", properties);
-				properties << '=';
-				WriteString (boost::lexical_cast<std::string>(address.port), properties);
-				properties << ';';
-			}
-			if (address.IsNTCP2 ())
-			{
-				// publish s and v for NTCP2
-				WriteString ("s", properties); properties << '=';
-				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
-				WriteString ("v", properties); properties << '=';
-				WriteString ("2", properties); properties << ';';
-			}
-
-			uint16_t size = htobe16 (properties.str ().size ());
-			s.write ((char *)&size, sizeof (size));
-			s.write (properties.str ().c_str (), properties.str ().size ());
-		}
-
-		// peers
-		uint8_t numPeers = 0;
-		s.write ((char *)&numPeers, sizeof (numPeers));
-
-		// properties
-		std::stringstream properties;
-		for (const auto& p : m_Properties)
-		{
-			WriteString (p.first, properties);
-			properties << '=';
-			WriteString (p.second, properties);
-			properties << ';';
-		}
-		uint16_t size = htobe16 (properties.str ().size ());
-		s.write ((char *)&size, sizeof (size));
-		s.write (properties.str ().c_str (), properties.str ().size ());
-	}
-
 	bool RouterInfo::IsNewer (const uint8_t * buf, size_t len) const
 	{
 		if (!m_RouterIdentity) return false;
@@ -819,12 +581,6 @@ namespace data
 		return l+1;
 	}
 
-	void RouterInfo::WriteString (const std::string& str, std::ostream& s) const
-	{
-		uint8_t len = str.size ();
-		s.write ((char *)&len, 1);
-		s.write (str.c_str (), len);
-	}
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
 	{
@@ -909,37 +665,6 @@ namespace data
 			}
 		}
 		return false;
-	}
-
-	void RouterInfo::SetCaps (uint8_t caps)
-	{
-		m_Caps = caps;
-		UpdateCapsProperty ();
-	}
-
-	void RouterInfo::SetCaps (const char * caps)
-	{
-		SetProperty ("caps", caps);
-		m_Caps = 0;
-		ExtractCaps (caps);
-	}
-
-	void RouterInfo::SetProperty (const std::string& key, const std::string& value)
-	{
-		m_Properties[key] = value;
-	}
-
-	void RouterInfo::DeleteProperty (const std::string& key)
-	{
-		m_Properties.erase (key);
-	}
-
-	std::string RouterInfo::GetProperty (const std::string& key) const
-	{
-		auto it = m_Properties.find (key);
-		if (it != m_Properties.end ())
-			return it->second;
-		return "";
 	}
 
 	bool RouterInfo::IsSSU (bool v4only) const
@@ -1266,6 +991,276 @@ namespace data
 		}
 		else
 			LogPrint (eLogError, "RouterInfo: Our RouterInfo is too long ", len + signatureLen);
+	}	
+
+	void LocalRouterInfo::UpdateCaps (uint8_t caps)
+	{
+		SetCaps (caps);
+		UpdateCapsProperty ();
+	}	
+
+	void LocalRouterInfo::UpdateCapsProperty ()
+	{
+		std::string caps;
+		uint8_t c = GetCaps ();
+		if (c & eFloodfill)
+		{
+			if (c & eExtraBandwidth) caps += (c & eHighBandwidth) ?
+				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
+				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			else
+				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+			caps += CAPS_FLAG_FLOODFILL; // floodfill
+		}
+		else
+		{
+			if (c & eExtraBandwidth)
+				caps += (c & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
+			else
+				caps += (c & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
+		}
+		if (c & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
+		if (c & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
+		if (c & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
+
+		SetProperty ("caps", caps);
+	}
+
+	void LocalRouterInfo::WriteToStream (std::ostream& s) const
+	{
+		uint64_t ts = htobe64 (GetTimestamp ());
+		s.write ((const char *)&ts, sizeof (ts));
+
+		// addresses
+		const Addresses& addresses = GetAddresses ();
+		uint8_t numAddresses = addresses.size ();
+		s.write ((char *)&numAddresses, sizeof (numAddresses));
+		for (const auto& addr_ptr : addresses)
+		{
+			const Address& address = *addr_ptr;
+			// calculate cost
+			uint8_t cost = 0x7f;
+			if (address.transportStyle == eTransportNTCP)
+				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
+			else if (address.transportStyle == eTransportSSU)
+				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
+			s.write ((const char *)&cost, sizeof (cost));
+			s.write ((const char *)&address.date, sizeof (address.date));
+			std::stringstream properties;
+			bool isPublished = false;
+			if (address.transportStyle == eTransportNTCP)
+			{
+				if (address.IsNTCP2 ())
+				{
+					WriteString ("NTCP2", s);
+					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
+						 isPublished = true;
+					else
+					{
+						WriteString ("caps", properties);
+						properties << '=';
+						std::string caps;
+						if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+						if (address.IsV6 ()) caps += CAPS_FLAG_V6;
+						if (caps.empty ()) caps += CAPS_FLAG_V4;
+						WriteString (caps, properties);
+						properties << ';';
+					}
+				}
+				else
+					continue; // don't write NTCP address
+			}
+			else if (address.transportStyle == eTransportSSU)
+			{
+				WriteString ("SSU", s);
+				// caps
+				WriteString ("caps", properties);
+				properties << '=';
+				std::string caps;
+				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
+				if (address.host.is_v4 ())
+				{
+					if (address.published)
+					{
+						isPublished = true;
+						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					}
+					else
+						caps += CAPS_FLAG_V4;
+				}
+				else if (address.host.is_v6 ())
+				{
+					if (address.published)
+					{
+						isPublished = true;
+						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					}
+					else
+						caps += CAPS_FLAG_V6;
+				}
+				else
+				{
+					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+				}
+				WriteString (caps, properties);
+				properties << ';';
+			}
+			else
+				WriteString ("", s);
+
+			if (isPublished)
+			{
+				WriteString ("host", properties);
+				properties << '=';
+				WriteString (address.host.to_string (), properties);
+				properties << ';';
+			}
+			if (address.transportStyle == eTransportSSU)
+			{
+				// write introducers if any
+				if (!address.ssu->introducers.empty())
+				{
+					int i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						if (introducer.iExp) // expiration is specified
+						{
+							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
+							properties << '=';
+							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
+							properties << ';';
+						}
+						i++;
+					}
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (introducer.iHost.to_string (), properties);
+						properties << ';';
+						i++;
+					}
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						char value[64];
+						size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
+						value[l] = 0;
+						WriteString (value, properties);
+						properties << ';';
+						i++;
+					}
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
+						properties << ';';
+						i++;
+					}
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
+						properties << ';';
+						i++;
+					}
+				}
+				// write intro key
+				WriteString ("key", properties);
+				properties << '=';
+				char value[64];
+				size_t l = ByteStreamToBase64 (address.ssu->key, 32, value, 64);
+				value[l] = 0;
+				WriteString (value, properties);
+				properties << ';';
+				// write mtu
+				if (address.ssu->mtu)
+				{
+					WriteString ("mtu", properties);
+					properties << '=';
+					WriteString (boost::lexical_cast<std::string>(address.ssu->mtu), properties);
+					properties << ';';
+				}
+			}
+
+			if (address.IsNTCP2 () && isPublished)
+			{
+				// publish i for NTCP2
+				WriteString ("i", properties); properties << '=';
+				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
+			}
+
+			if (isPublished || address.ssu)
+			{
+				WriteString ("port", properties);
+				properties << '=';
+				WriteString (boost::lexical_cast<std::string>(address.port), properties);
+				properties << ';';
+			}
+			if (address.IsNTCP2 ())
+			{
+				// publish s and v for NTCP2
+				WriteString ("s", properties); properties << '=';
+				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
+				WriteString ("v", properties); properties << '=';
+				WriteString ("2", properties); properties << ';';
+			}
+
+			uint16_t size = htobe16 (properties.str ().size ());
+			s.write ((char *)&size, sizeof (size));
+			s.write (properties.str ().c_str (), properties.str ().size ());
+		}
+
+		// peers
+		uint8_t numPeers = 0;
+		s.write ((char *)&numPeers, sizeof (numPeers));
+
+		// properties
+		std::stringstream properties;
+		for (const auto& p : m_Properties)
+		{
+			WriteString (p.first, properties);
+			properties << '=';
+			WriteString (p.second, properties);
+			properties << ';';
+		}
+		uint16_t size = htobe16 (properties.str ().size ());
+		s.write ((char *)&size, sizeof (size));
+		s.write (properties.str ().c_str (), properties.str ().size ());
+	}	
+
+	void LocalRouterInfo::SetProperty (const std::string& key, const std::string& value)
+	{
+		m_Properties[key] = value;
+	}
+
+	void LocalRouterInfo::DeleteProperty (const std::string& key)
+	{
+		m_Properties.erase (key);
+	}
+
+	std::string LocalRouterInfo::GetProperty (const std::string& key) const
+	{
+		auto it = m_Properties.find (key);
+		if (it != m_Properties.end ())
+			return it->second;
+		return "";
+	}	
+
+	void LocalRouterInfo::WriteString (const std::string& str, std::ostream& s) const
+	{
+		uint8_t len = str.size ();
+		s.write ((char *)&len, 1);
+		s.write (str.c_str (), len);
 	}	
 }
 }
