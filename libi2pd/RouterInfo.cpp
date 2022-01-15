@@ -99,10 +99,7 @@ namespace data
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			m_Properties.clear ();
 			// copy buffer
-			if (!m_Buffer)
-				m_Buffer = netdb.NewRouterInfoBuffer ();
-			memcpy (m_Buffer->data (), buf, len);
-			m_BufferLen = len;
+			UpdateBuffer (buf, len);
 			// skip identity
 			size_t identityLen = m_RouterIdentity->GetFullLen ();
 			// read new RI
@@ -787,29 +784,6 @@ namespace data
 		return m_Buffer->data ();
 	}
 
-	void RouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
-	{
-		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
-		std::stringstream s;
-		uint8_t ident[1024];
-		auto identLen = privateKeys.GetPublic ()->ToBuffer (ident, 1024);
-		auto signatureLen = privateKeys.GetPublic ()->GetSignatureLen ();
-		s.write ((char *)ident, identLen);
-		WriteToStream (s);
-		m_BufferLen = s.str ().size ();
-		if (!m_Buffer)
-			m_Buffer = netdb.NewRouterInfoBuffer ();
-		if (m_BufferLen + signatureLen < MAX_RI_BUFFER_SIZE)
-		{
-			memcpy (m_Buffer->data (), s.str ().c_str (), m_BufferLen);
-			// signature
-			privateKeys.Sign ((uint8_t *)m_Buffer->data (), m_BufferLen, (uint8_t *)m_Buffer->data () + m_BufferLen);
-			m_BufferLen += signatureLen;
-		}
-		else
-			LogPrint (eLogError, "RouterInfo: Our RouterInfo is too long ", m_BufferLen + signatureLen);
-	}
-
 	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
 		if (!m_Buffer)
@@ -1258,5 +1232,40 @@ namespace data
 			m_SupportedTransports |= transports;
 		}
 	}
+
+	void RouterInfo::UpdateBuffer (const uint8_t * buf, size_t len)
+	{
+		if (!m_Buffer)
+			m_Buffer = netdb.NewRouterInfoBuffer ();
+		if (len > m_Buffer->size ()) len = m_Buffer->size ();
+		memcpy (m_Buffer->data (), buf, len);
+		m_BufferLen = len;
+	}	
+
+	void RouterInfo::RefreshTimestamp ()
+	{
+		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); 
+	}	
+
+	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
+	{
+		RefreshTimestamp ();
+		std::stringstream s;
+		uint8_t ident[1024];
+		auto identLen = privateKeys.GetPublic ()->ToBuffer (ident, 1024);
+		auto signatureLen = privateKeys.GetPublic ()->GetSignatureLen ();
+		s.write ((char *)ident, identLen);
+		WriteToStream (s);
+		size_t len = s.str ().size ();
+		if (len + signatureLen < MAX_RI_BUFFER_SIZE)
+		{
+			UpdateBuffer ((const uint8_t *)s.str ().c_str (), len);
+			// signature
+			privateKeys.Sign (GetBuffer (), len, GetBufferPointer (len));
+			SetBufferLen (len + signatureLen);
+		}
+		else
+			LogPrint (eLogError, "RouterInfo: Our RouterInfo is too long ", len + signatureLen);
+	}	
 }
 }

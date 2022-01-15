@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -163,7 +163,7 @@ namespace garlic
 
 		private:
 
-			i2p::data::RouterInfo m_RouterInfo;
+			i2p::data::LocalRouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor, m_TunnelDecryptor;
 			std::shared_ptr<i2p::garlic::RouterIncomingRatchetSession> m_ECIESSession;

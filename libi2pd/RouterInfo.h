@@ -169,13 +169,12 @@ namespace data
 		
 			typedef std::vector<std::shared_ptr<Address> > Addresses;
 
-			RouterInfo ();
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len);
 			RouterInfo (const uint8_t * buf, size_t len);
-			~RouterInfo ();
+			virtual ~RouterInfo ();
 
 			std::shared_ptr<const IdentityEx> GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
@@ -238,8 +237,7 @@ namespace data
 
 			const uint8_t * GetBuffer () const { return m_Buffer->data (); };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
-			int GetBufferLen () const { return m_BufferLen; };
-			void CreateBuffer (const PrivateKeys& privateKeys);
+			size_t GetBufferLen () const { return m_BufferLen; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; };
@@ -261,13 +259,21 @@ namespace data
 
 			bool IsDestination () const { return false; };
 
+		protected:
+
+			RouterInfo ();
+			uint8_t * GetBufferPointer (size_t offset = 0 ) { return m_Buffer->data () + offset; };
+			void UpdateBuffer (const uint8_t * buf, size_t len);
+			void SetBufferLen (size_t len) { m_BufferLen = len; };
+			void RefreshTimestamp ();
+			void WriteToStream (std::ostream& s) const;
+		
 		private:
 
 			bool LoadFile (const std::string& fullPath);
 			void ReadFromFile (const std::string& fullPath);
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer (bool verifySignature);
-			void WriteToStream (std::ostream& s) const;
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
 			void ExtractCaps (const char * value);
@@ -291,6 +297,14 @@ namespace data
 			int m_Version;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};
+
+	class LocalRouterInfo: public RouterInfo
+	{
+		public:
+
+			LocalRouterInfo () = default;
+			void CreateBuffer (const PrivateKeys& privateKeys);
+	};	
 }
 }
 

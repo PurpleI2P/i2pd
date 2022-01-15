@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -57,7 +57,7 @@ namespace i2p
 
 	void RouterContext::NewRouterInfo ()
 	{
-		i2p::data::RouterInfo routerInfo;
+		i2p::data::LocalRouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (GetIdentity ());
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port)
