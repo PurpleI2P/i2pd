@@ -182,6 +182,7 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
 			virtual void SetProperty (const std::string& key, const std::string& value) {}; 
+			virtual void ClearProperties () {};
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
@@ -302,7 +303,7 @@ namespace data
 			void SetProperty (const std::string& key, const std::string& value) override; 
 			void DeleteProperty (const std::string& key); 
 			std::string GetProperty (const std::string& key) const; 
-			void ClearProperties () { m_Properties.clear (); };
+			void ClearProperties () override { m_Properties.clear (); };
 			
 		private:
 

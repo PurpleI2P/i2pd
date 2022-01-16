@@ -97,6 +97,7 @@ namespace data
 			m_ReachableTransports = 0;
 			m_Caps = 0;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
+			ClearProperties ();
 			// copy buffer
 			UpdateBuffer (buf, len);
 			// skip identity
