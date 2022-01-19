@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -61,6 +61,15 @@ namespace client
 		eI2CPMessageStatusNoLeaseSet = 21
 	};
 
+	enum I2CPSessionStatus
+	{
+		eI2CPSessionStatusDestroyed = 0,
+		eI2CPSessionStatusCreated = 1,
+		eI2CPSessionStatusUpdated = 2,
+		eI2CPSessionStatusInvalid = 3,
+		eI2CPSessionStatusRefused = 4
+	};
+	
 	// params
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
@@ -180,7 +189,7 @@ namespace client
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
 			void ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping);
-			void SendSessionStatusMessage (uint8_t status);
+			void SendSessionStatusMessage (I2CPSessionStatus status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
 
 		private:
@@ -216,6 +225,7 @@ namespace client
 
 			bool InsertSession (std::shared_ptr<I2CPSession> session);
 			void RemoveSession (uint16_t sessionID);
+			std::shared_ptr<I2CPSession> FindSessionByIdentHash (const i2p::data::IdentHash& ident) const;
 
 		private:
 
