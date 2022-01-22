@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1273,6 +1273,11 @@ namespace stream
 			m_IncomingStreams.erase (stream->GetSendStreamID ());
 			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
+		if (m_Streams.empty ())
+		{
+			m_PacketsPool.CleanUp ();
+			m_I2NPMsgsPool.CleanUp ();
+		}	
 	}
 
 	bool StreamingDestination::DeleteStream (uint32_t recvStreamID)
