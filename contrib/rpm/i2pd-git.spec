@@ -32,7 +32,7 @@ Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
 C++ implementation of I2P.
 
 %prep
-%setup -q
+%setup -q -n i2pd-openssl
 
 
 %build
