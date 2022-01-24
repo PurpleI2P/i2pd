@@ -32,7 +32,7 @@ Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
 C++ implementation of I2P.
 
 %prep
-%setup -q -n %{name}%{git_hash}
+%setup -q -n i2pd-openssl
 
 
 %build
@@ -99,14 +99,14 @@ chrpath -d i2pd
 %{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/contrib/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/contrib/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
-%{__install} -D -m 644 %{_builddir}/%{name}%{git_hash}/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
-%{__cp} -r %{_builddir}/%{name}%{git_hash}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
-%{__cp} -r %{_builddir}/%{name}%{git_hash}/contrib/tunnels.d/ %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/contrib/subscriptions.txt %{buildroot}%{_sysconfdir}/i2pd/subscriptions.txt
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/contrib/i2pd.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/i2pd
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/contrib/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+%{__install} -D -m 644 %{_builddir}/i2pd-openssl/debian/i2pd.1 %{buildroot}%{_mandir}/man1/i2pd.1
+%{__cp} -r %{_builddir}/i2pd-openssl/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
+%{__cp} -r %{_builddir}/i2pd-openssl/contrib/tunnels.d/ %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf.d
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
