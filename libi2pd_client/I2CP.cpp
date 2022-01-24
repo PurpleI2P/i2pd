@@ -204,10 +204,16 @@ namespace client
 		}
 		else
 		{
-			outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
-			auto leases = remote->GetNonExpiredLeases ();
+			auto leases = remote->GetNonExpiredLeases (false); // without threshold
+			if (leases.empty ())
+				leases = remote->GetNonExpiredLeases (true); // with threshold
 			if (!leases.empty ())
+			{	
 				remoteLease = leases[rand () % leases.size ()];
+				auto leaseRouter = i2p::data::netdb.FindRouter (remoteLease->tunnelGateway);
+				outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
+					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
+			}	
 			if (remoteLease && outboundTunnel)
 				remoteSession->SetSharedRoutingPath (std::make_shared<i2p::garlic::GarlicRoutingPath> (
 					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0, 0})); // 10 secs RTT
