@@ -122,6 +122,7 @@ namespace client
 			uint64_t m_LeaseSetExpirationTime;
 			bool m_IsCreatingLeaseSet;
 			boost::asio::deadline_timer m_LeaseSetCreationTimer;
+			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};
 
 	class RunnableI2CPDestination: private i2p::util::RunnableService, public I2CPDestination

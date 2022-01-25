@@ -146,7 +146,7 @@ namespace client
 
 	void I2CPDestination::SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce)
 	{
-		auto msg = NewI2NPMessage ();
+		auto msg = m_I2NPMsgsPool.AcquireSharedMt ();
 		uint8_t * buf = msg->GetPayload ();
 		htobe32buf (buf, len);
 		memcpy (buf + 4, payload, len);
