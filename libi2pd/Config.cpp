@@ -203,7 +203,7 @@ namespace config {
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
 			("reseed.urls", value<std::string>()->default_value(
-				"https://reseed.i2p-projekt.de/,"
+				"https://reseed2.i2p.net/,"
 				"https://reseed.diva.exchange/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
