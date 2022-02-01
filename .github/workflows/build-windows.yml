@@ -14,9 +14,9 @@ jobs:
       fail-fast: true
       matrix:
         include: [
-          { msystem: UCRT64,  arch: ucrt,   arch_short: x64-ucrt },
-          { msystem: MINGW64, arch: x86_64, arch_short: x64      },
-          { msystem: MINGW32, arch: i686,   arch_short: x86      }
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64 },
+          { msystem: MINGW32, arch: i686, arch_short: x86 }
         ]
     steps:
     - uses: actions/checkout@v2
