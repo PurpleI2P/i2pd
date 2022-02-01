@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,8 +11,9 @@
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.hpp"
-#include "SSU.h"
+#include "Config.h"
 #include "util.h"
+#include "SSU.h"
 
 #ifdef __linux__
 	#include <linux/in6.h>
@@ -33,7 +34,8 @@ namespace transport
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
 		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6),
 		m_IntroducersUpdateTimer (m_Service), m_IntroducersUpdateTimerV6 (m_Service),
-		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service)
+		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service),
+		m_IsSyncClockFromPeers (true)
 	{
 	}
 
@@ -90,6 +92,7 @@ namespace transport
 
 	void SSUServer::Start ()
 	{
+		i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 		if (context.SupportsV4 ())

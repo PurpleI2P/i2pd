@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -250,5 +250,10 @@ namespace util
 		sprintf(date, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #endif
 	}
+
+	void AdjustTimeOffset (int64_t offset)
+	{
+		g_TimeOffset += offset;
+	}	
 }
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -274,16 +274,7 @@ namespace transport
 		s.Insert (payload, 8); // relayTag and signed on time
 		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
-		if (ourIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting)
-		{
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
-			uint32_t signedOnTime = bufbe32toh(payload);
-			if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
-			{
-				LogPrint (eLogError, "SSU: Clock skew detected ", (int)ts - signedOnTime, ". Check your clock");
-				i2p::context.SetError (eRouterErrorClockSkew);
-			}
-		}
+		uint32_t signedOnTime = bufbe32toh(payload);
 		payload += 4; // signed on time
 		// decrypt signature
 		size_t signatureLen = m_RemoteIdentity->GetSignatureLen ();
@@ -295,6 +286,24 @@ namespace transport
 		// verify signature
 		if (s.Verify (m_RemoteIdentity, payload))
 		{
+			if (ourIP.is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting)
+			{
+				auto ts = i2p::util::GetSecondsSinceEpoch ();
+				int offset = (int)ts - signedOnTime;
+				if (m_Server.IsSyncClockFromPeers ())
+				{
+					if (std::abs (offset) > SSU_CLOCK_THRESHOLD)
+					{
+						LogPrint (eLogWarning, "SSU: Clock adjusted by ", -offset, " seconds");
+						i2p::util::AdjustTimeOffset (-offset);
+					}	
+				}	
+				else if (std::abs (offset) > SSU_CLOCK_SKEW)
+				{
+					LogPrint (eLogError, "SSU: Clock skew detected ", offset, ". Check your clock");
+					i2p::context.SetError (eRouterErrorClockSkew);
+				}
+			}
 			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 			if (!i2p::util::net::IsInReservedRange (ourIP))
 			{

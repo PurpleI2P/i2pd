@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -69,6 +69,7 @@ namespace transport
 			i2p::util::MemoryPool<SentMessage>& GetSentMessagesPool () { return m_SentMessagesPool; };
 
 			uint16_t GetPort () const { return m_Endpoint.port (); };
+			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
@@ -136,6 +137,7 @@ namespace transport
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6,
 				m_PeerTestsCleanupTimer, m_TerminationTimer, m_TerminationTimerV6;
+			bool m_IsSyncClockFromPeers;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
 			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
