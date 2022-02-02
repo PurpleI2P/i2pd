@@ -250,9 +250,7 @@ if(WITH_MESHNET)
   message(WARNING "This build will NOT work on mainline i2p")
 endif()
 
-if(NOT MSYS)
-  include(CheckAtomic)
-endif()
+include(CheckAtomic)
 
 # show summary
 message(STATUS "---------------------------------------")
@@ -306,7 +304,7 @@ if(WITH_BINARY)
   endif()
 
   target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")

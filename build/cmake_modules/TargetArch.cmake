@@ -1,16 +1,30 @@
+# Copyright (c) 2017-2022, The PurpleI2P Project
+# This file is part of Purple i2pd project and licensed under BSD3
+# See full license text in LICENSE file at top of project tree
+
 # Based on the Qt 5 processor detection code, so should be very accurate
-# https://qt.gitorious.org/qt/qtbase/blobs/master/src/corelib/global/qprocessordetection.h
-# Currently handles arm (v5, v6, v7), x86 (32/64), ia64, and ppc (32/64)
+# https://github.com/qt/qtbase/blob/dev/src/corelib/global/qprocessordetection.h
+# Currently handles arm (v5, v6, v7, v8), x86 (32/64), ia64, mips (32/64, mipsel, mips64el) and ppc (32/64)
 
 # Regarding POWER/PowerPC, just as is noted in the Qt source,
 # "There are many more known variants/revisions that we do not handle/detect."
 
 set(archdetect_c_code "
-#if defined(__arm__) || defined(__TARGET_ARCH_ARM)
+#if defined(__arm__) || defined(__TARGET_ARCH_ARM)|| defined(_M_ARM) || defined(_M_ARM64) || defined(__aarch64__) || defined(__ARM64__)
+    #if defined(__ARM64_ARCH_8__) \\
+        || defined(__aarch64__) \\
+        || defined(__ARMv8__) \\
+        || defined(__ARMv8_A__) \\
+        || defined(_M_ARM64) \\
+        || (defined(__TARGET_ARCH_ARM) && __TARGET_ARCH_ARM-0 >= 8)
+        #error cmake_ARCH arm64
     #if defined(__ARM_ARCH_7__) \\
         || defined(__ARM_ARCH_7A__) \\
         || defined(__ARM_ARCH_7R__) \\
         || defined(__ARM_ARCH_7M__) \\
+        || defined(__ARM_ARCH_7S__) \\
+        || defined(_ARM_ARCH_7) \\
+        || defined(__CORE_CORTEXA__) \\
         || (defined(__TARGET_ARCH_ARM) && __TARGET_ARCH_ARM-0 >= 7)
         #error cmake_ARCH armv7
     #elif defined(__ARM_ARCH_6__) \\
@@ -23,6 +37,7 @@ set(archdetect_c_code "
         || (defined(__TARGET_ARCH_ARM) && __TARGET_ARCH_ARM-0 >= 6)
         #error cmake_ARCH armv6
     #elif defined(__ARM_ARCH_5TEJ__) \\
+        || defined(__ARM_ARCH_5TE__) \\
         || (defined(__TARGET_ARCH_ARM) && __TARGET_ARCH_ARM-0 >= 5)
         #error cmake_ARCH armv5
     #else
@@ -34,6 +49,18 @@ set(archdetect_c_code "
     #error cmake_ARCH x86_64
 #elif defined(__ia64) || defined(__ia64__) || defined(_M_IA64)
     #error cmake_ARCH ia64
+#elif defined(__mips) || defined(__mips__) || defined(_M_MRX000)
+    #if defined(_MIPS_ARCH_MIPS64) || defined(__mips64)
+        #if defined(__MIPSEL__)
+            #error cmake_ARCH mips64el
+        #else
+            #error cmake_ARCH mips64
+        #endif
+    #elif defined(__MIPSEL__)
+        #error cmake_ARCH mipsel
+    #else
+        #error cmake_ARCH mips
+    #endif
 #elif defined(__ppc__) || defined(__ppc) || defined(__powerpc__) \\
       || defined(_ARCH_COM) || defined(_ARCH_PWR) || defined(_ARCH_PPC)  \\
       || defined(_M_MPPC) || defined(_M_PPC)
@@ -47,7 +74,7 @@ set(archdetect_c_code "
 #error cmake_ARCH unknown
 ")
 
-# Set ppc_support to TRUE before including this file or ppc and ppc64
+# Set ppc_support to TRUE before including this file on ppc and ppc64
 # will be treated as invalid architectures since they are no longer supported by Apple
 
 function(target_architecture output_var)
@@ -67,12 +94,14 @@ function(target_architecture output_var)
         foreach(osx_arch ${CMAKE_OSX_ARCHITECTURES})
             if("${osx_arch}" STREQUAL "ppc" AND ppc_support)
                 set(osx_arch_ppc TRUE)
+            elseif("${osx_arch}" STREQUAL "ppc64" AND ppc_support)
+                set(osx_arch_ppc64 TRUE)
             elseif("${osx_arch}" STREQUAL "i386")
                 set(osx_arch_i386 TRUE)
             elseif("${osx_arch}" STREQUAL "x86_64")
                 set(osx_arch_x86_64 TRUE)
-            elseif("${osx_arch}" STREQUAL "ppc64" AND ppc_support)
-                set(osx_arch_ppc64 TRUE)
+            elseif("${osx_arch}" STREQUAL "arm64")
+                set(osx_arch_arm64 TRUE)
             else()
                 message(FATAL_ERROR "Invalid OS X arch name: ${osx_arch}")
             endif()
@@ -83,6 +112,10 @@ function(target_architecture output_var)
             list(APPEND ARCH ppc)
         endif()
 
+        if(osx_arch_ppc64)
+            list(APPEND ARCH ppc64)
+        endif()
+
         if(osx_arch_i386)
             list(APPEND ARCH i386)
         endif()
@@ -91,8 +124,8 @@ function(target_architecture output_var)
             list(APPEND ARCH x86_64)
         endif()
 
-        if(osx_arch_ppc64)
-            list(APPEND ARCH ppc64)
+        if(osx_arch_arm64)
+            list(APPEND ARCH arm64)
         endif()
     else()
         file(WRITE "${CMAKE_BINARY_DIR}/arch.c" "${archdetect_c_code}")
