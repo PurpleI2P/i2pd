@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -79,7 +79,7 @@ namespace transport
 		uint64_t receivedFragmentsBits;
 		std::set<std::shared_ptr<Fragment>, FragmentCmp> savedFragments;
 
-		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0),
+		IncompleteMessage (std::shared_ptr<I2NPMessage>&& m): msg (m), nextFragmentNum (0),
 			lastFragmentInsertTime (0), receivedFragmentsBits (0) {};
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};

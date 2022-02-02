@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -176,11 +176,10 @@ namespace transport
 			if (it == m_IncompleteMessages.end ())
 			{
 				// create new message
-				auto msg = (!fragmentNum && fragmentSize > 0 && buf[I2NP_SHORT_HEADER_TYPEID_OFFSET] == eI2NPTunnelData) ?
-					NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
+				auto msg = NewI2NPShortMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID,
-					m_Session.GetServer ().GetIncompleteMessagesPool ().AcquireShared (msg))).first;
+					m_Session.GetServer ().GetIncompleteMessagesPool ().AcquireShared (std::move (msg)))).first;
 			}
 			auto& incompleteMessage = it->second;
 			// mark fragment as received
