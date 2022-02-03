@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -107,7 +107,7 @@ namespace transport
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
-		bool ProcessSessionRequestMessage (uint16_t& paddingLen);
+		bool ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew);
 		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
 		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
