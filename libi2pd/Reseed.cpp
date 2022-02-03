@@ -82,8 +82,9 @@ namespace data
 	 */
 	int Reseeder::ReseedFromServers ()
 	{
-		bool ipv6;	i2p::config::GetOption("ipv6", ipv6);
-		bool ipv4;	i2p::config::GetOption("ipv4", ipv4);
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		bool yggdrasil; i2p::config::GetOption("meshnets.yggdrasil", yggdrasil);
 
 		std::vector<std::string> httpsReseedHostList;
 		if (ipv4 || ipv6)
@@ -94,7 +95,7 @@ namespace data
 		}
 
 		std::vector<std::string> yggReseedHostList;
-		if (!i2p::util::net::GetYggdrasilAddress ().is_unspecified ())
+		if (yggdrasil && !i2p::util::net::GetYggdrasilAddress ().is_unspecified ())
 		{
 			LogPrint (eLogInfo, "Reseed: Yggdrasil is supported");
 			std::string yggReseedURLs; i2p::config::GetOption("reseed.yggurls", yggReseedURLs);
