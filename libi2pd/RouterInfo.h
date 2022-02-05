@@ -113,22 +113,16 @@ namespace data
 				std::vector<Introducer> introducers;
 			};
 
-			struct NTCP2Ext
-			{
-				Tag<32> staticKey;
-				Tag<16> iv;
-			};
-
 			struct Address
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
+				Tag<32> s, i; // keys, i is first 16 bytes for NTCP2 
 				int port;
 				uint64_t date;
 				uint8_t caps;
 				bool published = false;
 				std::unique_ptr<SSUExt> ssu; // not null for SSU
-				std::unique_ptr<NTCP2Ext> ntcp2; // not null for NTCP2
 
 				bool IsCompatible (const boost::asio::ip::address& other) const
 				{
@@ -147,7 +141,7 @@ namespace data
 					return !(*this == other);
 				}
 
-				bool IsNTCP2 () const { return (bool)ntcp2; };
+				bool IsNTCP2 () const { return  transportStyle == eTransportNTCP; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (published || !ssu->introducers.empty ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };

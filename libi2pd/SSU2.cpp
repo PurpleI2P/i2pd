@@ -21,8 +21,7 @@ namespace transport
 		if (in_RemoteRouter && addr)
 		{
 			// outgoing
-			if (addr->ntcp2) // TODO: should be SSU
-				InitNoiseXKState1 (*m_NoiseState, addr->ntcp2->staticKey);
+			InitNoiseXKState1 (*m_NoiseState, addr->s);
 		}	
 	}
 	

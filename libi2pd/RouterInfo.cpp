@@ -220,10 +220,7 @@ namespace data
 			char transportStyle[6];
 			ReadString (transportStyle, 6, s);
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
-			{
 				address->transportStyle = eTransportNTCP;
-				address->ntcp2.reset (new NTCP2Ext ());
-			}
 			else if (!strcmp (transportStyle, "SSU"))
 			{
 				address->transportStyle = eTransportSSU;
@@ -271,12 +268,12 @@ namespace data
 					address->caps = ExtractAddressCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 static key
 				{
-					Base64ToByteStream (value, strlen (value), address->ntcp2->staticKey, 32);
+					Base64ToByteStream (value, strlen (value), address->s, 32);
 					isStaticKey = true;
 				}
 				else if (!strcmp (key, "i")) // ntcp2 iv
 				{
-					Base64ToByteStream (value, strlen (value), address->ntcp2->iv, 16);
+					Base64ToByteStream (value, strlen (value), address->i, 16);
 					address->published = true; // presence if "i" means "published"
 				}
 				else if (key[0] == 'i')
@@ -614,10 +611,9 @@ namespace data
 		addr->transportStyle = eTransportNTCP;
 		addr->caps = caps;
 		addr->date = 0;
-		addr->ntcp2.reset (new NTCP2Ext ());
 		if (port) addr->published = true;
-		memcpy (addr->ntcp2->staticKey, staticKey, 32);
-		memcpy (addr->ntcp2->iv, iv, 16);
+		memcpy (addr->s, staticKey, 32);
+		memcpy (addr->i, iv, 16);
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eNTCP2V4;
@@ -845,7 +841,7 @@ namespace data
 		return GetAddress (
 			[key](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return address->IsNTCP2 () && !memcmp (address->ntcp2->staticKey, key, 32);
+				return address->IsNTCP2 () && !memcmp (address->s, key, 32);
 			});
 	}
 
@@ -1197,7 +1193,7 @@ namespace data
 			{
 				// publish i for NTCP2
 				WriteString ("i", properties); properties << '=';
-				WriteString (address.ntcp2->iv.ToBase64 (), properties); properties << ';';
+				WriteString (address.i.ToBase64 (16), properties); properties << ';';
 			}
 
 			if (isPublished || address.ssu)
@@ -1211,7 +1207,7 @@ namespace data
 			{
 				// publish s and v for NTCP2
 				WriteString ("s", properties); properties << '=';
-				WriteString (address.ntcp2->staticKey.ToBase64 (), properties); properties << ';';
+				WriteString (address.s.ToBase64 (), properties); properties << ';';
 				WriteString ("v", properties); properties << '=';
 				WriteString ("2", properties); properties << ';';
 			}

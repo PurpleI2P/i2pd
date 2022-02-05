@@ -265,7 +265,7 @@ namespace i2p
 					}
 					if (port) address->port = port;
 					address->published = publish;
-					address->ntcp2->iv = m_NTCP2Keys->iv;
+					memcpy (address->i, m_NTCP2Keys->iv, 16);
 					updated = true;
 				}
 			}

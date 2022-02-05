@@ -339,8 +339,8 @@ namespace transport
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
 			if (addr)
 			{
-				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
-				memcpy (m_Establisher->m_IV, addr->ntcp2->iv, 16);
+				memcpy (m_Establisher->m_RemoteStaticKey, addr->s, 32);
+				memcpy (m_Establisher->m_IV, addr->i, 16);
 				m_RemoteEndpoint = boost::asio::ip::tcp::endpoint (addr->host, addr->port);
 			}
 			else
