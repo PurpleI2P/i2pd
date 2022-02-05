@@ -27,6 +27,11 @@ namespace transport
 			SSU2Session (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr, bool peerTest = false);
 			~SSU2Session ();
+
+		private:
+
+			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
+			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
 	};
 }
 }
