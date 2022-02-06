@@ -260,7 +260,7 @@ namespace data
 				else if (!strcmp (key, "key"))
 				{
 					if (address->ssu)
-						isIntroKey = (Base64ToByteStream (value, strlen (value), address->ssu->key, 32) == 32);
+						isIntroKey = (Base64ToByteStream (value, strlen (value), address->i, 32) == 32);
 					else
 						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP");
 				}
@@ -592,9 +592,9 @@ namespace data
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = mtu;
 		if (key)
-			memcpy (addr->ssu->key, key, 32);
+			memcpy (addr->i, key, 32);
 		else
-			RAND_bytes (addr->ssu->key, 32);
+			RAND_bytes (addr->i, 32);
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
@@ -1175,7 +1175,7 @@ namespace data
 				WriteString ("key", properties);
 				properties << '=';
 				char value[64];
-				size_t l = ByteStreamToBase64 (address.ssu->key, 32, value, 64);
+				size_t l = ByteStreamToBase64 (address.i, 32, value, 64);
 				value[l] = 0;
 				WriteString (value, properties);
 				properties << ';';

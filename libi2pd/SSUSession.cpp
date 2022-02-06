@@ -31,7 +31,7 @@ namespace transport
 		{
 			// we are client
 			auto address = IsV6 () ? router->GetSSUV6Address () : router->GetSSUAddress (true);
-			if (address) m_IntroKey = address->ssu->key;
+			if (address) m_IntroKey = address->i;
 			m_Data.AdjustPacketSize (router); // mtu
 		}
 		else
@@ -39,7 +39,7 @@ namespace transport
 			// we are server
 			auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
 				i2p::context.GetRouterInfo ().GetSSUAddress (true);
-			if (address) m_IntroKey = address->ssu->key;
+			if (address) m_IntroKey = address->i;
 		}
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -127,8 +127,8 @@ namespace transport
 						LogPrint (eLogInfo, "SSU: SSU is not supported");
 						return;
 					}
-					if (Validate (buf, len, address->ssu->key))
-						Decrypt (buf, len, address->ssu->key);
+					if (Validate (buf, len, address->i))
+						Decrypt (buf, len, address->i);
 					else
 					{
 						LogPrint (eLogWarning, "SSU: MAC verification failed ", len, " bytes from ", senderEndpoint);
@@ -436,7 +436,7 @@ namespace transport
 		payload += 2;
 		*payload = 0; // challenge
 		payload++;
-		memcpy (payload, (const uint8_t *)address->ssu->key, 32);
+		memcpy (payload, (const uint8_t *)address->i, 32);
 		payload += 32;
 		htobe32buf (payload, nonce); // nonce
 
@@ -1183,7 +1183,7 @@ namespace transport
 			auto addr = address.is_v4 () ? i2p::context.GetRouterInfo ().GetSSUAddress (true) : // ipv4
 				i2p::context.GetRouterInfo ().GetSSUV6Address ();
 			if (addr)
-				memcpy (payload, addr->ssu->key, 32); // intro key
+				memcpy (payload, addr->i, 32); // intro key
 			else
 				LogPrint (eLogInfo, "SSU: SSU is not supported. Can't send peer test");
 		}
@@ -1222,7 +1222,7 @@ namespace transport
 		if (!nonce) nonce = 1;
 		m_IsPeerTest = false;
 		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1, shared_from_this ());
-		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->ssu->key, false, false); // address and port always zero for Alice
+		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->i, false, false); // address and port always zero for Alice
 	}
 
 	void SSUSession::SendKeepAlive ()

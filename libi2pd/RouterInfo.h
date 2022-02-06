@@ -109,7 +109,6 @@ namespace data
 			struct SSUExt
 			{
 				int mtu;
-				IntroKey key; // intro key for SSU
 				std::vector<Introducer> introducers;
 			};
 
@@ -117,7 +116,7 @@ namespace data
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
-				Tag<32> s, i; // keys, i is first 16 bytes for NTCP2 
+				Tag<32> s, i; // keys, i is first 16 bytes for NTCP2 and 32 bytes intro key for SSU
 				int port;
 				uint64_t date;
 				uint8_t caps;
