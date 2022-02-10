@@ -124,7 +124,7 @@ namespace util
 
 	void SetThreadName (const char *name) {
 #if defined(__APPLE__)
-		pthread_setname_np(name);
+		pthread_setname_np((char*)name);
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
 #elif defined(__NetBSD__)
@@ -384,30 +384,36 @@ namespace net
 			return boost::asio::ip::address::from_string("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
-		ifaddrs *addrs, *cur = nullptr;
-		if(getifaddrs(&addrs) == 0)
+		ifaddrs *addrs;
+		try
 		{
-			// got ifaddrs
-			cur = addrs;
-			while(cur)
+			ifaddrs *addrs;
+			if (!getifaddrs(&addrs))
 			{
-				std::string cur_ifname(cur->ifa_name);
-				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
+				for (auto cur = addrs; cur; cur = cur->ifa_next)
 				{
-					// match
-					char addr[INET6_ADDRSTRLEN];
-					memset (addr, 0, INET6_ADDRSTRLEN);
-					if(af == AF_INET)
-						inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
-					else
-						inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
-					freeifaddrs(addrs);
-					std::string cur_ifaddr(addr);
-					return boost::asio::ip::address::from_string(cur_ifaddr);
+					std::string cur_ifname(cur->ifa_name);
+					if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
+					{
+						// match
+						char addr[INET6_ADDRSTRLEN];
+						memset (addr, 0, INET6_ADDRSTRLEN);
+						if(af == AF_INET)
+							inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
+						else
+							inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
+						freeifaddrs(addrs);
+						std::string cur_ifaddr(addr);
+						return boost::asio::ip::address::from_string(cur_ifaddr);
+					}
 				}
-				cur = cur->ifa_next;
 			}
 		}
+		catch (std::exception& ex)
+		{
+			LogPrint(eLogError, "NetIface: Exception while searching address using ifaddr: ", ex);
+		}
+
 		if(addrs) freeifaddrs(addrs);
 		std::string fallback;
 		if(ipv6)
@@ -483,26 +489,30 @@ namespace net
 		FREE(pAddresses);
 		return boost::asio::ip::address_v6 ();
 #else
-		ifaddrs *addrs, *cur = nullptr;
-		auto err = getifaddrs(&addrs);
-		if (!err)
+		ifaddrs *addrs;
+		try
 		{
-			cur = addrs;
-			while(cur)
+			if (!getifaddrs(&addrs))
 			{
-				if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
+				for (auto cur = addrs; cur; cur = cur->ifa_next)
 				{
-					sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
-					if (IsYggdrasilAddress(sa->sin6_addr.s6_addr))
+					if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET6)
 					{
-						boost::asio::ip::address_v6::bytes_type bytes;
-						memcpy (bytes.data (), &sa->sin6_addr, 16);
-						freeifaddrs(addrs);
-						return boost::asio::ip::address_v6 (bytes);
+						sockaddr_in6* sa = (sockaddr_in6*)cur->ifa_addr;
+						if (IsYggdrasilAddress(sa->sin6_addr.s6_addr))
+						{
+							boost::asio::ip::address_v6::bytes_type bytes;
+							memcpy (bytes.data (), &sa->sin6_addr, 16);
+							freeifaddrs(addrs);
+							return boost::asio::ip::address_v6 (bytes);
+						}
 					}
 				}
-				cur = cur->ifa_next;
 			}
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint(eLogError, "NetIface: Exception while searching Yggdrasill address using ifaddr: ", ex);
 		}
 		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
 		if(addrs) freeifaddrs(addrs);
