@@ -387,7 +387,6 @@ namespace net
 		ifaddrs *addrs;
 		try
 		{
-			ifaddrs *addrs;
 			if (!getifaddrs(&addrs))
 			{
 				for (auto cur = addrs; cur; cur = cur->ifa_next)
