@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -185,10 +185,7 @@ namespace data
 		if (InCount && !m)
 			outCount = 3 * n;
 		else
-		{
-			outCount = 0;
 			return 0;
-		}
 
 		ps = (unsigned char *)(InBuffer + InCount - 1);
 		while ( *ps-- == P64 )
@@ -196,7 +193,7 @@ namespace data
 		ps = (unsigned char *)InBuffer;
 
 		if (outCount > len)
-			return -1;
+			return 0;
 
 		pd = OutBuffer;
 		auto endOfOutBuffer = OutBuffer + outCount;
