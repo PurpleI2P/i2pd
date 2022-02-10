@@ -410,7 +410,7 @@ namespace net
 		}
 		catch (std::exception& ex)
 		{
-			LogPrint(eLogError, "NetIface: Exception while searching address using ifaddr: ", ex);
+			LogPrint(eLogError, "NetIface: Exception while searching address using ifaddr: ", ex.what());
 		}
 
 		if(addrs) freeifaddrs(addrs);
@@ -511,7 +511,7 @@ namespace net
 		}
 		catch (std::exception& ex)
 		{
-			LogPrint(eLogError, "NetIface: Exception while searching Yggdrasill address using ifaddr: ", ex);
+			LogPrint(eLogError, "NetIface: Exception while searching Yggdrasill address using ifaddr: ", ex.what());
 		}
 		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
 		if(addrs) freeifaddrs(addrs);
