@@ -123,7 +123,7 @@ namespace util
 	}
 
 	void SetThreadName (const char *name) {
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(__powerpc__)
 		pthread_setname_np((char*)name);
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
