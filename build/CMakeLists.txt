@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 2.8.12)
-# this addresses CMP0059 with CMake > 3.3 for PCH flags
-cmake_policy(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.7)
+cmake_policy(VERSION 3.7)
 project("i2pd")
 
 # for debugging
@@ -18,7 +17,6 @@ option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
 option(WITH_STATIC          "Static build"                            OFF)
 option(WITH_UPNP            "Include support for UPnP client"         OFF)
-option(WITH_PCH             "Use precompiled header"                  OFF)
 option(WITH_MESHNET         "Build for cjdns test network"            OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
@@ -200,21 +198,6 @@ else()
   add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif()
 
-if(WITH_PCH)
-  include_directories(BEFORE ${CMAKE_BINARY_DIR})
-  add_library(stdafx STATIC "${LIBI2PD_SRC_DIR}/stdafx.cpp")
-  string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
-  get_directory_property(DEFS DEFINITIONS)
-  string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
-  add_custom_command(TARGET stdafx PRE_BUILD
-    COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libi2pd/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
-  )
-  target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
-  target_compile_options(libi2pdclient PRIVATE -include libi2pd/stdafx.h)
-  target_compile_options(libi2pdlang PRIVATE -include libi2pd/stdafx.h)
-  target_link_libraries(libi2pd stdafx)
-endif()
-
 target_link_libraries(libi2pdclient libi2pd libi2pdlang)
 
 find_package(Boost COMPONENTS system filesystem program_options date_time REQUIRED)
@@ -227,7 +210,7 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
-if(OPENSSL_VERSION_MAJOR MATCHES "3")
+if(OPENSSL_VERSION VERSION_GREATER_EQUAL "3.0.0")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
@@ -271,7 +254,6 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
-message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
@@ -282,10 +264,6 @@ if(WITH_BINARY)
 
   if(WITH_STATIC)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
-  endif()
-
-  if(WITH_PCH)
-    target_compile_options("${PROJECT_NAME}" PRIVATE -include libi2pd/stdafx.h)
   endif()
 
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
