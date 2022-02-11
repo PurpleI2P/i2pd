@@ -227,6 +227,10 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
+if(OPENSSL_VERSION_MAJOR MATCHES "3")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+endif()
+
 if(WITH_UPNP)
   find_package(MiniUPnPc REQUIRED)
   if(NOT MINIUPNPC_FOUND)
