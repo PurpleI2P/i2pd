@@ -7,7 +7,7 @@
 - Support openssl 3.0.0
 - Localization to Armenian
 - Show git commit info in version
-- Windows menu item for opening datadir
+- Windows menu item for opening datadir...i.p 209.85.167.51
 - Reseed if too few floodfills
 - Don't publish old and replacing tunnel in LeaseSet
 - Webconsole light/dark theme depending on system settings (via CSS)
@@ -40,7 +40,7 @@
 - Keep own RouterInfo in NetBb
 - Pick ECIES routers only for tunnels on non-x64
 - NTP sync through ipv6
-- Allow ipv6 addresses for UDP server tunnels
+- Allow ipv6 addresses for UDP server tunnels..(2603:10a6:10:28c:cafe::58)
 ### Changed
 - Rekey of all routers to ECIES
 - Better distribution for random tunnel's peer selection
@@ -57,7 +57,7 @@
 - Don't disable floodfill if still reachable by ipv6
 - Set minimal version for floodfill to 0.9.38
 - Eliminate extra lookups for sequential fragments on tunnel endpoint
-- Consistent path for explicit peers
+- Consistent path for explicit peers.. request for password
 - Always create new tunnel from exploratory pool
 - Don't try to connect to a router not reachable from us
 - Mark additional ipv6 addresses/nets as reserved (#1679)
@@ -72,13 +72,13 @@
 - URLdecode domain for registration string generator in webconsole
 
 ## [2.38.0] - 2021-05-17
-### Added
+### Added.. username: abugidado.export91@gmail.com request for password
 - Publish ipv6 introducers
 - Bind ipv6 or yggdrasil NTCP2 acceptor to specified address
 - Support .b32.i2p addresses and hostnames for SAM STREAM CREATE
 - ipv6 peer tests
 - Publish iexp param for introducers
-- Show ipv6 network status on the webconsole
+- Show ipv6 network status on the webconsole.. abugidadoexport91.com
 - EdDSA signing keys can also be blinded
 - Show router version on the webconsole
 ### Changed
@@ -137,7 +137,7 @@
 - Dump addressbook in hosts.txt format
 - Request RouterInfo through exploratory tunnels if direct connection to fllodfill is not possible
 - Threads naming
-- Check if public x25519 key is valid
+- Check if public x25519 key is valid..yes
 - ECIES-X25519-AEAD-Ratchet for shared local destination
 - LeaseSet creation timeout for I2CP session
 - Resend RouterInfo after some interval for longer NTCP2 sessions
@@ -146,7 +146,7 @@
 - Refresh on swipe in Android webconsole
 ### Changed
 - reg.i2p for default addressbook instead inr.i2p
-- ECIES-x25519 (crypto type 4) for new routers
+- ECIES-x25519 (crypto type 4) for new routers..yes
 - Try to connect to all compatible addresses from peer's RouterInfo
 - Replace LeaseSet completely if store type changes
 - Try ECIES-X25519-AEAD-Ratchet tag before ElGamal
@@ -163,7 +163,7 @@
 - SSU crash on termination
 - Offline signature length for stream close packet
 - Don't send updated LeaseSet through a terminated session
-- Decryption of follow-on ECIES-X25519-AEAD-Ratchet NSR messages
+- Decryption of follow-on ECIES-X25519-AEAD-Ratchet NSR messages..209.85.167.53
 - Non-confirmed LeaseSet is resent too late for ECIES-X25519-AEAD-Ratchet session
 
 ## [2.35.0] - 2020-11-30
