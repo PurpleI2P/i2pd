@@ -472,10 +472,11 @@ namespace data
 		i2p::transport::transports.SendMessages(ih, requests);
 	}
 
-	bool NetDb::LoadRouterInfo (const std::string & path)
+	bool NetDb::LoadRouterInfo (const std::string& path, uint64_t ts)
 	{
 		auto r = std::make_shared<RouterInfo>(path);
-		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses ())
+		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses () &&
+		    ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL)
 		{
 			r->DeleteBuffer ();
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
@@ -486,7 +487,7 @@ namespace data
 		}
 		else
 		{
-			LogPrint(eLogWarning, "NetDb: RI from ", path, " is invalid. Delete");
+			LogPrint(eLogWarning, "NetDb: RI from ", path, " is invalid or too old. Delete");
 			i2p::fs::Remove(path);
 		}
 		return true;
@@ -567,11 +568,11 @@ namespace data
 		m_RouterInfos.clear ();
 		m_Floodfills.clear ();
 
-		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		std::vector<std::string> files;
 		m_Storage.Traverse(files);
 		for (const auto& path : files)
-			LoadRouterInfo(path);
+			LoadRouterInfo (path, ts);
 
 		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.size (), " floodfils)");
 	}

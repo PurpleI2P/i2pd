@@ -42,6 +42,7 @@ namespace data
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
+	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
@@ -128,7 +129,7 @@ namespace data
 		private:
 
 			void Load ();
-			bool LoadRouterInfo (const std::string & path);
+			bool LoadRouterInfo (const std::string& path, uint64_t ts);
 			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
@@ -155,7 +156,6 @@ namespace data
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 
 			bool m_IsRunning;
-			uint64_t m_LastLoad;
 			std::thread * m_Thread;
 			i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
