@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 // initialization start and stop
-void C_InitI2P (int argc, char argv[], const char * appName);
+void C_InitI2P (int argc, char *argv[], const char * appName);
 //void C_InitI2P (int argc, char** argv, const char * appName);
 void C_TerminateI2P ();
 void C_StartI2P ();
