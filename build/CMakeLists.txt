@@ -97,7 +97,7 @@ if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
 endif()
 
-if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+if(APPLE)
   add_definitions(-DMAC_OSX)
 endif()
 
