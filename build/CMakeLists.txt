@@ -97,6 +97,10 @@ if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
 endif()
 
+if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+  add_definitions(-DMAC_OSX)
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
 # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
