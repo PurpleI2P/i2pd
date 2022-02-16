@@ -263,6 +263,10 @@ message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
 
+if(WITH_MESHNET)
+  message(STATUS "WARNING: Using the MESHNET option will make it impossible to use the application with the main network!!!")
+endif()
+
 if(WITH_BINARY)
   add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
 
