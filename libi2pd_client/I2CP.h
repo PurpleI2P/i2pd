@@ -142,9 +142,7 @@ namespace client
 	{
 		public:
 
-			typedef boost::asio::ip::tcp proto;
-
-			I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket);
+			I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
 			~I2CPSession ();
 
@@ -192,7 +190,7 @@ namespace client
 		private:
 
 			I2CPServer& m_Owner;
-			std::shared_ptr<proto::socket> m_Socket;
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			uint8_t m_Header[I2CP_HEADER_SIZE], m_Payload[I2CP_MAX_MESSAGE_LENGTH];
 			size_t m_PayloadLen;
 
@@ -230,7 +228,7 @@ namespace client
 
 			void Accept ();
 
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<I2CPSession::proto::socket> socket);
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
 		private:
 
@@ -238,7 +236,7 @@ namespace client
 			I2CPMessageHandler m_MessagesHandlers[256];
 			std::map<uint16_t, std::shared_ptr<I2CPSession> > m_Sessions;
 
-			I2CPSession::proto::acceptor m_Acceptor;
+			boost::asio::ip::tcp::acceptor m_Acceptor;
 
 		public:
 
