@@ -142,11 +142,7 @@ namespace client
 	{
 		public:
 
-#ifdef ANDROID
-			typedef boost::asio::local::stream_protocol proto;
-#else
 			typedef boost::asio::ip::tcp proto;
-#endif
 
 			I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket);
 
