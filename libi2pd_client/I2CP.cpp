@@ -939,11 +939,7 @@ namespace client
 	I2CPServer::I2CPServer (const std::string& interface, int port, bool isSingleThread):
 		RunnableService ("I2CP"), m_IsSingleThread (isSingleThread),
 		m_Acceptor (GetIOService (),
-#ifdef ANDROID
-			I2CPSession::proto::endpoint(std::string (1, '\0') + interface)) // leading 0 for abstract address
-#else
-			I2CPSession::proto::endpoint(boost::asio::ip::address::from_string(interface), port))
-#endif
+		I2CPSession::proto::endpoint(boost::asio::ip::address::from_string(interface), port))
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
