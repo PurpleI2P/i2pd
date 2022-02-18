@@ -1393,9 +1393,9 @@ namespace http {
 		m_IsRunning = false;
 
 		boost::system::error_code ec;
-		m_Acceptor.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+		m_Acceptor.cancel(ec);
 		if (ec)
-			LogPrint (eLogDebug, "HTTPServer: Couldn't shutdown acceptor: ", ec.message ());
+			LogPrint (eLogDebug, "HTTPServer: Error while cancelling operations on acceptor: ", ec.message ());
 		m_Acceptor.close();
 
 		m_Service.stop ();
