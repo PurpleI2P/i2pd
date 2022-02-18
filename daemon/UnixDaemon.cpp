@@ -73,6 +73,7 @@ namespace i2p
 				if (pid < 0) // error
 				{
 					LogPrint(eLogError, "Daemon: Could not fork: ", strerror(errno));
+					std::cerr << "i2pd: Could not fork: " << strerror(errno) << std::endl;
 					return false;
 				}
 
@@ -82,12 +83,14 @@ namespace i2p
 				if (sid < 0)
 				{
 					LogPrint(eLogError, "Daemon: Could not create process group.");
+					std::cerr << "i2pd: Could not create process group." << std::endl;
 					return false;
 				}
 				std::string d = i2p::fs::GetDataDir();
 				if (chdir(d.c_str()) != 0)
 				{
 					LogPrint(eLogError, "Daemon: Could not chdir: ", strerror(errno));
+					std::cerr << "i2pd: Could not chdir: " << strerror(errno) << std::endl;
 					return false;
 				}
 
@@ -144,6 +147,7 @@ namespace i2p
 				if (pidFH < 0)
 				{
 					LogPrint(eLogError, "Daemon: Could not create pid file ", pidfile, ": ", strerror(errno));
+					std::cerr << "i2pd: Could not create pid file " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
 
@@ -151,6 +155,7 @@ namespace i2p
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
 				{
 					LogPrint(eLogError, "Daemon: Could not lock pid file ", pidfile, ": ", strerror(errno));
+					std::cerr << "i2pd: Could not lock pid file " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
 #endif
@@ -159,7 +164,8 @@ namespace i2p
 				ftruncate(pidFH, 0);
 				if (write(pidFH, pid, strlen(pid)) < 0)
 				{
-					LogPrint(eLogError, "Daemon: Could not write pidfile: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not write pidfile ", pidfile, ": ", strerror(errno));
+					std::cerr << "i2pd: Could not write pidfile " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
 			}
