@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1391,7 +1391,13 @@ namespace http {
 	void HTTPServer::Stop ()
 	{
 		m_IsRunning = false;
+
+		boost::system::error_code ec;
+		m_Acceptor.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+		if (ec)
+			LogPrint (eLogDebug, "HTTPServer: Couldn't shutdown acceptor: ", ec.message ());
 		m_Acceptor.close();
+
 		m_Service.stop ();
 		if (m_Thread)
 		{
@@ -1427,15 +1433,13 @@ namespace http {
 	void HTTPServer::HandleAccept(const boost::system::error_code& ecode,
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		if (ecode)
+		if (!ecode)
+			CreateConnection(newSocket);
+		else
 		{
 			if(newSocket) newSocket->close();
-			LogPrint(eLogError, "HTTP Server: Error handling accept ", ecode.message());
-			if(ecode != boost::asio::error::operation_aborted)
-				Accept();
-			return;
+			LogPrint(eLogError, "HTTP Server: Error handling accept: ", ecode.message());
 		}
-		CreateConnection(newSocket);
 		Accept ();
 	}
 
