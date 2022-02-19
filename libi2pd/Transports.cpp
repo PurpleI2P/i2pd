@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -588,6 +588,7 @@ namespace transport
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
 			std::set<i2p::data::IdentHash> excluded;
+			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -614,6 +615,7 @@ namespace transport
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
 			std::set<i2p::data::IdentHash> excluded;
+			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
