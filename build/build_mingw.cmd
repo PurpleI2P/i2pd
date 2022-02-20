@@ -12,13 +12,12 @@ REM UCRT64: mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-openssl mingw-w64-
 REM MINGW32: mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-gcc
 
 REM setting up variables for MSYS
-REM Note: if you installed MSYS64 to different path, edit WD variable (only C:\msys64 needed to edit)!
-set "WD=C:\msys64\usr\bin\"
+REM Note: if you installed MSYS64 to different path, edit WD variable (only C:\msys64 needed to edit)
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=enabled_from_arguments
-REM set MSYSTEM=MSYS
 set MSYSTEM=MINGW32
 
+set "WD=C:\msys64\usr\bin\"
 set "xSH=%WD%bash -lc"
 
 set "FILELIST=i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates contrib/tunnels.d contrib/webconsole"
@@ -55,12 +54,12 @@ REM converting configuration files to DOS format (make usable in Windows Notepad
 REM Prepare binary signing command if signing key and password provided
 if defined SIGNKEY (
   if defined SIGNPASS (
-    echo Signing options found^^!
+    echo Signing options found
 
     for %%X in (signtool.exe) do (set xSIGNTOOL=%%~$PATH:X)
     if not defined xSIGNTOOL (
       if not defined SIGNTOOL (
-        echo Error: Can't find signtool^^! Please provide path to binary using SIGNTOOL variable^^!
+        echo Error: Can't find signtool. Please provide path to binary using SIGNTOOL variable.
         exit /b 1
       ) else (
         set "xSIGNTOOL=%SIGNTOOL%"
@@ -80,15 +79,10 @@ set MSYSTEM=UCRT64
 set bitness=64
 call :BUILDING
 
-if exist C:\msys64-xp\ (
-  REM building for WinXP
-  set "WD=C:\msys64-xp\usr\bin\"
-  set MSYSTEM=MINGW32
-  set bitness=32
-  set "xSH=%WD%bash -lc"
-  call :BUILDING_XP
-  echo.
-)
+REM build for Windows XP
+if exist C:\msys64-xp\ ( call :BUILDING_XP )
+
+echo.
 
 REM compile installer
 echo Building installer...
@@ -125,6 +119,11 @@ REM Clean work directory
 goto EOF
 
 :BUILDING_XP
+set MSYSTEM=MINGW32
+set bitness=32
+set "WD=C:\msys64-xp\usr\bin\"
+set "xSH=%WD%bash -lc"
+
 %xSH% "make clean" >> nul
 echo Building i2pd %tag% for winxp...
 %xSH% "make DEBUG=no USE_UPNP=yes USE_WINXP_FLAGS=yes -j%threads%" > build\build_winxp_%tag%.log 2>&1
@@ -139,5 +138,6 @@ REM Copy binary for installer and create distribution archive
 
 REM Clean work directory
 %xSH% "make clean" >> build\build_winxp_%tag%.log 2>&1
+goto EOF
 
 :EOF

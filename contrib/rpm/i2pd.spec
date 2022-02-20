@@ -143,7 +143,7 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Mon Feb 21 2022 orignal <i2porignal@yandex.ru> - 2.41.0
+* Sun Feb 20 2022 r4sas <r4sas@i2pmail.org> - 2.41.0
 - update to 2.41.0
 
 * Mon Nov 29 2021 orignal <i2porignal@yandex.ru> - 2.40.0

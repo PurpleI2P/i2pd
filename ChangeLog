@@ -1,7 +1,7 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.41.0] - 2022-02-21
+## [2.41.0] - 2022-02-20
 ### Added
 - Clock syncronization through SSU
 - Drop routers older than 6 months on start
@@ -11,21 +11,22 @@
 - Restart webconsole's acceptor in case of exception
 ### Changed
 - Use builtin bitswap for endian on windows
-- Send SessionCreated before connection close if slock skew
+- Send SessionCreated before connection close if clock skew
 - Try another floodfill for publishing if no compatible tunnels found
 - Reduce memory usage for RouterInfo structures
-- Avoid duplicated addresses in RouterInfo. Check presence of netId and version 
+- Avoid duplicated addresses in RouterInfo. Check presence of netId and version
 - Use TCP/IP sockets for I2CP on Android instead local sockets
 - Return uptime as integer in I2PControl
 - Reseed servers list/cerificates
-- Webconsole's dark style colors 
+- Webconsole's dark style colors
 ### Fixed
-- Yggdrasil transport and reseeds on Android
+- Attempt to use Yggdrasil on start on Android
 - Attempts to send peer tests to itself
-- Severe packets drop in SSU 
+- Severe packets drop in SSU
 - Crash on tunnel tests
 - Loading addressbook subscriptions from config
 - Multiple I2CP session to the same destination
+- Build on Apple Silicon
 
 ## [2.40.0] - 2021-11-29
 ### Added
