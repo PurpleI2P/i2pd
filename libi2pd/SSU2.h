@@ -10,6 +10,7 @@
 #define SSU2_H__
 
 #include <memory>
+#include <unordered_map>
 #include "Crypto.h"
 #include "RouterInfo.h"
 #include "TransportSession.h"
@@ -24,7 +25,8 @@ namespace transport
 	{
 		eSSU2SessionRequest = 0
 	};
-	
+
+	class SSU2Server;
 	class SSU2Session: public TransportSession, public std::enable_shared_from_this<SSU2Session>
 	{
 		union Header
@@ -42,7 +44,7 @@ namespace transport
 	
 		public:
 
-			SSU2Session (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
+			SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr, bool peerTest = false);
 			~SSU2Session ();
 
@@ -54,6 +56,7 @@ namespace transport
 		
 		private:
 
+			SSU2Server& m_Server;
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
@@ -64,6 +67,24 @@ namespace transport
 				uint8_t buf[16];
 			} m_HeaderMask;
 	};
+
+	class SSU2Server
+	{
+		public:
+
+			SSU2Server (int port) {};
+			~SSU2Server () {};
+
+			void AddSession (uint64_t connID, std::shared_ptr<SSU2Session> session);
+
+		private:
+
+			void ProcessNextPacket (uint8_t * buf, size_t len);
+			
+		private:
+
+			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
+	};	
 }
 }
 
