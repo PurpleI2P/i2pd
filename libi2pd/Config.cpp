@@ -211,13 +211,15 @@ namespace config {
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
 				"https://i2p.novg.net/,"
-				"https://banana.incognet.io/"
+				"https://banana.incognet.io/,"
+				"https://reseed-pl.i2pd.xyz/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
 				"http://[301:65b9:c7cd:9a36::1]:18801/,"
 				"http://[320:8936:ec1a:31f1::216]/,"
-			    "http://[306:3834:97b9:a00a::1]/"                                                   
+				"http://[306:3834:97b9:a00a::1]/,"
+				"http://[316:f9e0:f22e:a74f::216]/"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
