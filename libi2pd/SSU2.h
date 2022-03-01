@@ -10,7 +10,9 @@
 #define SSU2_H__
 
 #include <memory>
+#include <map>
 #include <unordered_map>
+#include <boost/asio.hpp>
 #include "Crypto.h"
 #include "RouterInfo.h"
 #include "TransportSession.h"
@@ -20,7 +22,9 @@ namespace i2p
 namespace transport
 {
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
-
+	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
+	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
+	
 	enum SSU2MessageType
 	{
 		eSSU2SessionRequest = 0
@@ -35,7 +39,7 @@ namespace transport
 			uint8_t buf[16];
 			struct
 			{
-				uint8_t connID[8];
+				uint64_t connID;
 				uint8_t packetNum[4];
 				uint8_t type;
 				uint8_t flags[3];
@@ -60,7 +64,8 @@ namespace transport
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
-
+			uint64_t m_DestConnID, m_SourceConnID;
+			
 			union 
 			{
 				uint64_t ll[2];
@@ -72,18 +77,27 @@ namespace transport
 	{
 		public:
 
-			SSU2Server (int port) {};
+			SSU2Server (int port);
 			~SSU2Server () {};
 
 			void AddSession (uint64_t connID, std::shared_ptr<SSU2Session> session);
+			void AddPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, std::shared_ptr<SSU2Session> session);
 
-		private:
-
-			void ProcessNextPacket (uint8_t * buf, size_t len);
+			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
+				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
 			
 		private:
 
+			void OpenSocket ();
+			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			
+		private:
+
+			boost::asio::io_service m_Service;
+			boost::asio::ip::udp::socket m_Socket;
+			boost::asio::ip::udp::endpoint m_Endpoint;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
+			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 	};	
 }
 }
