@@ -59,7 +59,7 @@ namespace transport
 
 	void NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetStaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
+		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
@@ -91,7 +91,7 @@ namespace transport
 	void NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::context.GetStaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
+		i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
 		MixKey (inputKeyMaterial);
 	}
 

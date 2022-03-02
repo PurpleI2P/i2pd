@@ -174,17 +174,30 @@ namespace i2p
 
 	void RouterContext::NewNTCP2Keys ()
 	{
-		m_StaticKeys.reset (new i2p::crypto::X25519Keys ());
-		m_StaticKeys->GenerateKeys ();
+		m_NTCP2StaticKeys.reset (new i2p::crypto::X25519Keys ());
+		m_NTCP2StaticKeys->GenerateKeys ();
 		m_NTCP2Keys.reset (new NTCP2PrivateKeys ());
-		m_StaticKeys->GetPrivateKey (m_NTCP2Keys->staticPrivateKey);
-		memcpy (m_NTCP2Keys->staticPublicKey, m_StaticKeys->GetPublicKey (), 32);
+		m_NTCP2StaticKeys->GetPrivateKey (m_NTCP2Keys->staticPrivateKey);
+		memcpy (m_NTCP2Keys->staticPublicKey, m_NTCP2StaticKeys->GetPublicKey (), 32);
 		RAND_bytes (m_NTCP2Keys->iv, 16);
 		// save
 		std::ofstream fk (i2p::fs::DataDirPath (NTCP2_KEYS), std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)m_NTCP2Keys.get (), sizeof (NTCP2PrivateKeys));
 	}
 
+	void RouterContext::NewSSU2Keys ()
+	{
+		m_SSU2StaticKeys.reset (new i2p::crypto::X25519Keys ());
+		m_SSU2StaticKeys->GenerateKeys ();
+		m_SSU2Keys.reset (new SSU2PrivateKeys ());
+		m_SSU2StaticKeys->GetPrivateKey (m_SSU2Keys->staticPrivateKey);
+		memcpy (m_SSU2Keys->staticPublicKey, m_SSU2StaticKeys->GetPublicKey (), 32);
+		RAND_bytes (m_SSU2Keys->intro, 32);
+		// save
+		std::ofstream fk (i2p::fs::DataDirPath (SSU2_KEYS), std::ofstream::binary | std::ofstream::out);
+		fk.write ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
+	}
+		
 	void RouterContext::SetStatus (RouterStatus status)
 	{
 		if (status != m_Status)
@@ -910,17 +923,31 @@ namespace i2p
 		return DecryptECIESTunnelBuildRecord (encrypted, data, SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE);
 	}
 
-	i2p::crypto::X25519Keys& RouterContext::GetStaticKeys ()
+	i2p::crypto::X25519Keys& RouterContext::GetNTCP2StaticKeys ()
 	{
-		if (!m_StaticKeys)
+		if (!m_NTCP2StaticKeys)
 		{
 			if (!m_NTCP2Keys) NewNTCP2Keys ();
 			auto x = new i2p::crypto::X25519Keys (m_NTCP2Keys->staticPrivateKey, m_NTCP2Keys->staticPublicKey);
-			if (!m_StaticKeys)
-				m_StaticKeys.reset (x);
+			if (!m_NTCP2StaticKeys)
+				m_NTCP2StaticKeys.reset (x);
 			else
 				delete x;
 		}
-		return *m_StaticKeys;
+		return *m_NTCP2StaticKeys;
 	}
+
+	i2p::crypto::X25519Keys& RouterContext::GetSSU2StaticKeys ()
+	{
+		if (!m_SSU2StaticKeys)
+		{
+			if (!m_SSU2Keys) NewSSU2Keys ();
+			auto x = new i2p::crypto::X25519Keys (m_SSU2Keys->staticPrivateKey, m_SSU2Keys->staticPublicKey);
+			if (!m_SSU2StaticKeys)
+				m_SSU2StaticKeys.reset (x);
+			else
+				delete x;
+		}
+		return *m_SSU2StaticKeys;
+	}	
 }

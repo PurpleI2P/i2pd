@@ -117,7 +117,7 @@ namespace transport
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint64_t key = 0, connID;
-		i2p::crypto::ChaCha20 ((uint8_t *)&key, 8, i2p::context.GetNTCP2IV (), buf + (len - 24), (uint8_t *)&key); // TODO: use SSU2 intro key
+		i2p::crypto::ChaCha20 ((uint8_t *)&key, 8, i2p::context.GetSSU2IntroKey (), buf + (len - 24), (uint8_t *)&key); // TODO: use SSU2 intro key
 		memcpy (&connID, buf, 8);
 		connID ^= key;
 		auto it = m_Sessions.find (connID);

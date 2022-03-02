@@ -29,6 +29,7 @@ namespace garlic
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
 	const char NTCP2_KEYS[] = "ntcp2.keys";
+	const char SSU2_KEYS[] = "ssu2.keys";
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 
 	enum RouterStatus
@@ -61,6 +62,13 @@ namespace garlic
 				uint8_t iv[16];
 			};
 
+			struct SSU2PrivateKeys
+			{
+				uint8_t staticPublicKey[32];
+				uint8_t staticPrivateKey[32];
+				uint8_t intro[32];
+			};
+			
 		public:
 
 			RouterContext ();
@@ -78,11 +86,17 @@ namespace garlic
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
 			}
+			
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
-			i2p::crypto::X25519Keys& GetStaticKeys ();
+			i2p::crypto::X25519Keys& GetNTCP2StaticKeys ();
 
+			const uint8_t * GetSSU2StaticPublicKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPublicKey : nullptr; };
+			const uint8_t * GetSSU2StaticPrivateKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPrivateKey : nullptr; };
+			const uint8_t * GetSSU2IntroKey () const { return m_SSU2Keys ? m_SSU2Keys->intro : nullptr; };
+			i2p::crypto::X25519Keys& GetSSU2StaticKeys ();
+			
 			uint32_t GetUptime () const; // in seconds
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
@@ -156,6 +170,7 @@ namespace garlic
 			void NewRouterInfo ();
 			void UpdateRouterInfo ();
 			void NewNTCP2Keys ();
+			void NewSSU2Keys ();
 			bool Load ();
 			void SaveKeys ();
 
@@ -177,7 +192,8 @@ namespace garlic
 			int m_NetID;
 			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
-			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
+			std::unique_ptr<SSU2PrivateKeys> m_SSU2Keys;
+			std::unique_ptr<i2p::crypto::X25519Keys> m_NTCP2StaticKeys, m_SSU2StaticKeys;
 			// for ECIESx25519
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 	};
