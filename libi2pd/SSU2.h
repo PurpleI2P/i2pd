@@ -62,6 +62,10 @@ namespace transport
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr, bool peerTest = false);
 			~SSU2Session ();
 
+			void Done () override {};
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
+			
+			void ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
 			
 		private:

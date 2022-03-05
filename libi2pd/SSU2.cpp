@@ -35,6 +35,11 @@ namespace transport
 			// outgoing
 			InitNoiseXKState1 (*m_NoiseState, addr->s);
 		}	
+		else
+		{
+			// incoming
+			InitNoiseXKState1 (*m_NoiseState, i2p::context.GetSSU2StaticPublicKey ());
+		}		
 	}
 	
 	SSU2Session::~SSU2Session ()
@@ -44,7 +49,6 @@ namespace transport
 	void SSU2Session::SendSessionRequest ()
 	{
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-		m_NoiseState->MixHash (m_Address->s, 32); // h = SHA256(h || bpk)
 		
 		Header header;
 		uint8_t headerX[48], payload[1200]; // TODO: correct payload size
@@ -69,18 +73,53 @@ namespace transport
 		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
+		const uint8_t nonce[12] = {0};
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
-		const uint8_t nonce[12] = {0};
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
-		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		// send
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
 	}	
 
+	void SSU2Session::ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len)
+	{
+		// we are Bob
+		m_SourceConnID = connID;
+		Header2 h2;
+		memcpy (h2.buf, buf, 8);
+		h2.ll ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (h2.h.type != eSSU2SessionRequest) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)h2.h.type);
+			return;
+		}	
+		const uint8_t nonce[12] = {0};
+		uint8_t headerX[48];
+		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
+		memcpy (&m_DestConnID, headerX, 8); 
+		// KDF for session request 
+		//m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) TODO: long header
+		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || aepk);
+		uint8_t sharedSecret[32];
+		i2p::context.GetSSU2StaticKeys ().Agree (headerX + 16, sharedSecret);
+		m_NoiseState->MixKey (sharedSecret);
+		// decrypt
+		uint8_t * payload = buf + 64;
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, len - 80, false))
+		{
+			LogPrint (eLogWarning, "SSU2: SessionRequest AEAD verification failed ");
+			return;
+		}	
+		// process payload
+		
+		m_Server.AddSession (m_SourceConnID, shared_from_this ());
+	}	
+		
 	bool SSU2Session::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
+		// we are Alice
 		Header2 h2;
 		memcpy (h2.buf, buf, 8);
 		uint8_t kh2[32];
@@ -147,6 +186,8 @@ namespace transport
 			else
 			{
 				// assume new incoming session
+				auto session = std::make_shared<SSU2Session> (*this);
+				session->ProcessSessionRequest (connID, buf, len);
 			}	
 		}	
 	}	
