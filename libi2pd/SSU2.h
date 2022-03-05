@@ -27,12 +27,24 @@ namespace transport
 	
 	enum SSU2MessageType
 	{
-		eSSU2SessionRequest = 0
+		eSSU2SessionRequest = 0,
+		eSSU2SessionCreated = 1
 	};
 
 	class SSU2Server;
 	class SSU2Session: public TransportSession, public std::enable_shared_from_this<SSU2Session>
 	{
+		union Header2
+		{
+			uint64_t ll;
+			uint8_t buf[8];
+			struct
+			{
+				uint8_t packetNum[4];
+				uint8_t type;
+				uint8_t flags[3];
+			} h;
+		};	
 		union Header
 		{
 			uint64_t ll[2];
@@ -40,9 +52,7 @@ namespace transport
 			struct
 			{
 				uint64_t connID;
-				uint8_t packetNum[4];
-				uint8_t type;
-				uint8_t flags[3];
+				Header2 h2;
 			} h;
 		};
 	
@@ -52,12 +62,12 @@ namespace transport
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr, bool peerTest = false);
 			~SSU2Session ();
 
+			bool ProcessSessionCreated (uint8_t * buf, size_t len);
+			
 		private:
 
 			void SendSessionRequest ();
-			void EncryptHeader (Header& h);
-			void CreateHeaderMask (const uint8_t * kh1, const uint8_t * nonce1, const uint8_t * kh2, const uint8_t * nonce2);
-		
+				
 		private:
 
 			SSU2Server& m_Server;
@@ -65,12 +75,6 @@ namespace transport
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			uint64_t m_DestConnID, m_SourceConnID;
-			
-			union 
-			{
-				uint64_t ll[2];
-				uint8_t buf[16];
-			} m_HeaderMask;
 	};
 
 	class SSU2Server

@@ -17,6 +17,13 @@ namespace i2p
 {
 namespace transport
 {
+	static uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
+	{
+		uint64_t data = 0;
+		i2p::crypto::ChaCha20 ((uint8_t *)&data, 8, kh, nonce, (uint8_t *)&data);
+		return data;
+	}	
+	
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool peerTest):
 		TransportSession (in_RemoteRouter, SSU2_TERMINATION_TIMEOUT),
@@ -37,49 +44,54 @@ namespace transport
 	void SSU2Session::SendSessionRequest ()
 	{
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-		m_NoiseState->MixHash (m_EphemeralKeys->GetPublicKey (), 32);
-		uint8_t sharedSecret[32];
-		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
-		m_NoiseState->MixKey (sharedSecret);
-
+		m_NoiseState->MixHash (m_Address->s, 32); // h = SHA256(h || bpk)
+		
 		Header header;
 		uint8_t headerX[48], payload[1200]; // TODO: correct payload size
 		size_t payloadSize = 8;
 		// fill packet
 		RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 		header.h.connID = m_DestConnID; // dest id
-		memset (header.h.packetNum, 0, 4);
-		header.h.type = eSSU2SessionRequest;
-		header.h.flags[0] = 2; // ver
-		header.h.flags[1] = 2; // netID TODO:
-		header.h.flags[2] = 0; // flag
+		memset (header.h.h2.h.packetNum, 0, 4);
+		header.h.h2.h.type = eSSU2SessionRequest;
+		header.h.h2.h.flags[0] = 2; // ver
+		header.h.h2.h.flags[1] = 2; // netID TODO:
+		header.h.h2.h.flags[2] = 0; // flag
 		RAND_bytes ((uint8_t *)&m_SourceConnID, 8); 
 		memcpy (headerX, &m_SourceConnID, 8); // source id
 		memset (headerX + 8, 0, 8); // token
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // X
 		m_Server.AddPendingOutgoingSession (boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port), shared_from_this ());
+		// KDF for session request 
+		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) TODO: long header
+		m_NoiseState->MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk);
+		uint8_t sharedSecret[32];
+		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
+		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		const uint8_t nonce[12] = {0};
+		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
-		CreateHeaderMask (m_Address->i, payload + (payloadSize - 24), m_Address->i, payload + (payloadSize - 12));
-		EncryptHeader (header);
-		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
-		
+		// send
+		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
 	}	
 
-	void SSU2Session::EncryptHeader (Header& h)
+	bool SSU2Session::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
-		h.ll[0] ^= m_HeaderMask.ll[0];
-		h.ll[1] ^= m_HeaderMask.ll[1];
-	}	
-
-	void SSU2Session::CreateHeaderMask (const uint8_t * kh1, const uint8_t * nonce1, const uint8_t * kh2, const uint8_t * nonce2)
-	{
-		// Header Encryption KDF
-		uint8_t data[8] = {0};
-		i2p::crypto::ChaCha20 (data, 8, kh1, nonce1, m_HeaderMask.buf);
-		i2p::crypto::ChaCha20 (data, 8, kh2, nonce2, m_HeaderMask.buf + 8);
+		Header2 h2;
+		memcpy (h2.buf, buf, 8);
+		uint8_t kh2[32];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
+		h2.ll ^= CreateHeaderMask (kh2, buf + (len - 12));
+		if (h2.h.type != eSSU2SessionCreated) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)h2.h.type);
+			return false;
+		}	
+		return true;
 	}	
 
 	SSU2Server::SSU2Server (int port):
@@ -116,10 +128,9 @@ namespace transport
 		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		uint64_t key = 0, connID;
-		i2p::crypto::ChaCha20 ((uint8_t *)&key, 8, i2p::context.GetSSU2IntroKey (), buf + (len - 24), (uint8_t *)&key); // TODO: use SSU2 intro key
+		uint64_t connID;
 		memcpy (&connID, buf, 8);
-		connID ^= key;
+		connID ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
 		auto it = m_Sessions.find (connID);
 		if (it != m_Sessions.end ())
 		{
@@ -130,7 +141,8 @@ namespace transport
 			auto it1 = m_PendingOutgoingSessions.find (senderEndpoint);
 			if (it1 != m_PendingOutgoingSessions.end ())
 			{
-				m_PendingOutgoingSessions.erase (it1);
+				if (it1->second->ProcessSessionCreated (buf, len))
+					m_PendingOutgoingSessions.erase (it1);
 			}
 			else
 			{
