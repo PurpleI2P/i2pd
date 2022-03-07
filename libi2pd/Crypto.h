@@ -317,6 +317,7 @@ namespace crypto
 		uint8_t m_H[32] /*h*/, m_CK[64] /*[ck, k]*/;
 
 		void MixHash (const uint8_t * buf, size_t len);
+		void MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs);
 		void MixKey (const uint8_t * sharedSecret);
 	};
 

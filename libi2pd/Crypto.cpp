@@ -1305,6 +1305,16 @@ namespace crypto
 		SHA256_Final (m_H, &ctx);
 	}
 
+	void NoiseSymmetricState::MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		for (const auto& it: bufs)
+			SHA256_Update (&ctx, it.first, it.second);
+		SHA256_Final (m_H, &ctx);
+	}	
+	
 	void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)
 	{
 		HKDF (m_CK, sharedSecret, 32, "", m_CK);
