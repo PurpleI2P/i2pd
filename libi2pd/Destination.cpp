@@ -35,6 +35,8 @@ namespace client
 		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
 		int outLen  = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int outQty  = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		int inVar   = DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE;
+		int outVar  = DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE;	
 		int numTags = DEFAULT_TAGS_TO_SEND;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		try
@@ -53,6 +55,12 @@ namespace client
 				it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
 				if (it != params->end ())
 					outQty = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE);
+				if (it != params->end ())
+					inVar = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE);
+				if (it != params->end ())
+					outVar = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_TAGS_TO_SEND);
 				if (it != params->end ())
 					numTags = std::stoi(it->second);
@@ -123,7 +131,7 @@ namespace client
 			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 		SetNumTags (numTags);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty);
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty, inVar, outVar);
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 		if(params)

@@ -61,7 +61,8 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels);
+			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, 
+				int numOutboundTunnels, int inboundVariance, int outboundVariance);
 			~TunnelPool ();
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; };
@@ -130,7 +131,8 @@ namespace tunnel
 		private:
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> m_LocalDestination;
-			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels;
+			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels, 
+				m_InboundVariance, m_OutboundVariance;
 			std::shared_ptr<std::vector<i2p::data::IdentHash> > m_ExplicitPeers;
 			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first

@@ -40,15 +40,25 @@ namespace tunnel
 		std::reverse (peers.begin (), peers.end ());
 	}
 
-	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
+	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, 
+		int numOutboundTunnels, int inboundVariance, int outboundVariance):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
+		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance), 
 		m_IsActive (true), m_CustomPeerSelector(nullptr)
 	{
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
 			m_NumInboundTunnels = TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY;
 		if (m_NumOutboundTunnels > TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY)
 			m_NumOutboundTunnels = TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY;
+		if (m_InboundVariance < 0 && m_NumInboundHops + m_InboundVariance <= 0)
+			m_InboundVariance = m_NumInboundHops ? -m_NumInboundHops + 1 : 0;
+		if (m_OutboundVariance < 0 && m_NumOutboundHops + m_OutboundVariance <= 0)
+			m_OutboundVariance = m_NumOutboundHops ? -m_NumOutboundHops + 1 : 0;	
+		if (m_InboundVariance > 0 && m_NumInboundHops + m_InboundVariance > STANDARD_NUM_RECORDS)
+			m_InboundVariance = (m_NumInboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumInboundHops : 0;
+		if (m_OutboundVariance > 0 && m_NumOutboundHops + m_OutboundVariance > STANDARD_NUM_RECORDS)
+			m_OutboundVariance = (m_NumOutboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumOutboundHops : 0;	
 		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
@@ -411,13 +421,18 @@ namespace tunnel
 		{
 			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
-			uint64_t latency = dlt / 2;
+			int numHops = 0;
+			if (test.first) numHops += test.first->GetNumHops ();
+			if (test.second) numHops += test.second->GetNumHops ();	
 			// restore from test failed state if any
 			if (test.first)
 			{
 				if (test.first->GetState () == eTunnelStateTestFailed)
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
+				uint64_t latency = 0;
+				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops; 
+				if (!latency) latency = dlt/2;
 				test.first->AddLatencySample(latency);
 			}
 			if (test.second)
@@ -425,6 +440,9 @@ namespace tunnel
 				if (test.second->GetState () == eTunnelStateTestFailed)
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
+				uint64_t latency = 0;
+				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops; 
+				if (!latency) latency = dlt/2;
 				test.second->AddLatencySample(latency);
 			}
 		}
@@ -507,7 +525,30 @@ namespace tunnel
 
 	bool TunnelPool::SelectPeers (Path& path, bool isInbound)
 	{
-		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
+		// explicit peers in use
+		if (m_ExplicitPeers) return SelectExplicitPeers (path, isInbound);
+		// calculate num hops
+		int numHops;
+		if (isInbound)
+		{	
+			numHops = m_NumInboundHops; 
+			if (m_InboundVariance)
+			{
+				int offset = rand () % (std::abs (m_InboundVariance) + 1);
+				if (m_InboundVariance < 0) offset = -offset;
+				numHops += offset;
+			}	
+		}
+		else
+		{	
+			numHops = m_NumOutboundHops;
+			if (m_OutboundVariance)
+			{
+				int offset = rand () % (std::abs (m_OutboundVariance) + 1);
+				if (m_OutboundVariance < 0) offset = -offset;
+				numHops += offset;
+			}	
+		}	
 		// peers is empty
 		if (numHops <= 0) return true;
 		// custom peer selector in use ?
@@ -516,8 +557,6 @@ namespace tunnel
 			if (m_CustomPeerSelector)
 				return m_CustomPeerSelector->SelectPeers(path, numHops, isInbound);
 		}
-		// explicit peers in use
-		if (m_ExplicitPeers) return SelectExplicitPeers (path, isInbound);
 		return StandardSelectPeers(path, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, std::placeholders::_1, std::placeholders::_2));
 	}
 
