@@ -30,10 +30,11 @@ namespace transport
 		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
-		if (in_RemoteRouter && addr)
+		if (in_RemoteRouter && m_Address)
 		{
 			// outgoing
-			InitNoiseXKState1 (*m_NoiseState, addr->s);
+			InitNoiseXKState1 (*m_NoiseState, m_Address->s);
+			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
 		}	
 		else
 		{
@@ -48,6 +49,7 @@ namespace transport
 
 	void SSU2Session::SendSessionRequest ()
 	{
+		// we are Alice
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		
 		Header header;
@@ -56,11 +58,11 @@ namespace transport
 		// fill packet
 		RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 		header.h.connID = m_DestConnID; // dest id
-		memset (header.h.h2.h.packetNum, 0, 4);
-		header.h.h2.h.type = eSSU2SessionRequest;
-		header.h.h2.h.flags[0] = 2; // ver
-		header.h.h2.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
-		header.h.h2.h.flags[2] = 0; // flag
+		memset (header.h.packetNum, 0, 4);
+		header.h.type = eSSU2SessionRequest;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
 		RAND_bytes ((uint8_t *)&m_SourceConnID, 8); 
 		memcpy (headerX, &m_SourceConnID, 8); // source id
 		RAND_bytes (headerX + 8, 8); // token
@@ -75,13 +77,13 @@ namespace transport
 		// encrypt
 		const uint8_t nonce[12] = {0};
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
+		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
-		payloadSize += 16;
 		m_NoiseState->MixHash (payload, 32); // h = SHA256(h || 32 byte encrypted payload from Session Request) for SessionCreated
 		// send
-		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
+		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
 
 	void SSU2Session::ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len)
@@ -90,11 +92,11 @@ namespace transport
 		m_SourceConnID = connID;
 		Header header;
 		header.h.connID = connID;
-		memcpy (header.h.h2.buf, buf, 8);
-		header.h.h2.ll ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
-		if (header.h.h2.h.type != eSSU2SessionRequest) 
+		memcpy (header.buf + 8, buf + 8, 8);
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (header.h.type != eSSU2SessionRequest) 
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.h2.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
 			return;
 		}	
 		const uint8_t nonce[12] = {0};
@@ -117,6 +119,44 @@ namespace transport
 		// process payload
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
+		SendSessionCreated (headerX + 16);
+	}	
+
+	void SSU2Session::SendSessionCreated (const uint8_t * X)
+	{
+		// we are Bob
+		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+
+		// fill packet
+		Header header;
+		uint8_t headerX[48], payload[1200]; // TODO: correct payload size
+		size_t payloadSize = 8;
+		header.h.connID = m_DestConnID; // dest id
+		memset (header.h.packetNum, 0, 4);
+		header.h.type = eSSU2SessionCreated;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
+		memcpy (headerX, &m_SourceConnID, 8); // source id
+		RAND_bytes (headerX + 8, 8); // token
+		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
+		// KDF for SessionCreated
+		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
+		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
+		uint8_t sharedSecret[32];
+		m_EphemeralKeys->Agree (X, sharedSecret);
+		m_NoiseState->MixKey (sharedSecret);
+		// encrypt
+		const uint8_t nonce[12] = {0};
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
+		uint8_t kh2[32];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
+		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
+		i2p::crypto::ChaCha20 (headerX, 48, kh2, nonce, headerX);
+		// send
+		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
 		
 	bool SSU2Session::ProcessSessionCreated (uint8_t * buf, size_t len)
@@ -124,13 +164,13 @@ namespace transport
 		// we are Alice
 		Header header;
 		header.h.connID = m_SourceConnID;
-		memcpy (header.h.h2.buf, buf, 8);
+		memcpy (header.buf + 8, buf + 8, 8);
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
-		header.h.h2.ll ^= CreateHeaderMask (kh2, buf + (len - 12));
-		if (header.h.h2.h.type != eSSU2SessionCreated) 
+		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
+		if (header.h.type != eSSU2SessionCreated) 
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.h2.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
 			return false;
 		}	
 		const uint8_t nonce[12] = {0};
@@ -210,6 +250,7 @@ namespace transport
 			{
 				// assume new incoming session
 				auto session = std::make_shared<SSU2Session> (*this);
+				session->SetRemoteEndpoint (senderEndpoint);
 				session->ProcessSessionRequest (connID, buf, len);
 			}	
 		}	
