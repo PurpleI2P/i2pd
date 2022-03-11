@@ -76,13 +76,17 @@ namespace transport
 			uint64_t m_DestConnID, m_SourceConnID;
 	};
 
-	class SSU2Server
+	class SSU2Server:  private i2p::util::RunnableServiceWithWork
 	{
 		public:
 
-			SSU2Server (int port);
+			SSU2Server ();
 			~SSU2Server () {};
 
+			void Start ();
+			void Stop ();
+			boost::asio::io_service& GetService () { return GetIOService (); };
+			
 			void AddSession (uint64_t connID, std::shared_ptr<SSU2Session> session);
 			void AddPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, std::shared_ptr<SSU2Session> session);
 
@@ -91,14 +95,12 @@ namespace transport
 			
 		private:
 
-			void OpenSocket ();
+			void OpenSocket (int port);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			
 		private:
 
-			boost::asio::io_service m_Service;
 			boost::asio::ip::udp::socket m_Socket;
-			boost::asio::ip::udp::endpoint m_Endpoint;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 	};	

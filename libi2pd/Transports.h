@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -22,6 +22,7 @@
 #include <boost/asio.hpp>
 #include "TransportSession.h"
 #include "SSU.h"
+#include "SSU2.h"
 #include "NTCP2.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
@@ -159,6 +160,7 @@ namespace transport
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer;
 
 			SSUServer * m_SSUServer;
+			SSU2Server * m_SSU2Server;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
 			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;

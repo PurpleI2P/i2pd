@@ -136,7 +136,7 @@ namespace transport
 	Transports::Transports ():
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
-		m_SSUServer (nullptr), m_NTCP2Server (nullptr),
+		m_SSUServer (nullptr), m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
 		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
@@ -304,7 +304,14 @@ namespace transport
 			delete m_SSUServer;
 			m_SSUServer = nullptr;
 		}
-
+		
+		if (m_SSU2Server)
+		{
+			m_SSU2Server->Stop ();
+			delete m_SSU2Server;
+			m_SSU2Server = nullptr;
+		}
+		
 		if (m_NTCP2Server)
 		{
 			m_NTCP2Server->Stop ();

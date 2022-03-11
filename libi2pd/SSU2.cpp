@@ -196,25 +196,48 @@ namespace transport
 		return true;
 	}	
 
-	SSU2Server::SSU2Server (int port):
-		m_Socket (m_Service), m_Endpoint (boost::asio::ip::udp::v6 (), port)
+	SSU2Server::SSU2Server ():
+		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ())
 	{
 	}
 
-	void SSU2Server::OpenSocket ()
+	void SSU2Server::Start ()
+	{
+		if (!IsRunning ())
+		{
+			StartIOService ();
+			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
+			for (const auto& address: addresses)
+			{
+				if (!address) continue;
+				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2 && address->port)
+				{
+					OpenSocket (address->port);
+					break;
+				}
+			}	
+		}	
+	}
+		
+	void SSU2Server::Stop ()
+	{
+		StopIOService ();
+	}	
+		
+	void SSU2Server::OpenSocket (int port)
 	{
 		try
 		{
 			m_Socket.open (boost::asio::ip::udp::v6());
 			m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
-			m_Socket.bind (m_Endpoint);
-			LogPrint (eLogInfo, "SSU2: Start listening port ", m_Endpoint.port());
+			m_Socket.bind (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v6(), port));
+			LogPrint (eLogInfo, "SSU2: Start listening port ", port);
 		}
 		catch (std::exception& ex )
 		{
-			LogPrint (eLogError, "SSU2: Failed to bind to port ", m_Endpoint.port(), ": ", ex.what());
-			ThrowFatal ("Unable to start SSU2 transport at port ", m_Endpoint.port(), ": ", ex.what ());
+			LogPrint (eLogError, "SSU2: Failed to bind to port ", port, ": ", ex.what());
+			ThrowFatal ("Unable to start SSU2 transport at port ", port, ": ", ex.what ());
 		}
 	}
 		

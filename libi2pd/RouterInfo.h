@@ -92,7 +92,8 @@ namespace data
 			{
 				eTransportUnknown = 0,
 				eTransportNTCP,
-				eTransportSSU
+				eTransportSSU,
+				eTransportSSU2
 			};
 
 			typedef Tag<32> IntroKey; // should be castable to MacKey and AESKey
@@ -141,6 +142,7 @@ namespace data
 				}
 
 				bool IsNTCP2 () const { return  transportStyle == eTransportNTCP; };
+				bool IsSSU2 () const { return  transportStyle == eTransportSSU2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (published || !ssu->introducers.empty ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
