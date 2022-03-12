@@ -46,7 +46,7 @@ namespace data
 		m_Caps (0), m_Version (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
-		m_Buffer = netdb.NewRouterInfoBuffer ();
+		m_Buffer = NewBuffer (); // always RouterInfo's
 		ReadFromFile (fullPath);
 	}
 
@@ -134,7 +134,7 @@ namespace data
 			}
 			s.seekg(0, std::ios::beg);
 			if (!m_Buffer)
-				m_Buffer = netdb.NewRouterInfoBuffer ();
+				m_Buffer = NewBuffer ();
 			s.read((char *)m_Buffer->data (), m_BufferLen);
 		}
 		else
@@ -962,12 +962,17 @@ namespace data
 	void RouterInfo::UpdateBuffer (const uint8_t * buf, size_t len)
 	{
 		if (!m_Buffer)
-			m_Buffer = netdb.NewRouterInfoBuffer ();
+			m_Buffer = NewBuffer ();
 		if (len > m_Buffer->size ()) len = m_Buffer->size ();
 		memcpy (m_Buffer->data (), buf, len);
 		m_BufferLen = len;
 	}	
 
+	std::shared_ptr<RouterInfo::Buffer> RouterInfo::NewBuffer () const
+	{
+		return netdb.NewRouterInfoBuffer ();
+	}	
+		
 	void RouterInfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); 
@@ -1276,5 +1281,10 @@ namespace data
 		s.write ((char *)&len, 1);
 		s.write (str.c_str (), len);
 	}	
+
+	std::shared_ptr<RouterInfo::Buffer> LocalRouterInfo::NewBuffer () const
+	{
+		return std::make_shared<Buffer> ();
+	}		
 }
 }

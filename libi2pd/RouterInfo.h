@@ -271,7 +271,8 @@ namespace data
 			uint8_t ExtractAddressCaps (const char * value) const;
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
-
+			virtual std::shared_ptr<Buffer> NewBuffer () const;
+		
 		private:
 
 			std::string m_Family;
@@ -305,6 +306,7 @@ namespace data
 			void WriteToStream (std::ostream& s) const;
 			void UpdateCapsProperty ();
 			void WriteString (const std::string& str, std::ostream& s) const;
+			std::shared_ptr<Buffer> NewBuffer () const override;
 			
 		private:
 
