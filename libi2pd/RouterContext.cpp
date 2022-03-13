@@ -866,7 +866,7 @@ namespace i2p
 				s2k.close ();
 			}
 			if (!m_SSU2Keys) NewSSU2Keys ();
-			UpdateSSU2Address (false); // enable SSU2
+			UpdateSSU2Address (true); // enable SSU2
 		}
 		else
 			UpdateSSU2Address (false); // disable SSU2
