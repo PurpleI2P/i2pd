@@ -69,11 +69,14 @@ namespace i2p
 		bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;            i2p::config::GetOption("ssu", ssu);
 		bool ntcp2;          i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ssu2;			 i2p::config::GetOption("ssu2.enabled", ssu2);
 		bool ygg;            i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		bool nat;            i2p::config::GetOption("nat", nat);
 
 		if ((ntcp2 || ygg) && !m_NTCP2Keys)
 			NewNTCP2Keys ();
+		if (ssu2 && !m_SSU2Keys)
+			NewSSU2Keys ();
 		bool ntcp2Published = false;
 		if (ntcp2)
 		{
@@ -112,6 +115,11 @@ namespace i2p
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
 				caps |= i2p::data::RouterInfo::eReachable; // R
 			}
+			if (ssu2)
+			{
+				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
+				routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+			}	
 		}
 		if (ipv6)
 		{
@@ -147,6 +155,12 @@ namespace i2p
 				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
 				caps |= i2p::data::RouterInfo::eReachable; // R
 			}
+			if (ssu2)
+			{
+				if (!ipv4) // no other ssu2 addresses yet
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+			}	
 		}
 		if (ygg)
 		{
@@ -313,6 +327,32 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::UpdateSSU2Address (bool enable)
+	{
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		bool found = false, updated = false;
+		for (auto it = addresses.begin (); it != addresses.end (); ++it)
+		{
+			if ((*it)->IsSSU2 ())
+			{
+				found = true;
+				if (!enable)
+				{
+					addresses.erase (it);
+					updated= true;
+				}
+				break;
+			}
+		}
+		if (enable && !found)
+		{
+			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+			updated = true;
+		}
+		if (updated)
+			UpdateRouterInfo ();
+	}
+		
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
 	{
 		bool updated = false;
@@ -807,6 +847,30 @@ namespace i2p
 		else
 			UpdateNTCP2Address (false);	 // disable NTCP2
 
+		// read SSU2
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+		if (ssu2)
+		{
+			// read SSU2 keys if available
+			std::ifstream s2k (i2p::fs::DataDirPath (SSU2_KEYS), std::ifstream::in | std::ifstream::binary);
+			if (s2k)
+			{
+				s2k.seekg (0, std::ios::end);
+				size_t len = s2k.tellg();
+				s2k.seekg (0, std::ios::beg);
+				if (len == sizeof (SSU2PrivateKeys))
+				{
+					m_SSU2Keys.reset (new SSU2PrivateKeys ());
+					s2k.read ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
+				}
+				s2k.close ();
+			}
+			if (!m_SSU2Keys) NewSSU2Keys ();
+			UpdateSSU2Address (false); // enable SSU2
+		}
+		else
+			UpdateSSU2Address (false); // disable SSU2
+		
 		return true;
 	}
 

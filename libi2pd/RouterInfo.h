@@ -53,7 +53,8 @@ namespace data
 	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
 	const uint8_t COST_SSU_DIRECT = 9;
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
-
+	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
+	
 	const size_t MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
 	class RouterInfo: public RoutingDestination
 	{
@@ -189,6 +190,7 @@ namespace data
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
+			void AddSSU2Address (const uint8_t * staticKey);	// non published
 			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps

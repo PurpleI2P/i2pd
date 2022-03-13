@@ -270,6 +270,12 @@ namespace config {
 			("ntcp2.proxy", value<std::string>()->default_value(""),       "Proxy URL for NTCP2 transport")
 		;
 
+		options_description ssu2("SSU2 Options");
+		ntcp2.add_options()
+			("ssu2.enabled", value<bool>()->default_value(false),         "Enable SSU2 (default: disabled)")
+			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
+		;
+		
 		options_description nettime("Time sync options");
 		nettime.add_options()
 			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")
@@ -320,6 +326,7 @@ namespace config {
 			.add(websocket) // deprecated
 			.add(exploratory)
 			.add(ntcp2)
+			.add(ssu2)
 			.add(nettime)
 			.add(persist)
 			.add(cpuext)

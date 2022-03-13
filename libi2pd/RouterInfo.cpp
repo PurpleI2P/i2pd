@@ -631,6 +631,16 @@ namespace data
 		m_Addresses->push_back(std::move(addr));
 	}
 
+	void RouterInfo::AddSSU2Address (const uint8_t * staticKey)
+	{
+		auto addr = std::make_shared<Address>();
+		addr->transportStyle = eTransportSSU2;
+		addr->caps = 0;
+		addr->date = 0;
+		memcpy (addr->s, staticKey, 32);
+		m_Addresses->push_back(std::move(addr));
+	}	
+		
 	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
 		for (auto& addr : *m_Addresses)
@@ -925,7 +935,7 @@ namespace data
 		for (auto& addr: *m_Addresses)
 		{
 			// TODO: implement SSU
-			if (addr->transportStyle == eTransportNTCP && !addr->IsPublishedNTCP2 ())
+			if (!addr->published && (addr->transportStyle == eTransportNTCP || addr->transportStyle == eTransportSSU2))
 			{
 				addr->caps &= ~(eV4 | eV6);
 				addr->caps |= transports;
@@ -1050,6 +1060,8 @@ namespace data
 				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
 			else if (address.transportStyle == eTransportSSU)
 				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
+			else if (address.transportStyle == eTransportSSU2)
+				cost = COST_SSU2_NON_PUBLISHED; // TODO
 			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
