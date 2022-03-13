@@ -307,42 +307,32 @@ namespace http {
 			s << "<b>"<< tr("Our external address") << ":</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
 			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 			{
-				s << "<tr>\r\n";
-				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
-				{
-					s << "<td>NTCP2";
-					if (address->IsV6 ()) s << "v6";
-					s << "</td><td>" << tr("supported") << "</td>\r\n</tr>\r\n";
-					continue;
-				}
+				s << "<tr>\r\n<td>";
 				switch (address->transportStyle)
 				{
 					case i2p::data::RouterInfo::eTransportNTCP:
-					{
-						s << "<td>NTCP";
-						if (address->IsPublishedNTCP2 ()) s << "2";
-						if (address->IsV6 ()) s << "v6";
-						s << "</td>\r\n";
-						break;
-					}
+						s << "NTCP2";
+					break;
 					case i2p::data::RouterInfo::eTransportSSU:
-					{
-						s << "<td>SSU";
-						if (address->IsV6 ()) s << "v6";
-						s << "</td>\r\n";
-						break;
-					}
+						s << "SSU";
+					break;
 					case i2p::data::RouterInfo::eTransportSSU2:
-					{	
-						s << "<td>SSU2";
-						if (address->IsV6 ()) s << "v6";
-						s << "</td><td>" << tr("supported") << "</td>\r\n</tr>\r\n";
-						break;
-					}	
+						s << "SSU2";
+					break;	
 					default:
-						s << "<td>" << tr("Unknown") << "</td>\r\n";
+						s << tr("Unknown");
 				}
-				s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n</tr>\r\n";
+				if (address->IsV6 ()) 
+				{	
+					if (address->IsV4 ()) s << "v4"; 
+					s << "v6";
+				}	
+				s << "</td>\r\n";
+				if (address->published)
+					s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
+				else
+					s << "<td>" << tr("supported") << "</td>\r\n";
+				s << "</tr>\r\n";
 			}
 			s << "</tbody></table>\r\n";
 		}
