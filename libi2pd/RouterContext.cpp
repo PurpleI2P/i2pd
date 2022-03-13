@@ -346,7 +346,12 @@ namespace i2p
 		}
 		if (enable && !found)
 		{
-			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+			uint8_t addressCaps = 0;
+			bool ipv4;           i2p::config::GetOption("ipv4", ipv4);
+			bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
+			if (ipv4) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
+			if (ipv6) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, addressCaps);
 			updated = true;
 		}
 		if (updated)

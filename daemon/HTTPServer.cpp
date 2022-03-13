@@ -311,7 +311,7 @@ namespace http {
 				if (address->IsNTCP2 () && !address->IsPublishedNTCP2 ())
 				{
 					s << "<td>NTCP2";
-					if (address->host.is_v6 ()) s << "v6";
+					if (address->IsV6 ()) s << "v6";
 					s << "</td><td>" << tr("supported") << "</td>\r\n</tr>\r\n";
 					continue;
 				}
@@ -321,18 +321,24 @@ namespace http {
 					{
 						s << "<td>NTCP";
 						if (address->IsPublishedNTCP2 ()) s << "2";
-						if (address->host.is_v6 ()) s << "v6";
+						if (address->IsV6 ()) s << "v6";
 						s << "</td>\r\n";
 						break;
 					}
 					case i2p::data::RouterInfo::eTransportSSU:
 					{
 						s << "<td>SSU";
-						if (address->host.is_v6 ())
-							s << "v6";
+						if (address->IsV6 ()) s << "v6";
 						s << "</td>\r\n";
 						break;
 					}
+					case i2p::data::RouterInfo::eTransportSSU2:
+					{	
+						s << "<td>SSU2";
+						if (address->IsV6 ()) s << "v6";
+						s << "</td><td>" << tr("supported") << "</td>\r\n</tr>\r\n";
+						break;
+					}	
 					default:
 						s << "<td>" << tr("Unknown") << "</td>\r\n";
 				}
