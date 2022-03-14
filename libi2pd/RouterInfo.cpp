@@ -234,6 +234,12 @@ namespace data
 			uint16_t size, r = 0;
 			s.read ((char *)&size, sizeof (size)); if (!s) return;
 			size = be16toh (size);
+			if (address->transportStyle == eTransportUnknown)
+			{
+				// skip unknown address
+				s.seekg (size, std::ios_base::cur);
+				if (s) continue; else return;
+			}	
 			while (r < size)
 			{
 				char key[255], value[255];
