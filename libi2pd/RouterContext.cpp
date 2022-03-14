@@ -118,7 +118,7 @@ namespace i2p
 			if (ssu2)
 			{
 				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
-				routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+				routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
 			}	
 		}
 		if (ipv6)
@@ -158,7 +158,7 @@ namespace i2p
 			if (ssu2)
 			{
 				if (!ipv4) // no other ssu2 addresses yet
-					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey);
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
 				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
 			}	
 		}
@@ -351,7 +351,7 @@ namespace i2p
 			bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
 			if (ipv4) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
 			if (ipv6) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
-			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, addressCaps);
+			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addressCaps);
 			updated = true;
 		}
 		if (updated)

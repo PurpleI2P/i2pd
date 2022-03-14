@@ -631,13 +631,14 @@ namespace data
 		m_Addresses->push_back(std::move(addr));
 	}
 
-	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, uint8_t caps)
+	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
 		addr->transportStyle = eTransportSSU2;
 		addr->caps = caps;
 		addr->date = 0;
 		memcpy (addr->s, staticKey, 32);
+		memcpy (addr->i, introKey, 32);
 		m_Addresses->push_back(std::move(addr));
 	}	
 		
