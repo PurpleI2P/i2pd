@@ -157,7 +157,7 @@ namespace transport
 		}
 	}
 
-	void Transports::Start (bool enableNTCP2, bool enableSSU)
+	void Transports::Start (bool enableNTCP2, bool enableSSU, bool enableSSU2)
 	{
 		if (!m_Service)
 		{
@@ -217,7 +217,9 @@ namespace transport
 				}
 			}
 		}
-
+		// create SSU2 server
+		if (enableSSU2) m_SSU2Server = new SSU2Server ();
+		
 		// bind to interfaces
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		if (ipv4)
@@ -282,7 +284,8 @@ namespace transport
 			}
 			if (m_SSUServer) DetectExternalIP ();
 		}
-
+		if (m_SSU2Server) m_SSU2Server->Start ();
+		
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 

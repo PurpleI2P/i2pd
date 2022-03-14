@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -377,6 +377,7 @@ namespace util
 		}
 
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
 		bool ssu; i2p::config::GetOption("ssu", ssu);
 		bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
 		LogPrint(eLogInfo, "Daemon: Starting Transports");
@@ -384,7 +385,7 @@ namespace util
 		if(!ntcp2) LogPrint(eLogInfo, "Daemon: NTCP2 disabled");
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
-		i2p::transport::transports.Start(ntcp2, ssu);
+		i2p::transport::transports.Start(ntcp2, ssu, ssu2);
 		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else

@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "Config.h"
 #include "SSU2.h"
 
 namespace i2p
@@ -210,9 +211,23 @@ namespace transport
 			for (const auto& address: addresses)
 			{
 				if (!address) continue;
-				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2 && address->port)
+				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
 				{
-					OpenSocket (address->port);
+					auto port =  address->port;
+					if (!port)
+					{
+						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+						if (ssu2Port) port = ssu2Port;
+						else
+						{
+							uint16_t p; i2p::config::GetOption ("port", p);
+							if (p) port = p;
+						}	
+					}	
+					if (port)
+						OpenSocket (port);
+					else
+						LogPrint (eLogError, "SSU2: Can't start server because port not specified ");
 					break;
 				}
 			}	

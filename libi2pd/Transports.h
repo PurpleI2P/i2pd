@@ -87,7 +87,7 @@ namespace transport
 			Transports ();
 			~Transports ();
 
-			void Start (bool enableNTCP2=true, bool enableSSU=true);
+			void Start (bool enableNTCP2=true, bool enableSSU=true, bool enableSSU2=false);
 			void Stop ();
 
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
