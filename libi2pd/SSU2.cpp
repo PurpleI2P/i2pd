@@ -225,7 +225,10 @@ namespace transport
 						}	
 					}	
 					if (port)
+					{	
 						OpenSocket (port);
+						Receive ();
+					}	
 					else
 						LogPrint (eLogError, "SSU2: Can't start server because port not specified ");
 					break;
@@ -238,7 +241,7 @@ namespace transport
 	{
 		StopIOService ();
 	}	
-		
+
 	void SSU2Server::OpenSocket (int port)
 	{
 		try
@@ -253,6 +256,36 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU2: Failed to bind to port ", port, ": ", ex.what());
 			ThrowFatal ("Unable to start SSU2 transport at port ", port, ": ", ex.what ());
+		}
+	}
+
+	void SSU2Server::Receive ()
+	{
+		Packet * packet = m_PacketsPool.AcquireMt ();
+		m_Socket.async_receive_from (boost::asio::buffer (packet->buf, SSU2_MTU), packet->from,
+			std::bind (&SSU2Server::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet));
+	}
+
+	void SSU2Server::HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, Packet * packet)
+	{
+		if (!ecode)
+		{
+			packet->len = bytes_transferred;
+			ProcessNextPacket (packet->buf, packet->len, packet->from);
+			m_PacketsPool.ReleaseMt (packet);
+			Receive ();
+		}
+		else
+		{
+			m_PacketsPool.ReleaseMt (packet);
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "SSU2: Receive error: code ", ecode.value(), ": ", ecode.message ());
+				auto port = m_Socket.local_endpoint ().port ();
+				m_Socket.close ();
+				OpenSocket (port);
+				Receive ();
+			}
 		}
 	}
 		

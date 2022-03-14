@@ -24,6 +24,7 @@ namespace transport
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
+	const size_t SSU2_MTU = 1488;
 	
 	enum SSU2MessageType
 	{
@@ -78,6 +79,13 @@ namespace transport
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
 	{
+		struct Packet
+		{
+			uint8_t buf[SSU2_MTU]; 
+			size_t len;
+			boost::asio::ip::udp::endpoint from;
+		};	
+		
 		public:
 
 			SSU2Server ();
@@ -96,6 +104,8 @@ namespace transport
 		private:
 
 			void OpenSocket (int port);
+			void Receive ();
+			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, Packet * packet);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			
 		private:
@@ -103,6 +113,7 @@ namespace transport
 			boost::asio::ip::udp::socket m_Socket;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
+			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 	};	
 }
 }
