@@ -54,8 +54,7 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		
 		Header header;
-		uint8_t headerX[48], payload[1200]; // TODO: correct payload size
-		size_t payloadSize = 8;
+		uint8_t headerX[48], payload[48]; 
 		// fill packet
 		RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 		header.h.connID = m_DestConnID; // dest id
@@ -68,7 +67,15 @@ namespace transport
 		memcpy (headerX, &m_SourceConnID, 8); // source id
 		RAND_bytes (headerX + 8, 8); // token
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // X
-		m_Server.AddPendingOutgoingSession (boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port), shared_from_this ());
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		uint8_t paddingSize = (rand () & 0x0F) + 9; // 9 - 24
+		payload[payloadSize] = eSSU2BlkPadding;
+		htobe16buf (payload + payloadSize + 1, paddingSize);
+		payloadSize += paddingSize + 3;
 		// KDF for session request 
 		m_NoiseState->MixHash ({ {header.buf, 16}, {headerX, 16} }); // h = SHA256(h || header) 
 		m_NoiseState->MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk);
@@ -84,6 +91,7 @@ namespace transport
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, 32); // h = SHA256(h || 32 byte encrypted payload from Session Request) for SessionCreated
 		// send
+		m_Server.AddPendingOutgoingSession (boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port), shared_from_this ());
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
 
@@ -117,7 +125,8 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionRequest AEAD verification failed ");
 			return;
 		}	
-		// process payload
+		// payload
+		HandlePayload (payload, len - 80);
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
 		SendSessionCreated (headerX + 16);
@@ -190,13 +199,85 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionCreated AEAD verification failed ");
 			return false;
 		}	
-		// process payload
+		// payload
+		HandlePayload (payload, len - 80);
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
 		
 		return true;
 	}	
 
+	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		while (offset < len)
+		{
+			uint8_t blk = buf[offset];
+			offset++;
+			auto size = bufbe16toh (buf + offset);
+			offset += 2;
+			LogPrint (eLogDebug, "SSU2: Block type ", (int)blk, " of size ", size);
+			if (size > len)
+			{
+				LogPrint (eLogError, "SSU2: Unexpected block length ", size);
+				break;
+			}
+			switch (blk)
+			{
+				case eSSU2BlkDateTime:
+					LogPrint (eLogDebug, "SSU2: Datetime");
+				break;
+				case eSSU2BlkOptions:
+					LogPrint (eLogDebug, "SSU2: Options");
+				break;
+				case eSSU2BlkRouterInfo:
+				break;	
+				case eSSU2BlkI2NPMessage:
+				break;	
+				case eSSU2BlkFirstFragment:
+				break;	
+				case eSSU2BlkFollowOnFragment:
+				break;	
+				case eSSU2BlkTermination:
+				break;	
+				case eSSU2BlkRelayRequest:
+				break;	
+				case eSSU2BlkRelayResponse:
+				break;	
+				case eSSU2BlkRelayIntro:
+				break;	
+				case eSSU2BlkPeerTest:
+				break;	
+				case eSSU2BlkNextNonce:
+				break;	
+				case eSSU2BlkAck:
+				break;	
+				case eSSU2BlkAddress:
+				break;	
+				case eSSU2BlkIntroKey:
+				break;	
+				case eSSU2BlkRelayTagRequest:
+				break;	
+				case eSSU2BlkRelayTag:
+				break;	
+				case eSSU2BlkNewToken:
+				break;	
+				case eSSU2BlkPathChallenge:
+				break;	
+				case eSSU2BlkPathResponse:
+				break;	
+				case eSSU2BlkFirstPacketNumber:
+				break;	
+				case eSSU2BlkPadding:
+					LogPrint (eLogDebug, "SSU2: Padding");
+				break;	
+				default:
+					LogPrint (eLogWarning, "SSU2: Unknown block type ", (int)blk);
+			}	
+			offset += size;
+		}	
+	}	
+		
 	SSU2Server::SSU2Server ():
 		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ())
 	{

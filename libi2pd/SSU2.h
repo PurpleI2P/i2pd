@@ -32,6 +32,32 @@ namespace transport
 		eSSU2SessionCreated = 1
 	};
 
+	enum SSU2BlockType
+	{
+		eSSU2BlkDateTime = 0,
+		eSSU2BlkOptions, // 1
+		eSSU2BlkRouterInfo, // 2
+		eSSU2BlkI2NPMessage, // 3
+		eSSU2BlkFirstFragment, // 4
+		eSSU2BlkFollowOnFragment, // 5
+		eSSU2BlkTermination, // 6
+		eSSU2BlkRelayRequest, // 7
+		eSSU2BlkRelayResponse, // 8
+		eSSU2BlkRelayIntro, // 9
+		eSSU2BlkPeerTest, // 10
+		eSSU2BlkNextNonce, // 11
+		eSSU2BlkAck, // 12
+		eSSU2BlkAddress, // 13
+		eSSU2BlkIntroKey, // 14
+		eSSU2BlkRelayTagRequest, // 15
+		eSSU2BlkRelayTag, // 16
+		eSSU2BlkNewToken, // 17
+		eSSU2BlkPathChallenge, // 18
+		eSSU2BlkPathResponse, // 19
+		eSSU2BlkFirstPacketNumber, // 20
+		eSSU2BlkPadding = 254
+	};
+	
 	class SSU2Server;
 	class SSU2Session: public TransportSession, public std::enable_shared_from_this<SSU2Session>
 	{
@@ -66,7 +92,9 @@ namespace transport
 
 			void SendSessionRequest ();
 			void SendSessionCreated (const uint8_t * X);
-				
+
+			void HandlePayload (const uint8_t * buf, size_t len);
+			
 		private:
 
 			SSU2Server& m_Server;
