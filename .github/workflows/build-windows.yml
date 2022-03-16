@@ -67,7 +67,7 @@ jobs:
     - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
-        make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes -j3
+        make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes USE_WINXP_FLAGS=yes -j3
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
