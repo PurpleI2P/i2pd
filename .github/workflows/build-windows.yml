@@ -48,7 +48,7 @@ jobs:
         update: true
     - name: Build WinXP-capable CRT packages
       run: |
-        git clone github.com/msys2/MINGW-packages
+        git clone https://github.com/msys2/MINGW-packages
         pushd MINGW-packages
         pushd mingw-w64-headers-git
         sed -i 's/0x601/0x501/' PKGBUILD
