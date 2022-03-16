@@ -44,7 +44,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
-        install: base-devel mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc
+        install: base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc
         update: true
     - name: Build WinXP-capable CRT packages
       run: |
