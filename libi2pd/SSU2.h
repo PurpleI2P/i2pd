@@ -94,6 +94,8 @@ namespace transport
 			void SendSessionCreated (const uint8_t * X);
 
 			void HandlePayload (const uint8_t * buf, size_t len);
+			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
+			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			
 		private:
 

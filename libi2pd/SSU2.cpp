@@ -54,7 +54,7 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		
 		Header header;
-		uint8_t headerX[48], payload[48]; 
+		uint8_t headerX[48], payload[40]; 
 		// fill packet
 		RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 		header.h.connID = m_DestConnID; // dest id
@@ -72,7 +72,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		uint8_t paddingSize = (rand () & 0x0F) + 9; // 9 - 24
+		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
 		payload[payloadSize] = eSSU2BlkPadding;
 		htobe16buf (payload + payloadSize + 1, paddingSize);
 		payloadSize += paddingSize + 3;
@@ -89,7 +89,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
-		m_NoiseState->MixHash (payload, 32); // h = SHA256(h || 32 byte encrypted payload from Session Request) for SessionCreated
+		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
 		// send
 		m_Server.AddPendingOutgoingSession (boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port), shared_from_this ());
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
@@ -120,6 +120,7 @@ namespace transport
 		m_NoiseState->MixKey (sharedSecret);
 		// decrypt
 		uint8_t * payload = buf + 64;
+		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, len - 80, false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest AEAD verification failed ");
@@ -139,8 +140,7 @@ namespace transport
 
 		// fill packet
 		Header header;
-		uint8_t headerX[48], payload[1200]; // TODO: correct payload size
-		size_t payloadSize = 8;
+		uint8_t headerX[48], payload[64]; 
 		header.h.connID = m_DestConnID; // dest id
 		memset (header.h.packetNum, 0, 4);
 		header.h.type = eSSU2SessionCreated;
@@ -150,6 +150,19 @@ namespace transport
 		memcpy (headerX, &m_SourceConnID, 8); // source id
 		RAND_bytes (headerX + 8, 8); // token
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 57);
+		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+		if (paddingSize)
+		{	
+			payload[payloadSize] = eSSU2BlkPadding;
+			htobe16buf (payload + payloadSize + 1, paddingSize);
+			payloadSize += paddingSize + 3;
+		}	
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -253,7 +266,12 @@ namespace transport
 				case eSSU2BlkAck:
 				break;	
 				case eSSU2BlkAddress:
-				break;	
+				{
+					boost::asio::ip::udp::endpoint ep;	
+					if (ExtractEndpoint (buf + offset, size, ep))
+						LogPrint (eLogInfo, "SSU2: Our external address is ", ep);	
+					break;
+				}		
 				case eSSU2BlkIntroKey:
 				break;	
 				case eSSU2BlkRelayTagRequest:
@@ -276,6 +294,56 @@ namespace transport
 			}	
 			offset += size;
 		}	
+	}	
+
+	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
+	{
+		if (size < 2) return false;
+		int port = bufbe16toh (buf);
+		if (size == 6)
+		{
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), buf + 2, 4);
+			ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v4 (bytes), port);
+		}
+		else if (size == 18)
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), buf + 2, 16);
+			ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v6 (bytes), port);
+		}
+		else	
+		{	
+			LogPrint (eLogWarning, "SSU2: Address size ", int(size), " is not supported");
+			return false;
+		}	
+		return true;
+	}
+
+	size_t SSU2Session::CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len)
+	{
+		if (len < 9) return 0;
+		buf[0] = eSSU2BlkAddress;
+		htobe16buf (buf + 3, ep.port ());
+		size_t size = 0;
+		if (ep.address ().is_v4 ())
+		{
+			memcpy (buf + 5, ep.address ().to_v4 ().to_bytes ().data (), 4);
+			size = 6;
+		}	
+		else if (ep.address ().is_v6 ())
+		{
+			if (len < 21) return 0;
+			memcpy (buf + 5, ep.address ().to_v6 ().to_bytes ().data (), 16);
+			size = 18;
+		}	
+		else
+		{
+			LogPrint (eLogWarning, "SSU2: Wrong address type ", ep.address ().to_string ());
+			return 0;
+		}	
+		htobe16buf (buf + 1, size);
+		return size + 3;	
 	}	
 		
 	SSU2Server::SSU2Server ():
