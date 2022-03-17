@@ -137,14 +137,15 @@ namespace transport
 			
 		private:
 
-			void OpenSocket (int port);
-			void Receive ();
-			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, Packet * packet);
+			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
+			void Receive (boost::asio::ip::udp::socket& socket);
+			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, 
+				Packet * packet, boost::asio::ip::udp::socket& socket);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			
 		private:
 
-			boost::asio::ip::udp::socket m_Socket;
+			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;

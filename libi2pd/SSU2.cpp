@@ -352,7 +352,7 @@ namespace transport
 	}	
 		
 	SSU2Server::SSU2Server ():
-		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ())
+		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ())
 	{
 	}
 
@@ -367,7 +367,7 @@ namespace transport
 				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
 				{
-					auto port =  address->port;
+					auto port = address->port;
 					if (!port)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
@@ -380,12 +380,13 @@ namespace transport
 					}	
 					if (port)
 					{	
-						OpenSocket (port);
-						Receive ();
+						if (address->IsV4 ())
+							Receive (OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v4(), port)));
+						if (address->IsV6 ())
+							Receive (OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v6(), port)));
 					}	
 					else
-						LogPrint (eLogError, "SSU2: Can't start server because port not specified ");
-					break;
+						LogPrint (eLogError, "SSU2: Can't start server because port not specified");
 				}
 			}	
 		}	
@@ -396,38 +397,43 @@ namespace transport
 		StopIOService ();
 	}	
 
-	void SSU2Server::OpenSocket (int port)
+	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)
 	{
+		boost::asio::ip::udp::socket& socket = localEndpoint.address ().is_v6 () ? m_SocketV6 : m_Socket;
 		try
 		{
-			m_Socket.open (boost::asio::ip::udp::v6());
-			m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
-			m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
-			m_Socket.bind (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v6(), port));
-			LogPrint (eLogInfo, "SSU2: Start listening port ", port);
+			socket.open (localEndpoint.protocol ());
+			if (localEndpoint.address ().is_v6 ())
+				socket.set_option (boost::asio::ip::v6_only (true));
+			socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
+			socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
+			socket.bind (localEndpoint);
+			LogPrint (eLogInfo, "SSU2: Start listening on ", localEndpoint);
 		}
 		catch (std::exception& ex )
 		{
-			LogPrint (eLogError, "SSU2: Failed to bind to port ", port, ": ", ex.what());
-			ThrowFatal ("Unable to start SSU2 transport at port ", port, ": ", ex.what ());
+			LogPrint (eLogError, "SSU2: Failed to bind to  ", localEndpoint, ": ", ex.what());
+			ThrowFatal ("Unable to start SSU2 transport on ", localEndpoint, ": ", ex.what ());
 		}
+		return socket;
 	}
-
-	void SSU2Server::Receive ()
+		
+	void SSU2Server::Receive (boost::asio::ip::udp::socket& socket)
 	{
 		Packet * packet = m_PacketsPool.AcquireMt ();
-		m_Socket.async_receive_from (boost::asio::buffer (packet->buf, SSU2_MTU), packet->from,
-			std::bind (&SSU2Server::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet));
+		socket.async_receive_from (boost::asio::buffer (packet->buf, SSU2_MTU), packet->from,
+			std::bind (&SSU2Server::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet, std::ref (socket)));
 	}
 
-	void SSU2Server::HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, Packet * packet)
+	void SSU2Server::HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, 
+		Packet * packet, boost::asio::ip::udp::socket& socket)
 	{
 		if (!ecode)
 		{
 			packet->len = bytes_transferred;
 			ProcessNextPacket (packet->buf, packet->len, packet->from);
 			m_PacketsPool.ReleaseMt (packet);
-			Receive ();
+			Receive (socket);
 		}
 		else
 		{
@@ -435,10 +441,10 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU2: Receive error: code ", ecode.value(), ": ", ecode.message ());
-				auto port = m_Socket.local_endpoint ().port ();
-				m_Socket.close ();
-				OpenSocket (port);
-				Receive ();
+				auto ep = socket.local_endpoint ();
+				socket.close ();
+				OpenSocket (ep);
+				Receive (socket);
 			}
 		}
 	}
