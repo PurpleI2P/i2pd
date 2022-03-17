@@ -81,7 +81,8 @@ namespace transport
 			~SSU2Session ();
 
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
-			
+
+			void Connect ();
 			void Done () override {};
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
 			
@@ -130,6 +131,9 @@ namespace transport
 
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
+
+			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
 			
 		private:
 

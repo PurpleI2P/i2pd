@@ -67,6 +67,8 @@ namespace data
 				eSSUV4 = 0x04,
 				eSSUV6 = 0x08,
 				eNTCP2V6Mesh = 0x10,
+				eSSU2V4 = 0x20,
+				eSSU2V6 = 0x40,
 				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
@@ -186,6 +188,8 @@ namespace data
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
+			std::shared_ptr<const Address> GetSSU2V4Address () const;
+			std::shared_ptr<const Address> GetSSU2V6Address () const;
 
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
@@ -199,12 +203,14 @@ namespace data
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			bool IsSSU (bool v4only = true) const;
-			bool IsSSUV6 () const;
+			bool IsSSUV6 () const { return m_SupportedTransports & eSSUV6; };
 			bool IsNTCP2 (bool v4only = true) const;
-			bool IsNTCP2V6 () const;
-			bool IsV6 () const;
-			bool IsV4 () const;
-			bool IsMesh () const;
+			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
+			bool IsSSU2V4 () const { return m_SupportedTransports & eSSU2V4; };
+			bool IsSSU2V6 () const { return m_SupportedTransports & eSSU2V6; };
+			bool IsV6 () const { return m_SupportedTransports & (eSSUV6 | eNTCP2V6 | eSSU2V6); };
+			bool IsV4 () const { return m_SupportedTransports & (eSSUV4 | eNTCP2V4 | eSSU2V4); };
+			bool IsMesh () const { return m_SupportedTransports & eNTCP2V6Mesh; };
 			void EnableV6 ();
 			void DisableV6 ();
 			void EnableV4 ();

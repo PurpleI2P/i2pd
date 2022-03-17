@@ -386,7 +386,13 @@ namespace data
 			}
 			else if (address->transportStyle == eTransportSSU2)
 			{
-				// TODO:
+				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
+				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
+				if (address->port)
+				{
+					if (address->host.is_v4 ()) m_ReachableTransports |= eSSU2V4;
+					if (address->host.is_v6 ()) m_ReachableTransports |= eSSU2V6;
+				}	
 			}	
 			if (supportedTransports) 
 			{
@@ -693,11 +699,6 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
-	bool RouterInfo::IsSSUV6 () const
-	{
-		return m_SupportedTransports & eSSUV6;
-	}
-
 	bool RouterInfo::IsNTCP2 (bool v4only) const
 	{
 		if (v4only)
@@ -706,25 +707,6 @@ namespace data
 			return m_SupportedTransports & (eNTCP2V4 | eNTCP2V6);
 	}
 
-	bool RouterInfo::IsNTCP2V6 () const
-	{
-		return m_SupportedTransports & eNTCP2V6;
-	}
-
-	bool RouterInfo::IsV6 () const
-	{
-		return m_SupportedTransports & (eSSUV6 | eNTCP2V6);
-	}
-
-	bool RouterInfo::IsV4 () const
-	{
-		return m_SupportedTransports & (eSSUV4 | eNTCP2V4);
-	}
-
-	bool RouterInfo::IsMesh () const
-	{
-		return m_SupportedTransports & eNTCP2V6Mesh;
-	}
 
 	void RouterInfo::EnableV6 ()
 	{
@@ -841,6 +823,24 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2V4Address () const
+	{
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU2) && address->IsV4();
+			});
+	}	
+		
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2V6Address () const
+	{
+		return GetAddress (
+			[](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->transportStyle == eTransportSSU2) && address->IsV6();
+			});
+	}	
+		
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{

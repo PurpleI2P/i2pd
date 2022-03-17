@@ -48,6 +48,11 @@ namespace transport
 	{	
 	}
 
+	void SSU2Session::Connect ()
+	{
+		SendSessionRequest ();
+	}	
+		
 	void SSU2Session::SendSessionRequest ()
 	{
 		// we are Alice
@@ -488,6 +493,21 @@ namespace transport
 		boost::system::error_code ec;
 		m_Socket.send_to (bufs, to, 0, ec);
 	}	
-	
+
+	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
+		std::shared_ptr<const i2p::data::RouterInfo::Address> address)
+	{
+		if (router && address)
+			GetService ().post (
+				[this, router, address]()
+			    {
+					auto session = std::make_shared<SSU2Session> (*this, router, address);
+					session->Connect ();
+				});               
+		else
+			return false;
+		return true;
+	}	
+		
 }
 }
