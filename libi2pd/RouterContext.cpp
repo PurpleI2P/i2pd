@@ -256,7 +256,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (!address->IsNTCP2 () && address->port != port)
+			if (!address->IsNTCP2 () && !address->IsSSU2 () && address->port != port)
 			{
 				address->port = port;
 				updated = true;
