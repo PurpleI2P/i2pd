@@ -26,7 +26,7 @@ if [ -z $screenfind ]; then
 fi
 
 if [ -z i2pd-$arch ]; then
-  echo "Can't find i2pd binary for your archtecture.";
+  echo "Can't find i2pd binary for your architecture.";
   exit 1;
 fi
 
