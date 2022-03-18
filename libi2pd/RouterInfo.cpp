@@ -279,9 +279,13 @@ namespace data
 				}
 				else if (!strcmp (key, "i")) // ntcp2 iv or ssu2 intro
 				{
-					Base64ToByteStream (value, strlen (value), address->i, 16);
 					if (address->IsNTCP2 ())
+					{
+						Base64ToByteStream (value, strlen (value), address->i, 16);
 						address->published = true; // presence of "i" means "published" NTCP2
+					}
+					else
+						Base64ToByteStream (value, strlen (value), address->i, 32);
 				}
 				else if (key[0] == 'i')
 				{
@@ -1239,7 +1243,7 @@ namespace data
 				WriteString (address.i.ToBase64 (len), properties); properties << ';';
 			}
 
-			if (isPublished || address.ssu)
+			if (isPublished || (address.ssu && !address.IsSSU2 ()))
 			{
 				WriteString ("port", properties);
 				properties << '=';
