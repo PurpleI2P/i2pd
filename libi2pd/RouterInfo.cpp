@@ -280,7 +280,8 @@ namespace data
 				else if (!strcmp (key, "i")) // ntcp2 iv or ssu2 intro
 				{
 					Base64ToByteStream (value, strlen (value), address->i, 16);
-					address->published = true; // presence if "i" means "published"
+					if (address->IsNTCP2 ())
+						address->published = true; // presence of "i" means "published" NTCP2
 				}
 				else if (key[0] == 'i')
 				{
