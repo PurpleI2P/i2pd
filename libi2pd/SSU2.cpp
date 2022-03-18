@@ -124,15 +124,17 @@ namespace transport
 		i2p::context.GetSSU2StaticKeys ().Agree (headerX + 16, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// decrypt
-		uint8_t * payload = buf + 64;
-		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, len - 80, false))
+		uint8_t * payload = buf + 64;	
+		std::vector<uint8_t> decryptedPayload(len - 80);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, 
+			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest AEAD verification failed ");
 			return;
 		}	
+		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
 		// payload
-		HandlePayload (payload, len - 80);
+		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
 		SendSessionCreated (headerX + 16);
@@ -497,7 +499,10 @@ namespace transport
 			boost::asio::buffer (payload, payloadLen)
 		};
 		boost::system::error_code ec;
-		m_Socket.send_to (bufs, to, 0, ec);
+		if (to.address ().is_v6 ())
+			m_SocketV6.send_to (bufs, to, 0, ec);
+		else	
+			m_Socket.send_to (bufs, to, 0, ec);
 	}	
 
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
