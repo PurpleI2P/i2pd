@@ -27,7 +27,7 @@ namespace transport
 	
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool peerTest):
-		TransportSession (in_RemoteRouter, SSU2_TERMINATION_TIMEOUT),
+		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
@@ -96,7 +96,7 @@ namespace transport
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
 		// send
-		m_Server.AddPendingOutgoingSession (boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port), shared_from_this ());
+		m_Server.AddPendingOutgoingSession (m_RemoteEndpoint, shared_from_this ());
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
 
@@ -354,7 +354,8 @@ namespace transport
 	}	
 		
 	SSU2Server::SSU2Server ():
-		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ())
+		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ()),
+		m_TerminationTimer (GetService ())
 	{
 	}
 
@@ -390,12 +391,16 @@ namespace transport
 					else
 						LogPrint (eLogError, "SSU2: Can't start server because port not specified");
 				}
-			}	
+			}
+			ScheduleTermination ();
 		}	
 	}
 		
 	void SSU2Server::Stop ()
 	{
+		if (IsRunning ())
+			m_TerminationTimer.cancel ();
+		
 		StopIOService ();
 	}	
 
@@ -519,6 +524,43 @@ namespace transport
 			return false;
 		return true;
 	}	
-		
+
+	void SSU2Server::ScheduleTermination ()
+	{
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU2_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimer.async_wait (std::bind (&SSU2Server::HandleTerminationTimer,
+			this, std::placeholders::_1));
+	}
+
+	void SSU2Server::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto it = m_PendingOutgoingSessions.begin (); it != m_PendingOutgoingSessions.end ();)
+			{
+				if (it->second->IsTerminationTimeoutExpired (ts))
+				{
+					//it->second->Terminate ();
+					it = m_PendingOutgoingSessions.erase (it); 
+				}
+				else
+					it++;
+			}
+
+			for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
+			{
+				if (it->second->IsTerminationTimeoutExpired (ts))
+				{
+					//it->second->Terminate ();
+					it = m_Sessions.erase (it); 
+				}
+				else
+					it++;
+			}
+			
+			ScheduleTermination ();
+		}
+	}	
 }
 }

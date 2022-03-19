@@ -21,7 +21,9 @@ namespace i2p
 {
 namespace transport
 {
+	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
+	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MTU = 1488;
@@ -142,6 +144,9 @@ namespace transport
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, 
 				Packet * packet, boost::asio::ip::udp::socket& socket);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -149,6 +154,7 @@ namespace transport
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
+			boost::asio::deadline_timer m_TerminationTimer;
 	};	
 }
 }
