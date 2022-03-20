@@ -36,6 +36,8 @@ namespace transport
 			// outgoing
 			InitNoiseXKState1 (*m_NoiseState, m_Address->s);
 			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
+			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
+			RAND_bytes ((uint8_t *)&m_SourceConnID, 8); 
 		}	
 		else
 		{
@@ -61,14 +63,12 @@ namespace transport
 		Header header;
 		uint8_t headerX[48], payload[40]; 
 		// fill packet
-		RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 		header.h.connID = m_DestConnID; // dest id
 		memset (header.h.packetNum, 0, 4);
 		header.h.type = eSSU2SessionRequest;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
 		header.h.flags[2] = 0; // flag
-		RAND_bytes ((uint8_t *)&m_SourceConnID, 8); 
 		memcpy (headerX, &m_SourceConnID, 8); // source id
 		memcpy (headerX + 8, &token, 8); // token
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // X
