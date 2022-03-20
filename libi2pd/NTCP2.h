@@ -264,6 +264,9 @@ namespace transport
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
 
+			void CheckIfOverloaded (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error, bool isv4);
+			void ResumeAcceptingIfOverloaded();
+
 			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
 			void HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
 			void AfterSocksHandshake(std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
@@ -285,6 +288,11 @@ namespace transport
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
+
+			bool m_overloaded;
+			bool need_resume_v4;
+			bool need_resume_v6;
+			int m_listen_backlog;
 
 		public:
 
