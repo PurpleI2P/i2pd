@@ -217,6 +217,7 @@ namespace data
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
 			bool isHost = false, isIntroKey = false, isStaticKey = false, isV2 = false;
+			Tag<32> iV2; // for 'i' field in SSU, TODO: remove later
 			char transportStyle[6];
 			ReadString (transportStyle, 6, s);
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
@@ -284,8 +285,10 @@ namespace data
 						Base64ToByteStream (value, strlen (value), address->i, 16);
 						address->published = true; // presence of "i" means "published" NTCP2
 					}
-					else
+					else if (address->IsSSU2 ())
 						Base64ToByteStream (value, strlen (value), address->i, 32);
+					else	
+						Base64ToByteStream (value, strlen (value), iV2, 32);
 				}
 				else if (!strcmp (key, "v"))
 				{
@@ -417,7 +420,7 @@ namespace data
 						auto ssu2addr = std::make_shared<Address> ();
 						ssu2addr->transportStyle = eTransportSSU2;
 						ssu2addr->host = address->host; ssu2addr->port = address->port;
-						ssu2addr->s = address->s; ssu2addr->i = address->i;
+						ssu2addr->s = address->s; ssu2addr->i = iV2;
 						ssu2addr->date = address->date; ssu2addr->caps = address->caps;
 						ssu2addr->published = address->published;
 						ssu2addr->ssu.reset (new SSUExt ()); ssu2addr->ssu->mtu = address->ssu->mtu;
