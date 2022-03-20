@@ -53,7 +53,7 @@ namespace transport
 		SendSessionRequest ();
 	}	
 		
-	void SSU2Session::SendSessionRequest ()
+	void SSU2Session::SendSessionRequest (uint64_t token)
 	{
 		// we are Alice
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
@@ -70,7 +70,7 @@ namespace transport
 		header.h.flags[2] = 0; // flag
 		RAND_bytes ((uint8_t *)&m_SourceConnID, 8); 
 		memcpy (headerX, &m_SourceConnID, 8); // source id
-		RAND_bytes (headerX + 8, 8); // token
+		memcpy (headerX + 8, &token, 8); // token
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // X
 		// payload
 		payload[0] = eSSU2BlkDateTime;
@@ -193,8 +193,8 @@ namespace transport
 	{
 		// we are Alice
 		Header header;
-		header.h.connID = m_SourceConnID;
-		memcpy (header.buf + 8, buf + 8, 8);
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, buf + (len - 24));
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
 		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
@@ -227,6 +227,27 @@ namespace transport
 		return true;
 	}	
 
+	bool SSU2Session::ProcessRetry (uint8_t * buf, size_t len)
+	{
+		// we are Alice
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, buf + (len - 24));
+		header.ll[1] ^= CreateHeaderMask (m_Address->i, buf + (len - 12));
+		if (header.h.type != eSSU2Retry) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+			return false;
+		}	
+		const uint8_t nonce[12] = {0};
+		uint64_t headerX[2]; // sourceConnID, token
+		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
+		// TODO: decrypt and handle payload
+		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise
+		SendSessionRequest (headerX[1]);
+		return true;
+	}	
+		
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
 	{
 		size_t offset = 0;
@@ -477,11 +498,12 @@ namespace transport
 		}	
 		else 
 		{
-			// check pending sessions if it's SessionCreated
+			// check pending sessions if it's SessionCreated or Retry
 			auto it1 = m_PendingOutgoingSessions.find (senderEndpoint);
 			if (it1 != m_PendingOutgoingSessions.end ())
 			{
-				if (it1->second->ProcessSessionCreated (buf, len))
+				if (it1->second->ProcessSessionCreated (buf, len) ||
+				    it1->second->ProcessRetry (buf, len))
 					m_PendingOutgoingSessions.erase (it1);
 			}
 			else

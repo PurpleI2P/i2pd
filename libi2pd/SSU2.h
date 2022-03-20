@@ -31,7 +31,8 @@ namespace transport
 	enum SSU2MessageType
 	{
 		eSSU2SessionRequest = 0,
-		eSSU2SessionCreated = 1
+		eSSU2SessionCreated = 1,
+		eSSU2Retry = 9
 	};
 
 	enum SSU2BlockType
@@ -90,10 +91,11 @@ namespace transport
 			
 			void ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
+			bool ProcessRetry (uint8_t * buf, size_t len);
 			
 		private:
 
-			void SendSessionRequest ();
+			void SendSessionRequest (uint64_t token = 0);
 			void SendSessionCreated (const uint8_t * X);
 
 			void HandlePayload (const uint8_t * buf, size_t len);
