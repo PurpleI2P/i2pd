@@ -94,7 +94,7 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
-		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
+		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		// send
 		m_Server.AddPendingOutgoingSession (m_RemoteEndpoint, shared_from_this ());
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
@@ -132,7 +132,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionRequest AEAD verification failed ");
 			return;
 		}	
-		m_NoiseState->MixHash (payload, 24); // h = SHA256(h || 24 byte encrypted payload from Session Request) for SessionCreated
+		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		// payload
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 		
