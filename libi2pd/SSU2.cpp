@@ -199,10 +199,8 @@ namespace transport
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
 		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
 		if (header.h.type != eSSU2SessionCreated) 
-		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+		// this situation is valid, because it might be Retry with different encryption	
 			return false;
-		}	
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
@@ -502,9 +500,10 @@ namespace transport
 			auto it1 = m_PendingOutgoingSessions.find (senderEndpoint);
 			if (it1 != m_PendingOutgoingSessions.end ())
 			{
-				if (it1->second->ProcessSessionCreated (buf, len) ||
-				    it1->second->ProcessRetry (buf, len))
-					m_PendingOutgoingSessions.erase (it1);
+				if (it1->second->ProcessSessionCreated (buf, len))
+					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint
+				else
+					it1->second->ProcessRetry (buf, len);
 			}
 			else
 			{
