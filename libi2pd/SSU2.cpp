@@ -12,6 +12,7 @@
 #include "RouterContext.h"
 #include "Transports.h"
 #include "Config.h"
+#include "Gzip.h"
 #include "SSU2.h"
 
 namespace i2p
@@ -64,7 +65,7 @@ namespace transport
 		uint8_t headerX[48], payload[40]; 
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
-		memset (header.h.packetNum, 0, 4);
+		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionRequest;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
@@ -144,12 +145,14 @@ namespace transport
 	{
 		// we are Bob
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-
+		uint8_t kh2[32];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
+		
 		// fill packet
 		Header header;
 		uint8_t headerX[48], payload[64]; 
 		header.h.connID = m_DestConnID; // dest id
-		memset (header.h.packetNum, 0, 4);
+		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionCreated;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
@@ -180,9 +183,8 @@ namespace transport
 		const uint8_t nonce[12] = {0};
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
+		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted Noise payload from Session Created)
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
-		uint8_t kh2[32];
-		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, kh2, nonce, headerX);
 		// send
@@ -212,19 +214,86 @@ namespace transport
 		m_NoiseState->MixKey (sharedSecret);
 		// decrypt
 		uint8_t * payload = buf + 64;
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, len - 80, false))
+		std::vector<uint8_t> decryptedPayload(len - 80);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, 
+			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionCreated AEAD verification failed ");
 			return false;
 		}	
+		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || encrypted payload from SessionCreated) for SessionConfirmed
 		// payload
-		HandlePayload (payload, len - 80);
+		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
+		SendSessionConfirmed (headerX + 16);
 		
 		return true;
 	}	
 
+	void SSU2Session::SendSessionConfirmed (const uint8_t * Y)
+	{
+		// we are Alice
+		uint8_t kh2[32];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessionConfirmed", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessionConfirmed", 32)
+		// fill packet
+		Header header;
+		header.h.connID = m_DestConnID; // dest id
+		header.h.packetNum = htobe32 (1);
+		header.h.type = eSSU2SessionConfirmed;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
+		// payload
+		uint8_t  payload[SSU2_MTU];
+		size_t payloadSize = i2p::context.GetRouterInfo ().GetBufferLen ();
+		payload[0] = eSSU2BlkRouterInfo;
+		if (payloadSize < 1024)
+		{	
+			memcpy (payload + 5, i2p::context.GetRouterInfo ().GetBuffer (), payloadSize);
+			payload[3] = 0; // flag
+		}	
+		else	
+		{	
+			i2p::data::GzipDeflator deflator;
+			payloadSize = deflator.Deflate (i2p::context.GetRouterInfo ().GetBuffer (), 
+				i2p::context.GetRouterInfo ().GetBufferLen (), payload + 5, SSU2_MTU -5);
+			payload[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
+		}	
+		htobe16buf (payload + 1, payloadSize + 2);
+		payload[4] = 1; // frag
+		payloadSize += 5;
+		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+		if (paddingSize)
+		{	
+			payload[payloadSize] = eSSU2BlkPadding;
+			htobe16buf (payload + payloadSize + 1, paddingSize);
+			payloadSize += paddingSize + 3;
+		}	
+		// KDF for Session Confirmed part 1
+		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) 
+		// Encrypt part 1
+		uint8_t part1[48];
+		uint8_t nonce[12];
+		CreateNonce (1, nonce);
+		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetSSU2StaticPublicKey (), 32, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, part1, 48, true);
+		m_NoiseState->MixHash (part1, 48); // h = SHA256(h || ciphertext);
+		// KDF for Session Confirmed part 2
+		uint8_t sharedSecret[32];
+		i2p::context.GetSSU2StaticKeys ().Agree (Y, sharedSecret);
+		m_NoiseState->MixKey (sharedSecret);
+		// Encrypt part2
+		memset (nonce, 0, 12);
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || ciphertext);
+		// Encrypt header
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
+		// send
+		m_Server.Send (header.buf, 16, part1, 48, payload, payloadSize, m_RemoteEndpoint);
+	}	
+		
 	bool SSU2Session::ProcessRetry (uint8_t * buf, size_t len)
 	{
 		// we are Alice
@@ -305,7 +374,11 @@ namespace transport
 				case eSSU2BlkRelayTag:
 				break;	
 				case eSSU2BlkNewToken:
-				break;	
+				{
+					LogPrint (eLogDebug, "SSU2: New token");
+					// TODO:
+					break;
+				}	
 				case eSSU2BlkPathChallenge:
 				break;	
 				case eSSU2BlkPathResponse:
@@ -371,6 +444,12 @@ namespace transport
 		htobe16buf (buf + 1, size);
 		return size + 3;	
 	}	
+
+	void SSU2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4);
+		htole64buf (nonce + 4, seqn);
+	}
 		
 	SSU2Server::SSU2Server ():
 		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ()),

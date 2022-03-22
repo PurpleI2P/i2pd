@@ -32,6 +32,7 @@ namespace transport
 	{
 		eSSU2SessionRequest = 0,
 		eSSU2SessionCreated = 1,
+		eSSU2SessionConfirmed = 2,
 		eSSU2Retry = 9
 	};
 
@@ -60,6 +61,10 @@ namespace transport
 		eSSU2BlkFirstPacketNumber, // 20
 		eSSU2BlkPadding = 254
 	};
+
+	// RouterInfo flags
+	const uint8_t SSU2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
+	const uint8_t SSU2_ROUTER_INFO_FLAG_GZIP = 0x02;	
 	
 	class SSU2Server;
 	class SSU2Session: public TransportSession, public std::enable_shared_from_this<SSU2Session>
@@ -71,7 +76,7 @@ namespace transport
 			struct
 			{
 				uint64_t connID;
-				uint8_t packetNum[4];
+				uint32_t packetNum;
 				uint8_t type;
 				uint8_t flags[3];
 			} h;
@@ -97,10 +102,12 @@ namespace transport
 
 			void SendSessionRequest (uint64_t token = 0);
 			void SendSessionCreated (const uint8_t * X);
+			void SendSessionConfirmed (const uint8_t * Y);
 
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
+			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			
 		private:
 
