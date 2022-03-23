@@ -27,11 +27,7 @@
 
 #define VERSION I2PD_VERSION
 
-#ifdef MESHNET
-#define I2PD_NET_ID 3
-#else
 #define I2PD_NET_ID 2
-#endif
 
 #define I2P_VERSION_MAJOR 0
 #define I2P_VERSION_MINOR 9

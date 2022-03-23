@@ -31,7 +31,6 @@ include filelist.mk
 
 USE_AESNI       := $(or $(USE_AESNI),yes)
 USE_STATIC      := $(or $(USE_STATIC),no)
-USE_MESHNET     := $(or $(USE_MESHNET),no)
 USE_UPNP        := $(or $(USE_UPNP),no)
 DEBUG           := $(or $(DEBUG),yes)
 
@@ -66,10 +65,6 @@ else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
 	include Makefile.mingw
 else # not supported
 	$(error Not supported platform)
-endif
-
-ifeq ($(USE_MESHNET),yes)
-	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
 ifeq ($(USE_GIT_VERSION),yes)

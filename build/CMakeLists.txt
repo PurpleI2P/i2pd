@@ -17,7 +17,6 @@ option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
 option(WITH_STATIC          "Static build"                            OFF)
 option(WITH_UPNP            "Include support for UPnP client"         OFF)
-option(WITH_MESHNET         "Build for cjdns test network"            OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
 
@@ -88,10 +87,6 @@ set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/i2pd.cpp"
   "${DAEMON_SRC_DIR}/UPnP.cpp"
 )
-
-if(WITH_MESHNET)
-  add_definitions(-DMESHNET)
-endif()
 
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
@@ -235,12 +230,6 @@ endif()
 # load includes
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 
-# warn if for meshnet
-if(WITH_MESHNET)
-  message(STATUS "Building for testnet")
-  message(WARNING "This build will NOT work on mainline i2p")
-endif()
-
 include(CheckAtomic)
 
 # show summary
@@ -258,14 +247,9 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
-message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
-
-if(WITH_MESHNET)
-  message(STATUS "WARNING: Using the MESHNET option will make it impossible to use the application with the main network!!!")
-endif()
 
 if(WITH_BINARY)
   add_executable("${PROJECT_NAME}" ${DAEMON_SRC})

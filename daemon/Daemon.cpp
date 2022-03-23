@@ -151,11 +151,7 @@ namespace util
 
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
-#ifdef MESHNET
-		// manual override for meshnet
-		ipv4 = false;
-		ipv6 = true;
-#endif
+
 		// ifname -> address
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
 		if (ipv4 && i2p::config::IsDefault ("address4"))
