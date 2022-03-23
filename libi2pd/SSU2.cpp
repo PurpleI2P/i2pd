@@ -54,7 +54,11 @@ namespace transport
 
 	void SSU2Session::Connect ()
 	{
-		SendSessionRequest ();
+		auto token = m_Server.FindOutgoingToken (m_RemoteEndpoint);
+		if (token)
+			SendSessionRequest (token);
+		else
+			SendTokenRequest ();
 	}	
 		
 	void SSU2Session::SendSessionRequest (uint64_t token)
@@ -242,9 +246,7 @@ namespace transport
 		header.h.connID = m_DestConnID; // dest id
 		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionConfirmed;
-		header.h.flags[0] = 2; // ver
-		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
-		header.h.flags[2] = 0; // flag
+		memset (header.h.flags, 0, 3);
 		// payload
 		uint8_t  payload[SSU2_MTU];
 		size_t payloadSize = i2p::context.GetRouterInfo ().GetBufferLen ();
@@ -367,6 +369,42 @@ namespace transport
 		
 		return true;
 	}	
+
+	void SSU2Session::SendTokenRequest ()
+	{
+		// we are Alice
+		Header header;
+		uint8_t h[32], payload[40]; 
+		// fill packet
+		header.h.connID = m_DestConnID; // dest id
+		header.h.packetNum = 0;
+		header.h.type = eSSU2TokenRequest;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &m_SourceConnID, 8); // source id
+		memset (h + 24, 0, 8); // zero token
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
+		payload[payloadSize] = eSSU2BlkPadding;
+		htobe16buf (payload + payloadSize + 1, paddingSize);
+		payloadSize += paddingSize + 3;
+		// encrypt
+		const uint8_t nonce[12] = {0};
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, m_Address->i, nonce, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
+		i2p::crypto::ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
+		// send
+		m_Server.AddPendingOutgoingSession (m_RemoteEndpoint, shared_from_this ());
+		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
+	}	
 		
 	bool SSU2Session::ProcessRetry (uint8_t * buf, size_t len)
 	{
@@ -383,8 +421,9 @@ namespace transport
 		const uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
+		m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 		// TODO: decrypt and handle payload
-		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise
+		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
 		SendSessionRequest (headerX[1]);
 		return true;
 	}	
@@ -457,7 +496,9 @@ namespace transport
 				case eSSU2BlkNewToken:
 				{
 					LogPrint (eLogDebug, "SSU2: New token");
-					// TODO:
+					uint64_t token;
+					memcpy (&token, buf + offset + 4, 8);
+					m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, bufbe32toh (buf + offset));
 					break;
 				}	
 				case eSSU2BlkPathChallenge:
@@ -761,9 +802,38 @@ namespace transport
 				else
 					it++;
 			}
+
+			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )
+			{
+				if (ts > it->second.second)
+					it = m_IncomingTokens.erase (it); 
+				else
+					it++;
+			}
+
+			for (auto it = m_OutgoingTokens.begin (); it != m_OutgoingTokens.end (); )
+			{
+				if (ts > it->second.second)
+					it = m_OutgoingTokens.erase (it); 
+				else
+					it++;
+			}
 			
 			ScheduleTermination ();
 		}
+	}
+
+	void SSU2Server::UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp)
+	{
+		m_OutgoingTokens[ep] = {token, exp};
+	}	
+
+	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep)
+	{
+		auto it = m_OutgoingTokens.find (ep);
+		if (it != m_OutgoingTokens.end ())
+			return it->second.first;
+		return 0;
 	}	
 }
 }
