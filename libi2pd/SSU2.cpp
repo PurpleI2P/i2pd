@@ -13,6 +13,7 @@
 #include "Transports.h"
 #include "Config.h"
 #include "Gzip.h"
+#include "NetDb.hpp"
 #include "SSU2.h"
 
 namespace i2p
@@ -239,7 +240,7 @@ namespace transport
 		// fill packet
 		Header header;
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = htobe32 (1);
+		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionConfirmed;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
@@ -293,6 +294,79 @@ namespace transport
 		// send
 		m_Server.Send (header.buf, 16, part1, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
+
+	bool SSU2Session::ProcessSessionConfirmed (uint8_t * buf, size_t len)
+	{
+		// we are Bob
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
+		uint8_t kh2[32];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessionConfirmed", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessionConfirmed", 32)
+		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
+		if (header.h.type != eSSU2SessionConfirmed) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+			return false;
+		}	
+		// KDF for Session Confirmed part 1
+		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) 
+		// decrypt part1
+		uint8_t nonce[12];
+		CreateNonce (1, nonce);
+		uint8_t S[32];
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 16, 32, m_NoiseState->m_H, 32, 
+			m_NoiseState->m_CK + 32, nonce, S, 32, false))
+		{
+			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 1 AEAD verification failed ");
+			return false;
+		}
+		m_NoiseState->MixHash (buf + 16, 48); // h = SHA256(h || ciphertext);
+		// KDF for Session Confirmed part 2
+		uint8_t sharedSecret[32];
+		m_EphemeralKeys->Agree (S, sharedSecret);
+		m_NoiseState->MixKey (sharedSecret);
+		// decrypt part2
+		uint8_t * payload = buf + 64;
+		std::vector<uint8_t> decryptedPayload(len - 80);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, 
+			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
+		{
+			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 2 AEAD verification failed ");
+			return false;
+		}	
+		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
+		// payload
+		// handle RouterInfo block that must be first
+		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
+		{
+			LogPrint (eLogError, "SSU2: SessionConfirmed unexpected first block type ", (int)decryptedPayload[0]);
+			return false;
+		}	
+		size_t riSize = bufbe16toh (decryptedPayload.data () + 1);
+		if (riSize + 3 > decryptedPayload.size ())
+		{
+			LogPrint (eLogError, "SSU2: SessionConfirmed RouterInfo block is too long ", riSize);
+			return false;
+		}	
+		LogPrint (eLogDebug, "SSU2: RouterInfo in SessionConfirmed");
+		auto ri = ExtractRouterInfo (decryptedPayload.data () + 3, riSize);
+		if (!ri)
+		{
+			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
+			return false;
+		}	
+		if (!ri->GetSSU2AddressWithStaticKey (S))
+		{
+			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
+			return false;
+		}	
+		i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
+		// handle other blocks
+		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
+		
+		return true;
+	}	
 		
 	bool SSU2Session::ProcessRetry (uint8_t * buf, size_t len)
 	{
@@ -339,7 +413,14 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Options");
 				break;
 				case eSSU2BlkRouterInfo:
-				break;	
+				{	
+					// not from SessionConfirmed	
+					LogPrint (eLogDebug, "SSU2: RouterInfo");
+					auto ri = ExtractRouterInfo (buf + offset, size);	
+					if (ri)
+						i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri 	
+					break;	
+				}		
 				case eSSU2BlkI2NPMessage:
 				break;	
 				case eSSU2BlkFirstFragment:
@@ -445,6 +526,26 @@ namespace transport
 		return size + 3;	
 	}	
 
+	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
+	{
+		if (size < 2) return nullptr;
+		// TODO: handle frag
+		std::shared_ptr<const i2p::data::RouterInfo> ri;
+		if (buf[0] & SSU2_ROUTER_INFO_FLAG_GZIP)
+		{
+			i2p::data::GzipInflator inflator;
+			uint8_t uncompressed[i2p::data::MAX_RI_BUFFER_SIZE];
+			size_t uncompressedSize = inflator.Inflate (buf + 2, size - 2, uncompressed, i2p::data::MAX_RI_BUFFER_SIZE);
+			if (uncompressedSize && uncompressedSize < i2p::data::MAX_RI_BUFFER_SIZE)
+				ri = std::make_shared<i2p::data::RouterInfo>(uncompressed, uncompressedSize);
+			else
+				LogPrint (eLogInfo, "SSU2: RouterInfo decompression failed ", uncompressedSize);
+		}	
+		else
+			ri = std::make_shared<i2p::data::RouterInfo>(buf + 2, size - 2);
+		return ri;
+	}	
+		
 	void SSU2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
 	{
 		memset (nonce, 0, 4);
@@ -572,6 +673,8 @@ namespace transport
 		auto it = m_Sessions.find (connID);
 		if (it != m_Sessions.end ())
 		{
+			// TODO: check state
+			it->second->ProcessSessionConfirmed (buf, len);
 		}	
 		else 
 		{

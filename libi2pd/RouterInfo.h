@@ -183,6 +183,7 @@ namespace data
 			virtual void ClearProperties () {};
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
+			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;

@@ -96,6 +96,7 @@ namespace transport
 			
 			void ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
+			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
 			
 		private:
@@ -107,6 +108,7 @@ namespace transport
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
+			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			
 		private:

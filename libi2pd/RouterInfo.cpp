@@ -895,6 +895,16 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2AddressWithStaticKey (const uint8_t * key) const
+	{
+		if (!key) return nullptr;
+		return GetAddress (
+			[key](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return address->IsSSU2 () && !memcmp (address->s, key, 32);
+			});
+	}
+		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
 	{
 		return GetAddress (
