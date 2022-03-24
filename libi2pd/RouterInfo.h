@@ -19,6 +19,7 @@
 #include <boost/shared_ptr.hpp>
 #include "Identity.h"
 #include "Profiling.h"
+#include "Family.h"
 
 namespace i2p
 {
@@ -252,7 +253,7 @@ namespace data
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			/** return true if we are in a router family and the signature is valid */
-			bool IsFamily(const std::string & fam) const;
+			bool IsFamily (FamilyID famid) const;
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
@@ -284,7 +285,7 @@ namespace data
 		
 		private:
 
-			std::string m_Family;
+			FamilyID m_FamilyID;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			std::shared_ptr<Buffer> m_Buffer;
 			size_t m_BufferLen;

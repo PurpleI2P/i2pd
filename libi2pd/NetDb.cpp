@@ -1364,7 +1364,8 @@ namespace data
 		return res;
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const 
+	{
 		return GetRandomRouter(
 			[fam](std::shared_ptr<const RouterInfo> router)->bool
 		{

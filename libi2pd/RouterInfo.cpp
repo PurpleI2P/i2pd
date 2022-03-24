@@ -41,7 +41,7 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
-		m_IsUpdated (false), m_IsUnreachable (false), 
+		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false), 
 		m_SupportedTransports (0),m_ReachableTransports (0), 
 		m_Caps (0), m_Version (0)
 	{
@@ -51,8 +51,9 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
-		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0),
-		m_ReachableTransports (0), m_Caps (0), m_Version (0)
+		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false), 
+		m_SupportedTransports (0), m_ReachableTransports (0), 
+		m_Caps (0), m_Version (0)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
@@ -442,6 +443,7 @@ namespace data
 		// read properties
 		m_Version = 0;
 		bool isNetId = false;
+		std::string family;
 		uint16_t size, r = 0;
 		s.read ((char *)&size, sizeof (size)); if (!s) return;
 		size = be16toh (size);
@@ -486,16 +488,15 @@ namespace data
 			// family
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY))
 			{
-				m_Family = value;
-				boost::to_lower (m_Family);
+				family = value;
+				boost::to_lower (family);
 			}
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY_SIG))
 			{
-				if (!netdb.GetFamilies ().VerifyFamily (m_Family, GetIdentHash (), value))
-				{
-					LogPrint (eLogWarning, "RouterInfo: Family signature verification failed");
-					m_Family.clear ();
-				}
+				if (netdb.GetFamilies ().VerifyFamily (family, GetIdentHash (), value))
+					m_FamilyID = netdb.GetFamilies ().GetFamilyID (family);
+				else	
+					LogPrint (eLogWarning, "RouterInfo: Family ", family, " signature verification failed");
 			}
 
 			if (!s) return;
@@ -505,9 +506,9 @@ namespace data
 			SetUnreachable (true);
 	}
 
-	bool RouterInfo::IsFamily(const std::string & fam) const
+	bool RouterInfo::IsFamily (FamilyID famid) const
 	{
-		return m_Family == fam;
+		return m_FamilyID == famid;
 	}
 
 	void RouterInfo::ExtractCaps (const char * value)

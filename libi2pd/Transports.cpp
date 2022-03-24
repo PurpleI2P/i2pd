@@ -829,12 +829,18 @@ namespace transport
 		}
 		return i2p::data::netdb.FindRouter (ident);
 	}
-	void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
+		
+	void Transports::RestrictRoutesToFamilies(const std::set<std::string>& families)
 	{
 		std::lock_guard<std::mutex> lock(m_FamilyMutex);
 		m_TrustedFamilies.clear();
-		for ( const auto& fam : families )
-			m_TrustedFamilies.push_back(fam);
+		for (auto fam : families)
+		{	
+			boost::to_lower (fam);
+			auto id = i2p::data::netdb.GetFamilies ().GetFamilyID (fam);
+			if (id)	
+				m_TrustedFamilies.push_back (id);
+		}	
 	}
 
 	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)
@@ -856,20 +862,19 @@ namespace transport
 	{
 		{
 			std::lock_guard<std::mutex> l(m_FamilyMutex);
-			std::string fam;
+			i2p::data::FamilyID fam = 0;
 			auto sz = m_TrustedFamilies.size();
 			if(sz > 1)
 			{
 				auto it = m_TrustedFamilies.begin ();
 				std::advance(it, rand() % sz);
 				fam = *it;
-				boost::to_lower(fam);
 			}
 			else if (sz == 1)
 			{
 				fam = m_TrustedFamilies[0];
 			}
-			if (fam.size())
+			if (fam)
 				return i2p::data::netdb.GetRandomRouterInFamily(fam);
 		}
 		{

@@ -126,7 +126,7 @@ namespace transport
 			/** do we want to use restricted routes? */
 			bool RoutesRestricted() const;
 			/** restrict routes to use only these router families for first hops */
-			void RestrictRoutesToFamilies(std::set<std::string> families);
+			void RestrictRoutesToFamilies(const std::set<std::string>& families);
 			/** restrict routes to use only these routers for first hops */
 			void RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers);
 
@@ -173,7 +173,7 @@ namespace transport
 			uint64_t m_LastBandwidthUpdateTime;
 
 			/** which router families to trust for first hops */
-			std::vector<std::string> m_TrustedFamilies;
+			std::vector<i2p::data::FamilyID> m_TrustedFamilies;
 			mutable std::mutex m_FamilyMutex;
 
 			/** which routers for first hop to trust */
