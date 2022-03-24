@@ -60,6 +60,27 @@ namespace transport
 		else
 			SendTokenRequest ();
 	}	
+
+	void SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
+	{
+		// we are Bob
+		m_SourceConnID = connID;
+		Header header;
+		header.h.connID = connID;
+		memcpy (header.buf + 8, buf + 8, 8);
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		switch (header.h.type)
+		{
+			case eSSU2SessionRequest:
+				ProcessSessionRequest (header, buf, len);
+			break;
+			case eSSU2TokenRequest:
+				ProcessTokenRequest (header, buf, len);
+			break;	
+			default:
+				LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+		}	
+	}	
 		
 	void SSU2Session::SendSessionRequest (uint64_t token)
 	{
@@ -106,19 +127,9 @@ namespace transport
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}	
 
-	void SSU2Session::ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len)
+	void SSU2Session::ProcessSessionRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
-		m_SourceConnID = connID;
-		Header header;
-		header.h.connID = connID;
-		memcpy (header.buf + 8, buf + 8, 8);
-		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
-		if (header.h.type != eSSU2SessionRequest) 
-		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
-			return;
-		}	
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
@@ -405,6 +416,67 @@ namespace transport
 		m_Server.AddPendingOutgoingSession (m_RemoteEndpoint, shared_from_this ());
 		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
 	}	
+
+	void SSU2Session::ProcessTokenRequest (Header& header, uint8_t * buf, size_t len)
+	{
+		// we are Bob
+		const uint8_t nonce[12] = {0};
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		memcpy (&m_DestConnID, h, 8); 
+		// decrypt
+		uint8_t * payload = buf + 32;	
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32, 
+			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: TokenRequest AEAD verification failed ");
+			return;
+		}	
+		// payload
+		HandlePayload (payload, len - 48);
+		SendRetry ();
+	}	
+
+	void SSU2Session::SendRetry ()
+	{
+		// we are Bob
+		Header header;
+		uint8_t h[32], payload[64]; 
+		// fill packet
+		header.h.connID = m_DestConnID; // dest id
+		header.h.packetNum = 0;
+		header.h.type = eSSU2Retry;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &m_SourceConnID, 8); // source id
+		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint);
+		memcpy (h + 24, &token, 8); // token
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 57);
+		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+		if (paddingSize)
+		{	
+			payload[payloadSize] = eSSU2BlkPadding;
+			htobe16buf (payload + payloadSize + 1, paddingSize);
+			payloadSize += paddingSize + 3;
+		}	
+		// encrypt
+		const uint8_t nonce[12] = {0};
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, i2p::context.GetSSU2IntroKey (), nonce, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 12));
+		i2p::crypto::ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
+		// send
+		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
+	}	
 		
 	bool SSU2Session::ProcessRetry (uint8_t * buf, size_t len)
 	{
@@ -418,11 +490,24 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
 			return false;
 		}	
-		const uint8_t nonce[12] = {0};
+		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
 		m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
-		// TODO: decrypt and handle payload
+		// decrypt and handle payload
+		uint8_t * payload = buf + 32;
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &headerX, 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32, 
+			m_Address->i, nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: Retry AEAD verification failed ");
+			return false;
+		}	
+		HandlePayload (payload, len - 48);
+		
 		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
 		SendSessionRequest (headerX[1]);
 		return true;
@@ -733,7 +818,7 @@ namespace transport
 				// assume new incoming session
 				auto session = std::make_shared<SSU2Session> (*this);
 				session->SetRemoteEndpoint (senderEndpoint);
-				session->ProcessSessionRequest (connID, buf, len);
+				session->ProcessFirstIncomingMessage (connID, buf, len);
 			}	
 		}	
 	}	
@@ -828,12 +913,23 @@ namespace transport
 		m_OutgoingTokens[ep] = {token, exp};
 	}	
 
-	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep)
+	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const 
 	{
 		auto it = m_OutgoingTokens.find (ep);
 		if (it != m_OutgoingTokens.end ())
 			return it->second.first;
 		return 0;
+	}	
+
+	uint64_t SSU2Server::GetIncomingToken (const boost::asio::ip::udp::endpoint& ep)
+	{
+		auto it = m_IncomingTokens.find (ep);
+		if (it != m_IncomingTokens.end ())
+			return it->second.first;
+		uint64_t token;
+		RAND_bytes ((uint8_t *)&token, 8);
+		m_IncomingTokens.emplace (ep, std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT));
+		return token;
 	}	
 }
 }

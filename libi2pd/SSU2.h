@@ -95,18 +95,22 @@ namespace transport
 			void Connect ();
 			void Done () override {};
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
-			
-			void ProcessSessionRequest (uint64_t connID, uint8_t * buf, size_t len);
+
+			void ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
 			
 		private:
 
+			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
+			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);
+			
 			void SendSessionRequest (uint64_t token = 0);
 			void SendSessionCreated (const uint8_t * X);
 			void SendSessionConfirmed (const uint8_t * Y);
 			void SendTokenRequest ();
+			void SendRetry ();
 
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
@@ -152,7 +156,8 @@ namespace transport
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
 
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
-			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep);
+			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const;
+			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 			
 		private:
 
