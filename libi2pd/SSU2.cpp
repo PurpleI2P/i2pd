@@ -30,7 +30,8 @@ namespace transport
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool peerTest):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
-		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0)
+		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0),
+		m_State (eSSU2SessionStateUnknown)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -242,7 +243,9 @@ namespace transport
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
+		m_State = eSSU2SessionStateEstablished;
 		SendSessionConfirmed (headerX + 16);
+		KDFDataPhase (m_KeyDataSend, m_KeyDataReceive);
 		
 		return true;
 	}	
@@ -377,10 +380,21 @@ namespace transport
 		i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
-		
+		m_State = eSSU2SessionStateEstablished;
+		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
 		return true;
 	}	
 
+	void SSU2Session::KDFDataPhase (uint8_t * keydata_ab, uint8_t * keydata_ba)
+	{
+		uint8_t keydata[64];
+		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "", keydata); // keydata = HKDF(chainKey, ZEROLEN, "", 64)
+		// ab
+		i2p::crypto::HKDF (keydata, nullptr, 0, "HKDFSSU2DataKeys", keydata_ab); // keydata_ab = HKDF(keydata, ZEROLEN, "HKDFSSU2DataKeys", 64)
+		// ba
+		i2p::crypto::HKDF (keydata + 32, nullptr, 0, "HKDFSSU2DataKeys", keydata_ba); // keydata_ba = HKDF(keydata + 32, ZEROLEN, "HKDFSSU2DataKeys", 64)
+	}	
+		
 	void SSU2Session::SendTokenRequest ()
 	{
 		// we are Alice
@@ -511,6 +525,29 @@ namespace transport
 		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
 		SendSessionRequest (headerX[1]);
 		return true;
+	}	
+
+	void SSU2Session::ProcessData (uint8_t * buf, size_t len)
+	{
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[1] ^= CreateHeaderMask (m_KeyDataReceive + 32, buf + (len - 12));
+		if (header.h.type != eSSU2Data) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+			return;
+		}	
+		uint8_t payload[SSU2_MTU];
+		size_t payloadSize = len - 32;
+		uint8_t nonce[12];
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 16, payloadSize, header.buf, 16, 
+			m_KeyDataReceive, nonce, payload, payloadSize, false))
+		{
+			LogPrint (eLogWarning, "SSU2: Data AEAD verification failed ");
+			return;
+		}	
+		HandlePayload (payload, payloadSize);
 	}	
 		
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
@@ -799,8 +836,10 @@ namespace transport
 		auto it = m_Sessions.find (connID);
 		if (it != m_Sessions.end ())
 		{
-			// TODO: check state
-			it->second->ProcessSessionConfirmed (buf, len);
+			if (it->second->IsEstablished ())
+				it->second->ProcessData (buf, len);
+			else	
+				it->second->ProcessSessionConfirmed (buf, len);
 		}	
 		else 
 		{

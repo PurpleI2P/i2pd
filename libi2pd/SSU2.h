@@ -34,6 +34,7 @@ namespace transport
 		eSSU2SessionRequest = 0,
 		eSSU2SessionCreated = 1,
 		eSSU2SessionConfirmed = 2,
+		eSSU2Data = 6,
 		eSSU2Retry = 9,
 		eSSU2TokenRequest = 10
 	};
@@ -64,6 +65,15 @@ namespace transport
 		eSSU2BlkPadding = 254
 	};
 
+	enum SSU2SessionState
+	{
+		eSSU2SessionStateUnknown,
+		eSSU2SessionStateEstablished,
+		eSSU2SessionStateClosed,
+		eSSU2SessionStateFailed
+	};
+
+	
 	// RouterInfo flags
 	const uint8_t SSU2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
 	const uint8_t SSU2_ROUTER_INFO_FLAG_GZIP = 0x02;	
@@ -95,11 +105,13 @@ namespace transport
 			void Connect ();
 			void Done () override {};
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
-
+			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
+			
 			void ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
+			void ProcessData (uint8_t * buf, size_t len);
 			
 		private:
 
@@ -109,9 +121,10 @@ namespace transport
 			void SendSessionRequest (uint64_t token = 0);
 			void SendSessionCreated (const uint8_t * X);
 			void SendSessionConfirmed (const uint8_t * Y);
+			void KDFDataPhase (uint8_t * keydata_ab, uint8_t * keydata_ba);
 			void SendTokenRequest ();
 			void SendRetry ();
-
+			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
@@ -126,6 +139,8 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			uint64_t m_DestConnID, m_SourceConnID;
+			SSU2SessionState m_State;
+			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64]; 
 	};
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
