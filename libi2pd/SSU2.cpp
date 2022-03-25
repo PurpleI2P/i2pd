@@ -530,7 +530,8 @@ namespace transport
 	void SSU2Session::ProcessData (uint8_t * buf, size_t len)
 	{
 		Header header;
-		memcpy (header.buf, buf, 16);
+		header.ll[0] = m_SourceConnID;
+		memcpy (header.buf + 8, buf + 8, 8);
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataReceive + 32, buf + (len - 12));
 		if (header.h.type != eSSU2Data) 
 		{
