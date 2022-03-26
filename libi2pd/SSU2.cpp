@@ -31,7 +31,7 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool peerTest):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0),
-		m_State (eSSU2SessionStateUnknown)
+		m_State (eSSU2SessionStateUnknown), m_SendPacketNum (0), m_ReceivePacketNum (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -62,6 +62,14 @@ namespace transport
 			SendTokenRequest ();
 	}	
 
+	void SSU2Session::Established ()
+	{
+		m_State = eSSU2SessionStateEstablished;
+		m_EphemeralKeys = nullptr;
+		m_NoiseState.reset (nullptr);
+		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
+	}	
+		
 	void SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
 	{
 		// we are Bob
@@ -108,6 +116,7 @@ namespace transport
 		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
 		payload[payloadSize] = eSSU2BlkPadding;
 		htobe16buf (payload + payloadSize + 1, paddingSize);
+		memset (payload + payloadSize + 3, 0, paddingSize);
 		payloadSize += paddingSize + 3;
 		// KDF for session request 
 		m_NoiseState->MixHash ({ {header.buf, 16}, {headerX, 16} }); // h = SHA256(h || header) 
@@ -182,14 +191,8 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 57);
-		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
-		if (paddingSize)
-		{	
-			payload[payloadSize] = eSSU2BlkPadding;
-			htobe16buf (payload + payloadSize + 1, paddingSize);
-			payloadSize += paddingSize + 3;
-		}	
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 64 - payloadSize);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -243,9 +246,9 @@ namespace transport
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 		
 		m_Server.AddSession (m_SourceConnID, shared_from_this ());
-		m_State = eSSU2SessionStateEstablished;
 		SendSessionConfirmed (headerX + 16);
 		KDFDataPhase (m_KeyDataSend, m_KeyDataReceive);
+		Established ();	
 		
 		return true;
 	}	
@@ -280,13 +283,7 @@ namespace transport
 		htobe16buf (payload + 1, payloadSize + 2);
 		payload[4] = 1; // frag
 		payloadSize += 5;
-		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
-		if (paddingSize)
-		{	
-			payload[payloadSize] = eSSU2BlkPadding;
-			htobe16buf (payload + payloadSize + 1, paddingSize);
-			payloadSize += paddingSize + 3;
-		}	
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) 
 		// Encrypt part 1
@@ -309,6 +306,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
 		// send
 		m_Server.Send (header.buf, 16, part1, 48, payload, payloadSize, m_RemoteEndpoint);
+		m_SendPacketNum++;
 	}	
 
 	bool SSU2Session::ProcessSessionConfirmed (uint8_t * buf, size_t len)
@@ -380,8 +378,9 @@ namespace transport
 		i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
-		m_State = eSSU2SessionStateEstablished;
 		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
+		Established ();
+		
 		return true;
 	}	
 
@@ -418,6 +417,7 @@ namespace transport
 		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
 		payload[payloadSize] = eSSU2BlkPadding;
 		htobe16buf (payload + payloadSize + 1, paddingSize);
+		memset (payload + payloadSize + 3, 0, paddingSize);
 		payloadSize += paddingSize + 3;
 		// encrypt
 		const uint8_t nonce[12] = {0};
@@ -473,14 +473,8 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 57);
-		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
-		if (paddingSize)
-		{	
-			payload[payloadSize] = eSSU2BlkPadding;
-			htobe16buf (payload + payloadSize + 1, paddingSize);
-			payloadSize += paddingSize + 3;
-		}	
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 64 - payloadSize);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// encrypt
 		const uint8_t nonce[12] = {0};
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, i2p::context.GetSSU2IntroKey (), nonce, payload, payloadSize + 16, true);
@@ -527,6 +521,23 @@ namespace transport
 		return true;
 	}	
 
+	void SSU2Session::SendData (const uint8_t * buf, size_t len)
+	{
+		Header header;
+		header.h.connID = m_DestConnID;
+		header.h.packetNum = htobe32 (m_SendPacketNum);
+		header.h.type = eSSU2Data;
+		memset (header.h.flags, 0, 3);
+		uint8_t payload[SSU2_MTU];
+		uint8_t nonce[12];
+		CreateNonce (m_SendPacketNum, nonce);
+		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MTU, true);
+		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
+		m_SendPacketNum++;
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		m_NumSentBytes += len + 32;
+	}	
+		
 	void SSU2Session::ProcessData (uint8_t * buf, size_t len)
 	{
 		Header header;
@@ -540,8 +551,9 @@ namespace transport
 		}	
 		uint8_t payload[SSU2_MTU];
 		size_t payloadSize = len - 32;
+		uint32_t packetNum = be32toh (header.h.packetNum); 
 		uint8_t nonce[12];
-		CreateNonce (be32toh (header.h.packetNum), nonce);
+		CreateNonce (packetNum, nonce);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (buf + 16, payloadSize, header.buf, 16, 
 			m_KeyDataReceive, nonce, payload, payloadSize, false))
 		{
@@ -549,6 +561,10 @@ namespace transport
 			return;
 		}	
 		HandlePayload (payload, payloadSize);
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		m_NumReceivedBytes += len;
+		if (packetNum > m_ReceivePacketNum) m_ReceivePacketNum = packetNum;
+		SendQuickAck (); // TODO: don't send too requently
 	}	
 		
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
@@ -690,6 +706,31 @@ namespace transport
 		return size + 3;	
 	}	
 
+	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
+	{
+		if (len < 8) return 0;
+		buf[0] = eSSU2BlkAck;
+		htobe16buf (buf + 1, 5);
+		htobe32buf (buf + 3, m_ReceivePacketNum); // Ack Through
+		buf[7] = 0; // acnt
+		return 8;
+	}	
+
+	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len)
+	{
+		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
+		if (paddingSize > len) paddingSize = len;
+		if (paddingSize)
+		{	
+			buf[0] = eSSU2BlkPadding;
+			htobe16buf (buf + 1, paddingSize);
+			memset (buf + 3, 0, paddingSize);
+		}	
+		else
+			return 0;
+		return paddingSize + 3;
+	}	
+		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
 	{
 		if (size < 2) return nullptr;
@@ -715,6 +756,14 @@ namespace transport
 		memset (nonce, 0, 4);
 		htole64buf (nonce + 4, seqn);
 	}
+
+	void SSU2Session::SendQuickAck ()
+	{
+		uint8_t payload[SSU2_MTU];
+		size_t payloadSize = CreateAckBlock (payload, SSU2_MTU);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
+		SendData (payload, payloadSize);
+	}	
 		
 	SSU2Server::SSU2Server ():
 		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ()),
@@ -800,6 +849,7 @@ namespace transport
 	{
 		if (!ecode)
 		{
+			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			packet->len = bytes_transferred;
 			ProcessNextPacket (packet->buf, packet->len, packet->from);
 			m_PacketsPool.ReleaseMt (packet);
@@ -863,6 +913,22 @@ namespace transport
 		}	
 	}	
 
+	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen, 
+		const boost::asio::ip::udp::endpoint& to)
+	{
+		std::vector<boost::asio::const_buffer> bufs
+		{
+			boost::asio::buffer (header, headerLen),
+			boost::asio::buffer (payload, payloadLen)
+		};
+		boost::system::error_code ec;
+		if (to.address ().is_v6 ())
+			m_SocketV6.send_to (bufs, to, 0, ec);
+		else	
+			m_Socket.send_to (bufs, to, 0, ec);
+		i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
+	}	
+		
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
 		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)
 	{
@@ -877,6 +943,7 @@ namespace transport
 			m_SocketV6.send_to (bufs, to, 0, ec);
 		else	
 			m_Socket.send_to (bufs, to, 0, ec);
+		i2p::transport::transports.UpdateSentBytes (headerLen + headerXLen + payloadLen);
 	}	
 
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,

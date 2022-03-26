@@ -103,6 +103,7 @@ namespace transport
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
 
 			void Connect ();
+			void Established ();
 			void Done () override {};
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
@@ -124,12 +125,17 @@ namespace transport
 			void KDFDataPhase (uint8_t * keydata_ab, uint8_t * keydata_ba);
 			void SendTokenRequest ();
 			void SendRetry ();
+			void SendData (const uint8_t * buf, size_t len);
+			void SendQuickAck ();
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
-			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
+
+			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
+			size_t CreateAckBlock (uint8_t * buf, size_t len);
+			size_t CreatePaddingBlock (uint8_t * buf, size_t len);
 			
 		private:
 
@@ -141,6 +147,7 @@ namespace transport
 			uint64_t m_DestConnID, m_SourceConnID;
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64]; 
+			uint32_t m_SendPacketNum, m_ReceivePacketNum;
 	};
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
@@ -164,6 +171,8 @@ namespace transport
 			void AddSession (uint64_t connID, std::shared_ptr<SSU2Session> session);
 			void AddPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, std::shared_ptr<SSU2Session> session);
 
+			void Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen, 
+				const boost::asio::ip::udp::endpoint& to);
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
 
