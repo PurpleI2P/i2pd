@@ -524,21 +524,31 @@ namespace client
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
+		if (m_Destination || !m_Owner.InsertSession (shared_from_this ()))
+		{
+			LogPrint (eLogError, "I2CP: Session already exists");
+			SendSessionStatusMessage (eI2CPSessionStatusRefused); // refused
+			return;
+		}
+
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
+		
 		if (!offset)
 		{
 			LogPrint (eLogError, "I2CP: Create session malformed identity");
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
+		
 		if (m_Owner.FindSessionByIdentHash (identity->GetIdentHash ()))
 		{
 			LogPrint (eLogError, "I2CP: Create session duplicate address ", identity->GetIdentHash ().ToBase32 ());
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}	
+		
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
 		if (optionsSize > len - offset)
@@ -547,42 +557,27 @@ namespace client
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
 		}
+		
 		std::map<std::string, std::string> params;
 		ExtractMapping (buf + offset, optionsSize, params);
 		offset += optionsSize; // options
 		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
 
 		offset += 8; // date
-		if (identity->Verify (buf, offset, buf + offset)) // signature
-		{
-			if (!m_Destination)
-			{
-				m_Destination = m_Owner.IsSingleThread () ?
-					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
-					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
-				if (m_Owner.InsertSession (shared_from_this ()))
-				{		
-					SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
-					LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
-					m_Destination->Start ();
-				}	
-				else
-				{
-					LogPrint (eLogError, "I2CP: Session already exists");
-					SendSessionStatusMessage (eI2CPSessionStatusRefused);
-				}	
-			}
-			else
-			{
-				LogPrint (eLogError, "I2CP: Session already exists");
-				SendSessionStatusMessage (eI2CPSessionStatusRefused); // refused
-			}
-		}
-		else
+		if (!identity->Verify (buf, offset, buf + offset)) // signature
 		{
 			LogPrint (eLogError, "I2CP: Create session signature verification failed");
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
+			return;
 		}
+
+		m_Destination = m_Owner.IsSingleThread () ?
+			std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
+			std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
+
+		SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
+		LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
+		m_Destination->Start ();
 	}
 
 	void I2CPSession::DestroySessionMessageHandler (const uint8_t * buf, size_t len)
