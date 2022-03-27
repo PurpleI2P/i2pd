@@ -600,7 +600,15 @@ namespace transport
 					break;	
 				}		
 				case eSSU2BlkI2NPMessage:
-				break;	
+				{	
+					LogPrint (eLogDebug, "SSU2: I2NP message");
+					auto nextMsg = NewI2NPShortMessage ();
+					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
+					memcpy (nextMsg->GetNTCP2Header (), buf + offset, size);
+					nextMsg->FromNTCP2 (); // SSU2 has the same format as NTCP2
+					m_Handler.PutNextMessage (std::move (nextMsg));
+					break;	
+				}	
 				case eSSU2BlkFirstFragment:
 				break;	
 				case eSSU2BlkFollowOnFragment:
@@ -654,6 +662,7 @@ namespace transport
 			}	
 			offset += size;
 		}	
+		m_Handler.Flush ();
 	}	
 
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)

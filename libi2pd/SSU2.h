@@ -148,6 +148,7 @@ namespace transport
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64]; 
 			uint32_t m_SendPacketNum, m_ReceivePacketNum;
+			i2p::I2NPMessagesHandler m_Handler;
 	};
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
