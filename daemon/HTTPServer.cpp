@@ -732,7 +732,7 @@ namespace http {
 	}
 
 	template<typename Sessions>
-	static void ShowNTCPTransports (std::stringstream& s, const Sessions& sessions, const std::string name)
+	static void ShowTransportSessions (std::stringstream& s, const Sessions& sessions, const std::string name)
 	{
 		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
 		for (const auto& it: sessions )
@@ -782,7 +782,7 @@ namespace http {
 		{
 			auto sessions = ntcp2Server->GetNTCP2Sessions ();
 			if (!sessions.empty ())
-				ShowNTCPTransports (s, sessions, "NTCP2");
+				ShowTransportSessions (s, sessions, "NTCP2");
 		}
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)
@@ -823,6 +823,13 @@ namespace http {
 				}
 				s << "</div>\r\n</div>\r\n";
 			}
+		}
+		auto ssu2Server = i2p::transport::transports.GetSSU2Server ();
+		if (ssu2Server)
+		{
+			auto sessions = ssu2Server->GetSSU2Sessions ();
+			if (!sessions.empty ())
+				ShowTransportSessions (s, sessions, "SSU2");
 		}
 	}
 

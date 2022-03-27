@@ -210,6 +210,11 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			boost::asio::deadline_timer m_TerminationTimer;
+
+		public:
+
+			// for HTTP/I2PControl
+			const decltype(m_Sessions)& GetSSU2Sessions () const { return m_Sessions; };	
 	};	
 }
 }
