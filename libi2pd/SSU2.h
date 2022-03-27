@@ -69,7 +69,7 @@ namespace transport
 	{
 		eSSU2SessionStateUnknown,
 		eSSU2SessionStateEstablished,
-		eSSU2SessionStateClosed,
+		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed
 	};
 
@@ -101,12 +101,15 @@ namespace transport
 			~SSU2Session ();
 
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
-
+			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
+			
 			void Connect ();
-			void Established ();
+			void Terminate ();
+			void TerminateByTimeout ();
 			void Done () override {};
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override {};
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
+			uint64_t GetConnID () const { return m_SourceConnID; };
 			
 			void ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
@@ -116,6 +119,8 @@ namespace transport
 			
 		private:
 
+			void Established ();
+			
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
 			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);
 			
@@ -127,6 +132,7 @@ namespace transport
 			void SendRetry ();
 			void SendData (const uint8_t * buf, size_t len);
 			void SendQuickAck ();
+			void SendTermination ();
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
@@ -169,8 +175,9 @@ namespace transport
 			void Stop ();
 			boost::asio::io_service& GetService () { return GetIOService (); };
 			
-			void AddSession (uint64_t connID, std::shared_ptr<SSU2Session> session);
-			void AddPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, std::shared_ptr<SSU2Session> session);
+			void AddSession (std::shared_ptr<SSU2Session> session);
+			void RemoveSession (uint64_t connID);
+			void AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session);
 
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen, 
 				const boost::asio::ip::udp::endpoint& to);
