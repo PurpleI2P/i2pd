@@ -380,6 +380,8 @@ namespace transport
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
 		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
 		Established ();
+
+		SendQuickAck ();	
 		
 		return true;
 	}	
@@ -523,6 +525,11 @@ namespace transport
 
 	void SSU2Session::SendData (const uint8_t * buf, size_t len)
 	{
+		if (len < 8)
+		{
+			LogPrint (eLogWarning, "SSU2: Data message payload is too short ", (int)len);
+			return;
+		}	
 		Header header;
 		header.h.connID = m_DestConnID;
 		header.h.packetNum = htobe32 (m_SendPacketNum);
@@ -532,6 +539,8 @@ namespace transport
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MTU, true);
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
+		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
 		m_SendPacketNum++;
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
