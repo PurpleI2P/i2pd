@@ -135,7 +135,7 @@ namespace transport
 
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
-			size_t CreatePaddingBlock (uint8_t * buf, size_t len);
+			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			
 		private:
 

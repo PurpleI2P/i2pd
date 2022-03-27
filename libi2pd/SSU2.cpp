@@ -113,11 +113,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
-		payload[payloadSize] = eSSU2BlkPadding;
-		htobe16buf (payload + payloadSize + 1, paddingSize);
-		memset (payload + payloadSize + 3, 0, paddingSize);
-		payloadSize += paddingSize + 3;
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// KDF for session request 
 		m_NoiseState->MixHash ({ {header.buf, 16}, {headerX, 16} }); // h = SHA256(h || header) 
 		m_NoiseState->MixHash (m_EphemeralKeys->GetPublicKey (), 32); // h = SHA256(h || aepk);
@@ -370,7 +366,9 @@ namespace transport
 			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
 			return false;
 		}	
-		if (!ri->GetSSU2AddressWithStaticKey (S))
+		SetRemoteIdentity (ri->GetRouterIdentity ());
+		m_Address = ri->GetSSU2AddressWithStaticKey (S); 
+		if (!m_Address)
 		{
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
 			return false;
@@ -416,11 +414,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		uint8_t paddingSize = (rand () & 0x0F) + 1; // 1 - 16
-		payload[payloadSize] = eSSU2BlkPadding;
-		htobe16buf (payload + payloadSize + 1, paddingSize);
-		memset (payload + payloadSize + 3, 0, paddingSize);
-		payloadSize += paddingSize + 3;
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// encrypt
 		const uint8_t nonce[12] = {0};
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, m_Address->i, nonce, payload, payloadSize + 16, true);
@@ -572,8 +566,11 @@ namespace transport
 		HandlePayload (payload, payloadSize);
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumReceivedBytes += len;
-		if (packetNum > m_ReceivePacketNum) m_ReceivePacketNum = packetNum;
-		SendQuickAck (); // TODO: don't send too requently
+		if (packetNum > m_ReceivePacketNum)
+		{	
+			m_ReceivePacketNum = packetNum;
+			SendQuickAck (); // TODO: don't send too requently
+		}	
 	}	
 		
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
@@ -734,10 +731,12 @@ namespace transport
 		return 8;
 	}	
 
-	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len)
+	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
+		if (len < minSize) return 0;
 		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
 		if (paddingSize > len) paddingSize = len;
+		else if (paddingSize < minSize) paddingSize = minSize;
 		if (paddingSize)
 		{	
 			buf[0] = eSSU2BlkPadding;
