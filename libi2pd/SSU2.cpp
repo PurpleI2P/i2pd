@@ -384,7 +384,7 @@ namespace transport
 			return false;
 		}	
 		SetRemoteIdentity (ri->GetRouterIdentity ());
-		m_Address = ri->GetSSU2AddressWithStaticKey (S); 
+		m_Address = ri->GetSSU2AddressWithStaticKey (S, m_RemoteEndpoint.address ().is_v6 ()); 
 		if (!m_Address)
 		{
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");

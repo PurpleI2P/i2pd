@@ -896,13 +896,13 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2AddressWithStaticKey (const uint8_t * key) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const
 	{
 		if (!key) return nullptr;
 		return GetAddress (
-			[key](std::shared_ptr<const RouterInfo::Address> address)->bool
+			[key, isV6](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return address->IsSSU2 () && !memcmp (address->s, key, 32);
+				return address->IsSSU2 () && !memcmp (address->s, key, 32) && address->IsV6 () == isV6;
 			});
 	}
 		
