@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -484,6 +484,11 @@ namespace garlic
 		return true;
 	}
 
+	void GarlicDestination::SubmitECIESx25519Key (const uint8_t * key, uint64_t tag)
+	{
+		AddECIESx25519Key (key, tag);
+	}	
+		
 	void GarlicDestination::HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint8_t * buf = msg->GetPayload ();

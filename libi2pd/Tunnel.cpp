@@ -114,7 +114,7 @@ namespace tunnel
 				uint8_t key[32];
 				uint64_t tag = m_Config->GetLastHop ()->GetGarlicKey (key);
 				if (m_Pool && m_Pool->GetLocalDestination ())
-					m_Pool->GetLocalDestination ()->AddECIESx25519Key (key, tag);
+					m_Pool->GetLocalDestination ()->SubmitECIESx25519Key (key, tag);
 				else
 					i2p::context.AddECIESx25519Key (key, tag);
 			}

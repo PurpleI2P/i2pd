@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -245,6 +245,7 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void AddECIESx25519Key (const uint8_t * key, uint64_t tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
+			virtual void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
 			uint64_t AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);

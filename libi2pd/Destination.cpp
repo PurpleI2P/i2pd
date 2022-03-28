@@ -339,6 +339,22 @@ namespace client
 		return true;
 	}
 
+	void LeaseSetDestination::SubmitECIESx25519Key (const uint8_t * key, uint64_t tag)
+	{
+		struct
+		{
+			uint8_t k[32];
+			uint64_t t;
+		} data;
+		memcpy (data.k, key, 32);
+		data.t = tag;
+		auto s = shared_from_this ();
+		m_Service.post ([s,data](void)
+			{
+				s->AddECIESx25519Key (data.k, data.t);
+			});
+	}	
+		
 	void LeaseSetDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&LeaseSetDestination::HandleGarlicMessage, shared_from_this (), msg));

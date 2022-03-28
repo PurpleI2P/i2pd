@@ -138,6 +138,7 @@ namespace client
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
+			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			void SetLeaseSetUpdated ();
