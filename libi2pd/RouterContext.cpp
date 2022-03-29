@@ -696,7 +696,7 @@ namespace i2p
 		// update
 		if (supportsV4)
 		{
-			bool foundSSU = false, foundNTCP2 = false;
+			bool foundSSU = false, foundNTCP2 = false, foundSSU2 = false;
 			std::string host = "127.0.0.1";
 			uint16_t port = 0;
 			auto& addresses = m_RouterInfo.GetAddresses ();
@@ -704,10 +704,19 @@ namespace i2p
 			{
 				if (addr->IsV4 ())
 				{
-					if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
-						foundSSU = true;
-					else if (addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
-						foundNTCP2 = true;
+					switch (addr->transportStyle)
+					{
+						case i2p::data::RouterInfo::eTransportSSU:
+							foundSSU = true;
+						break;
+						case i2p::data::RouterInfo::eTransportNTCP:
+							foundNTCP2 = true;
+						break;	
+						case i2p::data::RouterInfo::eTransportSSU2:
+							foundSSU2 = true;
+						break;	
+						default: ;
+					}	
 				}
 				if (addr->port) port = addr->port;
 			}
@@ -736,6 +745,19 @@ namespace i2p
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV4);
 				}
 			}
+			// SSU2
+			if (!foundSSU2)
+			{
+				bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+				bool ssu2Published; i2p::config::GetOption("ssu2.published", ssu2Published);
+				if (ssu2Published)
+				{
+					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+					m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("127.0.0.1"), ssu2Port);
+				}	
+				else
+					m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::eV6);
+			}	
 			m_RouterInfo.EnableV4 ();
 		}
 		else

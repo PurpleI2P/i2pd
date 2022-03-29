@@ -273,6 +273,7 @@ namespace config {
 		options_description ssu2("SSU2 Options");
 		ntcp2.add_options()
 			("ssu2.enabled", value<bool>()->default_value(false),         "Enable SSU2 (default: disabled)")
+			("ssu2.published", value<bool>()->default_value(false),        "Publish SSU2 (default: disabled)")
 			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
 		;
 		
