@@ -240,7 +240,19 @@ namespace util
 			if (!ipv4 && !ipv6)
 				i2p::context.SetStatus (eRouterStatusMesh);
 		}
-
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+		if (ssu2)
+		{	
+			bool published; i2p::config::GetOption("ssu2.published", published);
+			if (published)
+			{
+				uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
+				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
+			}	
+			else
+				i2p::context.PublishSSU2Address (0, false, ipv4, ipv6); // unpublish
+		}
+		
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);

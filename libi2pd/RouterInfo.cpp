@@ -681,6 +681,33 @@ namespace data
 		addr->date = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
+		if (addr->IsV4 ()) m_SupportedTransports |= eSSU2V4;
+		if (addr->IsV6 ()) m_SupportedTransports |= eSSU2V6;
+		m_Addresses->push_back(std::move(addr));
+	}	
+
+	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
+		const boost::asio::ip::address& host, int port)
+	{
+		auto addr = std::make_shared<Address>();
+		addr->transportStyle = eTransportSSU2;
+		addr->host = host;
+		addr->port = port;
+		addr->published = true;
+		addr->caps = 0;
+		addr->date = 0;
+		memcpy (addr->s, staticKey, 32);
+		memcpy (addr->i, introKey, 32);
+		if (addr->IsV4 ())
+		{	
+			m_SupportedTransports |= eSSU2V4;
+			m_ReachableTransports |= eSSU2V4;
+		}	
+		if (addr->IsV6 ())
+		{	
+			m_SupportedTransports |= eSSU2V6;
+			m_ReachableTransports |= eSSU2V6;
+		}	
 		m_Addresses->push_back(std::move(addr));
 	}	
 		
@@ -1175,15 +1202,20 @@ namespace data
 			else if (address.transportStyle == eTransportSSU2)
 			{
 				WriteString ("SSU2", s);
-				// caps
-				WriteString ("caps", properties);
-				properties << '=';
-				std::string caps;
-				if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-				if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-				if (caps.empty ()) caps += CAPS_FLAG_V4;
-				WriteString (caps, properties);
-				properties << ';';
+				if (address.published)
+					isPublished = true;
+				else
+				{	
+					// caps
+					WriteString ("caps", properties);
+					properties << '=';
+					std::string caps;
+					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+					WriteString (caps, properties);
+					properties << ';';
+				}	
 			}	
 			else
 				WriteString ("", s);
