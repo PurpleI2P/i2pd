@@ -94,7 +94,16 @@ namespace transport
 				uint8_t flags[3];
 			} h;
 		};
-	
+
+		struct SentPacket
+		{
+			Header h;
+			uint8_t payload[SSU2_MTU];
+			size_t payloadLen;            
+			uint32_t nextResendTime; // in seconds
+			int numResends;
+		};	
+		
 		public:
 
 			SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
@@ -136,10 +145,11 @@ namespace transport
 			void SendTermination ();
 			
 			bool HandlePayload (const uint8_t * buf, size_t len); // returns true is contains data
+			void HandleAck (const uint8_t * buf, size_t len);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
-			void UpdateReceivePacketNum (uint32_t packetNum); // for Ack
+			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
 
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
@@ -157,6 +167,7 @@ namespace transport
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64]; 
 			uint32_t m_SendPacketNum, m_ReceivePacketNum;
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
+			std::map<uint32_t, std::shared_ptr<SentPacket> > m_SentPackets; // packetNum -> packet
 			i2p::I2NPMessagesHandler m_Handler;
 	};
 

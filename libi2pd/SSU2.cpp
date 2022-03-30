@@ -582,9 +582,11 @@ namespace transport
 		}	
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumReceivedBytes += len;
-		UpdateReceivePacketNum (packetNum);
-		if (HandlePayload (payload, payloadSize))
-			SendQuickAck (); // TODO: don't send too requently
+		if (UpdateReceivePacketNum (packetNum))
+		{	
+			if (HandlePayload (payload, payloadSize))
+				SendQuickAck (); // TODO: don't send too requently
+		}	
 	}	
 		
 	bool SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
@@ -652,6 +654,8 @@ namespace transport
 				case eSSU2BlkNextNonce:
 				break;	
 				case eSSU2BlkAck:
+					LogPrint (eLogDebug, "SSU2: Ack");
+					HandleAck (buf + offset, size);
 				break;	
 				case eSSU2BlkAddress:
 				{
@@ -692,6 +696,26 @@ namespace transport
 		return isData;
 	}	
 
+	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
+	{
+		if (m_SentPackets.empty ()) return;
+		uint32_t ackThrough = bufbe32toh (buf);
+		auto it = m_SentPackets.rbegin ();
+		while (it != m_SentPackets.rend () && it->first > ackThrough) ++it; // find first less pack <= ackThrough
+		if (it == m_SentPackets.rend ()) return;
+		int32_t firstPacketNum = ackThrough - buf[4]; // acnt
+		if (firstPacketNum < 0) firstPacketNum = 0;
+		auto it1 = it;
+		while (it1 != m_SentPackets.rend () && it1->first >= (uint32_t)firstPacketNum) it1++;
+		if (it1 == m_SentPackets.rend ())
+		{
+			m_SentPackets.erase (m_SentPackets.begin (), it.base ());
+			return;
+		}	
+		m_SentPackets.erase (it1.base (), it.base ());
+		// TODO: handle ranges
+	}
+		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
 	{
 		if (size < 2) return false;
@@ -800,9 +824,9 @@ namespace transport
 		htole64buf (nonce + 4, seqn);
 	}
 
-	void SSU2Session::UpdateReceivePacketNum (uint32_t packetNum)
+	bool SSU2Session::UpdateReceivePacketNum (uint32_t packetNum)
 	{
-		if (packetNum <= m_ReceivePacketNum) return; // duplicate 
+		if (packetNum <= m_ReceivePacketNum) return false; // duplicate 
 		if (packetNum == m_ReceivePacketNum + 1)
 		{
 			for (auto it = m_OutOfSequencePackets.begin (); it != m_OutOfSequencePackets.end ();)
@@ -819,6 +843,7 @@ namespace transport
 		}	
 		else
 			m_OutOfSequencePackets.insert (packetNum);
+		return true;
 	}	
 		
 	void SSU2Session::SendQuickAck ()
