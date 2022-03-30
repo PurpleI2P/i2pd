@@ -580,18 +580,16 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Data AEAD verification failed ");
 			return;
 		}	
-		HandlePayload (payload, payloadSize);
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumReceivedBytes += len;
-		if (packetNum > m_ReceivePacketNum)
-		{	
-			m_ReceivePacketNum = packetNum;
+		UpdateReceivePacketNum (packetNum);
+		if (HandlePayload (payload, payloadSize))
 			SendQuickAck (); // TODO: don't send too requently
-		}	
 	}	
 		
-	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
+	bool SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
 	{
+		bool isData = false;
 		size_t offset = 0;
 		while (offset < len)
 		{
@@ -630,11 +628,14 @@ namespace transport
 					memcpy (nextMsg->GetNTCP2Header (), buf + offset, size);
 					nextMsg->FromNTCP2 (); // SSU2 has the same format as NTCP2
 					m_Handler.PutNextMessage (std::move (nextMsg));
+					isData = true;
 					break;	
 				}	
 				case eSSU2BlkFirstFragment:
+					isData = true;
 				break;	
 				case eSSU2BlkFollowOnFragment:
+					isData = true;
 				break;	
 				case eSSU2BlkTermination:
 					LogPrint (eLogDebug, "SSU2: Termination");
@@ -688,6 +689,7 @@ namespace transport
 			offset += size;
 		}	
 		m_Handler.Flush ();
+		return isData;
 	}	
 
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
@@ -744,9 +746,14 @@ namespace transport
 	{
 		if (len < 8) return 0;
 		buf[0] = eSSU2BlkAck;
+		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
 		htobe16buf (buf + 1, 5);
-		htobe32buf (buf + 3, m_ReceivePacketNum); // Ack Through
-		buf[7] = 0; // acnt
+		htobe32buf (buf + 3, ackThrough); // Ack Through
+		uint8_t acnt = 0;
+		if (ackThrough)
+			acnt = std::min ((int)ackThrough - 1, 255);
+		buf[7] = acnt; // acnt
+		// TODO: ranges
 		return 8;
 	}	
 
@@ -793,6 +800,27 @@ namespace transport
 		htole64buf (nonce + 4, seqn);
 	}
 
+	void SSU2Session::UpdateReceivePacketNum (uint32_t packetNum)
+	{
+		if (packetNum <= m_ReceivePacketNum) return; // duplicate 
+		if (packetNum == m_ReceivePacketNum + 1)
+		{
+			for (auto it = m_OutOfSequencePackets.begin (); it != m_OutOfSequencePackets.end ();)
+			{
+				if (*it == packetNum + 1)
+				{
+					packetNum++;
+					it = m_OutOfSequencePackets.erase (it);
+				}	
+				else
+					break;
+			}	
+			m_ReceivePacketNum = packetNum;
+		}	
+		else
+			m_OutOfSequencePackets.insert (packetNum);
+	}	
+		
 	void SSU2Session::SendQuickAck ()
 	{
 		uint8_t payload[SSU2_MTU];

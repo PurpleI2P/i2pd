@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <boost/asio.hpp>
 #include "Crypto.h"
@@ -134,10 +135,11 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			
-			void HandlePayload (const uint8_t * buf, size_t len);
+			bool HandlePayload (const uint8_t * buf, size_t len); // returns true is contains data
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
+			void UpdateReceivePacketNum (uint32_t packetNum); // for Ack
 
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
@@ -154,6 +156,7 @@ namespace transport
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64]; 
 			uint32_t m_SendPacketNum, m_ReceivePacketNum;
+			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			i2p::I2NPMessagesHandler m_Handler;
 	};
 
