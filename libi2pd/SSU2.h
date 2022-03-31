@@ -122,6 +122,7 @@ namespace transport
 			void TerminateByTimeout ();
 			void Done () override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
+			void Resend (uint64_t ts);
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			
@@ -223,6 +224,9 @@ namespace transport
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
+
+			void ScheduleResend ();
+			void HandleResendTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -231,7 +235,7 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
-			boost::asio::deadline_timer m_TerminationTimer;
+			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer;
 
 		public:
 
