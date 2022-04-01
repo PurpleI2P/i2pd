@@ -794,17 +794,36 @@ namespace transport
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
 	{
 		if (m_SentPackets.empty ()) return;
+		if (len < 5) return; 
+		// acnt
 		uint32_t ackThrough = bufbe32toh (buf);
-		uint32_t firstPacketNum = ackThrough > buf[4] ? ackThrough - buf[4] : 0; // acnt
+		uint32_t firstPacketNum = ackThrough > buf[4] ? ackThrough - buf[4] : 0; 
+		HandleAckRange (firstPacketNum, ackThrough); // acnt
+		// ranges
+		len -= 5;
+		const uint8_t * ranges = buf + 5;
+		while (len > 0 && firstPacketNum)
+		{
+			uint32_t lastPacketNum = firstPacketNum - 1;
+			if (*ranges > lastPacketNum) break;
+			lastPacketNum -= *ranges; ranges++; // nacks
+			if (*ranges > lastPacketNum) break;
+			firstPacketNum -= *ranges; ranges++; // acks
+			len -= 2;
+			HandleAckRange (firstPacketNum, lastPacketNum);
+		}	
+	}
+
+	void SSU2Session::HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum)
+	{
 		auto it = m_SentPackets.begin ();
 		while (it != m_SentPackets.end () && it->first < firstPacketNum) it++; // find first acked packet
 		if (it == m_SentPackets.end ()) return; // not found
 		auto it1 = it;
-		while (it1 != m_SentPackets.end () && it1->first <= ackThrough) it1++;
+		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) it1++;
 		it1--;
 		m_SentPackets.erase (it, it1);
-		// TODO: handle ranges
-	}
+	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
 	{

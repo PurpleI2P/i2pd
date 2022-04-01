@@ -153,6 +153,7 @@ namespace transport
 			
 			bool HandlePayload (const uint8_t * buf, size_t len); // returns true is contains data
 			void HandleAck (const uint8_t * buf, size_t len);
+			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
