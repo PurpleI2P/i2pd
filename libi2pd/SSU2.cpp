@@ -239,6 +239,14 @@ namespace transport
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
 		memcpy (&m_DestConnID, headerX, 8); 
+		uint64_t token;
+		memcpy (&token, headerX + 8, 8);
+		if (!token || token != m_Server.GetIncomingToken (m_RemoteEndpoint))
+		{
+			LogPrint (eLogDebug, "SSU2: SessionRequest token mismatch. Retry");
+			SendRetry ();
+			return;
+		}	
 		// KDF for session request 
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || aepk);
