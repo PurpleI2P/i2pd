@@ -14,3 +14,5 @@ export DEB_LDFLAGS_MAINT_APPEND =
 
 %:
 	dh $@ --parallel
+
+override_dh_auto_install:

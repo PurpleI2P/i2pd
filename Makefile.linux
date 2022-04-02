@@ -64,13 +64,13 @@ endif
 endif
 
 install: all
-	install -d ${PREFIX}/bin ${PREFIX}/etc/i2pd ${PREFIX}/etc/i2pd/tunnels.conf.d ${PREFIX}/share/doc/i2pd ${PREFIX}/share/i2pd ${PREFIX}/share/man/man1 ${PREFIX}/var/lib/i2pd
+	install -d ${PREFIX}/bin ${PREFIX}/etc ${PREFIX}/etc/i2pd ${PREFIX}/etc/i2pd/tunnels.conf.d ${PREFIX}/usr ${PREFIX}/usr/share ${PREFIX}/usr/share/doc/i2pd ${PREFIX}/usr/share/i2pd ${PREFIX}/usr/share/man ${PREFIX}/usr/share/man/man1 ${PREFIX}/var/lib ${PREFIX}/var/lib/i2pd
 	install -m 755 ${I2PD} ${PREFIX}/bin/
 	install -m 644 contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/etc/i2pd
-	@cp -R contrib/certificates ${PREFIX}/share/i2pd/
-	install -m 644 ChangeLog LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/share/doc/i2pd
-	@gzip -kf debian/i2pd.1 && install debian/i2pd.1.gz ${PREFIX}/share/man/man1
-	@ln -sf ${PREFIX}/share/i2pd/certificates ${PREFIX}/var/lib/i2pd/
+	@cp -R contrib/certificates ${PREFIX}/usr/share/i2pd/
+	install -m 644 ChangeLog LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/usr/share/doc/i2pd
+	@gzip -kf debian/i2pd.1 && install debian/i2pd.1.gz ${PREFIX}/usr/share/man/man1
+	@ln -sf ${PREFIX}/usr/share/i2pd/certificates ${PREFIX}/var/lib/i2pd/
 	@ln -sf ${PREFIX}/etc/i2pd/tunnels.conf.d ${PREFIX}/var/lib/i2pd/tunnels.d
 	@ln -sf ${PREFIX}/etc/i2pd/i2pd.conf ${PREFIX}/var/lib/i2pd/i2pd.conf
 	@ln -sf ${PREFIX}/etc/i2pd/subscriptions.txt ${PREFIX}/var/lib/i2pd/subscriptions.txt
