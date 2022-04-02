@@ -1135,7 +1135,7 @@ namespace data
 			else if (address.transportStyle == eTransportSSU)
 				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
 			else if (address.transportStyle == eTransportSSU2)
-				cost = COST_SSU2_NON_PUBLISHED; // TODO
+				cost = address.published ? COST_SSU2_DIRECT : COST_SSU2_NON_PUBLISHED;
 			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;

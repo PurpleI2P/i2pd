@@ -52,6 +52,7 @@ namespace data
 
 	const uint8_t COST_NTCP2_PUBLISHED = 3;
 	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
+	const uint8_t COST_SSU2_DIRECT = 8;
 	const uint8_t COST_SSU_DIRECT = 9;
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
