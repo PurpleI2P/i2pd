@@ -729,9 +729,13 @@ namespace transport
 					break;	
 				}	
 				case eSSU2BlkFirstFragment:
+					LogPrint (eLogDebug, "SSU2: First fragment");
+					HandleFirstFragment (buf + offset, size);
 					isData = true;
 				break;	
 				case eSSU2BlkFollowOnFragment:
+					LogPrint (eLogDebug, "SSU2: Follow-on fragment");
+					HandleFollowOnFragment (buf + offset, size);
 					isData = true;
 				break;	
 				case eSSU2BlkTermination:
@@ -824,6 +828,103 @@ namespace transport
 		it1--;
 		m_SentPackets.erase (it, it1);
 	}	
+
+	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
+	{
+		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
+		auto msg = NewI2NPMessage ();
+		// same format as I2NP message block
+		msg->len = msg->offset + len + 7; 
+		memcpy (msg->GetNTCP2Header (), buf, len);
+		msg->FromNTCP2 ();
+		std::shared_ptr<SSU2IncompleteMessage> m;
+		bool found = false;
+		auto it = m_IncompleteMessages.find (msgID);
+		if (it != m_IncompleteMessages.end ())
+		{
+			found = true;	
+			m = it->second;
+		}	
+		else
+		{	
+			m = std::make_shared<SSU2IncompleteMessage>();
+			m_IncompleteMessages.emplace (msgID, m);
+		}	
+		m->msg = msg;
+		m->nextFragmentNum = 1;
+		m->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
+		if (found && ConcatOutOfSequenceFragments (m))
+		{
+			// we have all follow-on fragments already
+			m_Handler.PutNextMessage (std::move (m->msg));
+			m_IncompleteMessages.erase (it);
+		}	
+	}	
+
+	void SSU2Session::HandleFollowOnFragment (const uint8_t * buf, size_t len)
+	{
+		if (len < 5) return;
+		uint8_t fragmentNum = buf[0] >> 1;
+		bool isLast = buf[0] & 0x01;
+		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
+		auto it = m_IncompleteMessages.find (msgID);
+		if (it != m_IncompleteMessages.end ())
+		{
+			if (it->second->nextFragmentNum == fragmentNum && it->second->msg)
+			{
+				// in sequence
+				it->second->msg->Concat (buf + 5, len - 5);
+				if (isLast)
+				{
+					m_Handler.PutNextMessage (std::move (it->second->msg));
+					m_IncompleteMessages.erase (it);
+				}
+				else
+				{
+					it->second->nextFragmentNum++;
+					if (ConcatOutOfSequenceFragments (it->second))
+					{
+						m_Handler.PutNextMessage (std::move (it->second->msg));
+						m_IncompleteMessages.erase (it);
+					}	
+					else	
+						it->second->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
+				}	
+				return;
+			}
+		}	
+		else
+		{
+			// follow-on fragment before first fragment
+			auto msg = std::make_shared<SSU2IncompleteMessage> ();
+			msg->nextFragmentNum = 0;
+			it = m_IncompleteMessages.emplace (msgID, msg).first;
+		}	
+		// insert out of sequence fragment
+		auto fragment = std::make_shared<SSU2IncompleteMessage::Fragment> ();
+		memcpy (fragment->buf, buf + 5, len -5);
+		fragment->len = len - 5;
+		fragment->isLast = isLast;
+		it->second->outOfSequenceFragments.emplace (fragmentNum, fragment);
+		it->second->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
+	}	
+
+	bool SSU2Session::ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m)
+	{
+		if (!m) return false;
+		bool isLast = false;
+		for (auto it = m->outOfSequenceFragments.begin (); it != m->outOfSequenceFragments.end ();)
+			if (it->first == m->nextFragmentNum)
+			{
+				m->msg->Concat (it->second->buf, it->second->len);
+				isLast = it->second->isLast;
+				it = m->outOfSequenceFragments.erase (it);
+				m->nextFragmentNum++;
+			}
+			else
+				break;
+		return isLast;
+	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
 	{
@@ -884,7 +985,7 @@ namespace transport
 		htobe32buf (buf + 3, ackThrough); // Ack Through
 		uint8_t acnt = 0;
 		if (ackThrough)
-			acnt = std::min ((int)ackThrough - 1, 255);
+			acnt = std::min ((int)ackThrough, 255);
 		buf[7] = acnt; // acnt
 		// TODO: ranges
 		return 8;
@@ -985,6 +1086,20 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 32 - payloadSize);
 		SendData (payload, payloadSize);
 	}	
+
+	void SSU2Session::CleanUp (uint64_t ts)
+	{
+		for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
+		{
+			if (ts > it->second->lastFragmentInsertTime + SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
+			{
+				LogPrint (eLogWarning, "SSU2: message ", it->first, " was not completed in ", SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds, deleted");
+				it = m_IncompleteMessages.erase (it);
+			}
+			else
+				++it;
+		}
+	}
 		
 	SSU2Server::SSU2Server ():
 		RunnableServiceWithWork ("SSU2"), m_Socket (GetService ()), m_SocketV6 (GetService ()),
@@ -1221,7 +1336,10 @@ namespace transport
 					it = m_Sessions.erase (it); 
 				}
 				else
+				{
+					it->second->CleanUp (ts);
 					it++;
+				}	
 			}
 
 			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )
