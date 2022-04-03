@@ -294,7 +294,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 64 - payloadSize);
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
@@ -576,7 +576,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload, 64 - payloadSize);
+		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// encrypt
 		const uint8_t nonce[12] = {0};
