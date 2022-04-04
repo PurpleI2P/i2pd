@@ -508,7 +508,7 @@ namespace transport
 		uint8_t h[32], payload[40]; 
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2TokenRequest;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
@@ -523,11 +523,13 @@ namespace transport
 		size_t payloadSize = 7;
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		uint8_t nonce[12];
+		CreateNonce (be32toh (header.h.packetNum), nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, m_Address->i, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
+		memset (nonce, 0, 12);
 		i2p::crypto::ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
 		// send
 		m_Server.AddPendingOutgoingSession (shared_from_this ());
@@ -537,12 +539,13 @@ namespace transport
 	void SSU2Session::ProcessTokenRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
-		const uint8_t nonce[12] = {0};
+		uint8_t nonce[12] = {0};
 		uint8_t h[32];
 		memcpy (h, header.buf, 16);
 		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
-		memcpy (&m_DestConnID, h, 8); 
+		memcpy (&m_DestConnID, h + 16, 8); 
 		// decrypt
+		CreateNonce (be32toh (header.h.packetNum), nonce);
 		uint8_t * payload = buf + 32;	
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32, 
 			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
@@ -562,7 +565,7 @@ namespace transport
 		uint8_t h[32], payload[64]; 
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2Retry;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
@@ -579,11 +582,13 @@ namespace transport
 		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		uint8_t nonce[12];
+		CreateNonce (be32toh (header.h.packetNum), nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, i2p::context.GetSSU2IntroKey (), nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 12));
+		memset (nonce, 0, 12);
 		i2p::crypto::ChaCha20 (h + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, h + 16);
 		// send
 		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
