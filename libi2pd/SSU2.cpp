@@ -842,7 +842,6 @@ namespace transport
 		// same format as I2NP message block
 		msg->len = msg->offset + len + 7; 
 		memcpy (msg->GetNTCP2Header (), buf, len);
-		msg->FromNTCP2 ();
 		std::shared_ptr<SSU2IncompleteMessage> m;
 		bool found = false;
 		auto it = m_IncompleteMessages.find (msgID);
@@ -862,6 +861,7 @@ namespace transport
 		if (found && ConcatOutOfSequenceFragments (m))
 		{
 			// we have all follow-on fragments already
+			m->msg->FromNTCP2 ();
 			m_Handler.PutNextMessage (std::move (m->msg));
 			m_IncompleteMessages.erase (it);
 		}	
@@ -882,6 +882,7 @@ namespace transport
 				it->second->msg->Concat (buf + 5, len - 5);
 				if (isLast)
 				{
+					it->second->msg->FromNTCP2 ();
 					m_Handler.PutNextMessage (std::move (it->second->msg));
 					m_IncompleteMessages.erase (it);
 				}
