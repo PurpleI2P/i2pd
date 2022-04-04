@@ -444,6 +444,7 @@ namespace transport
 		m_EphemeralKeys->Agree (S, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// decrypt part2
+		memset (nonce, 0, 12);
 		uint8_t * payload = buf + 64;
 		std::vector<uint8_t> decryptedPayload(len - 80);
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 80, m_NoiseState->m_H, 32, 
