@@ -209,6 +209,16 @@ namespace transport
 			size_t len;
 			boost::asio::ip::udp::endpoint from;
 		};	
+
+		class ReceiveService: public i2p::util::RunnableService
+		{
+			public:
+
+				ReceiveService (const std::string& name): RunnableService (name) {};
+				boost::asio::io_service& GetService () { return GetIOService (); };
+				void Start () { StartIOService (); };
+				void Stop () { StopIOService (); };
+		};	
 		
 		public:
 
@@ -241,6 +251,7 @@ namespace transport
 			void Receive (boost::asio::ip::udp::socket& socket);
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, 
 				Packet * packet, boost::asio::ip::udp::socket& socket);
+			void HandleReceivedPacket (Packet * packet);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 
 			void ScheduleTermination ();
@@ -251,7 +262,8 @@ namespace transport
 			
 		private:
 
-			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
+			ReceiveService m_ReceiveServiceV4, m_ReceiveServiceV6; 
+			boost::asio::ip::udp::socket m_SocketV4, m_SocketV6;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
