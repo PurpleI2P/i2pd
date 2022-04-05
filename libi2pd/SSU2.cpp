@@ -992,7 +992,19 @@ namespace transport
 		htobe32buf (buf + 3, ackThrough); // Ack Through
 		uint8_t acnt = 0;
 		if (ackThrough)
-			acnt = std::min ((int)ackThrough, 255);
+		{
+			if (m_OutOfSequencePackets.empty ())
+				acnt = std::min ((int)ackThrough, 255); // no gaps
+			else
+			{
+				auto it = m_OutOfSequencePackets.rbegin (); it++; // prev packet num
+				while (it != m_OutOfSequencePackets.rend () && *it == ackThrough - acnt	- 1)
+				{
+					acnt++;
+					it++;
+				}	
+			}		
+		}	
 		buf[7] = acnt; // acnt
 		// TODO: ranges
 		return 8;
@@ -1106,6 +1118,11 @@ namespace transport
 			else
 				++it;
 		}
+		if (m_OutOfSequencePackets.size () > 255)
+		{
+			m_ReceivePacketNum = *m_OutOfSequencePackets.rbegin ();
+			m_OutOfSequencePackets.clear ();
+		}	
 	}
 		
 	SSU2Server::SSU2Server ():
