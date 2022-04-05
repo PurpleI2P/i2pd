@@ -262,7 +262,7 @@ namespace transport
 			
 		private:
 
-			ReceiveService m_ReceiveServiceV4, m_ReceiveServiceV6; 
+			ReceiveService m_ReceiveService; 
 			boost::asio::ip::udp::socket m_SocketV4, m_SocketV6;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;

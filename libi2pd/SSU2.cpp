@@ -1109,8 +1109,8 @@ namespace transport
 	}
 		
 	SSU2Server::SSU2Server ():
-		RunnableServiceWithWork ("SSU2"), m_ReceiveServiceV4 ("SSU2v4"), m_ReceiveServiceV6 ("SSU2v6"),
-		m_SocketV4 (m_ReceiveServiceV4.GetService ()), m_SocketV6 (m_ReceiveServiceV6.GetService ()),
+		RunnableServiceWithWork ("SSU2"), m_ReceiveService ("SSU2r"),
+		m_SocketV4 (m_ReceiveService.GetService ()), m_SocketV6 (m_ReceiveService.GetService ()),
 		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ())
 	{
 	}
@@ -1120,6 +1120,7 @@ namespace transport
 		if (!IsRunning ())
 		{
 			StartIOService ();
+			bool found = false;
 			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
@@ -1141,9 +1142,9 @@ namespace transport
 					{	
 						if (address->IsV4 ())
 						{
-							m_ReceiveServiceV4.Start ();
+							found = true;
 							OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v4(), port));
-							m_ReceiveServiceV4.GetService ().post(
+							m_ReceiveService.GetService ().post(
 							    [this]()
 								{                                                                                
 									Receive (m_SocketV4);
@@ -1151,9 +1152,9 @@ namespace transport
 						}	
 						if (address->IsV6 ())
 						{	
-							m_ReceiveServiceV6.Start ();
+							found = true;
 							OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v6(), port));
-							m_ReceiveServiceV6.GetService ().post(
+							m_ReceiveService.GetService ().post(
 							    [this]()
 								{                                                                                
 									Receive (m_SocketV6);
@@ -1164,17 +1165,16 @@ namespace transport
 						LogPrint (eLogError, "SSU2: Can't start server because port not specified");
 				}
 			}
+			if (found)
+				m_ReceiveService.Start ();
 			ScheduleTermination ();
 		}	
 	}
 		
 	void SSU2Server::Stop ()
 	{
-		if (context.SupportsV4 ())
-			m_ReceiveServiceV4.Stop ();
-
-		if (context.SupportsV6 ())
-			m_ReceiveServiceV6.Stop ();
+		if (context.SupportsV4 () || context.SupportsV6 ())
+			m_ReceiveService.Stop ();
 		
 		if (IsRunning ())
 			m_TerminationTimer.cancel ();
