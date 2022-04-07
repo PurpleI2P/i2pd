@@ -1282,13 +1282,20 @@ namespace transport
 		uint64_t connID;
 		memcpy (&connID, buf, 8);
 		connID ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
-		auto it = m_Sessions.find (connID);
-		if (it != m_Sessions.end ())
+		if (!m_LastSession || m_LastSession->GetConnID () != connID)
 		{
-			if (it->second->IsEstablished ())
-				it->second->ProcessData (buf, len);
+			auto it = m_Sessions.find (connID);
+			if (it != m_Sessions.end ())
+				m_LastSession = it->second;
+			else
+				m_LastSession = nullptr;
+		}
+		if (m_LastSession)
+		{
+			if (m_LastSession->IsEstablished ())
+				m_LastSession->ProcessData (buf, len);
 			else	
-				it->second->ProcessSessionConfirmed (buf, len);
+				m_LastSession->ProcessSessionConfirmed (buf, len);
 		}	
 		else 
 		{
@@ -1388,6 +1395,8 @@ namespace transport
 				{
 					if (it->second->IsEstablished ())
 						it->second->TerminateByTimeout ();
+					if (it->second == m_LastSession)
+						 m_LastSession = nullptr;
 					it = m_Sessions.erase (it); 
 				}
 				else
