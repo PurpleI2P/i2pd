@@ -191,6 +191,7 @@ namespace transport
 			SSU2Server& m_Server;
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
+			std::unique_ptr<SentPacket> m_SessionConfirmedFragment1; // for Bob if applicable
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			uint64_t m_DestConnID, m_SourceConnID;

@@ -85,6 +85,7 @@ namespace transport
 		m_State = eSSU2SessionStateEstablished;
 		m_EphemeralKeys = nullptr;
 		m_NoiseState.reset (nullptr);
+		m_SessionConfirmedFragment1.reset (nullptr);
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
 	}	
@@ -395,6 +396,7 @@ namespace transport
 		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionConfirmed;
 		memset (header.h.flags, 0, 3);
+		header.h.flags[0] = 1; // frag, total fragments always 1
 		// payload
 		uint8_t  payload[SSU2_MTU];
 		size_t payloadSize = i2p::context.GetRouterInfo ().GetBufferLen ();
@@ -453,6 +455,31 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
 			return false;
+		}	
+		// check if fragmented
+		if ((header.h.flags[0] & 0x0F) > 1)
+		{
+			// fragmented
+			if (!(header.h.flags[0] & 0xF0))
+			{
+				// first fragment
+				m_SessionConfirmedFragment1.reset (new SentPacket);
+				m_SessionConfirmedFragment1->header = header;
+				memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
+				m_SessionConfirmedFragment1->payloadLen = len - 16;
+				return true; // wait for second fragment
+			}	
+			else
+			{
+				// second fragment
+				if (!m_SessionConfirmedFragment1) return false; // out of sequence
+				uint8_t fullMsg[2*SSU2_MTU];
+				header = m_SessionConfirmedFragment1->header;
+				memcpy (fullMsg + 16, m_SessionConfirmedFragment1->payload, m_SessionConfirmedFragment1->payloadLen);
+				memcpy (fullMsg + 16 + m_SessionConfirmedFragment1->payloadLen, buf + 16, len - 16);
+				buf = fullMsg;
+				len += m_SessionConfirmedFragment1->payloadLen;
+			}	
 		}	
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) 
