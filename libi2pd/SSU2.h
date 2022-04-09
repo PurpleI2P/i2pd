@@ -153,6 +153,7 @@ namespace transport
 			void Established ();
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void SendQueue ();
+			void SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
 			
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
 			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);
@@ -182,6 +183,8 @@ namespace transport
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreateI2NPBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage>&& msg);
+			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
+			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			
 		private:
 
