@@ -57,7 +57,7 @@ namespace data
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
 	
-	const size_t MAX_RI_BUFFER_SIZE = 2048; // if RouterInfo exceeds 2048 we consider it as malformed, might be changed later
+	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
 	class RouterInfo: public RoutingDestination
 	{
 		public:
