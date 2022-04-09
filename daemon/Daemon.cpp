@@ -64,6 +64,12 @@ namespace util
 		return service;
 	}
 
+	void Daemon_Singleton::setDataDir(std::string path)
+	{
+		if (path != "")
+			DaemonDataDir = path;
+	}
+
 	bool Daemon_Singleton::init(int argc, char* argv[]) {
 		return init(argc, argv, nullptr);
 	}
@@ -73,8 +79,14 @@ namespace util
 		i2p::config::Init();
 		i2p::config::ParseCmdline(argc, argv);
 
-		std::string config;  i2p::config::GetOption("conf",    config);
-		std::string datadir; i2p::config::GetOption("datadir", datadir);
+		std::string config;  i2p::config::GetOption("conf", config);
+		std::string datadir;
+		if(DaemonDataDir != "") {
+			datadir = DaemonDataDir;
+		} else {
+			i2p::config::GetOption("datadir", datadir);
+		}
+
 		i2p::fs::DetectDataDir(datadir, IsService());
 		i2p::fs::Init();
 
