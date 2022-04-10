@@ -991,6 +991,10 @@ namespace client
 
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
+		if(m_cancel_resolve) {
+			LogPrint(eLogDebug, "UDP Client: Ignoring incomming data: stoppping");
+			return;
+		}
 		if(ec) {
 			LogPrint(eLogError, "UDP Client: Reading from socket error: ", ec.message(), ". Restarting listener...");
 			RecvFromLocal(); // Restart listener and continue work
@@ -1107,13 +1111,12 @@ namespace client
 	{
 		auto dgram = m_LocalDest->GetDatagramDestination();
 		if (dgram) dgram->ResetReceiver();
+		m_cancel_resolve = true;
 
 		m_Sessions.clear();
 
 		if(m_LocalSocket.is_open())
 			m_LocalSocket.close();
-
-		m_cancel_resolve = true;
 
 		if(m_ResolveThread)
 		{
