@@ -992,7 +992,7 @@ namespace client
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
 		if(m_cancel_resolve) {
-			LogPrint(eLogDebug, "UDP Client: Ignoring incomming data: stoppping");
+			LogPrint(eLogDebug, "UDP Client: Ignoring incomming data: stopping");
 			return;
 		}
 		if(ec) {
