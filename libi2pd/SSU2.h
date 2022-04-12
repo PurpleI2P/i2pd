@@ -136,6 +136,7 @@ namespace transport
 			void Terminate ();
 			void TerminateByTimeout ();
 			void CleanUp (uint64_t ts);
+			void FlushData ();
 			void Done () override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			void Resend (uint64_t ts);
@@ -168,7 +169,7 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			
-			bool HandlePayload (const uint8_t * buf, size_t len); // returns true is contains data
+			void HandlePayload (const uint8_t * buf, size_t len); 
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
@@ -203,6 +204,7 @@ namespace transport
 			std::map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // I2NP
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
+			bool m_IsDataReceived;
 	};
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
@@ -255,7 +257,7 @@ namespace transport
 			void Receive (boost::asio::ip::udp::socket& socket);
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred, 
 				Packet * packet, boost::asio::ip::udp::socket& socket);
-			void HandleReceivedPacket (Packet * packet);
+			void HandleReceivedPacket (std::vector<Packet *> packets);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 
 			void ScheduleTermination ();
