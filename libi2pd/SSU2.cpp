@@ -1330,13 +1330,13 @@ namespace transport
 		{
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			packet->len = bytes_transferred;
-			std::vector<Packet *> packets;
-			packets.push_back (packet);
 
 			boost::system::error_code ec;
 			size_t moreBytes = socket.available (ec);
-			if (!ec)
+			if (!ec && moreBytes)
 			{
+				std::vector<Packet *> packets;
+				packets.push_back (packet);
 				while (moreBytes && packets.size () < 32)
 				{
 					packet = m_PacketsPool.AcquireMt ();
@@ -1355,9 +1355,10 @@ namespace transport
 						break;
 					}
 				}
+				GetService ().post (std::bind (&SSU2Server::HandleReceivedPackets, this, packets));
 			}	
-			
-			GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packets));
+			else
+				GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packet));
 			Receive (socket);
 		}
 		else
@@ -1374,7 +1375,17 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPacket (std::vector<Packet *> packets)
+	void SSU2Server::HandleReceivedPacket (Packet * packet)
+	{
+		if (packet)
+		{
+			ProcessNextPacket (packet->buf, packet->len, packet->from);
+			m_PacketsPool.ReleaseMt (packet);
+			if (m_LastSession) m_LastSession->FlushData ();
+		}	
+	}	
+		
+	void SSU2Server::HandleReceivedPackets (std::vector<Packet *> packets)
 	{
 		for (auto& packet: packets)
 			ProcessNextPacket (packet->buf, packet->len, packet->from);
