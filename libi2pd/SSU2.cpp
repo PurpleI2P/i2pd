@@ -1038,9 +1038,9 @@ namespace transport
 		if (len < 8) return 0;
 		buf[0] = eSSU2BlkAck;
 		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
-		htobe16buf (buf + 1, 5);
 		htobe32buf (buf + 3, ackThrough); // Ack Through
 		uint8_t acnt = 0;
+		int numRanges = 0;
 		if (ackThrough)
 		{
 			if (m_OutOfSequencePackets.empty ())
@@ -1053,10 +1053,32 @@ namespace transport
 					acnt++;
 					it++;
 				}	
+				// ranges	
+				uint32_t lastNum = ackThrough - acnt;
+				it++;
+				while (it != m_OutOfSequencePackets.rend () && lastNum > m_ReceivePacketNum && numRanges < 8)
+				{
+					if (lastNum - (*it) < 255)
+					{	
+						buf[7 + numRanges*2] = lastNum - (*it); // NACKs
+						lastNum = *it; 
+						uint8_t numAcks = 0;
+						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > m_ReceivePacketNum && *it == lastNum - 1)
+						{
+							numAcks++; lastNum--;
+							it++;
+						}
+						buf[7 + numRanges*2 + 1] = numAcks; // Acks
+						numRanges++; it++;
+						if (numAcks == 255) break;
+					}
+					else
+						break;
+				}	
 			}		
 		}	
 		buf[7] = acnt; // acnt
-		// TODO: ranges
+		htobe16buf (buf + 1, 5 + numRanges*2);
 		return 8;
 	}	
 
