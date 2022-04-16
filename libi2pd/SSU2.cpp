@@ -112,17 +112,17 @@ namespace transport
 	{	
 		if (!m_SendQueue.empty ())
 		{
-			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-			size_t payloadSize = 0;
-			payloadSize += CreateAckBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+			auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
+			auto packet = std::make_shared<SentPacket>();
+			packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
 			while (!m_SendQueue.empty ())
 			{
 				auto msg = m_SendQueue.front ();
 				size_t len = msg->GetNTCP2Length ();
-				if (len + 3 < SSU2_MAX_PAYLOAD_SIZE - payloadSize)
+				if (len + 3 < SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize)
 				{
 					m_SendQueue.pop_front ();
-					payloadSize += CreateI2NPBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, std::move (msg));
+					packet->payloadSize += CreateI2NPBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize, std::move (msg));
 				}	
 				else if (len > SSU2_MAX_PAYLOAD_SIZE - 32) // message too long
 				{	
@@ -132,22 +132,22 @@ namespace transport
 				else
 				{
 					// send right a way
-					if (payloadSize + 16 < SSU2_MAX_PAYLOAD_SIZE)
-						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);	
-					auto packet = SendData (payload, payloadSize);
-					if (packet)
-						m_SentPackets.emplace (packet->packetNum, packet);
-					payloadSize = 0;
-					payloadSize += CreateAckBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);	
+					if (packet->payloadSize + 16 < SSU2_MAX_PAYLOAD_SIZE)
+						packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);	
+					uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+					packet->nextResendTime = nextResend;
+					m_SentPackets.emplace (packetNum, packet);
+					packet = std::make_shared<SentPacket>();
+					packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);	
 				}		
 			};	
-			if (payloadSize)
+			if (packet->payloadSize)
 			{
-				if (payloadSize + 16 < SSU2_MAX_PAYLOAD_SIZE)
-					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
-				auto packet = SendData (payload, payloadSize);
-				if (packet)
-					m_SentPackets.emplace (packet->packetNum, packet);
+				if (packet->payloadSize + 16 < SSU2_MAX_PAYLOAD_SIZE)
+					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
+				uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+				packet->nextResendTime = nextResend;
+				m_SentPackets.emplace (packetNum, packet);
 			}	
 		}	
 	}	
@@ -156,30 +156,32 @@ namespace transport
 	{
 		uint32_t msgID;
 		memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4);
-		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-		size_t payloadSize = 0;
-		payloadSize += CreateAckBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
-		auto size = CreateFirstFragmentBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - 32 - payloadSize, msg);
+		auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
+		auto packet = std::make_shared<SentPacket>();
+		packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
+		auto size = CreateFirstFragmentBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - 32 - packet->payloadSize, msg);
 		if (!size) return;
-		payloadSize += size;
-		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);	
-		auto firstPacket = SendData (payload, payloadSize);
-		if (firstPacket)
-			m_SentPackets.emplace (firstPacket->packetNum, firstPacket);
+		packet->payloadSize += size;
+		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);	
+		uint32_t firstPacketNum = SendData (packet->payload, packet->payloadSize);
+		packet->nextResendTime = nextResend;
+		m_SentPackets.emplace (firstPacketNum, packet);
 		uint8_t fragmentNum = 0;
 		while (msg->offset < msg->len)
 		{
-			payloadSize += CreateFollowOnFragmentBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize - 16, msg, fragmentNum, msgID);
-			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);	
-			auto followonPacket = SendData (payload, payloadSize);
-			if (followonPacket)
-				m_SentPackets.emplace (followonPacket->packetNum, followonPacket);
+			packet = std::make_shared<SentPacket>();
+			packet->payloadSize += CreateFollowOnFragmentBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize - 16, msg, fragmentNum, msgID);
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);	
+			uint32_t followonPacketNum = SendData (packet->payload, packet->payloadSize);
+			packet->nextResendTime = nextResend;
+			m_SentPackets.emplace (followonPacketNum, packet);
 		}	
 	}	
 		
 	void SSU2Session::Resend (uint64_t ts)
 	{
 		if (m_SendQueue.empty ()) return;
+		std::map<uint32_t, std::shared_ptr<SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
 			if (ts > it->second->nextResendTime)
 			{
@@ -187,16 +189,24 @@ namespace transport
 					it = m_SentPackets.erase (it);
 				else
 				{
-					m_Server.Send (it->second->header.buf, 16, it->second->payload, it->second->payloadLen, m_RemoteEndpoint);
+					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize);
 					it->second->numResends++;
 					it->second->nextResendTime = ts + it->second->numResends*SSU2_RESEND_INTERVAL;		
 					m_LastActivityTimestamp = ts;
-					m_NumSentBytes += it->second->payloadLen + 16;
-					it++;	
+					resentPackets.emplace (packetNum, it->second);	
+					it = m_SentPackets.erase (it);
 				}		
 			}
 			else
 				it++;
+		if (!resentPackets.empty ())
+		{
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+			m_SentPackets.merge (resentPackets);
+#else
+			m_SentPackets.insert (resentPackets.begin (), resentPackets.end ());		
+#endif			
+		}	
 	}	
 		
 	void SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
@@ -464,10 +474,10 @@ namespace transport
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
-				m_SessionConfirmedFragment1.reset (new SentPacket);
+				m_SessionConfirmedFragment1.reset (new SessionConfirmedFragment);
 				m_SessionConfirmedFragment1->header = header;
 				memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
-				m_SessionConfirmedFragment1->payloadLen = len - 16;
+				m_SessionConfirmedFragment1->payloadSize = len - 16;
 				return true; // wait for second fragment
 			}	
 			else
@@ -476,10 +486,10 @@ namespace transport
 				if (!m_SessionConfirmedFragment1) return false; // out of sequence
 				uint8_t fullMsg[2*SSU2_MTU];
 				header = m_SessionConfirmedFragment1->header;
-				memcpy (fullMsg + 16, m_SessionConfirmedFragment1->payload, m_SessionConfirmedFragment1->payloadLen);
-				memcpy (fullMsg + 16 + m_SessionConfirmedFragment1->payloadLen, buf + 16, len - 16);
+				memcpy (fullMsg + 16, m_SessionConfirmedFragment1->payload, m_SessionConfirmedFragment1->payloadSize);
+				memcpy (fullMsg + 16 + m_SessionConfirmedFragment1->payloadSize, buf + 16, len - 16);
 				buf = fullMsg;
-				len += m_SessionConfirmedFragment1->payloadLen;
+				len += m_SessionConfirmedFragment1->payloadSize;
 			}	
 		}	
 		// KDF for Session Confirmed part 1
@@ -686,33 +696,29 @@ namespace transport
 		return true;
 	}	
 
-	std::shared_ptr<SSU2Session::SentPacket> SSU2Session::SendData (const uint8_t * buf, size_t len)
+	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len)
 	{
 		if (len < 8)
 		{
 			LogPrint (eLogWarning, "SSU2: Data message payload is too short ", (int)len);
-			return nullptr;
+			return 0;
 		}	
-		auto packet = std::make_shared<SentPacket>();
-		packet->packetNum = m_SendPacketNum;
-		packet->numResends = 0;
-		Header& header = packet->header;
+		Header header;
 		header.h.connID = m_DestConnID;
 		header.h.packetNum = htobe32 (m_SendPacketNum);
 		header.h.type = eSSU2Data;
 		memset (header.h.flags, 0, 3);
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
-		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, packet->payload, SSU2_MTU, true);
-		header.ll[0] ^= CreateHeaderMask (m_Address->i, packet->payload + (len - 8));
-		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, packet->payload + (len + 4));
-		packet->payloadLen = len + 16;
-		m_Server.Send (header.buf, 16, packet->payload, packet->payloadLen, m_RemoteEndpoint);
+		uint8_t payload[SSU2_MTU];
+		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MTU, true);
+		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
+		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
+		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
 		m_SendPacketNum++;
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-		packet->nextResendTime = m_LastActivityTimestamp + SSU2_RESEND_INTERVAL;
-		m_NumSentBytes += packet->payloadLen + 16;
-		return packet;
+		m_NumSentBytes += len + 32;
+		return m_SendPacketNum - 1;
 	}	
 		
 	void SSU2Session::ProcessData (uint8_t * buf, size_t len)

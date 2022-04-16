@@ -115,12 +115,17 @@ namespace transport
 
 		struct SentPacket
 		{
-			Header header;
-			uint8_t payload[SSU2_MTU];
-			size_t payloadLen;    
-			uint32_t packetNum;
+			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+			size_t payloadSize = 0;    
 			uint32_t nextResendTime; // in seconds
-			int numResends;
+			int numResends = 0;
+		};	
+
+		struct SessionConfirmedFragment
+		{
+			Header header;
+			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+			size_t payloadSize;
 		};	
 		
 		public:
@@ -165,7 +170,7 @@ namespace transport
 			void KDFDataPhase (uint8_t * keydata_ab, uint8_t * keydata_ba);
 			void SendTokenRequest ();
 			void SendRetry ();
-			std::shared_ptr<SentPacket> SendData (const uint8_t * buf, size_t len);
+			uint32_t SendData (const uint8_t * buf, size_t len); // returns packet num
 			void SendQuickAck ();
 			void SendTermination ();
 			
@@ -192,7 +197,7 @@ namespace transport
 			SSU2Server& m_Server;
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
-			std::unique_ptr<SentPacket> m_SessionConfirmedFragment1; // for Bob if applicable
+			std::unique_ptr<SessionConfirmedFragment> m_SessionConfirmedFragment1; // for Bob if applicable
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			uint64_t m_DestConnID, m_SourceConnID;
