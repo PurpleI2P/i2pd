@@ -331,7 +331,12 @@ namespace http {
 				if (address->published)
 					s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
 				else
-					s << "<td>" << tr("supported") << "</td>\r\n";
+				{	
+					s << "<td>" << tr("supported");
+					if (address->port)
+						s << " :" << address->port;	
+					s << "</td>\r\n";
+				}		
 				s << "</tr>\r\n";
 			}
 			s << "</tbody></table>\r\n";
