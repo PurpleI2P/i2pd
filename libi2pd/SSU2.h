@@ -159,7 +159,7 @@ namespace transport
 
 			void Established ();
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
-			void SendQueue ();
+			bool SendQueue ();
 			void SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
 			
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);

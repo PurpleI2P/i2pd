@@ -108,7 +108,7 @@ namespace transport
 		SendQueue ();
 	}	
 		
-	void SSU2Session::SendQueue ()
+	bool SSU2Session::SendQueue ()
 	{	
 		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 		{
@@ -149,7 +149,9 @@ namespace transport
 				packet->nextResendTime = nextResend;
 				m_SentPackets.emplace (packetNum, packet);
 			}	
-		}	
+			return true;
+		}
+		return false;
 	}	
 
 	void SSU2Session::SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg)
@@ -747,10 +749,7 @@ namespace transport
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumReceivedBytes += len;
 		if (UpdateReceivePacketNum (packetNum))
-		{	
 			HandlePayload (payload, payloadSize);
-			SendQueue (); // if we have something to send
-		}	
 	}	
 		
 	void SSU2Session::HandlePayload (const uint8_t * buf, size_t len)
@@ -1245,9 +1244,10 @@ namespace transport
 
 	void SSU2Session::FlushData ()
 	{
+		bool sent = SendQueue (); // if we have something to send	
 		if (m_IsDataReceived)
 		{	
-			SendQuickAck ();
+			if (!sent) SendQuickAck ();
 			m_Handler.Flush ();
 			m_IsDataReceived = false;
 		}	
