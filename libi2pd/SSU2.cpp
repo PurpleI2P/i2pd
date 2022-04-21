@@ -32,7 +32,7 @@ namespace transport
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0),
 		m_State (eSSU2SessionStateUnknown), m_SendPacketNum (0), m_ReceivePacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MAX_WINDOW_SIZE)
+		m_IsDataReceived (false), m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -70,6 +70,8 @@ namespace transport
 			m_State = eSSU2SessionStateTerminated;
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveSession (m_SourceConnID);
+			if (m_RelayTag)
+				m_Server.RemoveRelay (m_RelayTag);
 			m_SendQueue.clear ();
 			LogPrint (eLogDebug, "SSU2: Session terminated");
 		}
@@ -338,6 +340,13 @@ namespace transport
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
+		if (m_RelayTag)
+		{
+			payload[payloadSize] = eSSU2BlkRelayTag;
+			htobe16buf (payload + payloadSize + 1, 4);
+			htobe32buf (payload + payloadSize + 3, m_RelayTag);
+			payloadSize += 7;
+		}	
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header) 
@@ -810,6 +819,8 @@ namespace transport
 					Terminate ();
 				break;	
 				case eSSU2BlkRelayRequest:
+					LogPrint (eLogDebug, "SSU2: RelayRequest");
+					HandleRelayRequest (buf + offset, size);
 				break;	
 				case eSSU2BlkRelayResponse:
 				break;	
@@ -833,6 +844,13 @@ namespace transport
 				case eSSU2BlkIntroKey:
 				break;	
 				case eSSU2BlkRelayTagRequest:
+					LogPrint (eLogDebug, "SSU2: RelayTagRequest");
+					HandleRelayRequest (buf + offset, size);
+					if (!m_RelayTag) 
+					{	
+						RAND_bytes ((uint8_t *)&m_RelayTag, 4);
+						m_Server.AddRelay (m_RelayTag, shared_from_this ());
+					}	
 				break;	
 				case eSSU2BlkRelayTag:
 				break;	
@@ -990,6 +1008,36 @@ namespace transport
 			else
 				break;
 		return isLast;
+	}	
+
+	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
+	{
+		// we are Bob
+		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
+		auto session = m_Server.FindRelaySession (relayTag);
+		if (!session) 
+		{
+			LogPrint (eLogWarning, "SSU2: Session with relay tag ", relayTag, " not found");
+			return; // TODO: send relay response
+		}	
+		SignedData s;
+		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
+		s.Insert (i2p::context.GetIdentHash (), 32); // bhash
+		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
+		s.Insert (buf + 1, 14); // nonce, relay tag, timestamp, ver, asz
+		uint8_t asz = buf[14];
+		s.Insert (buf + 15, asz + 2); // Alice IP, Alice Port
+		if (!s.Verify (GetRemoteIdentity (), buf + 17 + asz))
+		{
+			LogPrint (eLogWarning, "SSU2: RelayRequest signature verification failed");
+			return; // TODO: send relay response
+		}	
+
+		// send relay intro to Charlie
+		uint8_t payload[SSU2_MTU];
+		size_t payloadSize = CreateRelayIntroBlock (payload, SSU2_MTU, buf + 1, len -1);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
+		session->SendData (payload, payloadSize);
 	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
@@ -1155,6 +1203,18 @@ namespace transport
 		msg->offset += msgLen;
 		return msgLen + 8;
 	}
+
+	size_t SSU2Session::CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen)
+	{
+		buf[0] = eSSU2BlkRelayIntro;
+		size_t payloadSize = 1/* flag */ + 32/* Alice router hash */ + introDataLen;
+		if (payloadSize + 3 > len) return 0;
+		htobe16buf (buf + 1, payloadSize); // size
+		buf[3] = 0; // flag
+		memcpy (buf + 4, GetRemoteIdentity ()->GetIdentHash (), 32); // Alice router hash
+		memcpy (buf + 36, introData, introDataLen);
+		return payloadSize + 3;
+	}	
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
 	{
@@ -1440,6 +1500,29 @@ namespace transport
 	{
 		if (session)
 			m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session);
+	}
+
+	void SSU2Server::AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay)
+	{
+		m_Relays.emplace (tag, relay);
+	}
+		
+	void SSU2Server::RemoveRelay (uint32_t tag)
+	{
+		m_Relays.erase (tag);
+	}	
+
+	std::shared_ptr<SSU2Session> SSU2Server::FindRelaySession (uint32_t tag)
+	{
+		auto it = m_Relays.find (tag);
+		if (it != m_Relays.end ())
+		{
+			if (it->second->IsEstablished ())
+				return it->second;
+			else
+				m_Relays.erase (it);
+		}
+		return nullptr;
 	}
 		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
