@@ -186,6 +186,7 @@ namespace transport
 			void HandleFollowOnFragment (const uint8_t * buf, size_t len);
 			bool ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m); // true if message complete
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
+			void HandleRelayIntro (const uint8_t * buf, size_t len);
 			
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
@@ -257,7 +258,8 @@ namespace transport
 				const boost::asio::ip::udp::endpoint& to);
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
-
+			void SendHolePunch (const boost::asio::ip::udp::endpoint& to);
+			
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
 
