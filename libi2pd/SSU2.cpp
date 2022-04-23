@@ -897,7 +897,7 @@ namespace transport
 			if (*ranges > lastPacketNum) break;
 			lastPacketNum -= *ranges; ranges++; // nacks
 			if (*ranges > lastPacketNum) break;
-			firstPacketNum -= *ranges; ranges++; // acks
+			firstPacketNum = lastPacketNum - *ranges; ranges++; // acks
 			len -= 2;
 			HandleAckRange (firstPacketNum, lastPacketNum);
 		}	
@@ -905,6 +905,7 @@ namespace transport
 
 	void SSU2Session::HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum)
 	{
+		if (firstPacketNum > lastPacketNum) return;
 		auto it = m_SentPackets.begin ();
 		while (it != m_SentPackets.end () && it->first < firstPacketNum) it++; // find first acked packet
 		if (it == m_SentPackets.end ()) return; // not found
