@@ -15,7 +15,7 @@
 #include "util.h"
 #include "SSU.h"
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 	#include <linux/in6.h>
 #endif
 
@@ -68,7 +68,7 @@ namespace transport
 			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
 			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 			if (m_EndpointV6.address() == boost::asio::ip::address().from_string("::")) // only if not binded to address
 			{
 				// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
