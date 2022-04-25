@@ -107,7 +107,7 @@ namespace data
 				Introducer (): iPort (0), iExp (0) {};
 				boost::asio::ip::address iHost;
 				int iPort;
-				IntroKey iKey;
+				IntroKey iKey; // or ih for SSU2
 				uint32_t iTag;
 				uint32_t iExp;
 			};

@@ -330,7 +330,7 @@ namespace data
 						introducer.iPort = boost::lexical_cast<int>(value);
 					else if (!strcmp (key, "itag"))
 						introducer.iTag = boost::lexical_cast<uint32_t>(value);
-					else if (!strcmp (key, "ikey"))
+					else if (!strcmp (key, "ikey") || !strcmp (key, "ih"))
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
 					else if (!strcmp (key, "iexp"))
 						introducer.iExp = boost::lexical_cast<uint32_t>(value);
@@ -425,6 +425,9 @@ namespace data
 						ssu2addr->date = address->date; ssu2addr->caps = address->caps;
 						ssu2addr->published = address->published;
 						ssu2addr->ssu.reset (new SSUExt ()); ssu2addr->ssu->mtu = address->ssu->mtu;
+						for (const auto& introducer: address->ssu->introducers)
+							if (!introducer.iPort) // SSU2
+								ssu2addr->ssu->introducers.push_back (introducer);	
 						addresses->push_back(ssu2addr);
 					}	
 				}	
@@ -1227,7 +1230,14 @@ namespace data
 				WriteString (address.host.to_string (), properties);
 				properties << ';';
 			}
-			if (address.transportStyle == eTransportSSU)
+			if ((address.IsNTCP2 () && isPublished) || address.IsSSU2 ())
+			{
+				// publish i for NTCP2 or SSU2
+				WriteString ("i", properties); properties << '=';
+				size_t len = address.IsSSU2 () ? 32 : 16;
+				WriteString (address.i.ToBase64 (len), properties); properties << ';';
+			}
+			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
 			{
 				// write introducers if any
 				if (!address.ssu->introducers.empty())
@@ -1244,19 +1254,25 @@ namespace data
 						}
 						i++;
 					}
+					if (address.transportStyle == eTransportSSU)
+					{	
+						i = 0;
+						for (const auto& introducer: address.ssu->introducers)
+						{
+							WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
+							properties << '=';
+							WriteString (introducer.iHost.to_string (), properties);
+							properties << ';';
+							i++;
+						}
+					}	
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
-						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						WriteString (introducer.iHost.to_string (), properties);
-						properties << ';';
-						i++;
-					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
-					{
-						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
+						if (address.IsSSU2 ())
+							WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);
+						else	
+							WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
 						char value[64];
 						size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
@@ -1265,15 +1281,18 @@ namespace data
 						properties << ';';
 						i++;
 					}
-					i = 0;
-					for (const auto& introducer: address.ssu->introducers)
+					if (address.transportStyle == eTransportSSU)
 					{
-						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
-						properties << '=';
-						WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
-						properties << ';';
-						i++;
-					}
+						i = 0;
+						for (const auto& introducer: address.ssu->introducers)
+						{
+							WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
+							properties << '=';
+							WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
+							properties << ';';
+							i++;
+						}
+					}	
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
@@ -1284,6 +1303,9 @@ namespace data
 						i++;
 					}
 				}
+			}
+			if (address.transportStyle == eTransportSSU)
+			{
 				// write intro key
 				WriteString ("key", properties);
 				properties << '=';
@@ -1292,6 +1314,9 @@ namespace data
 				value[l] = 0;
 				WriteString (value, properties);
 				properties << ';';
+			}
+			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
+			{	
 				// write mtu
 				if (address.ssu->mtu)
 				{
@@ -1301,15 +1326,6 @@ namespace data
 					properties << ';';
 				}
 			}
-
-			if ((address.IsNTCP2 () && isPublished) || address.IsSSU2 ())
-			{
-				// publish i for NTCP2 or SSU2
-				WriteString ("i", properties); properties << '=';
-				size_t len = address.IsSSU2 () ? 32 : 16;
-				WriteString (address.i.ToBase64 (len), properties); properties << ';';
-			}
-
 			if (isPublished || (address.ssu && !address.IsSSU2 ()))
 			{
 				WriteString ("port", properties);
