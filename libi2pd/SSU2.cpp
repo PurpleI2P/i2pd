@@ -823,6 +823,8 @@ namespace transport
 					HandleRelayRequest (buf + offset, size);
 				break;	
 				case eSSU2BlkRelayResponse:
+					LogPrint (eLogDebug, "SSU2: RelayResponse");
+					HandleRelayResponse (buf + offset, size);
 				break;	
 				case eSSU2BlkRelayIntro:
 				break;	
@@ -1023,19 +1025,9 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Session with relay tag ", relayTag, " not found");
 			return; // TODO: send relay response
 		}	
-		SignedData s;
-		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
-		s.Insert (i2p::context.GetIdentHash (), 32); // bhash
-		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
-		s.Insert (buf + 1, 14); // nonce, relay tag, timestamp, ver, asz
-		uint8_t asz = buf[14];
-		s.Insert (buf + 15, asz); // Alice Port, Alice IP
-		if (!s.Verify (GetRemoteIdentity (), buf + 15 + asz))
-		{
-			LogPrint (eLogWarning, "SSU2: RelayRequest signature verification failed");
-			return; // TODO: send relay response
-		}	
-
+		session->m_RelaySessions.emplace (bufbe32toh (buf + 1), // nonce
+			std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()) ); 
+		
 		// send relay intro to Charlie
 		uint8_t payload[SSU2_MTU];
 		size_t payloadSize = CreateRelayIntroBlock (payload, SSU2_MTU, buf + 1, len -1);
@@ -1067,7 +1059,7 @@ namespace transport
 
 		// send relay response to Bob
 		uint8_t payload[SSU2_MTU];
-		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MTU, bufbe32toh (buf + 33), bufbe32toh (buf + 37));
+		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MTU, bufbe32toh (buf + 33));
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
 		SendData (payload, payloadSize);
 
@@ -1075,6 +1067,24 @@ namespace transport
 		boost::asio::ip::udp::endpoint ep;
 		if (ExtractEndpoint (buf + 47, asz, ep))
 			m_Server.SendHolePunch (ep);
+	}	
+
+	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
+	{
+		auto it = m_RelaySessions.find (bufbe32toh (buf + 2)); // nonce
+		if (it != m_RelaySessions.end ())
+		{
+			if (it->second.first && it->second.first->IsEstablished ())
+				// we are Bob, message from Charlie
+				it->second.first->SendData (buf, len); // forward to Alice as is
+			else
+			{
+				// we are Alice, message from Bob
+			}	
+			m_RelaySessions.erase (it);
+		}
+		else
+			LogPrint (eLogWarning, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2)); 
 	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
@@ -1261,25 +1271,24 @@ namespace transport
 		return payloadSize + 3;
 	}	
 
-	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce, uint32_t relayTag)
+	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce)
 	{
 		buf[0] = eSSU2BlkRelayResponse;
 		buf[3] = 0; // flag
 		buf[4] = 0;  // code, accept
 		htobe32buf (buf + 5, nonce); // nonce
-		htobe32buf (buf + 9, relayTag); // relayTag
-		htobe32buf (buf + 13, i2p::util::GetSecondsSinceEpoch ()); // timestamp
-		buf[17] = 2; // ver
-		size_t csz = CreateEndpoint (buf + 19, len - 19, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
+		htobe32buf (buf + 9, i2p::util::GetSecondsSinceEpoch ()); // timestamp
+		buf[13] = 2; // ver
+		size_t csz = CreateEndpoint (buf + 15, len - 15, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
 		if (!csz) return 0;
-		buf[18] = csz; // csz
+		buf[14] = csz; // csz
 		// signature
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
-		s.Insert (buf + 9, 10 + csz); // relay tag, timestamp, ver, csz and Charlie's endpoint
-		s.Sign (i2p::context.GetPrivateKeys (), buf + 19 + csz);
-		size_t payloadSize = 16 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
+		s.Insert (buf + 5, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
+		s.Sign (i2p::context.GetPrivateKeys (), buf + 15 + csz);
+		size_t payloadSize = 12 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
 		htobe16buf (buf + 1, payloadSize); // size
 		return payloadSize + 3;
 	}	
@@ -1367,6 +1376,16 @@ namespace transport
 		{
 			m_ReceivePacketNum = *m_OutOfSequencePackets.rbegin ();
 			m_OutOfSequencePackets.clear ();
+		}	
+		for (auto it = m_RelaySessions.begin (); it != m_RelaySessions.end ();)
+		{
+			if (ts > it->second.second + SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT)
+			{
+				LogPrint (eLogWarning, "SSU2: noce ", it->first, " was not responded in ", SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT, " seconds, deleted");
+				it = m_RelaySessions.erase (it);
+			}
+			else
+				++it;
 		}	
 	}
 

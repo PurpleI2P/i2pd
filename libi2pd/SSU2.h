@@ -25,7 +25,8 @@ namespace transport
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
-	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // in second
+	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // in seconds
+	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MTU = 1488;
@@ -74,6 +75,7 @@ namespace transport
 	enum SSU2SessionState
 	{
 		eSSU2SessionStateUnknown,
+		eSSU2SessionStateIntroduced,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed
@@ -188,6 +190,7 @@ namespace transport
 			bool ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m); // true if message complete
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
 			void HandleRelayIntro (const uint8_t * buf, size_t len);
+			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			
 			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
@@ -196,7 +199,7 @@ namespace transport
 			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
-			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce, uint32_t relayTag); // Charlie
+			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce); // Charlie
 			
 		private:
 
@@ -213,6 +216,7 @@ namespace transport
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			std::map<uint32_t, std::shared_ptr<SentPacket> > m_SentPackets; // packetNum -> packet
 			std::map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // I2NP
+			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice 
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
