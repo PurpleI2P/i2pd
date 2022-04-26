@@ -338,6 +338,10 @@ namespace i2p
 			{
 				address->port = port;
 				address->published = publish;
+				if (publish)
+					address->caps |= i2p::data::RouterInfo::eSSUIntroducer;
+				else
+					address->caps &= ~i2p::data::RouterInfo::eSSUIntroducer;
 				updated = true;
 			}
 		}

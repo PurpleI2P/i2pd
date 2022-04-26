@@ -1205,17 +1205,23 @@ namespace data
 			else if (address.transportStyle == eTransportSSU2)
 			{
 				WriteString ("SSU2", s);
+				// caps
+				std::string caps;
 				if (address.published)
+				{	
 					isPublished = true;
+					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+				}	
 				else
 				{	
-					// caps
-					WriteString ("caps", properties);
-					properties << '=';
-					std::string caps;
 					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
 					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
 					if (caps.empty ()) caps += CAPS_FLAG_V4;
+				}
+				if (!caps.empty ())
+				{
+					WriteString ("caps", properties);
+					properties << '=';
 					WriteString (caps, properties);
 					properties << ';';
 				}	
