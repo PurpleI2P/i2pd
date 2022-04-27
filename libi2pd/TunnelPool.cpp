@@ -382,7 +382,7 @@ namespace tunnel
 
 	void TunnelPool::ManageTunnels (uint64_t ts)
 	{
-		if (ts > m_NextManageTime)
+		if (ts > m_NextManageTime || ts + 2*TUNNEL_POOL_MANAGE_INTERVAL < m_NextManageTime) // in case if clock was adjusted
 		{
 			CreateTunnels ();
 			TestTunnels ();
