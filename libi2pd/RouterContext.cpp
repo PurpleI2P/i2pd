@@ -87,6 +87,9 @@ namespace i2p
 				if (!ntcp2proxy.empty ()) ntcp2Published = false;
 			}
 		}
+		bool ssu2Published = false;
+		if (ssu2)
+			i2p::config::GetOption("ssu2.published", ssu2Published);
 		uint8_t caps = 0, addressCaps = 0;
 		if (ipv4)
 		{
@@ -117,8 +120,13 @@ namespace i2p
 			}
 			if (ssu2)
 			{
-				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
-				routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
+				if (ssu2Published)
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v4::from_string (host), port);
+				else
+				{	
+					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
+				}	
 			}	
 		}
 		if (ipv6)
@@ -157,9 +165,14 @@ namespace i2p
 			}
 			if (ssu2)
 			{
-				if (!ipv4) // no other ssu2 addresses yet
-					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
-				addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+				if (ssu2Published)
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v4::from_string (host), port);
+				else
+				{	
+					if (!ipv4) // no other ssu2 addresses yet
+						routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
+					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+				}	
 			}	
 		}
 		if (ygg)
