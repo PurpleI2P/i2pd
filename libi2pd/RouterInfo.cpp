@@ -682,6 +682,8 @@ namespace data
 		addr->transportStyle = eTransportSSU2;
 		addr->caps = caps;
 		addr->date = 0;
+		addr->ssu.reset (new SSUExt ());
+		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
 		if (addr->IsV4 ()) m_SupportedTransports |= eSSU2V4;
@@ -699,6 +701,8 @@ namespace data
 		addr->published = true;
 		addr->caps = 0;
 		addr->date = 0;
+		addr->ssu.reset (new SSUExt ());
+		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
 		if (addr->IsV4 ())
@@ -1246,7 +1250,7 @@ namespace data
 			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
 			{
 				// write introducers if any
-				if (!address.ssu->introducers.empty())
+				if (address.ssu && !address.ssu->introducers.empty())
 				{
 					int i = 0;
 					for (const auto& introducer: address.ssu->introducers)
@@ -1324,7 +1328,7 @@ namespace data
 			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
 			{	
 				// write mtu
-				if (address.ssu->mtu)
+				if (address.ssu && address.ssu->mtu)
 				{
 					WriteString ("mtu", properties);
 					properties << '=';
