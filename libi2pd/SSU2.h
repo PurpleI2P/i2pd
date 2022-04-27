@@ -141,6 +141,7 @@ namespace transport
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
 			
 			void Connect ();
+			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
 			void Terminate ();
 			void TerminateByTimeout ();
 			void CleanUp (uint64_t ts);
@@ -200,7 +201,7 @@ namespace transport
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce); // Charlie
-			
+						
 		private:
 
 			SSU2Server& m_Server;

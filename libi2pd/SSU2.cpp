@@ -63,6 +63,50 @@ namespace transport
 			SendTokenRequest ();
 	}	
 
+	bool SSU2Session::Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag)
+	{
+		// we are Alice
+		if (!session || !relayTag) return false;
+		// find local adddress to introduce
+		std::shared_ptr<const i2p::data::RouterInfo::Address> localAddress;
+		if (session->m_Address->IsV4 ())
+			localAddress = i2p::context.GetRouterInfo ().GetSSU2V4Address ();
+		else if (session->m_Address->IsV6 ())
+			localAddress = i2p::context.GetRouterInfo ().GetSSU2V6Address ();
+		if (localAddress) return false;
+		// create nonce
+		uint32_t nonce;
+		RAND_bytes ((uint8_t *)&nonce, 4);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		// payload
+		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+		size_t payloadSize = 0;
+		payload[0] = eSSU2BlkRelayRequest;
+		payload[3] = 0; // flag
+		htobe32buf (payload + 4, nonce);
+		htobe32buf (payload + 8, relayTag);
+		htobe32buf (payload + 12, ts);
+		payload[16] = 2; // ver
+		size_t asz = CreateEndpoint (payload + 18, SSU2_MAX_PAYLOAD_SIZE - 18, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
+		if (!asz) return false;
+		payload[17] = asz;
+		payloadSize += asz + 17;
+		SignedData s;
+		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
+		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
+		s.Insert (payload + 4, 14 + asz); // nonce, relay tag, timestamp, ver, asz and Alice's endpoint
+		s.Sign (i2p::context.GetPrivateKeys (), payload + 17 + asz);
+		payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
+		htobe16buf (payload + 1, payloadSize - 3); // size
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+		// send
+		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
+		SendData (payload, payloadSize);
+		
+		return true;
+	}	
+		
 	void SSU2Session::Terminate ()
 	{
 		if (m_State != eSSU2SessionStateTerminated)
@@ -1080,6 +1124,19 @@ namespace transport
 			else
 			{
 				// we are Alice, message from Bob
+				boost::asio::ip::udp::endpoint ep;
+				if (ExtractEndpoint (buf + 12, buf[11], ep))
+				{		
+					// update Charlie's address and connect
+					auto addr = std::make_shared<i2p::data::RouterInfo::Address> ();
+					auto addr1 = it->second.first->m_Address;
+					addr->transportStyle = i2p::data::RouterInfo::eTransportSSU2;
+					addr->host = ep.address (); addr->port = ep.port ();
+					addr->s = addr1->s; addr->i = addr1->i; addr->caps = addr1->caps;
+					it->second.first->m_Address = addr;
+					it->second.first->m_State = eSSU2SessionStateUnknown;
+					it->second.first->Connect ();
+				}	
 			}	
 			m_RelaySessions.erase (it);
 		}
