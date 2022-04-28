@@ -597,6 +597,7 @@ namespace transport
 			return false;
 		}	
 		SetRemoteIdentity (ri->GetRouterIdentity ());
+		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now
 		m_Address = ri->GetSSU2AddressWithStaticKey (S, m_RemoteEndpoint.address ().is_v6 ()); 
 		if (!m_Address)
 		{
@@ -1625,12 +1626,43 @@ namespace transport
 	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)
+		{	
 			m_Sessions.emplace (session->GetConnID (), session);
+			AddSessionByRouterHash (session);
+		}	
 	}	
 
 	void SSU2Server::RemoveSession (uint64_t connID)
 	{
-		m_Sessions.erase (connID);
+		auto it = m_Sessions.find (connID);
+		if (it != m_Sessions.end ())
+		{	
+			auto ident = it->second->GetRemoteIdentity ();
+			if (ident)
+				m_SessionsByRouterHash.erase (ident->GetIdentHash ());
+			m_Sessions.erase (it);
+		}	
+	}	
+
+	void  SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
+	{
+		if (session)
+		{	
+			auto ident = session->GetRemoteIdentity ();
+			if (ident)
+			{
+				auto ret = m_SessionsByRouterHash.emplace (ident->GetIdentHash (), session);
+				if (!ret.second)
+				{
+					// session already exists
+					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " aready exists");
+					// terminate existing
+					GetService ().post (std::bind (&SSU2Session::Terminate, ret.first->second));
+					// update session
+					ret.first->second = session;
+				}	
+			}	
+		}	
 	}	
 		
 	void SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
