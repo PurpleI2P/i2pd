@@ -1124,16 +1124,9 @@ namespace transport
 			else
 			{
 				// we are Alice, message from Bob
-				boost::asio::ip::udp::endpoint ep;
-				if (ExtractEndpoint (buf + 12, buf[11], ep))
+				// update Charlie's endpoint and connect	
+				if (ExtractEndpoint (buf + 12, buf[11], it->second.first->m_RemoteEndpoint))
 				{		
-					// update Charlie's address and connect
-					auto addr = std::make_shared<i2p::data::RouterInfo::Address> ();
-					auto addr1 = it->second.first->m_Address;
-					addr->transportStyle = i2p::data::RouterInfo::eTransportSSU2;
-					addr->host = ep.address (); addr->port = ep.port ();
-					addr->s = addr1->s; addr->i = addr1->i; addr->caps = addr1->caps;
-					it->second.first->m_Address = addr;
 					it->second.first->m_State = eSSU2SessionStateUnknown;
 					it->second.first->Connect ();
 				}	
@@ -1767,12 +1760,15 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address)
 	{
 		if (router && address)
+		{
+			if (address->UsesIntroducer ()) return false; // not implemented yet
 			GetService ().post (
 				[this, router, address]()
 			    {
 					auto session = std::make_shared<SSU2Session> (*this, router, address);
 					session->Connect ();
-				});               
+				});   
+		}	
 		else
 			return false;
 		return true;

@@ -561,7 +561,7 @@ namespace transport
 						}
 						peer.numAttempts++;
 					}
-					if (address && address->published)
+					if (address && address->IsReachableSSU ())
 					{
 						if (m_SSU2Server->CreateSession (peer.router, address))
 							return true;

@@ -137,7 +137,7 @@ namespace data
 
 				bool operator==(const Address& other) const
 				{
-					return transportStyle == other.transportStyle && IsNTCP2 () == other.IsNTCP2 () &&
+					return transportStyle == other.transportStyle &&
 						host == other.host && port == other.port;
 				}
 
@@ -149,7 +149,7 @@ namespace data
 				bool IsNTCP2 () const { return  transportStyle == eTransportNTCP; };
 				bool IsSSU2 () const { return  transportStyle == eTransportSSU2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
-				bool IsReachableSSU () const { return (bool)ssu && (published || !ssu->introducers.empty ()); };
+				bool IsReachableSSU () const { return (bool)ssu && (published || UsesIntroducer ()); };
 				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
 
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
