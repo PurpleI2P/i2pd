@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -146,7 +146,10 @@ namespace data
 		m_PublicKey.resize (len);
 		memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), len);
 		m_SigType = identity->GetSigningKeyType ();
-		m_BlindedSigType = m_SigType;
+		if (m_SigType == i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+			m_BlindedSigType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519; // 7 -> 11	
+		else		
+			m_BlindedSigType = m_SigType;
 	}
 
 	BlindedPublicKey::BlindedPublicKey (const std::string& b33):
