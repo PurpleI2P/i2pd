@@ -1125,12 +1125,28 @@ namespace transport
 			else
 			{
 				// we are Alice, message from Bob
-				// update Charlie's endpoint and connect	
-				if (ExtractEndpoint (buf + 12, buf[11], it->second.first->m_RemoteEndpoint))
+				if (!buf[1]) // status code accepted?
 				{		
-					it->second.first->m_State = eSSU2SessionStateUnknown;
-					it->second.first->Connect ();
-				}	
+					// verify signature
+					uint8_t csz = buf[11];	
+					SignedData s;
+					s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
+					s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+					s.Insert (buf + 2, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint	
+					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
+					{		
+						// update Charlie's endpoint and connect	
+						if (ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
+						{		
+							it->second.first->m_State = eSSU2SessionStateUnknown;
+							it->second.first->Connect ();
+						}	
+					}	
+					else
+						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
+				}
+				else
+					LogPrint (eLogWarning, "SSU2: RelayResponse status code=", (int)buf[1]);
 			}	
 			m_RelaySessions.erase (it);
 		}
@@ -1696,6 +1712,7 @@ namespace transport
 		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		if (len < 24) return;
 		uint64_t connID;
 		memcpy (&connID, buf, 8);
 		connID ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
