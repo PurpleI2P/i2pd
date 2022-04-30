@@ -94,6 +94,10 @@ popd
 %install
 pushd build
 
+%if 0%{?rhel} == 9
+pushd redhat-linux-build
+%endif
+
 %if 0%{?fedora} >= 35
 %if 0%{?fedora} < 37
 pushd redhat-linux-build
