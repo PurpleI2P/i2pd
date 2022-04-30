@@ -54,6 +54,10 @@ cd build
 %endif
 %endif
 
+%if 0%{?rhel} == 9
+pushd redhat-linux-build
+%endif
+
 %if 0%{?fedora} >= 35
 %if 0%{?fedora} < 37
 pushd redhat-linux-build
@@ -69,6 +73,10 @@ pushd build
 %endif
 
 make %{?_smp_mflags}
+
+%if 0%{?rhel} == 9
+popd
+%endif
 
 %if 0%{?fedora} >= 33
 %if 0%{?fedora} < 37
