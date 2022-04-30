@@ -71,7 +71,9 @@ pushd build
 make %{?_smp_mflags}
 
 %if 0%{?fedora} >= 33
+%if 0%{?fedora} < 37
 popd
+%endif
 %endif
 
 %if 0%{?mageia} > 7
