@@ -44,9 +44,6 @@ namespace tunnel
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
 
-	/** function for visiting a hops stored in a tunnel */
-	typedef std::function<void(std::shared_ptr<const i2p::data::IdentityEx>)> TunnelHopVisitor;
-
 	enum TunnelState
 	{
 		eTunnelStatePending,
@@ -69,6 +66,9 @@ namespace tunnel
 		};
 
 		public:
+
+			/** function for visiting a hops stored in a tunnel */
+			typedef std::function<void(std::shared_ptr<const i2p::data::IdentityEx>)> TunnelHopVisitor;
 
 			Tunnel (std::shared_ptr<const TunnelConfig> config);
 			~Tunnel ();
