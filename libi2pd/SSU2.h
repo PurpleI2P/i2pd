@@ -10,6 +10,7 @@
 #define SSU2_H__
 
 #include <memory>
+#include <functional>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -130,15 +131,18 @@ namespace transport
 			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 			size_t payloadSize;
 		};	
+
+		typedef std::function<void ()> OnEstablished;
 		
 		public:
 
 			SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
-				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr, bool peerTest = false);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr);
 			~SSU2Session ();
 
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
+			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; };
 			
 			void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
@@ -151,6 +155,8 @@ namespace transport
 			void Resend (uint64_t ts);
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
+			SSU2SessionState GetState () const { return m_State; };
+			void SetState (SSU2SessionState state) { m_State = state; };
 			
 			void ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
@@ -222,7 +228,8 @@ namespace transport
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
 			size_t m_WindowSize;
-			uint32_t m_RelayTag;
+			uint32_t m_RelayTag; // between Bob and Charlie
+			OnEstablished m_OnEstablished; // callback from Established
 	};
 
 	class SSU2Server:  private i2p::util::RunnableServiceWithWork
@@ -290,6 +297,9 @@ namespace transport
 
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
+
+			void ConnectThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router,
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
 			
 		private:
 

@@ -28,7 +28,7 @@ namespace transport
 	}	
 	
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool peerTest):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0),
 		m_State (eSSU2SessionStateUnknown), m_SendPacketNum (0), m_ReceivePacketNum (0),
@@ -52,6 +52,7 @@ namespace transport
 	
 	SSU2Session::~SSU2Session ()
 	{	
+		Terminate ();
 	}
 
 	void SSU2Session::Connect ()
@@ -135,6 +136,7 @@ namespace transport
 		m_SessionConfirmedFragment1.reset (nullptr);
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
+		if (m_OnEstablished) m_OnEstablished ();
 	}	
 
 	void SSU2Session::Done ()
@@ -1810,19 +1812,74 @@ namespace transport
 	{
 		if (router && address)
 		{
-			if (address->UsesIntroducer ()) return false; // not implemented yet
-			GetService ().post (
-				[this, router, address]()
-			    {
-					auto session = std::make_shared<SSU2Session> (*this, router, address);
-					session->Connect ();
-				});   
+			if (address->UsesIntroducer ()) 
+				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, router, address));
+			else	
+				GetService ().post (
+					[this, router, address]()
+					{
+						auto session = std::make_shared<SSU2Session> (*this, router, address);
+						session->Connect ();
+					});   
 		}	
 		else
 			return false;
 		return true;
 	}	
 
+	void SSU2Server::ConnectThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router,
+		std::shared_ptr<const i2p::data::RouterInfo::Address> address)
+	{
+		auto session = std::make_shared<SSU2Session> (*this, router, address);
+		session->SetState (eSSU2SessionStateIntroduced);
+		// try to find existing session first
+		for (auto& it: address->ssu->introducers)
+		{
+			auto it1 = m_SessionsByRouterHash.find (it.iKey);
+			if (it1 != m_SessionsByRouterHash.end ())
+			{
+				it1->second->Introduce (session, it.iTag);
+				return;
+			}	
+		}	
+		// we have to start a new session to an introducer
+		std::shared_ptr<i2p::data::RouterInfo> r;
+		uint32_t relayTag = 0;
+		for (auto& it: address->ssu->introducers)
+		{
+			r = i2p::data::netdb.FindRouter (it.iKey);
+			if (r)
+			{
+				relayTag = it.iTag;
+				if (relayTag) break;
+			}	
+		}	
+		if (r)
+		{
+			if (relayTag)
+			{	
+				// introducer and tag  found connect to it through SSU2
+				auto addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+				if (addr)
+				{
+					auto s = std::make_shared<SSU2Session> (*this, r, addr);
+					s->SetOnEstablished (
+						[session, s, relayTag]()
+						{
+							s->Introduce (session, relayTag);
+						});	
+					s->Connect ();
+				}	
+			}	
+		}
+		else
+		{
+			// introducers not found, try to request them
+			for (auto& it: address->ssu->introducers)
+				i2p::data::netdb.RequestDestination (it.iKey);
+		}	
+	}	
+		
 	void SSU2Server::ScheduleTermination ()
 	{
 		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU2_TERMINATION_CHECK_TIMEOUT));
