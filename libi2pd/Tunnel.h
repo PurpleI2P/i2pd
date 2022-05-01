@@ -44,6 +44,9 @@ namespace tunnel
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
 
+	/** function for visiting a hops stored in a tunnel */
+	typedef std::function<void(std::shared_ptr<const i2p::data::IdentityEx>)> TunnelHopVisitor;
+
 	enum TunnelState
 	{
 		eTunnelStatePending,
@@ -91,8 +94,6 @@ namespace tunnel
 
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 
-			virtual void Print (std::stringstream&) const {};
-
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out);
@@ -107,9 +108,8 @@ namespace tunnel
 			bool LatencyIsKnown() const { return m_Latency > 0; }
 			bool IsSlow () const { return LatencyIsKnown() && (int)m_Latency > HIGH_LATENCY_PER_HOP*GetNumHops (); }
 
-		protected:
-
-			void PrintHops (std::stringstream& s) const;
+			/** visit all hops we currently store */
+			void VisitTunnelHops(TunnelHopVisitor v);
 
 		private:
 
@@ -134,7 +134,6 @@ namespace tunnel
 			virtual void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
 			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; };
 			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
-			void Print (std::stringstream& s) const;
 
 			// implements TunnelBase
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
@@ -155,7 +154,6 @@ namespace tunnel
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg);
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
-			void Print (std::stringstream& s) const;
 			bool IsInbound() const { return true; }
 
 			// override TunnelBase
@@ -172,7 +170,6 @@ namespace tunnel
 
 			ZeroHopsInboundTunnel ();
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void Print (std::stringstream& s) const;
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 
 		private:
@@ -186,7 +183,6 @@ namespace tunnel
 
 			ZeroHopsOutboundTunnel ();
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs);
-			void Print (std::stringstream& s) const;
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 
 		private:

@@ -182,7 +182,7 @@ namespace http {
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n";
+			"  <title>Purple I2P Webconsole</title>\r\n";
 		GetStyles(s);
 		s <<
 			"</head>\r\n"
@@ -196,8 +196,10 @@ namespace http {
 		if (i2p::context.IsFloodfill ())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_LEASESETS << "\">" << tr("LeaseSets") << "</a><br>\r\n";
 		s <<
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a><br>\r\n"
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit Tunnels") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TUNNELS << "\">" << tr("Tunnels") << "</a><br>\r\n";
+		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels())
+			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit Tunnels") << "</a><br>\r\n";
+		s <<
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a><br>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
@@ -295,10 +297,10 @@ namespace http {
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
 		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
-		if((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
+		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
 			s << "<label for=\"slide-info\">" << tr("Hidden content. Press on text to see.") << "</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
 		}
-		if(includeHiddenContent) {
+		if (includeHiddenContent) {
 			s << "<b>" << tr("Router Ident") << ":</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
 				s << "<b>" << tr("Router Family") << ":</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
@@ -318,31 +320,31 @@ namespace http {
 					break;
 					case i2p::data::RouterInfo::eTransportSSU2:
 						s << "SSU2";
-					break;	
+					break;
 					default:
 						s << tr("Unknown");
 				}
 				if (address->IsV6 ()) 
-				{	
+				{
 					if (address->IsV4 ()) s << "v4"; 
 					s << "v6";
-				}	
+				}
 				s << "</td>\r\n";
 				if (address->published)
 					s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
 				else
-				{	
+				{
 					s << "<td>" << tr("supported");
 					if (address->port)
-						s << " :" << address->port;	
+						s << " :" << address->port;
 					s << "</td>\r\n";
-				}		
+				}
 				s << "</tr>\r\n";
 			}
 			s << "</tbody></table>\r\n";
 		}
 		s << "</div>\r\n</div>\r\n";
-		if(outputFormat == OutputFormatEnum::forQtUi) {
+		if (outputFormat == OutputFormatEnum::forQtUi) {
 			s << "<br>";
 		}
 		s << "<b>" << tr("Routers") << ":</b> " << i2p::data::netdb.GetNumRouters () << " ";
@@ -356,7 +358,7 @@ namespace http {
 		s << "<b>" << tr("Client Tunnels") << ":</b> " << std::to_string(clientTunnelCount) << " ";
 		s << "<b>" << tr("Transit Tunnels") << ":</b> " << std::to_string(transitTunnelCount) << "<br>\r\n<br>\r\n";
 
-		if(outputFormat==OutputFormatEnum::forWebConsole) {
+		if (outputFormat==OutputFormatEnum::forWebConsole) {
 			bool httpproxy  = i2p::client::context.GetHttpProxy ()         ? true : false;
 			bool socksproxy = i2p::client::context.GetSocksProxy ()        ? true : false;
 			bool bob        = i2p::client::context.GetBOBCommandChannel () ? true : false;
@@ -417,7 +419,7 @@ namespace http {
 			s << "</div>\r\n</div>\r\n";
 		}
 
-		if(dest->IsPublic() && token)
+		if (dest->IsPublic() && token)
 		{
 			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 			auto base32 = dest->GetIdentHash ().ToBase32 ();
@@ -431,7 +433,7 @@ namespace http {
 			     "</form>\r\n<small>" << tr("<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.") << "</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		}
 
-		if(dest->GetNumRemoteLeaseSets())
+		if (dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>" << tr("LeaseSets") << ":</b> <i>" << dest->GetNumRemoteLeaseSets ()
 			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>"<< tr("Address") << "</th><th>" << tr("Type") << "</th><th>" << tr("EncType") << "</th></thead><tbody class=\"tableitem\">";
@@ -447,8 +449,18 @@ namespace http {
 			s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetInboundTunnels ()) {
 				s << "<div class=\"listitem\">";
-				it->Print(s);
-				if(it->LatencyIsKnown())
+				// for each tunnel hop if not zero-hop
+				if (it->GetNumHops ())
+				{
+					it->VisitTunnelHops(
+						[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
+						{
+							s << "&#8658; " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " ";
+						}
+					);
+				}
+				s << "&#8658; " << it->GetTunnelID () << ":me";
+				if (it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</div>\r\n";
@@ -457,8 +469,18 @@ namespace http {
 			s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto & it : pool->GetOutboundTunnels ()) {
 				s << "<div class=\"listitem\">";
-				it->Print(s);
-				if(it->LatencyIsKnown())
+				s << it->GetTunnelID () << ":me &#8658;";
+				// for each tunnel hop if not zero-hop
+				if (it->GetNumHops ())
+				{
+					it->VisitTunnelHops(
+						[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
+						{
+							s << " " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " &#8658;";
+						}
+					);
+				}
+				if (it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</div>\r\n";
@@ -631,8 +653,17 @@ namespace http {
 		s << "<b>" << tr("Inbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
 			s << "<div class=\"listitem\">";
-			it->Print(s);
-			if(it->LatencyIsKnown())
+			if (it->GetNumHops ())
+			{
+				it->VisitTunnelHops(
+					[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
+					{
+						s << "&#8658; " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " ";
+					}
+				);
+			}
+			s << "&#8658; " << it->GetTunnelID () << ":me";
+			if (it->LatencyIsKnown())
 			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</div>\r\n";
@@ -641,8 +672,18 @@ namespace http {
 		s << "<b>" << tr("Outbound tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
 			s << "<div class=\"listitem\">";
-			it->Print(s);
-			if(it->LatencyIsKnown())
+			s << it->GetTunnelID () << ":me &#8658;";
+			// for each tunnel hop if not zero-hop
+			if (it->GetNumHops ())
+			{
+				it->VisitTunnelHops(
+					[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
+					{
+						s << " " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " &#8658;";
+					}
+				);
+			}
+			if (it->LatencyIsKnown())
 			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</div>\r\n";
@@ -714,7 +755,7 @@ namespace http {
 
 	void ShowTransitTunnels (std::stringstream& s)
 	{
-		if(i2p::tunnel::tunnels.CountTransitTunnels())
+		if (i2p::tunnel::tunnels.CountTransitTunnels())
 		{
 			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
@@ -848,7 +889,7 @@ namespace http {
 			return;
 		}
 
-		if(sam->GetSessions ().size ())
+		if (sam->GetSessions ().size ())
 		{
 			s << "<b>" << tr("SAM sessions") << ":</b><br>\r\n<div class=\"list\">\r\n";
 			for (auto& it: sam->GetSessions ())
@@ -1065,6 +1106,7 @@ namespace http {
 			SendReply(res, content);
 			return;
 		}
+
 		bool strictheaders;
 		i2p::config::GetOption("http.strictheaders", strictheaders);
 		if (strictheaders)
@@ -1087,6 +1129,7 @@ namespace http {
 				return;
 			}
 		}
+
 		// HTML head start
 		ShowPageHead (s);
 		if (req.uri.find("page=") != std::string::npos) {
@@ -1207,7 +1250,7 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
 		{
 			i2p::context.SetAcceptsTunnels (true);
-#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))  || defined(ANDROID_BINARY))
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			Daemon.gracefulShutdownInterval = 0;
 #elif defined(WIN32_APP)
 			i2p::win32::StopGracefulShutdown ();
@@ -1239,7 +1282,7 @@ namespace http {
 			{
 				if (dest)
 				{
-					if(dest->DeleteStream (streamID))
+					if (dest->DeleteStream (streamID))
 						s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Stream closed") << "<br>\r\n<br>\r\n";
 					else
 						s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Stream not found or already was closed") << "<br>\r\n<br>\r\n";
@@ -1445,7 +1488,7 @@ namespace http {
 			CreateConnection(newSocket);
 		else
 		{
-			if(newSocket) newSocket->close();
+			if (newSocket) newSocket->close();
 			LogPrint(eLogError, "HTTP Server: Error handling accept: ", ecode.message());
 		}
 		Accept ();

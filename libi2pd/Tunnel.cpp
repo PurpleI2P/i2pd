@@ -235,15 +235,11 @@ namespace tunnel
 		m_State = state;
 	}
 
-
-	void Tunnel::PrintHops (std::stringstream& s) const
+	void Tunnel::VisitTunnelHops(TunnelHopVisitor v)
 	{
-		// hops are in inverted order, we must print in direct order
+		// hops are in inverted order, we must return in direct order
 		for (auto it = m_Hops.rbegin (); it != m_Hops.rend (); it++)
-		{
-			s << " &#8658; ";
-			s << i2p::data::GetIdentHashAbbreviation ((*it).ident->GetIdentHash ());
-		}
+			v((*it).ident);
 	}
 
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg)
@@ -252,12 +248,6 @@ namespace tunnel
 		EncryptTunnelMsg (msg, msg);
 		msg->from = shared_from_this ();
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
-	}
-
-	void InboundTunnel::Print (std::stringstream& s) const
-	{
-		PrintHops (s);
-		s << " &#8658; " << GetTunnelID () << ":me";
 	}
 
 	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
@@ -274,11 +264,6 @@ namespace tunnel
 			msg->from = shared_from_this ();
 			HandleI2NPMessage (msg);
 		}
-	}
-
-	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
-	{
-		s << " &#8658; " << GetTunnelID () << ":me";
 	}
 
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
@@ -315,13 +300,6 @@ namespace tunnel
 		LogPrint (eLogError, "Tunnel: Incoming message for outbound tunnel ", GetTunnelID ());
 	}
 
-	void OutboundTunnel::Print (std::stringstream& s) const
-	{
-		s << GetTunnelID () << ":me";
-		PrintHops (s);
-		s << " &#8658; ";
-	}
-
 	ZeroHopsOutboundTunnel::ZeroHopsOutboundTunnel ():
 		OutboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
 		m_NumSentBytes (0)
@@ -349,11 +327,6 @@ namespace tunnel
 					LogPrint (eLogError, "Tunnel: Unknown delivery type ", (int)msg.deliveryType);
 			}
 		}
-	}
-
-	void ZeroHopsOutboundTunnel::Print (std::stringstream& s) const
-	{
-		s << GetTunnelID () << ":me &#8658; ";
 	}
 
 	Tunnels tunnels;
