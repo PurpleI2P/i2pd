@@ -52,7 +52,6 @@ namespace transport
 	
 	SSU2Session::~SSU2Session ()
 	{	
-		Terminate ();
 	}
 
 	void SSU2Session::Connect ()
@@ -260,7 +259,7 @@ namespace transport
 		SendQueue ();
 	}	
 		
-	void SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
+	bool SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
 	{
 		// we are Bob
 		m_SourceConnID = connID;
@@ -277,8 +276,12 @@ namespace transport
 				ProcessTokenRequest (header, buf, len);
 			break;	
 			default:
+			{	
 				LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
-		}	
+				return false;	
+			}		
+		}
+		return true;
 	}	
 		
 	void SSU2Session::SendSessionRequest (uint64_t token)
