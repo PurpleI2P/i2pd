@@ -102,6 +102,9 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		// send
 		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
+		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+		session->m_DestConnID = ~session->m_SourceConnID;
+		m_Server.AddSession (session);
 		SendData (payload, payloadSize);
 		
 		return true;
@@ -388,7 +391,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
+		payloadSize += CreateAddressBlock (payload + payloadSize, 64 - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
 		{
 			payload[payloadSize] = eSSU2BlkRelayTag;
@@ -708,7 +711,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (m_RemoteEndpoint, payload + payloadSize, 64 - payloadSize);
+		payloadSize += CreateAddressBlock (payload + payloadSize, 64 - payloadSize, m_RemoteEndpoint);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
 		// encrypt
 		uint8_t nonce[12];
@@ -758,6 +761,84 @@ namespace transport
 		return true;
 	}	
 
+	void SSU2Session::SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey)
+	{
+		// we are Charlie
+		Header header;
+		uint8_t h[32], payload[SSU2_MAX_PAYLOAD_SIZE];
+		// fill packet
+		header.h.connID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
+		RAND_bytes (header.buf + 8, 4); // random packet num
+		header.h.type = eSSU2HolePunch;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID 
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		uint64_t c = !header.h.connID;
+		memcpy (h + 16, &c, 8); // source id
+		uint64_t token = m_Server.GetIncomingToken (ep);
+		memcpy (h + 24, &token, 8); // token
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, ep);
+		payloadSize += CreateRelayResponseBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, nonce);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+		// encrypt
+		uint8_t n[12];
+		CreateNonce (be32toh (header.h.packetNum), n);
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, introKey, n, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (introKey, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (introKey, payload + (payloadSize - 12));
+		memset (n, 0, 12);
+		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
+		// send
+		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+	}	
+		
+	bool SSU2Session::ProcessHolePunch (uint8_t * buf, size_t len)
+	{
+		// we are Alice
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (header.h.type != eSSU2HolePunch) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+			return false;
+		}	
+		uint8_t nonce[12] = {0};
+		uint64_t headerX[2]; // sourceConnID, token
+		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		m_DestConnID = headerX[0];
+		// decrypt and handle payload
+		uint8_t * payload = buf + 32;
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &headerX, 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32, 
+			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: HolePunch AEAD verification failed ");
+			return false;
+		}
+		m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
+		HandlePayload (payload, len - 48);
+		// connect to Charlie
+		if (m_State == eSSU2SessionStateIntroduced)
+		{	
+			m_State = eSSU2SessionStateUnknown;
+			Connect ();
+		}
+			
+		return true;
+	}
+		
 	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len)
 	{
 		if (len < 8)
@@ -1116,11 +1197,20 @@ namespace transport
 		// send HolePunch
 		boost::asio::ip::udp::endpoint ep;
 		if (ExtractEndpoint (buf + 47, asz, ep))
-			m_Server.SendHolePunch (ep);
+		{
+			auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
+			if (r)
+			{	
+				auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+				if (addr)
+					SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
+			}	
+		}	
 	}	
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
 	{
+		if (m_State == eSSU2SessionStateIntroduced) return; // HolePunch from Charlie, TODO: verify address and signature
 		auto it = m_RelaySessions.find (bufbe32toh (buf + 2)); // nonce
 		if (it != m_RelaySessions.end ())
 		{
@@ -1141,7 +1231,8 @@ namespace transport
 					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
 					{		
 						// update Charlie's endpoint and connect	
-						if (ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
+						if (it->second.first->m_State == eSSU2SessionStateIntroduced &&
+						    ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))    
 						{		
 							it->second.first->m_State = eSSU2SessionStateUnknown;
 							it->second.first->Connect ();
@@ -1207,7 +1298,7 @@ namespace transport
 		return size;
 	}	
 		
-	size_t SSU2Session::CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len)
+	size_t SSU2Session::CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep)
 	{
 		if (len < 9) return 0;
 		buf[0] = eSSU2BlkAddress;
@@ -1734,6 +1825,11 @@ namespace transport
 		{
 			if (m_LastSession->IsEstablished ())
 				m_LastSession->ProcessData (buf, len);
+			else if (m_LastSession->GetState () == eSSU2SessionStateIntroduced)
+			{	
+				m_LastSession->SetRemoteEndpoint (senderEndpoint);
+				m_LastSession->ProcessHolePunch (buf, len);
+			}	
 			else	
 				m_LastSession->ProcessSessionConfirmed (buf, len);
 		}	
@@ -1796,19 +1892,7 @@ namespace transport
 			i2p::transport::transports.UpdateSentBytes (headerLen + headerXLen + payloadLen);
 		else	
 			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
-	}	
-
-	void SSU2Server::SendHolePunch (const boost::asio::ip::udp::endpoint& to)
-	{
-		boost::system::error_code ec;
-		if (to.address ().is_v6 ())
-			m_SocketV6.send_to (boost::asio::buffer ((uint8_t *)nullptr, 0), to, 0, ec);
-		else	
-			m_SocketV4.send_to (boost::asio::buffer ((uint8_t *)nullptr, 0), to, 0, ec);
-
-		if (ec)
-			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
-	}	
+	}
 		
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address)

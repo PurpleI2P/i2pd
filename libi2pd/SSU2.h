@@ -44,7 +44,8 @@ namespace transport
 		eSSU2SessionConfirmed = 2,
 		eSSU2Data = 6,
 		eSSU2Retry = 9,
-		eSSU2TokenRequest = 10
+		eSSU2TokenRequest = 10,
+		eSSU2HolePunch = 11
 	};
 
 	enum SSU2BlockType
@@ -162,6 +163,7 @@ namespace transport
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
+			bool ProcessHolePunch (uint8_t * buf, size_t len);
 			void ProcessData (uint8_t * buf, size_t len);
 			
 		private:
@@ -183,6 +185,7 @@ namespace transport
 			uint32_t SendData (const uint8_t * buf, size_t len); // returns packet num
 			void SendQuickAck ();
 			void SendTermination ();
+			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey);
 			
 			void HandlePayload (const uint8_t * buf, size_t len); 
 			void HandleAck (const uint8_t * buf, size_t len);
@@ -199,7 +202,7 @@ namespace transport
 			void HandleRelayIntro (const uint8_t * buf, size_t len);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			
-			size_t CreateAddressBlock (const boost::asio::ip::udp::endpoint& ep, uint8_t * buf, size_t len);
+			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreateI2NPBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage>&& msg);
@@ -273,7 +276,6 @@ namespace transport
 				const boost::asio::ip::udp::endpoint& to);
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen, 
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
-			void SendHolePunch (const boost::asio::ip::udp::endpoint& to);
 			
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
