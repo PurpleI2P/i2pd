@@ -473,25 +473,12 @@ namespace transport
 		memset (header.h.flags, 0, 3);
 		header.h.flags[0] = 1; // frag, total fragments always 1
 		// payload
-		uint8_t  payload[SSU2_MTU];
-		size_t payloadSize = i2p::context.GetRouterInfo ().GetBufferLen ();
-		payload[0] = eSSU2BlkRouterInfo;
-		if (payloadSize < 1024)
-		{	
-			memcpy (payload + 5, i2p::context.GetRouterInfo ().GetBuffer (), payloadSize);
-			payload[3] = 0; // flag
-		}	
-		else	
-		{	
-			i2p::data::GzipDeflator deflator;
-			payloadSize = deflator.Deflate (i2p::context.GetRouterInfo ().GetBuffer (), 
-				i2p::context.GetRouterInfo ().GetBufferLen (), payload + 5, SSU2_MTU -5);
-			payload[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
-		}	
-		htobe16buf (payload + 1, payloadSize + 2);
-		payload[4] = 1; // frag
-		payloadSize += 5;
-		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
+		const size_t maxPayloadSize = SSU2_MAX_PAYLOAD_SIZE - 48; // part 2
+		uint8_t payload[maxPayloadSize + 16];
+		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+		// TODO: check is RouterInfo doesn't fit and split by two fragments
+		if (payloadSize < maxPayloadSize)
+			payloadSize += CreatePaddingBlock (payload + payloadSize, maxPayloadSize  - payloadSize);
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header) 
 		// Encrypt part 1
@@ -1160,9 +1147,14 @@ namespace transport
 			std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()) ); 
 		
 		// send relay intro to Charlie
-		uint8_t payload[SSU2_MTU];
-		size_t payloadSize = CreateRelayIntroBlock (payload, SSU2_MTU, buf + 1, len -1);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
+		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
+		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+		size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
+		if (!payloadSize && r)
+			SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+		payloadSize += CreateRelayIntroBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, buf + 1, len -1);
+		if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
+			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		session->SendData (payload, payloadSize);
 	}	
 
@@ -1189,9 +1181,9 @@ namespace transport
 		}	
 
 		// send relay response to Bob
-		uint8_t payload[SSU2_MTU];
-		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MTU, bufbe32toh (buf + 33));
-		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MTU - payloadSize);
+		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, bufbe32toh (buf + 33));
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		SendData (payload, payloadSize);
 
 		// send HolePunch
@@ -1308,6 +1300,28 @@ namespace transport
 		return size + 3;	
 	}	
 
+	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r)
+	{
+		if (!r || len < 5) return 0;
+		buf[0] = eSSU2BlkRouterInfo;
+		size_t size = r->GetBufferLen ();
+		if (size + 5 < len)
+		{	
+			memcpy (buf + 5, r->GetBuffer (), size);
+			buf[3] = 0; // flag
+		}	
+		else	
+		{	
+			i2p::data::GzipDeflator deflator;
+			size = deflator.Deflate (r->GetBuffer (), r->GetBufferLen (), buf + 5, len - 5);
+			if (!size) return 0; // doesn't fit
+			buf[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
+		}	
+		htobe16buf (buf + 1, size + 2); // size
+		buf[4] = 1; // frag
+		return size + 5;
+	}	
+		
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;
