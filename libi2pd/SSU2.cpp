@@ -1949,7 +1949,7 @@ namespace transport
 		for (auto& it: address->ssu->introducers)
 		{
 			r = i2p::data::netdb.FindRouter (it.iKey);
-			if (r)
+			if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
 			{
 				relayTag = it.iTag;
 				if (relayTag) break;
