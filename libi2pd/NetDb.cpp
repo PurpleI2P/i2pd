@@ -109,7 +109,7 @@ namespace data
 
 		uint64_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
-		int16_t profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
+		int16_t profilesCleanupVariance = 0;
 
 		while (m_IsRunning)
 		{
@@ -175,10 +175,11 @@ namespace data
 					lastDestinationCleanup = ts;
 				}
 
-				if (ts - lastProfilesCleanup >= (i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance))
+				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance))
 				{
 					DeleteObsoleteProfiles ();
 					lastProfilesCleanup = ts;
+					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
 				}
 
 				// publish
