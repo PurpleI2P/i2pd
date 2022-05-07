@@ -107,7 +107,10 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint64_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
+
 		while (m_IsRunning)
 		{
 			try
@@ -155,6 +158,7 @@ namespace data
 					m_Requests.ManageRequests ();
 					lastManageRequest = ts;
 				}
+
 				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
 				{
 					if (lastSave)
@@ -164,10 +168,17 @@ namespace data
 					}
 					lastSave = ts;
 				}
+
 				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				{
 					i2p::context.CleanupDestination ();
 					lastDestinationCleanup = ts;
+				}
+
+				if (ts - lastProfilesCleanup >= (i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance))
+				{
+					DeleteObsoleteProfiles ();
+					lastProfilesCleanup = ts;
 				}
 
 				// publish
@@ -195,6 +206,7 @@ namespace data
 						lastPublish = ts;
 					}
 				}
+
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
