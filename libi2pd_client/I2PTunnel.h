@@ -230,25 +230,27 @@ namespace client
 	{
 		public:
 
-			I2PUDPServerTunnel(const std::string & name,
+			I2PUDPServerTunnel (const std::string & name,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination,
 				boost::asio::ip::address localAddress,
 				boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip);
-			~I2PUDPServerTunnel();
+			~I2PUDPServerTunnel ();
+
 			/** expire stale udp conversations */
-			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
-			void Start();
-			const char * GetName() const { return m_Name.c_str(); }
-			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
+			void ExpireStale (const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
+			void Start ();
+			void Stop ();
+			const char * GetName () const { return m_Name.c_str(); }
+			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
 
-			void SetUniqueLocal(bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
+			void SetUniqueLocal (bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
 
 		private:
 
-			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleRecvFromI2P (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+			UDPSessionPtr ObtainUDPSession (const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
 
@@ -260,6 +262,7 @@ namespace client
 			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			UDPSessionPtr m_LastSession;
+			bool m_Gzip;
 
 		public:
 
@@ -270,27 +273,36 @@ namespace client
 	{
 		public:
 
-			I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest,
+			I2PUDPClientTunnel (const std::string & name, const std::string &remoteDest,
 				boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 				uint16_t remotePort, bool gzip);
-			~I2PUDPClientTunnel();
-			void Start();
-			const char * GetName() const { return m_Name.c_str(); }
-			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
+			~I2PUDPClientTunnel ();
 
-			bool IsLocalDestination(const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
+			void Start ();
+			void Stop ();
+			const char * GetName () const { return m_Name.c_str(); }
+			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
+
+			bool IsLocalDestination (const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
 
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
-			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
+			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest)
+			{
+				if (m_LocalDest) m_LocalDest->Release ();
+				if (dest) dest->Acquire ();
+				m_LocalDest = dest;
+			}
+
+			void ExpireStale (const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 
 		private:
 
 			typedef std::pair<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
-			void RecvFromLocal();
-			void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
-			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			void HandleRecvFromI2PRaw(uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			void TryResolving();
+			void RecvFromLocal ();
+			void HandleRecvFromLocal (const boost::system::error_code & e, std::size_t transferred);
+			void HandleRecvFromI2P (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void TryResolving ();
 
 		private:
 
@@ -302,11 +314,12 @@ namespace client
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
 			i2p::data::IdentHash * m_RemoteIdent;
 			std::thread * m_ResolveThread;
-			boost::asio::ip::udp::socket m_LocalSocket;
+			std::unique_ptr<boost::asio::ip::udp::socket> m_LocalSocket;
 			boost::asio::ip::udp::endpoint m_RecvEndpoint;
 			uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
 			uint16_t RemotePort, m_LastPort;
 			bool m_cancel_resolve;
+			bool m_Gzip;
 			std::shared_ptr<UDPConvo> m_LastSession;
 
 		public:

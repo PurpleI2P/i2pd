@@ -608,21 +608,29 @@ namespace client
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
 						// udp client
 						// TODO: hostnames
-						boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
+						boost::asio::ip::udp::endpoint end (boost::asio::ip::address::from_string(address), port);
 						if (!localDestination)
 							localDestination = m_SharedLocalDestination;
 
 						bool gzip = section.second.get (I2P_CLIENT_TUNNEL_GZIP, true);
-						auto clientTunnel = std::make_shared<I2PUDPClientTunnel>(name, dest, end, localDestination, destinationPort, gzip);
+						auto clientTunnel = std::make_shared<I2PUDPClientTunnel> (name, dest, end, localDestination, destinationPort, gzip);
 
-						auto ins = m_ClientForwards.insert(std::make_pair(end, clientTunnel));
+						auto ins = m_ClientForwards.insert (std::make_pair (end, clientTunnel));
 						if (ins.second)
 						{
-							clientTunnel->Start();
+							clientTunnel->Start ();
 							numClientTunnels++;
 						}
 						else
 						{
+							// TODO: update
+							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
+							{
+								LogPrint (eLogInfo, "Clients: I2P UDP client tunnel destination updated");
+								ins.first->second->Stop ();
+								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
+								ins.first->second->Start ();
+							}
 							ins.first->second->isUpdated = true;
 							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
 						}
@@ -976,11 +984,11 @@ namespace client
 			}
 		}
 
-		/* // TODO: Write correct UDP tunnels stop
+		// TODO: Write correct UDP tunnels stop
 		for (auto it = m_ClientForwards.begin (); it != m_ClientForwards.end ();)
 		{
 			if(clean && !it->second->isUpdated) {
-				it->second = nullptr;
+				it->second->Stop ();
 				it = m_ClientForwards.erase(it);
 			} else {
 				it->second->isUpdated = false;
@@ -991,13 +999,13 @@ namespace client
 		for (auto it = m_ServerForwards.begin (); it != m_ServerForwards.end ();)
 		{
 			if(clean && !it->second->isUpdated) {
-				it->second = nullptr;
+				it->second->Stop ();
 				it = m_ServerForwards.erase(it);
 			} else {
 				it->second->isUpdated = false;
 				it++;
 			}
-		} */
+		}
 	}
 }
 }
