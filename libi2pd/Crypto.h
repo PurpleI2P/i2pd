@@ -29,7 +29,9 @@
 #include "CPU.h"
 
 // recognize openssl version and features
-#if ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
+#if (defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER >= 0x3050200fL)) // LibreSSL 3.5.2 and above
+#   define LEGACY_OPENSSL 0
+#elif ((OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)) // 1.0.2 and below or LibreSSL
 #   define LEGACY_OPENSSL 1
 #   define X509_getm_notBefore X509_get_notBefore
 #   define X509_getm_notAfter X509_get_notAfter
