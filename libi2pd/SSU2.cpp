@@ -825,6 +825,38 @@ namespace transport
 			
 		return true;
 	}
+
+	bool SSU2Session::ProcessPeerTest (uint8_t * buf, size_t len)
+	{
+		// we are Alice or Charlie
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (header.h.type != eSSU2PeerTest) 
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type  ", (int)header.h.type);
+			return false;
+		}	
+		uint8_t nonce[12] = {0};
+		uint64_t headerX[2]; // sourceConnID, token
+		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		m_DestConnID = headerX[0];
+		// decrypt and handle payload
+		uint8_t * payload = buf + 32;
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &headerX, 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32, 
+			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest AEAD verification failed ");
+			return false;
+		}
+		HandlePayload (payload, len - 48);
+		return true;
+	}	
 		
 	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len)
 	{
@@ -1837,15 +1869,25 @@ namespace transport
 		}
 		if (m_LastSession)
 		{
-			if (m_LastSession->IsEstablished ())
-				m_LastSession->ProcessData (buf, len);
-			else if (m_LastSession->GetState () == eSSU2SessionStateIntroduced)
-			{	
-				m_LastSession->SetRemoteEndpoint (senderEndpoint);
-				m_LastSession->ProcessHolePunch (buf, len);
+			switch (m_LastSession->GetState ())
+			{
+				case eSSU2SessionStateEstablished:
+					m_LastSession->ProcessData (buf, len);
+				break;
+				case eSSU2SessionStateUnknown:
+					m_LastSession->ProcessSessionConfirmed (buf, len);
+				break;	
+				case eSSU2SessionStateIntroduced:
+					m_LastSession->SetRemoteEndpoint (senderEndpoint);
+					m_LastSession->ProcessHolePunch (buf, len);
+				break;
+				case eSSU2SessionStatePeerTest:
+					m_LastSession->SetRemoteEndpoint (senderEndpoint);
+					m_LastSession->ProcessPeerTest (buf, len);
+				break;	
+				default:
+					LogPrint (eLogWarning, "SSU2: Invalid session state ", (int)m_LastSession->GetState ());
 			}	
-			else	
-				m_LastSession->ProcessSessionConfirmed (buf, len);
 		}	
 		else 
 		{

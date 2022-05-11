@@ -43,6 +43,7 @@ namespace transport
 		eSSU2SessionCreated = 1,
 		eSSU2SessionConfirmed = 2,
 		eSSU2Data = 6,
+		eSSU2PeerTest = 7,
 		eSSU2Retry = 9,
 		eSSU2TokenRequest = 10,
 		eSSU2HolePunch = 11
@@ -78,6 +79,7 @@ namespace transport
 	{
 		eSSU2SessionStateUnknown,
 		eSSU2SessionStateIntroduced,
+		eSSU2SessionStatePeerTest,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed
@@ -164,6 +166,7 @@ namespace transport
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
 			bool ProcessHolePunch (uint8_t * buf, size_t len);
+			bool ProcessPeerTest (uint8_t * buf, size_t len);
 			void ProcessData (uint8_t * buf, size_t len);
 			
 		private:
