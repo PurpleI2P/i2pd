@@ -1285,7 +1285,8 @@ namespace stream
 		auto it = m_Streams.find (recvStreamID);
 		if (it == m_Streams.end ())
 			return false;
-		m_Owner->GetService ().post ([this, s = it->second]()
+		auto s = it->second;
+		m_Owner->GetService ().post ([this, s] ()
 			{    
 				s->Close (); // try to send FIN
 				s->Terminate (false);
