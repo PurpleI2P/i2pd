@@ -216,6 +216,7 @@ namespace transport
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce); // Charlie
+			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 						
 		private:
 

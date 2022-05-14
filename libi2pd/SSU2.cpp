@@ -1292,7 +1292,11 @@ namespace transport
 				auto it = m_PeerTests.find (nonce);
 				if (it != m_PeerTests.end () && it->second.first)
 				{
-					// TODO
+					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, buf + 3, buf + 35, len -35);
+					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
+						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+					it->second.first->SendData (payload, payloadSize);
 				}	
 				break;
 			}
@@ -1536,6 +1540,21 @@ namespace transport
 		htobe16buf (buf + 1, payloadSize); // size
 		return payloadSize + 3;
 	}	
+
+	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, 
+		const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen)
+	{
+		buf[0] = eSSU2BlkPeerTest;
+		size_t payloadSize = 3/* msg, code, flag */ + 32/* router hash */ + signedDataLen;
+		if (payloadSize + 3 > len) return 0;
+		htobe16buf (buf + 1, payloadSize); // size
+		buf[3] = msg; // msg
+		buf[4] = 0; // code, TODO:
+		buf[5] = 0; //flag
+		memcpy (buf + 6, routerHash, 32); // router hash
+		memcpy (buf + 38, signedData, signedDataLen);
+		return payloadSize + 3;
+	}
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
 	{
