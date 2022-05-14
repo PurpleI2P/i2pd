@@ -977,8 +977,12 @@ namespace transport
 					HandleRelayResponse (buf + offset, size);
 				break;	
 				case eSSU2BlkRelayIntro:
+					LogPrint (eLogDebug, "SSU2: RelayIntro");
+					HandleRelayIntro (buf + offset, size);
 				break;	
 				case eSSU2BlkPeerTest:
+					LogPrint (eLogDebug, "SSU2: PeerTest");
+					HandlePeerTest (buf + offset, size);
 				break;	
 				case eSSU2BlkNextNonce:
 				break;	
@@ -1272,6 +1276,37 @@ namespace transport
 		}
 		else
 			LogPrint (eLogWarning, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2)); 
+	}	
+
+	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
+	{
+		uint32_t nonce = bufbe32toh (buf + 37);
+		switch (buf[0]) // msg
+		{
+			case 1: // Bob for Alice
+			break;
+			case 2: // Charlie from Bob
+			break;
+			case 3: // Bob from Charlie 
+			{	
+				auto it = m_PeerTests.find (nonce);
+				if (it != m_PeerTests.end () && it->second.first)
+				{
+					// TODO
+				}	
+				break;
+			}
+			case 4: // Alice from Bob
+			break;	
+			case 5: // Alice from Chralie 1
+			break;
+			case 6: // Chralie from Alice
+			break;	
+			case 7: // Alice from Charlie 2
+			break;
+			default:
+				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
+		}	
 	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
@@ -1590,8 +1625,18 @@ namespace transport
 		{
 			if (ts > it->second.second + SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT)
 			{
-				LogPrint (eLogWarning, "SSU2: noce ", it->first, " was not responded in ", SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT, " seconds, deleted");
+				LogPrint (eLogWarning, "SSU2: Relay nonce ", it->first, " was not responded in ", SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT, " seconds, deleted");
 				it = m_RelaySessions.erase (it);
+			}
+			else
+				++it;
+		}	
+		for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
+		{
+			if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT)
+			{
+				LogPrint (eLogWarning, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds, deleted");
+				it = m_PeerTests.erase (it);
 			}
 			else
 				++it;
