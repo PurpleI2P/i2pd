@@ -1067,7 +1067,7 @@ namespace transport
 		if (it == m_SentPackets.end ()) return; // not found
 		auto it1 = it;
 		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) it1++;
-		if (it1 != m_SentPackets.end ()) it1--;
+		if (it1 != m_SentPackets.end () && it1 != m_SentPackets.begin ()) it1--;
 		m_SentPackets.erase (it, it1);
 	}	
 
