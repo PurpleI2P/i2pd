@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -704,7 +704,7 @@ namespace client
 			msg += operand;
 			*(const_cast<char *>(value)) = '=';
 			msg += " set to ";
-			msg += value;
+			msg += value + 1;
 			SendReplyOK (msg.c_str ());
 		}
 		else

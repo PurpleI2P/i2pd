@@ -13,7 +13,6 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include "Crypto.h"
-#include "Config.h"
 #include "Log.h"
 #include "FS.h"
 #include "Timestamp.h"
@@ -36,7 +35,7 @@ namespace client
 		int outLen  = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int outQty  = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
 		int inVar   = DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE;
-		int outVar  = DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE;	
+		int outVar  = DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE;
 		int numTags = DEFAULT_TAGS_TO_SEND;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		try
@@ -94,9 +93,7 @@ namespace client
 				if (it != params->end ())
 				{
 					// oveeride isPublic
-					bool dontpublish = false;
-					i2p::config::GetOption (it->second, dontpublish);
-					m_IsPublic = !dontpublish;
+					m_IsPublic = (it->second != "true");
 				}
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
 				if (it != params->end ())
@@ -954,7 +951,7 @@ namespace client
 		for (auto& it: encryptionKeyTypes)
 		{
 			auto encryptionKey = new EncryptionKey (it);
-			if (isPublic)
+			if (IsPublic ())
 				PersistTemporaryKeys (encryptionKey, isSingleKey);
 			else
 				encryptionKey->GenerateKeys ();
@@ -969,7 +966,7 @@ namespace client
 				m_StandardEncryptionKey.reset (encryptionKey);
 		}
 
-		if (isPublic)
+		if (IsPublic ())
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 
 		try
@@ -982,7 +979,7 @@ namespace client
 					m_StreamingAckDelay = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
-					i2p::config::GetOption (it->second, m_IsStreamingAnswerPings);
+					m_IsStreamingAnswerPings = (it->second == "true");
 
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
