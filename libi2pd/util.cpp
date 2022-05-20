@@ -517,7 +517,7 @@ namespace net
 
 	bool IsLocalAddress (const boost::asio::ip::address& addr)
 	{
-		auto mtu =  // TODO: implement better
+		auto mtu = // TODO: implement better
 #ifdef _WIN32
 		GetMTUWindows(addr, 0);
 #else

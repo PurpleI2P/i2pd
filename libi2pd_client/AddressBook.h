@@ -116,7 +116,7 @@ namespace client
 		private:
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, std::shared_ptr<Address> >  m_Addresses;
+			std::map<std::string, std::shared_ptr<Address> > m_Addresses;
 			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
 			std::mutex m_LookupsMutex;
 			std::map<uint32_t, std::string> m_Lookups; // nonce -> address
@@ -162,7 +162,7 @@ namespace client
 		private:
 
 			std::shared_ptr<ClientDestination> m_LocalDestination;
-			std::map<std::string, i2p::data::IdentHash>  m_LocalAddresses;
+			std::map<std::string, i2p::data::IdentHash> m_LocalAddresses;
 	};
 }
 }

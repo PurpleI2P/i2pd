@@ -30,7 +30,7 @@ namespace tunnel
 		{
 			peers.push_back (r->GetRouterIdentity ());
 			if (r->GetVersion () < i2p::data::NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION ||
-			    r->GetRouterIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
+				r->GetRouterIdentity ()->GetCryptoKeyType () != i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 				isShort = false;
 		}
 	}
@@ -40,11 +40,11 @@ namespace tunnel
 		std::reverse (peers.begin (), peers.end ());
 	}
 
-	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, 
+	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
 		int numOutboundTunnels, int inboundVariance, int outboundVariance):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
-		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance), 
+		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance),
 		m_IsActive (true), m_CustomPeerSelector(nullptr)
 	{
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
@@ -54,11 +54,11 @@ namespace tunnel
 		if (m_InboundVariance < 0 && m_NumInboundHops + m_InboundVariance <= 0)
 			m_InboundVariance = m_NumInboundHops ? -m_NumInboundHops + 1 : 0;
 		if (m_OutboundVariance < 0 && m_NumOutboundHops + m_OutboundVariance <= 0)
-			m_OutboundVariance = m_NumOutboundHops ? -m_NumOutboundHops + 1 : 0;	
+			m_OutboundVariance = m_NumOutboundHops ? -m_NumOutboundHops + 1 : 0;
 		if (m_InboundVariance > 0 && m_NumInboundHops + m_InboundVariance > STANDARD_NUM_RECORDS)
 			m_InboundVariance = (m_NumInboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumInboundHops : 0;
 		if (m_OutboundVariance > 0 && m_NumOutboundHops + m_OutboundVariance > STANDARD_NUM_RECORDS)
-			m_OutboundVariance = (m_NumOutboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumOutboundHops : 0;	
+			m_OutboundVariance = (m_NumOutboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumOutboundHops : 0;
 		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
@@ -227,7 +227,7 @@ namespace tunnel
 			if (it->IsEstablished () && it != excluded && (compatible & it->GetFarEndTransports ()))
 			{
 				if (it->IsSlow () || (HasLatencyRequirement() && it->LatencyIsKnown() &&
-				    !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)))
+					!it->LatencyFitsRange(m_MinLatency, m_MaxLatency)))
 				{
 					i++; skipped = true;
 					continue;
@@ -423,7 +423,7 @@ namespace tunnel
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
 			int numHops = 0;
 			if (test.first) numHops += test.first->GetNumHops ();
-			if (test.second) numHops += test.second->GetNumHops ();	
+			if (test.second) numHops += test.second->GetNumHops ();
 			// restore from test failed state if any
 			if (test.first)
 			{
@@ -431,7 +431,7 @@ namespace tunnel
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
 				uint64_t latency = 0;
-				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops; 
+				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
 				test.first->AddLatencySample(latency);
 			}
@@ -441,7 +441,7 @@ namespace tunnel
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
 				uint64_t latency = 0;
-				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops; 
+				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
 				test.second->AddLatencySample(latency);
 			}
@@ -511,7 +511,7 @@ namespace tunnel
 				return false;
 			}
 			if ((i == numHops - 1) && (!hop->IsV4 () || // doesn't support ipv4
-				(inbound && !hop->IsReachable ())))  // IBGW is not reachable
+				(inbound && !hop->IsReachable ()))) // IBGW is not reachable
 			{
 				auto hop1 = nextHop (prevHop, true);
 				if (hop1) hop = hop1;
@@ -530,25 +530,25 @@ namespace tunnel
 		// calculate num hops
 		int numHops;
 		if (isInbound)
-		{	
-			numHops = m_NumInboundHops; 
+		{
+			numHops = m_NumInboundHops;
 			if (m_InboundVariance)
 			{
 				int offset = rand () % (std::abs (m_InboundVariance) + 1);
 				if (m_InboundVariance < 0) offset = -offset;
 				numHops += offset;
-			}	
+			}
 		}
 		else
-		{	
+		{
 			numHops = m_NumOutboundHops;
 			if (m_OutboundVariance)
 			{
 				int offset = rand () % (std::abs (m_OutboundVariance) + 1);
 				if (m_OutboundVariance < 0) offset = -offset;
 				numHops += offset;
-			}	
-		}	
+			}
+		}
 		// peers is empty
 		if (numHops <= 0) return true;
 		// custom peer selector in use ?
@@ -715,7 +715,7 @@ namespace tunnel
 		auto tunnel = tunnels.CreateInboundTunnel (
 			m_NumOutboundHops > 0 ? std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers (),
 				outboundTunnel->IsShortBuildMessage ()) : nullptr,
-		    shared_from_this (), outboundTunnel);
+				shared_from_this (), outboundTunnel);
 		if (tunnel->IsEstablished ()) // zero hops
 			TunnelCreated (tunnel);
 	}

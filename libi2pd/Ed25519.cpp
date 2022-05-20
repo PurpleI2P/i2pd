@@ -33,7 +33,7 @@ namespace crypto
 		BN_add (l, l, tmp);
 		BN_sub_word (two_252_2, 2); // 2^252 - 2
 
-		 // -121665*inv(121666)
+		// -121665*inv(121666)
 		d = BN_new ();
 		BN_set_word (tmp, 121666);
 		BN_mod_inverse (tmp, tmp, q, ctx);
@@ -61,7 +61,7 @@ namespace crypto
 		BN_mod (By, By, q, ctx); // % q
 
 		// precalculate Bi256 table
-		Bi256Carry = { Bx, By };  // B
+		Bi256Carry = { Bx, By }; // B
 		for (int i = 0; i < 32; i++)
 		{
 			Bi256[i][0] = Bi256Carry; // first point
@@ -215,7 +215,7 @@ namespace crypto
 		if (!t1) { t1 = BN_CTX_get (ctx); BN_mul (t1, p1.x, p1.y, ctx); }
 		if (!t2) { t2 = BN_CTX_get (ctx); BN_mul (t2, p2.x, p2.y, ctx); }
 		BN_mul (t3, t1, t2, ctx);
-		BN_mul (t3, t3, d, ctx);  // C = d*t1*t2
+		BN_mul (t3, t3, d, ctx); // C = d*t1*t2
 
 		if (p1.z)
 		{
@@ -264,9 +264,9 @@ namespace crypto
 		else
 		{
 			BN_mul (t2, p.x, p.y, ctx); // t = x*y
-			BN_sqr (t2, t2, ctx);  // t2 = t^2
+			BN_sqr (t2, t2, ctx); // t2 = t^2
 		}
-		BN_mul (t2, t2, d, ctx);  // t2 = C = d*t^2
+		BN_mul (t2, t2, d, ctx); // t2 = C = d*t^2
 		if (p.z)
 			BN_sqr (z2, p.z, ctx); // z2 = D = z^2
 		else
@@ -349,7 +349,7 @@ namespace crypto
 			BN_mod_inverse (y, p.z, q, ctx);
 			BN_mod_mul (x, p.x, y, q, ctx); // x = x/z
 			BN_mod_mul (y, p.y, y, q, ctx); // y = y/z
-			return  EDDSAPoint{x, y};
+			return EDDSAPoint{x, y};
 		}
 		else
 			return EDDSAPoint{BN_dup (p.x), BN_dup (p.y)};
@@ -506,13 +506,13 @@ namespace crypto
 			std::swap (z2, z3);
 		}
 		BN_mod_inverse (z2, z2, q, ctx);
-		BIGNUM * res =  BN_new (); // not from ctx
+		BIGNUM * res = BN_new (); // not from ctx
 		BN_mod_mul(res, x2, z2, q, ctx);
 		BN_CTX_end (ctx);
 		return res;
 	}
 
-	void Ed25519::ScalarMul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	void Ed25519::ScalarMul (const uint8_t * p, const uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
 	{
 		BIGNUM * p1 = DecodeBN<32> (p);
 		uint8_t k[32];
@@ -524,7 +524,7 @@ namespace crypto
 		BN_free (p1); BN_free (n); BN_free (q1);
 	}
 
-	void Ed25519::ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
+	void Ed25519::ScalarMulB (const uint8_t * e, uint8_t * buf, BN_CTX * ctx) const
 	{
 		BIGNUM *p1 = BN_new (); BN_set_word (p1, 9);
 		uint8_t k[32];

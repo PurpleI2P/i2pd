@@ -250,7 +250,7 @@ namespace client
 
 			/** send raw data to remote endpoint from our UDP Socket */
 			void SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep);
-			
+
 			void AddSocket(std::shared_ptr<SAMSocket> socket);
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
 

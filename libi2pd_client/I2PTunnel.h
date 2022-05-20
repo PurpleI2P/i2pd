@@ -31,7 +31,7 @@ namespace client
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels
-	const char X_I2P_DEST_HASH[] = "X-I2P-DestHash"; // hash  in base64
+	const char X_I2P_DEST_HASH[] = "X-I2P-DestHash"; // hash in base64
 	const char X_I2P_DEST_B64[] = "X-I2P-DestB64"; // full address in base64
 	const char X_I2P_DEST_B32[] = "X-I2P-DestB32"; // .b32.i2p address
 
@@ -43,7 +43,7 @@ namespace client
 				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API
-			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);

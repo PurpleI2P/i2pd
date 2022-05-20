@@ -52,7 +52,7 @@ namespace log {
 	{
 		private:
 
-			enum LogType  m_Destination;
+			enum LogType m_Destination;
 			enum LogLevel m_MinLevel;
 			std::shared_ptr<std::ostream> m_LogStream;
 			std::string m_Logfile;
@@ -75,7 +75,7 @@ namespace log {
 
 			/**
 			 * @brief Makes formatted string from unix timestamp
-			 * @param ts  Second since epoch
+			 * @param ts Second since epoch
 			 *
 			 * This function internally caches the result for last provided value
 			 */
@@ -86,52 +86,52 @@ namespace log {
 			Log ();
 			~Log ();
 
-			LogType  GetLogType  () { return m_Destination; };
+			LogType GetLogType () { return m_Destination; };
 			LogLevel GetLogLevel () { return m_MinLevel; };
 
 			void Start ();
 			void Stop ();
 
 			/**
-			 * @brief  Sets minimal allowed level for log messages
-			 * @param  level  String with wanted minimal msg level
+			 * @brief Sets minimal allowed level for log messages
+			 * @param level String with wanted minimal msg level
 			 */
-			void     SetLogLevel (const std::string& level);
+			void SetLogLevel (const std::string& level);
 
 			/**
 			 * @brief Sets log destination to logfile
-			 * @param path  Path to logfile
+			 * @param path Path to logfile
 			 */
 			void SendTo (const std::string &path);
 
 			/**
 			 * @brief Sets log destination to given output stream
-			 * @param os  Output stream
+			 * @param os Output stream
 			 */
 			void SendTo (std::shared_ptr<std::ostream> os);
 
 			/**
-			 * @brief  Sets format for timestamps in log
-			 * @param  format  String with timestamp format
+			 * @brief Sets format for timestamps in log
+			 * @param format String with timestamp format
 			 */
 			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
 
 	#ifndef _WIN32
 			/**
 			 * @brief Sets log destination to syslog
-			 * @param name     Wanted program name
+			 * @param name Wanted program name
 			 * @param facility Wanted log category
 			 */
 			void SendTo (const char *name, int facility);
 	#endif
 
 			/**
-			 * @brief  Format log message and write to output stream/syslog
-			 * @param  msg  Pointer to processed message
+			 * @brief Format log message and write to output stream/syslog
+			 * @param msg Pointer to processed message
 			 */
 			void Append(std::shared_ptr<i2p::log::LogMsg> &);
 
-			/** @brief  Reopen log file */
+			/** @brief Reopen log file */
 			void Reopen();
 	};
 
@@ -144,8 +144,8 @@ namespace log {
 	 */
 	struct LogMsg {
 		std::time_t timestamp;
-		std::string text; /**< message text as single string */
-		LogLevel level;   /**< message level */
+		std::string text;    /**< message text as single string */
+		LogLevel level;      /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
 
 		LogMsg (LogLevel lvl, std::time_t ts, std::string&& txt): timestamp(ts), text(std::move(txt)), level(lvl) {}
@@ -153,7 +153,7 @@ namespace log {
 
 	Log & Logger();
 
-	typedef std::function<void (const std::string&)>  ThrowFunction;
+	typedef std::function<void (const std::string&)> ThrowFunction;
 	ThrowFunction GetThrowFunction ();
 	void SetThrowFunction (ThrowFunction f);
 } // log

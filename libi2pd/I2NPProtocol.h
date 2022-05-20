@@ -150,7 +150,7 @@ namespace tunnel
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
 
 		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
-			offset(2), maxLen (0), from (nullptr) {};  // reserve 2 bytes for NTCP header
+			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
 
 		// header accessors
 		uint8_t * GetHeader () { return GetBuffer (); };
@@ -274,8 +274,8 @@ namespace tunnel
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
-	    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel,
-	    const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel,
+		const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
 	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 
 	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel = nullptr);

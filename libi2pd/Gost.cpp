@@ -96,7 +96,7 @@ namespace crypto
 		EC_POINT * C = EC_POINT_new (m_Group);
 		EC_POINT_mul (m_Group, C, z1, pub, z2, ctx); // z1*P + z2*pub
 		BIGNUM * x = BN_CTX_get (ctx);
-		GetXY  (C, x, nullptr); // Cx
+		GetXY (C, x, nullptr); // Cx
 		BN_mod (x, x, q, ctx); // Cx % q
 		bool ret = !BN_cmp (x, r); // Cx = r ?
 		EC_POINT_free (C);
@@ -111,8 +111,8 @@ namespace crypto
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		EC_POINT * C = EC_POINT_new (m_Group); // C = k*P = (rx, ry)
-		EC_POINT * Q  = nullptr;
-		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0,  ctx))
+		EC_POINT * Q = nullptr;
+		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0, ctx))
 		{
 			EC_POINT * S = EC_POINT_new (m_Group); // S = s*P
 			EC_POINT_mul (m_Group, S, s, nullptr, nullptr, ctx);

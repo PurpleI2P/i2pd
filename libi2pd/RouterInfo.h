@@ -56,7 +56,7 @@ namespace data
 	const uint8_t COST_SSU_DIRECT = 9;
 	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
-	
+
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
 	class RouterInfo: public RoutingDestination
 	{
@@ -146,11 +146,11 @@ namespace data
 					return !(*this == other);
 				}
 
-				bool IsNTCP2 () const { return  transportStyle == eTransportNTCP; };
-				bool IsSSU2 () const { return  transportStyle == eTransportSSU2; };
+				bool IsNTCP2 () const { return transportStyle == eTransportNTCP; };
+				bool IsSSU2 () const { return transportStyle == eTransportSSU2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (published || UsesIntroducer ()); };
-				bool UsesIntroducer () const { return  (bool)ssu && !ssu->introducers.empty (); };
+				bool UsesIntroducer () const { return (bool)ssu && !ssu->introducers.empty (); };
 
 				bool IsIntroducer () const { return caps & eSSUIntroducer; };
 				bool IsPeerTesting () const { return caps & eSSUTesting; };
@@ -166,7 +166,7 @@ namespace data
 					Buffer () = default;
 					Buffer (const uint8_t * buf, size_t len);
 			};
-		
+
 			typedef std::vector<std::shared_ptr<Address> > Addresses;
 
 			RouterInfo (const std::string& fullPath);
@@ -181,7 +181,7 @@ namespace data
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			int GetVersion () const { return m_Version; };
-			virtual void SetProperty (const std::string& key, const std::string& value) {}; 
+			virtual void SetProperty (const std::string& key, const std::string& value) {};
 			virtual void ClearProperties () {};
 			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
@@ -272,7 +272,7 @@ namespace data
 			void SetBufferLen (size_t len) { m_BufferLen = len; };
 			void RefreshTimestamp ();
 			const Addresses& GetAddresses () const { return *m_Addresses; };
-		
+
 		private:
 
 			bool LoadFile (const std::string& fullPath);
@@ -285,7 +285,7 @@ namespace data
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
-		
+
 		private:
 
 			FamilyID m_FamilyID;
@@ -309,22 +309,22 @@ namespace data
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
 
-			void SetProperty (const std::string& key, const std::string& value) override; 
-			void DeleteProperty (const std::string& key); 
-			std::string GetProperty (const std::string& key) const; 
+			void SetProperty (const std::string& key, const std::string& value) override;
+			void DeleteProperty (const std::string& key);
+			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };
-			
+
 		private:
 
 			void WriteToStream (std::ostream& s) const;
 			void UpdateCapsProperty ();
 			void WriteString (const std::string& str, std::ostream& s) const;
 			std::shared_ptr<Buffer> NewBuffer () const override;
-			
+
 		private:
 
-			std::map<std::string, std::string> m_Properties;		
-	};	
+			std::map<std::string, std::string> m_Properties;
+	};
 }
 }
 

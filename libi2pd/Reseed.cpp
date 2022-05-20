@@ -187,31 +187,31 @@ namespace data
 		}
 		s.seekg (1, std::ios::cur); // su3 file format version
 		SigningKeyType signatureType;
-		s.read ((char *)&signatureType, 2);  // signature type
+		s.read ((char *)&signatureType, 2); // signature type
 		signatureType = be16toh (signatureType);
 		uint16_t signatureLength;
-		s.read ((char *)&signatureLength, 2);  // signature length
+		s.read ((char *)&signatureLength, 2); // signature length
 		signatureLength = be16toh (signatureLength);
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t versionLength;
-		s.read ((char *)&versionLength, 1);  // version length
+		s.read ((char *)&versionLength, 1); // version length
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t signerIDLength;
-		s.read ((char *)&signerIDLength, 1);  // signer ID length
+		s.read ((char *)&signerIDLength, 1); // signer ID length
 		uint64_t contentLength;
-		s.read ((char *)&contentLength, 8);  // content length
+		s.read ((char *)&contentLength, 8); // content length
 		contentLength = be64toh (contentLength);
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t fileType;
-		s.read ((char *)&fileType, 1);  // file type
-		if (fileType != 0x00) //  zip file
+		s.read ((char *)&fileType, 1); // file type
+		if (fileType != 0x00) // zip file
 		{
 			LogPrint (eLogError, "Reseed: Can't handle file type ", (int)fileType);
 			return 0;
 		}
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t contentType;
-		s.read ((char *)&contentType, 1);  // content type
+		s.read ((char *)&contentType, 1); // content type
 		if (contentType != 0x03) // reseed data
 		{
 			LogPrint (eLogError, "Reseed: Unexpected content type ", (int)contentType);
@@ -688,7 +688,7 @@ namespace data
 				{
 					boost::asio::ip::tcp::endpoint ep = *it;
 					if ((ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
-					    (ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
+						(ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
 					{
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)

@@ -324,9 +324,9 @@ namespace http {
 					default:
 						s << tr("Unknown");
 				}
-				if (address->IsV6 ()) 
+				if (address->IsV6 ())
 				{
-					if (address->IsV4 ()) s << "v4"; 
+					if (address->IsV4 ()) s << "v4";
 					s << "v6";
 				}
 				s << "</td>\r\n";

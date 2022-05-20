@@ -279,7 +279,7 @@ namespace http
 				method  = tokens[0];
 				uri     = tokens[1];
 				version = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			}
 			else
 			{
@@ -363,7 +363,7 @@ namespace http
 			return false; /* no header */
 		if (it->second.find("gzip") != std::string::npos)
 			return true; /* gotcha! */
-		if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
+		if (includingI2PGzip && it->second.find("x-i2p-gzip") != std::string::npos)
 			return true;
 		return false;
 	}
@@ -409,7 +409,7 @@ namespace http
 				/* all ok */
 				version = tokens[0];
 				status  = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			} else {
 				std::string line = str.substr(pos, eol - pos);
 				auto p = parse_header_line(line);
@@ -460,7 +460,7 @@ namespace http
 			case 304: ptr = "Not Modified"; break;
 			case 307: ptr = "Temporary Redirect"; break;
 			/* client error */
-			case 400: ptr = "Bad Request";  break;
+			case 400: ptr = "Bad Request"; break;
 			case 401: ptr = "Unauthorized"; break;
 			case 403: ptr = "Forbidden"; break;
 			case 404: ptr = "Not Found"; break;
@@ -471,7 +471,7 @@ namespace http
 			case 502: ptr = "Bad Gateway"; break;
 			case 503: ptr = "Not Implemented"; break;
 			case 504: ptr = "Gateway Timeout"; break;
-			default:  ptr = "Unknown Status";  break;
+			default:  ptr = "Unknown Status"; break;
 		}
 		return ptr;
 	}

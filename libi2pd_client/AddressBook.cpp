@@ -372,7 +372,7 @@ namespace client
 			{
 				auto addr = FindAddress (address);
 				if (!addr)
-					 LookupAddress (address); // TODO:
+					LookupAddress (address); // TODO:
 				return addr;
 			}
 		}
@@ -494,7 +494,7 @@ namespace client
 				auto it = m_Addresses.find (name);
 				if (it != m_Addresses.end ()) // already exists ?
 				{
-					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash () &&  // address changed?
+					if (it->second->IsIdentHash () && it->second->identHash != ident->GetIdentHash () && // address changed?
 						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA
 					{
 						it->second->identHash = ident->GetIdentHash ();
@@ -858,9 +858,9 @@ namespace client
 		if (!m_LastModified.empty())
 			req.AddHeader("If-Modified-Since", m_LastModified);
 		/* convert url to relative */
-		url.schema = "";
-		url.host   = "";
-		req.uri    = url.to_string();
+		url.schema  = "";
+		url.host    = "";
+		req.uri     = url.to_string();
 		req.version = "HTTP/1.1";
 		auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, dest_port);
 		std::string request = req.to_string();

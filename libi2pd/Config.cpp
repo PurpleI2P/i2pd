@@ -277,7 +277,7 @@ namespace config {
 			("ssu2.published", value<bool>()->default_value(false),        "Publish SSU2 (default: disabled)")
 			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
 		;
-		
+
 		options_description nettime("Time sync options");
 		nettime.add_options()
 			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")

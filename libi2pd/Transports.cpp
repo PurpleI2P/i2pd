@@ -219,7 +219,7 @@ namespace transport
 		}
 		// create SSU2 server
 		if (enableSSU2) m_SSU2Server = new SSU2Server ();
-		
+
 		// bind to interfaces
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		if (ipv4)
@@ -285,7 +285,7 @@ namespace transport
 			if (m_SSUServer) DetectExternalIP ();
 		}
 		if (m_SSU2Server) m_SSU2Server->Start ();
-		
+
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
@@ -307,14 +307,14 @@ namespace transport
 			delete m_SSUServer;
 			m_SSUServer = nullptr;
 		}
-		
+
 		if (m_SSU2Server)
 		{
 			m_SSU2Server->Stop ();
 			delete m_SSU2Server;
 			m_SSU2Server = nullptr;
 		}
-		
+
 		if (m_NTCP2Server)
 		{
 			m_NTCP2Server->Stop ();
@@ -569,7 +569,7 @@ namespace transport
 				}
 				else
 					peer.numAttempts += 2;
-			}	
+			}
 			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
@@ -829,18 +829,18 @@ namespace transport
 		}
 		return i2p::data::netdb.FindRouter (ident);
 	}
-		
+
 	void Transports::RestrictRoutesToFamilies(const std::set<std::string>& families)
 	{
 		std::lock_guard<std::mutex> lock(m_FamilyMutex);
 		m_TrustedFamilies.clear();
 		for (auto fam : families)
-		{	
+		{
 			boost::to_lower (fam);
 			auto id = i2p::data::netdb.GetFamilies ().GetFamilyID (fam);
-			if (id)	
+			if (id)
 				m_TrustedFamilies.push_back (id);
-		}	
+		}
 	}
 
 	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)

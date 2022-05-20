@@ -898,7 +898,7 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
-			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",          httpProxyKeys);
+			std::string httpProxyKeys;         i2p::config::GetOption("httpproxy.keys",              httpProxyKeys);
 			// we still need httpProxyKeys to compare with sockProxyKeys
 			std::string socksProxyKeys;        i2p::config::GetOption("socksproxy.keys",             socksProxyKeys);
 			std::string socksProxyAddr;        i2p::config::GetOption("socksproxy.address",          socksProxyAddr);

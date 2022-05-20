@@ -254,6 +254,6 @@ namespace util
 	void AdjustTimeOffset (int64_t offset)
 	{
 		g_TimeOffset += offset;
-	}	
+	}
 }
 }

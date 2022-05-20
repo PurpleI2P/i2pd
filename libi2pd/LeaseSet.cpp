@@ -582,7 +582,7 @@ namespace data
 	// helper for ExtractClientAuthData
 	static inline bool GetAuthCookie (const uint8_t * authClients, int numClients, const uint8_t * okm, uint8_t * authCookie)
 	{
-		// try to find clientCookie_i  for clientID_i = okm[44:51]
+		// try to find clientCookie_i for clientID_i = okm[44:51]
 		for (int i = 0; i < numClients; i++)
 		{
 			if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
@@ -606,7 +606,7 @@ namespace data
 			{
 				const uint8_t * ephemeralPublicKey = buf + offset; offset += 32; // ephemeralPublicKey
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
-				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
 				if (offset > len)
 				{
 					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in DH auth data");
@@ -632,7 +632,7 @@ namespace data
 			{
 				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
-				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
 				if (offset > len)
 				{
 					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in PSK auth data");
@@ -737,7 +737,7 @@ namespace data
 			htobe64buf (m_Buffer + offset, ts);
 			offset += 8; // end date
 		}
-		//  we don't sign it yet. must be signed later on
+		// we don't sign it yet. must be signed later on
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
@@ -995,7 +995,7 @@ namespace data
 			ek.GenerateKeys (); // esk and epk
 			memcpy (authData, ek.GetPublicKey (), 32); authData += 32; // epk
 			htobe16buf (authData, authKeys->size ()); authData += 2; // num clients
-			uint8_t authInput[100]; //  sharedSecret || cpk_i || subcredential || publishedTimestamp
+			uint8_t authInput[100]; // sharedSecret || cpk_i || subcredential || publishedTimestamp
 			memcpy (authInput + 64, subcredential, 36);
 			for (auto& it: *authKeys)
 			{

@@ -68,7 +68,7 @@ namespace garlic
 				uint8_t staticPrivateKey[32];
 				uint8_t intro[32];
 			};
-			
+
 		public:
 
 			RouterContext ();
@@ -86,7 +86,7 @@ namespace garlic
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
 			}
-			
+
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
@@ -96,7 +96,7 @@ namespace garlic
 			const uint8_t * GetSSU2StaticPrivateKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetSSU2IntroKey () const { return m_SSU2Keys ? m_SSU2Keys->intro : nullptr; };
 			i2p::crypto::X25519Keys& GetSSU2StaticKeys ();
-			
+
 			uint32_t GetUptime () const; // in seconds
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };

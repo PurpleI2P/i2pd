@@ -489,7 +489,7 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses () &&
-		    ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL)
+			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL)
 		{
 			r->DeleteBuffer ();
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
@@ -620,7 +620,7 @@ namespace data
 			}
 			// make router reachable back if too few routers or floodfills
 			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS ||
-			    (it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
+				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				it.second->SetUnreachable (false);
 			// find & mark expired routers
 			if (!it.second->IsReachable () && it.second->IsSSU (false))
@@ -643,7 +643,7 @@ namespace data
 		} // m_RouterInfos iteration
 
 		m_RouterInfoBuffersPool.CleanUpMt ();
-			
+
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: Saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
@@ -672,7 +672,7 @@ namespace data
 					else
 						++it;
 			}
-		}	
+		}
 	}
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
@@ -688,7 +688,7 @@ namespace data
 		if (floodfill)
 		{
 			if (direct && !floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) &&
-			    !i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
+				!i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
 				direct = false; // floodfill can't be reached directly
 			if (direct)
 				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
@@ -971,7 +971,7 @@ namespace data
 		else
 		{
 			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP ||
-			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
+				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
 			{
 				auto router = FindRouter (ident);
 				if (router)
@@ -1136,7 +1136,7 @@ namespace data
 			m_PublishExcluded.insert (floodfill->GetIdentHash ());
 			m_PublishReplyToken = replyToken;
 			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
-			    i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))  // already connected ?
+				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
 				// send directly
 				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
 			else
@@ -1377,7 +1377,7 @@ namespace data
 		return res;
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const 
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily (FamilyID fam) const
 	{
 		return GetRandomRouter(
 			[fam](std::shared_ptr<const RouterInfo> router)->bool
