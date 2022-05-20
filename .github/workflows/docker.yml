@@ -1,6 +1,9 @@
 name: Build containers
 
-on: [push]
+on:
+  push:
+    branches:
+    - openssl
 
 jobs:
   docker:
