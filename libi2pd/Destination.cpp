@@ -350,8 +350,8 @@ namespace client
 			{
 				s->AddECIESx25519Key (data.k, data.t);
 			});
-	}	
-		
+	}
+
 	void LeaseSetDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&LeaseSetDestination::HandleGarlicMessage, shared_from_this (), msg));
@@ -417,7 +417,7 @@ namespace client
 				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 				auto it = m_RemoteLeaseSets.find (key);
 				if (it != m_RemoteLeaseSets.end () &&
-				    it->second->GetStoreType () == buf[DATABASE_STORE_TYPE_OFFSET]) // update only if same type
+					it->second->GetStoreType () == buf[DATABASE_STORE_TYPE_OFFSET]) // update only if same type
 				{
 					leaseSet = it->second;
 					if (leaseSet->IsNewer (buf + offset, len - offset))
@@ -587,7 +587,7 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			m_ExcludedFloodfills.clear ();
 			return;
-		}	
+		}
 		auto outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
 		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
 		if (!outbound || !inbound)
@@ -599,22 +599,22 @@ namespace client
 			{
 				outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
 				if (outbound)
-				{	
+				{
 					inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
 					if (!inbound)
 						LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
-				}	
+				}
 				else
 					LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
-			}	
+			}
 			else
 				LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			if (!floodfill || !outbound || !inbound)
 			{
 				m_ExcludedFloodfills.clear ();
 				return;
-			}	
-		}	
+			}
+		}
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);

@@ -64,7 +64,7 @@ namespace data
 			{
 				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 				{
-					size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
+					size_t padding = 128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
 					RAND_bytes (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP256_KEY_LENGTH);
 					break;
@@ -788,7 +788,7 @@ namespace data
 			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
 			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
 			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public  key
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public key
 			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature
 			// recreate signer
 			keys.m_Signer = nullptr;

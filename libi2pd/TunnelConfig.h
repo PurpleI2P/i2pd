@@ -91,7 +91,7 @@ namespace tunnel
 
 			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
 				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort,
-			    i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // outbound
+				i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // outbound
 				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
 			{
 				CreatePeers (peers);

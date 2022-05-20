@@ -93,7 +93,7 @@ namespace transport
 #endif
 
 		isError = err != UPNPDISCOVER_SUCCESS;
-#else  // MINIUPNPC_API_VERSION >= 8
+#else // MINIUPNPC_API_VERSION >= 8
 		err = 0;
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
 		isError = m_Devlist == NULL;

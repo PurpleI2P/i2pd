@@ -212,7 +212,7 @@ namespace garlic
 			uint8_t m_NSREncodedKey[32], m_NSRH[32], m_NSRKey[32]; // new session reply, for incoming only
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			SessionState m_State = eSessionStateNew;
-			uint64_t m_SessionCreatedTimestamp = 0,  m_LastActivityTimestamp = 0, // incoming (in seconds)
+			uint64_t m_SessionCreatedTimestamp = 0, m_LastActivityTimestamp = 0, // incoming (in seconds)
 				m_LastSentTimestamp = 0; // in milliseconds
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
 			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
@@ -229,7 +229,7 @@ namespace garlic
 			{
 				return m_Destination ? *m_Destination : i2p::data::IdentHash ();
 			}
-	 };
+	};
 
 	// single session for all incoming messages
 	class RouterIncomingRatchetSession: public ECIESX25519AEADRatchetSession

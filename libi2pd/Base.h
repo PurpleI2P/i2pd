@@ -24,8 +24,8 @@ namespace data {
 	size_t ByteStreamToBase32 (const uint8_t * InBuf, size_t len, char * outBuf, size_t outLen);
 
 	/**
-	 Compute the size for a buffer to contain encoded base64 given that the size of the input is input_size bytes
-	*/
+	 * Compute the size for a buffer to contain encoded base64 given that the size of the input is input_size bytes
+	 */
 	size_t Base64EncodingBufferSize(const size_t input_size);
 
 	std::string ToBase64Standard (const std::string& in); // using standard table, for Proxy-Authorization

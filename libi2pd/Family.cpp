@@ -148,8 +148,8 @@ namespace data
 		if (it != m_SigningKeys.end ())
 			return it->second.second;
 		return 0;
-	}	
-	
+	}
+
 	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident)
 	{
 		auto filename = i2p::fs::DataDirPath("family", (family + ".key"));

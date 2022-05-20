@@ -161,7 +161,7 @@ namespace http
 
 	/**
 	 * @brief Merge HTTP response content with Transfer-Encoding: chunked
-	 * @param in  Input stream
+	 * @param in Input stream
 	 * @param out Output stream
 	 * @return true on success, false otherwise
 	 */

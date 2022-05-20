@@ -24,7 +24,7 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
-	    std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
+		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ()),
 		m_IsCreatingLeaseSet (false), m_LeaseSetCreationTimer (service)
@@ -208,12 +208,12 @@ namespace client
 			if (leases.empty ())
 				leases = remote->GetNonExpiredLeases (true); // with threshold
 			if (!leases.empty ())
-			{	
+			{
 				remoteLease = leases[rand () % leases.size ()];
 				auto leaseRouter = i2p::data::netdb.FindRouter (remoteLease->tunnelGateway);
 				outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
-			}	
+			}
 			if (remoteLease && outboundTunnel)
 				remoteSession->SetSharedRoutingPath (std::make_shared<i2p::garlic::GarlicRoutingPath> (
 					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0, 0})); // 10 secs RTT
@@ -453,8 +453,8 @@ namespace client
 			{
 				auto len = m_SendQueue.Get (m_SendBuffer, I2CP_MAX_MESSAGE_LENGTH);
 				boost::asio::async_write (*socket, boost::asio::buffer (m_SendBuffer, len),
-				    boost::asio::transfer_all (),std::bind(&I2CPSession::HandleI2CPMessageSent,
-				    shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+					boost::asio::transfer_all (),std::bind(&I2CPSession::HandleI2CPMessageSent,
+					shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 			}
 			else
 				m_IsSending = false;
@@ -538,7 +538,7 @@ namespace client
 			LogPrint (eLogError, "I2CP: Create session duplicate address ", identity->GetIdentHash ().ToBase32 ());
 			SendSessionStatusMessage (eI2CPSessionStatusInvalid); // invalid
 			return;
-		}	
+		}
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
 		if (optionsSize > len - offset)
@@ -561,16 +561,16 @@ namespace client
 					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
 					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
 				if (m_Owner.InsertSession (shared_from_this ()))
-				{		
+				{
 					SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
 					LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
 					m_Destination->Start ();
-				}	
+				}
 				else
 				{
 					LogPrint (eLogError, "I2CP: Session already exists");
 					SendSessionStatusMessage (eI2CPSessionStatusRefused);
-				}	
+				}
 			}
 			else
 			{
@@ -712,7 +712,7 @@ namespace client
 				{
 					if (offset + 4 > len) return;
 					uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption type
-					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2;  // private key length
+					uint16_t keyLen = bufbe16toh (buf + offset); offset += 2; // private key length
 					if (offset + keyLen > len) return;
 					if (keyType == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 						m_Destination->SetECIESx25519EncryptionPrivateKey (buf + offset);
@@ -1030,13 +1030,13 @@ namespace client
 		for (const auto& it: m_Sessions)
 		{
 			if (it.second)
-			{	
+			{
 				auto dest = it.second->GetDestination ();
 				if (dest && dest->GetIdentHash () == ident)
 					return it.second;
-			}	
+			}
 		}
 		return nullptr;
-	}	
+	}
 }
 }

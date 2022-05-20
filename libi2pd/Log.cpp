@@ -46,7 +46,7 @@ namespace log {
 
 #ifndef _WIN32
 	/**
-	 * @brief  Maps our log levels to syslog one
+	 * @brief Maps our log levels to syslog one
 	 * @return syslog priority LOG_*, as defined in syslog.h
 	 */
 	static inline int GetSyslogPrio (enum LogLevel l) {
@@ -113,11 +113,11 @@ namespace log {
 
 	std::string str_tolower(std::string s) {
 		std::transform(s.begin(), s.end(), s.begin(),
-					// static_cast<int(*)(int)>(std::tolower)         // wrong
-					// [](int c){ return std::tolower(c); }           // wrong
-					// [](char c){ return std::tolower(c); }          // wrong
-					   [](unsigned char c){ return std::tolower(c); } // correct
-					);
+			// static_cast<int(*)(int)>(std::tolower)      // wrong
+			// [](int c){ return std::tolower(c); }        // wrong
+			// [](char c){ return std::tolower(c); }       // wrong
+			[](unsigned char c){ return std::tolower(c); } // correct
+		);
 		return s;
 	}
 
@@ -170,7 +170,7 @@ namespace log {
 				break;
 			case eLogStdout:
 			default:
-				std::cout    << TimeAsString(msg->timestamp)
+				std::cout << TimeAsString(msg->timestamp)
 					<< "@" << short_tid
 					<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
 					<< " - " << msg->text << std::endl;

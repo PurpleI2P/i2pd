@@ -66,7 +66,7 @@ namespace transport
 	{
 		MixHash (sessionRequest + 32, 32); // encrypted payload
 
-		int paddingLength =  sessionRequestLen - 64;
+		int paddingLength = sessionRequestLen - 64;
 		if (paddingLength > 0)
 			MixHash (sessionRequest + 64, paddingLength);
 		MixHash (epub, 32);
@@ -130,7 +130,7 @@ namespace transport
 		// m3p2Len
 		auto bufLen = i2p::context.GetRouterInfo ().GetBufferLen ();
 		m3p2Len = bufLen + 4 + 16; // (RI header + RI + MAC for now) TODO: implement options
-		htobe16buf (options + 4,  m3p2Len);
+		htobe16buf (options + 4, m3p2Len);
 		// fill m3p2 payload (RouterInfo block)
 		m_SessionConfirmedBuffer = new uint8_t[m3p2Len + 48]; // m3p1 is 48 bytes
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
@@ -231,11 +231,11 @@ namespace transport
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				uint32_t tsA = bufbe32toh (options + 8);
 				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
-				{	
+				{
 					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)(ts - tsA), " exceeds clock skew");
 					clockSkew = true;
 					// we send SessionCreate to let Alice know our time and then close session
-				}	
+				}
 			}
 			else
 			{
@@ -320,7 +320,7 @@ namespace transport
 	}
 
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
-	    	std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
@@ -418,7 +418,7 @@ namespace transport
 	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
 	{
 		if (m_NextReceivedBuffer && !m_IsReceiving &&
-		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+			ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
 		{
 			delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = nullptr;
@@ -484,9 +484,9 @@ namespace transport
 				if (clockSkew)
 				{
 					// we don't care about padding, send SessionCreated and close session
-					SendSessionCreated (); 
+					SendSessionCreated ();
 					m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
-				}	
+				}
 				else if (paddingLen > 0)
 				{
 					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
@@ -496,7 +496,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen,  " is too long");
+						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
 						Terminate ();
 					}
 				}
@@ -549,7 +549,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen,  " is too long");
+						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
 						Terminate ();
 					}
 				}
@@ -1126,11 +1126,11 @@ namespace transport
 	{
 		if (!m_SendKey ||
 #if OPENSSL_SIPHASH
-		    !m_SendMDCtx
+			!m_SendMDCtx
 #else
-		    !m_SendSipKey
+			!m_SendSipKey
 #endif
-		    ) return;
+		) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block
 		m_NextSendBuffer[2] = eNTCP2BlkTermination;
@@ -1164,7 +1164,7 @@ namespace transport
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
 			LogPrint (eLogWarning, "NTCP2: Outgoing messages queue size to ",
-			   	GetIdentHashBase64(), " exceeds ",  NTCP2_MAX_OUTGOING_QUEUE_SIZE);
+				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
 	}
@@ -1177,7 +1177,7 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-		 m_ProxyType(eNoProxy), m_Resolver(GetService ())
+			m_ProxyType(eNoProxy), m_Resolver(GetService ())
 	{
 	}
 

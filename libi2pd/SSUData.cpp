@@ -171,7 +171,7 @@ namespace transport
 				return;
 			}
 
-			//  find message with msgID
+			// find message with msgID
 			auto it = m_IncompleteMessages.find (msgID);
 			if (it == m_IncompleteMessages.end ())
 			{
@@ -318,7 +318,7 @@ namespace transport
 			sentMessage->numResends = 0;
 		}
 		auto& fragments = sentMessage->fragments;
-		size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3)
+		size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9 = flag + #frg(1) + messageID(4) + frag info (3)
 		size_t len = msg->GetLength ();
 		uint8_t * msgBuf = msg->GetSSUHeader ();
 

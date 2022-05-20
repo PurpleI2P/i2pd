@@ -1313,8 +1313,8 @@ namespace crypto
 		for (const auto& it: bufs)
 			SHA256_Update (&ctx, it.first, it.second);
 		SHA256_Final (m_H, &ctx);
-	}	
-	
+	}
+
 	void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)
 	{
 		HKDF (m_CK, sharedSecret, 32, "", m_CK);
@@ -1330,7 +1330,7 @@ namespace crypto
 		SHA256_Init (&ctx);
 		SHA256_Update (&ctx, hh, 32);
 		SHA256_Update (&ctx, pub, 32);
-		SHA256_Final (state.m_H, &ctx);  // h = MixHash(pub) = SHA256(hh || pub)
+		SHA256_Final (state.m_H, &ctx); // h = MixHash(pub) = SHA256(hh || pub)
 	}
 
 	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub)
@@ -1368,12 +1368,12 @@ namespace crypto
 		}; // SHA256 ("Noise_XKchaobfse+hs1+hs2+hs3_25519_ChaChaPoly_SHA256")
 		static const uint8_t hh[32] =
 		{
-			0xdc, 0x85, 0xe6, 0xaf, 0x7b, 0x02, 0x65, 0x0c, 0xf1, 0xf9, 0x0d, 0x71, 0xfb, 0xc6, 0xd4, 0x53, 
+			0xdc, 0x85, 0xe6, 0xaf, 0x7b, 0x02, 0x65, 0x0c, 0xf1, 0xf9, 0x0d, 0x71, 0xfb, 0xc6, 0xd4, 0x53,
 			0xa7, 0xcf, 0x6d, 0xbf, 0xbd, 0x52, 0x5e, 0xa5, 0xb5, 0x79, 0x1c, 0x47, 0xb3, 0x5e, 0xbc, 0x33
 		}; // SHA256 (protocolNameHash)
 		InitNoiseState (state, protocolNameHash, hh, pub);
 	}
-	
+
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
 		static const uint8_t protocolNameHash[32] =

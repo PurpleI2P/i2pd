@@ -120,7 +120,7 @@ namespace data
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory
 
-  			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
 			void RecalculateIdentHash(uint8_t * buff=nullptr);
 
 			static i2p::crypto::Verifier * CreateVerifier (SigningKeyType keyType);
@@ -222,7 +222,7 @@ namespace data
 			RoutingDestination () {};
 			virtual ~RoutingDestination () {};
 
-			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
+			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 

@@ -1249,7 +1249,7 @@ namespace stream
 		return s;
 	}
 
-	void  StreamingDestination::SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote)
+	void StreamingDestination::SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, 0);
 		s->SendPing ();
@@ -1277,7 +1277,7 @@ namespace stream
 		{
 			m_PacketsPool.CleanUp ();
 			m_I2NPMsgsPool.CleanUp ();
-		}	
+		}
 	}
 
 	bool StreamingDestination::DeleteStream (uint32_t recvStreamID)
@@ -1287,7 +1287,7 @@ namespace stream
 			return false;
 		auto s = it->second;
 		m_Owner->GetService ().post ([this, s] ()
-			{    
+			{
 				s->Close (); // try to send FIN
 				s->Terminate (false);
 				DeleteStream (s);

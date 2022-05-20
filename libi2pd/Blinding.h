@@ -28,8 +28,8 @@ namespace data
 
 			const uint8_t * GetPublicKey () const { return m_PublicKey.data (); };
 			size_t GetPublicKeyLen () const { return m_PublicKey.size (); };
-			SigningKeyType GetSigType () const  { return m_SigType; };
-			SigningKeyType GetBlindedSigType () const  { return m_BlindedSigType; };
+			SigningKeyType GetSigType () const { return m_SigType; };
+			SigningKeyType GetBlindedSigType () const { return m_BlindedSigType; };
 			bool IsValid () const { return GetSigType (); }; // signature type 0 means invalid
 
 			void GetSubcredential (const uint8_t * blinded, size_t len, uint8_t * subcredential) const; // 32 bytes

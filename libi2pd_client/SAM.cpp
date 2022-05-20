@@ -1078,7 +1078,7 @@ namespace client
 			auto s = shared_from_this ();
 			newSocket->GetSocket ().async_connect (ep,
 				[s, newSocket, stream](const boost::system::error_code& ecode)
-			    {
+				{
 					if (!ecode)
 					{
 						s->m_Owner.AddSocket (newSocket);
@@ -1446,8 +1446,8 @@ namespace client
 	void SAMBridge::SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep)
 	{
 		m_DatagramSocket.send_to (bufs, ep);
-	}	
-		
+	}
+
 	void SAMBridge::ReceiveDatagram ()
 	{
 		m_DatagramSocket.async_receive_from (

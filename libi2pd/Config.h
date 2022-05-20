@@ -29,16 +29,16 @@ namespace config {
 	extern boost::program_options::variables_map m_Options;
 
 	/**
-	 * @brief  Initialize list of acceptable parameters
+	 * @brief Initialize list of acceptable parameters
 	 *
 	 * Should be called before any Parse* functions.
 	 */
 	void Init();
 
 	/**
-	 * @brief  Parse cmdline parameters, and show help if requested
-	 * @param  argc  Cmdline arguments count, should be passed from main().
-	 * @param  argv  Cmdline parameters array, should be passed from main()
+	 * @brief Parse cmdline parameters, and show help if requested
+	 * @param argc Cmdline arguments count, should be passed from main().
+	 * @param argv Cmdline parameters array, should be passed from main()
 	 *
 	 * If --help is given in parameters, shows its list with description
 	 * and terminates the program with exitcode 0.
@@ -52,8 +52,8 @@ namespace config {
 	void ParseCmdline(int argc, char* argv[], bool ignoreUnknown = false);
 
 	/**
-	 * @brief  Load and parse given config file
-	 * @param  path  Path to config file
+	 * @brief Load and parse given config file
+	 * @param path Path to config file
 	 *
 	 * If error occurred when opening file path is points to,
 	 * we show the error message and terminate program.
@@ -67,14 +67,14 @@ namespace config {
 	void ParseConfig(const std::string& path);
 
 	/**
-	 * @brief  Used to combine options from cmdline, config and default values
+	 * @brief Used to combine options from cmdline, config and default values
 	 */
 	void Finalize();
 
 	/**
-	 * @brief  Accessor to parameters by name
-	 * @param  name  Name of the requested parameter
-	 * @param  value Variable where to store option
+	 * @brief Accessor to parameters by name
+	 * @param name Name of the requested parameter
+	 * @param value Variable where to store option
 	 * @return this function returns false if parameter not found
 	 *
 	 * Example: uint16_t port; GetOption("sam.port", port);
@@ -98,9 +98,9 @@ namespace config {
 	bool GetOptionAsAny(const std::string& name, boost::any& value);
 
 	/**
-	 * @brief  Set value of given parameter
-	 * @param  name  Name of settable parameter
-	 * @param  value New parameter value
+	 * @brief Set value of given parameter
+	 * @param name Name of settable parameter
+	 * @param value New parameter value
 	 * @return true if value set up successful, false otherwise
 	 *
 	 * Example: uint16_t port = 2827; SetOption("bob.port", port);
@@ -116,8 +116,8 @@ namespace config {
 	}
 
 	/**
-	 * @brief  Check is value explicitly given or default
-	 * @param  name  Name of checked parameter
+	 * @brief Check is value explicitly given or default
+	 * @param name Name of checked parameter
 	 * @return true if value set to default, false otherwise
 	 */
 	bool IsDefault(const char *name);

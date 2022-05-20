@@ -69,7 +69,7 @@ namespace client
 		eI2CPSessionStatusInvalid = 3,
 		eI2CPSessionStatusRefused = 4
 	};
-	
+
 	// params
 	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 

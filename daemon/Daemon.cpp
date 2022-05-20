@@ -79,7 +79,7 @@ namespace util
 		i2p::config::Init();
 		i2p::config::ParseCmdline(argc, argv);
 
-		std::string config;  i2p::config::GetOption("conf", config);
+		std::string config; i2p::config::GetOption("conf", config);
 		std::string datadir;
 		if(DaemonDataDir != "") {
 			datadir = DaemonDataDir;
@@ -111,9 +111,9 @@ namespace util
 
 		certsdir = i2p::fs::GetCertsDir();
 
-		std::string logs     = ""; i2p::config::GetOption("log",      logs);
-		std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
-		std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
+		std::string logs     = ""; i2p::config::GetOption("log",        logs);
+		std::string logfile  = ""; i2p::config::GetOption("logfile",    logfile);
+		std::string loglevel = ""; i2p::config::GetOption("loglevel",   loglevel);
 		bool logclftime;           i2p::config::GetOption("logclftime", logclftime);
 
 		/* setup logging */
@@ -254,17 +254,17 @@ namespace util
 		}
 		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
 		if (ssu2)
-		{	
+		{
 			bool published; i2p::config::GetOption("ssu2.published", published);
 			if (published)
 			{
 				uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
 				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
-			}	
+			}
 			else
 				i2p::context.PublishSSU2Address (0, false, ipv4, ipv6); // unpublish
 		}
-		
+
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);

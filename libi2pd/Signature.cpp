@@ -130,7 +130,7 @@ namespace crypto
 		else
 		{
 			size_t l = 64;
-			uint8_t sig[64];  // temporary buffer for signature. openssl issue #7232
+			uint8_t sig[64]; // temporary buffer for signature. openssl issue #7232
 			EVP_DigestSign (m_MDCtx, sig, &l, buf, len);
 			memcpy (signature, sig, 64);
 		}
