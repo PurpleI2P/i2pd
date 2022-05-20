@@ -180,8 +180,11 @@ namespace proxy {
 		   << "<p>" << tr("Remote host not found in router's addressbook") << "</p>\r\n"
 		   << "<p>" << tr("You may try to find this host on jump services below") << ":</p>\r\n"
 		   << "<ul>\r\n";
-		for (const auto& jump : jumporder) {
-			ss << "  <li><a href=\"" << jumpservices[jump] << host << "\">" << jump << "</a></li>\r\n";
+		for (const auto& jump : jumporder)
+		{
+			auto js = jumpservices.find (jump);
+			if (js != jumpservices.end())
+				ss << "  <li><a href=\"" << js->first << host << "\">" << js->second << "</a></li>\r\n";
 		}
 		ss << "</ul>\r\n";
 		std::string content = ss.str();
