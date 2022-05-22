@@ -1,6 +1,36 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.42.0] - 2022-05-22
+### Added
+- Preliminary SSU2 implementation
+- Tunnel length variance
+- Localization to French
+- Daily cleanup of obsolete peer profiles
+- Ordered jump services list in HTTP proxy
+- Win32 service
+- Show port for local non-published SSU addresses in web console
+### Changed
+- Maximum RouterInfo length increased to 3K
+- Skip unknown addresses in RouterInfo
+- Don't pick own router for peer test 
+- Reseeds list
+- Internal numeric id for families
+- Use ipv6 preference only when netinet headers not used
+- Close stream if delete requested 
+- Remove version from title in web console
+- Drop MESHNET build option
+- Set data path before initialization
+- Don't show registration block in web console if token is not provided 
+### Fixed
+- Encrypted LeaseSet for EdDSA signature
+- Clients tunnels are not built if clock is not synced on start
+- Incorrect processing of i2cp.dontPublishLeaseSet param
+- UDP tunnels reload
+- Build for LibreSSL 3.5.2
+- Race condition in short tunnel build message
+- Race condition in local RouterInfo buffer allocation
+
 ## [2.41.0] - 2022-02-20
 ### Added
 - Clock syncronization through SSU
