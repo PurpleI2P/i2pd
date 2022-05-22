@@ -52,22 +52,28 @@ REM converting configuration files to DOS format (make usable in Windows Notepad
 %xSH% "unix2dos contrib/i2pd.conf contrib/tunnels.conf contrib/tunnels.d/* contrib/webconsole/style.css" >> build\build.log 2>&1
 
 REM Prepare binary signing command if signing key and password provided
-if defined SIGNKEY (
-  if defined SIGNPASS (
-    echo Signing options found
+if defined SIGN (
+  echo Signing enabled
 
-    for %%X in (signtool.exe) do (set xSIGNTOOL=%%~$PATH:X)
-    if not defined xSIGNTOOL (
-      if not defined SIGNTOOL (
-        echo Error: Can't find signtool. Please provide path to binary using SIGNTOOL variable.
-        exit /b 1
-      ) else (
-        set "xSIGNTOOL=%SIGNTOOL%"
-      )
+  for %%X in (signtool.exe) do (set xSIGNTOOL=%%~$PATH:X)
+  if not defined xSIGNTOOL (
+    if not defined SIGNTOOL (
+      echo Error: Can't find signtool. Please provide path to binary using SIGNTOOL variable.
+      exit /b 1
+    ) else (
+      set "xSIGNTOOL=%SIGNTOOL%"
     )
-
-    set "xSIGNOPTS=sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /f ^"%SIGNKEY%^" /p ^"%SIGNPASS%^""
   )
+
+  if defined SIGNKEY (
+    set "xSIGNKEYOPTS=/f ^"%SIGNKEY%^""
+  )
+
+  if defined SIGNPASS (
+    set "xSIGNPASSOPTS=/p ^"%SIGNPASS%^""
+  )
+
+  set "xSIGNOPTS=sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 %SIGNKEYOPTS% %SIGNPASSOPTS%"
 )
 
 REM starting building
