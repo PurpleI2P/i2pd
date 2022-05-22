@@ -906,7 +906,8 @@ namespace client
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel (const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip) :
-		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress), m_LocalDest (localDestination), m_RemoteEndpoint (forwardTo), m_Gzip (gzip)
+		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress), 
+		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_Gzip (gzip)
 	{
 	}
 
