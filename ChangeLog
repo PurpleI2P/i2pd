@@ -1,6 +1,10 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.42.1] - 2022-05-24
+### Fixed
+- Incorrect jump link in HTTP Proxy
+
 ## [2.42.0] - 2022-05-22
 ### Added
 - Preliminary SSU2 implementation
@@ -13,15 +17,15 @@
 ### Changed
 - Maximum RouterInfo length increased to 3K
 - Skip unknown addresses in RouterInfo
-- Don't pick own router for peer test 
+- Don't pick own router for peer test
 - Reseeds list
 - Internal numeric id for families
 - Use ipv6 preference only when netinet headers not used
-- Close stream if delete requested 
+- Close stream if delete requested
 - Remove version from title in web console
 - Drop MESHNET build option
 - Set data path before initialization
-- Don't show registration block in web console if token is not provided 
+- Don't show registration block in web console if token is not provided
 ### Fixed
 - Encrypted LeaseSet for EdDSA signature
 - Clients tunnels are not built if clock is not synced on start

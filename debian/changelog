@@ -1,3 +1,10 @@
+i2pd (2.42.1-1) unstable; urgency=medium
+
+  * updated to version 2.42.1/0.9.54
+  * remove -O3 optimization flag
+
+ -- r4sas <r4sas@i2pmail.org>  Tue, 24 May 2022 12:00:00 +0000
+
 i2pd (2.42.0-1) unstable; urgency=medium
 
   * updated to version 2.42.0/0.9.54
