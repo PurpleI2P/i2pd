@@ -210,7 +210,7 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
 endif()
 
 if(OPENSSL_VERSION VERSION_GREATER_EQUAL "3.0.0")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+  add_definitions(-DOPENSSL_SUPPRESS_DEPRECATED)
 endif()
 
 if(WITH_UPNP)
