@@ -184,7 +184,7 @@ namespace proxy {
 		{
 			auto js = jumpservices.find (jump);
 			if (js != jumpservices.end())
-				ss << "  <li><a href=\"" << js->first << host << "\">" << js->second << "</a></li>\r\n";
+				ss << "  <li><a href=\"" << js->second << host << "\">" << js->first << "</a></li>\r\n";
 		}
 		ss << "</ul>\r\n";
 		std::string content = ss.str();
