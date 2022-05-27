@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -126,6 +126,7 @@ namespace client
 			std::vector<std::shared_ptr<AddressBookSubscription> > m_Subscriptions;
 			std::shared_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
 			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
+			bool m_IsEnabled;
 	};
 
 	class AddressBookSubscription

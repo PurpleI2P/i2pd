@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -299,7 +299,8 @@ namespace client
 	}
 
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
-		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
+		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr),
+		m_IsEnabled (true)
 	{
 	}
 
@@ -310,12 +311,16 @@ namespace client
 
 	void AddressBook::Start ()
 	{
-		if (!m_Storage)
-			m_Storage = new AddressBookFilesystemStorage;
-		m_Storage->Init();
-		LoadHosts (); /* try storage, then hosts.txt, then download */
-		StartSubscriptions ();
-		StartLookups ();
+		i2p::config::GetOption("addressbook.enabled", m_IsEnabled);
+		if (m_IsEnabled)
+		{	
+			if (!m_Storage)
+				m_Storage = new AddressBookFilesystemStorage;
+			m_Storage->Init();
+			LoadHosts (); /* try storage, then hosts.txt, then download */
+			StartSubscriptions ();
+			StartLookups ();
+		}	
 	}
 
 	void AddressBook::StartResolvers ()
@@ -370,6 +375,7 @@ namespace client
 			pos = address.find (".i2p");
 			if (pos != std::string::npos)
 			{
+				if (!m_IsEnabled) return nullptr;
 				auto addr = FindAddress (address);
 				if (!addr)
 					LookupAddress (address); // TODO:

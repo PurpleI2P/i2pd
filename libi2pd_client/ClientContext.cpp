@@ -864,6 +864,8 @@ namespace client
 			uint16_t    httpProxyPort;         i2p::config::GetOption("httpproxy.port",          httpProxyPort);
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
+			if (httpAddresshelper)
+				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book	
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)

@@ -230,6 +230,7 @@ namespace config {
 
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
+			("addressbook.enabled", value<bool>()->default_value(true), "Enable address book lookups and subscritions (default: enabled)")
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
