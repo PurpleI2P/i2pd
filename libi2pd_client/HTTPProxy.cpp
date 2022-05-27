@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -246,14 +246,14 @@ namespace proxy {
 
 		/**
 		 * according to i2p ticket #1862:
-		 * leave Referrer if requested URL with same schema, host and port,
+		 * leave Referer if requested URL with same schema, host and port,
 		 * otherwise, drop it.
 		 */
-		if(req.GetHeader("Referrer") != "") {
+		if(req.GetHeader("Referer") != "") {
 			i2p::http::URL reqURL; reqURL.parse(req.uri);
-			i2p::http::URL refURL; refURL.parse(req.GetHeader("Referrer"));
+			i2p::http::URL refURL; refURL.parse(req.GetHeader("Referer"));
 			if(!boost::iequals(reqURL.schema, refURL.schema) || !boost::iequals(reqURL.host, refURL.host) || reqURL.port != refURL.port)
-				req.RemoveHeader("Referrer");
+				req.RemoveHeader("Referer");
 		}
 
 		/* add headers */
