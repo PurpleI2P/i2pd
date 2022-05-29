@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -337,45 +337,38 @@ namespace client
 			I2PTunnelConnection::Write (buf, len);
 		else
 		{
-			m_InHeader.clear ();
-			m_InHeader.write ((const char *)buf, len);
-			std::string line;
-			bool endOfHeader = false;
-			while (!endOfHeader)
+			auto headerLen = m_ClientRequest.parse ((const char *)buf, len);
+			if (!headerLen) return; // request is not complete, wait for next portion
+			if (headerLen < 0)
 			{
-				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
-				{
-					if (line == "\r") endOfHeader = true;
-					else
-					{
-						if (m_Host.length () > 0 && !line.compare(0, 5, "Host:"))
-							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
-						else
-							m_OutHeader << line << "\n";
-					}
-				}
-				else
-					break;
-			}
+				LogPrint (eLogError, "I2PTunnel: Can't parse HTTP request");
+				Terminate ();
+				return;
+			}	
 
-			if (endOfHeader)
-			{
-				// add X-I2P fields
-				if (m_From)
-				{
-					m_OutHeader << X_I2P_DEST_B32 << ": " << context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()) << "\r\n";
-					m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
-					m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
-				}
-
-				m_OutHeader << "\r\n"; // end of header
-				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
-				m_InHeader.str ("");
-				m_From = nullptr;
-				m_HeaderSent = true;
-				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
-			}
+			m_ClientRequest.RemoveHeader ("Keep-Alive");	
+			auto h = m_ClientRequest.GetHeader ("Connection");
+			if (h.empty ())
+				m_ClientRequest.AddHeader ("Connection", "close");
+			else if (h != "close")
+			{		
+				// Upgrade or upgrade ?
+				auto x = h.find("pgrade");
+				if (x == std::string::npos || !x || std::tolower(h[x - 1]) != 'u') 
+					m_ClientRequest.UpdateHeader("Connection", "close");
+			}		
+			if (!m_Host.empty ())	
+				m_ClientRequest.UpdateHeader ("Host", m_Host);
+			m_ClientRequest.AddHeader (X_I2P_DEST_B32, context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()));
+			m_ClientRequest.AddHeader (X_I2P_DEST_HASH, m_From->GetIdentHash ().ToBase64 ());
+			m_ClientRequest.AddHeader (X_I2P_DEST_B64, m_From->ToBase64 ());
+				
+			m_RequestSendBuffer = m_ClientRequest.to_string ();
+			if ((size_t)headerLen < len)
+				m_RequestSendBuffer.append ((const char *)(buf + headerLen), len - headerLen);  // data right after header
+			m_From = nullptr;	
+			m_HeaderSent = true;	
+			I2PTunnelConnection::Write ((uint8_t *)m_RequestSendBuffer.c_str (), m_RequestSendBuffer.length ());	
 		}
 	}
 

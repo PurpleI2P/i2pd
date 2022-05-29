@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,6 +20,7 @@
 #include "Destination.h"
 #include "Datagram.h"
 #include "Streaming.h"
+#include "HTTP.h"
 #include "I2PService.h"
 #include "AddressBook.h"
 
@@ -110,7 +111,9 @@ namespace client
 		private:
 
 			std::string m_Host;
-			std::stringstream m_InHeader, m_OutHeader;
+			i2p::http::HTTPReq m_ClientRequest;
+			std::string m_RequestSendBuffer;
+			std::stringstream m_InHeader, m_OutHeader; // for responses  
 			bool m_HeaderSent, m_ResponseHeaderSent;
 			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
