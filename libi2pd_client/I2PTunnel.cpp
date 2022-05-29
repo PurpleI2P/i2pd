@@ -7,6 +7,7 @@
 */
 
 #include <cassert>
+#include <boost/algorithm/string.hpp>
 #include "Base.h"
 #include "Log.h"
 #include "Destination.h"
@@ -337,38 +338,72 @@ namespace client
 			I2PTunnelConnection::Write (buf, len);
 		else
 		{
-			auto headerLen = m_ClientRequest.parse ((const char *)buf, len);
-			if (!headerLen) return; // request is not complete, wait for next portion
-			if (headerLen < 0)
+			m_InHeader.clear ();
+			m_InHeader.write ((const char *)buf, len);
+			std::string line;
+			bool endOfHeader = false, connection = false;
+			while (!endOfHeader)
 			{
-				LogPrint (eLogError, "I2PTunnel: Can't parse HTTP request");
-				Terminate ();
-				return;
-			}	
+				std::getline(m_InHeader, line);
+				if (!m_InHeader.fail ())
+				{
+					if (line == "\r") endOfHeader = true;
+					else
+					{
+						// strip up some headers
+						static const std::vector<std::string> excluded // list of excluded headers
+						{
+							"Keep-Alive:", "X-I2P" 
+						};
+						bool matched = false;
+						for (const auto& it: excluded)
+							if (boost::iequals (line.substr (0, it.length ()), it))
+							{
+								matched = true;
+								break;
+							}
+						if (matched) break;
 
-			m_ClientRequest.RemoveHeader ("Keep-Alive");	
-			auto h = m_ClientRequest.GetHeader ("Connection");
-			if (h.empty ())
-				m_ClientRequest.AddHeader ("Connection", "close");
-			else if (h != "close")
-			{		
-				// Upgrade or upgrade ?
-				auto x = h.find("pgrade");
-				if (x == std::string::npos || !x || std::tolower(h[x - 1]) != 'u') 
-					m_ClientRequest.UpdateHeader("Connection", "close");
-			}		
-			if (!m_Host.empty ())	
-				m_ClientRequest.UpdateHeader ("Host", m_Host);
-			m_ClientRequest.AddHeader (X_I2P_DEST_B32, context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()));
-			m_ClientRequest.AddHeader (X_I2P_DEST_HASH, m_From->GetIdentHash ().ToBase64 ());
-			m_ClientRequest.AddHeader (X_I2P_DEST_B64, m_From->ToBase64 ());
-				
-			m_RequestSendBuffer = m_ClientRequest.to_string ();
-			if ((size_t)headerLen < len)
-				m_RequestSendBuffer.append ((const char *)(buf + headerLen), len - headerLen);  // data right after header
-			m_From = nullptr;	
-			m_HeaderSent = true;	
-			I2PTunnelConnection::Write ((uint8_t *)m_RequestSendBuffer.c_str (), m_RequestSendBuffer.length ());	
+						// replace some headers
+						if (!m_Host.empty () && boost::iequals (line.substr (0, 5), "Host:"))
+							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
+						else if (boost::iequals (line.substr (0, 11), "Connection:"))
+						{
+							auto x = line.find("pgrade");
+							if (x != std::string::npos && x && std::tolower(line[x - 1]) != 'u') // upgrade or Upgrade
+								m_OutHeader << line << "\n";
+							else
+								m_OutHeader << "Connection: close\r\n";
+							connection = true;
+						}	
+						else // forward as is	
+							m_OutHeader << line << "\n";
+					}
+				}
+				else
+					break;
+			}
+
+			if (endOfHeader)
+			{
+				// add Connection if not presented
+				if (!connection)
+					m_OutHeader << "Connection: close\r\n";
+				// add X-I2P fields
+				if (m_From)
+				{
+					m_OutHeader << X_I2P_DEST_B32 << ": " << context.GetAddressBook ().ToAddress(m_From->GetIdentHash ()) << "\r\n";
+					m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
+					m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
+				}
+
+				m_OutHeader << "\r\n"; // end of header
+				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_InHeader.str ("");
+				m_From = nullptr;
+				m_HeaderSent = true;
+				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+			}
 		}
 	}
 
@@ -1134,3 +1169,4 @@ namespace client
 	}
 }
 }
+

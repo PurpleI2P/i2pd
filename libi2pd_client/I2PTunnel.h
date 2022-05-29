@@ -20,7 +20,6 @@
 #include "Destination.h"
 #include "Datagram.h"
 #include "Streaming.h"
-#include "HTTP.h"
 #include "I2PService.h"
 #include "AddressBook.h"
 
@@ -111,9 +110,7 @@ namespace client
 		private:
 
 			std::string m_Host;
-			i2p::http::HTTPReq m_ClientRequest;
-			std::string m_RequestSendBuffer;
-			std::stringstream m_InHeader, m_OutHeader; // for responses  
+			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent, m_ResponseHeaderSent;
 			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
