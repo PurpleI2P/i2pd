@@ -196,6 +196,7 @@ namespace transport
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
+			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
@@ -217,6 +218,7 @@ namespace transport
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce); // Charlie
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
+			size_t CreatePeerTestBlock (uint8_t * buf, size_t len); // Alice
 
 		private:
 

@@ -68,11 +68,7 @@ namespace transport
 		// we are Alice
 		if (!session || !relayTag) return false;
 		// find local adddress to introduce
-		std::shared_ptr<const i2p::data::RouterInfo::Address> localAddress;
-		if (session->m_Address->IsV4 ())
-			localAddress = i2p::context.GetRouterInfo ().GetSSU2V4Address ();
-		else if (session->m_Address->IsV6 ())
-			localAddress = i2p::context.GetRouterInfo ().GetSSU2V6Address ();
+		auto localAddress = session->FindLocalAddress ();
 		if (localAddress) return false;
 		// create nonce
 		uint32_t nonce;
@@ -1361,6 +1357,18 @@ namespace transport
 		return size;
 	}
 
+	std::shared_ptr<const i2p::data::RouterInfo::Address> SSU2Session::FindLocalAddress () const
+	{
+		if (m_Address)
+		{	
+			if (m_Address->IsV4 ())
+				return i2p::context.GetRouterInfo ().GetSSU2V4Address ();
+			if (m_Address->IsV6 ())
+				return i2p::context.GetRouterInfo ().GetSSU2V6Address ();
+		}	
+		return nullptr;
+	}	
+		
 	size_t SSU2Session::CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep)
 	{
 		if (len < 9) return 0;
@@ -1556,6 +1564,30 @@ namespace transport
 		return payloadSize + 3;
 	}
 
+	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len)
+	{
+		auto localAddress = FindLocalAddress ();  
+		if (localAddress) return 0;
+		// signed data
+		uint32_t nonce;
+		RAND_bytes ((uint8_t *)&nonce, 4);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		uint8_t signedData[96];
+		signedData[0] = 2; // ver
+		htobe32buf (signedData + 1, nonce);
+		htobe32buf (signedData + 5, ts);
+		size_t asz = CreateEndpoint (signedData + 7, 86, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
+		signedData[6] = asz;
+		// signature
+		SignedData s;
+		s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
+		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+		s.Insert (signedData, 7 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
+		s.Sign (i2p::context.GetPrivateKeys (), signedData + 7 + asz);
+		return CreatePeerTestBlock (buf, len, 0, i2p::context.GetIdentHash (), 
+			signedData, 7 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
+	}	
+		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
 	{
 		if (size < 2) return nullptr;
