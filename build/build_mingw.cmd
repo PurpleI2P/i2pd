@@ -73,7 +73,7 @@ if defined SIGN (
     set "xSIGNPASSOPTS=/p ^"%SIGNPASS%^""
   )
 
-  set "xSIGNOPTS=sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 %SIGNKEYOPTS% %SIGNPASSOPTS%"
+  set "xSIGNOPTS=sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 %xSIGNKEYOPTS% %xSIGNPASSOPTS%"
 )
 
 REM starting building
