@@ -165,20 +165,8 @@ endif()
 
 
 # libraries
-# TODO: once CMake 3.1+ becomes mainstream, see e.g. http://stackoverflow.com/a/29871891/673826
-# use imported Threads::Threads instead
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-if(IOS)
-  set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-  set(CMAKE_HAVE_THREADS_LIBRARY 1)
-  set(CMAKE_USE_WIN32_THREADS_INIT 0)
-  set(CMAKE_USE_PTHREADS_INIT 1)
-else()
-  find_package(Threads REQUIRED)
-endif()
-if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-endif()
+find_package(Threads REQUIRED)
 
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
@@ -278,7 +266,7 @@ if(WITH_BINARY)
   endif()
 
   target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
