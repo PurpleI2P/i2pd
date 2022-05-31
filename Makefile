@@ -4,7 +4,7 @@ SYS := $(shell $(CXX) -dumpmachine)
 
 ifneq (, $(findstring darwin, $(SYS)))
 	SHARED_SUFFIX = dylib
-else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
+else ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstring cygwin, $(SYS)))
 	SHARED_SUFFIX = dll
 else
 	SHARED_SUFFIX = so
@@ -60,7 +60,7 @@ else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
-else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
+else ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstring cygwin, $(SYS)))
 	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32App.cpp Win32/Win32Service.cpp Win32/Win32NetState.cpp
 	include Makefile.mingw
 else # not supported
