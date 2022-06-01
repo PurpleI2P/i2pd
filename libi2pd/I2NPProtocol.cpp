@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -802,13 +802,8 @@ namespace i2p
 				break;
 				case eI2NPGarlic:
 				{
-					if (msg->from)
-					{
-						if (msg->from->GetTunnelPool ())
-							msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
-						else
-							LogPrint (eLogInfo, "I2NP: Local destination for garlic doesn't exist anymore");
-					}
+					if (msg->from && msg->from->GetTunnelPool ())
+						msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
 					else
 						i2p::context.ProcessGarlicMessage (msg);
 					break;
