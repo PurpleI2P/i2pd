@@ -268,6 +268,7 @@ namespace transport
 
 		// start servers
 		if (m_NTCP2Server) m_NTCP2Server->Start ();
+		if (m_SSU2Server) m_SSU2Server->Start ();
 		if (m_SSUServer)
 		{
 			LogPrint (eLogInfo, "Transports: Start listening UDP port ", ssuPort);
@@ -284,7 +285,6 @@ namespace transport
 			}
 			if (m_SSUServer) DetectExternalIP ();
 		}
-		if (m_SSU2Server) m_SSU2Server->Start ();
 
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
