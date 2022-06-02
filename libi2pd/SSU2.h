@@ -150,6 +150,7 @@ namespace transport
 
 			void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
+			void SendPeerTest ();
 			void Terminate ();
 			void TerminateByTimeout ();
 			void CleanUp (uint64_t ts);
@@ -289,7 +290,8 @@ namespace transport
 
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
-
+			bool StartPeerTest (std::shared_ptr<const i2p::data::RouterInfo> router, bool v4);
+			
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
 			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const;
 			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);

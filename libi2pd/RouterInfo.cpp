@@ -1000,6 +1000,17 @@ namespace data
 			});
 	}
 
+	bool RouterInfo::IsSSU2PeerTesting (bool v4) const
+	{
+		if (!(m_SupportedTransports & (v4 ? eSSU2V4 : eSSU2V6))) return false;
+		return (bool)GetAddress (
+			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
+			{
+				return (address->IsSSU2 ()) && address->IsPeerTesting () &&
+					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && address->IsReachableSSU ();
+			});
+	}	
+		
 	bool RouterInfo::IsIntroducer (bool v4) const
 	{
 		if (!(m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6))) return false;

@@ -106,12 +106,22 @@ namespace transport
 		return true;
 	}
 
+	void SSU2Session::SendPeerTest ()
+	{
+		// we are Alice
+		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+		size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+		SendData (payload, payloadSize);
+	}	
+		
 	void SSU2Session::Terminate ()
 	{
 		if (m_State != eSSU2SessionStateTerminated)
 		{
 			m_State = eSSU2SessionStateTerminated;
 			transports.PeerDisconnected (shared_from_this ());
+			m_OnEstablished = nullptr;
 			m_Server.RemoveSession (m_SourceConnID);
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
@@ -134,7 +144,11 @@ namespace transport
 		m_SessionConfirmedFragment1.reset (nullptr);
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
-		if (m_OnEstablished) m_OnEstablished ();
+		if (m_OnEstablished) 
+		{	
+			m_OnEstablished ();
+			m_OnEstablished = nullptr;
+		}	
 	}
 
 	void SSU2Session::Done ()
@@ -1279,7 +1293,7 @@ namespace transport
 		uint32_t nonce = bufbe32toh (buf + 37);
 		switch (buf[0]) // msg
 		{
-			case 1: // Bob for Alice
+			case 1: // Bob from Alice
 			break;
 			case 2: // Charlie from Bob
 			break;
@@ -1293,11 +1307,20 @@ namespace transport
 					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					it->second.first->SendData (payload, payloadSize);
+					m_PeerTests.erase (it);
 				}
 				break;
 			}
 			case 4: // Alice from Bob
-			break;
+			{	
+				auto it = m_PeerTests.find (nonce);
+				if (it != m_PeerTests.end ())
+				{
+					// TODO: send to Charlie
+					m_PeerTests.erase (it);
+				}	
+				break;
+			}	
 			case 5: // Alice from Chralie 1
 			break;
 			case 6: // Chralie from Alice
@@ -2119,6 +2142,26 @@ namespace transport
 		}
 	}
 
+	bool SSU2Server::StartPeerTest (std::shared_ptr<const i2p::data::RouterInfo> router, bool v4)
+	{
+		if (!router) return false;
+		auto addr = v4 ? router->GetSSU2V4Address () : router->GetSSU2V6Address ();
+		if (!addr) return false;
+		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
+		if (it != m_SessionsByRouterHash.end ())
+		{
+			it->second->SendPeerTest ();
+			return true;
+		}	
+		auto s = std::make_shared<SSU2Session> (*this, router, addr);
+		s->SetOnEstablished ([s]()
+			{
+				s->SendPeerTest ();
+			});
+		s->Connect ();
+		return true;
+	}	
+		
 	void SSU2Server::ScheduleTermination ()
 	{
 		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU2_TERMINATION_CHECK_TIMEOUT));

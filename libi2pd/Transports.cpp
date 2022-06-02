@@ -654,6 +654,16 @@ namespace transport
 			}
 			if (!statusChanged)
 				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
+
+			// SSU2
+			if (m_SSU2Server)
+			{
+				excluded.clear ();
+				excluded.insert (i2p::context.GetIdentHash ());
+				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
+				if (router)
+					m_SSU2Server->StartPeerTest (router, true);
+			}	
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
@@ -681,6 +691,16 @@ namespace transport
 			}
 			if (!statusChanged)
 				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
+
+			// SSU2
+			if (m_SSU2Server)
+			{
+				excluded.clear ();
+				excluded.insert (i2p::context.GetIdentHash ());
+				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
+				if (router)
+					m_SSU2Server->StartPeerTest (router, false);
+			}	
 		}
 	}
 
