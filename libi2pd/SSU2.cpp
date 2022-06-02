@@ -1607,7 +1607,7 @@ namespace transport
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (signedData, 7 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
 		s.Sign (i2p::context.GetPrivateKeys (), signedData + 7 + asz);
-		return CreatePeerTestBlock (buf, len, 0, i2p::context.GetIdentHash (), 
+		return CreatePeerTestBlock (buf, len, 1, i2p::context.GetIdentHash (), 
 			signedData, 7 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
 	}	
 		
