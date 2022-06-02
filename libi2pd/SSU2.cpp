@@ -1590,7 +1590,7 @@ namespace transport
 	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len)
 	{
 		auto localAddress = FindLocalAddress ();  
-		if (localAddress) return 0;
+		if (!localAddress) return 0;
 		// signed data
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
@@ -2150,14 +2150,17 @@ namespace transport
 		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
 		if (it != m_SessionsByRouterHash.end ())
 		{
-			it->second->SendPeerTest ();
-			return true;
+			if (it->second->IsEstablished ())
+				it->second->SendPeerTest ();
+			else
+			{	
+				auto s = it->second;	
+				s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+			}		
+			return true;	
 		}	
 		auto s = std::make_shared<SSU2Session> (*this, router, addr);
-		s->SetOnEstablished ([s]()
-			{
-				s->SendPeerTest ();
-			});
+		s->SetOnEstablished ([s]() {s->SendPeerTest (); });
 		s->Connect ();
 		return true;
 	}	
