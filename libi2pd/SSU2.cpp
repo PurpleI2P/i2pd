@@ -1576,14 +1576,20 @@ namespace transport
 		const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen)
 	{
 		buf[0] = eSSU2BlkPeerTest;
-		size_t payloadSize = 3/* msg, code, flag */ + 32/* router hash */ + signedDataLen;
+		size_t payloadSize = 3/* msg, code, flag */ + signedDataLen;
+		if (routerHash) payloadSize += 32; // router hash
 		if (payloadSize + 3 > len) return 0;
 		htobe16buf (buf + 1, payloadSize); // size
 		buf[3] = msg; // msg
 		buf[4] = 0; // code, TODO:
 		buf[5] = 0; //flag
-		memcpy (buf + 6, routerHash, 32); // router hash
-		memcpy (buf + 38, signedData, signedDataLen);
+		size_t offset = 6;
+		if (routerHash)
+		{	
+			memcpy (buf + offset, routerHash, 32); // router hash
+			offset += 32;
+		}	
+		memcpy (buf + offset, signedData, signedDataLen);
 		return payloadSize + 3;
 	}
 
@@ -1607,8 +1613,7 @@ namespace transport
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (signedData, 7 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
 		s.Sign (i2p::context.GetPrivateKeys (), signedData + 7 + asz);
-		return CreatePeerTestBlock (buf, len, 1, i2p::context.GetIdentHash (), 
-			signedData, 7 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
+		return CreatePeerTestBlock (buf, len, 1, nullptr, signedData, 7 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
 	}	
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
