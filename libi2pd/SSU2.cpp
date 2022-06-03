@@ -109,8 +109,19 @@ namespace transport
 	void SSU2Session::SendPeerTest ()
 	{
 		// we are Alice
+		uint32_t nonce;
+		RAND_bytes ((uint8_t *)&nonce, 4);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		// session for message 5
+		auto session = std::make_shared<SSU2Session> (m_Server);
+		session->SetState (eSSU2SessionStatePeerTest);
+		m_PeerTests.emplace (nonce, std::make_pair (session, ts));
+		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+		session->m_DestConnID = ~session->m_SourceConnID;
+		m_Server.AddSession (session);
+		// peer test block
 		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-		size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE);
+		size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, nonce);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		SendData (payload, payloadSize);
 	}	
@@ -1316,7 +1327,7 @@ namespace transport
 				auto it = m_PeerTests.find (nonce);
 				if (it != m_PeerTests.end ())
 				{
-					// TODO: send to Charlie
+					// TODO: update Charlie's session RouterInfo
 					m_PeerTests.erase (it);
 				}	
 				break;
@@ -1593,13 +1604,11 @@ namespace transport
 		return payloadSize + 3;
 	}
 
-	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len)
+	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce)
 	{
 		auto localAddress = FindLocalAddress ();  
 		if (!localAddress) return 0;
 		// signed data
-		uint32_t nonce;
-		RAND_bytes ((uint8_t *)&nonce, 4);
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		uint8_t signedData[96];
 		signedData[0] = 2; // ver
