@@ -1614,15 +1614,15 @@ namespace transport
 		signedData[0] = 2; // ver
 		htobe32buf (signedData + 1, nonce);
 		htobe32buf (signedData + 5, ts);
-		size_t asz = CreateEndpoint (signedData + 7, 86, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
-		signedData[6] = asz;
+		size_t asz = CreateEndpoint (signedData + 10, 86, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
+		signedData[9] = asz;
 		// signature
 		SignedData s;
 		s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
-		s.Insert (signedData, 7 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
-		s.Sign (i2p::context.GetPrivateKeys (), signedData + 7 + asz);
-		return CreatePeerTestBlock (buf, len, 1, nullptr, signedData, 7 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
+		s.Insert (signedData, 10 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
+		s.Sign (i2p::context.GetPrivateKeys (), signedData + 10 + asz);
+		return CreatePeerTestBlock (buf, len, 1, nullptr, signedData, 10 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
 	}	
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
