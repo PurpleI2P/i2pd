@@ -1002,7 +1002,7 @@ namespace transport
 					HandleRelayIntro (buf + offset, size);
 				break;
 				case eSSU2BlkPeerTest:
-					LogPrint (eLogDebug, "SSU2: PeerTest");
+					LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
 					HandlePeerTest (buf + offset, size);
 				break;
 				case eSSU2BlkNextNonce:
@@ -1320,6 +1320,8 @@ namespace transport
 					it->second.first->SendData (payload, payloadSize);
 					m_PeerTests.erase (it);
 				}
+				else
+					LogPrint (eLogWarning, "SSU2: Unknown peer test 3 nonce ", nonce);
 				break;
 			}
 			case 4: // Alice from Bob
@@ -1330,9 +1332,13 @@ namespace transport
 					// TODO: update Charlie's session RouterInfo
 					m_PeerTests.erase (it);
 				}	
+				else
+					LogPrint (eLogWarning, "SSU2: Unknown peer test 4 nonce ", nonce);
 				break;
 			}	
-			case 5: // Alice from Chralie 1
+			case 5: // Alice from Charlie 1
+				if (htobe64 (((uint64_t)nonce << 32) | nonce) != m_SourceConnID)
+					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce);
 			break;
 			case 6: // Chralie from Alice
 			break;
