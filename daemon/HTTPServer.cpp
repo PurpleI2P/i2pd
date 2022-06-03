@@ -419,7 +419,7 @@ namespace http {
 			s << "</div>\r\n</div>\r\n";
 		}
 
-		if (dest->IsPublic() && token)
+		if (dest->IsPublic() && token && !dest->IsEncryptedLeaseSet ())
 		{
 			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
 			auto base32 = dest->GetIdentHash ().ToBase32 ();
