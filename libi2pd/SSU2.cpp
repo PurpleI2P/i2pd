@@ -1487,7 +1487,7 @@ namespace transport
 		}
 		buf[7] = acnt; // acnt
 		htobe16buf (buf + 1, 5 + numRanges*2);
-		return 8;
+		return 8 + numRanges*2;
 	}
 
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
