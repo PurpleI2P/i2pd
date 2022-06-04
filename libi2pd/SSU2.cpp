@@ -645,7 +645,7 @@ namespace transport
 	{
 		// we are Alice
 		Header header;
-		uint8_t h[32], payload[40];
+		uint8_t h[32], payload[41];
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
 		RAND_bytes (header.buf + 8, 4); // random packet num
@@ -661,7 +661,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 25 - payloadSize, 1);
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (be32toh (header.h.packetNum), nonce);
