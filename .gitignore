@@ -8,12 +8,15 @@ netDb
 /libi2pd.a
 /libi2pdclient.a
 /libi2pdlang.a
+/libi2pdwebconsole.a
 /libi2pd.so
 /libi2pdclient.so
 /libi2pdlang.so
+/libi2pdwebconsole.so
 /libi2pd.dll
 /libi2pdclient.dll
 /libi2pdlang.dll
+/libi2pdwebconsole.dll
 *.exe
 
 

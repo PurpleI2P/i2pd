@@ -12,19 +12,22 @@ endif
 
 SHLIB := libi2pd.$(SHARED_SUFFIX)
 ARLIB := libi2pd.a
-SHLIB_LANG := libi2pdlang.$(SHARED_SUFFIX)
-ARLIB_LANG := libi2pdlang.a
 SHLIB_CLIENT := libi2pdclient.$(SHARED_SUFFIX)
 ARLIB_CLIENT := libi2pdclient.a
+SHLIB_LANG := libi2pdlang.$(SHARED_SUFFIX)
+ARLIB_LANG := libi2pdlang.a
+SHLIB_WEBCONSOLE := libi2pdwebconsole.$(SHARED_SUFFIX)
+ARLIB_WEBCONSOLE := libi2pdwebconsole.a
 SHLIB_WRAP := libi2pdwrapper.$(SHARED_SUFFIX)
 ARLIB_WRAP := libi2pdwrapper.a
 I2PD := i2pd
 
 LIB_SRC_DIR := libi2pd
 LIB_CLIENT_SRC_DIR := libi2pd_client
-WRAP_SRC_DIR := libi2pd_wrapper
+WEBCONSOLE_SRC_DIR := libi2pd_webconsole
 LANG_SRC_DIR := i18n
 DAEMON_SRC_DIR := daemon
+WRAP_SRC_DIR := libi2pd_wrapper
 
 # import source files lists
 include filelist.mk
@@ -72,31 +75,34 @@ ifeq ($(USE_GIT_VERSION),yes)
 	NEEDED_CXXFLAGS += -DGITVER=\"$(GIT_VERSION)\"
 endif
 
-NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR) -DOPENSSL_SUPPRESS_DEPRECATED
+NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR) -I$(WEBCONSOLE_SRC_DIR) -DOPENSSL_SUPPRESS_DEPRECATED
 
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 LANG_OBJS       += $(patsubst %.cpp,obj/%.o,$(LANG_SRC))
+WEBCONSOLE_OBJS += $(patsubst %.cpp,obj/%.o,$(WEBCONSOLE_SRC))
 DAEMON_OBJS     += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 WRAP_LIB_OBJS   += $(patsubst %.cpp,obj/%.o,$(WRAP_LIB_SRC))
-DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d) $(WRAP_LIB_OBJS:.o=.d)
+DEPS            += $(LIB_OBJS:.o=.d) $(LIB_CLIENT_OBJS:.o=.d) $(LANG_OBJS:.o=.d) $(WEBCONSOLE_OBJS:.o=.d) $(DAEMON_OBJS:.o=.d) $(WRAP_LIB_OBJS:.o=.d)
 
 ## Build all code (libi2pd, libi2pdclient, libi2pdlang), link it to .a and build binary
-all: $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(I2PD)
+all: $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG) $(ARLIB_WEBCONSOLE) $(I2PD)
 
 mk_obj_dir:
 	@mkdir -p obj/$(LIB_SRC_DIR)
 	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
 	@mkdir -p obj/$(LANG_SRC_DIR)
+	@mkdir -p obj/$(WEBCONSOLE_SRC_DIR)
 	@mkdir -p obj/$(DAEMON_SRC_DIR)
 	@mkdir -p obj/$(WRAP_SRC_DIR)
 	@mkdir -p obj/Win32
 
-api: $(SHLIB) $(ARLIB)
-client: $(SHLIB_CLIENT) $(ARLIB_CLIENT)
-lang:  $(SHLIB_LANG) $(ARLIB_LANG)
-api_client: api client lang
-wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
+api:        $(SHLIB) $(ARLIB)
+client:     $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+lang:       $(SHLIB_LANG) $(ARLIB_LANG)
+webconsole: $(SHLIB_WEBCONSOLE) $(ARLIB_WEBCONSOLE)
+api_client: api client lang webconsole
+wrapper:    api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -111,7 +117,7 @@ obj/%.o: %.cpp | mk_obj_dir
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
+$(I2PD): $(DAEMON_OBJS) $(ARLIB_WEBCONSOLE) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS) $(SHLIB_LANG)
@@ -124,12 +130,17 @@ ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB) $(SHLIB_LANG)
 endif
 
-$(SHLIB_WRAP): $(WRAP_LIB_OBJS)
+$(SHLIB_LANG): $(LANG_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
-$(SHLIB_LANG): $(LANG_OBJS)
+$(SHLIB_WEBCONSOLE): $(WEBCONSOLE_OBJS) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
+ifneq ($(USE_STATIC),yes)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
+endif
+
+$(SHLIB_WRAP): $(WRAP_LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
@@ -140,18 +151,21 @@ $(ARLIB): $(LIB_OBJS)
 $(ARLIB_CLIENT): $(LIB_CLIENT_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_WRAP): $(WRAP_LIB_OBJS)
+$(ARLIB_LANG): $(LANG_OBJS)
 	$(AR) -r $@ $^
 
-$(ARLIB_LANG): $(LANG_OBJS)
+$(ARLIB_WEBCONSOLE): $(WEBCONSOLE_OBJS)
+	$(AR) -r $@ $^
+
+$(ARLIB_WRAP): $(WRAP_LIB_OBJS)
 	$(AR) -r $@ $^
 
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG) $(SHLIB_WRAP) $(ARLIB_WRAP)
+	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT) $(SHLIB_LANG) $(ARLIB_LANG) $(SHLIB_WEBCONSOLE) $(ARLIB_WEBCONSOLE) $(SHLIB_WRAP) $(ARLIB_WRAP)
 
-strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG)
+strip: $(I2PD) $(SHLIB) $(SHLIB_CLIENT) $(SHLIB_LANG) $(SHLIB_WEBCONSOLE)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
