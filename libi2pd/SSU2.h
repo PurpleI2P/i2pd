@@ -86,6 +86,23 @@ namespace transport
 		eSSU2SessionStateFailed
 	};
 
+	enum SSU2PeerTestCode
+	{
+		eSSU2PeerTestCodeAccept = 0,
+		eSSU2PeerTestCodeBobReasonUnspecified = 1,
+		eSSU2PeerTestCodeBobNoCharlieAvailable = 2,
+		eSSU2PeerTestCodeBobLimitExceeded = 3,
+		eSSU2PeerTestCodeBobSignatureFailure = 4,
+		eSSU2PeerTestCodeCharlieReasonUnspecified = 64,
+		eSSU2PeerTestCodeCharlieUnsupportedAddress = 65,
+		eSSU2PeerTestCodeCharlieLimitExceeded = 66,
+		eSSU2PeerTestCodeCharlieSignatureFailure = 67,
+		eSSU2PeerTestCodeCharlieAliceIsAlreadyConnected = 68,
+		eSSU2PeerTestCodeCharlieAliceIsBanned = 69,
+		eSSU2PeerTestCodeCharlieAliceIsUnknown = 70,
+		eSSU2PeerTestCodeUnspecified = 128
+	};	
+	
 	struct SSU2IncompleteMessage
 	{
 		struct Fragment
@@ -218,7 +235,7 @@ namespace transport
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce); // Charlie
-			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
+			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 
 		private:

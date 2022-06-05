@@ -1022,7 +1022,6 @@ namespace transport
 				break;
 				case eSSU2BlkRelayTagRequest:
 					LogPrint (eLogDebug, "SSU2: RelayTagRequest");
-					HandleRelayRequest (buf + offset, size);
 					if (!m_RelayTag)
 					{
 						RAND_bytes ((uint8_t *)&m_RelayTag, 4);
@@ -1305,7 +1304,16 @@ namespace transport
 		switch (buf[0]) // msg
 		{
 			case 1: // Bob from Alice
-			break;
+			{	
+				// TODO: find Charlie	
+				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE], zeroHash[32] = {0};
+				size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
+					eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + 3, len - 3);
+				if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
+					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+				SendData (payload, payloadSize);
+				break;
+			}
 			case 2: // Charlie from Bob
 			break;
 			case 3: // Bob from Charlie
@@ -1314,7 +1322,8 @@ namespace transport
 				if (it != m_PeerTests.end () && it->second.first)
 				{
 					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, buf + 3, buf + 35, len -35);
+					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
+						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
 					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					it->second.first->SendData (payload, payloadSize);
@@ -1589,7 +1598,7 @@ namespace transport
 		return payloadSize + 3;
 	}
 
-	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg,
+	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code,
 		const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen)
 	{
 		buf[0] = eSSU2BlkPeerTest;
@@ -1598,7 +1607,7 @@ namespace transport
 		if (payloadSize + 3 > len) return 0;
 		htobe16buf (buf + 1, payloadSize); // size
 		buf[3] = msg; // msg
-		buf[4] = 0; // code, TODO:
+		buf[4] = (uint8_t)code; // code
 		buf[5] = 0; //flag
 		size_t offset = 6;
 		if (routerHash)
@@ -1628,7 +1637,8 @@ namespace transport
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (signedData, 10 + asz); // ver, nonce, ts, asz, Alice's endpoint 	
 		s.Sign (i2p::context.GetPrivateKeys (), signedData + 10 + asz);
-		return CreatePeerTestBlock (buf, len, 1, nullptr, signedData, 10 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
+		return CreatePeerTestBlock (buf, len, 1, eSSU2PeerTestCodeAccept, nullptr, 
+			signedData, 10 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
 	}	
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
