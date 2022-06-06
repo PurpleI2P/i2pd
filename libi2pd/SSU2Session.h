@@ -164,7 +164,7 @@ namespace transport
 
 			void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
-			void SendPeerTest ();
+			void SendPeerTest (); // Alice, Data message
 			void Terminate ();
 			void TerminateByTimeout ();
 			void CleanUp (uint64_t ts);
@@ -205,7 +205,9 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey);
-
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
+				const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey); // PeerTest message 
+			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum);

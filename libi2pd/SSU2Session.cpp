@@ -15,7 +15,6 @@
 #include "NetDb.hpp"
 #include "SSU2.h"
 
-
 namespace i2p
 {
 namespace transport
@@ -840,6 +839,43 @@ namespace transport
 		return true;
 	}
 
+	void SSU2Session::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen,
+		const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey)
+	{
+		Header header;
+		uint8_t h[32], payload[SSU2_MAX_PAYLOAD_SIZE];
+		// fill packet
+		header.h.connID = m_DestConnID; // dest id
+		RAND_bytes (header.buf + 8, 4); // random packet num
+		header.h.type = eSSU2PeerTest;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &m_SourceConnID, 8); // source id
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		size_t payloadSize = 7;
+		if (msg == 6 || msg == 7)
+			payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, ep);
+		payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 
+			msg, eSSU2PeerTestCodeAccept, nullptr, signedData, signedDataLen);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+		// encrypt
+		uint8_t n[12];
+		CreateNonce (be32toh (header.h.packetNum), n);
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, introKey, n, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (introKey, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (introKey, payload + (payloadSize - 12));
+		memset (n, 0, 12);
+		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
+		// send
+		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+	}	
+		
 	bool SSU2Session::ProcessPeerTest (uint8_t * buf, size_t len)
 	{
 		// we are Alice or Charlie
@@ -1302,13 +1338,28 @@ namespace transport
 				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE], zeroHash[32] = {0};
 				size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
 					eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + 3, len - 3);
-				if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
-					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+				payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 				SendData (payload, payloadSize);
 				break;
 			}
 			case 2: // Charlie from Bob
-			break;
+			{
+				SSU2PeerTestCode code = eSSU2PeerTestCodeAccept;
+				auto r = i2p::data::netdb.FindRouter (buf + 3); // find Alice
+				if (r)
+				{
+					// TODO: send msg 5 to Alice
+				}
+				else
+					code = eSSU2PeerTestCodeCharlieAliceIsUnknown;
+				// send msg 3 back to Bob
+				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+				size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 3, 
+					code, nullptr, buf + 35, len - 35);
+				payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+				SendData (payload, payloadSize);
+				break;
+			}	
 			case 3: // Bob from Charlie
 			{
 				auto it = m_PeerTests.find (nonce);
