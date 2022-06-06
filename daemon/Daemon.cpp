@@ -58,9 +58,7 @@ namespace util
 	bool Daemon_Singleton::IsService () const
 	{
 		bool service = false;
-#ifndef _WIN32
 		i2p::config::GetOption("service", service);
-#endif
 		return service;
 	}
 
