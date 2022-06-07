@@ -96,7 +96,6 @@ endif()
 
 set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
-  "${DAEMON_SRC_DIR}/HTTPServer.cpp"
   "${DAEMON_SRC_DIR}/I2PControl.cpp"
   "${DAEMON_SRC_DIR}/i2pd.cpp"
   "${DAEMON_SRC_DIR}/UPnP.cpp"
