@@ -33,11 +33,13 @@ target_architecture(ARCHITECTURE)
 
 set(LIBI2PD_SRC_DIR ../libi2pd)
 set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
+set(WEBCONSOLE_SRC_DIR ../libi2pd_webconsole)
 set(LANG_SRC_DIR ../i18n)
 set(DAEMON_SRC_DIR ../daemon)
 
 include_directories(${LIBI2PD_SRC_DIR})
 include_directories(${LIBI2PD_CLIENT_SRC_DIR})
+include_directories(${WEBCONSOLE_SRC_DIR})
 include_directories(${LANG_SRC_DIR})
 include_directories(${DAEMON_SRC_DIR})
 
@@ -63,6 +65,18 @@ set_target_properties(libi2pdclient PROPERTIES PREFIX "")
 if(WITH_LIBRARY)
   install(TARGETS libi2pdclient
     EXPORT libi2pdclient
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT Libraries)
+endif()
+
+FILE(GLOB WEBCONSOLE_SRC ${WEBCONSOLE_SRC_DIR}/*.cpp)
+add_library(libi2pdwebconsole ${WEBCONSOLE_SRC})
+set_target_properties(libi2pdwebconsole PROPERTIES PREFIX "")
+
+if(WITH_LIBRARY)
+  install(TARGETS libi2pdwebconsole
+    EXPORT libi2pdwebconsole
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
@@ -185,7 +199,7 @@ else()
   add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif()
 
-target_link_libraries(libi2pdclient libi2pd libi2pdlang)
+target_link_libraries(libi2pdwebconsole libi2pdclient libi2pd libi2pdlang)
 
 find_package(Boost COMPONENTS system filesystem program_options date_time REQUIRED)
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -266,7 +280,7 @@ if(WITH_BINARY)
   endif()
 
   target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pdwebconsole libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
