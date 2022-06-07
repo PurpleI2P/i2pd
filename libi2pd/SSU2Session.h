@@ -205,8 +205,7 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey);
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
-				const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey); // PeerTest message 
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message 
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);

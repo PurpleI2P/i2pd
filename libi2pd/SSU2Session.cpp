@@ -839,8 +839,7 @@ namespace transport
 		return true;
 	}
 
-	void SSU2Session::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen,
-		const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey)
+	void SSU2Session::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey)
 	{
 		Header header;
 		uint8_t h[32], payload[SSU2_MAX_PAYLOAD_SIZE];
@@ -859,7 +858,7 @@ namespace transport
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
 		if (msg == 6 || msg == 7)
-			payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, ep);
+			payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, m_RemoteEndpoint);
 		payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 
 			msg, eSSU2PeerTestCodeAccept, nullptr, signedData, signedDataLen);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
@@ -873,7 +872,7 @@ namespace transport
 		memset (n, 0, 12);
 		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
 		// send
-		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
 	}	
 		
 	bool SSU2Session::ProcessPeerTest (uint8_t * buf, size_t len)
@@ -1348,7 +1347,43 @@ namespace transport
 				auto r = i2p::data::netdb.FindRouter (buf + 3); // find Alice
 				if (r)
 				{
-					// TODO: send msg 5 to Alice
+					size_t signatureLen = r->GetIdentity ()->GetSignatureLen ();
+					if (len >= 35 + signatureLen)
+					{	
+						SignedData s;
+						s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
+						s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+						s.Insert (buf + 35 + signatureLen, len - 35 - signatureLen); // signed data
+						if (s.Verify (r->GetIdentity (), buf + (len - signatureLen)))
+						{	
+							if (!m_Server.FindSession (r->GetIdentity ()->GetIdentHash ()))
+							{	
+								boost::asio::ip::udp::endpoint ep;
+								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
+								if (ExtractEndpoint (buf + 44, len - 44, ep))
+									addr = ep.address ().is_v4 () ? r->GetSSU2V4Address () : r->GetSSU2V6Address ();
+								if (addr)
+								{	
+									// TODO: compare ep with addr
+									// send msg 5 to Alice
+									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
+									session->SetState (eSSU2SessionStatePeerTest);	
+									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+									session->m_SourceConnID = ~session->m_SourceConnID;
+									m_Server.AddSession (session);
+									session->SendPeerTest (5, buf + 35, len - 35, addr->i);
+								}	
+								else
+									code = eSSU2PeerTestCodeCharlieUnsupportedAddress;
+							}
+							else
+								code = eSSU2PeerTestCodeCharlieAliceIsAlreadyConnected;
+						}
+						else 
+							code = eSSU2PeerTestCodeCharlieSignatureFailure; 
+					}	
+					else // maformed message
+						code = eSSU2PeerTestCodeCharlieReasonUnspecified;
 				}
 				else
 					code = eSSU2PeerTestCodeCharlieAliceIsUnknown;
@@ -1393,9 +1428,11 @@ namespace transport
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) != m_SourceConnID)
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce);
 			break;
-			case 6: // Chralie from Alice
+			case 6: // Charlie from Alice
+				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			case 7: // Alice from Charlie 2
+				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);

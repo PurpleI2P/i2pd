@@ -53,7 +53,8 @@ namespace transport
 			void RemoveSession (uint64_t connID);
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);
 			void AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session);
-
+			std::shared_ptr<SSU2Session> FindSession (const i2p::data::IdentHash& ident) const;
+		
 			void AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay);
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSU2Session> FindRelaySession (uint32_t tag);

@@ -237,6 +237,14 @@ namespace transport
 			m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session);
 	}
 
+	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident) const
+	{
+		auto it = m_SessionsByRouterHash.find (ident);
+		if (it != m_SessionsByRouterHash.end ())
+			return it->second;
+		return nullptr;
+	}	
+		
 	void SSU2Server::AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay)
 	{
 		m_Relays.emplace (tag, relay);
