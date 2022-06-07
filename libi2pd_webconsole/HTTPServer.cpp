@@ -58,7 +58,7 @@ namespace http {
 	static void GetStyles (std::stringstream& s)
 	{
 		if (externalCSS.length() != 0)
-			s << "<style>\r\n" << externalCSS << "</style>\r\n";
+			s << externalCSS;
 		else
 			s << internalCSS;
 	}
@@ -182,9 +182,11 @@ namespace http {
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P Webconsole</title>\r\n";
+			"  <title>Purple I2P Webconsole</title>\r\n"
+			"  <style>";
 		GetStyles(s);
 		s <<
+			"\r\n</style>\r\n"
 			"</head>\r\n"
 			"<body>\r\n"
 			"<div class=\"header\">" << tr("<b>i2pd</b> webconsole") << "</div>\r\n"
@@ -282,9 +284,6 @@ namespace http {
 			s << "<br>\r\n";
 		}
 #endif
-		auto family = i2p::context.GetFamily ();
-		if (family.length () > 0)
-			s << "<b>"<< tr("Family") << ":</b> " << family << "<br>\r\n";
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());

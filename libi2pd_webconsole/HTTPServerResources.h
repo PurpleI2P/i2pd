@@ -33,7 +33,6 @@ namespace http
 
 	// bundled style sheet
 	const std::string internalCSS =
-		"<style>\r\n"
 		":root { --main-bg-color: #fafafa; --main-text-color: #103456; --main-link-color: #894c84; --main-link-hover-color: #fafafa; }\r\n"
 		"@media (prefers-color-scheme: dark) { :root { --main-bg-color: #242424; --main-text-color: #17ab5c; --main-link-color: #bf64b7; --main-link-hover-color: #000000; } }\r\n"
 		"body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: var(--main-bg-color); color: var(--main-text-color); }\r\n"
@@ -86,10 +85,125 @@ namespace http
 		"	button[type=submit] { padding: 5px 15px; background: transparent; border: 2px solid var(--main-link-color); cursor: pointer;\r\n"
 		"		border-radius: 5px; position: relative; height: 36px; display: -webkit-inline-box; margin-top: 10px; }\r\n"
 		"}\r\n"
-		"</style>\r\n";
 
 	// for external style sheet
 	std::string externalCSS;
+
+	const std::string pageBase =
+"<!DOCTYPE html> \
+<html lang=\"{{ langCode }}\"> \
+<head> \
+	{% block head %} \
+	<meta charset=\"UTF-8\"> \
+	<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> \
+	<link rel=\"shortcut icon\" href=\"{% getFavicon() %}\"> \
+	<title>{% block title %}{% endblock %} - Purple I2P Webconsole</title> \
+	<style>{% getStyles() %}</style> \
+	{% endblock %} \
+</head> \
+<body> \
+	<div class=\"header\">{% tr(\"<b>i2pd</b> webconsole\") %}</div> \
+	<div class=\"wrapper\"> \
+		<div class=\"menu\"> \
+			<a href=\"{{ webroot }}\">{% tr(\"Main page\") %}</a><br><br> \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_COMMANDS\") %}\">{% tr(\"Router commands\") %}</a><br> \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_LOCAL_DESTINATIONS\") %}\">{% tr(\"Local Destinations\") %}</a><br> \
+			{% if isFloodfill %} \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_LEASESETS\") %}\">{% tr(\"LeaseSets\") %}</a><br> \
+			{% endif %} \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_TUNNELS\") %}\">{% tr(\"Tunnels\") %}</a><br> \
+			{% if (acceptingTunnels || transitTunnels) %} \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_TRANSIT_TUNNELS\") %}\">{% tr(\"Transit Tunnels\") %}</a><br> \
+			{% endif %} \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_TRANSPORTS\") %}\">{% tr(\"Transports\") %}</a><br> \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_I2P_TUNNELS\") %}\">{% tr(\"I2P tunnels\") %}</a><br> \
+			{% if samEnabled %} \
+			<a href=\"{{ webroot }}?page={% getCommand(\"HTTP_PAGE_SAM_SESSIONS\") %}\">{% tr(\"SAM sessions\") %}</a><br> \
+			{% endif %} \
+		</div> \
+		<div class=\"content\">{% block content %}{% endblock %}</div> \
+	</div> \
+</body> \
+</html>"
+
+	const std::string pageMain =
+"{% extends \"base.html\" %} \
+{% block title %}Main{% endblock %} \
+{% block content %} \
+	<b>{% tr(\"Uptime\") %}:</b> {% getUptime() %}<br> \
+	<b>{% tr(\"Network status\") %}:</b> {% getNetworkStatus(false) %}<br> \
+	{% if supportsV6 %} \
+	<b>{% tr(\"Network status v6\") %}:</b> {% getNetworkStatus(true) %}<br> \
+	{% endif %} \
+	{% if gracefulShutdown %} \
+	<b>{% tr(\"Stopping in\") %}:</b> {% getShutdownTimer() %}<br> \
+	{% endif %} \
+	<b>{% tr(\"Tunnel creation success rate\") %}:</b> {% getSuccessRate() %}%<br> \
+	<b>{% tr(\"Received\") %}:</b> {% getInBytes() %} ({% getInBW() %} {% tr(/* tr: Kibibit/s */ \"KiB/s\") %})<br> \
+	<b>{% tr(\"Sent\") %}:</b> {% getOutBytes() %} ({% getOutBW() %} {% tr(/* tr: Kibibit/s */ \"KiB/s\") %})<br> \
+	<b>{% tr(\"Transit\") %}:</b> {% getTransitBytes() %} ({% getTransitBW() %} {% tr(/* tr: Kibibit/s */ \"KiB/s\") %})<br> \
+	<b>{% tr(\"Data path\") %}:</b> {% getDataPath() %}<br> \
+	{% if notQt || withHiddenContent %} \
+	<div class=\"slide\"> \
+		<label for=\"slide-info\">{% tr(\"Hidden content. Press on text to see.\") %}</label> \
+		<input type=\"checkbox\" id=\"slide-info\" /> \
+		<div class=\"slidecontent\"> \
+			<b>{% tr(\"Router Ident\") %}:</b> {% getRI() %}<br> \
+			{% if lenght(family) %} \
+			<b>{% tr(\"Family\") %}:</b> {{ family }}<br> \
+			{% endif %} \
+			<b>{% tr(\"Router Caps\") %}:</b> {% getCaps() %}<br> \
+			<b>{% tr(\"Version\") %}:</b> {{ version }}<br> \
+			<b>{% tr(\"Our external address\") %}:</b><br> \
+			<table class=\"extaddr\"> \
+				<tbody> \
+					{% for type, address in addresses %} \
+					<tr><td>{{ type }}</td><td>{{ address }}</td></tr> \
+					{% endfor %} \
+				</tbody> \
+			</table> \
+		</div> \
+	</div> \
+	{% else %} \
+	<br> \
+	{% endif %} \
+	<b>{% tr(\"Routers\") %}:</b> {% getNumRouter() %} \
+	<b>{% tr(\"Floodfills\") %}:</b> {% getNumFloodfills() %} \
+	<b>{% tr(\"LeaseSets\") %}:</b> {% getNumLeaseSets() %}<br> \
+	<b>{% tr(\"Client Tunnels\") %}:</b> {% getClientTunnelsCount() %} \
+	<b>{% tr(\"Transit Tunnels\") %}:</b> {% getTransitTunnelsCount() %}<br> \
+	<br> \
+	{% if notQt == false %} \
+	<table class=\"services\"> \
+		<caption>{% tr(\"Services\") %}</caption> \
+		<tbody> \
+			<tr> \
+				<td>HTTP {% tr(\"Proxy\") %}</td> \
+				<td class=\"{% if httpproxy %}enabled{% else %}disabled{% endif %}\">{% if httpproxy %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+			<tr> \
+				<td>SOCKS {% tr(\"Proxy\") %}</td> \
+				<td class=\"{% if socksproxy %}enabled{% else %}disabled{% endif %}\">{% if socksproxy %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+			<tr> \
+				<td>BOB</td> \
+				<td class=\"{% if bob %}enabled{% else %}disabled{% endif %}\">{% if bob %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+			<tr> \
+				<td>SAM</td> \
+				<td class=\"{% if sam %}enabled{% else %}disabled{% endif %}\">{% if sam %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+			<tr> \
+				<td>I2CP</td> \
+				<td class=\"{% if i2cp %}enabled{% else %}disabled{% endif %}\">{% if i2cp %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+			<tr> \
+				<td>I2PControl</td> \
+				<td class=\"{% if i2pcontrol %}enabled{% else %}disabled{% endif %}\">{% if i2pcontrol %}{% tr(\"Enabled\") %}{% else %}{% tr(\"Disabled\") %}{% endif %}</td> \
+			</tr> \
+		</tbody> \
+	</table> \
+{% endblock %}"
 
 } // http
 } // i2p
