@@ -905,6 +905,21 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2Address (bool v4) const
+	{
+		if (v4)
+		{	
+			if (m_SupportedTransports & eSSU2V4)
+				return GetSSU2V4Address ();
+		}
+		else
+		{
+			if (m_SupportedTransports & eSSU2V6)
+				return GetSSU2V6Address ();
+		}	
+		return nullptr;
+	}	
+		
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{

@@ -1361,13 +1361,13 @@ namespace transport
 								boost::asio::ip::udp::endpoint ep;
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 								if (ExtractEndpoint (buf + 44, len - 44, ep))
-									addr = ep.address ().is_v4 () ? r->GetSSU2V4Address () : r->GetSSU2V6Address ();
+									addr = r->GetSSU2Address (ep.address ().is_v4 ());
 								if (addr)
 								{	
-									// TODO: compare ep with addr
 									// send msg 5 to Alice
 									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
 									session->SetState (eSSU2SessionStatePeerTest);	
+									session->m_RemoteEndpoint = ep; // might be different
 									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 									session->m_SourceConnID = ~session->m_SourceConnID;
 									m_Server.AddSession (session);
@@ -1417,7 +1417,14 @@ namespace transport
 				auto it = m_PeerTests.find (nonce);
 				if (it != m_PeerTests.end ())
 				{
-					// TODO: update Charlie's session RouterInfo
+					auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
+					if (r && it->second.first)
+					{	
+						it->second.first->SetRemoteIdentity (r->GetIdentity ());
+						auto addr = r->GetSSU2Address (m_Address->IsV4 ());
+						if (addr)
+							it->second.first->m_Address = addr;
+					}	
 					m_PeerTests.erase (it);
 				}	
 				else
@@ -1425,10 +1432,22 @@ namespace transport
 				break;
 			}	
 			case 5: // Alice from Charlie 1
-				if (htobe64 (((uint64_t)nonce << 32) | nonce) != m_SourceConnID)
+				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
+				{
+					if (m_Address)
+						SendPeerTest (6, buf + 3, len - 3, m_Address->i);
+					else
+						// TODO: we should wait for msg 4
+						LogPrint (eLogWarning, "SSU2: Unknown addrees for peer test 5");
+				}	
+				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce);
 			break;
 			case 6: // Charlie from Alice
+				if (m_Address)
+					SendPeerTest (7, buf + 3, len - 3, m_Address->i);
+				else
+					LogPrint (eLogWarning, "SSU2: Unknown addrees for peer test 6");
 				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			case 7: // Alice from Charlie 2
@@ -1490,12 +1509,7 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo::Address> SSU2Session::FindLocalAddress () const
 	{
 		if (m_Address)
-		{	
-			if (m_Address->IsV4 ())
-				return i2p::context.GetRouterInfo ().GetSSU2V4Address ();
-			if (m_Address->IsV6 ())
-				return i2p::context.GetRouterInfo ().GetSSU2V6Address ();
-		}	
+			return i2p::context.GetRouterInfo ().GetSSU2Address (m_Address->IsV4 ());
 		return nullptr;
 	}	
 		

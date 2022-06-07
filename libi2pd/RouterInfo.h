@@ -193,6 +193,7 @@ namespace data
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 			std::shared_ptr<const Address> GetSSU2V4Address () const;
 			std::shared_ptr<const Address> GetSSU2V6Address () const;
+			std::shared_ptr<const Address> GetSSU2Address (bool v4) const;
 
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
