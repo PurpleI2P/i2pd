@@ -1101,7 +1101,7 @@ namespace transport
 			if (*ranges > lastPacketNum) break;
 			lastPacketNum -= *ranges; ranges++; // nacks
 			if (*ranges > lastPacketNum) break;
-			firstPacketNum = lastPacketNum - *ranges; ranges++; // acks
+			firstPacketNum = lastPacketNum - *ranges + 1; ranges++; // acks
 			len -= 2;
 			HandleAckRange (firstPacketNum, lastPacketNum);
 		}
@@ -1112,7 +1112,7 @@ namespace transport
 		if (firstPacketNum > lastPacketNum) return;
 		auto it = m_SentPackets.begin ();
 		while (it != m_SentPackets.end () && it->first < firstPacketNum) it++; // find first acked packet
-		if (it == m_SentPackets.end ()) return; // not found
+		if (it == m_SentPackets.end () || it->first > lastPacketNum) return; // not found
 		auto it1 = it;
 		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) it1++;
 		if (it1 != m_SentPackets.end () && it1 != m_SentPackets.begin ()) it1--;
