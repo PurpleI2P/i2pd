@@ -423,6 +423,10 @@ namespace util
 			try
 			{
 				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
+				d.httpServer->SetDaemonStop (std::bind (Daemon_Singleton::stop, this));
+#if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
+				d.httpServer->SetDaemonGracefulTimer (std::bind (Daemon_Singleton::stop, this));
+#endif
 				d.httpServer->Start();
 			}
 			catch (std::exception& ex)

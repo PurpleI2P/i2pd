@@ -84,7 +84,7 @@ namespace http
 		"		border-radius: 5px; font-size: 12px; }\r\n"
 		"	button[type=submit] { padding: 5px 15px; background: transparent; border: 2px solid var(--main-link-color); cursor: pointer;\r\n"
 		"		border-radius: 5px; position: relative; height: 36px; display: -webkit-inline-box; margin-top: 10px; }\r\n"
-		"}\r\n"
+		"}\r\n";
 
 	// for external style sheet
 	std::string externalCSS;
@@ -124,7 +124,7 @@ namespace http
 		<div class=\"content\">{% block content %}{% endblock %}</div> \
 	</div> \
 </body> \
-</html>"
+</html>";
 
 	const std::string pageMain =
 "{% extends \"base.html\" %} \
@@ -203,7 +203,7 @@ namespace http
 			</tr> \
 		</tbody> \
 	</table> \
-{% endblock %}"
+{% endblock %}";
 
 } // http
 } // i2p

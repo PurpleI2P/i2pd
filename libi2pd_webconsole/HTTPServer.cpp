@@ -27,14 +27,17 @@
 #include "RouterContext.h"
 #include "ClientContext.h"
 #include "HTTPServer.h"
-#include "Daemon.h"
 #include "util.h"
 #include "ECIESX25519AEADRatchetSession.h"
 #include "I18N.h"
 
 #ifdef WIN32_APP
+#include "Daemon.h"
 #include "Win32App.h"
 #endif
+
+// Inja template engine
+#include "inja/inja.hpp"
 
 // For image, style and info
 #include "version.h"
@@ -270,8 +273,10 @@ namespace http {
 			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
 			s << "<br>\r\n";
 		}
+
+		// TODO: rewrite timer access
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-		if (auto remains = Daemon.gracefulShutdownInterval) {
+		if (auto remains = m_DaemonGracefulTimer) {
 			s << "<b>" << tr("Stopping in") << ":</b> ";
 			ShowUptime(s, remains);
 			s << "<br>\r\n";
@@ -1240,8 +1245,9 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START)
 		{
 			i2p::context.SetAcceptsTunnels (false);
+			// TODO: rewrite timer access
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-			Daemon.gracefulShutdownInterval = 10*60;
+			if (m_DaemonGracefulTimer) m_DaemonGracefulTimer = 10 * 60;
 #elif defined(WIN32_APP)
 			i2p::win32::GracefulShutdown ();
 #endif
@@ -1249,16 +1255,18 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
 		{
 			i2p::context.SetAcceptsTunnels (true);
+			// TODO: rewrite timer access
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
-			Daemon.gracefulShutdownInterval = 0;
+			if (m_DaemonGracefulTimer) m_DaemonGracefulTimer = 0;
 #elif defined(WIN32_APP)
 			i2p::win32::StopGracefulShutdown ();
 #endif
 		}
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW)
 		{
+			// TODO: rewrite stop command access
 #ifndef WIN32_APP
-			Daemon.running = false;
+			if (m_DaemonStop) m_DaemonStop();
 #else
 			i2p::win32::StopWin32App ();
 #endif

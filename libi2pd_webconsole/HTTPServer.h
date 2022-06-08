@@ -69,6 +69,11 @@ namespace http
 			void Start ();
 			void Stop ();
 
+			typedef std::function<void ()> DaemonStop;
+			typedef int DaemonGracefulTimer;
+			void SetDaemonStop (const DaemonStop& f) { m_DaemonStop = f; };
+			void SetDaemonGracefulTimer (const DaemonGracefulTimer& f) { m_DaemonGracefulTimer = f; };
+
 		private:
 
 			void Run ();
@@ -85,6 +90,11 @@ namespace http
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::string m_Hostname;
+
+		private:
+
+			DaemonStop m_DaemonStop;
+			DaemonGracefulTimer m_DaemonGracefulTimer;
 	};
 
 	//all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
