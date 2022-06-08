@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifdef _WIN32
+
 #include <thread>
 #include <clocale>
 #include "Config.h"
@@ -13,7 +15,6 @@
 #include "util.h"
 #include "Log.h"
 
-#ifdef _WIN32
 #include "Win32Service.h"
 #ifdef WIN32_APP
 #include <windows.h>
@@ -38,6 +39,9 @@ namespace util
 			}
 		);
 
+		i2p::win32::SetIsGraceful (std::bind (&DaemonWin32::SetIsGraceful, this, std::placeholders::_1));
+		i2p::win32::GetIsGraceful (std::bind (&DaemonWin32::GetIsGraceful, this));
+
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
 
@@ -45,6 +49,8 @@ namespace util
 		{
 			LogPrint(eLogDebug, "Daemon: running as service");
 			I2PService service((PSTR)SERVICE_NAME);
+			service.SetDaemonStart (std::bind (&DaemonWin32::start, this));
+			service.SetDaemonStop (std::bind (&DaemonWin32::stop, this));
 			if (!I2PService::Run(service))
 			{
 				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());

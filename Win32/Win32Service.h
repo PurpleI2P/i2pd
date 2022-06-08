@@ -6,9 +6,10 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#ifndef WIN_32_SERVICE_H__
-#define WIN_32_SERVICE_H__
+#ifndef WIN32SERVICE_H__
+#define WIN32SERVICE_H__
 
+#include <functional>
 #include <thread>
 #include <windows.h>
 
@@ -28,6 +29,13 @@ class I2PService
 		static BOOL isService();
 		static BOOL Run(I2PService &service);
 		void Stop();
+
+		typedef std::function<bool ()> DaemonStart;
+		void SetDaemonStart (const DaemonStart& f) { m_daemonStart = f; };
+
+		typedef std::function<bool ()> DaemonStop;
+		void SetDaemonStop (const DaemonStop& f) { m_daemonStop = f; };
+
 
 	protected:
 
@@ -58,6 +66,11 @@ class I2PService
 		HANDLE m_hStoppedEvent;
 
 		std::thread* _worker;
+
+	private:
+
+		DaemonStart m_daemonStart;
+		DaemonStop m_daemonStop;
 };
 
-#endif // WIN_32_SERVICE_H__
+#endif // WIN32SERVICE_H__

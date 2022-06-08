@@ -75,14 +75,17 @@ namespace util
 				return instance;
 			}
 
-			bool init(int argc, char* argv[]);
-			bool start();
-			bool stop();
+			bool init (int argc, char* argv[]);
+			bool start ();
+			bool stop ();
 			void run ();
 
-			bool isGraceful;
+			void SetIsGraceful (bool state) { m_isGraceful = state; };
+			const bool GetIsGraceful () { return m_isGraceful; };
 
-			DaemonWin32 ():isGraceful(false) {}
+		private:
+
+			bool m_isGraceful;
 	};
 #elif (defined(ANDROID) && !defined(ANDROID_BINARY))
 #define Daemon i2p::util::DaemonAndroid::Instance()
@@ -109,8 +112,8 @@ namespace util
 				return instance;
 			}
 
-			bool start();
-			bool stop();
+			bool start ();
+			bool stop ();
 			void run ();
 
 		private:

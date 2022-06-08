@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -22,6 +22,15 @@ namespace win32
 	int RunWin32App ();
 	bool GracefulShutdown ();
 	bool StopGracefulShutdown ();
+
+	inline typedef std::function<void (bool)> DaemonSetIsGraceful;
+	inline DaemonSetIsGraceful m_setIsGraceful;
+	inline void SetIsGraceful (const DaemonSetIsGraceful& f) { m_setIsGraceful = f; };
+
+	inline typedef std::function<bool ()> DaemonGetIsGraceful;
+	inline DaemonGetIsGraceful m_getIsGraceful;
+	inline void GetIsGraceful (const DaemonGetIsGraceful& f) { m_getIsGraceful = f; };
+
 }
 }
 #endif // WIN32APP_H__

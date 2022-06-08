@@ -25,11 +25,13 @@ namespace http
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
 	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
 
+	class HTTPServer;
+
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
 		public:
 
-			HTTPConnection (std::string serverhost, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			HTTPConnection (std::string serverhost, std::shared_ptr<boost::asio::ip::tcp::socket> socket, HTTPServer& server);
 			void Receive ();
 
 		private:
@@ -48,6 +50,7 @@ namespace http
 		private:
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
+			HTTPServer& m_Server;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
 			std::string m_SendBuffer;
@@ -70,9 +73,11 @@ namespace http
 			void Stop ();
 
 			typedef std::function<void ()> DaemonStop;
-			typedef int DaemonGracefulTimer;
 			void SetDaemonStop (const DaemonStop& f) { m_DaemonStop = f; };
-			void SetDaemonGracefulTimer (const DaemonGracefulTimer& f) { m_DaemonGracefulTimer = f; };
+			DaemonStop GetDaemonStop () { return m_DaemonStop; };
+
+			void SetDaemonGracefulTimer (const int& f) { m_DaemonGracefulTimer = f; };
+			int GetDaemonGracefulTimer () { return m_DaemonGracefulTimer; };
 
 		private:
 
@@ -94,7 +99,7 @@ namespace http
 		private:
 
 			DaemonStop m_DaemonStop;
-			DaemonGracefulTimer m_DaemonGracefulTimer;
+			int m_DaemonGracefulTimer;
 	};
 
 	//all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml

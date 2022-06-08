@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <windows.h>
 
-#include "Daemon.h"
 #include "Log.h"
 
 I2PService *I2PService::s_service = NULL;
@@ -132,7 +131,13 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
 	LogPrint(eLogInfo, "Win32Service: in OnStart (", EVENTLOG_INFORMATION_TYPE, ")");
-	Daemon.start();
+	if(m_daemonStart)
+		m_daemonStart();
+	else
+	{
+		LogPrint(eLogError, "Win32Service: failed to start: Unable to call callback");
+		SetServiceStatus(SERVICE_STOPPED);
+	}
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
 
@@ -171,7 +176,11 @@ void I2PService::OnStop()
 {
 	// Log a service stop message to the Application log.
 	LogPrint(eLogInfo, "Win32Service: in OnStop (", EVENTLOG_INFORMATION_TYPE, ")");
-	Daemon.stop();
+	if(m_daemonStop)
+		m_daemonStop();
+	else
+		LogPrint(eLogError, "Win32Service: failed to stop: Unable to call callback");
+
 	m_fStopping = TRUE;
 	if (WaitForSingleObject(m_hStoppedEvent, INFINITE) != WAIT_OBJECT_0)
 	{

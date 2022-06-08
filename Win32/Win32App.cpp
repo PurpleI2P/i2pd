@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,7 +18,7 @@
 #include "Tunnel.h"
 #include "version.h"
 #include "resource.h"
-#include "Daemon.h"
+
 #include "Win32App.h"
 #include "Win32NetState.h"
 
@@ -55,13 +55,15 @@ namespace win32
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
 		if(!i2p::context.AcceptsTunnels())
-			InsertMenu (hPopup, -1,
-				i2p::util::DaemonWin32::Instance ().isGraceful ? MF_BYPOSITION | MF_STRING | MF_GRAYED : MF_BYPOSITION | MF_STRING,
-				ID_ACCEPT_TRANSIT, "Accept &transit");
+			if(m_getIsGraceful)
+				if(m_getIsGraceful())
+					InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING | MF_GRAYED, ID_ACCEPT_TRANSIT, "Accept &transit");
+			else 
+				InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ACCEPT_TRANSIT, "Accept &transit");
 		else
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_DECLINE_TRANSIT, "Decline &transit");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload tunnels config");
-		if (!i2p::util::DaemonWin32::Instance ().isGraceful)
+		if (!m_getIsGraceful)
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
 		else
 			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_STOP_GRACEFUL_SHUTDOWN, "Stop &graceful shutdown");
@@ -270,7 +272,7 @@ namespace win32
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
 						SetTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER, 1000, nullptr); // check tunnels every second
 						g_GracefulShutdownEndtime = GetTickCount() + 10*60*1000;
-						i2p::util::DaemonWin32::Instance ().isGraceful = true;
+						if (m_setIsGraceful) m_setIsGraceful(true);
 						return 0;
 					}
 					case ID_STOP_GRACEFUL_SHUTDOWN:
@@ -279,7 +281,7 @@ namespace win32
 						KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
 						KillTimer (hWnd, IDT_GRACEFUL_TUNNELCHECK_TIMER);
 						g_GracefulShutdownEndtime = 0;
-						i2p::util::DaemonWin32::Instance ().isGraceful = false;
+						if (m_setIsGraceful) m_setIsGraceful(false);
 						return 0;
 					}
 					case ID_RELOAD:

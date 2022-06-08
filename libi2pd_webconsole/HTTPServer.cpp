@@ -31,10 +31,9 @@
 #include "ECIESX25519AEADRatchetSession.h"
 #include "I18N.h"
 
-#ifdef WIN32_APP
-#include "Daemon.h"
-#include "Win32App.h"
-#endif
+//#ifdef WIN32_APP
+//#include "Win32App.h"
+//#endif
 
 // Inja template engine
 #include "inja/inja.hpp"
@@ -281,13 +280,13 @@ namespace http {
 			ShowUptime(s, remains);
 			s << "<br>\r\n";
 		}
-#elif defined(WIN32_APP)
+/*#elif defined(WIN32_APP)
 		if (i2p::win32::g_GracefulShutdownEndtime != 0) {
 			uint16_t remains = (i2p::win32::g_GracefulShutdownEndtime - GetTickCount()) / 1000;
 			s << "<b>" << tr("Stopping in") << ":</b> ";
 			ShowUptime(s, remains);
 			s << "<br>\r\n";
-		}
+		}*/
 #endif
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>" << tr("Received") << ":</b> ";
@@ -714,11 +713,12 @@ namespace http {
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
-#elif defined(WIN32_APP)
+/*#elif defined(WIN32_APP)
 		if (i2p::util::DaemonWin32::Instance().isGraceful)
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">" << tr("Cancel graceful shutdown") << "</a><br>\r\n";
 		else
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">" << tr("Start graceful shutdown") << "</a><br>\r\n";
+*/
 #endif
 
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">" << tr("Force shutdown") << "</a><br><br>\r\n";
@@ -1023,8 +1023,8 @@ namespace http {
 		}
 	}
 
-	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-		m_Socket (socket), m_BufferLen (0), expected_host(hostname)
+	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket, HTTPServer& server):
+		m_Socket (socket), m_Server (server), m_BufferLen (0), expected_host(hostname)
 	{
 		/* cache options */
 		i2p::config::GetOption("http.auth", needAuth);
@@ -1248,8 +1248,9 @@ namespace http {
 			// TODO: rewrite timer access
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			if (m_DaemonGracefulTimer) m_DaemonGracefulTimer = 10 * 60;
-#elif defined(WIN32_APP)
+/*#elif defined(WIN32_APP)
 			i2p::win32::GracefulShutdown ();
+*/
 #endif
 		}
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL)
@@ -1258,18 +1259,19 @@ namespace http {
 			// TODO: rewrite timer access
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
 			if (m_DaemonGracefulTimer) m_DaemonGracefulTimer = 0;
-#elif defined(WIN32_APP)
+/*#elif defined(WIN32_APP)
 			i2p::win32::StopGracefulShutdown ();
+*/
 #endif
 		}
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW)
 		{
 			// TODO: rewrite stop command access
-#ifndef WIN32_APP
-			if (m_DaemonStop) m_DaemonStop();
-#else
-			i2p::win32::StopWin32App ();
-#endif
+//#ifndef WIN32_APP
+			m_Server.GetDaemonStop();
+//#else
+//			i2p::win32::StopWin32App ();
+//#endif
 		}
 		else if (cmd == HTTP_COMMAND_LOGLEVEL)
 		{
@@ -1503,7 +1505,7 @@ namespace http {
 
 	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		auto conn = std::make_shared<HTTPConnection> (m_Hostname, newSocket);
+		auto conn = std::make_shared<HTTPConnection> (m_Hostname, newSocket, *this);
 		conn->Receive ();
 	}
 } // http
