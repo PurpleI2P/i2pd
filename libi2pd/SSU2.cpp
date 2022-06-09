@@ -244,6 +244,31 @@ namespace transport
 			return it->second;
 		return nullptr;
 	}	
+
+	std::shared_ptr<SSU2Session> SSU2Server::GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports) const
+	{
+		if (m_Sessions.empty ()) return nullptr;
+		uint16_t ind;
+		RAND_bytes ((uint8_t *)&ind, sizeof (ind));
+		ind %= m_Sessions.size ();
+		auto it = m_Sessions.begin ();
+		std::advance (it, ind);
+		while (it != m_Sessions.end ())
+		{
+			if (it->second->GetRemoteTransports () & remoteTransports)
+				return it->second;
+			it++;
+		}
+		// not found, try from begining
+		it = m_Sessions.begin ();
+		while (it != m_Sessions.end () && ind)
+		{
+			if (it->second->GetRemoteTransports () & remoteTransports)
+				return it->second;
+			it++; ind--;
+		}	
+		return nullptr;
+	}	
 		
 	void SSU2Server::AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay)
 	{

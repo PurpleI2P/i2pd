@@ -54,6 +54,7 @@ namespace transport
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);
 			void AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session);
 			std::shared_ptr<SSU2Session> FindSession (const i2p::data::IdentHash& ident) const;
+			std::shared_ptr<SSU2Session> GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports) const;
 		
 			void AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay);
 			void RemoveRelay (uint32_t tag);

@@ -22,9 +22,10 @@ namespace transport
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
-		m_Server (server), m_Address (addr), m_DestConnID (0), m_SourceConnID (0),
-		m_State (eSSU2SessionStateUnknown), m_SendPacketNum (0), m_ReceivePacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0)
+		m_Server (server), m_Address (addr), m_RemoteTransports (0),
+		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
+		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
+		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -32,6 +33,7 @@ namespace transport
 			// outgoing
 			InitNoiseXKState1 (*m_NoiseState, m_Address->s);
 			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
+			m_RemoteTransports = in_RemoteRouter->GetCompatibleTransports (false);
 			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);
 		}
@@ -612,6 +614,7 @@ namespace transport
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
 			return false;
 		}
+		m_RemoteTransports = ri->GetCompatibleTransports (false);
 		i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
@@ -1333,12 +1336,37 @@ namespace transport
 		{
 			case 1: // Bob from Alice
 			{	
-				// TODO: find Charlie	
-				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE], zeroHash[32] = {0};
-				size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
-					eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + 3, len - 3);
-				payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
-				SendData (payload, payloadSize);
+				auto session = m_Server.GetRandomSession ((buf[12] == 6) ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6);
+				if (session) // session with Charlie
+				{
+					session->m_PeerTests.emplace (nonce, std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()));
+					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+					// Alice's RouterInfo
+					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+					size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
+					if (!payloadSize && r)
+						session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+					if (payloadSize + len + 48 > SSU2_MAX_PAYLOAD_SIZE)
+					{
+						// doesn't fit one message, send RouterInfo in separate message
+						session->SendData (payload, payloadSize);
+						payloadSize = 0;
+					}	
+					// PeerTest to Charlie
+					payloadSize += CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 2, 
+						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
+					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+					session->SendData (payload, payloadSize);
+				}
+				else
+				{
+					// Charlie not found, send error back to Alice
+					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE], zeroHash[32] = {0};
+					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
+						eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + 3, len - 3);
+					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+					SendData (payload, payloadSize);
+				}	
 				break;
 			}
 			case 2: // Charlie from Bob
@@ -1401,7 +1429,19 @@ namespace transport
 				if (it != m_PeerTests.end () && it->second.first)
 				{
 					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
+					// Charlie's RouterInfo
+					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+					size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
+					if (!payloadSize && r)
+						it->second.first->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+					if (payloadSize + len + 16 > SSU2_MAX_PAYLOAD_SIZE)
+					{
+						// doesn't fit one message, send RouterInfo in separate message
+						it->second.first->SendData (payload, payloadSize);
+						payloadSize = 0;
+					}
+					// PeerTest to Alice
+					payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
 						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
 					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
