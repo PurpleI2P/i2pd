@@ -82,12 +82,20 @@ namespace transport
 
 	void SSU2Server::Stop ()
 	{
+		for (auto& it: m_Sessions)
+			it.second->Done ();
+		m_Sessions.clear ();
+		m_SessionsByRouterHash.clear ();
+		m_PendingOutgoingSessions.clear ();
+
 		if (context.SupportsV4 () || context.SupportsV6 ())
 			m_ReceiveService.Stop ();
 
+		m_SocketV4.close ();
+		m_SocketV6.close ();
 		if (IsRunning ())
 			m_TerminationTimer.cancel ();
-
+		
 		StopIOService ();
 	}
 
