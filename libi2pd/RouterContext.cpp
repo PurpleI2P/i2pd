@@ -352,9 +352,9 @@ namespace i2p
 				address->port = port;
 				address->published = publish;
 				if (publish)
-					address->caps |= i2p::data::RouterInfo::eSSUIntroducer;
+					address->caps |= (i2p::data::RouterInfo::eSSUIntroducer | i2p::data::RouterInfo::eSSUTesting);
 				else
-					address->caps &= ~i2p::data::RouterInfo::eSSUIntroducer;
+					address->caps &= ~(i2p::data::RouterInfo::eSSUIntroducer | i2p::data::RouterInfo::eSSUTesting);
 				updated = true;
 			}
 		}
