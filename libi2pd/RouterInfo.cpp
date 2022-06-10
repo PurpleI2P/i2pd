@@ -1240,6 +1240,7 @@ namespace data
 				if (address.published)
 				{
 					isPublished = true;
+					if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
 					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
 				}
 				else
