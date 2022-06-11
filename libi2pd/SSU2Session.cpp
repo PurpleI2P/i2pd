@@ -1607,26 +1607,32 @@ namespace transport
 				}
 				// ranges
 				uint32_t lastNum = ackThrough - acnt;
-				it++;
-				while (it != m_OutOfSequencePackets.rend () && lastNum > m_ReceivePacketNum && numRanges < 8)
+				while (it != m_OutOfSequencePackets.rend () && lastNum > m_ReceivePacketNum && numRanges < SSU2_MAX_NUM_ACK_RANGES)
 				{
 					if (lastNum - (*it) < 255)
 					{
-						buf[7 + numRanges*2] = lastNum - (*it); // NACKs
-						lastNum = *it;
-						uint8_t numAcks = 0;
+						buf[7 + numRanges*2] = lastNum - (*it) - 1; // NACKs
+						lastNum = *it; it++;
+						uint8_t numAcks = 1;
 						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > m_ReceivePacketNum && *it == lastNum - 1)
 						{
 							numAcks++; lastNum--;
 							it++;
 						}
 						buf[7 + numRanges*2 + 1] = numAcks; // Acks
-						numRanges++; it++;
+						numRanges++;
 						if (numAcks == 255) break;
 					}
 					else
 						break;
 				}
+				if (numRanges < SSU2_MAX_NUM_ACK_RANGES && m_ReceivePacketNum)
+				{
+					// add received packets to last range
+					int numAcks = buf[7 + numRanges*2 + 1] + m_ReceivePacketNum;
+					if (numAcks > 255) numAcks = 255;
+					buf[7 + numRanges*2 + 1] = numAcks;
+				}	
 			}
 		}
 		buf[7] = acnt; // acnt
