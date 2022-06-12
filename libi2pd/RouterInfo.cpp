@@ -1057,21 +1057,29 @@ namespace data
 		for (const auto& addr: *m_Addresses)
 		{
 			uint8_t transports = 0;
-			if (addr->transportStyle == eTransportNTCP)
-			{
-				if (addr->IsV4 ()) transports |= eNTCP2V4;
-				if (addr->IsV6 ())
-					transports |= (i2p::util::net::IsYggdrasilAddress (addr->host) ? eNTCP2V6Mesh : eNTCP2V6);
-				if (addr->IsPublishedNTCP2 ())
-					m_ReachableTransports |= transports;
-			}
-			else if (addr->transportStyle == eTransportSSU)
-			{
-				if (addr->IsV4 ()) transports |= eSSUV4;
-				if (addr->IsV6 ()) transports |= eSSUV6;
-				if (addr->IsReachableSSU ())
-					m_ReachableTransports |= transports;
-			}
+			switch (addr->transportStyle)
+			{        
+				case eTransportNTCP:
+					if (addr->IsV4 ()) transports |= eNTCP2V4;
+					if (addr->IsV6 ())
+						transports |= (i2p::util::net::IsYggdrasilAddress (addr->host) ? eNTCP2V6Mesh : eNTCP2V6);
+					if (addr->IsPublishedNTCP2 ())
+						m_ReachableTransports |= transports;
+				break;
+				case eTransportSSU:
+					if (addr->IsV4 ()) transports |= eSSUV4;
+					if (addr->IsV6 ()) transports |= eSSUV6;
+					if (addr->IsReachableSSU ())
+						m_ReachableTransports |= transports;
+				break;
+				case eTransportSSU2:
+					if (addr->IsV4 ()) transports |= eSSU2V4;
+					if (addr->IsV6 ()) transports |= eSSU2V6;
+					if (addr->IsReachableSSU ())
+						m_ReachableTransports |= transports;
+				break;	
+				default: ;	
+			}	
 			m_SupportedTransports |= transports;
 		}
 	}
