@@ -63,7 +63,7 @@ namespace transport
 		if (!session || !relayTag) return false;
 		// find local adddress to introduce
 		auto localAddress = session->FindLocalAddress ();
-		if (localAddress) return false;
+		if (!localAddress) return false;
 		// create nonce
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
