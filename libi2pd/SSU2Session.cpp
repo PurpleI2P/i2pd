@@ -1607,14 +1607,14 @@ namespace transport
 				}
 				// ranges
 				uint32_t lastNum = ackThrough - acnt;
-				while (it != m_OutOfSequencePackets.rend () && lastNum > m_ReceivePacketNum && numRanges < SSU2_MAX_NUM_ACK_RANGES)
+				while (it != m_OutOfSequencePackets.rend () && numRanges < SSU2_MAX_NUM_ACK_RANGES)
 				{
 					if (lastNum - (*it) < 255)
 					{
 						buf[7 + numRanges*2] = lastNum - (*it) - 1; // NACKs
 						lastNum = *it; it++;
 						uint8_t numAcks = 1;
-						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > m_ReceivePacketNum && *it == lastNum - 1)
+						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > 0 && *it == lastNum - 1)
 						{
 							numAcks++; lastNum--;
 							it++;
@@ -1626,12 +1626,17 @@ namespace transport
 					else
 						break;
 				}
-				if (numRanges < SSU2_MAX_NUM_ACK_RANGES && m_ReceivePacketNum)
+				if (numRanges < SSU2_MAX_NUM_ACK_RANGES && it == m_OutOfSequencePackets.rend ())
 				{
-					// add received packets to last range
-					int numAcks = buf[7 + numRanges*2 + 1] + m_ReceivePacketNum;
-					if (numAcks > 255) numAcks = 255;
-					buf[7 + numRanges*2 + 1] = numAcks;
+					// add range between out-of-seqence and received
+					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
+					if (nacks > 0)
+					{
+						if (nacks > 255) nacks = 255;
+						buf[7 + numRanges*2] = nacks;
+						buf[7 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum, 255);
+						numRanges++;
+					}	
 				}	
 			}
 		}
