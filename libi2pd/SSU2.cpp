@@ -400,29 +400,29 @@ namespace transport
 	}
 
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> address)
+		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
 		if (router && address)
 		{
+			auto session = std::make_shared<SSU2Session> (*this, router, address);
+			if (peerTest)
+				session->SetOnEstablished ([session]() {session->SendPeerTest (); });
+
 			if (address->UsesIntroducer ())
-				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, router, address));
+				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
 			else
-				GetService ().post (
-					[this, router, address]()
-					{
-						auto session = std::make_shared<SSU2Session> (*this, router, address);
-						session->Connect ();
-					});
+				GetService ().post ([session]() { session->Connect (); });
 		}
 		else
 			return false;
 		return true;
 	}
 
-	void SSU2Server::ConnectThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> address)
+	void SSU2Server::ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session)
 	{
-		auto session = std::make_shared<SSU2Session> (*this, router, address);
+		if (!session) return;
+		auto address = session->GetAddress ();
+		if (!address) return;
 		session->SetState (eSSU2SessionStateIntroduced);
 		// try to find existing session first
 		for (auto& it: address->ssu->introducers)
@@ -480,18 +480,14 @@ namespace transport
 		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
 		if (it != m_SessionsByRouterHash.end ())
 		{
+			auto s = it->second;
 			if (it->second->IsEstablished ())
-				it->second->SendPeerTest ();
-			else
-			{	
-				auto s = it->second;	
-				s->SetOnEstablished ([s]() { s->SendPeerTest (); });
-			}		
+				GetService ().post ([s]() { s->SendPeerTest (); });
+			else	
+				s->SetOnEstablished ([s]() { s->SendPeerTest (); });	
 			return true;	
 		}	
-		auto s = std::make_shared<SSU2Session> (*this, router, addr);
-		s->SetOnEstablished ([s]() {s->SendPeerTest (); });
-		s->Connect ();
+		CreateSession (router, addr, true);
 		return true;
 	}	
 		

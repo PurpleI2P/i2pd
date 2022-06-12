@@ -162,6 +162,7 @@ namespace transport
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
 			i2p::data::RouterInfo::CompatibleTransports GetRemoteTransports () const { return m_RemoteTransports; };
+			std::shared_ptr<const i2p::data::RouterInfo::Address> GetAddress () const { return m_Address; };
 			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; };
 
 			void Connect ();

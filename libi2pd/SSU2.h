@@ -66,7 +66,7 @@ namespace transport
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
 
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
-				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			bool StartPeerTest (std::shared_ptr<const i2p::data::RouterInfo> router, bool v4);
 			
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
@@ -89,8 +89,7 @@ namespace transport
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
-			void ConnectThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router,
-				std::shared_ptr<const i2p::data::RouterInfo::Address> address);
+			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
 
 		private:
 
