@@ -582,15 +582,16 @@ namespace transport
 		return 0;
 	}
 
-	uint64_t SSU2Server::GetIncomingToken (const boost::asio::ip::udp::endpoint& ep)
+	std::pair<uint64_t, uint32_t>  SSU2Server::GetIncomingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
 		auto it = m_IncomingTokens.find (ep);
 		if (it != m_IncomingTokens.end ())
-			return it->second.first;
+			return it->second;
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT));
-		return token;
+		auto ret = std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT); 
+		m_IncomingTokens.emplace (ep, ret);
+		return ret;
 	}
 }
 }

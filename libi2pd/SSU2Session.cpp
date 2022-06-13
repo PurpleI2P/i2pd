@@ -376,7 +376,7 @@ namespace transport
 		memcpy (&m_DestConnID, headerX, 8);
 		uint64_t token;
 		memcpy (&token, headerX + 8, 8);
-		if (!token || token != m_Server.GetIncomingToken (m_RemoteEndpoint))
+		if (!token || token != m_Server.GetIncomingToken (m_RemoteEndpoint).first)
 		{
 			LogPrint (eLogDebug, "SSU2: SessionRequest token mismatch. Retry");
 			SendRetry ();
@@ -411,10 +411,9 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
-
 		// fill packet
 		Header header;
-		uint8_t headerX[48], payload[64];
+		uint8_t headerX[48], payload[80];
 		header.h.connID = m_DestConnID; // dest id
 		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionCreated;
@@ -422,14 +421,14 @@ namespace transport
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
 		header.h.flags[2] = 0; // flag
 		memcpy (headerX, &m_SourceConnID, 8); // source id
-		RAND_bytes (headerX + 8, 8); // token
+		memset (headerX + 8, 0, 8); // token = 0
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (payload + payloadSize, 64 - payloadSize, m_RemoteEndpoint);
+		payloadSize += CreateAddressBlock (payload + payloadSize, 80 - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
 		{
 			payload[payloadSize] = eSSU2BlkRelayTag;
@@ -437,7 +436,13 @@ namespace transport
 			htobe32buf (payload + payloadSize + 3, m_RelayTag);
 			payloadSize += 7;
 		}
-		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
+		auto token = m_Server.GetIncomingToken (m_RemoteEndpoint);
+		payload[payloadSize] = eSSU2BlkNewToken;
+		htobe16buf (payload + payloadSize + 1, 12);
+		htobe32buf (payload + payloadSize + 3, token.second); // expires
+		memcpy (payload + 7, &token.first, 8); // token
+		payloadSize += 15;
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 80 - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -730,7 +735,7 @@ namespace transport
 		header.h.flags[2] = 0; // flag
 		memcpy (h, header.buf, 16);
 		memcpy (h + 16, &m_SourceConnID, 8); // source id
-		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint);
+		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint).first;
 		memcpy (h + 24, &token, 8); // token
 		// payload
 		payload[0] = eSSU2BlkDateTime;
@@ -802,8 +807,7 @@ namespace transport
 		memcpy (h, header.buf, 16);
 		uint64_t c = !header.h.connID;
 		memcpy (h + 16, &c, 8); // source id
-		uint64_t token = m_Server.GetIncomingToken (ep);
-		memcpy (h + 24, &token, 8); // token
+		RAND_bytes (h + 24, 8); // token
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
