@@ -163,6 +163,7 @@ namespace client
 			int GetInPort() const { return m_InPort; }
 			int GetOutPort() const { return m_OutPort; }
 			bool GetQuiet() const { return m_Quiet; }
+			bool IsRunning() const { return m_IsRunning; }
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
 
@@ -176,6 +177,7 @@ namespace client
 			std::string m_InHost, m_OutHost;
 			int m_InPort, m_OutPort;
 			bool m_Quiet;
+			bool m_IsRunning;
 	};
 
 	class BOBCommandChannel;
