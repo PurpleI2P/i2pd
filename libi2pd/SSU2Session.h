@@ -173,6 +173,7 @@ namespace transport
 			void CleanUp (uint64_t ts);
 			void FlushData ();
 			void Done () override;
+			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			void Resend (uint64_t ts);
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };

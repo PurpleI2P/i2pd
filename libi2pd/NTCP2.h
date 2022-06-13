@@ -148,7 +148,7 @@ namespace transport
 			void ClientLogin (); // Alice
 			void ServerLogin (); // Bob
 
-			void SendLocalRouterInfo (); // after handshake
+			void SendLocalRouterInfo (bool update); // after handshake or by update
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 
 		private:

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -96,7 +96,7 @@ namespace transport
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
 			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };
 
-			virtual void SendLocalRouterInfo () { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
+			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 
 		protected:

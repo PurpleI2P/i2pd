@@ -161,6 +161,29 @@ namespace transport
 		m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, shared_from_this ()));
 	}
 
+	void SSU2Session::SendLocalRouterInfo (bool update)
+	{
+		if (update || !IsOutgoing ())
+		{	
+			auto s = shared_from_this ();
+			m_Server.GetService ().post ([s]()
+				{
+					if (!s->IsEstablished ()) return;
+					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+					size_t payloadSize = s->CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - 32, i2p::context.GetSharedRouterInfo ());
+					if (payloadSize)
+					{
+						if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
+							payloadSize += s->CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+						s->SendData (payload, payloadSize);
+					}	
+					else
+						s->SendFragmentedMessage (CreateDatabaseStoreMsg ());
+				});
+		}	
+
+	}	
+		
 	void SSU2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this (), msgs));
