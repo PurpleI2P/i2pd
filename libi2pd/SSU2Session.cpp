@@ -440,7 +440,7 @@ namespace transport
 		payload[payloadSize] = eSSU2BlkNewToken;
 		htobe16buf (payload + payloadSize + 1, 12);
 		htobe32buf (payload + payloadSize + 3, token.second); // expires
-		memcpy (payload + 7, &token.first, 8); // token
+		memcpy (payload + payloadSize + 7, &token.first, 8); // token
 		payloadSize += 15;
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 80 - payloadSize);
 		// KDF for SessionCreated
