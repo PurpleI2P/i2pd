@@ -1638,7 +1638,7 @@ namespace transport
 				{
 					if (lastNum - (*it) < 255)
 					{
-						buf[7 + numRanges*2] = lastNum - (*it) - 1; // NACKs
+						buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
 						lastNum = *it; it++;
 						uint8_t numAcks = 1;
 						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > 0 && *it == lastNum - 1)
@@ -1646,7 +1646,7 @@ namespace transport
 							numAcks++; lastNum--;
 							it++;
 						}
-						buf[7 + numRanges*2 + 1] = numAcks; // Acks
+						buf[8 + numRanges*2 + 1] = numAcks; // Acks
 						numRanges++;
 						if (numAcks == 255) break;
 					}
@@ -1660,8 +1660,8 @@ namespace transport
 					if (nacks > 0)
 					{
 						if (nacks > 255) nacks = 255;
-						buf[7 + numRanges*2] = nacks;
-						buf[7 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum, 255);
+						buf[8 + numRanges*2] = nacks;
+						buf[8 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, 255);
 						numRanges++;
 					}	
 				}	
