@@ -1262,6 +1262,7 @@ namespace transport
 
 		// send relay intro to Charlie
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
+		if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
 		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
 		if (!payloadSize && r)
@@ -1370,6 +1371,7 @@ namespace transport
 					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 					// Alice's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+					if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
 					size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
 					if (!payloadSize && r)
 						session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
@@ -1458,6 +1460,7 @@ namespace transport
 					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 					// Charlie's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+					if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
 					size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
 					if (!payloadSize && r)
 						it->second.first->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
@@ -1592,7 +1595,7 @@ namespace transport
 
 	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r)
 	{
-		if (!r || len < 5) return 0;
+		if (!r || !r->GetBuffer () || len < 5) return 0;
 		buf[0] = eSSU2BlkRouterInfo;
 		size_t size = r->GetBufferLen ();
 		if (size + 5 < len)

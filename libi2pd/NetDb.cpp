@@ -977,8 +977,7 @@ namespace data
 				if (router)
 				{
 					LogPrint (eLogDebug, "NetDb: Requested RouterInfo ", key, " found");
-					if (!router->GetBuffer ())
-						router->LoadBuffer (m_Storage.Path (router->GetIdentHashBase64 ()));
+					PopulateRouterInfoBuffer (router);
 					if (router->GetBuffer ())
 						replyMsg = CreateDatabaseStoreMsg (router);
 				}
@@ -1433,5 +1432,11 @@ namespace data
 				++it;
 		}
 	}
+
+	void NetDb::PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r)
+	{
+		if (!r || r->GetBuffer ()) return;
+		r->LoadBuffer (m_Storage.Path (r->GetIdentHashBase64 ()));
+	}	
 }
 }

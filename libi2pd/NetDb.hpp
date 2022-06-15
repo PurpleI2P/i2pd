@@ -124,6 +124,7 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
+			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r); 
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
