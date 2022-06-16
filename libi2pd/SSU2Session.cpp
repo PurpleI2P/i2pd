@@ -1130,7 +1130,7 @@ namespace transport
 			uint32_t lastPacketNum = firstPacketNum - 1;
 			if (*ranges > lastPacketNum) break;
 			lastPacketNum -= *ranges; ranges++; // nacks
-			if (*ranges > lastPacketNum) break;
+			if (*ranges > lastPacketNum + 1) break;
 			firstPacketNum = lastPacketNum - *ranges + 1; ranges++; // acks
 			len -= 2;
 			HandleAckRange (firstPacketNum, lastPacketNum);
@@ -1145,7 +1145,6 @@ namespace transport
 		if (it == m_SentPackets.end () || it->first > lastPacketNum) return; // not found
 		auto it1 = it;
 		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) it1++;
-		if (it1 != m_SentPackets.end () && it1 != m_SentPackets.begin ()) it1--;
 		m_SentPackets.erase (it, it1);
 	}
 
