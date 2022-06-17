@@ -857,7 +857,6 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: HolePunch AEAD verification failed ");
 			return false;
 		}
-		m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 		HandlePayload (payload, len - 48);
 		// connect to Charlie
 		if (m_State == eSSU2SessionStateIntroduced)
@@ -1254,7 +1253,13 @@ namespace transport
 		if (!session)
 		{
 			LogPrint (eLogWarning, "SSU2: Session with relay tag ", relayTag, " not found");
-			return; // TODO: send relay response
+			// send relay response back to Alice
+			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+			size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
+				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1));
+			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+			SendData (payload, payloadSize);
+			return; 
 		}
 		session->m_RelaySessions.emplace (bufbe32toh (buf + 1), // nonce
 			std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()) );
@@ -1348,7 +1353,7 @@ namespace transport
 						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
 				}
 				else
-					LogPrint (eLogWarning, "SSU2: RelayResponse status code=", (int)buf[1]);
+					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1]);
 			}
 			m_RelaySessions.erase (it);
 		}
@@ -1773,6 +1778,27 @@ namespace transport
 		return payloadSize + 3;
 	}
 
+	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce)
+	{
+		// we are Bob
+		buf[0] = eSSU2BlkRelayResponse;
+		buf[3] = 0; // flag
+		buf[4] = (uint8_t)code; // code
+		htobe32buf (buf + 5, nonce); // nonce
+		htobe32buf (buf + 9, i2p::util::GetSecondsSinceEpoch ()); // timestamp
+		buf[13] = 2; // ver
+		buf[14] = 0; // csz
+		// signature
+		SignedData s;
+		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
+		s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // bhash
+		s.Insert (buf + 5, 10); // nonce, timestamp, ver, csz
+		s.Sign (i2p::context.GetPrivateKeys (), buf + 15);
+		size_t payloadSize = 12 + i2p::context.GetIdentity ()->GetSignatureLen ();
+		htobe16buf (buf + 1, payloadSize); // size
+		return payloadSize + 3;
+	}	
+		
 	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code,
 		const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen)
 	{
