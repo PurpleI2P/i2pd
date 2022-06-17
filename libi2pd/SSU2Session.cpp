@@ -376,7 +376,7 @@ namespace transport
 		memcpy (&m_DestConnID, headerX, 8);
 		uint64_t token;
 		memcpy (&token, headerX + 8, 8);
-		if (!token || token != m_Server.GetIncomingToken (m_RemoteEndpoint).first)
+		if (!token || token != m_Server.GetIncomingToken (m_RemoteEndpoint))
 		{
 			LogPrint (eLogDebug, "SSU2: SessionRequest token mismatch. Retry");
 			SendRetry ();
@@ -436,7 +436,7 @@ namespace transport
 			htobe32buf (payload + payloadSize + 3, m_RelayTag);
 			payloadSize += 7;
 		}
-		auto token = m_Server.GetIncomingToken (m_RemoteEndpoint);
+		auto token = m_Server.NewIncomingToken (m_RemoteEndpoint);
 		payload[payloadSize] = eSSU2BlkNewToken;
 		htobe16buf (payload + payloadSize + 1, 12);
 		htobe32buf (payload + payloadSize + 3, token.second); // expires
@@ -735,7 +735,7 @@ namespace transport
 		header.h.flags[2] = 0; // flag
 		memcpy (h, header.buf, 16);
 		memcpy (h + 16, &m_SourceConnID, 8); // source id
-		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint).first;
+		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint);
 		memcpy (h + 24, &token, 8); // token
 		// payload
 		payload[0] = eSSU2BlkDateTime;

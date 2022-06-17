@@ -71,7 +71,9 @@ namespace transport
 			
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
 			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const;
-			std::pair<uint64_t, uint32_t> GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
+			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
+			std::pair<uint64_t, uint32_t> NewIncomingToken (const boost::asio::ip::udp::endpoint& ep);
+		
 
 		private:
 

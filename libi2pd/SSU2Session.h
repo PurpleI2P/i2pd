@@ -25,7 +25,8 @@ namespace transport
 {
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
-	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // in seconds
+	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // for Retry message, in seconds
+	const int SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT = 52*60; // for next token block, in seconds
 	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MTU = 1488;
