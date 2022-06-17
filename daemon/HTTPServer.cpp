@@ -791,6 +791,8 @@ namespace http {
 					<< it.second->GetRemoteEndpoint ().address ().to_string ();
 				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				if (it.second->GetRelayTag ())
+					tmp_s << " [itag:" << it.second->GetRelayTag () << "]";
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
@@ -802,6 +804,8 @@ namespace http {
 					<< "[" << it.second->GetRemoteEndpoint ().address ().to_string () << "]";
 				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				if (it.second->GetRelayTag ())
+					tmp_s6 << " [itag:" << it.second->GetRelayTag () << "]";
 				tmp_s6 << "</div>\r\n" << std::endl;
 				cnt6++;
 			}

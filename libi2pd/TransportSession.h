@@ -96,6 +96,7 @@ namespace transport
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
 			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };
 
+			virtual uint32_t GetRelayTag () const { return 0; };
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 
