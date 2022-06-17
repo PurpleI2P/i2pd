@@ -1381,7 +1381,7 @@ namespace transport
 						payloadSize = 0;
 					}	
 					// PeerTest to Charlie
-					payloadSize += CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 2, 
+					payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 2, 
 						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
 					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					session->SendData (payload, payloadSize);
@@ -1470,7 +1470,7 @@ namespace transport
 						payloadSize = 0;
 					}
 					// PeerTest to Alice
-					payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
+					payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE, 4, 
 						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
 					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
