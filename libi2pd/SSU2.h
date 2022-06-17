@@ -48,7 +48,8 @@ namespace transport
 			void Start ();
 			void Stop ();
 			boost::asio::io_service& GetService () { return GetIOService (); };
-
+			void SetLocalAddress (const boost::asio::ip::address& localAddress);
+		
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);
@@ -97,6 +98,7 @@ namespace transport
 
 			ReceiveService m_ReceiveService;
 			boost::asio::ip::udp::socket m_SocketV4, m_SocketV6;
+			boost::asio::ip::address m_AddressV4, m_AddressV6;
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::map<i2p::data::IdentHash, std::shared_ptr<SSU2Session> > m_SessionsByRouterHash;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;

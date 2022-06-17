@@ -233,6 +233,7 @@ namespace transport
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
 					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
+					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
 		}
@@ -249,6 +250,7 @@ namespace transport
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
 					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
+					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
 		}

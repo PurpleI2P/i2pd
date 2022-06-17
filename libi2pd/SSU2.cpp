@@ -20,6 +20,7 @@ namespace transport
 	SSU2Server::SSU2Server ():
 		RunnableServiceWithWork ("SSU2"), m_ReceiveService ("SSU2r"),
 		m_SocketV4 (m_ReceiveService.GetService ()), m_SocketV6 (m_ReceiveService.GetService ()),
+		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
 		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ())
 	{
 	}
@@ -52,7 +53,7 @@ namespace transport
 						if (address->IsV4 ())
 						{
 							found = true;
-							OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v4(), port));
+							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV4, port));
 							m_ReceiveService.GetService ().post(
 								[this]()
 								{
@@ -62,7 +63,7 @@ namespace transport
 						if (address->IsV6 ())
 						{
 							found = true;
-							OpenSocket (boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v6(), port));
+							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV6, port));
 							m_ReceiveService.GetService ().post(
 							[this]()
 								{
@@ -99,6 +100,15 @@ namespace transport
 		StopIOService ();
 	}
 
+	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
+	{
+		if (localAddress.is_unspecified ()) return;
+		if (localAddress.is_v4 ())
+			m_AddressV4 = localAddress;
+		else if (localAddress.is_v6 ())
+			m_AddressV6 = localAddress;
+	}	
+		
 	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)
 	{
 		boost::asio::ip::udp::socket& socket = localEndpoint.address ().is_v6 () ? m_SocketV6 : m_SocketV4;
