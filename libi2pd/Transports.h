@@ -62,12 +62,14 @@ namespace transport
 	};
 	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
 
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds  
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds  
 	struct Peer
 	{
 		int numAttempts;
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::list<std::shared_ptr<TransportSession> > sessions;
-		uint64_t creationTime;
+		uint64_t creationTime, nextRouterInfoUpdateTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 
 		void Done ()
@@ -77,7 +79,7 @@ namespace transport
 		}
 	};
 
-	const size_t SESSION_CREATION_TIMEOUT = 15; // in seconds
+	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
 	const int PEER_TEST_INTERVAL = 71; // in minutes
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
 	class Transports

@@ -415,9 +415,10 @@ namespace transport
 				auto r = netdb.FindRouter (ident);
 				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
 				{
+					auto ts = i2p::util::GetSecondsSinceEpoch ();
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
-						i2p::util::GetSecondsSinceEpoch (), {} })).first;
+						ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} })).first;
 				}
 				connected = ConnectToPeer (ident, it->second);
 			}
@@ -753,8 +754,10 @@ namespace transport
 					return;
 				}
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
-				std::unique_lock<std::mutex>	l(m_PeersMutex);
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
+				auto ts = i2p::util::GetSecondsSinceEpoch ();
+				std::unique_lock<std::mutex> l(m_PeersMutex);
+				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session },
+					ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} }));
 			}
 		});
 	}
@@ -815,7 +818,17 @@ namespace transport
 					it = m_Peers.erase (it);
 				}
 				else
+				{
+					if (ts > it->second.nextRouterInfoUpdateTime)
+					{
+						auto session = it->second.sessions.front ();
+						if (session)
+							session->SendLocalRouterInfo (true);
+						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL + 
+							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
+					}	
 					++it;
+				}	
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
