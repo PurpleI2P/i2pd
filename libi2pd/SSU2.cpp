@@ -433,7 +433,7 @@ namespace transport
 		if (!session) return;
 		auto address = session->GetAddress ();
 		if (!address) return;
-		session->SetState (eSSU2SessionStateIntroduced);
+		session->WaitForIntroduction ();
 		// try to find existing session first
 		for (auto& it: address->ssu->introducers)
 		{

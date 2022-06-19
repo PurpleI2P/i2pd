@@ -25,7 +25,8 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
-		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0)
+		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0), 
+		m_ConnectTimer (server.GetService ())
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -50,13 +51,35 @@ namespace transport
 
 	void SSU2Session::Connect ()
 	{
-		auto token = m_Server.FindOutgoingToken (m_RemoteEndpoint);
-		if (token)
-			SendSessionRequest (token);
-		else
-			SendTokenRequest ();
+		if (m_State == eSSU2SessionStateUnknown)
+		{	
+			ScheduleConnectTimer ();
+			auto token = m_Server.FindOutgoingToken (m_RemoteEndpoint);
+			if (token)
+				SendSessionRequest (token);
+			else
+				SendTokenRequest ();
+		}	
 	}
 
+	void SSU2Session::ScheduleConnectTimer ()
+	{
+		m_ConnectTimer.cancel ();
+		m_ConnectTimer.expires_from_now (boost::posix_time::seconds(SSU2_CONNECT_TIMEOUT));
+		m_ConnectTimer.async_wait (std::bind (&SSU2Session::HandleConnectTimer,
+			shared_from_this (), std::placeholders::_1));
+	}
+
+	void SSU2Session::HandleConnectTimer (const boost::system::error_code& ecode)
+	{
+		if (!ecode)
+		{
+			// timeout expired
+			LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
+			Terminate ();
+		}
+	}
+		
 	bool SSU2Session::Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag)
 	{
 		// we are Alice
@@ -100,6 +123,12 @@ namespace transport
 		return true;
 	}
 
+	void SSU2Session::WaitForIntroduction ()
+	{
+		m_State = eSSU2SessionStateIntroduced;
+		ScheduleConnectTimer ();
+	}
+		
 	void SSU2Session::SendPeerTest ()
 	{
 		// we are Alice
@@ -125,6 +154,7 @@ namespace transport
 		if (m_State != eSSU2SessionStateTerminated)
 		{
 			m_State = eSSU2SessionStateTerminated;
+			m_ConnectTimer.cancel ();
 			transports.PeerDisconnected (shared_from_this ());
 			m_OnEstablished = nullptr;
 			m_Server.RemoveSession (m_SourceConnID);
@@ -147,6 +177,7 @@ namespace transport
 		m_EphemeralKeys = nullptr;
 		m_NoiseState.reset (nullptr);
 		m_SessionConfirmedFragment1.reset (nullptr);
+		m_ConnectTimer.cancel ();
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
 		if (m_OnEstablished) 
@@ -1354,10 +1385,16 @@ namespace transport
 						}
 					}
 					else
+					{	
 						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
+						m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, it->second.first));
+					}	
 				}
 				else
+				{		
 					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1]);
+					m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, it->second.first));
+				}	
 			}
 			m_RelaySessions.erase (it);
 		}

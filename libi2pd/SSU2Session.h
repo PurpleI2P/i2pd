@@ -175,6 +175,7 @@ namespace transport
 
 			void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
+			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
 			void Terminate ();
 			void TerminateByTimeout ();
@@ -201,6 +202,8 @@ namespace transport
 		private:
 
 			void Established ();
+			void ScheduleConnectTimer ();
+			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			bool SendQueue ();
 			void SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
@@ -274,6 +277,7 @@ namespace transport
 			size_t m_WindowSize;
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
+			boost::asio::deadline_timer m_ConnectTimer;
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
