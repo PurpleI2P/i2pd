@@ -588,7 +588,11 @@ namespace transport
 	{
 		auto it = m_OutgoingTokens.find (ep);
 		if (it != m_OutgoingTokens.end ())
+		{
+			if (i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_THRESHOLD > it->second.second)
+				return 0; // token expired
 			return it->second.first;
+		}	
 		return 0;
 	}
 

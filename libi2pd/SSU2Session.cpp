@@ -424,9 +424,10 @@ namespace transport
 		memset (headerX + 8, 0, 8); // token = 0
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
 		// payload
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, ts);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, 80 - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
@@ -437,11 +438,14 @@ namespace transport
 			payloadSize += 7;
 		}
 		auto token = m_Server.NewIncomingToken (m_RemoteEndpoint);
-		payload[payloadSize] = eSSU2BlkNewToken;
-		htobe16buf (payload + payloadSize + 1, 12);
-		htobe32buf (payload + payloadSize + 3, token.second); // expires
-		memcpy (payload + payloadSize + 7, &token.first, 8); // token
-		payloadSize += 15;
+		if (ts + SSU2_TOKEN_EXPIRATION_THRESHOLD > token.second) // not expired?
+		{	
+			payload[payloadSize] = eSSU2BlkNewToken;
+			htobe16buf (payload + payloadSize + 1, 12);
+			htobe32buf (payload + payloadSize + 3, token.second - SSU2_TOKEN_EXPIRATION_THRESHOLD); // expires
+			memcpy (payload + payloadSize + 7, &token.first, 8); // token
+			payloadSize += 15;
+		}	
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 80 - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
