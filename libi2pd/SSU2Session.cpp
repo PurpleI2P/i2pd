@@ -115,7 +115,7 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		// send
 		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
-		session->m_SourceConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
+		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		SendData (payload, payloadSize);
@@ -139,7 +139,7 @@ namespace transport
 		auto session = std::make_shared<SSU2Session> (m_Server);
 		session->SetState (eSSU2SessionStatePeerTest);
 		m_PeerTests.emplace (nonce, std::make_pair (session, ts));
-		session->m_SourceConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
+		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		// peer test block
@@ -347,6 +347,15 @@ namespace transport
 			case eSSU2TokenRequest:
 				ProcessTokenRequest (header, buf, len);
 			break;
+			case eSSU2PeerTest:
+			{
+				// TODO: remove later	
+				const uint8_t nonce[12] = {0};	
+				uint64_t headerX[2]; 
+				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);	
+				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID= ", headerX[0]);
+				break;
+			}		
 			default:
 			{
 				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
@@ -1470,8 +1479,8 @@ namespace transport
 									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
 									session->SetState (eSSU2SessionStatePeerTest);	
 									session->m_RemoteEndpoint = ep; // might be different
-									session->m_DestConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
-									session->m_SourceConnID = ~session->m_SourceConnID;
+									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+									session->m_SourceConnID = ~session->m_DestConnID;
 									m_Server.AddSession (session);
 									session->SendPeerTest (5, buf + 35, len - 35, addr->i);
 								}	
@@ -1547,13 +1556,13 @@ namespace transport
 				break;
 			}	
 			case 5: // Alice from Charlie 1
-				if ((((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)) == m_SourceConnID)
+				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
 				{
 					if (m_Address)
 						SendPeerTest (6, buf + 3, len - 3, m_Address->i);
 					else
 						// TODO: we should wait for msg 4
-						LogPrint (eLogWarning, "SSU2: Unknown addrees for peer test 5");
+						LogPrint (eLogWarning, "SSU2: Unknown address for peer test 5");
 				}	
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce);
