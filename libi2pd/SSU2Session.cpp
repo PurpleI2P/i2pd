@@ -115,7 +115,7 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		// send
 		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
-		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+		session->m_SourceConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		SendData (payload, payloadSize);
@@ -139,7 +139,7 @@ namespace transport
 		auto session = std::make_shared<SSU2Session> (m_Server);
 		session->SetState (eSSU2SessionStatePeerTest);
 		m_PeerTests.emplace (nonce, std::make_pair (session, ts));
-		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+		session->m_SourceConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		// peer test block
@@ -833,7 +833,7 @@ namespace transport
 		Header header;
 		uint8_t h[32], payload[SSU2_MAX_PAYLOAD_SIZE];
 		// fill packet
-		header.h.connID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
+		header.h.connID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce); // dest id
 		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2HolePunch;
 		header.h.flags[0] = 2; // ver
@@ -1470,7 +1470,7 @@ namespace transport
 									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
 									session->SetState (eSSU2SessionStatePeerTest);	
 									session->m_RemoteEndpoint = ep; // might be different
-									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+									session->m_DestConnID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce);
 									session->m_SourceConnID = ~session->m_SourceConnID;
 									m_Server.AddSession (session);
 									session->SendPeerTest (5, buf + 35, len - 35, addr->i);
@@ -1547,7 +1547,7 @@ namespace transport
 				break;
 			}	
 			case 5: // Alice from Charlie 1
-				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
+				if ((((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)) == m_SourceConnID)
 				{
 					if (m_Address)
 						SendPeerTest (6, buf + 3, len - 3, m_Address->i);
@@ -1563,10 +1563,10 @@ namespace transport
 					SendPeerTest (7, buf + 3, len - 3, m_Address->i);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown addrees for peer test 6");
-				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
+				m_Server.RemoveSession (~(((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)));
 			break;
 			case 7: // Alice from Charlie 2
-				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
+				m_Server.RemoveSession (((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce));
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
