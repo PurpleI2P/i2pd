@@ -842,14 +842,14 @@ namespace transport
 		Header header;
 		uint8_t h[32], payload[SSU2_MAX_PAYLOAD_SIZE];
 		// fill packet
-		header.h.connID = ((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce); // dest id
+		header.h.connID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
 		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2HolePunch;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
 		header.h.flags[2] = 0; // flag
 		memcpy (h, header.buf, 16);
-		uint64_t c = !header.h.connID;
+		uint64_t c = ~header.h.connID;
 		memcpy (h + 16, &c, 8); // source id
 		RAND_bytes (h + 24, 8); // token
 		// payload
