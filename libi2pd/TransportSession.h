@@ -33,6 +33,12 @@ namespace transport
 			{
 				m_Stream << other.m_Stream.rdbuf ();
 			}
+
+			void Reset ()
+			{
+				m_Stream.str("");
+			}
+		
 			void Insert (const uint8_t * buf, size_t len)
 			{
 				m_Stream.write ((char *)buf, len);

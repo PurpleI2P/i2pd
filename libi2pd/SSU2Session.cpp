@@ -353,7 +353,7 @@ namespace transport
 				const uint8_t nonce[12] = {0};	
 				uint64_t headerX[2]; 
 				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);	
-				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID= ", headerX[0]);
+				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID=", headerX[0]);
 				break;
 			}		
 			default:
@@ -1454,6 +1454,16 @@ namespace transport
 			}
 			case 2: // Charlie from Bob
 			{
+				// sign with Charlie's key
+				uint8_t asz = buf[44];
+				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
+				SignedData s;
+				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
+				s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+				s.Insert (buf + 3, 32); // ahash
+				s.Insert (buf + 35, asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
+				s.Sign (i2p::context.GetPrivateKeys (), newSignedData.data () + 10 + asz);
+				// send response (msg 3) back and msg 5 if accepted
 				SSU2PeerTestCode code = eSSU2PeerTestCodeAccept;
 				auto r = i2p::data::netdb.FindRouter (buf + 3); // find Alice
 				if (r)
@@ -1461,7 +1471,7 @@ namespace transport
 					size_t signatureLen = r->GetIdentity ()->GetSignatureLen ();
 					if (len >= 35 + signatureLen)
 					{	
-						SignedData s;
+						s.Reset ();
 						s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 						s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 						s.Insert (buf + 35 + signatureLen, len - 35 - signatureLen); // signed data
@@ -1482,7 +1492,7 @@ namespace transport
 									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 									session->m_SourceConnID = ~session->m_DestConnID;
 									m_Server.AddSession (session);
-									session->SendPeerTest (5, buf + 35, len - 35, addr->i);
+									session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr->i);
 								}	
 								else
 									code = eSSU2PeerTestCodeCharlieUnsupportedAddress;
@@ -1501,7 +1511,7 @@ namespace transport
 				// send msg 3 back to Bob
 				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 				size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 3, 
-					code, nullptr, buf + 35, len - 35);
+					code, nullptr, newSignedData.data (), newSignedData.size ());
 				payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 				SendData (payload, payloadSize);
 				break;
@@ -1565,13 +1575,13 @@ namespace transport
 						LogPrint (eLogWarning, "SSU2: Unknown address for peer test 5");
 				}	
 				else
-					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce);
+					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
 			break;
 			case 6: // Charlie from Alice
 				if (m_Address)
 					SendPeerTest (7, buf + 3, len - 3, m_Address->i);
 				else
-					LogPrint (eLogWarning, "SSU2: Unknown addrees for peer test 6");
+					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
 				m_Server.RemoveSession (~(((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)));
 			break;
 			case 7: // Alice from Charlie 2
