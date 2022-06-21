@@ -1473,13 +1473,13 @@ namespace transport
 			case 2: // Charlie from Bob
 			{
 				// sign with Charlie's key
-				uint8_t asz = buf[44];
+				uint8_t asz = buf[offset + 9];
 				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
 				SignedData s;
 				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 				s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 				s.Insert (buf + 3, 32); // ahash
-				s.Insert (buf + 35, asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
+				s.Insert (buf + offset, asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
 				s.Sign (i2p::context.GetPrivateKeys (), newSignedData.data () + 10 + asz);
 				// send response (msg 3) back and msg 5 if accepted
 				SSU2PeerTestCode code = eSSU2PeerTestCodeAccept;
@@ -1487,19 +1487,19 @@ namespace transport
 				if (r)
 				{
 					size_t signatureLen = r->GetIdentity ()->GetSignatureLen ();
-					if (len >= 35 + asz + 10 + signatureLen)
+					if (len >= offset + asz + 10 + signatureLen)
 					{	
 						s.Reset ();
 						s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 						s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
-						s.Insert (buf + 35, asz + 10); // signed data
-						if (s.Verify (r->GetIdentity (), buf + 35 + asz + 10))
+						s.Insert (buf + offset, asz + 10); // signed data
+						if (s.Verify (r->GetIdentity (), buf + offset + asz + 10))
 						{	
 							if (!m_Server.FindSession (r->GetIdentity ()->GetIdentHash ()))
 							{	
 								boost::asio::ip::udp::endpoint ep;
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
-								if (ExtractEndpoint (buf + 44, len - 44, ep))
+								if (ExtractEndpoint (buf + offset + 9, len - offset - 9, ep))
 									addr = r->GetSSU2Address (ep.address ().is_v4 ());
 								if (addr)
 								{	
@@ -1569,19 +1569,41 @@ namespace transport
 				auto it = m_PeerTests.find (nonce);
 				if (it != m_PeerTests.end ())
 				{
-					auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-					if (r && it->second.first)
+					if (buf[1] == eSSU2PeerTestCodeAccept)
 					{	
-						it->second.first->SetRemoteIdentity (r->GetIdentity ());
-						auto addr = r->GetSSU2Address (m_Address->IsV4 ());
-						if (addr)
-							it->second.first->m_Address = addr;
-						if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
-						{
-							// msg 5 already received. send msg 6 
-							it->second.first->m_State = eSSU2SessionStatePeerTest;
-							it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
+						if (r && it->second.first)
+						{	
+							uint8_t asz = buf[offset + 9];
+							SignedData s;
+							s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
+							s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+							s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // ahash
+							s.Insert (buf + offset, asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
+							if (s.Verify (r->GetIdentity (), buf + offset + asz + 10))
+							{
+								it->second.first->SetRemoteIdentity (r->GetIdentity ());
+								auto addr = r->GetSSU2Address (m_Address->IsV4 ());
+								if (addr)
+									it->second.first->m_Address = addr;
+								if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
+								{
+									// msg 5 already received. send msg 6 
+									it->second.first->m_State = eSSU2SessionStatePeerTest;
+									it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+								}
+							}
+							else
+							{	
+								LogPrint (eLogInfo, "SSU2: Peer test 4 signature verification failed");
+								it->second.first->Terminate ();
+							}	
 						}	
+					}
+					else
+					{
+						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1]);
+						it->second.first->Terminate ();
 					}	
 					m_PeerTests.erase (it);
 				}	
