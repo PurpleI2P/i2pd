@@ -1474,13 +1474,13 @@ namespace transport
 				if (r)
 				{
 					size_t signatureLen = r->GetIdentity ()->GetSignatureLen ();
-					if (len >= 35 + signatureLen)
+					if (len >= 35 + asz + 10 + signatureLen)
 					{	
 						s.Reset ();
 						s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 						s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
-						s.Insert (buf + 35 + signatureLen, len - 35 - signatureLen); // signed data
-						if (s.Verify (r->GetIdentity (), buf + (len - signatureLen)))
+						s.Insert (buf + 35, asz + 10); // signed data
+						if (s.Verify (r->GetIdentity (), buf + 35 + asz + 10))
 						{	
 							if (!m_Server.FindSession (r->GetIdentity ()->GetIdentHash ()))
 							{	
