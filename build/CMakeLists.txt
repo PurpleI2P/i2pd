@@ -17,12 +17,13 @@ option(WITH_LIBRARY         "Build library"                           ON)
 option(WITH_BINARY          "Build binary"                            ON)
 option(WITH_STATIC          "Static build"                            OFF)
 option(WITH_UPNP            "Include support for UPnP client"         OFF)
+option(WITH_GIT_VERSION     "Use git commit info as version"          OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
 
 # paths
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
-set(CMAKE_SOURCE_DIR "..")
+set(CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 #Handle paths nicely
 include(GNUInstallDirs)
@@ -90,6 +91,12 @@ set(DAEMON_SRC
 
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
+endif()
+
+if(WITH_GIT_VERSION)
+  include(GetGitRevisionDescription)
+  git_describe(GIT_VERSION)
+  add_definitions(-DGITVER="${GIT_VERSION}")
 endif()
 
 if(APPLE)
@@ -171,6 +178,7 @@ find_package(Threads REQUIRED)
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
+  set(OPENSSL_USE_STATIC_LIBS ON)
   set(BUILD_SHARED_LIBS OFF)
   if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
@@ -235,6 +243,7 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
+message(STATUS "  GIT VERSION      : ${WITH_GIT_VERSION}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
@@ -250,23 +259,18 @@ if(WITH_BINARY)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now")
   endif()
 
-  if(WITH_UPNP)
-    set(UPNP_LIB ${MINIUPNPC_LIBRARY})
-  endif()
-
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
   list(GET Boost_LIBRARIES -1 LAST_Boost_LIBRARIES)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
 
-
   if(WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
 
-  target_link_libraries(libi2pd ${Boost_LIBRARIES} ${ZLIB_LIBRARY})
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${UPNP_LIB} ${ZLIB_LIBRARY} Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries(libi2pd ${Boost_LIBRARIES} ZLIB::ZLIB)
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
