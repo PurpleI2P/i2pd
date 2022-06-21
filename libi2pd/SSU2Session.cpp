@@ -858,7 +858,8 @@ namespace transport
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, ep);
-		payloadSize += CreateRelayResponseBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, nonce);
+		payloadSize += CreateRelayResponseBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 
+			eSSU2RelayResponseCodeAccept ,nonce, true);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		// encrypt
 		uint8_t n[12];
@@ -1300,7 +1301,7 @@ namespace transport
 			// send relay response back to Alice
 			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 			size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
-				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1));
+				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), false);
 			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 			SendData (payload, payloadSize);
 			return; 
@@ -1324,43 +1325,50 @@ namespace transport
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len)
 	{
 		// we are Charlie
+		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
-		if (!r)
+		if (r)
+		{	
+			SignedData s;
+			s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
+			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+			s.Insert (i2p::context.GetIdentHash (), 32); // chash
+			s.Insert (buf + 33, 14); // nonce, relay tag, timestamp, ver, asz
+			uint8_t asz = buf[46];
+			s.Insert (buf + 47, asz); // Alice Port, Alice IP
+			if (s.Verify (r->GetIdentity (), buf + 47 + asz))
+			{
+				// send HolePunch
+				boost::asio::ip::udp::endpoint ep;
+				if (ExtractEndpoint (buf + 47, asz, ep))
+				{
+					auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+					if (addr)
+						SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
+					else
+					{
+						LogPrint (eLogWarning, "SSU2: RelayInfo unknown address");
+						code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;	
+					}		
+				}
+			}
+			else
+			{
+				LogPrint (eLogWarning, "SSU2: RelayIntro signature verification failed");
+				code = eSSU2RelayResponseCodeCharlieSignatureFailure;
+			}
+		}	
+		else
 		{
 			LogPrint (eLogError, "SSU2: RelayIntro unknown router to introduce");
-			return;
-		}
-		SignedData s;
-		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
-		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
-		s.Insert (i2p::context.GetIdentHash (), 32); // chash
-		s.Insert (buf + 33, 14); // nonce, relay tag, timestamp, ver, asz
-		uint8_t asz = buf[46];
-		s.Insert (buf + 47, asz); // Alice Port, Alice IP
-		if (!s.Verify (r->GetIdentity (), buf + 47 + asz))
-		{
-			LogPrint (eLogWarning, "SSU2: RelayIntro signature verification failed");
-			return; // TODO: send relay response
-		}
-
+			code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
+		}	
 		// send relay response to Bob
 		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, bufbe32toh (buf + 33));
+		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
+			code, bufbe32toh (buf + 33), true);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		SendData (payload, payloadSize);
-
-		// send HolePunch
-		boost::asio::ip::udp::endpoint ep;
-		if (ExtractEndpoint (buf + 47, asz, ep))
-		{
-			auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
-			if (r)
-			{
-				auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
-				if (addr)
-					SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
-			}
-		}
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
@@ -1827,48 +1835,32 @@ namespace transport
 		return payloadSize + 3;
 	}
 
-	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, uint32_t nonce)
+	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, 
+		SSU2RelayResponseCode code, uint32_t nonce, bool endpoint)
 	{
 		buf[0] = eSSU2BlkRelayResponse;
 		buf[3] = 0; // flag
-		buf[4] = 0; // code, accept
+		buf[4] = code; // code
 		htobe32buf (buf + 5, nonce); // nonce
 		htobe32buf (buf + 9, i2p::util::GetSecondsSinceEpoch ()); // timestamp
 		buf[13] = 2; // ver
-		size_t csz = CreateEndpoint (buf + 15, len - 15, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
-		if (!csz) return 0;
+		size_t csz = 0;
+		if (endpoint)
+		{	
+			csz = CreateEndpoint (buf + 15, len - 15, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
+			if (!csz) return 0;
+		}	
 		buf[14] = csz; // csz
 		// signature
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
-		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+		s.Insert (endpoint ? GetRemoteIdentity ()->GetIdentHash () : i2p::context.GetIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (buf + 5, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
 		s.Sign (i2p::context.GetPrivateKeys (), buf + 15 + csz);
 		size_t payloadSize = 12 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
 		htobe16buf (buf + 1, payloadSize); // size
 		return payloadSize + 3;
 	}
-
-	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce)
-	{
-		// we are Bob
-		buf[0] = eSSU2BlkRelayResponse;
-		buf[3] = 0; // flag
-		buf[4] = (uint8_t)code; // code
-		htobe32buf (buf + 5, nonce); // nonce
-		htobe32buf (buf + 9, i2p::util::GetSecondsSinceEpoch ()); // timestamp
-		buf[13] = 2; // ver
-		buf[14] = 0; // csz
-		// signature
-		SignedData s;
-		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
-		s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // bhash
-		s.Insert (buf + 5, 10); // nonce, timestamp, ver, csz
-		s.Sign (i2p::context.GetPrivateKeys (), buf + 15);
-		size_t payloadSize = 12 + i2p::context.GetIdentity ()->GetSignatureLen ();
-		htobe16buf (buf + 1, payloadSize); // size
-		return payloadSize + 3;
-	}	
 		
 	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code,
 		const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen)
