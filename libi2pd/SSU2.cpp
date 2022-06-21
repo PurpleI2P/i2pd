@@ -108,6 +108,21 @@ namespace transport
 		else if (localAddress.is_v6 ())
 			m_AddressV6 = localAddress;
 	}	
+
+	bool SSU2Server::IsSupported (const boost::asio::ip::address& addr) const
+	{
+		if (addr.is_v4 ())
+		{	
+			if (m_SocketV4.is_open ()) 
+				return true;
+		}	
+		else if (addr.is_v6 ())
+		{	
+			if (m_SocketV6.is_open ()) 
+				return true;
+		}
+		return false;
+	}	
 		
 	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)
 	{

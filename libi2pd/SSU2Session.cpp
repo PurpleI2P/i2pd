@@ -1344,7 +1344,12 @@ namespace transport
 				{
 					auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
 					if (addr)
-						SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
+					{
+						if (m_Server.IsSupported (ep.address ()))
+							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
+						else
+							code = eSSU2RelayResponseCodeCharlieUnsupportedAddress;
+					}	
 					else
 					{
 						LogPrint (eLogWarning, "SSU2: RelayInfo unknown address");

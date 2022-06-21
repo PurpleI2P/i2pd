@@ -108,6 +108,7 @@ namespace transport
 	{
 		eSSU2RelayResponseCodeAccept = 0,
 		eSSU2RelayResponseCodeBobRelayTagNotFound = 5,
+		eSSU2RelayResponseCodeCharlieUnsupportedAddress = 65,
 		eSSU2RelayResponseCodeCharlieSignatureFailure = 67,
 		eSSU2RelayResponseCodeCharlieAliceIsUnknown = 70
 	};	
