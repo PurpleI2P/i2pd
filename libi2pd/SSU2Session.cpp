@@ -1413,7 +1413,7 @@ namespace transport
 
 	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
 	{
-		uint32_t nonce = bufbe32toh (buf + 36);
+		uint32_t nonce = bufbe32toh ((buf[0] == 2 || buf[0] == 4) ? buf + 36 : buf + 4); // hash is presented for msg 2 and 4 only
 		switch (buf[0]) // msg
 		{
 			case 1: // Bob from Alice
