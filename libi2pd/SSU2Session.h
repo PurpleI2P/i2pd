@@ -79,11 +79,12 @@ namespace transport
 	enum SSU2SessionState
 	{
 		eSSU2SessionStateUnknown,
-		eSSU2SessionStateIntroduced,
-		eSSU2SessionStatePeerTest,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
-		eSSU2SessionStateFailed
+		eSSU2SessionStateFailed,
+		eSSU2SessionStateIntroduced,
+		eSSU2SessionStatePeerTest,
+		eSSU2SessionStatePeerTestReceived // 5 before 4
 	};
 
 	enum SSU2PeerTestCode

@@ -1413,8 +1413,13 @@ namespace transport
 
 	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
 	{
-		uint32_t nonce = bufbe32toh ((buf[0] == 2 || buf[0] == 4) ? buf + 36 : buf + 4); // hash is presented for msg 2 and 4 only
-		switch (buf[0]) // msg
+		if (len < 3) return;
+		uint8_t msg = buf[0];
+		size_t offset = 3; // points to signed data
+		if (msg == 2 || msg == 4) offset += 32;  // hash is presented for msg 2 and 4 only
+		if (len < offset + 5) return;    
+		uint32_t nonce = bufbe32toh (buf + offset + 1); 
+		switch (msg) // msg
 		{
 			case 1: // Bob from Alice
 			{	
@@ -1437,7 +1442,7 @@ namespace transport
 					}	
 					// PeerTest to Charlie
 					payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 2, 
-						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
+						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
 					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					session->SendData (payload, payloadSize);
 				}
@@ -1446,7 +1451,7 @@ namespace transport
 					// Charlie not found, send error back to Alice
 					uint8_t payload[SSU2_MAX_PAYLOAD_SIZE], zeroHash[32] = {0};
 					size_t payloadSize = CreatePeerTestBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 4, 
-						eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + 3, len - 3);
+						eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + offset, len - offset);
 					payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					SendData (payload, payloadSize);
 				}	
@@ -1536,7 +1541,7 @@ namespace transport
 					}
 					// PeerTest to Alice
 					payloadSize += CreatePeerTestBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE, 4, 
-						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + 3, len - 3);
+						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
 					if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 						payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 					it->second.first->SendData (payload, payloadSize);
@@ -1558,6 +1563,12 @@ namespace transport
 						auto addr = r->GetSSU2Address (m_Address->IsV4 ());
 						if (addr)
 							it->second.first->m_Address = addr;
+						if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
+						{
+							// msg 5 already received. send msg 6 
+							it->second.first->m_State = eSSU2SessionStatePeerTest;
+							it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+						}	
 					}	
 					m_PeerTests.erase (it);
 				}	
@@ -1569,17 +1580,17 @@ namespace transport
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
 				{
 					if (m_Address)
-						SendPeerTest (6, buf + 3, len - 3, m_Address->i);
+						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
 					else
-						// TODO: we should wait for msg 4
-						LogPrint (eLogWarning, "SSU2: Unknown address for peer test 5");
+						// we received msg 5 before msg 4
+						m_State = eSSU2SessionStatePeerTestReceived;
 				}	
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
 			break;
 			case 6: // Charlie from Alice
 				if (m_Address)
-					SendPeerTest (7, buf + 3, len - 3, m_Address->i);
+					SendPeerTest (7, buf + offset, len - offset, m_Address->i);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
 				m_Server.RemoveSession (~(((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)));
