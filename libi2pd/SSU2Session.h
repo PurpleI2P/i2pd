@@ -79,6 +79,7 @@ namespace transport
 	enum SSU2SessionState
 	{
 		eSSU2SessionStateUnknown,
+		eSSU2SessionStateTokenReceived,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,

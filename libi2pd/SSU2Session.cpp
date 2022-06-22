@@ -403,7 +403,7 @@ namespace transport
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		// send
-		if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
+		if (m_State == eSSU2SessionStateTokenReceived || m_Server.AddPendingOutgoingSession (shared_from_this ()))
 			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 		else
 		{
@@ -545,7 +545,6 @@ namespace transport
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 
 		m_Server.AddSession (shared_from_this ());
-		m_Server.RemovePendingOutgoingSession (m_RemoteEndpoint); 
 		SendSessionConfirmed (headerX + 16);
 		KDFDataPhase (m_KeyDataSend, m_KeyDataReceive);
 		Established ();
@@ -842,8 +841,8 @@ namespace transport
 		}
 		HandlePayload (payload, len - 48);
 
+		m_State = eSSU2SessionStateTokenReceived;
 		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
-		m_Server.RemovePendingOutgoingSession (m_RemoteEndpoint); 
 		SendSessionRequest (headerX[1]);
 		return true;
 	}
