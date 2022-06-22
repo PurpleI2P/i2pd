@@ -176,6 +176,7 @@ namespace transport
 			i2p::data::RouterInfo::CompatibleTransports GetRemoteTransports () const { return m_RemoteTransports; };
 			std::shared_ptr<const i2p::data::RouterInfo::Address> GetAddress () const { return m_Address; };
 			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; };
+			OnEstablished GetOnEstablished () const { return m_OnEstablished; };
 
 			void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);

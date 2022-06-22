@@ -403,8 +403,13 @@ namespace transport
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		// send
-		m_Server.AddPendingOutgoingSession (shared_from_this ());
-		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
+		if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
+			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
+		else
+		{
+			LogPrint (eLogWarning, "SSU2: SessionRequest request to ", m_RemoteEndpoint, " already pending");  	
+			Terminate ();
+		}		
 	}
 
 	void SSU2Session::ProcessSessionRequest (Header& header, uint8_t * buf, size_t len)
@@ -739,8 +744,13 @@ namespace transport
 		memset (nonce, 0, 12);
 		i2p::crypto::ChaCha20 (h + 16, 16, m_Address->i, nonce, h + 16);
 		// send
-		m_Server.AddPendingOutgoingSession (shared_from_this ());
-		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
+		if (m_Server.AddPendingOutgoingSession (shared_from_this ()))	
+			m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
+		else
+		{
+			LogPrint (eLogWarning, "SSU2: TokenRequest request to ", m_RemoteEndpoint, " already pending");  	
+			Terminate ();
+		}		
 	}
 
 	void SSU2Session::ProcessTokenRequest (Header& header, uint8_t * buf, size_t len)

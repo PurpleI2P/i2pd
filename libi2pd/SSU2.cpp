@@ -264,10 +264,10 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
+	bool SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
 	{
-		if (session)
-			m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session);
+		if (!session) return false;
+		return m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session).second;
 	}
 
 	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident) const
@@ -278,6 +278,14 @@ namespace transport
 		return nullptr;
 	}	
 
+	std::shared_ptr<SSU2Session> SSU2Server::FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const
+	{		
+		auto it = m_PendingOutgoingSessions.find (ep);
+		if (it != m_PendingOutgoingSessions.end ())
+			return it->second;
+		return nullptr;
+	}
+		
 	std::shared_ptr<SSU2Session> SSU2Server::GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports) const
 	{
 		if (m_Sessions.empty ()) return nullptr;
@@ -429,14 +437,40 @@ namespace transport
 	{
 		if (router && address)
 		{
+			// check is no peding session
+			bool isValidEndpoint = !address->host.is_unspecified () && address->port;
+			if (isValidEndpoint)
+			{	
+				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
+				if (s)
+				{	
+					if (peerTest)
+					{
+						// if peer test requested add it to the list for pending session
+						auto onEstablished = s->GetOnEstablished ();
+						if (onEstablished)
+							s->SetOnEstablished ([s, onEstablished]() 
+								{ 
+									onEstablished (); 
+									s->SendPeerTest (); 
+								 });
+						else	
+							s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+					}	
+					return false;
+				}	
+			}	
+			
 			auto session = std::make_shared<SSU2Session> (*this, router, address);
 			if (peerTest)
 				session->SetOnEstablished ([session]() {session->SendPeerTest (); });
 
 			if (address->UsesIntroducer ())
 				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
-			else
+			else if (isValidEndpoint) // we can't connect without endpoint				
 				GetService ().post ([session]() { session->Connect (); });
+			else
+				return false;
 		}
 		else
 			return false;
@@ -479,13 +513,29 @@ namespace transport
 				auto addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
 				if (addr)
 				{
-					auto s = std::make_shared<SSU2Session> (*this, r, addr);
-					s->SetOnEstablished (
-						[session, s, relayTag]()
+					bool isValidEndpoint = !addr->host.is_unspecified () && addr->port;
+					if (isValidEndpoint)
+					{	
+						auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (addr->host, addr->port));
+						if (!s)
+						{	
+							s = std::make_shared<SSU2Session> (*this, r, addr);
+							s->SetOnEstablished ([session, s, relayTag]() { s->Introduce (session, relayTag); });
+							s->Connect ();
+						}
+						else
 						{
-							s->Introduce (session, relayTag);
-						});
-					s->Connect ();
+							auto onEstablished = s->GetOnEstablished ();
+							if (onEstablished)
+								s->SetOnEstablished ([session, s, relayTag, onEstablished]()
+									{
+										onEstablished ();
+										s->Introduce (session, relayTag);
+									});
+							else	
+								s->SetOnEstablished ([session, s, relayTag]() {s->Introduce (session, relayTag); });
+						}	
+					}	
 				}
 			}
 		}
