@@ -285,6 +285,11 @@ namespace transport
 			return it->second;
 		return nullptr;
 	}
+
+	void SSU2Server::RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep)
+	{
+		m_PendingOutgoingSessions.erase (ep);
+	}	
 		
 	std::shared_ptr<SSU2Session> SSU2Server::GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports) const
 	{

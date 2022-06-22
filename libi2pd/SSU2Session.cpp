@@ -545,6 +545,7 @@ namespace transport
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 
 		m_Server.AddSession (shared_from_this ());
+		m_Server.RemovePendingOutgoingSession (m_RemoteEndpoint); 
 		SendSessionConfirmed (headerX + 16);
 		KDFDataPhase (m_KeyDataSend, m_KeyDataReceive);
 		Established ();
