@@ -1394,8 +1394,16 @@ namespace transport
 		if (it != m_RelaySessions.end ())
 		{
 			if (it->second.first && it->second.first->IsEstablished ())
+			{	
 				// we are Bob, message from Charlie
-				it->second.first->SendData (buf, len); // forward to Alice as is
+				uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+				payload[0] = eSSU2BlkRelayResponse;
+				htobe16buf (payload + 1, len);
+				memcpy (payload + 3, buf, len); // forward to Alice as is
+				size_t payloadSize = len + 3;
+				payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
+				it->second.first->SendData (payload, payloadSize); 
+			}	
 			else
 			{
 				// we are Alice, message from Bob
