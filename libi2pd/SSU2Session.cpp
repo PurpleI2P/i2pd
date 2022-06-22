@@ -843,6 +843,7 @@ namespace transport
 		HandlePayload (payload, len - 48);
 
 		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
+		m_Server.RemovePendingOutgoingSession (m_RemoteEndpoint); 
 		SendSessionRequest (headerX[1]);
 		return true;
 	}
