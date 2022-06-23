@@ -358,7 +358,7 @@ namespace transport
 			}		
 			default:
 			{
-				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " from ", m_RemoteEndpoint);
 				return false;
 			}
 		}
@@ -1604,17 +1604,24 @@ namespace transport
 								it->second.first->SetRemoteIdentity (r->GetIdentity ());
 								auto addr = r->GetSSU2Address (m_Address->IsV4 ());
 								if (addr)
+								{	
 									it->second.first->m_Address = addr;
-								if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
-								{
-									// msg 5 already received. send msg 6 
-									it->second.first->m_State = eSSU2SessionStatePeerTest;
-									it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+									if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
+									{
+										// msg 5 already received. send msg 6 
+										it->second.first->m_State = eSSU2SessionStatePeerTest;
+										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+									}
 								}
+								else
+								{
+									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found");
+									it->second.first->Terminate ();
+								}	
 							}
 							else
 							{	
-								LogPrint (eLogInfo, "SSU2: Peer test 4 signature verification failed");
+								LogPrint (eLogWarning, "SSU2: Peer test 4 signature verification failed");
 								it->second.first->Terminate ();
 							}	
 						}	
