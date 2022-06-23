@@ -386,7 +386,10 @@ namespace data
 								((it.iHost.is_v4 () && address->IsV4 ()) || (it.iHost.is_v6 () && address->IsV6 ())))
 								numValid++;
 							else
+							{	
 								it.iPort = 0;
+								if (isV2) numValid++;
+							}	
 						}
 						if (numValid)
 							m_ReachableTransports |= supportedTransports;
@@ -409,28 +412,53 @@ namespace data
 					if (address->host.is_v4 ()) m_ReachableTransports |= eSSU2V4;
 					if (address->host.is_v6 ()) m_ReachableTransports |= eSSU2V6;
 				}
+				if (address->transportStyle == eTransportSSU2)
+				{
+					if (address->port) address->published = true;
+					if (address->ssu && !address->ssu->introducers.empty ())
+					{
+						// exclude invalid introducers
+						uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+						int numValid = 0;
+						for (auto& it: address->ssu->introducers)
+						{
+							if (it.iTag && ts <= it.iExp)						
+								numValid++;
+							else	
+								it.iTag = 0;
+						}
+						if (numValid)
+							m_ReachableTransports |= supportedTransports;
+						else
+							address->ssu->introducers.resize (0);
+					}	
+				}
+				else
+				{
+					// create additional SSU2 address. TODO: remove later
+					auto ssu2addr = std::make_shared<Address> ();
+					ssu2addr->transportStyle = eTransportSSU2;
+					ssu2addr->host = address->host; ssu2addr->port = address->port;
+					ssu2addr->s = address->s; ssu2addr->i = iV2;
+					ssu2addr->date = address->date; ssu2addr->caps = address->caps;
+					ssu2addr->published = address->published;
+					ssu2addr->ssu.reset (new SSUExt ()); ssu2addr->ssu->mtu = address->ssu->mtu;
+					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+					if (!address->ssu->introducers.empty ())
+					{	
+						for (const auto& introducer: address->ssu->introducers)
+							if (!introducer.iPort && introducer.iHost.is_unspecified () && ts < introducer.iExp) // SSU2
+								ssu2addr->ssu->introducers.push_back (introducer);
+						if (!ssu2addr->ssu->introducers.empty ())
+							m_ReachableTransports |= supportedTransports;
+					}	
+					addresses->push_back(ssu2addr);
+				}	
 			}
 			if (supportedTransports)
 			{
 				if (!(m_SupportedTransports & supportedTransports)) // avoid duplicates
-				{
 					addresses->push_back(address);
-					if (address->transportStyle == eTransportSSU && isV2)
-					{
-						// create additional SSU2 address. TODO: remove later
-						auto ssu2addr = std::make_shared<Address> ();
-						ssu2addr->transportStyle = eTransportSSU2;
-						ssu2addr->host = address->host; ssu2addr->port = address->port;
-						ssu2addr->s = address->s; ssu2addr->i = iV2;
-						ssu2addr->date = address->date; ssu2addr->caps = address->caps;
-						ssu2addr->published = address->published;
-						ssu2addr->ssu.reset (new SSUExt ()); ssu2addr->ssu->mtu = address->ssu->mtu;
-						for (const auto& introducer: address->ssu->introducers)
-							if (!introducer.iPort) // SSU2
-								ssu2addr->ssu->introducers.push_back (introducer);
-						addresses->push_back(ssu2addr);
-					}
-				}
 				m_SupportedTransports |= supportedTransports;
 			}
 		}

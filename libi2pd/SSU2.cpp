@@ -499,16 +499,20 @@ namespace transport
 			}
 		}
 		// we have to start a new session to an introducer
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		std::shared_ptr<i2p::data::RouterInfo> r;
 		uint32_t relayTag = 0;
 		for (auto& it: address->ssu->introducers)
 		{
-			r = i2p::data::netdb.FindRouter (it.iKey);
-			if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
-			{
-				relayTag = it.iTag;
-				if (relayTag) break;
-			}
+			if (it.iTag && ts < it.iExp)
+			{	
+				r = i2p::data::netdb.FindRouter (it.iKey);
+				if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+				{
+					relayTag = it.iTag;
+					if (relayTag) break;
+				}
+			}	
 		}
 		if (r)
 		{
@@ -548,7 +552,8 @@ namespace transport
 		{
 			// introducers not found, try to request them
 			for (auto& it: address->ssu->introducers)
-				i2p::data::netdb.RequestDestination (it.iKey);
+				if (it.iTag && ts < it.iExp)
+					i2p::data::netdb.RequestDestination (it.iKey);
 		}
 	}
 
