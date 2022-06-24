@@ -1525,11 +1525,12 @@ namespace transport
 				// sign with Charlie's key
 				uint8_t asz = buf[offset + 9];
 				std::vector<uint8_t> newSignedData (asz + 10 + i2p::context.GetIdentity ()->GetSignatureLen ());
+				memcpy (newSignedData.data (), buf + offset, asz + 10);
 				SignedData s;
 				s.Insert ((const uint8_t *)"PeerTestValidate", 16); // prologue
 				s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 				s.Insert (buf + 3, 32); // ahash
-				s.Insert (buf + offset, asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
+				s.Insert (newSignedData.data (), asz + 10); // ver, nonce, ts, asz, Alice's endpoint 
 				s.Sign (i2p::context.GetPrivateKeys (), newSignedData.data () + 10 + asz);
 				// send response (msg 3) back and msg 5 if accepted
 				SSU2PeerTestCode code = eSSU2PeerTestCodeAccept;
