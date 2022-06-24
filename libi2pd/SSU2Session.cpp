@@ -160,6 +160,7 @@ namespace transport
 			m_Server.RemoveSession (m_SourceConnID);
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
+			m_SentHandshakePacket.reset (nullptr);
 			m_SendQueue.clear ();
 			LogPrint (eLogDebug, "SSU2: Session terminated");
 		}
@@ -177,6 +178,7 @@ namespace transport
 		m_EphemeralKeys = nullptr;
 		m_NoiseState.reset (nullptr);
 		m_SessionConfirmedFragment1.reset (nullptr);
+		m_SentHandshakePacket.reset (nullptr);
 		m_ConnectTimer.cancel ();
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
@@ -301,10 +303,22 @@ namespace transport
 
 	void SSU2Session::Resend (uint64_t ts)
 	{
+		// resend handshake packet
+		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->nextResendTime)
+		{
+			// TODO: implement SessionConfirmed
+			LogPrint (eLogDebug, "SSU2: Resending ", (m_State == eSSU2SessionStateSessionRequestSent) ? "SessionRequest" : "SessionCreated");
+			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
+				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
+			m_SentHandshakePacket->numResends++;
+			m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+			return;
+		}	
+		// resend data packets
 		if (m_SentPackets.empty ()) return;
 		std::map<uint32_t, std::shared_ptr<SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
-			if (ts > it->second->nextResendTime)
+			if (ts >= it->second->nextResendTime)
 			{
 				if (it->second->numResends > SSU2_MAX_NUM_RESENDS)
 					it = m_SentPackets.erase (it);
@@ -369,9 +383,13 @@ namespace transport
 	{
 		// we are Alice
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
-
-		Header header;
-		uint8_t headerX[48], payload[40];
+		m_SentHandshakePacket.reset (new HandshakePacket);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+		
+		Header& header = m_SentHandshakePacket->header;
+		uint8_t * headerX = m_SentHandshakePacket->headerX, 
+				* payload = m_SentHandshakePacket->payload;
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
 		header.h.packetNum = 0;
@@ -385,7 +403,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, ts);
 		size_t payloadSize = 7;
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// KDF for session request
@@ -402,6 +420,8 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
+		m_State = eSSU2SessionStateSessionRequestSent;
+		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		if (m_State == eSSU2SessionStateTokenReceived || m_Server.AddPendingOutgoingSession (shared_from_this ()))
 			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
@@ -454,11 +474,16 @@ namespace transport
 	{
 		// we are Bob
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
+		m_SentHandshakePacket.reset (new HandshakePacket);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+		
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessCreateHeader", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessCreateHeader", 32)
 		// fill packet
-		Header header;
-		uint8_t headerX[48], payload[80];
+		Header& header = m_SentHandshakePacket->header;
+		uint8_t * headerX = m_SentHandshakePacket->headerX, 
+				* payload = m_SentHandshakePacket->payload;
 		header.h.connID = m_DestConnID; // dest id
 		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionCreated;
@@ -469,7 +494,6 @@ namespace transport
 		memset (headerX + 8, 0, 8); // token = 0
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
 		// payload
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, ts);
@@ -506,6 +530,8 @@ namespace transport
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, kh2, nonce, headerX);
+		m_State = eSSU2SessionStateSessionCreatedSent;
+		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}
@@ -617,7 +643,7 @@ namespace transport
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
-				m_SessionConfirmedFragment1.reset (new SessionConfirmedFragment);
+				m_SessionConfirmedFragment1.reset (new HandshakePacket);
 				m_SessionConfirmedFragment1->header = header;
 				memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
 				m_SessionConfirmedFragment1->payloadSize = len - 16;

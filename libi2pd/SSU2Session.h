@@ -32,6 +32,7 @@ namespace transport
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MTU = 1488;
 	const size_t SSU2_MAX_PAYLOAD_SIZE = SSU2_MTU - 32;
+	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
 	const int SSU2_RESEND_INTERVAL = 3; // in seconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
@@ -80,6 +81,8 @@ namespace transport
 	{
 		eSSU2SessionStateUnknown,
 		eSSU2SessionStateTokenReceived,
+		eSSU2SessionStateSessionRequestSent,
+		eSSU2SessionStateSessionCreatedSent,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
@@ -157,11 +160,10 @@ namespace transport
 			int numResends = 0;
 		};
 
-		struct SessionConfirmedFragment
+		struct HandshakePacket: public SentPacket
 		{
 			Header header;
-			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
-			size_t payloadSize;
+			uint8_t headerX[48]; // not used in SessionConfirmed
 		};
 
 		typedef std::function<void ()> OnEstablished;
@@ -263,7 +265,8 @@ namespace transport
 			SSU2Server& m_Server;
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
-			std::unique_ptr<SessionConfirmedFragment> m_SessionConfirmedFragment1; // for Bob if applicable
+			std::unique_ptr<HandshakePacket> m_SessionConfirmedFragment1; // for Bob if applicable
+			std::unique_ptr<HandshakePacket> m_SentHandshakePacket; // SessionRequest or SessionCreated
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			i2p::data::RouterInfo::CompatibleTransports m_RemoteTransports; // for peer tests

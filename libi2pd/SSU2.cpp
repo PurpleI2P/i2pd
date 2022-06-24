@@ -361,7 +361,7 @@ namespace transport
 				case eSSU2SessionStateEstablished:
 					m_LastSession->ProcessData (buf, len);
 				break;
-				case eSSU2SessionStateUnknown:
+				case eSSU2SessionStateSessionCreatedSent:
 					m_LastSession->ProcessSessionConfirmed (buf, len);
 				break;
 				case eSSU2SessionStateIntroduced:
@@ -649,6 +649,8 @@ namespace transport
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it: m_Sessions)
+				it.second->Resend (ts);
+			for (auto it: m_PendingOutgoingSessions)
 				it.second->Resend (ts);
 			ScheduleResend ();
 		}
