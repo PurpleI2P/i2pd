@@ -420,11 +420,13 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 12));
 		i2p::crypto::ChaCha20 (headerX, 48, m_Address->i, nonce, headerX);
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
-		m_State = eSSU2SessionStateSessionRequestSent;
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		if (m_State == eSSU2SessionStateTokenReceived || m_Server.AddPendingOutgoingSession (shared_from_this ()))
+		{	
+			m_State = eSSU2SessionStateSessionRequestSent;
 			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
+		}	
 		else
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest request to ", m_RemoteEndpoint, " already pending");  	
