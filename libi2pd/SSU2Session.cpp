@@ -1970,7 +1970,11 @@ namespace transport
 	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce)
 	{
 		auto localAddress = FindLocalAddress ();  
-		if (!localAddress) return 0;
+		if (!localAddress || !localAddress->port || localAddress->host.is_unspecified ()) 
+		{
+			LogPrint (eLogWarning, "SSU2: Can't find local address for peer test");
+			return 0;
+		}	
 		// signed data
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		uint8_t signedData[96];
