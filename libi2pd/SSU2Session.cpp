@@ -1336,7 +1336,7 @@ namespace transport
 		auto session = m_Server.FindRelaySession (relayTag);
 		if (!session)
 		{
-			LogPrint (eLogWarning, "SSU2: Session with relay tag ", relayTag, " not found");
+			LogPrint (eLogWarning, "SSU2: RelayRequest session with relay tag ", relayTag, " not found");
 			// send relay response back to Alice
 			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 			size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
@@ -1350,11 +1350,14 @@ namespace transport
 
 		// send relay intro to Charlie
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
-		if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
+		if (r) 
+			i2p::data::netdb.PopulateRouterInfoBuffer (r);
+		else
+			LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
 		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, SSU2_MAX_PAYLOAD_SIZE - len - 32, r) : 0;
 		if (!payloadSize && r)
-			SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+			session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
 		payloadSize += CreateRelayIntroBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, buf + 1, len -1);
 		if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
 			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
