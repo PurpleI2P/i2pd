@@ -312,17 +312,11 @@ namespace config {
 		;
 
 #ifdef __linux__
-        options_description unix_specific("UNIX-specific options");
-        unix_specific.add_options()
-            ("unix.handle_sigtstp", bool_switch()->default_value(false),
-                    "Switch to offline mode if received signal TSTP (SIGTSTP)"
-                    "(you   can send it by pressing CTRL+Z in terminal or with"
-                    " help commapnd kill and others, a.e pkill, if i2pd in "
-                    "daemon mode). If you need to switch to online mode, send"
-                    " signal CONT (SIGCONT)")
-        ;
+		options_description unix_specific("UNIX-specific options");
+		unix_specific.add_options()
+			("unix.handle_sigtstp", bool_switch()->default_value(false),             "Handle SIGTSTP and SIGCONT signals (default: disabled)")
+		;
 #endif
-
 
 		m_OptionsDesc
 			.add(general)
@@ -348,7 +342,7 @@ namespace config {
 			.add(cpuext)
 			.add(meshnets)
 #ifdef __linux__
-            .add(unix_specific)
+			.add(unix_specific)
 #endif
 		;
 	}
