@@ -24,6 +24,7 @@
 #include "Tunnel.h"
 #include "RouterContext.h"
 #include "ClientContext.h"
+#include "Transports.h"
 
 void handle_signal(int sig)
 {
@@ -54,7 +55,15 @@ void handle_signal(int sig)
 		case SIGPIPE:
 			LogPrint(eLogInfo, "SIGPIPE received");
 		break;
-	}
+        case SIGTSTP:
+            LogPrint(eLogInfo, "Daemon: Got SIGTSTP, disconnecting from network...");
+            i2p::transport::transports.SetOnline(false);
+            break;
+        case SIGCONT:
+            LogPrint(eLogInfo, "Daemon: Got SIGCONT, restore connection to network...");
+            i2p::transport::transports.SetOnline(true);
+            break;
+        }
 }
 
 namespace i2p
