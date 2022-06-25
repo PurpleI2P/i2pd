@@ -306,8 +306,7 @@ namespace transport
 		// resend handshake packet
 		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->nextResendTime)
 		{
-			// TODO: implement SessionConfirmed
-			LogPrint (eLogDebug, "SSU2: Resending ", (m_State == eSSU2SessionStateSessionRequestSent) ? "SessionRequest" : "SessionCreated");
+			LogPrint (eLogDebug, "SSU2: Resending ", (int)m_State);
 			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
 				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
 			m_SentHandshakePacket->numResends++;
@@ -575,7 +574,6 @@ namespace transport
 		m_Server.AddSession (shared_from_this ());
 		SendSessionConfirmed (headerX + 16);
 		KDFDataPhase (m_KeyDataSend, m_KeyDataReceive);
-		Established ();
 
 		return true;
 	}
@@ -583,10 +581,14 @@ namespace transport
 	void SSU2Session::SendSessionConfirmed (const uint8_t * Y)
 	{
 		// we are Alice
+		m_SentHandshakePacket.reset (new HandshakePacket);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+		
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessionConfirmed", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessionConfirmed", 32)
 		// fill packet
-		Header header;
+		Header& header = m_SentHandshakePacket->header;
 		header.h.connID = m_DestConnID; // dest id
 		header.h.packetNum = 0;
 		header.h.type = eSSU2SessionConfirmed;
@@ -594,7 +596,7 @@ namespace transport
 		header.h.flags[0] = 1; // frag, total fragments always 1
 		// payload
 		const size_t maxPayloadSize = SSU2_MAX_PAYLOAD_SIZE - 48; // part 2
-		uint8_t payload[maxPayloadSize + 16];
+		uint8_t * payload = m_SentHandshakePacket->payload;
 		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
 		// TODO: check is RouterInfo doesn't fit and split by two fragments
 		if (payloadSize < maxPayloadSize)
@@ -602,7 +604,7 @@ namespace transport
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header)
 		// Encrypt part 1
-		uint8_t part1[48];
+		uint8_t * part1 = m_SentHandshakePacket->headerX;
 		uint8_t nonce[12];
 		CreateNonce (1, nonce);
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetSSU2StaticPublicKey (), 32, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, part1, 48, true);
@@ -619,6 +621,8 @@ namespace transport
 		// Encrypt header
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
+		m_State = eSSU2SessionStateSessionConfirmedSent;
+		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		m_Server.Send (header.buf, 16, part1, 48, payload, payloadSize, m_RemoteEndpoint);
 		m_SendPacketNum++;
@@ -1199,6 +1203,11 @@ namespace transport
 
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
 	{
+		if (m_State == eSSU2SessionStateSessionConfirmedSent)
+		{
+			Established ();
+			return;
+		}	
 		if (m_SentPackets.empty ()) return;
 		if (len < 5) return;
 		// acnt

@@ -83,6 +83,7 @@ namespace transport
 		eSSU2SessionStateTokenReceived,
 		eSSU2SessionStateSessionRequestSent,
 		eSSU2SessionStateSessionCreatedSent,
+		eSSU2SessionStateSessionConfirmedSent,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
@@ -163,7 +164,7 @@ namespace transport
 		struct HandshakePacket: public SentPacket
 		{
 			Header header;
-			uint8_t headerX[48]; // not used in SessionConfirmed
+			uint8_t headerX[48]; // part1 for SessionConfirmed
 		};
 
 		typedef std::function<void ()> OnEstablished;

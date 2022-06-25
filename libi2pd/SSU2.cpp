@@ -359,6 +359,7 @@ namespace transport
 			switch (m_LastSession->GetState ())
 			{
 				case eSSU2SessionStateEstablished:
+				case eSSU2SessionStateSessionConfirmedSent:	
 					m_LastSession->ProcessData (buf, len);
 				break;
 				case eSSU2SessionStateSessionCreatedSent:
