@@ -30,7 +30,7 @@ namespace transport
 	const int SSU2_TOKEN_EXPIRATION_THRESHOLD = 2; // in seconds
 	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
-	const size_t SSU2_MTU = 1488;
+	const size_t SSU2_MTU = 1440; // TODO: should be 1456 for ipv4
 	const size_t SSU2_MAX_PAYLOAD_SIZE = SSU2_MTU - 32;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
 	const int SSU2_RESEND_INTERVAL = 3; // in seconds

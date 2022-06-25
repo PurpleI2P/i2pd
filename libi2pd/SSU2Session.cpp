@@ -245,7 +245,7 @@ namespace transport
 					m_SendQueue.pop_front ();
 					packet->payloadSize += CreateI2NPBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize, std::move (msg));
 				}
-				else if (len > SSU2_MAX_PAYLOAD_SIZE - 32) // message too long
+				else if (len > SSU2_MAX_PAYLOAD_SIZE) // message too long
 				{
 					m_SendQueue.pop_front ();
 					SendFragmentedMessage (msg);
@@ -281,11 +281,11 @@ namespace transport
 		memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4);
 		auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
 		auto packet = std::make_shared<SentPacket>();
-		packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
-		auto size = CreateFirstFragmentBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - 32 - packet->payloadSize, msg);
+		packet->payloadSize = CreateAckBlock (packet->payload, SSU2_MAX_PAYLOAD_SIZE);
+		auto size = CreateFirstFragmentBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - 16 - packet->payloadSize, msg);
 		if (!size) return;
 		packet->payloadSize += size;
-		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
+		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - 16 - packet->payloadSize);
 		uint32_t firstPacketNum = SendData (packet->payload, packet->payloadSize);
 		packet->nextResendTime = nextResend;
 		m_SentPackets.emplace (firstPacketNum, packet);
@@ -293,8 +293,8 @@ namespace transport
 		while (msg->offset < msg->len)
 		{
 			packet = std::make_shared<SentPacket>();
-			packet->payloadSize += CreateFollowOnFragmentBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize - 16, msg, fragmentNum, msgID);
-			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - packet->payloadSize);
+			packet->payloadSize = CreateFollowOnFragmentBlock (packet->payload, SSU2_MAX_PAYLOAD_SIZE - 16, msg, fragmentNum, msgID);
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, SSU2_MAX_PAYLOAD_SIZE - 16 - packet->payloadSize);
 			uint32_t followonPacketNum = SendData (packet->payload, packet->payloadSize);
 			packet->nextResendTime = nextResend;
 			m_SentPackets.emplace (followonPacketNum, packet);
