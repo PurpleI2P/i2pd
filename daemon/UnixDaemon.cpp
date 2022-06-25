@@ -60,7 +60,7 @@ void handle_signal(int sig)
             i2p::transport::transports.SetOnline(false);
             break;
         case SIGCONT:
-            LogPrint(eLogInfo, "Daemon: Got SIGCONT, restore connection to network...");
+            LogPrint(eLogInfo, "Daemon: Got SIGCONT, restoring connection to network...");
             i2p::transport::transports.SetOnline(true);
             break;
         }
@@ -180,19 +180,27 @@ namespace i2p
 			}
 			gracefulShutdownInterval = 0; // not specified
 
-			// Signal handler
-			struct sigaction sa;
-			sa.sa_handler = handle_signal;
-			sigemptyset(&sa.sa_mask);
-			sa.sa_flags = SA_RESTART;
-			sigaction(SIGHUP, &sa, 0);
-			sigaction(SIGUSR1, &sa, 0);
-			sigaction(SIGABRT, &sa, 0);
-			sigaction(SIGTERM, &sa, 0);
-			sigaction(SIGINT, &sa, 0);
-			sigaction(SIGPIPE, &sa, 0);
+            // handle signal TSTP
+            bool handleTSTP; i2p::config::GetOption("unix.handle_sigtstp", handleTSTP);
 
-			return Daemon_Singleton::start();
+            // Signal handler
+            struct sigaction sa;
+            sa.sa_handler = handle_signal;
+            sigemptyset(&sa.sa_mask);
+            sa.sa_flags = SA_RESTART;
+            sigaction(SIGHUP, &sa, 0);
+            sigaction(SIGUSR1, &sa, 0);
+            sigaction(SIGABRT, &sa, 0);
+            sigaction(SIGTERM, &sa, 0);
+            sigaction(SIGINT, &sa, 0);
+            sigaction(SIGPIPE, &sa, 0);
+            if (handleTSTP)
+            {
+                sigaction(SIGTSTP, &sa, 0);
+                sigaction(SIGCONT, &sa, 0);
+            }
+
+            return Daemon_Singleton::start();
 		}
 
 		bool DaemonLinux::stop()
