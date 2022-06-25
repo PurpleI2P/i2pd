@@ -311,6 +311,19 @@ namespace config {
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 
+#ifdef __linux__
+        options_description unix_specific("UNIX-specific options");
+        unix_specific.add_options()
+            ("unix.handle_sigtstp", bool_switch()->default_value(false),
+                    "Switch to offline mode if received signal TSTP (SIGTSTP)"
+                    "(you   can send it by pressing CTRL+Z in terminal or with"
+                    " help commapnd kill and others, a.e pkill, if i2pd in "
+                    "daemon mode). If you need to switch to online mode, send"
+                    " signal CONT (SIGCONT)")
+        ;
+#endif
+
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -334,6 +347,9 @@ namespace config {
 			.add(persist)
 			.add(cpuext)
 			.add(meshnets)
+#ifdef __linux__
+            .add(unix_specific)
+#endif
 		;
 	}
 
