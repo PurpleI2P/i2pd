@@ -1495,7 +1495,8 @@ namespace transport
 		{
 			case 1: // Bob from Alice
 			{	
-				auto session = m_Server.GetRandomSession ((buf[12] == 6) ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6);
+				auto session = m_Server.GetRandomSession ((buf[12] == 6) ? i2p::data::RouterInfo::eSSU2V4 : i2p::data::RouterInfo::eSSU2V6,
+					GetRemoteIdentity ()->GetIdentHash ());
 				if (session) // session with Charlie
 				{
 					session->m_PeerTests.emplace (nonce, std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()));
