@@ -103,13 +103,13 @@ namespace transport
 		size_t asz = CreateEndpoint (payload + 18, SSU2_MAX_PAYLOAD_SIZE - 18, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
 		if (!asz) return false;
 		payload[17] = asz;
-		payloadSize += asz + 17;
+		payloadSize += asz + 18;
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
 		s.Insert (payload + 4, 14 + asz); // nonce, relay tag, timestamp, ver, asz and Alice's endpoint
-		s.Sign (i2p::context.GetPrivateKeys (), payload + 17 + asz);
+		s.Sign (i2p::context.GetPrivateKeys (), payload + payloadSize);
 		payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
 		htobe16buf (payload + 1, payloadSize - 3); // size
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
