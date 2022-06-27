@@ -788,6 +788,11 @@ namespace transport
 	void SSU2Session::ProcessTokenRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: Incorrect TokenRequest len ", len);
+			return;
+		}	
 		uint8_t nonce[12] = {0};
 		uint8_t h[32];
 		memcpy (h, header.buf, 16);
@@ -920,6 +925,7 @@ namespace transport
 	bool SSU2Session::ProcessHolePunch (uint8_t * buf, size_t len)
 	{
 		// we are Alice
+		LogPrint (eLogDebug, "HolePunch");
 		Header header;
 		memcpy (header.buf, buf, 16);
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
