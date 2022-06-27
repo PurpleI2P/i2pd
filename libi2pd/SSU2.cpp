@@ -376,6 +376,9 @@ namespace transport
 					m_LastSession->SetRemoteEndpoint (senderEndpoint);
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
+				case eSSU2SessionStateTerminated:
+					m_LastSession = nullptr;
+				break;	
 				default:
 					LogPrint (eLogWarning, "SSU2: Invalid session state ", (int)m_LastSession->GetState ());
 			}
@@ -608,7 +611,8 @@ namespace transport
 
 			for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 			{
-				if (it->second->IsTerminationTimeoutExpired (ts))
+				if (it->second->GetState () == eSSU2SessionStateTerminated ||
+					it->second->IsTerminationTimeoutExpired (ts))
 				{
 					if (it->second->IsEstablished ())
 						it->second->TerminateByTimeout ();
