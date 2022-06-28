@@ -955,8 +955,16 @@ namespace transport
 		// connect to Charlie
 		if (m_State == eSSU2SessionStateIntroduced)
 		{
+			// create new connID
+			uint64_t oldConnID = GetConnID ();
+			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
+			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);	
+			m_Server.UpdateSessionConnID (oldConnID);
+			// new token
+			m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
+			// connect
 			m_State = eSSU2SessionStateUnknown;
-			Connect ();
+			SendSessionRequest (headerX[1]);
 		}
 
 		return true;
@@ -1463,13 +1471,9 @@ namespace transport
 					s.Insert (buf + 2, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
 					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
 					{
-						// update Charlie's endpoint and connect
-						if (it->second.first->m_State == eSSU2SessionStateIntroduced &&
-							ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
-						{
-							it->second.first->m_State = eSSU2SessionStateUnknown;
-							it->second.first->Connect ();
-						}
+						if (it->second.first->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
+							// update Charlie's endpoint
+							ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint);
 					}
 					else
 					{	

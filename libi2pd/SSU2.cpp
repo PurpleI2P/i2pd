@@ -243,6 +243,17 @@ namespace transport
 		}
 	}
 
+	void SSU2Server::UpdateSessionConnID (uint64_t oldConnID)
+	{
+		auto it = m_Sessions.find (oldConnID);
+		if (it != m_Sessions.end ())
+		{
+			auto session = it->second;
+			m_Sessions.erase (it);
+			m_Sessions.emplace (session->GetConnID (), session);
+		}	
+	}	
+		
 	void SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)
@@ -369,8 +380,17 @@ namespace transport
 					m_LastSession->ProcessSessionConfirmed (buf, len);
 				break;
 				case eSSU2SessionStateIntroduced:
-					m_LastSession->SetRemoteEndpoint (senderEndpoint);
-					m_LastSession->ProcessHolePunch (buf, len);
+					if (m_LastSession->GetRemoteEndpoint ().address ().is_unspecified ())	
+						m_LastSession->SetRemoteEndpoint (senderEndpoint);
+					if (m_LastSession->GetRemoteEndpoint () == senderEndpoint)
+						m_LastSession->ProcessHolePunch (buf, len);
+					else
+					{
+						LogPrint (eLogWarning, "SSU2: HolePunch endpoint ", senderEndpoint,
+							" doesn't match RelayResponse ", m_LastSession->GetRemoteEndpoint ());
+						m_LastSession->Terminate ();
+						m_LastSession = nullptr;	
+					}		
 				break;
 				case eSSU2SessionStatePeerTest:
 					m_LastSession->SetRemoteEndpoint (senderEndpoint);
