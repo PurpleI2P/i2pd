@@ -1903,7 +1903,7 @@ namespace transport
 		buf[0] = eSSU2BlkFirstFragment;
 		htobe16buf (buf + 1, msgLen); // size
 		memcpy (buf + 3, msgBuf, msgLen);
-		msg->offset = (msgBuf - buf) + msgLen;
+		msg->offset = (msgBuf - msg->buf) + msgLen;
 		return msgLen + 3;
 	}
 
