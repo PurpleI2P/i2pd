@@ -724,7 +724,7 @@ namespace transport
 			return false;
 		}
 		m_RemoteTransports = ri->GetCompatibleTransports (false);
-		i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
+		i2p::data::netdb.PostI2NPMsg (CreateDatabaseStoreMsg (ri)); // TODO: should insert ri
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
 		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
