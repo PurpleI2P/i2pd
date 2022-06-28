@@ -925,7 +925,7 @@ namespace transport
 	bool SSU2Session::ProcessHolePunch (uint8_t * buf, size_t len)
 	{
 		// we are Alice
-		LogPrint (eLogDebug, "HolePunch");
+		LogPrint (eLogDebug, "SSU2: HolePunch");
 		Header header;
 		memcpy (header.buf, buf, 16);
 		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
@@ -1442,9 +1442,18 @@ namespace transport
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
-	{
-		if (m_State == eSSU2SessionStateIntroduced) return; // HolePunch from Charlie, TODO: verify address and signature
-		auto it = m_RelaySessions.find (bufbe32toh (buf + 2)); // nonce
+	{		
+		uint32_t nonce = bufbe32toh (buf + 2);
+		if (m_State == eSSU2SessionStateIntroduced) 
+		{	
+			// HolePunch from Charlie
+			// TODO: verify address and signature
+			// verify nonce
+			if (~htobe64 (((uint64_t)nonce << 32) | nonce) != m_DestConnID)
+				LogPrint (eLogWarning, "SSU2: Relay response nonce mismatch ", nonce, " connID=", m_DestConnID);
+			return; 
+		}	
+		auto it = m_RelaySessions.find (nonce); 
 		if (it != m_RelaySessions.end ())
 		{
 			if (it->second.first && it->second.first->IsEstablished ())
@@ -1706,10 +1715,10 @@ namespace transport
 					SendPeerTest (7, buf + offset, len - offset, m_Address->i);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				m_Server.RemoveSession (~(((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce)));
+				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			case 7: // Alice from Charlie 2
-				m_Server.RemoveSession (((uint64_t)htobe32 (nonce) << 32) | htobe32 (nonce));
+				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
