@@ -409,11 +409,9 @@ namespace transport
 			auto it1 = m_PendingOutgoingSessions.find (senderEndpoint);
 			if (it1 != m_PendingOutgoingSessions.end ())
 			{
-				if (it1->second->GetState () == eSSU2SessionStateSessionRequestSent)
-				{	
-				    if (it1->second->ProcessSessionCreated (buf, len))
-						m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint			
-				}
+				if (it1->second->GetState () == eSSU2SessionStateSessionRequestSent &&
+					it1->second->ProcessSessionCreated (buf, len))
+					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint			
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
