@@ -1927,7 +1927,7 @@ namespace transport
 			isLast = false;
 		}
 		buf[0] = eSSU2BlkFollowOnFragment;
-		htobe16buf (buf + 1, msgLen); // size
+		htobe16buf (buf + 1, msgLen + 5); // size
 		fragmentNum++;
 		buf[3] = fragmentNum << 1;
 		if (isLast) buf[3] |= 0x01;
