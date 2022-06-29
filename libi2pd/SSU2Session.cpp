@@ -960,11 +960,9 @@ namespace transport
 			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);	
 			m_Server.UpdateSessionConnID (oldConnID);
-			// new token
-			m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 			// connect
 			m_State = eSSU2SessionStateUnknown;
-			SendSessionRequest (headerX[1]);
+			Connect ();
 		}
 
 		return true;
@@ -1451,6 +1449,13 @@ namespace transport
 			// verify nonce
 			if (~htobe64 (((uint64_t)nonce << 32) | nonce) != m_DestConnID)
 				LogPrint (eLogWarning, "SSU2: Relay response nonce mismatch ", nonce, " connID=", m_DestConnID);
+			if (len >= 8)
+			{
+				// new token
+				uint64_t token;	
+				memcpy (&token, buf + len - 8, 8);
+				m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
+			}	
 			return; 
 		}	
 		auto it = m_RelaySessions.find (nonce); 
