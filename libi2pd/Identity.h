@@ -84,9 +84,9 @@ namespace data
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
 
-	const size_t MAX_EXTENDED_BUFFER_SIZE = 8; // cryptoKeyType + signingKeyType + 4 extra bytes of P521 
+	const size_t MAX_EXTENDED_BUFFER_SIZE = 8; // cryptoKeyType + signingKeyType + 4 extra bytes of P521
 	class IdentityEx
-	{			
+	{
 		public:
 
 			IdentityEx ();
@@ -120,7 +120,7 @@ namespace data
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory
 
-  			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
 			void RecalculateIdentHash(uint8_t * buff=nullptr);
 
 			static i2p::crypto::Verifier * CreateVerifier (SigningKeyType keyType);
@@ -138,7 +138,7 @@ namespace data
 			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
 			mutable std::mutex m_VerifierMutex;
 			size_t m_ExtendedLen;
-			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE]; 
+			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
 	};
 
 	class PrivateKeys // for eepsites
@@ -222,7 +222,7 @@ namespace data
 			RoutingDestination () {};
 			virtual ~RoutingDestination () {};
 
-			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
+			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 

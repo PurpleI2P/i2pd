@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -42,7 +42,7 @@ namespace transport
 
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
-	
+
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -107,7 +107,7 @@ namespace transport
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
-		bool ProcessSessionRequestMessage (uint16_t& paddingLen);
+		bool ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew);
 		bool ProcessSessionCreatedMessage (uint16_t& paddingLen);
 		bool ProcessSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		bool ProcessSessionConfirmedMessagePart2 (const uint8_t * nonce, uint8_t * m3p2Buf);
@@ -118,7 +118,7 @@ namespace transport
 		i2p::data::IdentHash m_RemoteIdentHash;
 		uint16_t m3p2Len;
 
-		uint8_t m_SessionRequestBuffer[NTCP2_SESSION_REQUEST_MAX_SIZE], 
+		uint8_t m_SessionRequestBuffer[NTCP2_SESSION_REQUEST_MAX_SIZE],
 			m_SessionCreatedBuffer[NTCP2_SESSION_CREATED_MAX_SIZE], * m_SessionConfirmedBuffer;
 		size_t m_SessionRequestBufferLen, m_SessionCreatedBufferLen;
 
@@ -137,7 +137,7 @@ namespace transport
 			void Done ();
 			void Close () { m_Socket.close (); }; // for accept
 			void DeleteNextReceiveBuffer (uint64_t ts);
-			
+
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
@@ -148,7 +148,7 @@ namespace transport
 			void ClientLogin (); // Alice
 			void ServerLogin (); // Bob
 
-			void SendLocalRouterInfo (); // after handshake
+			void SendLocalRouterInfo (bool update); // after handshake or by update
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 
 		private:
@@ -205,7 +205,6 @@ namespace transport
 			uint8_t m_Kab[32], m_Kba[32], m_Sipkeysab[32], m_Sipkeysba[32];
 			const uint8_t * m_SendKey, * m_ReceiveKey;
 #if OPENSSL_SIPHASH
-			EVP_PKEY * m_SendSipKey, * m_ReceiveSipKey;
 			EVP_MD_CTX * m_SendMDCtx, * m_ReceiveMDCtx;
 #else
 			const uint8_t * m_SendSipKey, * m_ReceiveSipKey;
@@ -227,7 +226,7 @@ namespace transport
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
 
 			uint16_t m_PaddingSizes[16];
-			int m_NextPaddingSize; 
+			int m_NextPaddingSize;
 	};
 
 	class NTCP2Server: private i2p::util::RunnableServiceWithWork
@@ -259,7 +258,7 @@ namespace transport
 			void UseProxy(ProxyType proxy, const std::string& address, uint16_t port, const std::string& user, const std::string& pass);
 
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
-			
+
 		private:
 
 			void HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error);
@@ -268,7 +267,7 @@ namespace transport
 			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
 			void HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
 			void AfterSocksHandshake(std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
-			
+
 			// timer
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
@@ -286,7 +285,7 @@ namespace transport
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
-			
+
 		public:
 
 			// for HTTP/I2PControl

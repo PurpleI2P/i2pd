@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -88,7 +88,7 @@ namespace data
 				}
 				EVP_PKEY_free (pkey);
 				if (verifier && cn)
-					m_SigningKeys[cn] = verifier;
+					m_SigningKeys.emplace (cn, std::make_pair(verifier, m_SigningKeys.size () + 1));
 			}
 			SSL_free (ssl);
 		}
@@ -121,7 +121,7 @@ namespace data
 	}
 
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident,
-		const char * signature, const char * key)
+		const char * signature, const char * key) const
 	{
 		uint8_t buf[100], signatureBuf[64];
 		size_t len = family.length (), signatureLen = strlen (signature);
@@ -137,9 +137,17 @@ namespace data
 		Base64ToByteStream (signature, signatureLen, signatureBuf, 64);
 		auto it = m_SigningKeys.find (family);
 		if (it != m_SigningKeys.end ())
-			return it->second->Verify (buf, len, signatureBuf);
+			return it->second.first->Verify (buf, len, signatureBuf);
 		// TODO: process key
 		return true;
+	}
+
+	FamilyID Families::GetFamilyID (const std::string& family) const
+	{
+		auto it = m_SigningKeys.find (family);
+		if (it != m_SigningKeys.end ())
+			return it->second.second;
+		return 0;
 	}
 
 	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident)

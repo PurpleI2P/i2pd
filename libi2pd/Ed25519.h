@@ -85,8 +85,8 @@ namespace crypto
 			EDDSAPoint DecodePublicKey (const uint8_t * buf, BN_CTX * ctx) const;
 			void EncodePublicKey (const EDDSAPoint& publicKey, uint8_t * buf, BN_CTX * ctx) const;
 #if !OPENSSL_X25519
-			void ScalarMul (const uint8_t * p, const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number for x25519
-			void ScalarMulB (const  uint8_t * e, uint8_t * buf, BN_CTX * ctx) const;
+			void ScalarMul (const uint8_t * p, const uint8_t * e, uint8_t * buf, BN_CTX * ctx) const; // p is point, e is number for x25519
+			void ScalarMulB (const uint8_t * e, uint8_t * buf, BN_CTX * ctx) const;
 #endif
 			void BlindPublicKey (const uint8_t * pub, const uint8_t * seed, uint8_t * blinded); // for encrypted LeaseSet2, pub - 32, seed - 64, blinded - 32
 			void BlindPrivateKey (const uint8_t * priv, const uint8_t * seed, uint8_t * blindedPriv, uint8_t * blindedPub); // for encrypted LeaseSet2, pub - 32, seed - 64, blinded - 32

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,10 +11,11 @@
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.hpp"
-#include "SSU.h"
+#include "Config.h"
 #include "util.h"
+#include "SSU.h"
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 	#include <linux/in6.h>
 #endif
 
@@ -33,7 +34,8 @@ namespace transport
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
 		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6),
 		m_IntroducersUpdateTimer (m_Service), m_IntroducersUpdateTimerV6 (m_Service),
-		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service)
+		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_Service),
+		m_IsSyncClockFromPeers (true)
 	{
 	}
 
@@ -53,7 +55,7 @@ namespace transport
 		}
 		catch ( std::exception & ex )
 		{
-			LogPrint (eLogError, "SSU: failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
+			LogPrint (eLogError, "SSU: Failed to bind to v4 port ", m_Endpoint.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv4 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
 		}
 	}
@@ -66,7 +68,7 @@ namespace transport
 			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
 			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
 			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 			if (m_EndpointV6.address() == boost::asio::ip::address().from_string("::")) // only if not binded to address
 			{
 				// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
@@ -83,13 +85,14 @@ namespace transport
 		}
 		catch ( std::exception & ex )
 		{
-			LogPrint (eLogError, "SSU: failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
+			LogPrint (eLogError, "SSU: Failed to bind to v6 port ", m_EndpointV6.port(), ": ", ex.what());
 			ThrowFatal ("Unable to start IPv6 SSU transport at port ", m_Endpoint.port(), ": ", ex.what ());
 		}
 	}
 
 	void SSUServer::Start ()
 	{
+		i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 		if (context.SupportsV4 ())
@@ -156,7 +159,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU: server runtime exception: ", ex.what ());
+				LogPrint (eLogError, "SSU: Server runtime exception: ", ex.what ());
 			}
 		}
 	}
@@ -173,7 +176,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU: receivers runtime exception: ", ex.what ());
+				LogPrint (eLogError, "SSU: Receivers runtime exception: ", ex.what ());
 				if (m_IsRunning)
 				{
 					// restart socket
@@ -249,7 +252,7 @@ namespace transport
 
 		if (ec)
 		{
-			LogPrint (eLogError, "SSU: send exception: ", ec.message (), " while trying to send data to ", to.address (), ":", to.port (), " (length: ", len, ")");
+			LogPrint (eLogError, "SSU: Send exception: ", ec.message (), " while trying to send data to ", to.address (), ":", to.port (), " (length: ", len, ")");
 		}
 	}
 
@@ -270,14 +273,14 @@ namespace transport
 	void SSUServer::HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
 		if (!ecode
-		    || ecode == boost::asio::error::connection_refused
-		    || ecode == boost::asio::error::connection_reset
-		    || ecode == boost::asio::error::network_unreachable
-		    || ecode == boost::asio::error::host_unreachable
+			|| ecode == boost::asio::error::connection_refused
+			|| ecode == boost::asio::error::connection_reset
+			|| ecode == boost::asio::error::network_unreachable
+			|| ecode == boost::asio::error::host_unreachable
 #ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
-		    || ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
-		    || ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
-		    || ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
+			|| ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+			|| ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
+			|| ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
 #endif
 		)
 		// just try continue reading when received ICMP response otherwise socket can crash,
@@ -318,7 +321,7 @@ namespace transport
 			m_PacketsPool.ReleaseMt (packet);
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				LogPrint (eLogError, "SSU: receive error: code ", ecode.value(), ": ", ecode.message ());
+				LogPrint (eLogError, "SSU: Receive error: code ", ecode.value(), ": ", ecode.message ());
 				m_Socket.close ();
 				OpenSocket ();
 				Receive ();
@@ -329,14 +332,14 @@ namespace transport
 	void SSUServer::HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet)
 	{
 		if (!ecode
-		    || ecode == boost::asio::error::connection_refused
-		    || ecode == boost::asio::error::connection_reset
-		    || ecode == boost::asio::error::network_unreachable
-		    || ecode == boost::asio::error::host_unreachable
+			|| ecode == boost::asio::error::connection_refused
+			|| ecode == boost::asio::error::connection_reset
+			|| ecode == boost::asio::error::network_unreachable
+			|| ecode == boost::asio::error::host_unreachable
 #ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
-		    || ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
-		    || ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
-		    || ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
+			|| ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+			|| ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
+			|| ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
 #endif
 		)
 		// just try continue reading when received ICMP response otherwise socket can crash,
@@ -409,7 +412,7 @@ namespace transport
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
 						(*sessions)[packet->from] = session;
-						LogPrint (eLogDebug, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+						LogPrint (eLogDebug, "SSU: New session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
 				if (session)
@@ -579,7 +582,7 @@ namespace transport
 							"] through introducer ", introducer->iHost, ":", introducer->iPort);
 					session->WaitForIntroduction ();
 					if ((address->host.is_v4 () && i2p::context.GetStatus () == eRouterStatusFirewalled) ||
-					    (address->host.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled))
+						(address->host.is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusFirewalled))
 					{
 						uint8_t buf[1];
 						Send (buf, 0, remoteEndpoint); // send HolePunch
@@ -673,7 +676,7 @@ namespace transport
 		for (const auto& s : sessions)
 		{
 			if (s.second->GetRelayTag () && s.second->GetState () == eSessionStateEstablished &&
-			    ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
+				ts < s.second->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_EXPIRATION)
 				ret.push_back (s.second);
 			else if (s.second->GetRemoteIdentity ())
 				excluded.insert (s.second->GetRemoteIdentity ()->GetIdentHash ());
@@ -797,7 +800,7 @@ namespace transport
 				if (sessions.empty () && !introducers.empty ())
 				{
 					// bump creation time for previous introducers if no new sessions found
-					LogPrint (eLogDebug, "SSU: no new introducers found. Trying to reuse existing");
+					LogPrint (eLogDebug, "SSU: No new introducers found. Trying to reuse existing");
 					for (const auto& it : introducers)
 					{
 						auto session = FindSession (it);
@@ -847,7 +850,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogDebug, "SSU: can't find more introducers");
+						LogPrint (eLogDebug, "SSU: Can't find more introducers");
 						break;
 					}
 				}
@@ -923,7 +926,7 @@ namespace transport
 			m_FragmentsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_SentMessagesPool.CleanUp ();
-			
+
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}
@@ -946,10 +949,10 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
+						LogPrint (eLogWarning, "SSU: Remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first, " adjusted");
 					m_Service.post ([session]
 						{
-							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							LogPrint (eLogWarning, "SSU: No activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
 							session->Failed ();
 						});
 				}
@@ -977,10 +980,10 @@ namespace transport
 				{
 					auto session = it.second;
 					if (it.first != session->GetRemoteEndpoint ())
-						LogPrint (eLogWarning, "SSU: remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
+						LogPrint (eLogWarning, "SSU: Remote endpoint ", session->GetRemoteEndpoint (), " doesn't match key ", it.first);
 					m_Service.post ([session]
 						{
-							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							LogPrint (eLogWarning, "SSU: No activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
 							session->Failed ();
 						});
 				}

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -36,6 +36,7 @@ namespace transport
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU_CLOCK_SKEW = 60; // in seconds
+	const int SSU_CLOCK_THRESHOLD = 15; // in seconds, if more we should adjust
 	const size_t SSU_MAX_I2NP_MESSAGE_SIZE = 32768;
 
 	// payload types (4 bits)
@@ -90,7 +91,7 @@ namespace transport
 			void Failed ();
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			SSUServer& GetServer () { return m_Server; };
-			
+
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice
@@ -104,7 +105,7 @@ namespace transport
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
-			
+
 			void FlushData ();
 			void CleanUp (uint64_t ts);
 
@@ -149,7 +150,7 @@ namespace transport
 			void Reset ();
 
 			static size_t ExtractIPAddressAndPort (const uint8_t * buf, size_t len, boost::asio::ip::address& ip, uint16_t& port); // returns actual buf size
-			
+
 		private:
 
 			friend class SSUData; // TODO: change in later

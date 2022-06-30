@@ -1,8 +1,10 @@
+.DEFAULT_GOAL := all
+
 SYS := $(shell $(CXX) -dumpmachine)
 
 ifneq (, $(findstring darwin, $(SYS)))
 	SHARED_SUFFIX = dylib
-else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
+else ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstring cygwin, $(SYS)))
 	SHARED_SUFFIX = dll
 else
 	SHARED_SUFFIX = so
@@ -27,11 +29,16 @@ DAEMON_SRC_DIR := daemon
 # import source files lists
 include filelist.mk
 
-USE_AESNI	:= $(or $(USE_AESNI),yes)
-USE_STATIC	:= $(or $(USE_STATIC),no)
-USE_MESHNET	:= $(or $(USE_MESHNET),no)
-USE_UPNP	:= $(or $(USE_UPNP),no)
-DEBUG		:= $(or $(DEBUG),yes)
+USE_AESNI       := $(or $(USE_AESNI),yes)
+USE_STATIC      := $(or $(USE_STATIC),no)
+USE_UPNP        := $(or $(USE_UPNP),no)
+DEBUG           := $(or $(DEBUG),yes)
+
+# for debugging purposes only, when commit hash needed in trunk builds in i2pd version string
+USE_GIT_VERSION := $(or $(USE_GIT_VERSION),no)
+
+# for MacOS only, waiting for "1", not "yes"
+HOMEBREW        := $(or $(HOMEBREW),0)
 
 ifeq ($(DEBUG),yes)
 	CXX_DEBUG = -g
@@ -53,18 +60,19 @@ else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
-else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
-	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32App.cpp Win32/Win32NetState.cpp
+else ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstring cygwin, $(SYS)))
+	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32App.cpp Win32/Win32Service.cpp Win32/Win32NetState.cpp
 	include Makefile.mingw
 else # not supported
 	$(error Not supported platform)
 endif
 
-ifeq ($(USE_MESHNET),yes)
-	NEEDED_CXXFLAGS += -DMESHNET
+ifeq ($(USE_GIT_VERSION),yes)
+	GIT_VERSION := $(shell git describe --tags)
+	NEEDED_CXXFLAGS += -DGITVER=\"$(GIT_VERSION)\"
 endif
 
-NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR)
+NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR) -DOPENSSL_SUPPRESS_DEPRECATED
 
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))

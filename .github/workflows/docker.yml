@@ -1,6 +1,11 @@
 name: Build containers
 
-on: [push]
+on:
+  push:
+    branches:
+    - openssl
+    tags:
+    - '*'
 
 jobs:
   docker:
@@ -58,6 +63,8 @@ jobs:
           push: true
           tags: |
             purplei2p/i2pd:latest
+            purplei2p/i2pd:latest-release
             purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
             ghcr.io/purplei2p/i2pd:latest
+            ghcr.io/purplei2p/i2pd:latest-release
             ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}

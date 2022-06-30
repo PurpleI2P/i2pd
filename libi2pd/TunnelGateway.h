@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,7 +38,7 @@ namespace tunnel
 			std::vector<std::shared_ptr<const I2NPMessage> > m_TunnelDataMsgs;
 			std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
 			size_t m_RemainingSize;
-			uint8_t m_NonZeroRandomBuffer[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
+			uint8_t * m_NonZeroRandomBuffer;
 	};
 
 	class TunnelGateway

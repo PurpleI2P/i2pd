@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -99,7 +99,7 @@ namespace data
 	static size_t BlindECDSA (i2p::data::SigningKeyType sigType, const uint8_t * key, const uint8_t * seed, Fn blind, Args&&...args)
 	// blind is BlindEncodedPublicKeyECDSA or BlindEncodedPrivateKeyECDSA
 	{
-		size_t publicKeyLength  = 0;
+		size_t publicKeyLength = 0;
 		EC_GROUP * group = nullptr;
 		switch (sigType)
 		{
@@ -122,7 +122,7 @@ namespace data
 				break;
 			}
 			default:
-				LogPrint (eLogError, "Blinding: signature type ", (int)sigType, " is not ECDSA");
+				LogPrint (eLogError, "Blinding: Signature type ", (int)sigType, " is not ECDSA");
 		}
 		if (group)
 		{
@@ -146,7 +146,10 @@ namespace data
 		m_PublicKey.resize (len);
 		memcpy (m_PublicKey.data (), identity->GetSigningPublicKeyBuffer (), len);
 		m_SigType = identity->GetSigningKeyType ();
-		m_BlindedSigType = m_SigType;
+		if (m_SigType == i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+			m_BlindedSigType = i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519; // 7 -> 11
+		else
+			m_BlindedSigType = m_SigType;
 	}
 
 	BlindedPublicKey::BlindedPublicKey (const std::string& b33):
@@ -156,7 +159,7 @@ namespace data
 		size_t l = i2p::data::Base32ToByteStream (b33.c_str (), b33.length (), addr, 40);
 		if (l < 32)
 		{
-			LogPrint (eLogError, "Blinding: malformed b33 ", b33);
+			LogPrint (eLogError, "Blinding: Malformed b33 ", b33);
 			return;
 		}
 		uint32_t checksum = crc32 (0, addr + 3, l - 3);
@@ -186,10 +189,10 @@ namespace data
 				memcpy (m_PublicKey.data (), addr + offset, len);
 			}
 			else
-				LogPrint (eLogError, "Blinding: public key in b33 address is too short for signature type ", (int)m_SigType);
+				LogPrint (eLogError, "Blinding: Public key in b33 address is too short for signature type ", (int)m_SigType);
 		}
 		else
-			LogPrint (eLogError, "Blinding: unknown signature type ", (int)m_SigType, " in b33");
+			LogPrint (eLogError, "Blinding: Unknown signature type ", (int)m_SigType, " in b33");
 	}
 
 	std::string BlindedPublicKey::ToB33 () const
@@ -256,7 +259,7 @@ namespace data
 				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
 			break;
 			default:
-				LogPrint (eLogError, "Blinding: can't blind signature type ", (int)m_SigType);
+				LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)m_SigType);
 		}
 		return publicKeyLength;
 	}
@@ -272,21 +275,21 @@ namespace data
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 			case i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				publicKeyLength = BlindECDSA (m_SigType, priv, seed, BlindEncodedPrivateKeyECDSA, blindedPriv, blindedPub);
-			break;	
+			break;
 			case i2p::data::SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				i2p::crypto::GetEd25519 ()->BlindPrivateKey (priv, seed, blindedPriv, blindedPub);
 				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
 			break;
-			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:	
+			case i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 			{
-				uint8_t exp[64];	
-				i2p::crypto::Ed25519::ExpandPrivateKey (priv, exp);	
+				uint8_t exp[64];
+				i2p::crypto::Ed25519::ExpandPrivateKey (priv, exp);
 				i2p::crypto::GetEd25519 ()->BlindPrivateKey (exp, seed, blindedPriv, blindedPub);
-				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;	
+				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
 				break;
-			}		
+			}
 			default:
-				LogPrint (eLogError, "Blinding: can't blind signature type ", (int)m_SigType);
+				LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)m_SigType);
 		}
 		return publicKeyLength;
 	}
@@ -324,7 +327,7 @@ namespace data
 			SHA256_Final ((uint8_t *)hash, &ctx);
 		}
 		else
-			LogPrint (eLogError, "Blinding: blinded key type ", (int)m_BlindedSigType, " is not supported");
+			LogPrint (eLogError, "Blinding: Blinded key type ", (int)m_BlindedSigType, " is not supported");
 		return hash;
 	}
 

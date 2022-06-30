@@ -26,7 +26,7 @@ namespace russian // language namespace
 	// See for language plural forms here:
 	// https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 	static int plural (int n) {
-		return n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
+		return n % 10 == 1 && n % 100 != 11 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2;
 	}
 
 	static std::map<std::string, std::string> strings

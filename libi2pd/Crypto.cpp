@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -389,7 +389,7 @@ namespace crypto
 		{
 			size_t len = 32;
 			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
-		}	
+		}
 #else
 		memcpy (m_PrivateKey, priv, 32);
 		if (calculatePublic)
@@ -440,7 +440,7 @@ namespace crypto
 		bn2buf (a, encrypted + 1, 256);
 		encrypted[257] = 0;
 		bn2buf (b, encrypted + 258, 256);
-		
+
 		BN_free (a);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
@@ -1277,7 +1277,7 @@ namespace crypto
 			EVP_PKEY_CTX_set1_hkdf_key (pctx, tempKey, len);
 		}
 		if (info.length () > 0)
-			EVP_PKEY_CTX_add1_hkdf_info (pctx, info.c_str (), info.length ());
+			EVP_PKEY_CTX_add1_hkdf_info (pctx, (const uint8_t *)info.c_str (), info.length ());
 		EVP_PKEY_derive (pctx, out, &outLen);
 		EVP_PKEY_CTX_free (pctx);
 #else
@@ -1295,7 +1295,7 @@ namespace crypto
 	}
 
 // Noise
-	
+
 	void NoiseSymmetricState::MixHash (const uint8_t * buf, size_t len)
 	{
 		SHA256_CTX ctx;
@@ -1305,13 +1305,23 @@ namespace crypto
 		SHA256_Final (m_H, &ctx);
 	}
 
+	void NoiseSymmetricState::MixHash (const std::vector<std::pair<uint8_t *, size_t> >& bufs)
+	{
+		SHA256_CTX ctx;
+		SHA256_Init (&ctx);
+		SHA256_Update (&ctx, m_H, 32);
+		for (const auto& it: bufs)
+			SHA256_Update (&ctx, it.first, it.second);
+		SHA256_Final (m_H, &ctx);
+	}
+
 	void NoiseSymmetricState::MixKey (const uint8_t * sharedSecret)
 	{
 		HKDF (m_CK, sharedSecret, 32, "", m_CK);
 		// new ck is m_CK[0:31], key is m_CK[32:63]
 	}
 
-	static void InitNoiseState (NoiseSymmetricState& state, const uint8_t * ck, 
+	static void InitNoiseState (NoiseSymmetricState& state, const uint8_t * ck,
 		const uint8_t * hh, const uint8_t * pub)
 	{
 		// pub is Bob's public static key, hh = SHA256(h)
@@ -1320,23 +1330,23 @@ namespace crypto
 		SHA256_Init (&ctx);
 		SHA256_Update (&ctx, hh, 32);
 		SHA256_Update (&ctx, pub, 32);
-		SHA256_Final (state.m_H, &ctx);  // h = MixHash(pub) = SHA256(hh || pub)
-	}	
-	
+		SHA256_Final (state.m_H, &ctx); // h = MixHash(pub) = SHA256(hh || pub)
+	}
+
 	void InitNoiseNState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
 		static const char protocolName[] = "Noise_N_25519_ChaChaPoly_SHA256"; // 31 chars
 		static const uint8_t hh[32] =
 		{
-			0x69, 0x4d, 0x52, 0x44, 0x5a, 0x27, 0xd9, 0xad, 0xfa, 0xd2, 0x9c, 0x76, 0x32, 0x39, 0x5d, 0xc1, 
+			0x69, 0x4d, 0x52, 0x44, 0x5a, 0x27, 0xd9, 0xad, 0xfa, 0xd2, 0x9c, 0x76, 0x32, 0x39, 0x5d, 0xc1,
 			0xe4, 0x35, 0x4c, 0x69, 0xb4, 0xf9, 0x2e, 0xac, 0x8a, 0x1e, 0xe4, 0x6a, 0x9e, 0xd2, 0x15, 0x54
 		}; // hh = SHA256(protocol_name || 0)
 		InitNoiseState (state, (const uint8_t *)protocolName, hh, pub); // ck = protocol_name || 0
-	}	
-		
+	}
+
 	void InitNoiseXKState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
-		static const uint8_t protocolNameHash[] =
+		static const uint8_t protocolNameHash[32] =
 		{
 			0x72, 0xe8, 0x42, 0xc5, 0x45, 0xe1, 0x80, 0x80, 0xd3, 0x9c, 0x44, 0x93, 0xbb, 0x91, 0xd7, 0xed,
 			0xf2, 0x28, 0x98, 0x17, 0x71, 0x21, 0x8c, 0x1f, 0x62, 0x4e, 0x20, 0x6f, 0x28, 0xd3, 0x2f, 0x71
@@ -1346,8 +1356,23 @@ namespace crypto
 			0x49, 0xff, 0x48, 0x3f, 0xc4, 0x04, 0xb9, 0xb2, 0x6b, 0x11, 0x94, 0x36, 0x72, 0xff, 0x05, 0xb5,
 			0x61, 0x27, 0x03, 0x31, 0xba, 0x89, 0xb8, 0xfc, 0x33, 0x15, 0x93, 0x87, 0x57, 0xdd, 0x3d, 0x1e
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub); 
-	}	
+		InitNoiseState (state, protocolNameHash, hh, pub);
+	}
+
+	void InitNoiseXKState1 (NoiseSymmetricState& state, const uint8_t * pub)
+	{
+		static const uint8_t protocolNameHash[32] =
+		{
+			0xb1, 0x37, 0x22, 0x81, 0x74, 0x23, 0xa8, 0xfd, 0xf4, 0x2d, 0xf2, 0xe6, 0x0e, 0xd1, 0xed, 0xf4,
+			0x1b, 0x93, 0x07, 0x1d, 0xb1, 0xec, 0x24, 0xa3, 0x67, 0xf7, 0x84, 0xec, 0x27, 0x0d, 0x81, 0x32
+		}; // SHA256 ("Noise_XKchaobfse+hs1+hs2+hs3_25519_ChaChaPoly_SHA256")
+		static const uint8_t hh[32] =
+		{
+			0xdc, 0x85, 0xe6, 0xaf, 0x7b, 0x02, 0x65, 0x0c, 0xf1, 0xf9, 0x0d, 0x71, 0xfb, 0xc6, 0xd4, 0x53,
+			0xa7, 0xcf, 0x6d, 0xbf, 0xbd, 0x52, 0x5e, 0xa5, 0xb5, 0x79, 0x1c, 0x47, 0xb3, 0x5e, 0xbc, 0x33
+		}; // SHA256 (protocolNameHash)
+		InitNoiseState (state, protocolNameHash, hh, pub);
+	}
 
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub)
 	{
@@ -1361,9 +1386,9 @@ namespace crypto
 			0x9c, 0xcf, 0x85, 0x2c, 0xc9, 0x3b, 0xb9, 0x50, 0x44, 0x41, 0xe9, 0x50, 0xe0, 0x1d, 0x52, 0x32,
 			0x2e, 0x0d, 0x47, 0xad, 0xd1, 0xe9, 0xa5, 0x55, 0xf7, 0x55, 0xb5, 0x69, 0xae, 0x18, 0x3b, 0x5c
 		}; // SHA256 (protocolNameHash)
-		InitNoiseState (state, protocolNameHash, hh, pub); 
-	}	
-	
+		InitNoiseState (state, protocolNameHash, hh, pub);
+	}
+
 // init and terminate
 
 /*	std::vector <std::unique_ptr<std::mutex> > m_OpenSSLMutexes;

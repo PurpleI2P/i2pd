@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -26,6 +26,7 @@ namespace util
 
 	void GetCurrentDate (char * date); // returns date as YYYYMMDD string, 9 bytes
 	void GetDateString (uint64_t timestamp, char * date); // timestap is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
+	void AdjustTimeOffset (int64_t offset); // in seconds from current
 
 	class NTPTimeSync
 	{

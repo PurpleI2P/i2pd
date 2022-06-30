@@ -56,14 +56,10 @@ namespace util
 
 			void CleanUp ()
 			{
-				while (m_Head)
-				{
-					auto tmp = m_Head;
-					m_Head = static_cast<T*>(*(void * *)m_Head); // next
-					::operator delete ((void *)tmp);
-				}
-			}		
-			
+				CleanUp (m_Head);
+				m_Head = nullptr;
+			}
+
 			template<typename... TArgs>
 			T * Acquire (TArgs&&... args)
 			{
@@ -100,6 +96,18 @@ namespace util
 
 		protected:
 
+			void CleanUp (T * head)
+			{
+				while (head)
+				{
+					auto tmp = head;
+					head = static_cast<T*>(*(void * *)head); // next
+					::operator delete ((void *)tmp);
+				}
+			}
+
+		protected:
+
 			T * m_Head;
 	};
 
@@ -129,6 +137,24 @@ namespace util
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (auto& it: c)
 					this->Release (it);
+			}
+
+			template<typename... TArgs>
+			std::shared_ptr<T> AcquireSharedMt (TArgs&&... args)
+			{
+				return std::shared_ptr<T>(AcquireMt (std::forward<TArgs>(args)...),
+					std::bind<void (MemoryPoolMt<T>::*)(T *)> (&MemoryPoolMt<T>::ReleaseMt, this, std::placeholders::_1));
+			}
+
+			void CleanUpMt ()
+			{
+				T * head;
+				{
+					std::lock_guard<std::mutex> l(m_Mutex);
+					head = this->m_Head;
+					this->m_Head = nullptr;
+				}
+				if (head) this->CleanUp (head);
 			}
 
 		private:

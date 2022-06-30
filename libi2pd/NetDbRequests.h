@@ -60,7 +60,7 @@ namespace data
 			void Start ();
 			void Stop ();
 
-			 std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, RequestedDestination::RequestComplete requestComplete = nullptr);
+			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, RequestedDestination::RequestComplete requestComplete = nullptr);
 			void RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
 			void ManageRequests ();

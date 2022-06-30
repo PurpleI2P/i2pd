@@ -30,7 +30,7 @@ namespace tunnel
 		m_NumReceivedBytes += TUNNEL_DATA_MSG_SIZE;
 
 		uint8_t * decrypted = msg->GetPayload () + 20; // 4 + 16
-		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, TUNNEL_DATA_ENCRYPTED_SIZE - 4); // witout 4-byte checksum
+		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, TUNNEL_DATA_ENCRYPTED_SIZE - 4); // without 4-byte checksum
 		if (zero)
 		{
 			uint8_t * fragment = zero + 1;
@@ -40,7 +40,7 @@ namespace tunnel
 			SHA256(fragment, TUNNEL_DATA_MSG_SIZE -(fragment - msg->GetPayload ()) + 16, hash); // payload + iv
 			if (memcmp (hash, decrypted, 4))
 			{
-				LogPrint (eLogError, "TunnelMessage: checksum verification failed");
+				LogPrint (eLogError, "TunnelMessage: Checksum verification failed");
 				return;
 			}
 			// process fragments
@@ -57,7 +57,7 @@ namespace tunnel
 					// first fragment
 					if (m_CurrentMsgID)
 						AddIncompleteCurrentMessage (); // we have got a new message while previous is not complete
-					
+
 					m_CurrentMessage.deliveryType = (TunnelDeliveryType)((flag >> 5) & 0x03);
 					switch (m_CurrentMessage.deliveryType)
 					{
@@ -108,8 +108,8 @@ namespace tunnel
 					{
 						HandleFollowOnFragment (msgID, isLastFragment, fragmentNum, fragment, size); // another
 						m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
-					}		
-				}	
+					}
+				}
 				else
 				{
 					// new message
@@ -118,7 +118,7 @@ namespace tunnel
 					// check message size
 					if (msg->len > msg->maxLen)
 					{
-						LogPrint (eLogError, "TunnelMessage: fragment is too long ", (int)size);
+						LogPrint (eLogError, "TunnelMessage: Fragment is too long ", (int)size);
 						m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
 						return;
 					}
@@ -131,35 +131,35 @@ namespace tunnel
 					}
 					else
 						m_CurrentMessage.data = msg;
-					
+
 					if (isLastFragment)
-					{	
+					{
 						// single message
 						HandleNextMessage (m_CurrentMessage);
 						m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
-					}	
+					}
 					else if (msgID)
 					{
 						// first fragment of a new message
 						m_CurrentMessage.nextFragmentNum = 1;
 						m_CurrentMessage.receiveTime = i2p::util::GetMillisecondsSinceEpoch ();
 						HandleOutOfSequenceFragments (msgID, m_CurrentMessage);
-					}	
+					}
 					else
-					{	
+					{
 						LogPrint (eLogError, "TunnelMessage: Message is fragmented, but msgID is not presented");
 						m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
-					}	
-				}	
-				
+					}
+				}
+
 				fragment += size;
 			}
 		}
 		else
-			LogPrint (eLogError, "TunnelMessage: zero not found");
+			LogPrint (eLogError, "TunnelMessage: Zero not found");
 	}
 
-	void TunnelEndpoint::HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, 
+	void TunnelEndpoint::HandleFollowOnFragment (uint32_t msgID, bool isLastFragment,
 		uint8_t fragmentNum, const uint8_t * fragment, size_t size)
 	{
 		auto it = m_IncompleteMessages.find (msgID);
@@ -213,15 +213,15 @@ namespace tunnel
 				msg.data = newMsg;
 			}
 			if (msg.data->Concat (fragment, size) < size) // concatenate fragment
-			{	
+			{
 				LogPrint (eLogError, "TunnelMessage: I2NP buffer overflow ", msg.data->maxLen);
 				return false;
-			}	
+			}
 		}
 		else
 			return false;
 		return true;
-	}	
+	}
 
 	void TunnelEndpoint::HandleCurrenMessageFollowOnFragment (const uint8_t * fragment, size_t size, bool isLastFragment)
 	{
@@ -244,7 +244,7 @@ namespace tunnel
 			LogPrint (eLogError, "TunnelMessage: Fragment ", m_CurrentMessage.nextFragmentNum, " of message ", m_CurrentMsgID, " exceeds max I2NP message size, message dropped");
 			m_CurrentMsgID = 0; m_CurrentMessage.data = nullptr;
 		}
-	}		
+	}
 
 	void TunnelEndpoint::AddIncompleteCurrentMessage ()
 	{
@@ -255,16 +255,16 @@ namespace tunnel
 				LogPrint (eLogError, "TunnelMessage: Incomplete message ", m_CurrentMsgID, " already exists");
 			m_CurrentMessage.data = nullptr;
 			m_CurrentMsgID = 0;
-		}	
-	}	
-	
+		}
+	}
+
 	void TunnelEndpoint::AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum,
 		bool isLastFragment, const uint8_t * fragment, size_t size)
 	{
-		std::unique_ptr<Fragment> f(new Fragment (isLastFragment, i2p::util::GetMillisecondsSinceEpoch (), size)); 
+		std::unique_ptr<Fragment> f(new Fragment (isLastFragment, i2p::util::GetMillisecondsSinceEpoch (), size));
 		memcpy (f->data.data (), fragment, size);
 		if (!m_OutOfSequenceFragments.emplace ((uint64_t)msgID << 32 | fragmentNum, std::move (f)).second)
-			LogPrint (eLogInfo, "TunnelMessage: duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
+			LogPrint (eLogInfo, "TunnelMessage: Duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
 	}
 
 	void TunnelEndpoint::HandleOutOfSequenceFragments (uint32_t msgID, TunnelMessageBlockEx& msg)
@@ -276,10 +276,10 @@ namespace tunnel
 				HandleNextMessage (msg);
 				if (&msg == &m_CurrentMessage)
 				{
-					m_CurrentMsgID = 0; 
+					m_CurrentMsgID = 0;
 					m_CurrentMessage.data = nullptr;
-				}	
-				else	
+				}
+				else
 					m_IncompleteMessages.erase (msgID);
 				LogPrint (eLogDebug, "TunnelMessage: All fragments of message ", msgID, " found");
 				break;
@@ -318,11 +318,11 @@ namespace tunnel
 	{
 		if (!m_IsInbound && msg.data->IsExpired ())
 		{
-			LogPrint (eLogInfo, "TunnelMessage: message expired");
+			LogPrint (eLogInfo, "TunnelMessage: Message expired");
 			return;
 		}
 		uint8_t typeID = msg.data->GetTypeID ();
-		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
+		LogPrint (eLogDebug, "TunnelMessage: Handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		// catch RI or reply with new list of routers
 		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
 			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)

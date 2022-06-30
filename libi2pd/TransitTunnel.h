@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -35,7 +35,7 @@ namespace tunnel
 
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out);
 		private:
 
@@ -54,7 +54,7 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
-			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
 			void FlushTunnelDataMsgs ();
 
 		private:
@@ -95,7 +95,7 @@ namespace tunnel
 
 			void Cleanup () { m_Endpoint.Cleanup (); }
 
-			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
 			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 
 		private:

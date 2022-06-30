@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,20 +38,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
-		I2NPMessage * msg = nullptr;
-		if (endpoint)
-		{
-			// should fit two tunnel message + tunnel gateway header, enough for one garlic encrypted streaming packet
-			msg = new I2NPMessageBuffer<2*i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28>(); // reserved for alignment and NTCP 16 + 6 + 6
-			msg->Align (6);
-			msg->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
-		}
-		else
-		{
-			msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
-			msg->Align (12);
-		}
-		return std::shared_ptr<I2NPMessage>(msg);
+		return i2p::tunnel::tunnels.NewI2NPTunnelMessage (endpoint);
 	}
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)
@@ -88,7 +75,7 @@ namespace i2p
 	{
 		auto msg = NewI2NPMessage (len);
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Message length ", len, " exceeds max length ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID);
 		return msg;
 	}
@@ -103,7 +90,7 @@ namespace i2p
 			msg->from = from;
 		}
 		else
-			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
+			LogPrint (eLogError, "I2NP: Message length ", len, " exceeds max length");
 		return msg;
 	}
 
@@ -183,8 +170,8 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
-		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, 
-	    const uint8_t * replyTag, bool replyECIES)
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey,
+			const uint8_t * replyTag, bool replyECIES)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -256,7 +243,7 @@ namespace i2p
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, 
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router,
 		uint32_t replyToken, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		if (!router) // we send own RouterInfo
@@ -411,7 +398,7 @@ namespace i2p
 					retCode = 30; // always reject with bandwidth reason (30)
 
 				memset (record + ECIES_BUILD_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
-				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode; 
+				record[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET] = retCode;
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
@@ -422,7 +409,7 @@ namespace i2p
 						uint8_t nonce[12];
 						memset (nonce, 0, 12);
 						auto& noiseState = i2p::context.GetCurrentNoiseState ();
-						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16, 
+						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, TUNNEL_BUILD_RECORD_SIZE - 16,
 							noiseState.m_H, 32, noiseState.m_CK, nonce, reply, TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 						{
 							LogPrint (eLogWarning, "I2NP: Reply AEAD encryption failed");
@@ -560,7 +547,7 @@ namespace i2p
 			{
 				LogPrint (eLogDebug, "I2NP: Short request record ", i, " is ours");
 				uint8_t clearText[SHORT_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
+				if (!i2p::context.DecryptTunnelShortRequestRecord (record + SHORT_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText))
 				{
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
@@ -571,10 +558,10 @@ namespace i2p
 					return;
 				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
-				uint8_t replyKey[32], layerKey[32], ivKey[32]; 
+				uint8_t replyKey[32], layerKey[32], ivKey[32];
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
 				memcpy (replyKey, noiseState.m_CK + 32, 32);
-				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK); 
+				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK);
 				memcpy (layerKey, noiseState.m_CK + 32, 32);
 				bool isEndpoint = clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG;
 				if (isEndpoint)
@@ -615,8 +602,8 @@ namespace i2p
 					if (j == i)
 					{
 						memset (reply + SHORT_RESPONSE_RECORD_OPTIONS_OFFSET, 0, 2); // no options
-						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = retCode; 
-						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16, 
+						reply[SHORT_RESPONSE_RECORD_RET_OFFSET] = retCode;
+						if (!i2p::crypto::AEADChaCha20Poly1305 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE - 16,
 							noiseState.m_H, 32, replyKey, nonce, reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, true)) // encrypt
 						{
 							LogPrint (eLogWarning, "I2NP: Short reply AEAD encryption failed");
@@ -624,7 +611,7 @@ namespace i2p
 						}
 					}
 					else
-						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply); 
+						i2p::crypto::ChaCha20 (reply, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, reply);
 					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;
 				}
 				// send reply
@@ -633,16 +620,16 @@ namespace i2p
 					auto replyMsg = NewI2NPShortMessage ();
 					replyMsg->Concat (buf, len);
 					replyMsg->FillI2NPMessageHeader (eI2NPShortTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
-					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), 
+					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (),
 						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // reply IBGW is not local?
 					{
-						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK); 
+						i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "RGarlicKeyAndTag", noiseState.m_CK);
 						uint64_t tag;
 						memcpy (&tag, noiseState.m_CK, 8);
 						// we send it to reply tunnel
 						transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						CreateTunnelGatewayMsg (bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-							i2p::garlic::WrapECIESX25519Message (replyMsg,  noiseState.m_CK + 32, tag)));
+							i2p::garlic::WrapECIESX25519Message (replyMsg, noiseState.m_CK + 32, tag)));
 					}
 					else
 					{
@@ -698,7 +685,7 @@ namespace i2p
 		htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
 		msg->len += TUNNEL_GATEWAY_HEADER_SIZE;
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Tunnel gateway buffer overflow ", msg->maxLen);
 		msg->FillI2NPMessageHeader (eI2NPTunnelGateway);
 		return msg;
 	}
@@ -729,7 +716,7 @@ namespace i2p
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;
 		if (msg->Concat (buf, len) < len)
-			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);
+			LogPrint (eLogError, "I2NP: Tunnel gateway buffer overflow ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID); // create content message
 		len = msg->GetLength ();
 		msg->offset -= gatewayMsgOffset;
@@ -744,13 +731,13 @@ namespace i2p
 	{
 		if (len < I2NP_HEADER_SIZE_OFFSET + 2)
 		{
-			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
 			return len;
 		}
 		auto l = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
 		if (l > len)
 		{
-			LogPrint (eLogError, "I2NP: message length ", l, " exceeds buffer length ", len);
+			LogPrint (eLogError, "I2NP: Message length ", l, " exceeds buffer length ", len);
 			l = len;
 		}
 		return l;
@@ -760,18 +747,18 @@ namespace i2p
 	{
 		if (len < I2NP_HEADER_SIZE)
 		{
-			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
 			return;
 		}
 		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
 		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);
-		LogPrint (eLogDebug, "I2NP: msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
+		LogPrint (eLogDebug, "I2NP: Msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
 		uint8_t * buf = msg + I2NP_HEADER_SIZE;
 		auto size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
 		len -= I2NP_HEADER_SIZE;
 		if (size > len)
 		{
-			LogPrint (eLogError, "I2NP: payload size ", size, " exceeds buffer length ", len);
+			LogPrint (eLogError, "I2NP: Payload size ", size, " exceeds buffer length ", len);
 			size = len;
 		}
 		switch (typeID)
@@ -815,13 +802,8 @@ namespace i2p
 				break;
 				case eI2NPGarlic:
 				{
-					if (msg->from)
-					{
-						if (msg->from->GetTunnelPool ())
-							msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
-						else
-							LogPrint (eLogInfo, "I2NP: Local destination for garlic doesn't exist anymore");
-					}
+					if (msg->from && msg->from->GetTunnelPool ())
+						msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
 					else
 						i2p::context.ProcessGarlicMessage (msg);
 					break;
@@ -860,7 +842,7 @@ namespace i2p
 		Flush ();
 	}
 
-	void I2NPMessagesHandler::PutNextMessage (std::shared_ptr<I2NPMessage> msg)
+	void I2NPMessagesHandler::PutNextMessage (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (msg)
 		{

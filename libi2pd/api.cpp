@@ -60,22 +60,22 @@ namespace api
 		else
 			i2p::log::Logger().SendTo (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
 		i2p::log::Logger().Start ();
-		LogPrint(eLogInfo, "API: starting NetDB");
+		LogPrint(eLogInfo, "API: Starting NetDB");
 		i2p::data::netdb.Start();
-		LogPrint(eLogInfo, "API: starting Transports");
+		LogPrint(eLogInfo, "API: Starting Transports");
 		i2p::transport::transports.Start();
-		LogPrint(eLogInfo, "API: starting Tunnels");
+		LogPrint(eLogInfo, "API: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
 	}
 
 	void StopI2P ()
 	{
-		LogPrint(eLogInfo, "API: shutting down");
-		LogPrint(eLogInfo, "API: stopping Tunnels");
+		LogPrint(eLogInfo, "API: Shutting down");
+		LogPrint(eLogInfo, "API: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
-		LogPrint(eLogInfo, "API: stopping Transports");
+		LogPrint(eLogInfo, "API: Stopping Transports");
 		i2p::transport::transports.Stop();
-		LogPrint(eLogInfo, "API: stopping NetDB");
+		LogPrint(eLogInfo, "API: Stopping NetDB");
 		i2p::data::netdb.Stop();
 		i2p::log::Logger().Stop ();
 	}

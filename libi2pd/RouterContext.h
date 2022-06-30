@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,6 +29,7 @@ namespace garlic
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";
 	const char NTCP2_KEYS[] = "ntcp2.keys";
+	const char SSU2_KEYS[] = "ssu2.keys";
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 
 	enum RouterStatus
@@ -61,13 +62,20 @@ namespace garlic
 				uint8_t iv[16];
 			};
 
+			struct SSU2PrivateKeys
+			{
+				uint8_t staticPublicKey[32];
+				uint8_t staticPrivateKey[32];
+				uint8_t intro[32];
+			};
+
 		public:
 
 			RouterContext ();
 			void Init ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };		
+			i2p::data::LocalRouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
 			{
 				return std::shared_ptr<i2p::data::RouterInfo> (&m_RouterInfo,
@@ -78,10 +86,16 @@ namespace garlic
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
 			}
+
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
-			i2p::crypto::X25519Keys& GetStaticKeys ();
+			i2p::crypto::X25519Keys& GetNTCP2StaticKeys ();
+
+			const uint8_t * GetSSU2StaticPublicKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPublicKey : nullptr; };
+			const uint8_t * GetSSU2StaticPrivateKey () const { return m_SSU2Keys ? m_SSU2Keys->staticPrivateKey : nullptr; };
+			const uint8_t * GetSSU2IntroKey () const { return m_SSU2Keys ? m_SSU2Keys->intro : nullptr; };
+			i2p::crypto::X25519Keys& GetSSU2StaticKeys ();
 
 			uint32_t GetUptime () const; // in seconds
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
@@ -97,11 +111,13 @@ namespace garlic
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
 			bool DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data);
-			
+
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host); // called from SSU or Daemon
 			void PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg);
 			void UpdateNTCP2Address (bool enable);
+			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
+			void UpdateSSU2Address (bool enable);
 			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
@@ -156,14 +172,15 @@ namespace garlic
 			void NewRouterInfo ();
 			void UpdateRouterInfo ();
 			void NewNTCP2Keys ();
+			void NewSSU2Keys ();
 			bool Load ();
 			void SaveKeys ();
 
 			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
-			
+
 		private:
 
-			i2p::data::RouterInfo m_RouterInfo;
+			i2p::data::LocalRouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor, m_TunnelDecryptor;
 			std::shared_ptr<i2p::garlic::RouterIncomingRatchetSession> m_ECIESSession;
@@ -177,7 +194,8 @@ namespace garlic
 			int m_NetID;
 			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
-			std::unique_ptr<i2p::crypto::X25519Keys> m_StaticKeys;
+			std::unique_ptr<SSU2PrivateKeys> m_SSU2Keys;
+			std::unique_ptr<i2p::crypto::X25519Keys> m_NTCP2StaticKeys, m_SSU2StaticKeys;
 			// for ECIESx25519
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 	};

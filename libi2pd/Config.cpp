@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -61,7 +61,7 @@ namespace config {
 			("service", bool_switch()->default_value(false),                  "Router will use system folders like '/var/lib/i2pd' (default: disabled)")
 			("notransit", bool_switch()->default_value(false),                "Router will not accept transit tunnels at startup (default: disabled)")
 			("floodfill", bool_switch()->default_value(false),                "Router will be floodfill (default: disabled)")
-			("bandwidth", value<std::string>()->default_value(""),            "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
+			("bandwidth", value<std::string>()->default_value(""),            "Transit traffic bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", bool_switch()->default_value(false),                     "Ignored. Always false")
 			("ssu", bool_switch()->default_value(true),                       "Enable SSU transport (default: enabled)")
@@ -78,9 +78,9 @@ namespace config {
 			("limits.coresize", value<uint32_t>()->default_value(0),          "Maximum size of corefile in Kb (0 - use system limit)")
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
 			("limits.transittunnels", value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
-			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Threshold to start probabilistic backoff with ntcp sessions (default: use system limit)")
-			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Maximum number of ntcp sessions (default: use system limit)")
-			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Maximum number of threads used by NTCP DH worker (default: 1)")
+			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Ignored")
+			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Ignored")
+			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Ignored")
 		;
 
 		options_description httpserver("HTTP Server options");
@@ -109,6 +109,8 @@ namespace config {
 			("httpproxy.outbound.length", value<std::string>()->default_value("3"),   "HTTP proxy outbound tunnel length")
 			("httpproxy.inbound.quantity", value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")
 			("httpproxy.outbound.quantity", value<std::string>()->default_value("5"), "HTTP proxy outbound tunnels quantity")
+			("httpproxy.inbound.lengthVariance", value<std::string>()->default_value("0"),  "HTTP proxy inbound tunnels length variance")
+			("httpproxy.outbound.lengthVariance", value<std::string>()->default_value("0"), "HTTP proxy outbound tunnels length variance")
 			("httpproxy.latency.min", value<std::string>()->default_value("0"),       "HTTP proxy min latency for tunnels")
 			("httpproxy.latency.max", value<std::string>()->default_value("0"),       "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""),           "HTTP proxy upstream out proxy url")
@@ -130,6 +132,8 @@ namespace config {
 			("socksproxy.outbound.length", value<std::string>()->default_value("3"),   "SOCKS proxy outbound tunnel length")
 			("socksproxy.inbound.quantity", value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")
 			("socksproxy.outbound.quantity", value<std::string>()->default_value("5"), "SOCKS proxy outbound tunnels quantity")
+			("socksproxy.inbound.lengthVariance", value<std::string>()->default_value("0"),  "SOCKS proxy inbound tunnels length variance")
+			("socksproxy.outbound.lengthVariance", value<std::string>()->default_value("0"), "SOCKS proxy outbound tunnels length variance")
 			("socksproxy.latency.min", value<std::string>()->default_value("0"),       "SOCKS proxy min latency for tunnels")
 			("socksproxy.latency.max", value<std::string>()->default_value("0"),       "SOCKS proxy max latency for tunnels")
 			("socksproxy.outproxy.enabled", value<bool>()->default_value(false),       "Enable or disable SOCKS outproxy")
@@ -203,28 +207,36 @@ namespace config {
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
 			("reseed.urls", value<std::string>()->default_value(
-				"https://reseed.i2p-projekt.de/,"
+				"https://reseed2.i2p.net/,"
 				"https://reseed.diva.exchange/,"
 				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
-				"https://i2p.novg.net/"
+				"https://i2p.novg.net/,"
+				"https://banana.incognet.io/,"
+				"https://reseed-pl.i2pd.xyz/,"
+				"https://www2.mk16.de/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
-			    "http://[301:65b9:c7cd:9a36::1]:18801/,"
-			    "http://[320:8936:ec1a:31f1::216]/"
+				"http://[301:65b9:c7cd:9a36::1]:18801/,"
+				"http://[320:8936:ec1a:31f1::216]/,"
+				"http://[306:3834:97b9:a00a::1]/,"
+				"http://[316:f9e0:f22e:a74f::216]/"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
 		options_description addressbook("AddressBook options");
 		addressbook.add_options()
+			("addressbook.enabled", value<bool>()->default_value(true), "Enable address book lookups and subscritions (default: enabled)")
 			("addressbook.defaulturl", value<std::string>()->default_value(
 				"http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/hosts.txt"
 			),                                                                     "AddressBook subscription URL for initial setup")
-			("addressbook.subscriptions", value<std::string>()->default_value("http://reg.i2p/hosts.txt"), "AddressBook subscriptions URLs, separated by comma")
+			("addressbook.subscriptions", value<std::string>()->default_value(
+				"http://reg.i2p/hosts.txt"
+			),                                                                     "AddressBook subscriptions URLs, separated by comma")
 			("addressbook.hostsfile", value<std::string>()->default_value(""),     "File to dump addresses in hosts.txt format");
 
 		options_description trust("Trust options");
@@ -260,6 +272,13 @@ namespace config {
 			("ntcp2.proxy", value<std::string>()->default_value(""),       "Proxy URL for NTCP2 transport")
 		;
 
+		options_description ssu2("SSU2 Options");
+		ssu2.add_options()
+			("ssu2.enabled", value<bool>()->default_value(false),         "Enable SSU2 (default: disabled)")
+			("ssu2.published", value<bool>()->default_value(false),        "Publish SSU2 (default: disabled)")
+			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
+		;
+
 		options_description nettime("Time sync options");
 		nettime.add_options()
 			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")
@@ -268,8 +287,9 @@ namespace config {
 				"1.pool.ntp.org,"
 				"2.pool.ntp.org,"
 				"3.pool.ntp.org"
-			),                                                             "Comma separated list of NTCP servers")
+			),                                                             "Comma separated list of NTP servers")
 			("nettime.ntpsyncinterval", value<int>()->default_value(72),   "NTP sync interval in hours (default: 72)")
+			("nettime.frompeers", value<bool>()->default_value(true),      "Sync clock from transport peers (default: enabled)")
 		;
 
 		options_description persist("Network information persisting options");
@@ -291,6 +311,13 @@ namespace config {
 			("meshnets.yggaddress", value<std::string>()->default_value(""),         "Yggdrasil address to publish")
 		;
 
+#ifdef __linux__
+		options_description unix_specific("UNIX-specific options");
+		unix_specific.add_options()
+			("unix.handle_sigtstp", bool_switch()->default_value(false),             "Handle SIGTSTP and SIGCONT signals (default: disabled)")
+		;
+#endif
+
 		m_OptionsDesc
 			.add(general)
 			.add(limits)
@@ -309,10 +336,14 @@ namespace config {
 			.add(websocket) // deprecated
 			.add(exploratory)
 			.add(ntcp2)
+			.add(ssu2)
 			.add(nettime)
 			.add(persist)
 			.add(cpuext)
 			.add(meshnets)
+#ifdef __linux__
+			.add(unix_specific)
+#endif
 		;
 	}
 

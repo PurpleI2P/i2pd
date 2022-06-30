@@ -128,8 +128,8 @@ namespace data
 	};
 
 	/**
-			validate lease set buffer signature and extract expiration timestamp
-			@returns true if the leaseset is well formed and signature is valid
+	 * validate lease set buffer signature and extract expiration timestamp
+	 * @returns true if the leaseset is well formed and signature is valid
 	 */
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires);
 

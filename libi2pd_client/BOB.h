@@ -63,7 +63,7 @@ namespace client
 	const char BOB_HELP_OUTPORT[] = "outport <PORT_NUMBER> - Set the outbound port that nickname contacts.";
 	const char BOB_HELP_INHOST[] = "inhost <HOSTNAME|IP> - Set the inbound hostname or IP.";
 	const char BOB_HELP_INPORT[] = "inport <PORT_NUMBER> - Set the inbound port number nickname listens on.";
-	const char BOB_HELP_QUIET[] = "quiet <True|False> - Wether to send the incoming destination.";
+	const char BOB_HELP_QUIET[] = "quiet <True|False> - Whether to send the incoming destination.";
 	const char BOB_HELP_LOOKUP[] = "lookup <I2P_HOSTNAME> - Look up an I2P hostname.";
 	const char BOB_HELP_CLEAR[] = "clear - Clear the current nickname out of the list.";
 	const char BOB_HELP_LIST[] = "list - List all tunnels.";
@@ -163,6 +163,7 @@ namespace client
 			int GetInPort() const { return m_InPort; }
 			int GetOutPort() const { return m_OutPort; }
 			bool GetQuiet() const { return m_Quiet; }
+			bool IsRunning() const { return m_IsRunning; }
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
 
@@ -176,6 +177,7 @@ namespace client
 			std::string m_InHost, m_OutHost;
 			int m_InPort, m_OutPort;
 			bool m_Quiet;
+			bool m_IsRunning;
 	};
 
 	class BOBCommandChannel;

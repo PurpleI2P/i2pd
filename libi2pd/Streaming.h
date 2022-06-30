@@ -58,6 +58,7 @@ namespace stream
 	const int MAX_WINDOW_SIZE = 128;
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
+	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
@@ -111,11 +112,11 @@ namespace stream
 			buf = new uint8_t[len];
 			memcpy (buf, b, len);
 		}
-		SendBuffer (size_t l): // creat empty buffer
-			len(l), offset (0)	
+		SendBuffer (size_t l): // create empty buffer
+			len(l), offset (0)
 		{
 			buf = new uint8_t[len];
-		}	
+		}
 		~SendBuffer ()
 		{
 			delete[] buf;
@@ -180,7 +181,7 @@ namespace stream
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
 			void SendPing ();
-			
+
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
@@ -366,7 +367,7 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
 			{
-				// itermediate iterrupt
+				// itermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
 				AsyncReceive (buffer, handler, remainingTimeout);
 			}

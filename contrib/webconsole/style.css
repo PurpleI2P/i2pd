@@ -1,35 +1,65 @@
+/*
+ * Copyright (c) 2021-2022, The PurpleI2P Project
+ *
+ * This file is part of Purple i2pd project and licensed under BSD3
+ *
+ * See full license text in LICENSE file at top of project tree
+ *
+ ******************************************************************
+ *
+ * This is style sheet for webconsole, with @media selectors for adaptive
+ * view on desktop and mobile devices, respecting preferred user's color
+ * scheme used in system/browser.
+ *
+ * Minified copy of that style sheet is bundled inside i2pd sources.
+*/
+
+:root {
+	--main-bg-color: #fafafa;
+	--main-text-color: #103456;
+	--main-link-color: #894c84;
+	--main-link-hover-color: #fafafa;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--main-bg-color: #242424;
+		--main-text-color: #17ab5c;
+		--main-link-color: #bf64b7;
+		--main-link-hover-color: #000000;
+	}
+}
+
 body {
 	font: 100%/1.5em sans-serif;
 	margin: 0;
 	padding: 1.5em;
-	background: #FAFAFA;
-	color: #103456;
+	background: var(--main-bg-color);
+	color: var(--main-text-color);
 }
 
 a, .slide label {
 	text-decoration: none;
-	color: #894C84;
+	color: var(--main-link-color);
 }
 
-a:hover, .slide label:hover {
-	color: #FAFAFA;
-	background: #894C84;
+a:hover, .slide label:hover, button[type=submit]:hover {
+	color: var(--main-link-hover-color);
+	background: var(--main-link-color);
 }
 
 a.button {
-	-webkit-appearance: button;
-	-moz-appearance: button;
 	appearance: button;
 	text-decoration: none;
 	padding: 0 5px;
-	border: 1px solid #894C84;
+	border: 1px solid var(--main-link-color);
 }
 
 .header {
 	font-size: 2.5em;
 	text-align: center;
 	margin: 1em 0;
-	color: #894C84;
+	color: var(--main-link-color);
 }
 
 .wrapper {
@@ -42,6 +72,7 @@ a.button {
 	display: block;
 	float: left;
 	overflow: hidden;
+	padding: 4px;
 	max-width: 12em;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -63,8 +94,9 @@ a.button {
 .content {
 	float: left;
 	font-size: 1em;
-	margin-left: 4em;
-	max-width: 48em;
+	margin-left: 2em;
+	padding: 4px;
+	max-width: 50em;
 	overflow: auto;
 }
 
@@ -87,7 +119,7 @@ a.button {
 caption {
 	font-size: 1.5em;
 	text-align: center;
-	color: #894C84;
+	color: var(--main-link-color);
 }
 
 table {
@@ -105,6 +137,8 @@ table.services {
 }
 
 textarea {
+	background-color: var(--main-bg-color);
+	color: var(--main-text-color);
 	word-break: break-all;
 }
 
@@ -133,24 +167,45 @@ textarea {
 	color: #56B734;
 }
 
+button[type=submit] {
+	background-color: transparent;
+	color: var(--main-link-color);
+	text-decoration: none;
+	padding: 5px;
+	border: 1px solid var(--main-link-color);
+	font-size: 14px;
+}
+
+input, select, select option {
+	background-color: var(--main-bg-color);
+	color: var(--main-link-color);
+	padding: 5px;
+	border: 1px solid var(--main-link-color);
+	font-size: 14px;
+}
+
+input:focus, select:focus, select option:focus {
+	outline: none;
+}
+
+input[type=number]::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+}
+
 @media screen and (max-width: 1150px) { /* adaptive style */
 	.wrapper {
 		max-width: 58em;
 	}
-	
-	.menu {
-		max-width: 10em;
-	}
 
 	.content {
-		margin-left: 2em;
-		max-width: 42em;
+		max-width: 40em;
 	}
 }
 
 @media screen and (max-width: 980px) {
 	body {
-		padding: 1.5em 0 0 0;
+		font: 100%/1.2em sans-serif;
+		padding: 1.2em 0 0 0;
 	}
 
 	.menu {
@@ -178,9 +233,7 @@ textarea {
 	}
 
 	a, .slide label {
-		/* margin-right: 10px; */
 		display: block;
-		/* font-size: 18px; */
 	}
 
 	.header {
@@ -193,13 +246,12 @@ textarea {
 	}
 
 	a.button {
-		-webkit-appearance: button;
-		-moz-appearance: button;
 		appearance: button;
 		text-decoration: none;
 		margin-top: 10px;
 		padding: 6px;
-		border: 1px solid #894c84;
+		border: 2px solid var(--main-link-color);
+		border-radius: 5px;
 		width: -webkit-fill-available;
 	}
 
@@ -207,8 +259,7 @@ textarea {
 		width: 35%;
 		text-align: center;
 		padding: 5px;
-		border: 2px solid #ccc;
-		-webkit-border-radius: 5px;
+		border: 2px solid var(--main-link-color);
 		border-radius: 5px;
 		font-size: 18px;
 	}
@@ -221,17 +272,16 @@ textarea {
 	textarea {
 		width: -webkit-fill-available;
 		height: auto;
-		padding:5px;
-		border:2px solid #ccc;
-		-webkit-border-radius: 5px;
+		padding: 5px;
+		border: 2px solid var(--main-link-color);
 		border-radius: 5px;
 		font-size: 12px;
 	}
 
 	button[type=submit] {
 		padding: 5px 15px;
-		background: #ccc;
-		border: 0 none;
+		background: transparent;
+		border: 2px solid var(--main-link-color);
 		cursor: pointer;
 		-webkit-border-radius: 5px;
 		border-radius: 5px;

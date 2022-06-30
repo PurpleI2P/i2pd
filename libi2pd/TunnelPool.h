@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,7 +30,7 @@ namespace tunnel
 	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
 	const int TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY = 16;
 	const int TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY = 16;
-	
+
 	class Tunnel;
 	class InboundTunnel;
 	class OutboundTunnel;
@@ -40,8 +40,8 @@ namespace tunnel
 	{
 		std::vector<Peer> peers;
 		bool isShort = true;
-		i2p::data::RouterInfo::CompatibleTransports farEndTransports = 0;
-	
+		i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports;
+
 		void Add (std::shared_ptr<const i2p::data::RouterInfo> r);
 		void Reverse ();
 	};
@@ -56,12 +56,13 @@ namespace tunnel
 
 	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
 	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
-	
+
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
 
-			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels);
+			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
+				int numOutboundTunnels, int inboundVariance, int outboundVariance);
 			~TunnelPool ();
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; };
@@ -76,10 +77,11 @@ namespace tunnel
 			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
 			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
-			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr) const;
-			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;
+			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr,
+				i2p::data::RouterInfo::CompatibleTransports compatible = i2p::data::RouterInfo::eAllTransports) const;
+			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr,
+				i2p::data::RouterInfo::CompatibleTransports compatible = i2p::data::RouterInfo::eAllTransports) const;
 			std::shared_ptr<OutboundTunnel> GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const;
-			void TestTunnels ();
 			void ManageTunnels (uint64_t ts);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg);
@@ -116,18 +118,21 @@ namespace tunnel
 
 		private:
 
+			void TestTunnels ();
 			void CreateInboundTunnel ();
 			void CreateOutboundTunnel ();
 			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
 			template<class TTunnels>
-			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, typename TTunnels::value_type excluded) const;
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels,
+				typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible) const;
 			bool SelectPeers (Path& path, bool isInbound);
 			bool SelectExplicitPeers (Path& path, bool isInbound);
 
 		private:
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> m_LocalDestination;
-			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels;
+			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels,
+				m_InboundVariance, m_OutboundVariance;
 			std::shared_ptr<std::vector<i2p::data::IdentHash> > m_ExplicitPeers;
 			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first

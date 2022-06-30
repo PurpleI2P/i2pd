@@ -29,7 +29,7 @@ namespace transport
 	{
 		if (m_IsRunning)
 		{
-			LogPrint(eLogInfo, "UPnP: stopping");
+			LogPrint(eLogInfo, "UPnP: Stopping");
 			m_IsRunning = false;
 			m_Timer.cancel ();
 			m_Service.stop ();
@@ -46,7 +46,7 @@ namespace transport
 	void UPnP::Start()
 	{
 		m_IsRunning = true;
-		LogPrint(eLogInfo, "UPnP: starting");
+		LogPrint(eLogInfo, "UPnP: Starting");
 		m_Service.post (std::bind (&UPnP::Discover, this));
 		std::unique_lock<std::mutex> l(m_StartedMutex);
 		m_Thread.reset (new std::thread (std::bind (&UPnP::Run, this)));
@@ -72,7 +72,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "UPnP: runtime exception: ", ex.what ());
+				LogPrint (eLogError, "UPnP: Runtime exception: ", ex.what ());
 				PortMapping ();
 			}
 		}
@@ -93,7 +93,7 @@ namespace transport
 #endif
 
 		isError = err != UPNPDISCOVER_SUCCESS;
-#else  // MINIUPNPC_API_VERSION >= 8
+#else // MINIUPNPC_API_VERSION >= 8
 		err = 0;
 		m_Devlist = upnpDiscover (UPNP_RESPONSE_TIMEOUT, NULL, NULL, 0);
 		isError = m_Devlist == NULL;
@@ -106,7 +106,7 @@ namespace transport
 
 		if (isError)
 		{
-			LogPrint (eLogError, "UPnP: unable to discover Internet Gateway Devices: error ", err);
+			LogPrint (eLogError, "UPnP: Unable to discover Internet Gateway Devices: error ", err);
 			return;
 		}
 
@@ -117,22 +117,22 @@ namespace transport
 			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
 			if(err != UPNPCOMMAND_SUCCESS)
 			{
-				LogPrint (eLogError, "UPnP: unable to get external address: error ", err);
+				LogPrint (eLogError, "UPnP: Unable to get external address: error ", err);
 				return;
 			}
 			else
 			{
-				LogPrint (eLogError, "UPnP: found Internet Gateway Device ", m_upnpUrls.controlURL);
+				LogPrint (eLogError, "UPnP: Found Internet Gateway Device ", m_upnpUrls.controlURL);
 				if (!m_externalIPAddress[0])
 				{
-					LogPrint (eLogError, "UPnP: found Internet Gateway Device doesn't know our external address");
+					LogPrint (eLogError, "UPnP: Found Internet Gateway Device doesn't know our external address");
 					return;
 				}
 			}
 		}
 		else
 		{
-			LogPrint (eLogError, "UPnP: unable to find valid Internet Gateway Device: error ", err);
+			LogPrint (eLogError, "UPnP: Unable to find valid Internet Gateway Device: error ", err);
 			return;
 		}
 
@@ -183,7 +183,7 @@ namespace transport
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
 		if (err != UPNPCOMMAND_SUCCESS) // if mapping not found
 		{
-			LogPrint (eLogDebug, "UPnP: possibly port ", strPort, " is not forwarded: return code ", err);
+			LogPrint (eLogDebug, "UPnP: Port ", strPort, " is possibly not forwarded: return code ", err);
 
 #if ((MINIUPNPC_API_VERSION >= 8) || defined (UPNPDISCOVER_SUCCESS))
 			err = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), NULL, NULL);
@@ -192,18 +192,18 @@ namespace transport
 #endif
 			if (err != UPNPCOMMAND_SUCCESS)
 			{
-				LogPrint (eLogError, "UPnP: port forwarding to ", m_NetworkAddr, ":", strPort, " failed: return code ", err);
+				LogPrint (eLogError, "UPnP: Port forwarding to ", m_NetworkAddr, ":", strPort, " failed: return code ", err);
 				return;
 			}
 			else
 			{
-				LogPrint (eLogInfo, "UPnP: port successfully forwarded (", m_externalIPAddress ,":", strPort, " type ", strType, " -> ", m_NetworkAddr ,":", strPort ,")");
+				LogPrint (eLogInfo, "UPnP: Port successfully forwarded (", m_externalIPAddress ,":", strPort, " type ", strType, " -> ", m_NetworkAddr ,":", strPort ,")");
 				return;
 			}
 		}
 		else
 		{
-			LogPrint (eLogDebug, "UPnP: external forward from ", m_NetworkAddr, ":", strPort, " exists on current Internet Gateway Device");
+			LogPrint (eLogDebug, "UPnP: External forward from ", m_NetworkAddr, ":", strPort, " exists on current Internet Gateway Device");
 			return;
 		}
 	}
@@ -225,7 +225,7 @@ namespace transport
 		}
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int err = UPNPCOMMAND_SUCCESS;
-		
+
 		err = CheckMapping (strPort.c_str (), strType.c_str ());
 		if (err == UPNPCOMMAND_SUCCESS)
 		{

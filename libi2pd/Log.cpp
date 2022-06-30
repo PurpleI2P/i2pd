@@ -46,7 +46,7 @@ namespace log {
 
 #ifndef _WIN32
 	/**
-	 * @brief  Maps our log levels to syslog one
+	 * @brief Maps our log levels to syslog one
 	 * @return syslog priority LOG_*, as defined in syslog.h
 	 */
 	static inline int GetSyslogPrio (enum LogLevel l) {
@@ -113,11 +113,11 @@ namespace log {
 
 	std::string str_tolower(std::string s) {
 		std::transform(s.begin(), s.end(), s.begin(),
-					// static_cast<int(*)(int)>(std::tolower)         // wrong
-					// [](int c){ return std::tolower(c); }           // wrong
-					// [](char c){ return std::tolower(c); }          // wrong
-					   [](unsigned char c){ return std::tolower(c); } // correct
-					);
+			// static_cast<int(*)(int)>(std::tolower)      // wrong
+			// [](int c){ return std::tolower(c); }        // wrong
+			// [](char c){ return std::tolower(c); }       // wrong
+			[](unsigned char c){ return std::tolower(c); } // correct
+		);
 		return s;
 	}
 
@@ -129,10 +129,10 @@ namespace log {
 		else if (level == "info")  { m_MinLevel = eLogInfo;  }
 		else if (level == "debug") { m_MinLevel = eLogDebug; }
 		else {
-			LogPrint(eLogError, "Log: unknown loglevel: ", level);
+			LogPrint(eLogError, "Log: Unknown loglevel: ", level);
 			return;
 		}
-		LogPrint(eLogInfo, "Log: min messages level set to ", level);
+		LogPrint(eLogInfo, "Log: Logging level set to ", level);
 	}
 
 	const char * Log::TimeAsString(std::time_t t) {
@@ -170,7 +170,7 @@ namespace log {
 				break;
 			case eLogStdout:
 			default:
-				std::cout    << TimeAsString(msg->timestamp)
+				std::cout << TimeAsString(msg->timestamp)
 					<< "@" << short_tid
 					<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
 					<< " - " << msg->text << std::endl;
@@ -212,7 +212,7 @@ namespace log {
 			m_LogStream = os;
 			return;
 		}
-		LogPrint(eLogError, "Log: can't open file ", path);
+		LogPrint(eLogError, "Log: Can't open file ", path);
 	}
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {

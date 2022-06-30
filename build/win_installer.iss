@@ -1,8 +1,5 @@
 #define I2Pd_AppName "i2pd"
 #define I2Pd_Publisher "PurpleI2P"
-; Get application version from compiled binary
-; Disabled to use definition from command line
-;#define I2Pd_ver GetFileVersionString(AddBackslash(SourcePath) + "..\i2pd_x64.exe")
 
 [Setup]
 AppName={#I2Pd_AppName}
@@ -27,7 +24,7 @@ ExtraDiskSpaceRequired=15
 
 AppID={{621A23E0-3CF4-4BD6-97BC-4835EA5206A2}
 AppVerName={#I2Pd_AppName}
-AppCopyright=Copyright (c) 2013-2020, The PurpleI2P Project
+AppCopyright=Copyright (c) 2013-2022, The PurpleI2P Project
 AppPublisherURL=http://i2pd.website/
 AppSupportURL=https://github.com/PurpleI2P/i2pd/issues
 AppUpdatesURL=https://github.com/PurpleI2P/i2pd/releases
@@ -47,6 +44,7 @@ Source: ..\contrib\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyif
 Source: ..\contrib\tunnels.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\certificates\*; DestDir: {userappdata}\i2pd\certificates; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 Source: ..\contrib\tunnels.d\*; DestDir: {userappdata}\i2pd\tunnels.d; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
+Source: ..\contrib\webconsole\*; DestDir: {userappdata}\i2pd\webconsole; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 
 [Icons]
 Name: {group}\I2Pd; Filename: {app}\i2pd.exe

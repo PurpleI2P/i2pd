@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -60,10 +60,38 @@ namespace fs {
 	}
 
 	void DetectDataDir(const std::string & cmdline_param, bool isService) {
+		// with 'datadir' option
 		if (cmdline_param != "") {
 			dataDir = cmdline_param;
 			return;
 		}
+
+#if !defined(MAC_OSX) && !defined(ANDROID)
+		// with 'service' option
+		if (isService) {
+#ifdef _WIN32
+			wchar_t commonAppData[MAX_PATH];
+			if(SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, commonAppData) != S_OK)
+			{
+#ifdef WIN32_APP
+				MessageBox(NULL, TEXT("Unable to get common AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
+#else
+				fprintf(stderr, "Error: Unable to get common AppData path!");
+#endif
+				exit(1);
+			}
+			else
+			{
+				dataDir = boost::filesystem::wpath(commonAppData).string() + "\\" + appName;
+			}
+#else
+			dataDir = "/var/lib/" + appName;
+#endif
+			return;
+		}
+#endif
+
+		// detect directory as usual
 #ifdef _WIN32
 		wchar_t localAppData[MAX_PATH];
 
@@ -117,12 +145,10 @@ namespace fs {
 			dataDir = std::string (ext) + "/" + appName;
 			return;
 		}
-#endif
-		// otherwise use /data/files
+#endif // ANDROID
+		// use /home/user/.i2pd or /tmp/i2pd
 		char *home = getenv("HOME");
-		if (isService) {
-			dataDir = "/var/lib/" + appName;
-		} else if (home != NULL && strlen(home) > 0) {
+		if (home != NULL && strlen(home) > 0) {
 			dataDir = std::string(home) + "/." + appName;
 		} else {
 			dataDir = "/tmp/" + appName;

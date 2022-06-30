@@ -49,8 +49,8 @@ namespace data
 			std::string HttpsRequest (const std::string& address);
 			std::string YggdrasilRequest (const std::string& address);
 			template<typename Stream>
-			std::string ReseedRequest (Stream& s, const std::string& uri);		
-		
+			std::string ReseedRequest (Stream& s, const std::string& uri);
+
 		private:
 
 			std::map<std::string, PublicKey> m_SigningKeys;

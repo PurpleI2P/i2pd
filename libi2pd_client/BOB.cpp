@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -68,7 +68,7 @@ namespace client
 		std::shared_ptr<AddressReceiver> receiver)
 	{
 		if (ecode)
-			LogPrint (eLogError, "BOB: inbound tunnel read error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: Inbound tunnel read error: ", ecode.message ());
 		else
 		{
 			receiver->bufferOffset += bytes_transferred;
@@ -83,7 +83,7 @@ namespace client
 				auto addr = context.GetAddressBook ().GetAddress (receiver->buffer);
 				if (!addr)
 				{
-					LogPrint (eLogError, "BOB: address ", receiver->buffer, " not found");
+					LogPrint (eLogError, "BOB: Address ", receiver->buffer, " not found");
 					return;
 				}
 				if (addr->IsIdentHash ())
@@ -106,7 +106,7 @@ namespace client
 				if (receiver->bufferOffset < BOB_COMMAND_BUFFER_SIZE)
 					ReceiveAddress (receiver);
 				else
-					LogPrint (eLogError, "BOB: missing inbound address");
+					LogPrint (eLogError, "BOB: Missing inbound address");
 			}
 		}
 	}
@@ -168,7 +168,7 @@ namespace client
 		m_LocalDestination (localDestination),
 		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr),
 		m_Nickname(nickname), m_InHost(inhost), m_OutHost(outhost),
-		m_InPort(inport), m_OutPort(outport), m_Quiet(quiet)
+		m_InPort(inport), m_OutPort(outport), m_Quiet(quiet), m_IsRunning(false)
 	{
 	}
 
@@ -183,6 +183,7 @@ namespace client
 	{
 		if (m_OutboundTunnel) m_OutboundTunnel->Start ();
 		if (m_InboundTunnel) m_InboundTunnel->Start ();
+		m_IsRunning = true;
 	}
 
 	void BOBDestination::Stop ()
@@ -193,6 +194,7 @@ namespace client
 
 	void BOBDestination::StopTunnels ()
 	{
+		m_IsRunning = false;
 		if (m_OutboundTunnel)
 		{
 			m_OutboundTunnel->Stop ();
@@ -268,7 +270,7 @@ namespace client
 	{
 		if(ecode)
 		{
-			LogPrint (eLogError, "BOB: command channel read error: ", ecode.message());
+			LogPrint (eLogError, "BOB: Command channel read error: ", ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -292,7 +294,7 @@ namespace client
 			}
 			else
 			{
-				LogPrint (eLogError, "BOB: unknown command ", command.c_str());
+				LogPrint (eLogError, "BOB: Unknown command ", command.c_str());
 				SendReplyError ("unknown command");
 			}
 		}
@@ -310,7 +312,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "BOB: command channel send error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: Command channel send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -361,7 +363,7 @@ namespace client
 		const auto issetStr = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
 		const auto issetNum = [&issetStr](const int p) { return issetStr(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
 		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
-		const auto destReady = [](const BOBDestination * const dest) { return dest->GetLocalDestination()->IsReady(); };
+		const auto destReady = [](const BOBDestination * const dest) { return dest->IsRunning(); };
 		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
 
 		// tunnel info
@@ -479,26 +481,43 @@ namespace client
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setnick ", operand);
-		m_Nickname = operand;
-		std::string msg ("Nickname set to ");
-		msg += m_Nickname;
-		SendReplyOK (msg.c_str ());
+		if(*operand)
+		{
+			auto dest = m_Owner.FindDestination (operand);
+			if (!dest)
+			{
+				m_Nickname = operand;
+				std::string msg ("Nickname set to ");
+				msg += m_Nickname;
+				SendReplyOK (msg.c_str ());
+			}
+			else
+				SendReplyError ("tunnel is active");
+		}
+		else
+			SendReplyError ("no nickname has been set");
 	}
 
 	void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getnick ", operand);
-		m_CurrentDestination = m_Owner.FindDestination (operand);
-		if (m_CurrentDestination)
+		if(*operand)
 		{
-			m_Keys = m_CurrentDestination->GetKeys ();
-			m_Nickname = operand;
-		}
-		if (m_Nickname == operand)
-		{
-			std::string msg ("Nickname set to ");
-			msg += m_Nickname;
-			SendReplyOK (msg.c_str ());
+			m_CurrentDestination = m_Owner.FindDestination (operand);
+			if (m_CurrentDestination)
+			{
+				m_Keys = m_CurrentDestination->GetKeys ();
+				m_IsActive = m_CurrentDestination->IsRunning ();
+				m_Nickname = operand;
+			}
+			if (m_Nickname == operand)
+			{
+				std::string msg ("Nickname set to ");
+				msg += m_Nickname;
+				SendReplyOK (msg.c_str ());
+			}
+			else
+				SendReplyError ("no nickname has been set");
 		}
 		else
 			SendReplyError ("no nickname has been set");
@@ -523,7 +542,7 @@ namespace client
 			}
 			catch (std::invalid_argument& ex)
 			{
-				LogPrint (eLogWarning, "BOB: newkeys ", ex.what ());
+				LogPrint (eLogWarning, "BOB: Error on newkeys: ", ex.what ());
 			}
 		}
 
@@ -535,7 +554,7 @@ namespace client
 	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setkeys ", operand);
-		if (m_Keys.FromBase64 (operand))
+		if (*operand && m_Keys.FromBase64 (operand))
 			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 		else
 			SendReplyError ("invalid keys");
@@ -562,35 +581,55 @@ namespace client
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outhost ", operand);
-		m_OutHost = operand;
-		SendReplyOK ("outhost set");
+		if (*operand)
+		{
+			m_OutHost = operand;
+			SendReplyOK ("outhost set");
+		}
+		else
+			SendReplyError ("empty outhost");
 	}
 
 	void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outport ", operand);
-		m_OutPort = std::stoi(operand);
-		if (m_OutPort >= 0)
-			SendReplyOK ("outbound port set");
+		if (*operand)
+		{
+			m_OutPort = std::stoi(operand);
+			if (m_OutPort >= 0)
+				SendReplyOK ("outbound port set");
+			else
+				SendReplyError ("port out of range");
+		}
 		else
-			SendReplyError ("port out of range");
+			SendReplyError ("empty outport");
 	}
 
 	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: inhost ", operand);
-		m_InHost = operand;
-		SendReplyOK ("inhost set");
+		if (*operand)
+		{
+			m_InHost = operand;
+			SendReplyOK ("inhost set");
+		}
+		else
+			SendReplyError ("empty inhost");
 	}
 
 	void BOBCommandSession::InportCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: inport ", operand);
-		m_InPort = std::stoi(operand);
-		if (m_InPort >= 0)
-			SendReplyOK ("inbound port set");
+		if (*operand)
+		{
+			m_InPort = std::stoi(operand);
+			if (m_InPort >= 0)
+				SendReplyOK ("inbound port set");
+			else
+				SendReplyError ("port out of range");
+		}
 		else
-			SendReplyError ("port out of range");
+			SendReplyError ("empty inport");
 	}
 
 	void BOBCommandSession::QuietCommandHandler (const char * operand, size_t len)
@@ -613,54 +652,64 @@ namespace client
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
-		auto addr = context.GetAddressBook ().GetAddress (operand);
-		if (!addr)
+		if (*operand)
 		{
-			SendReplyError ("Address Not found");
-			return;
-		}
-		auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
-		if (addr->IsIdentHash ())
-		{
-			// we might have leaseset already
-			auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
-			if (leaseSet)
+			auto addr = context.GetAddressBook ().GetAddress (operand);
+			if (!addr)
 			{
-				SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
+				SendReplyError ("Address Not found");
 				return;
 			}
-		}
-		// trying to request
-		auto s = shared_from_this ();
-		auto requstCallback = [s](std::shared_ptr<i2p::data::LeaseSet> ls)
+			auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+			if (addr->IsIdentHash ())
 			{
-				if (ls)
-					s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
-				else
-					s->SendReplyError ("LeaseSet Not found");
-			};
-		if (addr->IsIdentHash ())
-			localDestination->RequestDestination (addr->identHash, requstCallback);
+				// we might have leaseset already
+				auto leaseSet = localDestination->FindLeaseSet (addr->identHash);
+				if (leaseSet)
+				{
+					SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
+					return;
+				}
+			}
+			// trying to request
+			auto s = shared_from_this ();
+			auto requstCallback = [s](std::shared_ptr<i2p::data::LeaseSet> ls)
+				{
+					if (ls)
+						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+					else
+						s->SendReplyError ("LeaseSet Not found");
+				};
+			if (addr->IsIdentHash ())
+				localDestination->RequestDestination (addr->identHash, requstCallback);
+			else
+				localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey, requstCallback);
+		}
 		else
-			localDestination->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey, requstCallback);
+			SendReplyError ("empty lookup address");
 	}
 
 	void BOBCommandSession::LookupLocalCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: lookup local ", operand);
-		auto addr = context.GetAddressBook ().GetAddress (operand);
-		if (!addr)
+		if (*operand)
 		{
-			SendReplyError ("Address Not found");
-			return;
+			auto addr = context.GetAddressBook ().GetAddress (operand);
+			if (!addr)
+			{
+				SendReplyError ("Address Not found");
+				return;
+			}
+			auto ls = i2p::data::netdb.FindLeaseSet (addr->identHash);
+			if (ls)
+				SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
+			else
+				SendReplyError ("Local LeaseSet Not found");
 		}
-		auto ls = i2p::data::netdb.FindLeaseSet (addr->identHash);
-		if (ls)
-			SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
 		else
-			SendReplyError ("Local LeaseSet Not found");
+			SendReplyError ("empty lookup address");
 	}
-		
+
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: clear");
@@ -704,7 +753,7 @@ namespace client
 			msg += operand;
 			*(const_cast<char *>(value)) = '=';
 			msg += " set to ";
-			msg += value;
+			msg += value + 1;
 			SendReplyOK (msg.c_str ());
 		}
 		else
@@ -718,11 +767,11 @@ namespace client
 		std::string statusLine;
 
 		// always prefer destination
-		auto ptr = m_Owner.FindDestination(name);
-		if(ptr != nullptr)
+		auto dest = m_Owner.FindDestination(name);
+		if(dest)
 		{
 			// tunnel destination exists
-			BuildStatusLine(false, ptr, statusLine);
+			BuildStatusLine(false, dest, statusLine);
 			SendReplyOK(statusLine.c_str());
 		}
 		else
@@ -742,7 +791,7 @@ namespace client
 	void BOBCommandSession::HelpCommandHandler (const char * operand, size_t len)
 	{
 		auto helpStrings = m_Owner.GetHelpStrings();
-		if(len == 0)
+		if(!*operand)
 		{
 			std::stringstream ss;
 			ss << "COMMANDS:";
@@ -786,7 +835,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
-		m_CommandHandlers[BOB_COMMAND_LOOKUP_LOCAL] = &BOBCommandSession::LookupLocalCommandHandler;	
+		m_CommandHandlers[BOB_COMMAND_LOOKUP_LOCAL] = &BOBCommandSession::LookupLocalCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
@@ -880,7 +929,7 @@ namespace client
 			session->SendVersion ();
 		}
 		else
-			LogPrint (eLogError, "BOB: accept error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: Accept error: ", ecode.message ());
 	}
 }
 }

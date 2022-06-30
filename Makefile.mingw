@@ -3,19 +3,11 @@ USE_WIN32_APP := yes
 
 WINDRES = windres
 
-CXXFLAGS := $(CXX_DEBUG) -DWIN32_LEAN_AND_MEAN -fPIC -msse
+CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
 INCFLAGS = -I$(DAEMON_SRC_DIR) -IWin32
 LDFLAGS := ${LD_DEBUG} -static
 
-# detect proper flag for c++11 support by compilers
-CXXVER := $(shell $(CXX) -dumpversion)
-ifeq ($(shell expr match ${CXXVER} "[4]\.[7-9]\|4\.1[0-9]\|[5-6]"),4) # gcc 4.7 - 6
-	NEEDED_CXXFLAGS += -std=c++11
-else ifeq ($(shell expr match ${CXXVER} "[1,7-9]"),1) # gcc >= 7
-	NEEDED_CXXFLAGS += -std=c++17
-else # not supported
-$(error Compiler too old)
-endif
+NEEDED_CXXFLAGS += -std=c++17 -DWIN32_LEAN_AND_MEAN
 
 # Boost libraries suffix
 BOOST_SUFFIX = -mt

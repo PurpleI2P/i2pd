@@ -14,9 +14,9 @@
 #include "Base.h"
 #include "HTTP.h"
 
-namespace i2p 
+namespace i2p
 {
-namespace http 
+namespace http
 {
 	const std::vector<std::string> HTTP_METHODS = {
 		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
@@ -279,7 +279,7 @@ namespace http
 				method  = tokens[0];
 				uri     = tokens[1];
 				version = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			}
 			else
 			{
@@ -363,7 +363,7 @@ namespace http
 			return false; /* no header */
 		if (it->second.find("gzip") != std::string::npos)
 			return true; /* gotcha! */
-		if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
+		if (includingI2PGzip && it->second.find("x-i2p-gzip") != std::string::npos)
 			return true;
 		return false;
 	}
@@ -409,7 +409,7 @@ namespace http
 				/* all ok */
 				version = tokens[0];
 				status  = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			} else {
 				std::string line = str.substr(pos, eol - pos);
 				auto p = parse_header_line(line);
@@ -460,7 +460,7 @@ namespace http
 			case 304: ptr = "Not Modified"; break;
 			case 307: ptr = "Temporary Redirect"; break;
 			/* client error */
-			case 400: ptr = "Bad Request";  break;
+			case 400: ptr = "Bad Request"; break;
 			case 401: ptr = "Unauthorized"; break;
 			case 403: ptr = "Forbidden"; break;
 			case 404: ptr = "Not Found"; break;
@@ -471,19 +471,19 @@ namespace http
 			case 502: ptr = "Bad Gateway"; break;
 			case 503: ptr = "Not Implemented"; break;
 			case 504: ptr = "Gateway Timeout"; break;
-			default:  ptr = "Unknown Status";  break;
+			default:  ptr = "Unknown Status"; break;
 		}
 		return ptr;
 	}
 
-	std::string UrlDecode(const std::string& data, bool allow_null) 
+	std::string UrlDecode(const std::string& data, bool allow_null)
 	{
 		std::string decoded(data);
 		size_t pos = 0;
-		while ((pos = decoded.find('%', pos)) != std::string::npos) 
+		while ((pos = decoded.find('%', pos)) != std::string::npos)
 		{
 			char c = strtol(decoded.substr(pos + 1, 2).c_str(), NULL, 16);
-			if (c == '\0' && !allow_null) 
+			if (c == '\0' && !allow_null)
 			{
 				pos += 3;
 				continue;
@@ -494,10 +494,10 @@ namespace http
 		return decoded;
 	}
 
-	bool MergeChunkedResponse (std::istream& in, std::ostream& out) 
+	bool MergeChunkedResponse (std::istream& in, std::ostream& out)
 	{
 		std::string hexLen;
-		while (!in.eof ()) 
+		while (!in.eof ())
 		{
 			std::getline (in, hexLen);
 			errno = 0;
@@ -522,6 +522,6 @@ namespace http
 		if (user.empty () && pass.empty ()) return "";
 		return "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
 	}
-	
+
 } // http
 } // i2p

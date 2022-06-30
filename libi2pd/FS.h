@@ -83,8 +83,8 @@ namespace fs {
 
 	/**
 	 * @brief Set datadir either from cmdline option or using autodetection
-	 * @param cmdline_param  Value of cmdline parameter --datadir=<something>
-	 * @param isService      Value of cmdline parameter --service
+	 * @param cmdline_param Value of cmdline parameter --datadir=<something>
+	 * @param isService Value of cmdline parameter --service
 	 *
 	 * Examples of autodetected paths:
 	 *
@@ -93,11 +93,11 @@ namespace fs {
 	 *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/
 	 *   Unix: /var/lib/i2pd/ (system=1) >> ~/.i2pd/ or /tmp/i2pd/
 	 */
-	 void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
+	void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
 
 	/**
 	 * @brief Set certsdir either from cmdline option or using autodetection
-	 * @param cmdline_param  Value of cmdline parameter --certsdir=<something>
+	 * @param cmdline_param Value of cmdline parameter --certsdir=<something>
 	 *
 	 * Examples of autodetected paths:
 	 *
@@ -106,7 +106,7 @@ namespace fs {
 	 *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/certificates
 	 *   Unix: /var/lib/i2pd/certificates (system=1) >> ~/.i2pd/ or /tmp/i2pd/certificates
 	 */
-	 void SetCertsDir(const std::string & cmdline_certsdir);
+	void SetCertsDir(const std::string & cmdline_certsdir);
 
 	/**
 	 * @brief Create subdirectories inside datadir
@@ -115,7 +115,7 @@ namespace fs {
 
 	/**
 	 * @brief Get list of files in directory
-	 * @param path  Path to directory
+	 * @param path Path to directory
 	 * @param files Vector to store found files
 	 * @return true on success and false if directory not exists
 	 */

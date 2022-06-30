@@ -1,4 +1,4 @@
-// See swig.org for more inteface options,
+// See swig.org for more interface options,
 // e.g. map std::string to Go string
 
 %{

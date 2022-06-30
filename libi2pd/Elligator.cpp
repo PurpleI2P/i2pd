@@ -189,7 +189,7 @@ namespace crypto
 		// assume a < p, so don't check for a % p = 0, but a = 0 only
 		if (BN_is_zero(a)) return 0;
 		BIGNUM * r = BN_CTX_get (ctx);
-		BN_mod_exp (r, a, p12, p, ctx); // 	r = a^((p-1)/2) mod p
+		BN_mod_exp (r, a, p12, p, ctx); // r = a^((p-1)/2) mod p
 		if (BN_is_word(r, 1))
 			return 1;
 		else if (BN_is_zero(r))

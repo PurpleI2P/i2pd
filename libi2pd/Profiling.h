@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,6 +29,8 @@ namespace data
 	const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
 
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
+	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
+	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
 
 	class RouterProfile
 	{

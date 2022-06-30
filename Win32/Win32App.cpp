@@ -31,6 +31,7 @@
 #define ID_RELOAD 2006
 #define ID_ACCEPT_TRANSIT 2007
 #define ID_DECLINE_TRANSIT 2008
+#define ID_DATADIR 2009
 
 #define ID_TRAY_ICON 2050
 #define WM_TRAYICON (WM_USER + 1)
@@ -49,7 +50,8 @@ namespace win32
 	{
 		HMENU hPopup = CreatePopupMenu();
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_CONSOLE, "Open &console");
-		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
+		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_DATADIR, "Open &datadir");
+		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "&Show app");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
 		if(!i2p::context.AcceptsTunnels())
@@ -301,6 +303,12 @@ namespace win32
 					{
 						ShowWindow(hWnd, SW_SHOW);
 						SetTimer(hWnd, FRAME_UPDATE_TIMER, 3000, NULL);
+						return 0;
+					}
+					case ID_DATADIR:
+					{
+						std::string datadir(i2p::fs::GetUTF8DataDir());
+						ShellExecute(NULL, "explore", datadir.c_str(), NULL, NULL, SW_SHOWNORMAL);
 						return 0;
 					}
 				}

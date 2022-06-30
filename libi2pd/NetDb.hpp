@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,6 +30,7 @@
 #include "NetDbRequests.h"
 #include "Family.h"
 #include "version.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -41,9 +42,10 @@ namespace data
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
+	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
-	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15; 
+	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 38); // 0.9.38
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
@@ -88,13 +90,14 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
 			std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSUV6Router () const; // TODO: change to v6 peer test later
 			std::shared_ptr<const RouterInfo> GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily(const std::string & fam) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
@@ -120,13 +123,15 @@ namespace data
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
+			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
+			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r); 
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
 		private:
 
 			void Load ();
-			bool LoadRouterInfo (const std::string & path);
+			bool LoadRouterInfo (const std::string& path, uint64_t ts);
 			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
@@ -153,7 +158,6 @@ namespace data
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 
 			bool m_IsRunning;
-			uint64_t m_LastLoad;
 			std::thread * m_Thread;
 			i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
@@ -175,6 +179,8 @@ namespace data
 
 			std::set<IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken = 0;
+
+			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
 	};
 
 	extern NetDb netdb;

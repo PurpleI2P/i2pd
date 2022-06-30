@@ -28,7 +28,7 @@ namespace util
 
 			void Put (Element e)
 			{
-				std::unique_lock<std::mutex>  l(m_QueueMutex);
+				std::unique_lock<std::mutex> l(m_QueueMutex);
 				m_Queue.push (std::move(e));
 				m_NonEmpty.notify_one ();
 			}
@@ -38,7 +38,7 @@ namespace util
 			{
 				if (!vec.empty ())
 				{
-					std::unique_lock<std::mutex>  l(m_QueueMutex);
+					std::unique_lock<std::mutex> l(m_QueueMutex);
 					for (const auto& it: vec)
 						m_Queue.push (std::move(it));
 					m_NonEmpty.notify_one ();

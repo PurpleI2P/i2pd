@@ -303,7 +303,7 @@ namespace datagram
 			}
 		}
 
-		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) 
+		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ())
 		{
 			bool found = false;
 			for (auto& it: m_PendingRoutingSessions)
@@ -324,7 +324,7 @@ namespace datagram
 
 		auto path = m_RoutingSession->GetSharedRoutingPath();
 		if (path && m_RoutingSession->IsRatchets () &&
-		    m_LastUse > m_RoutingSession->GetLastActivityTimestamp ()*1000 + DATAGRAM_SESSION_PATH_TIMEOUT)
+			m_LastUse > m_RoutingSession->GetLastActivityTimestamp ()*1000 + DATAGRAM_SESSION_PATH_TIMEOUT)
 		{
 			m_RoutingSession->SetSharedRoutingPath (nullptr);
 			path = nullptr;
@@ -371,8 +371,6 @@ namespace datagram
 		{
 			// no current path, make one
 			path = std::make_shared<i2p::garlic::GarlicRoutingPath>();
-			path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel();
-			if (!path->outboundTunnel) return nullptr;
 
 			if (m_RemoteLeaseSet)
 			{
@@ -386,6 +384,11 @@ namespace datagram
 				}
 				else
 					return nullptr;
+
+				auto leaseRouter = i2p::data::netdb.FindRouter (path->remoteLease->tunnelGateway);
+				path->outboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(nullptr,
+					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
+				if (!path->outboundTunnel) return nullptr;
 			}
 			else
 			{

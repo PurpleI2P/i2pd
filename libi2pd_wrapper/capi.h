@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2021-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 // initialization start and stop
-void C_InitI2P (int argc, char argv[], const char * appName);
+void C_InitI2P (int argc, char *argv[], const char * appName);
 //void C_InitI2P (int argc, char** argv, const char * appName);
 void C_TerminateI2P ();
 void C_StartI2P ();

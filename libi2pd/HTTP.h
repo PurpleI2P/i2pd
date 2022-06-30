@@ -161,14 +161,14 @@ namespace http
 
 	/**
 	 * @brief Merge HTTP response content with Transfer-Encoding: chunked
-	 * @param in  Input stream
+	 * @param in Input stream
 	 * @param out Output stream
 	 * @return true on success, false otherwise
 	 */
 	bool MergeChunkedResponse (std::istream& in, std::ostream& out);
 
-	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass); 
-		
+	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass);
+
 } // http
 } // i2p
 

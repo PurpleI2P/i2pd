@@ -8,14 +8,15 @@ defaults:
 
 jobs:
   build:
-    name: Building for ${{ matrix.arch }}
+    name: Building using ${{ matrix.arch }} toolchain
     runs-on: windows-latest
     strategy:
       fail-fast: true
       matrix:
         include: [
-          { msystem: MINGW64, arch: x86_64 },
-          { msystem: MINGW32, arch: i686   }
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64 },
+          { msystem: MINGW32, arch: i686, arch_short: x86 }
         ]
     steps:
     - uses: actions/checkout@v2
@@ -25,11 +26,50 @@ jobs:
         msystem: ${{ matrix.msystem }}
         install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
-    - name: build application
+    - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
-        make USE_UPNP=yes DEBUG=no -j3
+        make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes -j3
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
+        name: i2pd-${{ matrix.arch_short }}.exe
+        path: i2pd.exe
+  build-xp:
+    name: Building for Windows XP
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW32
+        install: base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc
+        update: true
+    - name: Build WinXP-capable CRT packages
+      run: |
+        git clone https://github.com/msys2/MINGW-packages
+        pushd MINGW-packages
+        pushd mingw-w64-headers-git
+        sed -i 's/0x601/0x501/' PKGBUILD
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
+        pacman --noconfirm -U mingw-w64-i686-headers-git-*-any.pkg.tar.zst
+        popd
+        pushd mingw-w64-crt-git
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
+        pacman --noconfirm -U mingw-w64-i686-crt-git-*-any.pkg.tar.zst
+        popd
+        pushd mingw-w64-winpthreads-git
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
+        pacman --noconfirm -U mingw-w64-i686-libwinpthread-git-*-any.pkg.tar.zst mingw-w64-i686-winpthreads-git-*-any.pkg.tar.zst
+        popd
+        popd
+    - name: Build application
+      run: |
+        mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
+        make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes USE_WINXP_FLAGS=yes -j3
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: i2pd-xp.exe
         path: i2pd.exe

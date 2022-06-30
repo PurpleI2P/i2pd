@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -41,7 +41,7 @@ namespace client
 	const char SAM_SESSION_CREATE_DUPLICATED_DEST[] = "SESSION STATUS RESULT=DUPLICATED_DEST\n";
 	const char SAM_SESSION_CREATE_INVALID_ID[] = "SESSION STATUS RESULT=INVALID_ID\n";
 	const char SAM_SESSION_STATUS_INVALID_KEY[] = "SESSION STATUS RESULT=INVALID_KEY\n";
-	const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=%s\n";
+	const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=\"%s\"\n";
 	const char SAM_SESSION_ADD[] = "SESSION ADD";
 	const char SAM_SESSION_REMOVE[] = "SESSION REMOVE";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
@@ -80,7 +80,7 @@ namespace client
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";
-	const char SAM_VALUE_MASTER[] = "MASTER";	
+	const char SAM_VALUE_MASTER[] = "MASTER";
 	const char SAM_VALUE_TRUE[] = "true";
 	const char SAM_VALUE_FALSE[] = "false";
 
@@ -188,14 +188,14 @@ namespace client
 		std::string Name;
 		SAMSessionType Type;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
-		
+
 		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
 		virtual ~SAMSession () {};
-		
+
 		virtual std::shared_ptr<ClientDestination> GetLocalDestination () = 0;
 		virtual void StopLocalDestination () = 0;
 		virtual void Close () { CloseStreams (); };
-		
+
 		void CloseStreams ();
 	};
 
@@ -208,15 +208,15 @@ namespace client
 
 		std::shared_ptr<ClientDestination> GetLocalDestination () { return localDestination; };
 		void StopLocalDestination ();
-	};	
+	};
 
 	struct SAMMasterSession: public SAMSingleSession
 	{
 		std::set<std::string> subsessions;
 		SAMMasterSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest):
 			SAMSingleSession (parent, name, eSAMSessionTypeMaster, dest) {};
-		void Close ();	
-	};	
+		void Close ();
+	};
 
 	struct SAMSubSession: public SAMSession
 	{
@@ -227,8 +227,8 @@ namespace client
 		// implements SAMSession
 		std::shared_ptr<ClientDestination> GetLocalDestination ();
 		void StopLocalDestination ();
-	};	
-	
+	};
+
 	class SAMBridge: private i2p::util::RunnableService
 	{
 		public:
@@ -249,7 +249,7 @@ namespace client
 			std::list<std::shared_ptr<SAMSocket> > ListSockets(const std::string & id) const;
 
 			/** send raw data to remote endpoint from our UDP Socket */
-			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
+			void SendTo (const std::vector<boost::asio::const_buffer>& bufs, const boost::asio::ip::udp::endpoint& ep);
 
 			void AddSocket(std::shared_ptr<SAMSocket> socket);
 			void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);

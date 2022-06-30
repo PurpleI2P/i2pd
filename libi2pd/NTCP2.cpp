@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -23,7 +23,7 @@
 #include "HTTP.h"
 #include "util.h"
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 	#include <linux/in6.h>
 #endif
 
@@ -59,14 +59,14 @@ namespace transport
 
 	void NTCP2Establisher::KDF1Bob ()
 	{
-		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetStaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
+		KeyDerivationFunction1 (GetRemotePub (), i2p::context.GetNTCP2StaticKeys (), i2p::context.GetNTCP2StaticPublicKey (), GetRemotePub ());
 	}
 
 	void NTCP2Establisher::KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub)
 	{
 		MixHash (sessionRequest + 32, 32); // encrypted payload
 
-		int paddingLength =  sessionRequestLen - 64;
+		int paddingLength = sessionRequestLen - 64;
 		if (paddingLength > 0)
 			MixHash (sessionRequest + 64, paddingLength);
 		MixHash (epub, 32);
@@ -91,7 +91,7 @@ namespace transport
 	void NTCP2Establisher::KDF3Alice ()
 	{
 		uint8_t inputKeyMaterial[32];
-		i2p::context.GetStaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
+		i2p::context.GetNTCP2StaticKeys ().Agree (GetRemotePub (), inputKeyMaterial);
 		MixKey (inputKeyMaterial);
 	}
 
@@ -130,7 +130,7 @@ namespace transport
 		// m3p2Len
 		auto bufLen = i2p::context.GetRouterInfo ().GetBufferLen ();
 		m3p2Len = bufLen + 4 + 16; // (RI header + RI + MAC for now) TODO: implement options
-		htobe16buf (options + 4,  m3p2Len);
+		htobe16buf (options + 4, m3p2Len);
 		// fill m3p2 payload (RouterInfo block)
 		m_SessionConfirmedBuffer = new uint8_t[m3p2Len + 48]; // m3p1 is 48 bytes
 		uint8_t * m3p2 = m_SessionConfirmedBuffer + 48;
@@ -195,8 +195,9 @@ namespace transport
 		MixHash (m3p2, m3p2Len); //h = SHA256(h || ciphertext)
 	}
 
-	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen)
+	bool NTCP2Establisher::ProcessSessionRequestMessage (uint16_t& paddingLen, bool& clockSkew)
 	{
+		clockSkew = false;
 		// decrypt X
 		i2p::crypto::CBCDecryption decryption;
 		decryption.SetKey (i2p::context.GetIdentHash ());
@@ -232,7 +233,8 @@ namespace transport
 				if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
 				{
 					LogPrint (eLogWarning, "NTCP2: SessionRequest time difference ", (int)(ts - tsA), " exceeds clock skew");
-					return false;
+					clockSkew = true;
+					// we send SessionCreate to let Alice know our time and then close session
 				}
 			}
 			else
@@ -318,17 +320,18 @@ namespace transport
 	}
 
 	NTCP2Session::NTCP2Session (NTCP2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
-	    	std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, NTCP2_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_Establisher (new NTCP2Establisher),
-		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #if OPENSSL_SIPHASH
 		m_SendMDCtx(nullptr), m_ReceiveMDCtx (nullptr),
+#else
+		m_SendSipKey (nullptr), m_ReceiveSipKey (nullptr),
 #endif
 		m_NextReceivedLen (0), m_NextReceivedBuffer (nullptr), m_NextSendBuffer (nullptr),
-		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0), 
+		m_NextReceivedBufferSize (0), m_ReceiveSequenceNumber (0), m_SendSequenceNumber (0),
 		m_IsSending (false), m_IsReceiving (false), m_NextPaddingSize (16)
 	{
 		if (in_RemoteRouter) // Alice
@@ -336,8 +339,8 @@ namespace transport
 			m_Establisher->m_RemoteIdentHash = GetRemoteIdentity ()->GetIdentHash ();
 			if (addr)
 			{
-				memcpy (m_Establisher->m_RemoteStaticKey, addr->ntcp2->staticKey, 32);
-				memcpy (m_Establisher->m_IV, addr->ntcp2->iv, 16);
+				memcpy (m_Establisher->m_RemoteStaticKey, addr->s, 32);
+				memcpy (m_Establisher->m_IV, addr->i, 16);
 				m_RemoteEndpoint = boost::asio::ip::tcp::endpoint (addr->host, addr->port);
 			}
 			else
@@ -352,8 +355,6 @@ namespace transport
 		delete[] m_NextReceivedBuffer;
 		delete[] m_NextSendBuffer;
 #if OPENSSL_SIPHASH
-		if (m_SendSipKey) EVP_PKEY_free (m_SendSipKey);
-		if (m_ReceiveSipKey) EVP_PKEY_free (m_ReceiveSipKey);
 		if (m_SendMDCtx) EVP_MD_CTX_destroy (m_SendMDCtx);
 		if (m_ReceiveMDCtx) EVP_MD_CTX_destroy (m_ReceiveMDCtx);
 #endif
@@ -373,7 +374,7 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
 			m_SendQueue.clear ();
-			LogPrint (eLogDebug, "NTCP2: session terminated");
+			LogPrint (eLogDebug, "NTCP2: Session terminated");
 		}
 	}
 
@@ -402,7 +403,7 @@ namespace transport
 	}
 
 	void NTCP2Session::CreateNextReceivedBuffer (size_t size)
-	{		
+	{
 		if (m_NextReceivedBuffer)
 		{
 			if (size <= m_NextReceivedBufferSize)
@@ -412,19 +413,19 @@ namespace transport
 		}
 		m_NextReceivedBuffer = new uint8_t[size];
 		m_NextReceivedBufferSize = size;
-	}	
+	}
 
 	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
 	{
-		if (m_NextReceivedBuffer && !m_IsReceiving && 
-		    ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+		if (m_NextReceivedBuffer && !m_IsReceiving &&
+			ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
 		{
 			delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = nullptr;
 			m_NextReceivedBufferSize = 0;
-		}	
-	}	
-		
+		}
+	}
+
 	void NTCP2Session::KeyDerivationFunctionDataPhase ()
 	{
 		uint8_t k[64];
@@ -454,7 +455,7 @@ namespace transport
 		(void) bytes_transferred;
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: couldn't send SessionRequest message: ", ecode.message ());
+			LogPrint (eLogWarning, "NTCP2: Couldn't send SessionRequest message: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -477,9 +478,16 @@ namespace transport
 		{
 			LogPrint (eLogDebug, "NTCP2: SessionRequest received ", bytes_transferred);
 			uint16_t paddingLen = 0;
-			if (m_Establisher->ProcessSessionRequestMessage (paddingLen))
+			bool clockSkew = false;
+			if (m_Establisher->ProcessSessionRequestMessage (paddingLen, clockSkew))
 			{
-				if (paddingLen > 0)
+				if (clockSkew)
+				{
+					// we don't care about padding, send SessionCreated and close session
+					SendSessionCreated ();
+					m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+				}
+				else if (paddingLen > 0)
 				{
 					if (paddingLen <= NTCP2_SESSION_REQUEST_MAX_SIZE - 64) // session request is 287 bytes max
 					{
@@ -488,7 +496,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen,  " is too long");
+						LogPrint (eLogWarning, "NTCP2: SessionRequest padding length ", (int)paddingLen, " is too long");
 						Terminate ();
 					}
 				}
@@ -541,7 +549,7 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen,  " is too long");
+						LogPrint (eLogWarning, "NTCP2: SessionCreated padding length ", (int)paddingLen, " is too long");
 						Terminate ();
 					}
 				}
@@ -584,7 +592,7 @@ namespace transport
 		(void) bytes_transferred;
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: couldn't send SessionConfirmed message: ", ecode.message ());
+			LogPrint (eLogWarning, "NTCP2: Couldn't send SessionConfirmed message: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -611,7 +619,7 @@ namespace transport
 		(void) bytes_transferred;
 		if (ecode)
 		{
-			LogPrint (eLogWarning, "NTCP2: couldn't send SessionCreated message: ", ecode.message ());
+			LogPrint (eLogWarning, "NTCP2: Couldn't send SessionCreated message: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -654,7 +662,7 @@ namespace transport
 					// process RI
 					if (buf[0] != eNTCP2BlkRouterInfo)
 					{
-						LogPrint (eLogWarning, "NTCP2: unexpected block ", (int)buf[0], " in SessionConfirmed");
+						LogPrint (eLogWarning, "NTCP2: Unexpected block ", (int)buf[0], " in SessionConfirmed");
 						Terminate ();
 						return;
 					}
@@ -682,7 +690,7 @@ namespace transport
 					auto addr = ri.GetNTCP2AddressWithStaticKey (m_Establisher->m_RemoteStaticKey);
 					if (!addr)
 					{
-						LogPrint (eLogError, "NTCP2: No NTCP2 address wth static key found in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: No NTCP2 address with static key found in SessionConfirmed");
 						Terminate ();
 						return;
 					}
@@ -711,17 +719,19 @@ namespace transport
 	void NTCP2Session::SetSipKeys (const uint8_t * sendSipKey, const uint8_t * receiveSipKey)
 	{
 #if OPENSSL_SIPHASH
-		m_SendSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
+		EVP_PKEY * sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, sendSipKey, 16);
 		m_SendMDCtx = EVP_MD_CTX_create ();
 		EVP_PKEY_CTX *ctx = nullptr;
-		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, m_SendSipKey);
+		EVP_DigestSignInit (m_SendMDCtx, &ctx, nullptr, nullptr, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+		EVP_PKEY_free (sipKey);
 
-		m_ReceiveSipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
+		sipKey = EVP_PKEY_new_raw_private_key (EVP_PKEY_SIPHASH, nullptr, receiveSipKey, 16);
 		m_ReceiveMDCtx = EVP_MD_CTX_create ();
 		ctx = nullptr;
-		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, m_ReceiveSipKey);
+		EVP_DigestSignInit (m_ReceiveMDCtx, &ctx, NULL, NULL, sipKey);
 		EVP_PKEY_CTX_ctrl (ctx, -1, EVP_PKEY_OP_SIGNCTX, EVP_PKEY_CTRL_SET_DIGEST_SIZE, 8, nullptr);
+		EVP_PKEY_free (sipKey);
 #else
 		m_SendSipKey = sendSipKey;
 		m_ReceiveSipKey = receiveSipKey;
@@ -747,7 +757,7 @@ namespace transport
 		if (IsTerminated ()) return;
 #ifdef __linux__
 		const int one = 1;
-    	setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
+		setsockopt(m_Socket.native_handle(), IPPROTO_TCP, TCP_QUICKACK, &one, sizeof(one));
 #endif
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_NextReceivedLen, 2), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleReceivedLength, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
@@ -758,7 +768,7 @@ namespace transport
 		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogWarning, "NTCP2: receive length read error: ", ecode.message ());
+				LogPrint (eLogWarning, "NTCP2: Receive length read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -773,7 +783,7 @@ namespace transport
 #endif
 			// m_NextReceivedLen comes from the network in BigEndian
 			m_NextReceivedLen = be16toh (m_NextReceivedLen) ^ le16toh (m_ReceiveIV.key);
-			LogPrint (eLogDebug, "NTCP2: received length ", m_NextReceivedLen);
+			LogPrint (eLogDebug, "NTCP2: Received length ", m_NextReceivedLen);
 			if (m_NextReceivedLen >= 16)
 			{
 				CreateNextReceivedBuffer (m_NextReceivedLen);
@@ -790,7 +800,7 @@ namespace transport
 			}
 			else
 			{
-				LogPrint (eLogError, "NTCP2: received length ", m_NextReceivedLen, " is too short");
+				LogPrint (eLogError, "NTCP2: Received length ", m_NextReceivedLen, " is too short");
 				Terminate ();
 			}
 		}
@@ -813,7 +823,7 @@ namespace transport
 		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogWarning, "NTCP2: receive read error: ", ecode.message ());
+				LogPrint (eLogWarning, "NTCP2: Receive read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -825,7 +835,7 @@ namespace transport
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
 			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen, false))
 			{
-				LogPrint (eLogDebug, "NTCP2: received message decrypted");
+				LogPrint (eLogDebug, "NTCP2: Received message decrypted");
 				ProcessNextFrame (m_NextReceivedBuffer, m_NextReceivedLen-16);
 				m_IsReceiving = false;
 				ReceiveLength ();
@@ -856,10 +866,10 @@ namespace transport
 			switch (blk)
 			{
 				case eNTCP2BlkDateTime:
-					LogPrint (eLogDebug, "NTCP2: datetime");
+					LogPrint (eLogDebug, "NTCP2: Datetime");
 				break;
 				case eNTCP2BlkOptions:
-					LogPrint (eLogDebug, "NTCP2: options");
+					LogPrint (eLogDebug, "NTCP2: Options");
 				break;
 				case eNTCP2BlkRouterInfo:
 				{
@@ -875,25 +885,29 @@ namespace transport
 						LogPrint (eLogError, "NTCP2: I2NP block is too long ", size);
 						break;
 					}
-					auto nextMsg = NewI2NPMessage (size);
-					nextMsg->Align (12); // for possible tunnel msg
+					auto nextMsg = (frame[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPMessage (size);
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
-					memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
-					nextMsg->FromNTCP2 ();
-					m_Handler.PutNextMessage (nextMsg);
+					if (nextMsg->len <= nextMsg->maxLen)
+					{
+						memcpy (nextMsg->GetNTCP2Header (), frame + offset, size);
+						nextMsg->FromNTCP2 ();
+						m_Handler.PutNextMessage (std::move (nextMsg));
+					}
+					else
+						LogPrint (eLogError, "NTCP2: I2NP block is too long for I2NP message");
 					break;
 				}
 				case eNTCP2BlkTermination:
 					if (size >= 9)
 					{
-						LogPrint (eLogDebug, "NTCP2: termination. reason=", (int)(frame[offset + 8]));
+						LogPrint (eLogDebug, "NTCP2: Termination. reason=", (int)(frame[offset + 8]));
 						Terminate ();
 					}
 					else
 						LogPrint (eLogWarning, "NTCP2: Unexpected termination block size ", size);
 				break;
 				case eNTCP2BlkPadding:
-					LogPrint (eLogDebug, "NTCP2: padding");
+					LogPrint (eLogDebug, "NTCP2: Padding");
 				break;
 				default:
 					LogPrint (eLogWarning, "NTCP2: Unknown block type ", (int)blk);
@@ -905,7 +919,7 @@ namespace transport
 
 	void NTCP2Session::SetNextSentFrameLength (size_t frameLen, uint8_t * lengthBuf)
 	{
-		#if OPENSSL_SIPHASH
+#if OPENSSL_SIPHASH
 		EVP_DigestSignInit (m_SendMDCtx, nullptr, nullptr, nullptr, nullptr);
 		EVP_DigestSignUpdate (m_SendMDCtx, m_SendIV.buf, 8);
 		size_t l = 8;
@@ -915,7 +929,7 @@ namespace transport
 #endif
 		// length must be in BigEndian
 		htobe16buf (lengthBuf, frameLen ^ le16toh (m_SendIV.key));
-		LogPrint (eLogDebug, "NTCP2: sent length ", frameLen);
+		LogPrint (eLogDebug, "NTCP2: Sent length ", frameLen);
 	}
 
 	void NTCP2Session::SendI2NPMsgs (std::vector<std::shared_ptr<I2NPMessage> >& msgs)
@@ -968,7 +982,7 @@ namespace transport
 		{
 			// allocate send buffer
 			m_NextSendBuffer = new uint8_t[287]; // can be any size > 16, we just allocate 287 frequently
-			// crate padding block
+			// create padding block
 			auto paddingLen = CreatePaddingBlock (totalLen, m_NextSendBuffer, 287 - 16);
 			// and padding block to encrypt and send
 			if (paddingLen)
@@ -1076,15 +1090,15 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 		if (paddingSize > len) paddingSize = len;
-		if (paddingSize) 
+		if (paddingSize)
 		{
 			if (m_NextPaddingSize >= 16)
 			{
 				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
 				m_NextPaddingSize = 0;
-			}	
+			}
 			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
-		}	
+		}
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
 		memset (buf + 3, 0, paddingSize);
@@ -1110,7 +1124,13 @@ namespace transport
 
 	void NTCP2Session::SendTermination (NTCP2TerminationReason reason)
 	{
-		if (!m_SendKey || !m_SendSipKey) return;
+		if (!m_SendKey ||
+#if OPENSSL_SIPHASH
+			!m_SendMDCtx
+#else
+			!m_SendSipKey
+#endif
+		) return;
 		m_NextSendBuffer = new uint8_t[49]; // 49 = 12 bytes message + 16 bytes MAC + 2 bytes size + up to 19 padding block
 		// termination block
 		m_NextSendBuffer[2] = eNTCP2BlkTermination;
@@ -1143,21 +1163,21 @@ namespace transport
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
-			LogPrint (eLogWarning, "NTCP2: outgoing messages queue size to ",
-			   	GetIdentHashBase64(), " exceeds ",  NTCP2_MAX_OUTGOING_QUEUE_SIZE);
+			LogPrint (eLogWarning, "NTCP2: Outgoing messages queue size to ",
+				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
 	}
 
-	void NTCP2Session::SendLocalRouterInfo ()
+	void NTCP2Session::SendLocalRouterInfo (bool update)
 	{
-		if (!IsOutgoing ()) // we send it in SessionConfirmed
+		if (update || !IsOutgoing ()) // we send it in SessionConfirmed for ougoing session
 			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-		 m_ProxyType(eNoProxy), m_Resolver(GetService ())
+			m_ProxyType(eNoProxy), m_Resolver(GetService ())
 	{
 	}
 
@@ -1223,7 +1243,7 @@ namespace transport
 							m_NTCP2V6Acceptor->open (boost::asio::ip::tcp::v6());
 							m_NTCP2V6Acceptor->set_option (boost::asio::ip::v6_only (true));
 							m_NTCP2V6Acceptor->set_option (boost::asio::socket_base::reuse_address (true));
-#ifdef __linux__
+#if defined(__linux__) && !defined(_NETINET_IN_H)
 							if (!m_Address6 && !m_YggdrasilAddress) // only if not binded to address
 							{
 								// Set preference to use public IPv6 address -- tested on linux, not works on windows, and not tested on others
@@ -1249,7 +1269,7 @@ namespace transport
 						}
 						catch ( std::exception & ex )
 						{
-							LogPrint(eLogError, "NTCP2: failed to bind to v6 port ", address->port, ": ", ex.what());
+							LogPrint(eLogError, "NTCP2: Failed to bind to v6 port ", address->port, ": ", ex.what());
 							ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
 							continue;
 						}
@@ -1290,7 +1310,7 @@ namespace transport
 		auto it = m_NTCP2Sessions.find (ident);
 		if (it != m_NTCP2Sessions.end ())
 		{
-			LogPrint (eLogWarning, "NTCP2: session to ", ident.ToBase64 (), " already exists");
+			LogPrint (eLogWarning, "NTCP2: Session to ", ident.ToBase64 (), " already exists");
 			if (incoming)
 				// replace by new session
 				it->second->Terminate ();
@@ -1359,7 +1379,7 @@ namespace transport
 						boost::system::error_code ec;
 						conn->GetSocket ().bind (*localAddress, ec);
 						if (ec)
-							LogPrint (eLogError, "NTCP2: can't bind to ", localAddress->address ().to_string (), ": ", ec.message ());
+							LogPrint (eLogError, "NTCP2: Can't bind to ", localAddress->address ().to_string (), ": ", ec.message ());
 					}
 					conn->GetSocket ().async_connect (conn->GetRemoteEndpoint (), std::bind (&NTCP2Server::HandleConnect, this, std::placeholders::_1, conn, timer));
 				}
@@ -1528,7 +1548,7 @@ namespace transport
 	{
 		if (ecode)
 		{
-			LogPrint(eLogWarning, "NTCP2: failed to connect to proxy ", ecode.message());
+			LogPrint(eLogWarning, "NTCP2: Failed to connect to proxy ", ecode.message());
 			timer->cancel();
 			conn->Terminate();
 			return;
@@ -1545,7 +1565,7 @@ namespace transport
 						(void) transferred;
 						if(ec)
 						{
-							LogPrint(eLogWarning, "NTCP2: socks5 write error ", ec.message());
+							LogPrint(eLogWarning, "NTCP2: SOCKS5 write error ", ec.message());
 						}
 					});
 				auto readbuff = std::make_shared<std::vector<uint8_t> >(2);
@@ -1554,7 +1574,7 @@ namespace transport
 					{
 						if(ec)
 						{
-							LogPrint(eLogError, "NTCP2: socks5 read error ", ec.message());
+							LogPrint(eLogError, "NTCP2: SOCKS5 read error ", ec.message());
 							timer->cancel();
 							conn->Terminate();
 							return;
@@ -1568,14 +1588,14 @@ namespace transport
 							}
 							else if ((*readbuff)[1] == 0xff)
 							{
-								LogPrint(eLogError, "NTCP2: socks5 proxy rejected authentication");
+								LogPrint(eLogError, "NTCP2: SOCKS5 proxy rejected authentication");
 								timer->cancel();
 								conn->Terminate();
 								return;
 							}
 							LogPrint(eLogError, "NTCP2:", (int)(*readbuff)[1]);
 						}
-						LogPrint(eLogError, "NTCP2: socks5 server gave invalid response");
+						LogPrint(eLogError, "NTCP2: SOCKS5 server gave invalid response");
 						timer->cancel();
 						conn->Terminate();
 					});
@@ -1603,7 +1623,7 @@ namespace transport
 					{
 						(void) transferred;
 						if(ec)
-							LogPrint(eLogError, "NTCP2: http proxy write error ", ec.message());
+							LogPrint(eLogError, "NTCP2: HTTP proxy write error ", ec.message());
 					});
 
 				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
@@ -1612,7 +1632,7 @@ namespace transport
 					{
 						if(ec)
 						{
-							LogPrint(eLogError, "NTCP2: http proxy read error ", ec.message());
+							LogPrint(eLogError, "NTCP2: HTTP proxy read error ", ec.message());
 							timer->cancel();
 							conn->Terminate();
 						}
@@ -1630,10 +1650,10 @@ namespace transport
 									return;
 								}
 								else
-									LogPrint(eLogError, "NTCP2: http proxy rejected request ", res.code);
+									LogPrint(eLogError, "NTCP2: HTTP proxy rejected request ", res.code);
 							}
 							else
-								LogPrint(eLogError, "NTCP2: http proxy gave malformed response");
+								LogPrint(eLogError, "NTCP2: HTTP proxy gave malformed response");
 							timer->cancel();
 							conn->Terminate();
 							delete readbuff;
@@ -1642,7 +1662,7 @@ namespace transport
 				break;
 			}
 			default:
-				LogPrint(eLogError, "NTCP2: unknown proxy type, invalid state");
+				LogPrint(eLogError, "NTCP2: Unknown proxy type, invalid state");
 		}
 	}
 
@@ -1683,7 +1703,7 @@ namespace transport
 			{
 				if(ec)
 				{
-					LogPrint(eLogError, "NTCP2: failed to write handshake to socks proxy ", ec.message());
+					LogPrint(eLogError, "NTCP2: Failed to write handshake to socks proxy ", ec.message());
 					return;
 				}
 			});
@@ -1693,7 +1713,7 @@ namespace transport
 			{
 				if(e)
 				{
-					LogPrint(eLogError, "NTCP2: socks proxy read error ", e.message());
+					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
 				}
 				else if(transferred == sz)
 				{

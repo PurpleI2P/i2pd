@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,10 +13,11 @@
 
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/endian.h>
+
 #elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__) || defined(__GLIBC__)
 #include <endian.h>
-#elif defined(__APPLE__) && defined(__MACH__)
 
+#elif defined(__APPLE__) && defined(__MACH__)
 #include <libkern/OSByteOrder.h>
 
 #define htobe16(x) OSSwapHostToBigInt16(x)
@@ -33,6 +34,22 @@
 #define htole64(x) OSSwapHostToLittleInt64(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
 #define le64toh(x) OSSwapLittleToHostInt64(x)
+
+#elif defined(_WIN32)
+#define htobe16(x) __builtin_bswap16(x)
+#define htole16(x) (x)
+#define be16toh(x) __builtin_bswap16(x)
+#define le16toh(x) (x)
+
+#define htobe32(x) __builtin_bswap32(x)
+#define htole32(x) (x)
+#define be32toh(x) __builtin_bswap32(x)
+#define le32toh(x) (x)
+
+#define htobe64(x) __builtin_bswap64(x)
+#define htole64(x) (x)
+#define be64toh(x) __builtin_bswap64(x)
+#define le64toh(x) (x)
 
 #else
 #define NEEDS_LOCAL_ENDIAN

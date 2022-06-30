@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,7 @@
 #include "Log.h"
 
 #ifdef _WIN32
+#include "Win32Service.h"
 #ifdef WIN32_APP
 #include <windows.h>
 #include "Win32App.h"
@@ -39,6 +40,19 @@ namespace util
 
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
+
+		if (isDaemon)
+		{
+			LogPrint(eLogDebug, "Daemon: running as service");
+			I2PService service((PSTR)SERVICE_NAME);
+			if (!I2PService::Run(service))
+			{
+				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
+				return false;
+			}
+			return false;
+		}
+
 		return true;
 	}
 

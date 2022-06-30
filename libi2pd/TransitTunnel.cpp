@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -37,15 +37,14 @@ namespace tunnel
 	{
 	}
 
-	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
-		auto newMsg = CreateEmptyTunnelDataMsg (false);
-		EncryptTunnelMsg (tunnelMsg, newMsg);
+		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
 
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
-		htobe32buf (newMsg->GetPayload (), GetNextTunnelID ());
-		newMsg->FillI2NPMessageHeader (eI2NPTunnelData);
-		m_TunnelDataMsgs.push_back (newMsg);
+		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
+		tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData);
+		m_TunnelDataMsgs.push_back (tunnelMsg);
 	}
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
@@ -65,7 +64,7 @@ namespace tunnel
 		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
 	}
 
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
 		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
 	}
@@ -85,7 +84,7 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}
 
-	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
 		auto newMsg = CreateEmptyTunnelDataMsg (true);
 		EncryptTunnelMsg (tunnelMsg, newMsg);

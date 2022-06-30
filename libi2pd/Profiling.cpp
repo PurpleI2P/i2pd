@@ -73,7 +73,7 @@ namespace data
 
 		if (!i2p::fs::Exists(path))
 		{
-			LogPrint(eLogWarning, "Profiling: no profile yet for ", ident);
+			LogPrint(eLogWarning, "Profiling: No profile yet for ", ident);
 			return;
 		}
 
@@ -115,7 +115,7 @@ namespace data
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
-					LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE, " in profile for ", ident);
+					LogPrint (eLogWarning, "Profiling: Missing section ", PEER_PROFILE_SECTION_USAGE, " in profile for ", ident);
 				}
 			}
 			else
@@ -194,7 +194,7 @@ namespace data
 				continue;
 			}
 			if (((now - st.st_mtime) / 3600) >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
-				LogPrint(eLogDebug, "Profiling: removing expired peer profile: ", path);
+				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
 				i2p::fs::Remove(path);
 			}
 		}

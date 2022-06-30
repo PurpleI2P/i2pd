@@ -107,7 +107,7 @@ namespace client
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
 			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
-		
+
 		private:
 
 			void ReadTunnels ();
@@ -142,8 +142,8 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint->tunnel
-			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
+			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
+			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
 
 			std::mutex m_ForwardsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
@@ -157,7 +157,7 @@ namespace client
 
 			// i18n
 			std::shared_ptr<const i2p::i18n::Locale> m_Language;
-		
+
 		public:
 
 			// for HTTP

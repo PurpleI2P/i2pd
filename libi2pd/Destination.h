@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -53,6 +53,10 @@ namespace client
 	const int DEFAULT_INBOUND_TUNNELS_QUANTITY = 5;
 	const char I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY[] = "outbound.quantity";
 	const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
+	const char I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE[] = "inbound.lengthVariance";
+	const int DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE = 0;
+	const char I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE[] = "outbound.lengthVariance";
+	const int DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE = 0;
 	const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
@@ -68,8 +72,8 @@ namespace client
 	const char I2CP_PARAM_LEASESET_PRIV_KEY[] = "i2cp.leaseSetPrivKey"; // PSK decryption key, base64
 	const char I2CP_PARAM_LEASESET_AUTH_TYPE[] = "i2cp.leaseSetAuthType";
 	const char I2CP_PARAM_LEASESET_CLIENT_DH[] = "i2cp.leaseSetClient.dh"; // group of i2cp.leaseSetClient.dh.nnn
-	const char I2CP_PARAM_LEASESET_CLIENT_PSK[] = "i2cp.leaseSetClient.psk"; // group of i2cp.leaseSetClient.psk.nnn 
-	
+	const char I2CP_PARAM_LEASESET_CLIENT_PSK[] = "i2cp.leaseSetClient.psk"; // group of i2cp.leaseSetClient.psk.nnn
+
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
 	const int DEFAULT_MIN_TUNNEL_LATENCY = 0;
@@ -80,7 +84,7 @@ namespace client
 	const char I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY[] = "i2p.streaming.initialAckDelay";
 	const int DEFAULT_INITIAL_ACK_DELAY = 200; // milliseconds
 	const char I2CP_PARAM_STREAMING_ANSWER_PINGS[] = "i2p.streaming.answerPings";
-	const int DEFAULT_ANSWER_PINGS = true; 
+	const int DEFAULT_ANSWER_PINGS = true;
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
@@ -134,12 +138,13 @@ namespace client
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
+			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			void SetLeaseSetUpdated ();
 
 			bool IsPublic () const { return m_IsPublic; };
-			void SetPublic (bool pub) { m_IsPublic = pub; }; 
+			void SetPublic (bool pub) { m_IsPublic = pub; };
 
 		protected:
 
@@ -251,7 +256,7 @@ namespace client
 			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
-			
+
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
 			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);

@@ -5,6 +5,7 @@
  * Kovri go write your own code
  *
  */
+
 #ifndef LIBI2PD_POLY1305_H
 #define LIBI2PD_POLY1305_H
 #include <cstdint>

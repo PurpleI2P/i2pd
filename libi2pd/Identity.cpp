@@ -19,7 +19,8 @@ namespace data
 	Identity& Identity::operator=(const Keys& keys)
 	{
 		// copy public and signing keys together
-		memcpy (publicKey, keys.publicKey, sizeof (publicKey) + sizeof (signingKey));
+		memcpy (publicKey, keys.publicKey, sizeof (publicKey));
+		memcpy (signingKey, keys.signingKey, sizeof (signingKey));
 		memset (certificate, 0, sizeof (certificate));
 		return *this;
 	}
@@ -52,9 +53,9 @@ namespace data
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
 			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
-		}	
-		else	
-			memcpy (m_StandardIdentity.publicKey, publicKey, 256); 
+		}
+		else
+			memcpy (m_StandardIdentity.publicKey, publicKey, 256);
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;
@@ -63,7 +64,7 @@ namespace data
 			{
 				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 				{
-					size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
+					size_t padding = 128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
 					RAND_bytes (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP256_KEY_LENGTH);
 					break;
@@ -127,7 +128,7 @@ namespace data
 				{
 					LogPrint (eLogError, "Identity: Unexpected excessive signing key len ", excessLen);
 					excessLen = MAX_EXTENDED_BUFFER_SIZE - 4;
-				}	
+				}
 				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
 				delete[] excessBuf;
 			}
@@ -214,7 +215,7 @@ namespace data
 	{
 		if (len < DEFAULT_IDENTITY_SIZE)
 		{
-			LogPrint (eLogError, "Identity: buffer length ", len, " is too small");
+			LogPrint (eLogError, "Identity: Buffer length ", len, " is too small");
 			return 0;
 		}
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
@@ -479,7 +480,7 @@ namespace data
 		size_t ret = m_Public->FromBuffer (buf, len);
 		auto cryptoKeyLen = GetPrivateKeyLen ();
 		if (!ret || ret + cryptoKeyLen > len) return 0; // overflow
-		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen); 
+		memcpy (m_PrivateKey, buf + ret, cryptoKeyLen);
 		ret += cryptoKeyLen;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
 		if(signingPrivateKeySize + ret > len || signingPrivateKeySize > 128) return 0; // overflow
@@ -508,7 +509,7 @@ namespace data
 			if (m_Public->GetSignatureLen () + ret > len) return 0;
 			if (!m_Public->Verify (offlineInfo, keyLen + 6, buf + ret))
 			{
-				LogPrint (eLogError, "Identity: offline signature verification failed");
+				LogPrint (eLogError, "Identity: Offline signature verification failed");
 				return 0;
 			}
 			ret += m_Public->GetSignatureLen ();
@@ -653,9 +654,9 @@ namespace data
 	size_t PrivateKeys::GetPrivateKeyLen () const
 	{
 		// private key length always 256, but type 4
-		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256; 
-	}	
-		
+		return (m_Public->GetCryptoKeyType () == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) ? 32 : 256;
+	}
+
 	uint8_t * PrivateKeys::GetPadding()
 	{
 		if(m_Public->GetSigningKeyType () == SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
@@ -680,7 +681,7 @@ namespace data
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_X25519_AEAD:
 				return std::make_shared<i2p::crypto::ECIESX25519AEADRatchetDecryptor>(key);
-			break;	
+			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
@@ -787,7 +788,7 @@ namespace data
 			keys.m_OfflineSignature.resize (pubKeyLen + m_Public->GetSignatureLen () + 6);
 			htobe32buf (keys.m_OfflineSignature.data (), expires); // expires
 			htobe16buf (keys.m_OfflineSignature.data () + 4, type); // type
-			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public  key
+			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, keys.m_OfflineSignature.data () + 6); // public key
 			Sign (keys.m_OfflineSignature.data (), pubKeyLen + 6, keys.m_OfflineSignature.data () + 6 + pubKeyLen); // signature
 			// recreate signer
 			keys.m_Signer = nullptr;

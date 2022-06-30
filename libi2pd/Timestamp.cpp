@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -48,7 +48,7 @@ namespace util
 		return std::chrono::duration_cast<std::chrono::minutes>(
 			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
-	
+
 	static uint32_t GetLocalHoursSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::hours>(
@@ -70,23 +70,23 @@ namespace util
 			boost::asio::ip::udp::resolver::iterator end;
 			boost::asio::ip::udp::endpoint ep;
 			while (it != end)
-			{	
+			{
 				ep = *it;
 				if (!ep.address ().is_unspecified ())
 				{
 					if (ep.address ().is_v4 ())
-					{	
-						if (i2p::context.SupportsV4 ()) found = true;	
+					{
+						if (i2p::context.SupportsV4 ()) found = true;
 					}
 					else if (ep.address ().is_v6 ())
 					{
 						if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
 						{
 							if (i2p::context.SupportsMesh ()) found = true;
-						}	
+						}
 						else if (i2p::context.SupportsV6 ()) found = true;
 					}
-				}	
+				}
 				if (found) break;
 				it++;
 			}
@@ -94,8 +94,8 @@ namespace util
 			{
 				LogPrint (eLogError, "Timestamp: can't find compatible address for ", address);
 				return;
-			}	
-				
+			}
+
 			boost::asio::ip::udp::socket socket (service);
 			socket.open (ep.protocol (), ec);
 			if (!ec)
@@ -220,13 +220,13 @@ namespace util
 	uint64_t GetSecondsSinceEpoch ()
 	{
 		return GetLocalSecondsSinceEpoch () + g_TimeOffset;
-	}	
-	
+	}
+
 	uint32_t GetMinutesSinceEpoch ()
 	{
 		return GetLocalMinutesSinceEpoch () + g_TimeOffset/60;
 	}
-	
+
 	uint32_t GetHoursSinceEpoch ()
 	{
 		return GetLocalHoursSinceEpoch () + g_TimeOffset/3600;
@@ -249,6 +249,11 @@ namespace util
 		gmtime_r(&t, &tm);
 		sprintf(date, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #endif
+	}
+
+	void AdjustTimeOffset (int64_t offset)
+	{
+		g_TimeOffset += offset;
 	}
 }
 }

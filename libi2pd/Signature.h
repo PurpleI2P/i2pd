@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -304,7 +304,6 @@ namespace crypto
 		private:
 
 #if OPENSSL_EDDSA
-			EVP_PKEY * m_Pkey;
 			EVP_MD_CTX * m_MDCtx;
 #else
 			EDDSAPoint m_PublicKey;
@@ -341,7 +340,7 @@ namespace crypto
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 		private:
-			EVP_PKEY * m_Pkey;
+
 			EVP_MD_CTX * m_MDCtx;
 			EDDSA25519SignerCompat * m_Fallback;
 	};

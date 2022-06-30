@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -26,11 +26,7 @@ namespace transport
 {
 
 	const size_t SSU_MTU_V4 = 1484;
-	#ifdef MESHNET
-	const size_t SSU_MTU_V6 = 1286;
-	#else
 	const size_t SSU_MTU_V6 = 1488;
-	#endif
 	const size_t IPV4_HEADER_SIZE = 20;
 	const size_t IPV6_HEADER_SIZE = 40;
 	const size_t UDP_HEADER_SIZE = 8;
@@ -79,7 +75,7 @@ namespace transport
 		uint64_t receivedFragmentsBits;
 		std::set<std::shared_ptr<Fragment>, FragmentCmp> savedFragments;
 
-		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), 
+		IncompleteMessage (std::shared_ptr<I2NPMessage>&& m): msg (m), nextFragmentNum (0),
 			lastFragmentInsertTime (0), receivedFragmentsBits (0) {};
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};
@@ -102,7 +98,7 @@ namespace transport
 			void Start ();
 			void Stop ();
 			void CleanUp (uint64_t ts);
-			
+
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
 			void Send (std::shared_ptr<i2p::I2NPMessage> msg);

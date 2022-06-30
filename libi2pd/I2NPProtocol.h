@@ -56,7 +56,7 @@ namespace i2p
 	// TunnelBuild
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
 	const size_t SHORT_TUNNEL_BUILD_RECORD_SIZE = 218;
-	
+
 	// BuildRequestRecordEncrypted
 	const size_t BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0;
 	const size_t BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET = BUILD_REQUEST_RECORD_TO_PEER_OFFSET + 16;
@@ -98,7 +98,7 @@ namespace i2p
 	// ShortResponseRecord
 	const size_t SHORT_RESPONSE_RECORD_OPTIONS_OFFSET = 0;
 	const size_t SHORT_RESPONSE_RECORD_RET_OFFSET = 201;
-	
+
 	enum I2NPMessageType
 	{
 		eI2NPDummyMsg = 0,
@@ -150,7 +150,7 @@ namespace tunnel
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
 
 		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
-			offset(2), maxLen (0), from (nullptr) {};  // reserve 2 bytes for NTCP header
+			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
 
 		// header accessors
 		uint8_t * GetHeader () { return GetBuffer (); };
@@ -273,9 +273,9 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
-		const std::set<i2p::data::IdentHash>& excludedFloodfills, 
-	    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, 
-	    const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
+		const std::set<i2p::data::IdentHash>& excludedFloodfills,
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel,
+		const uint8_t * replyKey, const uint8_t * replyTag, bool replyECIES = false);
 	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 
 	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel = nullptr);
@@ -301,7 +301,7 @@ namespace tunnel
 		public:
 
 			~I2NPMessagesHandler ();
-			void PutNextMessage (std::shared_ptr<I2NPMessage> msg);
+			void PutNextMessage (std::shared_ptr<I2NPMessage>&& msg);
 			void Flush ();
 
 		private:
