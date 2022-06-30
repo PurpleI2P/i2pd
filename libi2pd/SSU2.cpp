@@ -242,17 +242,6 @@ namespace transport
 			m_Sessions.erase (it);
 		}
 	}
-
-	void SSU2Server::UpdateSessionConnID (uint64_t oldConnID)
-	{
-		auto it = m_Sessions.find (oldConnID);
-		if (it != m_Sessions.end ())
-		{
-			auto session = it->second;
-			m_Sessions.erase (it);
-			m_Sessions.emplace (session->GetConnID (), session);
-		}	
-	}	
 		
 	void SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
 	{

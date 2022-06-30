@@ -51,14 +51,17 @@ namespace transport
 
 	void SSU2Session::Connect ()
 	{
-		if (m_State == eSSU2SessionStateUnknown)
+		if (m_State == eSSU2SessionStateUnknown || m_State == eSSU2SessionStateTokenReceived)
 		{	
 			ScheduleConnectTimer ();
 			auto token = m_Server.FindOutgoingToken (m_RemoteEndpoint);
 			if (token)
 				SendSessionRequest (token);
 			else
+			{	
+				m_State = eSSU2SessionStateUnknown;	
 				SendTokenRequest ();
+			}		
 		}	
 	}
 
@@ -959,9 +962,10 @@ namespace transport
 			uint64_t oldConnID = GetConnID ();
 			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
 			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);	
-			m_Server.UpdateSessionConnID (oldConnID);
 			// connect
-			m_State = eSSU2SessionStateUnknown;
+			m_State = eSSU2SessionStateTokenReceived;
+			m_Server.AddPendingOutgoingSession (shared_from_this ());
+			m_Server.RemoveSession (oldConnID);
 			Connect ();
 		}
 
