@@ -2126,6 +2126,19 @@ namespace transport
 			m_ReceivePacketNum = *m_OutOfSequencePackets.rbegin ();
 			m_OutOfSequencePackets.clear ();
 		}
+		else if (m_OutOfSequencePackets.size () > SSU2_MAX_NUM_ACK_RANGES)
+		{
+			uint32_t packet = *m_OutOfSequencePackets.begin ();
+			if (packet > m_ReceivePacketNum + 1)
+			{
+				// like we've just received all packets before first
+				m_ReceivePacketNum = packet - 1;
+				UpdateReceivePacketNum (packet);
+			}	
+			else
+				LogPrint (eLogError, "SSU2: Out of sequence packet ", packet, " is less than last received",  m_ReceivePacketNum);
+		}	
+		         
 		for (auto it = m_RelaySessions.begin (); it != m_RelaySessions.end ();)
 		{
 			if (ts > it->second.second + SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT)
