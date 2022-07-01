@@ -887,7 +887,8 @@ namespace transport
 		return true;
 	}
 
-	void SSU2Session::SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey)
+	void SSU2Session::SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, 
+		const uint8_t * introKey, uint64_t token)
 	{
 		// we are Charlie
 		Header header;
@@ -910,7 +911,7 @@ namespace transport
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, ep);
 		payloadSize += CreateRelayResponseBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize, 
-			eSSU2RelayResponseCodeAccept ,nonce, true);
+			eSSU2RelayResponseCodeAccept, nonce, true, token);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		// encrypt
 		uint8_t n[12];
@@ -1365,7 +1366,7 @@ namespace transport
 			// send relay response back to Alice
 			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 			size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
-				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), false);
+				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), false, 0);
 			payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 			SendData (payload, payloadSize);
 			return; 
@@ -1393,6 +1394,7 @@ namespace transport
 	{
 		// we are Charlie
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
+		uint64_t token = 0;
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
 		if (r)
 		{	
@@ -1413,7 +1415,10 @@ namespace transport
 					if (addr)
 					{
 						if (m_Server.IsSupported (ep.address ()))
-							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i);
+						{
+							token = m_Server.GetIncomingToken (ep);
+							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
+						}	
 						else
 							code = eSSU2RelayResponseCodeCharlieUnsupportedAddress;
 					}	
@@ -1438,7 +1443,7 @@ namespace transport
 		// send relay response to Bob
 		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
 		size_t payloadSize = CreateRelayResponseBlock (payload, SSU2_MAX_PAYLOAD_SIZE, 
-			code, bufbe32toh (buf + 33), true);
+			code, bufbe32toh (buf + 33), true, token);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		SendData (payload, payloadSize);
 	}
@@ -1959,7 +1964,7 @@ namespace transport
 	}
 
 	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, 
-		SSU2RelayResponseCode code, uint32_t nonce, bool endpoint)
+		SSU2RelayResponseCode code, uint32_t nonce, bool endpoint, uint64_t token)
 	{
 		buf[0] = eSSU2BlkRelayResponse;
 		buf[3] = 0; // flag
@@ -1981,6 +1986,11 @@ namespace transport
 		s.Insert (buf + 5, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
 		s.Sign (i2p::context.GetPrivateKeys (), buf + 15 + csz);
 		size_t payloadSize = 12 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
+		if (!code)
+		{
+			memcpy (buf + payloadSize, &token, 8);
+			payloadSize += 8;
+		}	
 		htobe16buf (buf + 1, payloadSize); // size
 		return payloadSize + 3;
 	}
