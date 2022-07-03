@@ -719,13 +719,13 @@ namespace transport
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
-		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now
 		m_Address = ri->GetSSU2AddressWithStaticKey (S, m_RemoteEndpoint.address ().is_v6 ());
 		if (!m_Address)
 		{
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
 			return false;
 		}
+		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now
 		m_RemoteTransports = ri->GetCompatibleTransports (false);
 		i2p::data::netdb.PostI2NPMsg (CreateDatabaseStoreMsg (ri)); // TODO: should insert ri
 		// handle other blocks
@@ -1177,7 +1177,11 @@ namespace transport
 				{
 					boost::asio::ip::udp::endpoint ep;
 					if (ExtractEndpoint (buf + offset, size, ep))
+					{		
 						LogPrint (eLogInfo, "SSU2: Our external address is ", ep);
+						if (!i2p::util::net::IsInReservedRange (ep.address ()))
+							i2p::context.UpdateAddress (ep.address ());
+					}	
 					break;
 				}
 				case eSSU2BlkIntroKey:
