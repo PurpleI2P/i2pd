@@ -1691,6 +1691,13 @@ namespace transport
 										it->second.first->m_State = eSSU2SessionStatePeerTest;
 										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
 									}
+									else
+									{
+										if (m_Address->IsV4 () && i2p::context.GetStatus () == eRouterStatusTesting)
+											i2p::context.SetStatusSSU2 (eRouterStatusFirewalled);
+										if (m_Address->IsV6 () && i2p::context.GetStatusV6 () == eRouterStatusTesting)
+											i2p::context.SetStatusV6SSU2 (eRouterStatusFirewalled);
+									}	
 								}
 								else
 								{
@@ -1737,6 +1744,10 @@ namespace transport
 			break;
 			case 7: // Alice from Charlie 2
 				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
+				if (m_Address->IsV6 ())
+					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
+				else
+					i2p::context.SetStatusSSU2 (eRouterStatusOK);
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);

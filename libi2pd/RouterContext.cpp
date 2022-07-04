@@ -225,6 +225,13 @@ namespace i2p
 		fk.write ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
 	}
 
+	bool RouterContext::IsSSU2Only () const
+	{
+		auto transports = m_RouterInfo.GetCompatibleTransports (false);
+		return (transports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)) &&
+			(transports & ~(i2p::data::RouterInfo::eSSUV4 | i2p::data::RouterInfo::eSSUV6));
+	}	
+		
 	void RouterContext::SetStatus (RouterStatus status)
 	{
 		if (status != m_Status)
@@ -245,6 +252,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::SetStatusSSU2 (RouterStatus status)
+	{
+		if (IsSSU2Only ())
+			SetStatus (status);
+	}	
+		
 	void RouterContext::SetStatusV6 (RouterStatus status)
 	{
 		if (status != m_StatusV6)
@@ -264,6 +277,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::SetStatusV6SSU2 (RouterStatus status)
+	{
+		if (IsSSU2Only ())
+			SetStatusV6 (status);
+	}	
+		
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
@@ -568,7 +587,8 @@ namespace i2p
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu && !addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+			if (addr->ssu && (!addr->IsSSU2 () || IsSSU2Only ()) && 
+			    ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->published = false;
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
@@ -598,9 +618,13 @@ namespace i2p
 		}
 		uint16_t port = 0;
 		// delete previous introducers
+		bool isSSU2Published = IsSSU2Only (); // TODO
+		if (isSSU2Published)
+			i2p::config::GetOption ("ssu2.published", isSSU2Published);	
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu && !addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+			if (addr->ssu && (!addr->IsSSU2 () || isSSU2Published) && 
+			    ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->published = true;
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;

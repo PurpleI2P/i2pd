@@ -103,10 +103,12 @@ namespace garlic
 			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
+			void SetStatusSSU2 (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
 			RouterStatus GetStatusV6 () const { return m_StatusV6; };
 			void SetStatusV6 (RouterStatus status);
+			void SetStatusV6SSU2 (RouterStatus status);
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
@@ -173,6 +175,7 @@ namespace garlic
 			void UpdateRouterInfo ();
 			void NewNTCP2Keys ();
 			void NewSSU2Keys ();
+			bool IsSSU2Only () const; // SSU2 and no SSU
 			bool Load ();
 			void SaveKeys ();
 
