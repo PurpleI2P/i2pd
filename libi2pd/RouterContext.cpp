@@ -629,7 +629,8 @@ namespace i2p
 				addr->published = true;
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
-				port = addr->port;
+				if (!addr->IsSSU2 ())
+					port = addr->port;
 			}
 		// publish NTCP2
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
