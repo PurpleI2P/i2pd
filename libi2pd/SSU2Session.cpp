@@ -1119,11 +1119,11 @@ namespace transport
 				break;
 				case eSSU2BlkRouterInfo:
 				{
-					// not from SessionConfirmed
+					// not from SessionConfirmed, we must add it instantly to use in next block
 					LogPrint (eLogDebug, "SSU2: RouterInfo");
 					auto ri = ExtractRouterInfo (buf + offset, size);
 					if (ri)
-						i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, ri->GetBuffer (), ri->GetBufferLen ())); // TODO: should insert ri
+						i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri 
 					break;
 				}
 				case eSSU2BlkI2NPMessage:
