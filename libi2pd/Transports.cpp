@@ -630,7 +630,7 @@ namespace transport
 
 	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
-		if (RoutesRestricted() || !m_SSUServer) return;
+		if (RoutesRestricted() || (!m_SSUServer && !m_SSU2Server)) return;
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
