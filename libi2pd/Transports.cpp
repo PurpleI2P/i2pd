@@ -667,7 +667,10 @@ namespace transport
 				excluded.insert (i2p::context.GetIdentHash ());
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 				if (router)
+				{
+					i2p::context.SetStatusSSU2 (eRouterStatusTesting);
 					m_SSU2Server->StartPeerTest (router, true);
+				}	
 			}	
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
@@ -707,7 +710,10 @@ namespace transport
 				excluded.insert (i2p::context.GetIdentHash ());
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 				if (router)
+				{
+					i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
 					m_SSU2Server->StartPeerTest (router, false);
+				}	
 			}	
 		}
 	}
