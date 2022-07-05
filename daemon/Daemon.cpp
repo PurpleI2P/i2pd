@@ -257,6 +257,12 @@ namespace util
 			if (published)
 			{
 				uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
+				if (!ssu2port)
+				{
+					ssu2port = port;
+					bool ssu; i2p::config::GetOption("ssu", ssu);
+					if (ssu) ssu2port++;
+				}	
 				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
 			}
 			else
