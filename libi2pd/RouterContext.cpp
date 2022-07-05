@@ -229,7 +229,7 @@ namespace i2p
 	{
 		auto transports = m_RouterInfo.GetCompatibleTransports (false);
 		return (transports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)) &&
-			(transports & ~(i2p::data::RouterInfo::eSSUV4 | i2p::data::RouterInfo::eSSUV6));
+			!(transports & (i2p::data::RouterInfo::eSSUV4 | i2p::data::RouterInfo::eSSUV6));
 	}	
 		
 	void RouterContext::SetStatus (RouterStatus status)
