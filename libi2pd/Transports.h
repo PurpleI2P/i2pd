@@ -93,6 +93,7 @@ namespace transport
 			void Stop ();
 
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
+			bool IsBoundSSU2() const { return m_SSU2Server != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
 			bool IsOnline() const { return m_IsOnline; };

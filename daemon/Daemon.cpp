@@ -410,7 +410,7 @@ namespace util
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
 		i2p::transport::transports.Start(ntcp2, ssu, ssu2);
-		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
+		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundSSU2() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{
