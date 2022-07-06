@@ -9,7 +9,6 @@
 #include <string.h>
 #include <openssl/rand.h>
 #include "Log.h"
-#include "RouterContext.h"
 #include "Transports.h"
 #include "Gzip.h"
 #include "NetDb.hpp"
@@ -1693,10 +1692,8 @@ namespace transport
 									}
 									else
 									{
-										if (m_Address->IsV4 () && i2p::context.GetStatus () == eRouterStatusTesting)
-											i2p::context.SetStatusSSU2 (eRouterStatusFirewalled);
-										if (m_Address->IsV6 () && i2p::context.GetStatusV6 () == eRouterStatusTesting)
-											i2p::context.SetStatusV6SSU2 (eRouterStatusFirewalled);
+										if (GetRouterStatus () == eRouterStatusTesting)
+											SetRouterStatus (eRouterStatusFirewalled);
 									}	
 								}
 								else
@@ -1715,6 +1712,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1]);
+						SetRouterStatus (eRouterStatusUnknown);
 						it->second.first->Terminate ();
 					}	
 					m_PeerTests.erase (it);
@@ -1731,6 +1729,7 @@ namespace transport
 					else
 						// we received msg 5 before msg 4
 						m_State = eSSU2SessionStatePeerTestReceived;
+					SetRouterStatus (eRouterStatusOK);
 				}	
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
@@ -1746,8 +1745,6 @@ namespace transport
 				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
 				if (m_Address->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
-				else
-					i2p::context.SetStatusSSU2 (eRouterStatusOK);
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
@@ -1807,6 +1804,29 @@ namespace transport
 		if (m_Address)
 			return i2p::context.GetRouterInfo ().GetSSU2Address (m_Address->IsV4 ());
 		return nullptr;
+	}	
+
+	RouterStatus SSU2Session::GetRouterStatus () const
+	{
+		if (m_Address)
+		{
+			if (m_Address->IsV4 ()) 
+				return i2p::context.GetStatus ();
+			if (m_Address->IsV6 ()) 
+				return i2p::context.GetStatusV6 ();
+		}	
+		return eRouterStatusUnknown;
+	}	
+		
+	void SSU2Session::SetRouterStatus (RouterStatus status) const
+	{
+		if (m_Address)
+		{	
+			if (m_Address->IsV4 ())
+				i2p::context.SetStatusSSU2 (status);
+			else if (m_Address->IsV6 ())
+				i2p::context.SetStatusV6SSU2 (status);
+		}	
 	}	
 		
 	size_t SSU2Session::CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep)

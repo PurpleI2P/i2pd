@@ -17,6 +17,7 @@
 #include <boost/asio.hpp>
 #include "Crypto.h"
 #include "RouterInfo.h"
+#include "RouterContext.h"
 #include "TransportSession.h"
 
 namespace i2p
@@ -238,6 +239,8 @@ namespace transport
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
+			RouterStatus GetRouterStatus () const;
+			void SetRouterStatus (RouterStatus status) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
