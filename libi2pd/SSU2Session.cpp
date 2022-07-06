@@ -1712,8 +1712,10 @@ namespace transport
 					}
 					else
 					{
-						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1]);
-						SetRouterStatus (eRouterStatusUnknown);
+						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1], " from ",
+							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
+						if (GetRouterStatus () == eRouterStatusTesting)
+							SetRouterStatus (eRouterStatusUnknown);
 						it->second.first->Terminate ();
 					}	
 					m_PeerTests.erase (it);

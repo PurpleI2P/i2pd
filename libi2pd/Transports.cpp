@@ -665,11 +665,16 @@ namespace transport
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
-				if (router)
-				{
-					i2p::context.SetStatusSSU2 (eRouterStatusTesting);
-					m_SSU2Server->StartPeerTest (router, true);
+				for (int i = 0; i < 3; i++)
+				{	
+					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
+					if (router)
+					{
+						if (i2p::context.GetStatus () != eRouterStatusTesting)
+							i2p::context.SetStatusSSU2 (eRouterStatusTesting);
+						m_SSU2Server->StartPeerTest (router, true);
+						excluded.insert (router->GetIdentHash ());
+					}	
 				}	
 			}	
 		}
@@ -708,11 +713,16 @@ namespace transport
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
-				if (router)
-				{
-					i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
-					m_SSU2Server->StartPeerTest (router, false);
+				for (int i = 0; i < 3; i++)
+				{	
+					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
+					if (router)
+					{
+						if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
+							i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
+						m_SSU2Server->StartPeerTest (router, false);
+					}
+					excluded.insert (router->GetIdentHash ());
 				}	
 			}	
 		}

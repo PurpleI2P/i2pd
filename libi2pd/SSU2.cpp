@@ -463,6 +463,7 @@ namespace transport
 			bool isValidEndpoint = !address->host.is_unspecified () && address->port;
 			if (isValidEndpoint)
 			{	
+				if (i2p::util::net::IsInReservedRange(address->host)) return false;
 				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 				if (s)
 				{	
