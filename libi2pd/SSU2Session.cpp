@@ -1687,6 +1687,7 @@ namespace transport
 									if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
 									{
 										// msg 5 already received. send msg 6 
+										SetRouterStatus (eRouterStatusOK);
 										it->second.first->m_State = eSSU2SessionStatePeerTest;
 										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
 									}
@@ -1725,11 +1726,13 @@ namespace transport
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
 				{
 					if (m_Address)
+					{	
+						SetRouterStatus (eRouterStatusOK);
 						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
+					}	
 					else
 						// we received msg 5 before msg 4
 						m_State = eSSU2SessionStatePeerTestReceived;
-					SetRouterStatus (eRouterStatusOK);
 				}	
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
