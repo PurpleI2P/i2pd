@@ -1596,7 +1596,7 @@ namespace transport
 							{	
 								boost::asio::ip::udp::endpoint ep;
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
-								if (ExtractEndpoint (buf + offset + 9, len - offset - 9, ep))
+								if (ExtractEndpoint (buf + offset + 10, asz, ep))
 									addr = r->GetSSU2Address (ep.address ().is_v4 ());
 								if (addr && m_Server.IsSupported (ep.address ()))
 								{	
