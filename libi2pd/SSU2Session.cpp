@@ -1089,7 +1089,7 @@ namespace transport
 		}
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_NumReceivedBytes += len;
-		if (UpdateReceivePacketNum (packetNum))
+		if (!packetNum || UpdateReceivePacketNum (packetNum))
 			HandlePayload (payload, payloadSize);
 	}
 
