@@ -86,6 +86,7 @@ namespace transport
 		eSSU2SessionStateSessionCreatedSent,
 		eSSU2SessionStateSessionConfirmedSent,
 		eSSU2SessionStateEstablished,
+		eSSU2SessionStateClosing,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
@@ -188,7 +189,7 @@ namespace transport
 			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
 			void Terminate ();
-			void TerminateByTimeout ();
+			void RequestTermination ();
 			void CleanUp (uint64_t ts);
 			void FlushData ();
 			void Done () override;

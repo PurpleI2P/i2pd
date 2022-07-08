@@ -239,6 +239,8 @@ namespace transport
 			auto ident = it->second->GetRemoteIdentity ();
 			if (ident)
 				m_SessionsByRouterHash.erase (ident->GetIdentHash ());
+			if (m_LastSession == it->second)
+				m_LastSession = nullptr;
 			m_Sessions.erase (it);
 		}
 	}
@@ -385,6 +387,9 @@ namespace transport
 					m_LastSession->SetRemoteEndpoint (senderEndpoint);
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
+				case eSSU2SessionStateClosing:
+					m_LastSession->RequestTermination (); // send termination again
+				break;	
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;
 				break;	
@@ -617,22 +622,20 @@ namespace transport
 					it++;
 			}
 
-			for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
+			for (auto it: m_Sessions)
 			{
-				if (it->second->GetState () == eSSU2SessionStateTerminated ||
-					it->second->IsTerminationTimeoutExpired (ts))
+				auto state = it.second->GetState ();
+				if (state == eSSU2SessionStateTerminated || state == eSSU2SessionStateClosing)
+					GetService ().post (std::bind (&SSU2Session::Terminate, it.second));
+				else if (it.second->IsTerminationTimeoutExpired (ts))
 				{
-					if (it->second->IsEstablished ())
-						it->second->TerminateByTimeout ();
-					if (it->second == m_LastSession)
-						m_LastSession = nullptr;
-					it = m_Sessions.erase (it);
+					if (it.second->IsEstablished ())
+						it.second->RequestTermination ();
+					else
+						GetService ().post (std::bind (&SSU2Session::Terminate, it.second));
 				}
 				else
-				{
-					it->second->CleanUp (ts);
-					it++;
-				}
+					it.second->CleanUp (ts);
 			}
 
 			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )

@@ -168,12 +168,15 @@ namespace transport
 		}
 	}
 
-	void SSU2Session::TerminateByTimeout ()
+	void SSU2Session::RequestTermination ()
 	{
-		SendTermination ();
-		m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, shared_from_this ()));
-	}
-
+		if (m_State == eSSU2SessionStateEstablished || m_State == eSSU2SessionStateClosing)
+		{
+			m_State = eSSU2SessionStateClosing;
+			SendTermination ();
+		}	
+	}	
+		
 	void SSU2Session::Established ()
 	{
 		m_State = eSSU2SessionStateEstablished;
