@@ -406,6 +406,13 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, ts);
 		size_t payloadSize = 7;
+		if (GetRouterStatus () == eRouterStatusFirewalled)
+		{
+			// relay tag request
+			payload[payloadSize] = eSSU2BlkRelayTagRequest;
+			memset (payload + payloadSize + 1, 0, 2); // size = 0
+			payloadSize += 3;
+		}	
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// KDF for session request
 		m_NoiseState->MixHash ({ {header.buf, 16}, {headerX, 16} }); // h = SHA256(h || header)
