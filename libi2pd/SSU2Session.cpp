@@ -25,7 +25,7 @@ namespace transport
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
 		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0), 
-		m_ConnectTimer (server.GetService ())
+		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -168,11 +168,12 @@ namespace transport
 		}
 	}
 
-	void SSU2Session::RequestTermination ()
+	void SSU2Session::RequestTermination (SSU2TerminationReason reason)
 	{
 		if (m_State == eSSU2SessionStateEstablished || m_State == eSSU2SessionStateClosing)
 		{
 			m_State = eSSU2SessionStateClosing;
+			m_TerminationReason = reason;
 			SendTermination ();
 		}	
 	}	
@@ -329,7 +330,7 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Packet was not Acked after ", it->second->numResends, " attempts. Terminate session");
 					m_SentPackets.clear ();
 					m_SendQueue.clear ();
-					RequestTermination ();
+					RequestTermination (eSSU2TerminationReasonTimeout);
 					return;
 				}	
 				else
@@ -2097,6 +2098,15 @@ namespace transport
 		return CreatePeerTestBlock (buf, len, 1, eSSU2PeerTestCodeAccept, nullptr, 
 			signedData, 10 + asz + i2p::context.GetIdentity ()->GetSignatureLen ());
 	}	
+
+	size_t SSU2Session::CreateTerminationBlock (uint8_t * buf, size_t len)
+	{   
+		buf[0] = eSSU2BlkTermination;
+		htobe16buf (buf + 1, 9);
+		htobe64buf (buf + 3, m_ReceivePacketNum);
+		buf[11] = (uint8_t)m_TerminationReason;
+		return 12;
+	}
 		
 	std::shared_ptr<const i2p::data::RouterInfo> SSU2Session::ExtractRouterInfo (const uint8_t * buf, size_t size)
 	{
@@ -2157,10 +2167,7 @@ namespace transport
 	void SSU2Session::SendTermination ()
 	{
 		uint8_t payload[32];
-		size_t payloadSize = 12;
-		payload[0] = eSSU2BlkTermination;
-		htobe16buf (payload + 1, 9);
-		memset (payload + 3, 0, 9);
+		size_t payloadSize = CreateTerminationBlock (payload, 32);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 32 - payloadSize);
 		SendData (payload, payloadSize);
 	}

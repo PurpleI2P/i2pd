@@ -25,7 +25,7 @@ namespace transport
 	{
 		struct Packet
 		{
-			uint8_t buf[SSU2_MTU];
+			uint8_t buf[SSU2_MAX_PACKET_SIZE];
 			size_t len;
 			boost::asio::ip::udp::endpoint from;
 		};

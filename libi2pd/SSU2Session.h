@@ -31,6 +31,7 @@ namespace transport
 	const int SSU2_TOKEN_EXPIRATION_THRESHOLD = 2; // in seconds
 	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
+	const size_t SSU2_MAX_PACKET_SIZE = 1500;
 	const size_t SSU2_MTU = 1440; // TODO: should be 1456 for ipv4
 	const size_t SSU2_MAX_PAYLOAD_SIZE = SSU2_MTU - 32;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
@@ -119,6 +120,32 @@ namespace transport
 		eSSU2RelayResponseCodeCharlieSignatureFailure = 67,
 		eSSU2RelayResponseCodeCharlieAliceIsUnknown = 70
 	};	
+
+	enum SSU2TerminationReason
+	{
+		eSSU2TerminationReasonNormalClose = 0,
+		eSSU2TerminationReasonTerminationReceived = 1,
+		eSSU2TerminationReasonIdleTimeout = 2,
+		eSSU2TerminationReasonRouterShutdown = 3,
+		eSSU2TerminationReasonDataPhaseAEADFailure= 4,
+		eSSU2TerminationReasonIncompatibleOptions = 5,
+		eSSU2TerminationReasonTncompatibleSignatureType = 6,
+		eSSU2TerminationReasonClockSkew = 7,
+		eSSU2TerminationPaddingViolation = 8,
+		eSSU2TerminationReasonAEADFramingError = 9,
+		eSSU2TerminationReasonPayloadFormatError = 10,
+		eSSU2TerminationReasonSessionRequestError = 11,
+		eSSU2TerminationReasonSessionCreatedError = 12,
+		eSSU2TerminationReasonSessionConfirmedError = 13,
+		eSSU2TerminationReasonTimeout = 14,
+		eSSU2TerminationReasonRouterInfoSignatureVerificationFail = 15,
+		eSSU2TerminationReasonInvalidS = 16,
+		eSSU2TerminationReasonBanned = 17,
+		eSSU2TerminationReasonBadToken = 18,
+		eSSU2TerminationReasonConnectionLimits = 19,
+		eSSU2TerminationReasonIncompatibleVersion = 20,
+		eSSU2TerminationReasonWrongNetID = 21
+	};	
 	
 	struct SSU2IncompleteMessage
 	{
@@ -189,7 +216,7 @@ namespace transport
 			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
 			void Terminate ();
-			void RequestTermination ();
+			void RequestTermination (SSU2TerminationReason reason);
 			void CleanUp (uint64_t ts);
 			void FlushData ();
 			void Done () override;
@@ -264,6 +291,7 @@ namespace transport
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, bool endpoint, uint64_t token); // add endpoint for Chralie and no endpoint for Bob
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
+			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
 
 		private:
 
@@ -291,6 +319,7 @@ namespace transport
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
 			boost::asio::deadline_timer m_ConnectTimer;
+			SSU2TerminationReason m_TerminationReason;
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

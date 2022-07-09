@@ -148,7 +148,7 @@ namespace transport
 	void SSU2Server::Receive (boost::asio::ip::udp::socket& socket)
 	{
 		Packet * packet = m_PacketsPool.AcquireMt ();
-		socket.async_receive_from (boost::asio::buffer (packet->buf, SSU2_MTU), packet->from,
+		socket.async_receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from,
 			std::bind (&SSU2Server::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet, std::ref (socket)));
 	}
 
@@ -388,7 +388,7 @@ namespace transport
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
 				case eSSU2SessionStateClosing:
-					m_LastSession->RequestTermination (); // send termination again
+					m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;	
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;
@@ -630,7 +630,7 @@ namespace transport
 				else if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					if (it.second->IsEstablished ())
-						it.second->RequestTermination ();
+						it.second->RequestTermination (eSSU2TerminationReasonIdleTimeout);
 					else
 						GetService ().post (std::bind (&SSU2Session::Terminate, it.second));
 				}
