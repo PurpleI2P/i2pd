@@ -325,7 +325,13 @@ namespace transport
 			if (ts >= it->second->nextResendTime)
 			{
 				if (it->second->numResends > SSU2_MAX_NUM_RESENDS)
-					it = m_SentPackets.erase (it);
+				{
+					LogPrint (eLogInfo, "SSU2: Packet was not Acked after ", it->second->numResends, " attempts. Terminate session");
+					m_SentPackets.clear ();
+					m_SendQueue.clear ();
+					RequestTermination ();
+					return;
+				}	
 				else
 				{
 					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize);
