@@ -1917,22 +1917,38 @@ namespace transport
 				uint32_t lastNum = ackThrough - acnt;
 				while (it != m_OutOfSequencePackets.rend () && numRanges < SSU2_MAX_NUM_ACK_RANGES)
 				{
-					if (lastNum - (*it) < 255)
-					{
-						buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
-						lastNum = *it; it++;
-						uint8_t numAcks = 1;
-						while (it != m_OutOfSequencePackets.rend () && numAcks < 255 && lastNum > 0 && *it == lastNum - 1)
+					if (lastNum - (*it) > 255)
+					{	
+						// NACKs only ranges
+						if (lastNum > (*it) + 255*(SSU2_MAX_NUM_ACK_RANGES - numRanges)) break; // too many NACKs 
+						while (lastNum - (*it) > 255)
 						{
-							numAcks++; lastNum--;
-							it++;
+							buf[8 + numRanges*2] = 255; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
+							lastNum -= 255;
+							numRanges++;
 						}
-						buf[8 + numRanges*2 + 1] = numAcks; // Acks
-						numRanges++;
-						if (numAcks == 255) break;
+					}	
+					// NACKs and Acks ranges
+					buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
+					lastNum = *it; it++;
+					int numAcks = 1;
+					while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
+					{
+						numAcks++; lastNum--;
+						it++;
 					}
-					else
-						break;
+					while (numAcks > 255)
+					{
+						// Acks only ranges
+						buf[8 + numRanges*2 + 1] = 255; // Acks 255
+						numAcks -= 255;
+						numRanges++;
+						buf[8 + numRanges*2] = 0;  // NACKs 0
+						if (numRanges >= SSU2_MAX_NUM_ACK_RANGES) break;
+					}	
+					if (numAcks > 255) numAcks = 255;
+					buf[8 + numRanges*2 + 1] = (uint8_t)numAcks; // Acks
+					numRanges++;		
 				}
 				if (numRanges < SSU2_MAX_NUM_ACK_RANGES && it == m_OutOfSequencePackets.rend ())
 				{
