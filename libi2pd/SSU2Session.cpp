@@ -150,6 +150,16 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, SSU2_MAX_PAYLOAD_SIZE - payloadSize);
 		SendData (payload, payloadSize);
 	}	
+
+	void SSU2Session::SendKeepAlive ()
+	{
+		if (IsEstablished ())
+		{	
+			uint8_t payload[20];
+			size_t payloadSize = CreatePaddingBlock (payload, 20, 5);
+			SendData (payload, payloadSize);
+		}	
+	}	
 		
 	void SSU2Session::Terminate ()
 	{
@@ -416,7 +426,7 @@ namespace transport
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, ts);
 		size_t payloadSize = 7;
-		if (GetRouterStatus () == eRouterStatusFirewalled)
+		if (GetRouterStatus () == eRouterStatusFirewalled && m_Address->IsIntroducer ())
 		{
 			// relay tag request
 			payload[payloadSize] = eSSU2BlkRelayTagRequest;

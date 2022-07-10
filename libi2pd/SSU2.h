@@ -20,6 +20,9 @@ namespace transport
 	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
+	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
+	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
+	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 		
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
@@ -97,7 +100,10 @@ namespace transport
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
-
+			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers, 
+				bool v4, const std::set<i2p::data::IdentHash>& excluded) const;
+			void UpdateIntroducers (bool v4);
+		
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -108,10 +114,11 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
 			std::map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
+			std::list<std::shared_ptr<SSU2Session> > m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer;
 			std::shared_ptr<SSU2Session> m_LastSession;
-
+			
 		public:
 
 			// for HTTP/I2PControl

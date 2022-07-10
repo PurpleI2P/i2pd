@@ -215,6 +215,7 @@ namespace transport
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
 			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
+			void SendKeepAlive ();
 			void Terminate ();
 			void RequestTermination (SSU2TerminationReason reason);
 			void CleanUp (uint64_t ts);

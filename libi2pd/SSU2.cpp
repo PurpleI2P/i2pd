@@ -84,11 +84,17 @@ namespace transport
 	void SSU2Server::Stop ()
 	{
 		for (auto& it: m_Sessions)
+		{	
+			it.second->RequestTermination (eSSU2TerminationReasonRouterShutdown);
 			it.second->Done ();
+		}	
 		m_Sessions.clear ();
 		m_SessionsByRouterHash.clear ();
 		m_PendingOutgoingSessions.clear ();
-
+		m_Relays.clear ();
+		m_Introducers.clear ();
+		m_IntroducersV6.clear ();
+		
 		if (context.SupportsV4 () || context.SupportsV6 ())
 			m_ReceiveService.Stop ();
 
@@ -714,6 +720,59 @@ namespace transport
 		auto ret = std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT); 
 		m_IncomingTokens.emplace (ep, ret);
 		return ret;
+	}	
+
+	std::list<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers, 
+		bool v4, const std::set<i2p::data::IdentHash>& excluded) const
+	{
+		std::list<std::shared_ptr<SSU2Session> > ret;
+		for (const auto& s : m_Sessions)
+		{
+			if (s.second->IsEstablished () && (s.second->GetRelayTag () && !s.second->IsOutgoing ()) &&	
+			    !excluded.count (s.second->GetRemoteIdentity ()->GetIdentHash ()) &&
+			    ((v4 && (s.second->GetRemoteTransports () | i2p::data::RouterInfo::eSSU2V4)) || 
+			     (!v4 && (s.second->GetRemoteTransports () | i2p::data::RouterInfo::eSSU2V6))))
+				ret.push_back (s.second);
+		}	
+		if ((int)ret.size () > maxNumIntroducers)
+		{
+			// shink ret randomly
+			int sz = ret.size () - maxNumIntroducers;
+			for (int i = 0; i < sz; i++)
+			{
+				auto ind = rand () % ret.size ();
+				auto it = ret.begin ();
+				std::advance (it, ind);
+				ret.erase (it);
+			}
+		}
+		return ret;
+	}	
+
+	void SSU2Server::UpdateIntroducers (bool v4)
+	{
+		std::list<std::shared_ptr<SSU2Session>> newList;
+		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
+		for (const auto& it : introducers)
+		{
+			if (it->IsEstablished ())
+			{
+				it->SendKeepAlive ();
+				newList.push_back (it);
+			}	
+		}	
+		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
+		{
+			std::set<i2p::data::IdentHash> excluded;
+			for (auto& it1: newList)
+				excluded.insert (it1->GetRemoteIdentity ()->GetIdentHash ());
+			auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
+			for (const auto& it : sessions)
+			{
+				newList.push_back (it);
+			}	
+		}	
+		introducers = newList;
 	}	
 }
 }
