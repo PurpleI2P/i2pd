@@ -1174,7 +1174,7 @@ namespace transport
 					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkTermination:
-					LogPrint (eLogDebug, "SSU2: Termination");
+					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)buf[11]);
 					Terminate ();
 				break;
 				case eSSU2BlkRelayRequest:
@@ -2210,23 +2210,28 @@ namespace transport
 			else
 				++it;
 		}
-		if (m_OutOfSequencePackets.size () > 255)
-		{
-			m_ReceivePacketNum = *m_OutOfSequencePackets.rbegin ();
-			m_OutOfSequencePackets.clear ();
-		}
-		else if (m_OutOfSequencePackets.size () > SSU2_MAX_NUM_ACK_RANGES)
-		{
-			uint32_t packet = *m_OutOfSequencePackets.begin ();
-			if (packet > m_ReceivePacketNum + 1)
+		if (!m_OutOfSequencePackets.empty ())
+		{	
+			if (m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES || 
+			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8)
 			{
-				// like we've just received all packets before first
-				packet--;
-				m_ReceivePacketNum = packet - 1;
-				UpdateReceivePacketNum (packet);
-			}	
-			else
-				LogPrint (eLogError, "SSU2: Out of sequence packet ", packet, " is less than last received ",  m_ReceivePacketNum);
+				uint32_t packet = *m_OutOfSequencePackets.begin ();
+				if (packet > m_ReceivePacketNum + 1)
+				{
+					// like we've just received all packets before first
+					packet--;
+					m_ReceivePacketNum = packet - 1;
+					UpdateReceivePacketNum (packet);
+				}	
+				else
+					LogPrint (eLogError, "SSU2: Out of sequence packet ", packet, " is less than last received ",  m_ReceivePacketNum);
+			}
+			if (m_OutOfSequencePackets.size () > 255*4)
+			{
+				// seems we have a serious network issue
+				m_ReceivePacketNum = *m_OutOfSequencePackets.rbegin ();
+				m_OutOfSequencePackets.clear ();
+			}
 		}	
 		         
 		for (auto it = m_RelaySessions.begin (); it != m_RelaySessions.end ();)
