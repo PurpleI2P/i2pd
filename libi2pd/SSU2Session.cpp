@@ -668,7 +668,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
 		if (header.h.type != eSSU2SessionConfirmed)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2SessionConfirmed);
 			return false;
 		}
 		// check if fragmented
@@ -886,7 +886,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (m_Address->i, buf + (len - 12));
 		if (header.h.type != eSSU2Retry)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2Retry);
 			return false;
 		}
 		uint8_t nonce[12] = {0};
@@ -962,7 +962,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
 		if (header.h.type != eSSU2HolePunch)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2HolePunch);
 			return false;
 		}
 		uint8_t nonce[12] = {0};
@@ -1044,7 +1044,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
 		if (header.h.type != eSSU2PeerTest)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
 			return false;
 		}
 		uint8_t nonce[12] = {0};
@@ -1100,7 +1100,8 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataReceive + 32, buf + (len - 12));
 		if (header.h.type != eSSU2Data)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type);
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2Data);
+			SendQuickAck (); // in case it was SessionConfirmed
 			return;
 		}
 		uint8_t payload[SSU2_MTU];
