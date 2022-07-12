@@ -1885,6 +1885,7 @@ namespace transport
 		else
 		{
 			i2p::data::GzipDeflator deflator;
+			deflator.SetCompressionLevel (9);
 			size = deflator.Deflate (r->GetBuffer (), r->GetBufferLen (), buf + 5, len - 5);
 			if (!size) return 0; // doesn't fit
 			buf[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
