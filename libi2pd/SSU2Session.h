@@ -302,8 +302,8 @@ namespace transport
 			SSU2Server& m_Server;
 			std::shared_ptr<i2p::crypto::X25519Keys> m_EphemeralKeys;
 			std::unique_ptr<i2p::crypto::NoiseSymmetricState> m_NoiseState;
-			std::unique_ptr<HandshakePacket> m_SessionConfirmedFragment1; // for Bob if applicable
-			std::unique_ptr<HandshakePacket> m_SentHandshakePacket; // SessionRequest or SessionCreated
+			std::unique_ptr<HandshakePacket> m_SessionConfirmedFragment; // for Bob if applicable or second fragment for Alice
+			std::unique_ptr<HandshakePacket> m_SentHandshakePacket; // SessionRequest, SessionCreated or SessionConfirmed
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			i2p::data::RouterInfo::CompatibleTransports m_RemoteTransports; // for peer tests

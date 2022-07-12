@@ -193,7 +193,7 @@ namespace transport
 		m_State = eSSU2SessionStateEstablished;
 		m_EphemeralKeys = nullptr;
 		m_NoiseState.reset (nullptr);
-		m_SessionConfirmedFragment1.reset (nullptr);
+		m_SessionConfirmedFragment.reset (nullptr);
 		m_SentHandshakePacket.reset (nullptr);
 		m_ConnectTimer.cancel ();
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
@@ -326,6 +326,10 @@ namespace transport
 			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
 				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
 			m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+			if (m_SessionConfirmedFragment && m_State == eSSU2SessionStateSessionConfirmedSent)
+				// resend second fragment of SessionConfirmed
+				m_Server.Send (m_SessionConfirmedFragment->header.buf, 16, 
+					m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize, m_RemoteEndpoint);
 			return;
 		}	
 		// resend data packets
@@ -623,10 +627,17 @@ namespace transport
 		memset (header.h.flags, 0, 3);
 		header.h.flags[0] = 1; // frag, total fragments always 1
 		// payload
-		const size_t maxPayloadSize = SSU2_MAX_PAYLOAD_SIZE - 48; // part 2
+		size_t maxPayloadSize = SSU2_MAX_PAYLOAD_SIZE - 64; // part 2
 		uint8_t * payload = m_SentHandshakePacket->payload;
 		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
-		// TODO: check is RouterInfo doesn't fit and split by two fragments
+		if (!payloadSize)
+		{
+			// split by two fragments
+			maxPayloadSize += SSU2_MAX_PAYLOAD_SIZE;
+			payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+			header.h.flags[0] = 0x02; // frag 0, total fragments 2
+			// TODO: check if we need more fragments
+		}	
 		if (payloadSize < maxPayloadSize)
 			payloadSize += CreatePaddingBlock (payload + payloadSize, maxPayloadSize - payloadSize);
 		// KDF for Session Confirmed part 1
@@ -646,14 +657,42 @@ namespace transport
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || ciphertext);
+		m_SentHandshakePacket->payloadSize = payloadSize;
+		if (header.h.flags[0] > 1)
+		{
+			if (payloadSize > SSU2_MAX_PAYLOAD_SIZE - 64)
+			{
+				payloadSize = SSU2_MAX_PAYLOAD_SIZE - 64 - (rand () % 16);
+				if (m_SentHandshakePacket->payloadSize - payloadSize < 24)
+					payloadSize -= 24;
+			}	
+			else
+				header.h.flags[0] = 1;
+		}	
 		// Encrypt header
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
 		header.ll[1] ^= CreateHeaderMask (kh2, payload + (payloadSize - 12));
 		m_State = eSSU2SessionStateSessionConfirmedSent;
-		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		m_Server.Send (header.buf, 16, part1, 48, payload, payloadSize, m_RemoteEndpoint);
 		m_SendPacketNum++;
+		if (m_SentHandshakePacket->payloadSize > payloadSize)
+		{
+			// send second fragment
+			m_SessionConfirmedFragment.reset (new HandshakePacket);
+			Header& header = m_SessionConfirmedFragment->header;
+			header.h.connID = m_DestConnID; // dest id
+			header.h.packetNum = 0;
+			header.h.type = eSSU2SessionConfirmed;
+			memset (header.h.flags, 0, 3);
+			header.h.flags[0] = 0x12; // frag 1, total fragments 2
+			m_SessionConfirmedFragment->payloadSize = m_SentHandshakePacket->payloadSize - payloadSize;
+			memcpy (m_SessionConfirmedFragment->payload, m_SentHandshakePacket->payload + payloadSize, m_SessionConfirmedFragment->payloadSize); 
+			m_SentHandshakePacket->payloadSize = payloadSize;
+			header.ll[0] ^= CreateHeaderMask (m_Address->i, m_SessionConfirmedFragment->payload + (m_SessionConfirmedFragment->payloadSize - 24));
+			header.ll[1] ^= CreateHeaderMask (kh2, m_SessionConfirmedFragment->payload + (m_SessionConfirmedFragment->payloadSize - 12));
+			m_Server.Send (header.buf, 16, m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize, m_RemoteEndpoint);
+		}	
 	}
 
 	bool SSU2Session::ProcessSessionConfirmed (uint8_t * buf, size_t len)
@@ -677,24 +716,24 @@ namespace transport
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
-				if (!m_SessionConfirmedFragment1)
+				if (!m_SessionConfirmedFragment)
 				{	
-					m_SessionConfirmedFragment1.reset (new HandshakePacket);
-					m_SessionConfirmedFragment1->header = header;
-					memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
-					m_SessionConfirmedFragment1->payloadSize = len - 16;
+					m_SessionConfirmedFragment.reset (new HandshakePacket);
+					m_SessionConfirmedFragment->header = header;
+					memcpy (m_SessionConfirmedFragment->payload, buf + 16, len - 16);
+					m_SessionConfirmedFragment->payloadSize = len - 16;
 				}	
 				return true; // wait for second fragment
 			}
 			else
 			{
 				// second fragment
-				if (!m_SessionConfirmedFragment1) return false; // out of sequence
-				header = m_SessionConfirmedFragment1->header;
-				memcpy (m_SessionConfirmedFragment1->payload + m_SessionConfirmedFragment1->payloadSize, buf + 16, len - 16);
-				m_SessionConfirmedFragment1->payloadSize += (len - 16);
-				buf = m_SessionConfirmedFragment1->payload - 16;
-				len = m_SessionConfirmedFragment1->payloadSize + 16;
+				if (!m_SessionConfirmedFragment) return false; // out of sequence
+				header = m_SessionConfirmedFragment->header;
+				memcpy (m_SessionConfirmedFragment->payload + m_SessionConfirmedFragment->payloadSize, buf + 16, len - 16);
+				m_SessionConfirmedFragment->payloadSize += (len - 16);
+				buf = m_SessionConfirmedFragment->payload - 16;
+				len = m_SessionConfirmedFragment->payloadSize + 16;
 			}
 		}
 		// KDF for Session Confirmed part 1
@@ -725,7 +764,6 @@ namespace transport
 			return false;
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
-		if (m_SessionConfirmedFragment1) m_SessionConfirmedFragment1.reset (nullptr);
 		// payload
 		// handle RouterInfo block that must be first
 		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
