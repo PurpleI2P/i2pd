@@ -374,7 +374,11 @@ namespace transport
 					m_LastSession->ProcessData (buf, len);
 				break;
 				case eSSU2SessionStateSessionCreatedSent:
-					m_LastSession->ProcessSessionConfirmed (buf, len);
+					if (!m_LastSession->ProcessSessionConfirmed (buf, len))
+					{
+						m_LastSession->Terminate ();
+						m_LastSession = nullptr;
+					}	
 				break;
 				case eSSU2SessionStateIntroduced:
 					if (m_LastSession->GetRemoteEndpoint ().address ().is_unspecified ())	

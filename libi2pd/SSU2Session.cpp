@@ -325,7 +325,6 @@ namespace transport
 			LogPrint (eLogDebug, "SSU2: Resending ", (int)m_State);
 			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
 				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
-			m_SentHandshakePacket->numResends++;
 			m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
 			return;
 		}	
@@ -678,22 +677,24 @@ namespace transport
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
-				m_SessionConfirmedFragment1.reset (new HandshakePacket);
-				m_SessionConfirmedFragment1->header = header;
-				memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
-				m_SessionConfirmedFragment1->payloadSize = len - 16;
+				if (!m_SessionConfirmedFragment1)
+				{	
+					m_SessionConfirmedFragment1.reset (new HandshakePacket);
+					m_SessionConfirmedFragment1->header = header;
+					memcpy (m_SessionConfirmedFragment1->payload, buf + 16, len - 16);
+					m_SessionConfirmedFragment1->payloadSize = len - 16;
+				}	
 				return true; // wait for second fragment
 			}
 			else
 			{
 				// second fragment
 				if (!m_SessionConfirmedFragment1) return false; // out of sequence
-				uint8_t fullMsg[2*SSU2_MTU];
 				header = m_SessionConfirmedFragment1->header;
-				memcpy (fullMsg + 16, m_SessionConfirmedFragment1->payload, m_SessionConfirmedFragment1->payloadSize);
-				memcpy (fullMsg + 16 + m_SessionConfirmedFragment1->payloadSize, buf + 16, len - 16);
-				buf = fullMsg;
-				len += m_SessionConfirmedFragment1->payloadSize;
+				memcpy (m_SessionConfirmedFragment1->payload + m_SessionConfirmedFragment1->payloadSize, buf + 16, len - 16);
+				m_SessionConfirmedFragment1->payloadSize += (len - 16);
+				buf = m_SessionConfirmedFragment1->payload - 16;
+				len = m_SessionConfirmedFragment1->payloadSize + 16;
 			}
 		}
 		// KDF for Session Confirmed part 1
@@ -724,6 +725,7 @@ namespace transport
 			return false;
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
+		if (m_SessionConfirmedFragment1) m_SessionConfirmedFragment1.reset (nullptr);
 		// payload
 		// handle RouterInfo block that must be first
 		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
