@@ -26,6 +26,7 @@ namespace transport
 {
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
+	const int SSU2_CLOCK_SKEW = 60; // in seconds
 	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // for Retry message, in seconds
 	const int SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT = 52*60; // for next token block, in seconds
 	const int SSU2_TOKEN_EXPIRATION_THRESHOLD = 2; // in seconds
@@ -84,6 +85,7 @@ namespace transport
 		eSSU2SessionStateUnknown,
 		eSSU2SessionStateTokenReceived,
 		eSSU2SessionStateSessionRequestSent,
+		eSSU2SessionStateSessionRequestReceived,
 		eSSU2SessionStateSessionCreatedSent,
 		eSSU2SessionStateSessionConfirmedSent,
 		eSSU2SessionStateEstablished,

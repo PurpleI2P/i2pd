@@ -497,6 +497,7 @@ namespace transport
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || encrypted payload from Session Request) for SessionCreated
 		// payload
+		m_State = eSSU2SessionStateSessionRequestReceived;
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 
 		m_Server.AddSession (shared_from_this ());
@@ -527,11 +528,12 @@ namespace transport
 		memset (headerX + 8, 0, 8); // token = 0
 		memcpy (headerX + 16, m_EphemeralKeys->GetPublicKey (), 32); // Y
 		// payload
+		const size_t maxPayloadSize = SSU2_MAX_PAYLOAD_SIZE - 48;
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, ts);
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (payload + payloadSize, 80 - payloadSize, m_RemoteEndpoint);
+		payloadSize += CreateAddressBlock (payload + payloadSize, maxPayloadSize - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
 		{
 			payload[payloadSize] = eSSU2BlkRelayTag;
@@ -548,7 +550,9 @@ namespace transport
 			memcpy (payload + payloadSize + 7, &token.first, 8); // token
 			payloadSize += 15;
 		}	
-		payloadSize += CreatePaddingBlock (payload + payloadSize, 80 - payloadSize);
+		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
+			payloadSize += CreateTerminationBlock (payload + payloadSize, maxPayloadSize - payloadSize);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, maxPayloadSize - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
 		m_NoiseState->MixHash (headerX + 16, 32); // h = SHA256(h || bepk);
@@ -567,6 +571,9 @@ namespace transport
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
+		// terminate if errors
+		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
+			Terminate ();
 	}
 
 	bool SSU2Session::ProcessSessionCreated (uint8_t * buf, size_t len)
@@ -1180,6 +1187,13 @@ namespace transport
 			{
 				case eSSU2BlkDateTime:
 					LogPrint (eLogDebug, "SSU2: Datetime");
+					if (m_State == eSSU2SessionStateSessionRequestReceived)
+					{
+						auto ts = i2p::util::GetSecondsSinceEpoch ();
+						uint32_t signedOnTime = bufbe32toh (buf + offset);
+						if (signedOnTime < ts - SSU2_CLOCK_SKEW || signedOnTime > ts + SSU2_CLOCK_SKEW)
+							m_TerminationReason = eSSU2TerminationReasonClockSkew;
+					};	
 				break;
 				case eSSU2BlkOptions:
 					LogPrint (eLogDebug, "SSU2: Options");
