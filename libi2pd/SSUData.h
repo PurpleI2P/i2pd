@@ -19,17 +19,14 @@
 #include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "TransportSession.h"
 
 namespace i2p
 {
 namespace transport
 {
-
 	const size_t SSU_MTU_V4 = 1484;
 	const size_t SSU_MTU_V6 = 1488;
-	const size_t IPV4_HEADER_SIZE = 20;
-	const size_t IPV6_HEADER_SIZE = 40;
-	const size_t UDP_HEADER_SIZE = 8;
 	const size_t SSU_V4_MAX_PACKET_SIZE = SSU_MTU_V4 - IPV4_HEADER_SIZE - UDP_HEADER_SIZE; // 1456
 	const size_t SSU_V6_MAX_PACKET_SIZE = SSU_MTU_V6 - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // 1440
 	const int RESEND_INTERVAL = 3; // in seconds

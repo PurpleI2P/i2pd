@@ -24,6 +24,10 @@ namespace i2p
 {
 namespace transport
 {
+	const size_t IPV4_HEADER_SIZE = 20;
+	const size_t IPV6_HEADER_SIZE = 40;
+	const size_t UDP_HEADER_SIZE = 8;
+	
 	class SignedData
 	{
 		public:
@@ -64,7 +68,7 @@ namespace transport
 
 			std::stringstream m_Stream;
 	};
-
+	
 	class TransportSession
 	{
 		public:

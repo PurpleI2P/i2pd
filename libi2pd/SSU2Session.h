@@ -33,7 +33,7 @@ namespace transport
 	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
-	const size_t SSU2_MTU = 1440; // TODO: should be 1456 for ipv4
+	const size_t SSU2_MTU = SSU2_MAX_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // TODO: ipv4
 	const size_t SSU2_MAX_PAYLOAD_SIZE = SSU2_MTU - 32;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
 	const int SSU2_RESEND_INTERVAL = 3; // in seconds
@@ -186,7 +186,7 @@ namespace transport
 
 		struct SentPacket
 		{
-			uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+			uint8_t payload[SSU2_MAX_PACKET_SIZE];
 			size_t payloadSize = 0;
 			uint32_t nextResendTime; // in seconds
 			int numResends = 0;
@@ -273,6 +273,7 @@ namespace transport
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
+			void AdjustMaxPayloadSize ();
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
@@ -326,6 +327,7 @@ namespace transport
 			OnEstablished m_OnEstablished; // callback from Established
 			boost::asio::deadline_timer m_ConnectTimer;
 			SSU2TerminationReason m_TerminationReason;
+			size_t m_MaxPayloadSize;
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
