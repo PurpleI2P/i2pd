@@ -285,9 +285,9 @@ namespace transport
 				delete m_SSUServer;
 				m_SSUServer = nullptr;
 			}
-			if (m_SSUServer) DetectExternalIP ();
 		}
-
+		if (m_SSUServer || m_SSU2Server) DetectExternalIP ();
+		
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
@@ -622,10 +622,10 @@ namespace transport
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;
 		}
-		if (m_SSUServer)
+		if (m_SSUServer || m_SSU2Server)
 			PeerTest ();
 		else
-			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");
+			LogPrint (eLogWarning, "Transports: Can't detect external IP. SSU or SSU2 is not available");
 	}
 
 	void Transports::PeerTest (bool ipv4, bool ipv6)
