@@ -421,16 +421,18 @@ namespace i2p
 				!i2p::util::net::IsYggdrasilAddress (address->host))
 			{
 				address->host = host;
-				if (host.is_v6 () && address->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+				if (host.is_v6 () && (address->transportStyle == i2p::data::RouterInfo::eTransportSSU || address->IsSSU2 ()))
 				{
 					// update MTU
 					auto mtu = i2p::util::net::GetMTU (host);
 					if (mtu)
 					{
 						LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-						if (mtu > 1472) { // TODO: magic constant
-							mtu = 1472;
-							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
+						int maxMTU = address->IsSSU2 () ? 1500 : 1488; // must be multiple of 16 for SSU1
+						if (mtu > maxMTU) 
+						{ 
+							mtu = maxMTU;
+							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
 						}
 						if (address->ssu) address->ssu->mtu = mtu;
 					}
