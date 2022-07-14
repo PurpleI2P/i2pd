@@ -12,6 +12,7 @@
 
 #include "util.h"
 #include "Log.h"
+#include "I2PEndian.h"
 
 #if not defined (__FreeBSD__)
 #include <pthread.h>
@@ -423,6 +424,25 @@ namespace net
 #endif
 	}
 
+	int GetMaxMTU (const boost::asio::ip::address_v6& localAddress)
+	{
+		uint32_t prefix = bufbe32toh (localAddress.to_bytes ().data ());
+		switch (prefix)
+		{
+			case 0x20010470:
+			case 0x260070ff:
+			// Hurricane Electric	
+				return 1480;
+			break;	
+			case 0x2a06a004:
+			//  route48	
+				return 1420;
+			break;	
+			default: ;	
+		}	
+		return 1500;
+	}	
+	
 	static bool IsYggdrasilAddress (const uint8_t addr[16])
 	{
 		return addr[0] == 0x02 || addr[0] == 0x03;

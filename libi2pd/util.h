@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -218,6 +218,7 @@ namespace util
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);
+		int GetMaxMTU (const boost::asio::ip::address_v6& localAddress); // check tunnel broker for ipv6 address
 		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
 		boost::asio::ip::address_v6 GetYggdrasilAddress ();
 		bool IsLocalAddress (const boost::asio::ip::address& addr);

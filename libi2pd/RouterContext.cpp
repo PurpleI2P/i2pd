@@ -428,13 +428,13 @@ namespace i2p
 					if (mtu)
 					{
 						LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-						int maxMTU = address->IsSSU2 () ? 1500 : 1488; // must be multiple of 16 for SSU1
+						int maxMTU = i2p::util::net::GetMaxMTU (host.to_v6 ());
 						if (mtu > maxMTU) 
 						{ 
 							mtu = maxMTU;
 							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
 						}
-						else if (mtu && !address->IsSSU2 ()) // SSU1
+						if (mtu && !address->IsSSU2 ()) // SSU1
 							mtu = (mtu >> 4) << 4; // round to multiple of 16
 						if (address->ssu) address->ssu->mtu = mtu;
 					}
