@@ -434,6 +434,8 @@ namespace i2p
 							mtu = maxMTU;
 							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
 						}
+						else if (mtu && !address->IsSSU2 ()) // SSU1
+							mtu = (mtu >> 4) << 4; // round to multiple of 16
 						if (address->ssu) address->ssu->mtu = mtu;
 					}
 				}
