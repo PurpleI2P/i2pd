@@ -1902,6 +1902,7 @@ namespace transport
 		if (addr && addr->ssu) 
 		{	
 			int mtu = addr->ssu->mtu;
+			if (!mtu && addr->IsV4 ()) mtu = SSU2_MAX_PACKET_SIZE;
 			if (m_Address && m_Address->ssu && (!mtu || m_Address->ssu->mtu < mtu)) 
 				mtu = m_Address->ssu->mtu;
 			if (mtu)
