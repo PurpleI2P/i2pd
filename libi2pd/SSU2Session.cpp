@@ -26,7 +26,7 @@ namespace transport
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
 		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0), 
 		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
-		m_MaxPayloadSize (SSU2_MAX_PAYLOAD_SIZE)
+		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -669,9 +669,9 @@ namespace transport
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		if (header.h.flags[0] > 1)
 		{
-			if (payloadSize > SSU2_MAX_PAYLOAD_SIZE - 64)
+			if (payloadSize > m_MaxPayloadSize - 48)
 			{
-				payloadSize = SSU2_MAX_PAYLOAD_SIZE - 64 - (rand () % 16);
+				payloadSize = m_MaxPayloadSize - 48 - (rand () % 16);
 				if (m_SentHandshakePacket->payloadSize - payloadSize < 24)
 					payloadSize -= 24;
 			}	
@@ -1131,8 +1131,8 @@ namespace transport
 		memset (header.h.flags, 0, 3);
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
-		uint8_t payload[SSU2_MTU];
-		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MTU, true);
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
+		i2p::crypto::AEADChaCha20Poly1305 (buf, len, header.buf, 16, m_KeyDataSend, nonce, payload, SSU2_MAX_PACKET_SIZE, true);
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (len - 8));
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
@@ -1154,7 +1154,7 @@ namespace transport
 			SendQuickAck (); // in case it was SessionConfirmed
 			return;
 		}
-		uint8_t payload[SSU2_MTU];
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = len - 32;
 		uint32_t packetNum = be32toh (header.h.packetNum);
 		uint8_t nonce[12];
@@ -1468,12 +1468,12 @@ namespace transport
 			i2p::data::netdb.PopulateRouterInfoBuffer (r);
 		else
 			LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
-		uint8_t payload[SSU2_MAX_PAYLOAD_SIZE];
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
 		if (!payloadSize && r)
 			session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
 		payloadSize += CreateRelayIntroBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, buf + 1, len -1);
-		if (payloadSize < SSU2_MAX_PAYLOAD_SIZE)
+		if (payloadSize < m_MaxPayloadSize)
 			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		session->SendData (payload, payloadSize);
 	}

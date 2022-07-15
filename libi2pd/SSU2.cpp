@@ -175,7 +175,7 @@ namespace transport
 				while (moreBytes && packets.size () < 32)
 				{
 					packet = m_PacketsPool.AcquireMt ();
-					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MTU), packet->from, 0, ec);
+					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);

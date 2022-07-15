@@ -33,8 +33,7 @@ namespace transport
 	const int SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT = 10; // in seconds
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
-	const size_t SSU2_MTU = SSU2_MAX_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // TODO: ipv4
-	const size_t SSU2_MAX_PAYLOAD_SIZE = SSU2_MTU - 32;
+	const size_t SSU2_MIN_PACKET_SIZE = 1280;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
 	const int SSU2_RESEND_INTERVAL = 3; // in seconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
@@ -153,7 +152,7 @@ namespace transport
 	{
 		struct Fragment
 		{
-			uint8_t buf[SSU2_MTU];
+			uint8_t buf[SSU2_MAX_PACKET_SIZE];
 			size_t len;
 			bool isLast;
 		};
