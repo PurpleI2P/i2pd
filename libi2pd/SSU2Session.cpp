@@ -168,9 +168,7 @@ namespace transport
 		{
 			m_State = eSSU2SessionStateTerminated;
 			m_ConnectTimer.cancel ();
-			transports.PeerDisconnected (shared_from_this ());
 			m_OnEstablished = nullptr;
-			m_Server.RemoveSession (m_SourceConnID);
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
 			m_SentHandshakePacket.reset (nullptr);
@@ -179,6 +177,8 @@ namespace transport
 			m_IncompleteMessages.clear ();
 			m_RelaySessions.clear ();
 			m_PeerTests.clear ();
+			m_Server.RemoveSession (m_SourceConnID);
+			transports.PeerDisconnected (shared_from_this ());
 			LogPrint (eLogDebug, "SSU2: Session terminated");
 		}
 	}
