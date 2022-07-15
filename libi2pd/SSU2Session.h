@@ -39,6 +39,7 @@ namespace transport
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const size_t SSU2_MAX_WINDOW_SIZE = 128; // in packets
+	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 300; // in messages
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 
 	enum SSU2MessageType

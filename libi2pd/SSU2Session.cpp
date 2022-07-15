@@ -175,6 +175,10 @@ namespace transport
 				m_Server.RemoveRelay (m_RelayTag);
 			m_SentHandshakePacket.reset (nullptr);
 			m_SendQueue.clear ();
+			m_SentPackets.clear ();
+			m_IncompleteMessages.clear ();
+			m_RelaySessions.clear ();
+			m_PeerTests.clear ();
 			LogPrint (eLogDebug, "SSU2: Session terminated");
 		}
 	}
@@ -241,9 +245,17 @@ namespace transport
 
 	void SSU2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
+		if (m_State == eSSU2SessionStateTerminated) return;
 		for (auto it: msgs)
 			m_SendQueue.push_back (it);
 		SendQueue ();
+		
+		if (m_SendQueue.size () > SSU2_MAX_OUTGOING_QUEUE_SIZE)	
+		{
+			LogPrint (eLogWarning, "SSU2: Outgoing messages queue size to ",
+				GetIdentHashBase64(), " exceeds ", SSU2_MAX_OUTGOING_QUEUE_SIZE);
+			RequestTermination (eSSU2TerminationReasonTimeout);
+		}
 	}
 
 	bool SSU2Session::SendQueue ()
@@ -758,10 +770,11 @@ namespace transport
 			return false;
 		}
 		m_NoiseState->MixHash (buf + 16, 48); // h = SHA256(h || ciphertext);
-		// KDF for Session Confirmed part 2
+		// KDF for Session Confirmed part 2 and data phase
 		uint8_t sharedSecret[32];
 		m_EphemeralKeys->Agree (S, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
+		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
 		// decrypt part2
 		memset (nonce, 0, 12);
 		uint8_t * payload = buf + 64;
@@ -770,6 +783,8 @@ namespace transport
 			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 2 AEAD verification failed ");
+			m_TerminationReason = eSSU2TerminationReasonSessionConfirmedError;
+			SendTermination ();
 			return false;
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
@@ -778,12 +793,16 @@ namespace transport
 		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed unexpected first block type ", (int)decryptedPayload[0]);
+			m_TerminationReason = eSSU2TerminationReasonPayloadFormatError;
+			SendTermination ();
 			return false;
 		}
 		size_t riSize = bufbe16toh (decryptedPayload.data () + 1);
 		if (riSize + 3 > decryptedPayload.size ())
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed RouterInfo block is too long ", riSize);
+			m_TerminationReason = eSSU2TerminationReasonPayloadFormatError;
+			SendTermination ();
 			return false;
 		}
 		LogPrint (eLogDebug, "SSU2: RouterInfo in SessionConfirmed");
@@ -791,6 +810,8 @@ namespace transport
 		if (!ri)
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
+			m_TerminationReason = eSSU2TerminationReasonRouterInfoSignatureVerificationFail;
+			SendTermination ();
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
@@ -798,6 +819,8 @@ namespace transport
 		if (!m_Address)
 		{
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
+			m_TerminationReason = eSSU2TerminationReasonInvalidS;
+			SendTermination ();
 			return false;
 		}
 		AdjustMaxPayloadSize ();
@@ -806,7 +829,6 @@ namespace transport
 		i2p::data::netdb.PostI2NPMsg (CreateDatabaseStoreMsg (ri)); // TODO: should insert ri
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
-		KDFDataPhase (m_KeyDataReceive, m_KeyDataSend);
 		Established ();
 
 		SendQuickAck ();
