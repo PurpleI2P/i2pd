@@ -409,7 +409,7 @@ namespace transport
 			}		
 			default:
 			{
-				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " from ", m_RemoteEndpoint);
+				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " from ", m_RemoteEndpoint, " of ", len, " bytes");
 				return false;
 			}
 		}
@@ -727,8 +727,9 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (kh2, buf + (len - 12));
 		if (header.h.type != eSSU2SessionConfirmed)
 		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2SessionConfirmed);
-			return false;
+			LogPrint (eLogInfo, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2SessionConfirmed);
+			// TODO: queue up
+			return true;
 		}
 		// check if fragmented
 		if ((header.h.flags[0] & 0x0F) > 1)
@@ -743,13 +744,33 @@ namespace transport
 					m_SessionConfirmedFragment->header = header;
 					memcpy (m_SessionConfirmedFragment->payload, buf + 16, len - 16);
 					m_SessionConfirmedFragment->payloadSize = len - 16;
+					return true; // wait for second fragment
+				}	 
+				else if (m_SessionConfirmedFragment->isSecondFragment)
+				{
+					// we have second fragment
+					m_SessionConfirmedFragment->header = header;
+					memmove (m_SessionConfirmedFragment->payload + (len - 16), m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize);
+					memcpy (m_SessionConfirmedFragment->payload, buf + 16, len - 16);
+					m_SessionConfirmedFragment->payloadSize += (len - 16);
+					buf = m_SessionConfirmedFragment->payload - 16;
+					len = m_SessionConfirmedFragment->payloadSize + 16;
 				}	
-				return true; // wait for second fragment
+				else
+					return true;
 			}
 			else
 			{
 				// second fragment
-				if (!m_SessionConfirmedFragment) return false; // out of sequence
+				if (!m_SessionConfirmedFragment) 
+				{	
+					// out of sequence, save it
+					m_SessionConfirmedFragment.reset (new HandshakePacket);
+					memcpy (m_SessionConfirmedFragment->payload, buf + 16, len - 16);
+					m_SessionConfirmedFragment->payloadSize = len - 16;
+					m_SessionConfirmedFragment->isSecondFragment = true;
+					return true; 
+				}	
 				header = m_SessionConfirmedFragment->header;
 				memcpy (m_SessionConfirmedFragment->payload + m_SessionConfirmedFragment->payloadSize, buf + 16, len - 16);
 				m_SessionConfirmedFragment->payloadSize += (len - 16);

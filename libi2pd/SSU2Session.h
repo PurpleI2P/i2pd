@@ -199,6 +199,7 @@ namespace transport
 			uint8_t payload[SSU2_MAX_PACKET_SIZE*2];
 			size_t payloadSize = 0;
 			uint32_t nextResendTime = 0; // in seconds
+			bool isSecondFragment = false; // for SessionConfirmed
 		};
 
 		typedef std::function<void ()> OnEstablished;
