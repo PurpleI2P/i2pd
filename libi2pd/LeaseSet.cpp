@@ -59,9 +59,9 @@ namespace data
 		if (readIdentity || !m_Identity)
 			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
 		size_t size = m_Identity->GetFullLen ();
-		if (size > m_BufferLen)
+		if (size + 256 > m_BufferLen)
 		{
-			LogPrint (eLogError, "LeaseSet: Identity length ", size, " exceeds buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet: Identity length ", int(size), " exceeds buffer size ", int(m_BufferLen));
 			m_IsValid = false;
 			return;
 		}
@@ -74,7 +74,7 @@ namespace data
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		if (size + 1 > m_BufferLen)
 		{
-			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet: ", int(size), " exceeds buffer size ", int(m_BufferLen));
 			m_IsValid = false;
 			return;
 		}
@@ -89,7 +89,7 @@ namespace data
 		}
 		if (size + num*LEASE_SIZE > m_BufferLen)
 		{
-			LogPrint (eLogError, "LeaseSet: ", size, " exceeds buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet: ", int(size), " exceeds buffer size ", int(m_BufferLen));
 			m_IsValid = false;
 			return;
 		}
@@ -125,7 +125,7 @@ namespace data
 			auto signedSize = leases - m_Buffer;
 			if (signedSize + m_Identity->GetSignatureLen () > m_BufferLen)
 			{
-				LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", m_BufferLen);
+				LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", int(m_BufferLen));
 				m_IsValid = false;
 			}
 			else if (!m_Identity->Verify (m_Buffer, signedSize, leases))
@@ -274,7 +274,7 @@ namespace data
 	{
 		if (len <= m_BufferLen) m_BufferLen = len;
 		else
-			LogPrint (eLogError, "LeaseSet2: Actual buffer size ", len , " exceeds full buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet2: Actual buffer size ", int(len) , " exceeds full buffer size ", int(m_BufferLen));
 	}
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
@@ -320,7 +320,7 @@ namespace data
 		else
 			identity = GetIdentity ();
 		size_t offset = identity->GetFullLen ();
-		if (offset + 8 >= len) return;
+		if (offset + 8 > len) return;
 		m_PublishedTimestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((m_PublishedTimestamp + expires)*1000LL); // in milliseconds
@@ -364,6 +364,10 @@ namespace data
 			SetIsValid (verified);
 		}
 		offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : identity->GetSignatureLen ();
+		if (offset > len) {
+			LogPrint (eLogWarning, "LeaseSet2: short buffer: wanted ", int(offset), "bytes, have ", int(len));
+			return;
+		}
 		SetBufferLen (offset);
 	}
 
@@ -388,17 +392,17 @@ namespace data
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
 		offset += propertiesLen; // skip for now. TODO: implement properties
-		if (offset + 1 >= len) return 0;
 		// key sections
 		CryptoKeyType preferredKeyType = m_EncryptionType;
 		bool preferredKeyFound = false;
+		if (offset + 1 > len) return 0;
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
+			if (offset + 4 > len) return 0;
 			uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption key type
-			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2;
-			if (offset + encryptionKeyLen >= len) return 0;
+			if (offset + encryptionKeyLen > len) return 0;
 			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
 				// we pick first valid key if preferred not found
@@ -413,7 +417,7 @@ namespace data
 			offset += encryptionKeyLen;
 		}
 		// leases
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numLeases = buf[offset]; offset++;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (IsStoreLeases ())
@@ -432,7 +436,8 @@ namespace data
 		}
 		else
 			offset += numLeases*LEASE2_SIZE; // 40 bytes per lease
-		return offset;
+
+		return (offset > len ? 0 : offset);
 	}
 
 	size_t LeaseSet2::ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len)
@@ -442,18 +447,18 @@ namespace data
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		// entries
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numEntries = buf[offset]; offset++;
 		for (int i = 0; i < numEntries; i++)
 		{
-			if (offset + 40 >= len) return 0;
+			if (offset + LEASE2_SIZE > len) return 0;
 			offset += 32; // hash
 			offset += 3; // flags
 			offset += 1; // cost
 			offset += 4; // expires
 		}
 		// revocations
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numRevocations = buf[offset]; offset++;
 		for (int i = 0; i < numRevocations; i++)
 		{
