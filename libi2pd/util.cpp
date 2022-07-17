@@ -195,6 +195,8 @@ namespace net
 				{
 					auto result = pAddresses->Mtu;
 					FREE(pAddresses);
+					pAddresses = nullptr;
+					LogPrint(eLogInfo, "NetIface: GetMTU(): Using ", result, " bytes for IPv4");
 					return result;
 				}
 				pUnicast = pUnicast->Next;
@@ -259,6 +261,7 @@ namespace net
 					auto result = pAddresses->Mtu;
 					FREE(pAddresses);
 					pAddresses = nullptr;
+					LogPrint(eLogInfo, "NetIface: GetMTU(): Using ", result, " bytes for IPv6");
 					return result;
 				}
 				pUnicast = pUnicast->Next;
