@@ -804,8 +804,6 @@ namespace transport
 			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 2 AEAD verification failed ");
-			m_TerminationReason = eSSU2TerminationReasonSessionConfirmedError;
-			SendTermination ();
 			return false;
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
@@ -814,16 +812,12 @@ namespace transport
 		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed unexpected first block type ", (int)decryptedPayload[0]);
-			m_TerminationReason = eSSU2TerminationReasonPayloadFormatError;
-			SendTermination ();
 			return false;
 		}
 		size_t riSize = bufbe16toh (decryptedPayload.data () + 1);
 		if (riSize + 3 > decryptedPayload.size ())
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed RouterInfo block is too long ", riSize);
-			m_TerminationReason = eSSU2TerminationReasonPayloadFormatError;
-			SendTermination ();
 			return false;
 		}
 		LogPrint (eLogDebug, "SSU2: RouterInfo in SessionConfirmed");
@@ -831,8 +825,6 @@ namespace transport
 		if (!ri)
 		{
 			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
-			m_TerminationReason = eSSU2TerminationReasonRouterInfoSignatureVerificationFail;
-			SendTermination ();
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
@@ -840,8 +832,6 @@ namespace transport
 		if (!m_Address)
 		{
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed");
-			m_TerminationReason = eSSU2TerminationReasonInvalidS;
-			SendTermination ();
 			return false;
 		}
 		AdjustMaxPayloadSize ();
