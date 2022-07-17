@@ -2008,7 +2008,7 @@ namespace transport
 		buf[0] = eSSU2BlkAck;
 		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
 		htobe32buf (buf + 3, ackThrough); // Ack Through
-		uint8_t acnt = 0;
+		uint16_t acnt = 0;
 		int numRanges = 0;
 		if (ackThrough)
 		{
@@ -2024,6 +2024,27 @@ namespace transport
 				}
 				// ranges
 				uint32_t lastNum = ackThrough - acnt;
+				if (acnt > 255)
+				{
+					auto d = std::div (acnt - 255, 255);
+					acnt = 255;
+					if (d.quot > SSU2_MAX_NUM_ACK_RANGES) 
+					{	
+						d.quot = SSU2_MAX_NUM_ACK_RANGES;
+						d.rem = 0;
+					}	
+					// Acks only ragnes for acnt
+					for (int i = 0; i < d.quot; i++)
+					{
+						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = 255; // NACKs 0, Acks 255
+						numRanges++;
+					}
+					if (d.rem > 0)
+					{
+						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = d.rem;
+						numRanges++;
+					}	
+				}	
 				while (it != m_OutOfSequencePackets.rend () && numRanges < SSU2_MAX_NUM_ACK_RANGES)
 				{
 					if (lastNum - (*it) > 255)
@@ -2073,7 +2094,7 @@ namespace transport
 				}	
 			}
 		}
-		buf[7] = acnt; // acnt
+		buf[7] = (uint8_t)acnt; // acnt
 		htobe16buf (buf + 1, 5 + numRanges*2);
 		return 8 + numRanges*2;
 	}
