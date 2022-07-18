@@ -1283,6 +1283,8 @@ namespace transport
 				case eSSU2BlkPeerTest:
 					LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
 					HandlePeerTest (buf + offset, size);
+					if (buf[offset] < 5)
+						m_IsDataReceived = true;
 				break;
 				case eSSU2BlkNextNonce:
 				break;
