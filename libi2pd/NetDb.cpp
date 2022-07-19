@@ -1233,6 +1233,16 @@ namespace data
 			});
 	}
 
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const
+	{
+		return GetRandomRouter (
+			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
+			{
+				return !router->IsHidden () && router->IsSSU2Introducer (v4) && 
+					!excluded.count (router->GetIdentHash ());
+			});
+	}
+	
 	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
 	{
 		return GetRandomRouter (

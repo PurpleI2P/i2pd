@@ -235,6 +235,7 @@ namespace data
 			bool IsPeerTesting (bool v4) const;
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsIntroducer (bool v4) const;
+			bool IsSSU2Introducer (bool v4) const;
 
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps) { m_Caps = caps; };

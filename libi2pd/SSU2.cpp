@@ -755,28 +755,68 @@ namespace transport
 
 	void SSU2Server::UpdateIntroducers (bool v4)
 	{
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		std::list<std::shared_ptr<SSU2Session>> newList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
+		std::set<i2p::data::IdentHash> excluded;
 		for (const auto& it : introducers)
 		{
 			if (it->IsEstablished ())
 			{
-				it->SendKeepAlive ();
-				newList.push_back (it);
+				if (ts < it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+					it->SendKeepAlive ();
+				if (ts < it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
+				{	
+					newList.push_back (it);
+					excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
+				}	
+				// TODO: remove introducer
 			}	
 		}	
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
-			std::set<i2p::data::IdentHash> excluded;
-			for (auto& it1: newList)
-				excluded.insert (it1->GetRemoteIdentity ()->GetIdentHash ());
-			auto sessions = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
+			auto sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
+			if (sessions.empty () && !introducers.empty ())
+			{
+				// bump creation time for previous introducers if no new sessions found
+				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
+				for (auto& it : introducers)
+					it->SetCreationTime (it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
+				// try again
+				excluded.clear ();
+				sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
+			}	
+						
 			for (const auto& it : sessions)
 			{
+				// TODO: add introducer
 				newList.push_back (it);
+				if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
 			}	
 		}	
 		introducers = newList;
+
+		if (introducers.size () < SSU2_MAX_NUM_INTRODUCERS)
+		{
+			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS; i++)
+			{
+				auto introducer = i2p::data::netdb.GetRandomSSU2Introducer (v4, excluded);
+				if (introducer)
+				{
+					auto address = v4 ? introducer->GetSSU2V4Address () : introducer->GetSSU2V6Address ();
+					if (address)
+					{
+						CreateSession (introducer, address);
+						excluded.insert (introducer->GetIdentHash ());
+					}
+				}
+				else
+				{
+					LogPrint (eLogDebug, "SSU2: Can't find more introducers");
+					break;
+				}
+			}
+		}
 	}	
 }
 }
