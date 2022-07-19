@@ -31,6 +31,7 @@ namespace german // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
+		{"Purple I2P Webconsole", "Purple-I2P-Webkonsole"},
 		{"KiB", "KiB"},
 		{"MiB", "MiB"},
 		{"GiB", "GiB"},

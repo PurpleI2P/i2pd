@@ -182,7 +182,7 @@ namespace http {
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P Webconsole</title>\r\n";
+			"  <title>" << tr("Purple I2P Webconsole") << "</title>\r\n";
 		GetStyles(s);
 		s <<
 			"</head>\r\n"
