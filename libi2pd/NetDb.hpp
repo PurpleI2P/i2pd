@@ -69,7 +69,7 @@ namespace data
 			void Start ();
 			void Stop ();
 
-			bool AddRouterInfo (const uint8_t * buf, int len);
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const uint8_t * buf, int len);
 			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType);

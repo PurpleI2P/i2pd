@@ -240,11 +240,10 @@ namespace data
 		m_HiddenMode = hide;
 	}
 
-	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
+	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
 		bool updated;
-		AddRouterInfo (buf, len, updated);
-		return updated;
+		return AddRouterInfo (buf, len, updated);
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len, bool& updated)
@@ -436,12 +435,15 @@ namespace data
 
 		// try reseeding from floodfill first if specified
 		std::string riPath;
-		if(i2p::config::GetOption("reseed.floodfill", riPath)) {
+		if(i2p::config::GetOption("reseed.floodfill", riPath)) 
+		{
 			auto ri = std::make_shared<RouterInfo>(riPath);
-			if (ri->IsFloodfill()) {
+			if (ri->IsFloodfill()) 
+			{
 				const uint8_t * riData = ri->GetBuffer();
 				int riLen = ri->GetBufferLen();
-				if(!i2p::data::netdb.AddRouterInfo(riData, riLen)) {
+				if (!i2p::data::netdb.AddRouterInfo(riData, riLen)) 
+				{
 					// bad router info
 					LogPrint(eLogError, "NetDb: Bad router info");
 					return;
