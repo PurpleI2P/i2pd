@@ -79,6 +79,7 @@ namespace transport
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
+				m_CreationTime = m_LastActivityTimestamp;	
 			}
 
 			virtual ~TransportSession () {};
@@ -106,6 +107,9 @@ namespace transport
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
 			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };
 
+			uint32_t GetCreationTime () const { return m_CreationTime; };
+			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
+			
 			virtual uint32_t GetRelayTag () const { return 0; };
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
@@ -118,6 +122,7 @@ namespace transport
 			bool m_IsOutgoing;
 			int m_TerminationTimeout;
 			uint64_t m_LastActivityTimestamp;
+			uint32_t m_CreationTime; // seconds since epoch
 	};
 }
 }

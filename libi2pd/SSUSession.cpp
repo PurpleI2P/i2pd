@@ -41,7 +41,6 @@ namespace transport
 				i2p::context.GetRouterInfo ().GetSSUAddress (true);
 			if (address) m_IntroKey = address->i;
 		}
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
 	SSUSession::~SSUSession ()

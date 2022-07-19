@@ -103,8 +103,6 @@ namespace transport
 			void SendKeepAlive ();
 			uint32_t GetRelayTag () const { return m_RelayTag; };
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
-			uint32_t GetCreationTime () const { return m_CreationTime; };
-			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
 
 			void FlushData ();
 			void CleanUp (uint64_t ts);
@@ -167,7 +165,6 @@ namespace transport
 			i2p::crypto::AESKey m_SessionKey;
 			i2p::crypto::MACKey m_MacKey;
 			i2p::data::RouterInfo::IntroKey m_IntroKey;
-			uint32_t m_CreationTime; // seconds since epoch
 			SSUData m_Data;
 			bool m_IsDataReceived;
 			std::unique_ptr<SignedData> m_SignedData; // we need it for SessionConfirmed only
