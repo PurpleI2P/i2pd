@@ -336,13 +336,8 @@ namespace transport
 		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->nextResendTime)
 		{
 			LogPrint (eLogDebug, "SSU2: Resending ", (int)m_State);
-			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
-				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
+			ResendHandshakePacket ();
 			m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
-			if (m_SessionConfirmedFragment && m_State == eSSU2SessionStateSessionConfirmedSent)
-				// resend second fragment of SessionConfirmed
-				m_Server.Send (m_SessionConfirmedFragment->header.buf, 16, 
-					m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize, m_RemoteEndpoint);
 			return;
 		}	
 		// resend data packets
@@ -382,6 +377,19 @@ namespace transport
 		SendQueue ();
 	}
 
+	void SSU2Session::ResendHandshakePacket ()
+	{
+		if (m_SentHandshakePacket)
+		{    
+			m_Server.Send (m_SentHandshakePacket->header.buf, 16, m_SentHandshakePacket->headerX, 48, 
+				m_SentHandshakePacket->payload, m_SentHandshakePacket->payloadSize, m_RemoteEndpoint);
+			if (m_SessionConfirmedFragment && m_State == eSSU2SessionStateSessionConfirmedSent)
+				// resend second fragment of SessionConfirmed
+				m_Server.Send (m_SessionConfirmedFragment->header.buf, 16, 
+					m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize, m_RemoteEndpoint);
+		}	
+	}	
+		
 	bool SSU2Session::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
 	{
 		// we are Bob
@@ -1190,7 +1198,10 @@ namespace transport
 		if (header.h.type != eSSU2Data)
 		{
 			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2Data);
-			SendQuickAck (); // in case it was SessionConfirmed
+			if (IsEstablished ())
+				SendQuickAck (); // in case it was SessionConfirmed
+			else
+				ResendHandshakePacket (); // assume we receive
 			return;
 		}
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];

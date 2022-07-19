@@ -252,7 +252,8 @@ namespace transport
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			bool SendQueue ();
 			void SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
-
+			void ResendHandshakePacket ();
+			
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
 			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);
 
