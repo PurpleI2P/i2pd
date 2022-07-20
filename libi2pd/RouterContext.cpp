@@ -461,6 +461,20 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	bool RouterContext::AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4)
+	{
+		bool ret = m_RouterInfo.AddSSU2Introducer (introducer, v4);
+		if (ret)
+			UpdateRouterInfo ();
+		return ret;
+	}
+		
+	void RouterContext::RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4)
+	{
+		if (m_RouterInfo.RemoveSSU2Introducer (h, v4))
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::SetFloodfill (bool floodfill)
 	{
 		m_IsFloodfill = floodfill;

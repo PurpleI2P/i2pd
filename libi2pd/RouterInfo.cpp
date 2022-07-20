@@ -1478,5 +1478,40 @@ namespace data
 	{
 		return std::make_shared<Buffer> ();
 	}
+
+	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
+	{
+		for (auto& addr : GetAddresses ())
+		{
+			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			{
+				for (auto& intro: addr->ssu->introducers)
+					if (intro.iTag == introducer.iTag) return false; // already presented
+				addr->ssu->introducers.push_back (introducer);
+				SetReachableTransports (GetReachableTransports () | ((addr->IsV4 () ? eSSU2V4 : eSSU2V6)));
+				return true;
+			}
+		}
+		return false;
+	}	
+
+	bool LocalRouterInfo::RemoveSSU2Introducer (const IdentHash& h, bool v4)
+	{
+		for (auto& addr: GetAddresses ())
+		{
+			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			{
+				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
+					if (h == it->iKey)
+					{
+						addr->ssu->introducers.erase (it);
+						if (addr->ssu->introducers.empty ())
+							SetReachableTransports (GetReachableTransports () & ~(addr->IsV4 () ? eSSU2V4 : eSSU2V6));
+						return true;
+					}
+			}
+		}
+		return false;
+	}	
 }
 }

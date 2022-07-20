@@ -275,6 +275,8 @@ namespace data
 			void SetBufferLen (size_t len) { m_BufferLen = len; };
 			void RefreshTimestamp ();
 			const Addresses& GetAddresses () const { return *m_Addresses; };
+			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
+			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };		
 
 		private:
 
@@ -317,6 +319,9 @@ namespace data
 			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };
 
+			bool AddSSU2Introducer (const Introducer& introducer, bool v4);
+			bool RemoveSSU2Introducer (const IdentHash& h, bool v4);
+			
 		private:
 
 			void WriteToStream (std::ostream& s) const;

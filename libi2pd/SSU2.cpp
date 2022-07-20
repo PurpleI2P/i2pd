@@ -770,8 +770,11 @@ namespace transport
 					newList.push_back (it);
 					excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
 				}	
-				// TODO: remove introducer
+				else
+					i2p::context.RemoveSSU2Introducer (it->GetRemoteIdentity ()->GetIdentHash (), it->GetAddress ()->IsV4 ());
 			}	
+			else
+				i2p::context.RemoveSSU2Introducer (it->GetRemoteIdentity ()->GetIdentHash (), it->GetAddress ()->IsV4 ());	
 		}	
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
@@ -789,9 +792,16 @@ namespace transport
 						
 			for (const auto& it : sessions)
 			{
-				// TODO: add introducer
-				newList.push_back (it);
-				if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
+				i2p::data::RouterInfo::Introducer introducer;
+				introducer.iTag = it->GetRelayTag ();
+				introducer.iKey = it->GetRemoteIdentity ()->GetIdentHash ();
+				introducer.iExp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
+				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
+				if (i2p::context.AddSSU2Introducer (introducer, it->GetAddress ()->IsV4 ()))
+				{
+					newList.push_back (it);
+					if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
+				}	
 			}	
 		}	
 		introducers = newList;
