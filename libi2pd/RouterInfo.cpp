@@ -1321,7 +1321,7 @@ namespace data
 				size_t len = address.IsSSU2 () ? 32 : 16;
 				WriteString (address.i.ToBase64 (len), properties); properties << ';';
 			}
-			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
+			if (address.transportStyle == eTransportSSU || (address.IsSSU2 () && isPublished))
 			{
 				// write introducers if any
 				if (address.ssu && !address.ssu->introducers.empty())
