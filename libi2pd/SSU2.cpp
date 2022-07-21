@@ -21,7 +21,9 @@ namespace transport
 		RunnableServiceWithWork ("SSU2"), m_ReceiveService ("SSU2r"),
 		m_SocketV4 (m_ReceiveService.GetService ()), m_SocketV6 (m_ReceiveService.GetService ()),
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
-		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ())
+		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ()), 
+		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
+		m_IsPublished (true)
 	{
 	}
 
@@ -30,6 +32,7 @@ namespace transport
 		if (!IsRunning ())
 		{
 			StartIOService ();
+			i2p::config::GetOption ("ssu2.published", m_IsPublished);
 			bool found = false;
 			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
@@ -59,6 +62,7 @@ namespace transport
 								{
 									Receive (m_SocketV4);
 								});
+							ScheduleIntroducersUpdateTimer (); // wait for 30 seconds and decide if we need introducers
 						}
 						if (address->IsV6 ())
 						{
@@ -69,6 +73,7 @@ namespace transport
 								{
 									Receive (m_SocketV6);
 								});
+							ScheduleIntroducersUpdateTimerV6 (); // wait for 30 seconds and decide if we need introducers
 						}
 					}
 					else
@@ -826,6 +831,90 @@ namespace transport
 					break;
 				}
 			}
+		}
+	}
+
+	void SSU2Server::ScheduleIntroducersUpdateTimer ()
+	{
+		if (m_IsPublished)
+		{	
+			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL));
+			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
+				this, std::placeholders::_1, true));
+		}	
+	}	
+
+	void SSU2Server::RescheduleIntroducersUpdateTimer ()
+	{
+		if (m_IsPublished)
+		{
+			m_IntroducersUpdateTimer.cancel ();
+			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL/2));
+			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
+				this, std::placeholders::_1, true));
+		}	
+	}
+
+	void SSU2Server::ScheduleIntroducersUpdateTimerV6 ()
+	{
+		if (m_IsPublished)
+		{	
+			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL));
+			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
+				this, std::placeholders::_1, false));
+		}	
+	}	
+
+	void SSU2Server::RescheduleIntroducersUpdateTimerV6 ()
+	{
+		if (m_IsPublished)
+		{
+			m_IntroducersUpdateTimerV6.cancel ();
+			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL/2));
+			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
+				this, std::placeholders::_1, false));
+		}	
+	}
+		
+	void SSU2Server::HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			// timeout expired
+			if (v4)
+			{
+				if (i2p::context.GetStatus () == eRouterStatusTesting)
+				{
+					// we still don't know if we need introducers
+					ScheduleIntroducersUpdateTimer ();
+					return;
+				}
+				if (i2p::context.GetStatus () != eRouterStatusFirewalled)
+				{
+					// we don't need introducers
+					m_Introducers.clear ();
+					return;
+				}
+				UpdateIntroducers (true);
+				ScheduleIntroducersUpdateTimer ();
+			}
+			else
+			{
+				if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+				{
+					// we still don't know if we need introducers
+					ScheduleIntroducersUpdateTimerV6 ();
+					return;
+				}
+				if (i2p::context.GetStatusV6 () != eRouterStatusFirewalled)
+				{
+					// we don't need introducers
+					m_IntroducersV6.clear ();
+					return;
+				}
+				UpdateIntroducers (false);
+				ScheduleIntroducersUpdateTimerV6 ();
+			}	
 		}
 	}	
 }

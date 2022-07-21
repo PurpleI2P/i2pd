@@ -23,6 +23,7 @@ namespace transport
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
+	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // 30 seconds
 		
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
@@ -82,7 +83,9 @@ namespace transport
 			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 			std::pair<uint64_t, uint32_t> NewIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 		
-
+			void RescheduleIntroducersUpdateTimer ();
+			void RescheduleIntroducersUpdateTimerV6 ();
+		
 		private:
 
 			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
@@ -103,7 +106,10 @@ namespace transport
 			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers, 
 				bool v4, const std::set<i2p::data::IdentHash>& excluded) const;
 			void UpdateIntroducers (bool v4);
-		
+			void ScheduleIntroducersUpdateTimer ();
+			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
+			void ScheduleIntroducersUpdateTimerV6 ();
+					
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -116,8 +122,10 @@ namespace transport
 			std::map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<std::shared_ptr<SSU2Session> > m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
-			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer;
+			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer,
+				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;
+			bool m_IsPublished; // if we maintain introducers
 			
 		public:
 

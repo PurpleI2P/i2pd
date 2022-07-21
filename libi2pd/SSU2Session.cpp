@@ -1831,7 +1831,13 @@ namespace transport
 									else
 									{
 										if (GetRouterStatus () == eRouterStatusTesting)
+										{	
 											SetRouterStatus (eRouterStatusFirewalled);
+											if (m_Address->IsV4 ())
+												m_Server.RescheduleIntroducersUpdateTimer ();
+											else
+												m_Server.RescheduleIntroducersUpdateTimerV6 ();
+										}	
 									}	
 								}
 								else
