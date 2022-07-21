@@ -761,25 +761,29 @@ namespace transport
 	void SSU2Server::UpdateIntroducers (bool v4)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::list<std::shared_ptr<SSU2Session>> newList;
+		std::list<i2p::data::IdentHash> newList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
 		std::set<i2p::data::IdentHash> excluded;
 		for (const auto& it : introducers)
 		{
-			if (it->IsEstablished ())
+			std::shared_ptr<SSU2Session> session;
+			auto it1 = m_SessionsByRouterHash.find (it);
+			if (it1 != m_SessionsByRouterHash.end ()) 
+				session = it1->second;
+			if (session && session->IsEstablished ())
 			{
-				if (ts < it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
-					it->SendKeepAlive ();
-				if (ts < it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
+				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+					session->SendKeepAlive ();
+				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
 				{	
 					newList.push_back (it);
-					excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
+					excluded.insert (it);
 				}	
 				else
-					i2p::context.RemoveSSU2Introducer (it->GetRemoteIdentity ()->GetIdentHash (), it->GetAddress ()->IsV4 ());
+					session = nullptr;
 			}	
-			else
-				i2p::context.RemoveSSU2Introducer (it->GetRemoteIdentity ()->GetIdentHash (), it->GetAddress ()->IsV4 ());	
+			if (!session)
+				i2p::context.RemoveSSU2Introducer (it, v4);	
 		}	
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
@@ -789,7 +793,11 @@ namespace transport
 				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
 				for (auto& it : introducers)
-					it->SetCreationTime (it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
+				{	
+					auto it1 = m_SessionsByRouterHash.find (it);
+					if (it1 != m_SessionsByRouterHash.end ())
+						it1->second->SetCreationTime (it1->second->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
+				}	
 				// try again
 				excluded.clear ();
 				sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
@@ -802,9 +810,11 @@ namespace transport
 				introducer.iKey = it->GetRemoteIdentity ()->GetIdentHash ();
 				introducer.iExp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
 				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
-				if (i2p::context.AddSSU2Introducer (introducer, it->GetAddress ()->IsV4 ()))
+				if (i2p::context.AddSSU2Introducer (introducer, v4))
 				{
-					newList.push_back (it);
+					LogPrint (eLogDebug, "SSU2: Introducer added ", it->GetRelayTag (), " at ", 
+						i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()));
+					newList.push_back (it->GetRemoteIdentity ()->GetIdentHash ());
 					if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
 				}	
 			}	
@@ -895,6 +905,11 @@ namespace transport
 					m_Introducers.clear ();
 					return;
 				}
+				// we are firewalled
+				auto addr = i2p::context.GetRouterInfo ().GetSSU2V4Address ();
+				if (addr && addr->ssu && addr->ssu->introducers.empty ())
+					i2p::context.SetUnreachableSSU2 (true, false); // v4
+				
 				UpdateIntroducers (true);
 				ScheduleIntroducersUpdateTimer ();
 			}
@@ -912,6 +927,11 @@ namespace transport
 					m_IntroducersV6.clear ();
 					return;
 				}
+				// we are firewalled
+				auto addr = i2p::context.GetRouterInfo ().GetSSU2V6Address ();
+				if (addr && addr->ssu && addr->ssu->introducers.empty ())
+					i2p::context.SetUnreachableSSU2 (false, true); // v6
+				
 				UpdateIntroducers (false);
 				ScheduleIntroducersUpdateTimerV6 ();
 			}	

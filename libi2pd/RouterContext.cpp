@@ -589,6 +589,12 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::SetUnreachableSSU2 (bool v4, bool v6)
+	{
+		if (IsSSU2Only ())
+			SetUnreachable (v4, v6);
+	}	
+		
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
 		if (v4 || (v6 && !SupportsV4 ()))

@@ -127,6 +127,7 @@ namespace garlic
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);
+			void SetUnreachableSSU2 (bool v4, bool v6);
 			void SetReachable (bool v4, bool v6);
 			bool IsFloodfill () const { return m_IsFloodfill; };
 			void SetFloodfill (bool floodfill);
