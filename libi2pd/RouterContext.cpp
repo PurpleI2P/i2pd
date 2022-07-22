@@ -288,7 +288,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (!address->IsNTCP2 () && !address->IsSSU2 () && address->port != port)
+			if (address->port != port && (address->transportStyle == i2p::data::RouterInfo::eTransportSSU || IsSSU2Only ()))
 			{
 				address->port = port;
 				updated = true;
@@ -653,7 +653,7 @@ namespace i2p
 				addr->published = true;
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
-				if (!addr->IsSSU2 ())
+				if (addr->port && (!addr->IsSSU2 () || IsSSU2Only ()))
 					port = addr->port;
 			}
 		// publish NTCP2
@@ -744,6 +744,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+						if (!ssu2Port) ssu2Port = port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("::1"), ssu2Port);
 					}
 					else
@@ -824,6 +825,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+						if (!ssu2Port) ssu2Port = port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("127.0.0.1"), ssu2Port);
 					}
 					else
