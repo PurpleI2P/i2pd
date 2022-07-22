@@ -271,7 +271,10 @@ namespace data
 			if (r->IsNewer (buf, len))
 			{
 				bool wasFloodfill = r->IsFloodfill ();
-				r->Update (buf, len);
+				{
+					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					r->Update (buf, len);
+				}	
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
 				{
