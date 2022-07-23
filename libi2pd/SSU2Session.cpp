@@ -187,10 +187,10 @@ namespace transport
 	{
 		if (m_State == eSSU2SessionStateEstablished || m_State == eSSU2SessionStateClosing)
 		{
-			m_State = eSSU2SessionStateClosing;
 			m_TerminationReason = reason;
 			SendTermination ();
-		}	
+		}
+		m_State = eSSU2SessionStateClosing;
 	}	
 		
 	void SSU2Session::Established ()
