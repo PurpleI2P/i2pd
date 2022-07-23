@@ -267,9 +267,9 @@ namespace transport
 				if (!ret.second)
 				{
 					// session already exists
-					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " aready exists");
+					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
 					// terminate existing
-					GetService ().post (std::bind (&SSU2Session::Terminate, ret.first->second));
+					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonTerminationReceived));
 					// update session
 					ret.first->second = session;
 				}
@@ -572,7 +572,8 @@ namespace transport
 				auto addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
 				if (addr)
 				{
-					bool isValidEndpoint = !addr->host.is_unspecified () && addr->port;
+					bool isValidEndpoint = !addr->host.is_unspecified () && addr->port &&
+						!i2p::util::net::IsInReservedRange(addr->host);
 					if (isValidEndpoint)
 					{	
 						auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (addr->host, addr->port));
