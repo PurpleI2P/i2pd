@@ -479,7 +479,19 @@ namespace transport
 	{
 		if (router && address)
 		{
-			// check is no peding session
+			// check if no session
+			auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
+			if (it != m_SessionsByRouterHash.end ())
+			{
+				// session with router found, trying to send peer test if requested
+				if (peerTest && it->second->IsEstablished ())
+				{
+					auto session = it->second;
+					GetService ().post ([session]() { session->SendPeerTest (); });
+				}	
+				return false;
+			}	
+			// check is no pending session
 			bool isValidEndpoint = !address->host.is_unspecified () && address->port;
 			if (isValidEndpoint)
 			{	
@@ -769,16 +781,16 @@ namespace transport
 			std::shared_ptr<SSU2Session> session;
 			auto it1 = m_SessionsByRouterHash.find (it);
 			if (it1 != m_SessionsByRouterHash.end ()) 
+			{	
 				session = it1->second;
+				excluded.insert (it);
+			}	
 			if (session && session->IsEstablished ())
 			{
 				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
 					session->SendKeepAlive ();
 				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
-				{	
 					newList.push_back (it);
-					excluded.insert (it);
-				}	
 				else
 					session = nullptr;
 			}	
@@ -796,11 +808,16 @@ namespace transport
 				{	
 					auto it1 = m_SessionsByRouterHash.find (it);
 					if (it1 != m_SessionsByRouterHash.end ())
-						it1->second->SetCreationTime (it1->second->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
+					{
+						auto session = it1->second;
+						if (session->IsEstablished ())
+						{	
+							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
+							if (std::find (newList.begin (), newList.end (), it) == newList.end ()) 
+								newList.push_back (it);	
+						}	
+					}	
 				}	
-				// try again
-				excluded.clear ();
-				sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
 			}	
 						
 			for (const auto& it : sessions)
