@@ -727,7 +727,7 @@ namespace data
 		addr->host = host;
 		addr->port = port;
 		addr->published = true;
-		addr->caps = 0;
+		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = 0;
