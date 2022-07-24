@@ -144,6 +144,7 @@ namespace garlic
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
+			void SetMTU (int mtu, bool v4);
 			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove

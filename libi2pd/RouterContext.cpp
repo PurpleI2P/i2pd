@@ -420,26 +420,29 @@ namespace i2p
 			if (address->host != host && address->IsCompatible (host) &&
 				!i2p::util::net::IsYggdrasilAddress (address->host))
 			{
+				// update host
 				address->host = host;
-				if (host.is_v6 () && (address->transportStyle == i2p::data::RouterInfo::eTransportSSU || address->IsSSU2 ()))
-				{
-					// update MTU
-					auto mtu = i2p::util::net::GetMTU (host);
-					if (mtu)
-					{
-						LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-						int maxMTU = i2p::util::net::GetMaxMTU (host.to_v6 ());
-						if (mtu > maxMTU) 
-						{ 
-							mtu = maxMTU;
-							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
-						}
-						if (mtu && !address->IsSSU2 ()) // SSU1
-							mtu = (mtu >> 4) << 4; // round to multiple of 16
-						if (address->ssu) address->ssu->mtu = mtu;
-					}
-				}
 				updated = true;
+			}
+			if (host.is_v6 () && address->IsV6 () && address->ssu && 
+			    (!address->ssu->mtu || updated))
+			{
+				// update MTU
+				auto mtu = i2p::util::net::GetMTU (host);
+				if (mtu)
+				{
+					LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
+					int maxMTU = i2p::util::net::GetMaxMTU (host.to_v6 ());
+					if (mtu > maxMTU) 
+					{ 
+						mtu = maxMTU;
+						LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
+					}
+					if (mtu && !address->IsSSU2 ()) // SSU1
+						mtu = (mtu >> 4) << 4; // round to multiple of 16
+					address->ssu->mtu = mtu;
+					updated = true;
+				}
 			}
 		}
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
@@ -866,6 +869,43 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetMTU (int mtu, bool v4)
+	{
+		if (mtu < 1280 || mtu > 1500) return;
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto& addr: addresses)
+		{
+			if (addr->ssu && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			{
+				if (!addr->IsSSU2 ()) // SSU1
+				{	
+					// round to multiple of 16
+					if (v4)
+					{	
+						if (mtu > 1484) mtu = 1484;
+						else
+						{	
+							mtu -= 12;
+							mtu = (mtu >> 4) << 4;
+							mtu += 12;
+						}	
+					}		
+					else	
+					{
+						if (mtu > 1488) mtu = 1488;
+						else
+							mtu = (mtu >> 4) << 4;
+					}	
+				}	
+				if (mtu)
+				{	
+					addr->ssu->mtu = mtu;
+					LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address is set to ", mtu);
+				}	
+			}	
+		}	
+	}	
+		
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
 		bool isYgg = i2p::util::net::IsYggdrasilAddress (host);

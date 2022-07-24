@@ -115,9 +115,22 @@ namespace transport
 	{
 		if (localAddress.is_unspecified ()) return;
 		if (localAddress.is_v4 ())
+		{	
 			m_AddressV4 = localAddress;
+			int mtu = i2p::util::net::GetMTU (localAddress);
+			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+			if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
+			i2p::context.SetMTU (mtu, true);
+		}	
 		else if (localAddress.is_v6 ())
+		{	
 			m_AddressV6 = localAddress;
+			int maxMTU = i2p::util::net::GetMaxMTU (localAddress.to_v6 ());
+			int mtu = i2p::util::net::GetMTU (localAddress);
+			if (mtu > maxMTU) mtu = maxMTU;
+			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+			i2p::context.SetMTU (mtu, false);
+		}	
 	}	
 
 	bool SSU2Server::IsSupported (const boost::asio::ip::address& addr) const
