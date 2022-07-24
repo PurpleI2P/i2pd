@@ -264,31 +264,56 @@ namespace transport
 		{
 			auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
 			auto packet = std::make_shared<SentPacket>();
-			packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+			size_t ackBlockSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
+			packet->payloadSize += ackBlockSize;
 			while (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 			{
 				auto msg = m_SendQueue.front ();
-				size_t len = msg->GetNTCP2Length ();
-				if (len + 3 < m_MaxPayloadSize - packet->payloadSize)
-				{
-					m_SendQueue.pop_front ();
-					packet->payloadSize += CreateI2NPBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, std::move (msg));
-				}
-				else if (len > m_MaxPayloadSize) // message too long
+				size_t len = msg->GetNTCP2Length () + 3;
+				if (len > m_MaxPayloadSize) // message too long
 				{
 					m_SendQueue.pop_front ();
 					SendFragmentedMessage (msg);
 				}
+				else if (packet->payloadSize + len <= m_MaxPayloadSize)
+				{
+					m_SendQueue.pop_front ();
+					packet->payloadSize += CreateI2NPBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, std::move (msg));
+				}
 				else
 				{
+					// create new packet and copy ack block
+					auto newPacket = std::make_shared<SentPacket>();
+					memcpy (newPacket->payload, packet->payload, ackBlockSize);
+					newPacket->payloadSize = ackBlockSize;
+					// complete current packet
+					if (packet->payloadSize > ackBlockSize) // more than just ack block
+					{	
+						// try to add padding
+						if (packet->payloadSize + 16 < m_MaxPayloadSize)
+							packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					}	
+					else
+					{
+						// reduce ack block
+						if (len + 8 < m_MaxPayloadSize)
+						{
+							// keep Ack block and drop some ranges
+							packet->payloadSize = m_MaxPayloadSize - len;
+							if (packet->payloadSize & 0x01) packet->payloadSize--; // make it even 
+							htobe16buf (packet->payload + 1, packet->payloadSize - 3); // new block size
+						}	
+						else // drop Ack block completely
+							packet->payloadSize = 0;	
+						// msg fits single packet
+						m_SendQueue.pop_front ();
+						packet->payloadSize += CreateI2NPBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, std::move (msg));
+					}	
 					// send right a way
-					if (packet->payloadSize + 16 < m_MaxPayloadSize)
-						packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 					uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
 					packet->nextResendTime = nextResend;
 					m_SentPackets.emplace (packetNum, packet);
-					packet = std::make_shared<SentPacket>();
-					packet->payloadSize += CreateAckBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					packet = newPacket; // just ack block
 				}
 			};
 			if (packet->payloadSize)
