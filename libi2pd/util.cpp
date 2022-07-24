@@ -436,8 +436,10 @@ namespace net
 			case 0x260070ff:
 			// Hurricane Electric	
 				return 1480;
-			break;	
+			break;
+			case 0x2a06a003:	
 			case 0x2a06a004:
+			case 0x2a06a005:	
 			//  route48	
 				return 1420;
 			break;	
