@@ -679,6 +679,22 @@ namespace transport
 					it.second->CleanUp (ts);
 			}
 
+			for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.begin ();)
+			{
+				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
+					it = m_SessionsByRouterHash.erase (it);
+				else
+					it++;
+			}		
+
+			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
+			{
+				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
+					it = m_Relays.erase (it);
+				else
+					it++;
+			}	
+			
 			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )
 			{
 				if (ts > it->second.second)
@@ -694,7 +710,8 @@ namespace transport
 				else
 					it++;
 			}
-
+			
+			m_PacketsPool.CleanUpMt ();
 			ScheduleTermination ();
 		}
 	}
