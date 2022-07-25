@@ -2055,6 +2055,8 @@ namespace transport
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;
+		int maxNumRanges = (len - 8) >> 1;
+		if (maxNumRanges > SSU2_MAX_NUM_ACK_RANGES) maxNumRanges = SSU2_MAX_NUM_ACK_RANGES;
 		buf[0] = eSSU2BlkAck;
 		uint32_t ackThrough = m_OutOfSequencePackets.empty () ? m_ReceivePacketNum : *m_OutOfSequencePackets.rbegin ();
 		htobe32buf (buf + 3, ackThrough); // Ack Through
@@ -2078,9 +2080,9 @@ namespace transport
 				{
 					auto d = std::div (acnt - 255, 255);
 					acnt = 255;
-					if (d.quot > SSU2_MAX_NUM_ACK_RANGES) 
+					if (d.quot > maxNumRanges) 
 					{	
-						d.quot = SSU2_MAX_NUM_ACK_RANGES;
+						d.quot = maxNumRanges;
 						d.rem = 0;
 					}	
 					// Acks only ragnes for acnt
@@ -2095,12 +2097,12 @@ namespace transport
 						numRanges++;
 					}	
 				}	
-				while (it != m_OutOfSequencePackets.rend () && numRanges < SSU2_MAX_NUM_ACK_RANGES)
+				while (it != m_OutOfSequencePackets.rend () && numRanges < maxNumRanges)
 				{
 					if (lastNum - (*it) > 255)
 					{	
 						// NACKs only ranges
-						if (lastNum > (*it) + 255*(SSU2_MAX_NUM_ACK_RANGES - numRanges)) break; // too many NACKs 
+						if (lastNum > (*it) + 255*(maxNumRanges - numRanges)) break; // too many NACKs 
 						while (lastNum - (*it) > 255)
 						{
 							buf[8 + numRanges*2] = 255; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
@@ -2124,13 +2126,13 @@ namespace transport
 						numAcks -= 255;
 						numRanges++;
 						buf[8 + numRanges*2] = 0;  // NACKs 0
-						if (numRanges >= SSU2_MAX_NUM_ACK_RANGES) break;
+						if (numRanges >= maxNumRanges) break;
 					}	
 					if (numAcks > 255) numAcks = 255;
 					buf[8 + numRanges*2 + 1] = (uint8_t)numAcks; // Acks
 					numRanges++;		
 				}
-				if (numRanges < SSU2_MAX_NUM_ACK_RANGES && it == m_OutOfSequencePackets.rend ())
+				if (numRanges < maxNumRanges && it == m_OutOfSequencePackets.rend ())
 				{
 					// add range between out-of-seqence and received
 					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
