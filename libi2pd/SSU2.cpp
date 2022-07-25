@@ -234,7 +234,8 @@ namespace transport
 		{
 			ProcessNextPacket (packet->buf, packet->len, packet->from);
 			m_PacketsPool.ReleaseMt (packet);
-			if (m_LastSession) m_LastSession->FlushData ();
+			if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated) 
+				m_LastSession->FlushData ();
 		}
 	}
 
@@ -243,7 +244,8 @@ namespace transport
 		for (auto& packet: packets)
 			ProcessNextPacket (packet->buf, packet->len, packet->from);
 		m_PacketsPool.ReleaseMt (packets);
-		if (m_LastSession) m_LastSession->FlushData ();
+		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated) 
+			m_LastSession->FlushData ();
 	}
 
 	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
@@ -416,7 +418,9 @@ namespace transport
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
 				case eSSU2SessionStateClosing:
-					m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
+					m_LastSession->ProcessData (buf, len); // we might receive termintaion block
+					if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
+						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;	
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;

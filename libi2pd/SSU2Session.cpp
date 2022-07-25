@@ -1308,7 +1308,10 @@ namespace transport
 				break;
 				case eSSU2BlkTermination:
 					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)buf[11]);
-					Terminate ();
+					if (IsEstablished () && buf[11] != eSSU2TerminationReasonTerminationReceived)
+						RequestTermination (eSSU2TerminationReasonTerminationReceived);
+					else	
+						Terminate ();
 				break;
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
