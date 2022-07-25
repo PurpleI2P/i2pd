@@ -1307,7 +1307,7 @@ namespace data
 			else
 				WriteString ("", s);
 
-			if (isPublished)
+			if (isPublished && !address.host.is_unspecified ())
 			{
 				WriteString ("host", properties);
 				properties << '=';
@@ -1410,7 +1410,7 @@ namespace data
 					properties << ';';
 				}
 			}
-			if (isPublished || (address.ssu && !address.IsSSU2 ()))
+			if ((isPublished || (address.ssu && !address.IsSSU2 ())) && address.port)
 			{
 				WriteString ("port", properties);
 				properties << '=';
