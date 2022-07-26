@@ -88,27 +88,34 @@ namespace transport
 
 	void SSU2Server::Stop ()
 	{
-		for (auto& it: m_Sessions)
+		if (IsRunning ())
+		{	
+			m_TerminationTimer.cancel ();
+			m_ResendTimer.cancel ();
+			m_IntroducersUpdateTimer.cancel ();
+			m_IntroducersUpdateTimerV6.cancel ();
+		}	
+		
+		auto sessions = m_Sessions;
+		for (auto& it: sessions)
 		{	
 			it.second->RequestTermination (eSSU2TerminationReasonRouterShutdown);
 			it.second->Done ();
 		}	
+		
+		if (context.SupportsV4 () || context.SupportsV6 ())
+			m_ReceiveService.Stop ();
+		m_SocketV4.close ();
+		m_SocketV6.close ();
+		
+		StopIOService ();
+
 		m_Sessions.clear ();
 		m_SessionsByRouterHash.clear ();
 		m_PendingOutgoingSessions.clear ();
 		m_Relays.clear ();
 		m_Introducers.clear ();
 		m_IntroducersV6.clear ();
-		
-		if (context.SupportsV4 () || context.SupportsV6 ())
-			m_ReceiveService.Stop ();
-
-		m_SocketV4.close ();
-		m_SocketV6.close ();
-		if (IsRunning ())
-			m_TerminationTimer.cancel ();
-		
-		StopIOService ();
 	}
 
 	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
