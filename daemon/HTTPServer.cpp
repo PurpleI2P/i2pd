@@ -182,7 +182,7 @@ namespace http {
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>" << tr("Purple I2P Webconsole") << "</title>\r\n";
+			"  <title>" << tr(/* tr: Webconsole page title */ "Purple I2P Webconsole") << "</title>\r\n";
 		GetStyles(s);
 		s <<
 			"</head>\r\n"
@@ -531,19 +531,21 @@ namespace http {
 			ShowLeaseSetDestination (s, dest, token);
 
 			// Print table with streams information
-			s << "<table>\r\n<caption>" << tr("Streams") << "</caption>\r\n<thead>\r\n<tr>";
-			s << "<th style=\"width:25px;\">StreamID</th>";
-			s << "<th style=\"width:5px;\" \\>"; // Stream closing button column
-			s << "<th class=\"streamdest\">Destination</th>";
-			s << "<th>Sent</th>";
-			s << "<th>Received</th>";
-			s << "<th>Out</th>";
-			s << "<th>In</th>";
-			s << "<th>Buf</th>";
-			s << "<th>RTT</th>";
-			s << "<th>Window</th>";
-			s << "<th>Status</th>";
-			s << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
+			s << "<table>\r\n<caption>"
+			  << tr("Streams")
+			  << "</caption>\r\n<thead>\r\n<tr>"
+			  << "<th style=\"width:25px;\">StreamID</th>"
+			  << "<th style=\"width:5px;\" \\>" // Stream closing button column
+			  << "<th class=\"streamdest\">Destination</th>"
+			  << "<th>Sent</th>"
+			  << "<th>Received</th>"
+			  << "<th>Out</th>"
+			  << "<th>In</th>"
+			  << "<th>Buf</th>"
+			  << "<th>RTT</th>"
+			  << "<th>Window</th>"
+			  << "<th>Status</th>"
+			  << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
 
 			for (const auto& it: dest->GetAllStreams ())
 			{
@@ -739,17 +741,25 @@ namespace http {
 		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
 		s << "</form>\r\n<br>\r\n";
 
-		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
-		s << "<b>" << tr("Change language") << "</b><br>\r\n";
-		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
-		s << "  <select name=\"lang\" id=\"lang\">\r\n";
+		// get current used language
+		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage();
+
+		s << "<b>"
+		  << tr("Change language")
+		  << "</b><br>\r\n"
+		  << "<form method=\"get\" action=\"" << webroot << "\">\r\n"
+		  << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n"
+		  << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
+		  << "  <select name=\"lang\" id=\"lang\">\r\n";
+
 		for (const auto& it: i2p::i18n::languages)
 			s << "    <option value=\"" << it.first << "\"" << ((it.first.compare(currLang) == 0) ? " selected" : "") << ">" << it.second.LocaleName << "</option>\r\n";
-		s << "  </select>\r\n";
-		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
-		s << "</form>\r\n<br>\r\n";
+
+		s << "  </select>\r\n"
+		  << "  <button type=\"submit\">"
+		  << tr("Change")
+		  << "</button>\r\n"
+		  << "</form>\r\n<br>\r\n";
 
 	}
 

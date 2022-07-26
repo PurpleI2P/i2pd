@@ -313,7 +313,7 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
-				ss << tr("Click here to update record:") << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
+				ss << tr(/* tr: The "record" means addressbook's record. That message appears when domain was already added to addressbook, but helper link is opened for it. */ "Click here to update record:" ) << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
 				ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
 				GenericProxyInfo(tr("Addresshelper found"), ss.str());
 				return true; /* request processed */
@@ -422,8 +422,8 @@ namespace proxy {
 	void HTTPReqHandler::ForwardToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: Forwarded to upstream");
-		// build http request
 
+		/* build http request */
 		m_ClientRequestURL = m_RequestURL;
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
 		m_ClientRequestURL.schema = "";
@@ -431,17 +431,17 @@ namespace proxy {
 		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to change uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
-		// update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections
+		/* update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections */
 		if(m_ClientRequest.method != "CONNECT")
 			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0");
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
 
-		// assume http if empty schema
+		/* assume http if empty schema */
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http")
 		{
-			// handle upstream http proxy
+			/* handle upstream http proxy */
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
@@ -449,9 +449,9 @@ namespace proxy {
 				auto auth = i2p::http::CreateBasicAuthorizationString (m_ProxyURL.user, m_ProxyURL.pass);
 				if (!auth.empty ())
 				{
-					// remove existing authorization if any
+					/* remove existing authorization if any */
 					m_ClientRequest.RemoveHeader("Proxy-");
-					// add own http proxy authorization
+					/* add own http proxy authorization */
 					m_ClientRequest.AddHeader("Proxy-Authorization", auth);
 				}
 				m_send_buf = m_ClientRequest.to_string();
@@ -470,7 +470,7 @@ namespace proxy {
 		}
 		else if (m_ProxyURL.schema == "socks")
 		{
-			// handle upstream socks proxy
+			/* handle upstream socks proxy */
 			if (!m_ProxyURL.port) m_ProxyURL.port = 9050; // default to tor default if not specified
 			boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
 			m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
@@ -479,7 +479,7 @@ namespace proxy {
 		}
 		else
 		{
-			// unknown type, complain
+			/* unknown type, complain */
 			GenericProxyError(tr("unknown outproxy url"), m_ProxyURL.to_string());
 		}
 	}
