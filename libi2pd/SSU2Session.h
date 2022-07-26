@@ -222,7 +222,6 @@ namespace transport
 			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
 			void SendKeepAlive ();
-			void Terminate ();
 			void RequestTermination (SSU2TerminationReason reason);
 			void CleanUp (uint64_t ts);
 			void FlushData ();
@@ -246,6 +245,7 @@ namespace transport
 
 		private:
 
+			void Terminate ();
 			void Established ();
 			void ScheduleConnectTimer ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);

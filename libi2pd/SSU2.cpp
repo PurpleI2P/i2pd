@@ -403,7 +403,7 @@ namespace transport
 				case eSSU2SessionStateSessionCreatedSent:
 					if (!m_LastSession->ProcessSessionConfirmed (buf, len))
 					{
-						m_LastSession->Terminate ();
+						m_LastSession->Done ();
 						m_LastSession = nullptr;
 					}	
 				break;
@@ -416,7 +416,7 @@ namespace transport
 					{
 						LogPrint (eLogWarning, "SSU2: HolePunch endpoint ", senderEndpoint,
 							" doesn't match RelayResponse ", m_LastSession->GetRemoteEndpoint ());
-						m_LastSession->Terminate ();
+						m_LastSession->Done ();
 						m_LastSession = nullptr;	
 					}		
 				break;
@@ -678,13 +678,13 @@ namespace transport
 			{
 				auto state = it.second->GetState ();
 				if (state == eSSU2SessionStateTerminated || state == eSSU2SessionStateClosing)
-					GetService ().post (std::bind (&SSU2Session::Terminate, it.second));
+					it.second->Done ();
 				else if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					if (it.second->IsEstablished ())
 						it.second->RequestTermination (eSSU2TerminationReasonIdleTimeout);
 					else
-						GetService ().post (std::bind (&SSU2Session::Terminate, it.second));
+						it.second->Done ();
 				}
 				else
 					it.second->CleanUp (ts);

@@ -1338,7 +1338,7 @@ namespace transport
 					if (IsEstablished () && buf[11] != eSSU2TerminationReasonTerminationReceived)
 						RequestTermination (eSSU2TerminationReasonTerminationReceived);
 					else	
-						Terminate ();
+						Done ();
 				break;
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
@@ -1696,13 +1696,13 @@ namespace transport
 					else
 					{	
 						LogPrint (eLogWarning, "SSU2: RelayResponse signature verification failed");
-						m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, it->second.first));
+						it->second.first->Done ();
 					}	
 				}
 				else
 				{		
 					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1]);
-					m_Server.GetService ().post (std::bind (&SSU2Session::Terminate, it->second.first));
+					it->second.first->Done ();
 				}	
 			}
 			m_RelaySessions.erase (it);
@@ -1898,13 +1898,13 @@ namespace transport
 								else
 								{
 									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found");
-									it->second.first->Terminate ();
+									it->second.first->Done ();
 								}	
 							}
 							else
 							{	
 								LogPrint (eLogWarning, "SSU2: Peer test 4 signature verification failed");
-								it->second.first->Terminate ();
+								it->second.first->Done ();
 							}	
 						}	
 					}
@@ -1914,7 +1914,7 @@ namespace transport
 							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
 						if (GetRouterStatus () == eRouterStatusTesting)
 							SetRouterStatus (eRouterStatusUnknown);
-						it->second.first->Terminate ();
+						it->second.first->Done ();
 					}	
 					m_PeerTests.erase (it);
 				}	
