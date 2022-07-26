@@ -466,7 +466,7 @@ namespace i2p
 
 	bool RouterContext::AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4)
 	{
-		if (!IsSSU2Only ()) return false
+		if (!IsSSU2Only ()) return false;
 		bool ret = m_RouterInfo.AddSSU2Introducer (introducer, v4);
 		if (ret)
 			UpdateRouterInfo ();
