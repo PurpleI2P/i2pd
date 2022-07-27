@@ -979,7 +979,8 @@ namespace data
 		return GetAddress (
 			[key, isV6](std::shared_ptr<const RouterInfo::Address> address)->bool
 			{
-				return address->IsSSU2 () && !memcmp (address->s, key, 32) && address->IsV6 () == isV6;
+				return address->IsSSU2 () && !memcmp (address->s, key, 32) && 
+					((isV6 && address->IsV6 ()) || (!isV6 && address->IsV4 ()));
 			});
 	}
 
