@@ -173,7 +173,7 @@ namespace net
 
 		if(dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU: Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
@@ -185,7 +185,7 @@ namespace net
 
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv4 address, this is not supported");
+				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv4 address, this is not supported");
 
 			for(int i = 0; pUnicast != nullptr; ++i)
 			{
@@ -193,10 +193,13 @@ namespace net
 				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
 				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
 				{
-					auto result = pAddresses->Mtu;
+					char addr[INET_ADDRSTRLEN];
+					inet_ntop(AF_INET, &(((struct sockaddr_in *)localInterfaceAddress)->sin_addr), addr, INET_ADDRSTRLEN);
+
+					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
 					pAddresses = nullptr;
-					LogPrint(eLogInfo, "NetIface: GetMTU(): Using ", result, " bytes for IPv4");
+					LogPrint(eLogInfo, "NetIface: GetMTU: Using ", result, " bytes for IPv4 address ", addr);
 					return result;
 				}
 				pUnicast = pUnicast->Next;
@@ -204,7 +207,7 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv4 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU: No usable unicast IPv4 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
@@ -216,7 +219,7 @@ namespace net
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+		if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
 			== ERROR_BUFFER_OVERFLOW)
 		{
 			FREE(pAddresses);
@@ -227,23 +230,23 @@ namespace net
 			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR)
+		if (dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU: Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
 
 		bool found_address = false;
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses)
+		while (pCurrAddresses)
 		{
 			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
-			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv6 address, this is not supported");
+			if (pUnicast == nullptr)
+				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv6 address, this is not supported");
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			for (int i = 0; pUnicast != nullptr; ++i)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
@@ -258,10 +261,13 @@ namespace net
 
 				if (found_address)
 				{
-					auto result = pAddresses->Mtu;
+					char addr[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)localInterfaceAddress)->sin6_addr), addr, INET6_ADDRSTRLEN);
+
+					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
 					pAddresses = nullptr;
-					LogPrint(eLogInfo, "NetIface: GetMTU(): Using ", result, " bytes for IPv6");
+					LogPrint(eLogInfo, "NetIface: GetMTU: Using ", result, " bytes for IPv6 address ", addr);
 					return result;
 				}
 				pUnicast = pUnicast->Next;
@@ -270,7 +276,7 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv6 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU: No usable unicast IPv6 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
@@ -302,7 +308,7 @@ namespace net
 		}
 		else
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Address family is not supported");
+			LogPrint(eLogError, "NetIface: GetMTU: Address family is not supported");
 			return fallback;
 		}
 	}
@@ -434,20 +440,20 @@ namespace net
 		{
 			case 0x20010470:
 			case 0x260070ff:
-			// Hurricane Electric	
+			// Hurricane Electric
 				return 1480;
 			break;
-			case 0x2a06a003:	
+			case 0x2a06a003:
 			case 0x2a06a004:
-			case 0x2a06a005:	
-			//  route48	
+			case 0x2a06a005:
+			// route48
 				return 1420;
-			break;	
-			default: ;	
-		}	
+			break;
+			default: ;
+		}
 		return 1500;
-	}	
-	
+	}
+
 	static bool IsYggdrasilAddress (const uint8_t addr[16])
 	{
 		return addr[0] == 0x02 || addr[0] == 0x03;

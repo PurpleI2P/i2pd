@@ -230,8 +230,8 @@ namespace i2p
 		auto transports = m_RouterInfo.GetCompatibleTransports (false);
 		return (transports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)) &&
 			!(transports & (i2p::data::RouterInfo::eSSUV4 | i2p::data::RouterInfo::eSSUV6));
-	}	
-		
+	}
+
 	void RouterContext::SetStatus (RouterStatus status)
 	{
 		if (status != m_Status)
@@ -256,8 +256,8 @@ namespace i2p
 	{
 		if (IsSSU2Only ())
 			SetStatus (status);
-	}	
-		
+	}
+
 	void RouterContext::SetStatusV6 (RouterStatus status)
 	{
 		if (status != m_StatusV6)
@@ -281,8 +281,8 @@ namespace i2p
 	{
 		if (IsSSU2Only ())
 			SetStatusV6 (status);
-	}	
-		
+	}
+
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
@@ -472,14 +472,14 @@ namespace i2p
 			UpdateRouterInfo ();
 		return ret;
 	}
-		
+
 	void RouterContext::RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4)
 	{
 		if (!IsSSU2Only ()) return;
 		if (m_RouterInfo.RemoveSSU2Introducer (h, v4))
 			UpdateRouterInfo ();
-	}	
-		
+	}
+
 	void RouterContext::SetFloodfill (bool floodfill)
 	{
 		m_IsFloodfill = floodfill;
@@ -598,8 +598,8 @@ namespace i2p
 	{
 		if (IsSSU2Only ())
 			SetUnreachable (v4, v6);
-	}	
-		
+	}
+
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
 		if (v4 || (v6 && !SupportsV4 ()))
@@ -649,7 +649,7 @@ namespace i2p
 		// delete previous introducers
 		bool isSSU2Published = IsSSU2Only (); // TODO
 		if (isSSU2Published)
-			i2p::config::GetOption ("ssu2.published", isSSU2Published);	
+			i2p::config::GetOption ("ssu2.published", isSSU2Published);
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 			if (addr->ssu && (!addr->IsSSU2 () || isSSU2Published) && 
@@ -880,34 +880,34 @@ namespace i2p
 			if (addr->ssu && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
 				if (!addr->IsSSU2 ()) // SSU1
-				{	
+				{
 					// round to multiple of 16
 					if (v4)
-					{	
+					{
 						if (mtu > 1484) mtu = 1484;
 						else
-						{	
+						{
 							mtu -= 12;
 							mtu = (mtu >> 4) << 4;
 							mtu += 12;
-						}	
-					}		
-					else	
+						}
+					}
+					else
 					{
 						if (mtu > 1488) mtu = 1488;
 						else
 							mtu = (mtu >> 4) << 4;
-					}	
-				}	
+					}
+				}
 				if (mtu)
-				{	
+				{
 					addr->ssu->mtu = mtu;
-					LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address is set to ", mtu);
-				}	
-			}	
-		}	
-	}	
-		
+					LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address ", addr->host.to_string(), " is set to ", mtu);
+				}
+			}
+		}
+	}
+
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
 		bool isYgg = i2p::util::net::IsYggdrasilAddress (host);
