@@ -148,8 +148,11 @@ namespace transport
 		// peer test block
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, nonce);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		SendData (payload, payloadSize);
+		if (payloadSize > 0)
+		{	
+			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+			SendData (payload, payloadSize);
+		}	
 	}	
 
 	void SSU2Session::SendKeepAlive ()
@@ -2314,7 +2317,8 @@ namespace transport
 	size_t SSU2Session::CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce)
 	{
 		auto localAddress = FindLocalAddress ();  
-		if (!localAddress || !localAddress->port || localAddress->host.is_unspecified ()) 
+		if (!localAddress || !localAddress->port || localAddress->host.is_unspecified () ||
+		    localAddress->host.is_v4 () != m_RemoteEndpoint.address ().is_v4 ()) 
 		{
 			LogPrint (eLogWarning, "SSU2: Can't find local address for peer test");
 			return 0;
