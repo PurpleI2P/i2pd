@@ -287,7 +287,7 @@ namespace transport
 			}
 		}
 		if (m_SSUServer || m_SSU2Server) DetectExternalIP ();
-		
+
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
@@ -637,7 +637,7 @@ namespace transport
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			if (m_SSUServer)
-			{	
+			{
 				bool statusChanged = false;
 				for (int i = 0; i < 5; i++)
 				{
@@ -666,7 +666,7 @@ namespace transport
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
 				for (int i = 0; i < 3; i++)
-				{	
+				{
 					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 					if (router)
 					{
@@ -674,9 +674,9 @@ namespace transport
 							i2p::context.SetStatusSSU2 (eRouterStatusTesting);
 						m_SSU2Server->StartPeerTest (router, true);
 						excluded.insert (router->GetIdentHash ());
-					}	
-				}	
-			}	
+					}
+				}
+			}
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
@@ -684,7 +684,7 @@ namespace transport
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			if (m_SSUServer)
-			{	
+			{
 				bool statusChanged = false;
 				for (int i = 0; i < 5; i++)
 				{
@@ -707,24 +707,24 @@ namespace transport
 				if (!statusChanged)
 					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
 			}
-			
+
 			// SSU2
 			if (m_SSU2Server)
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
 				for (int i = 0; i < 3; i++)
-				{	
+				{
 					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 					if (router)
 					{
 						if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
 							i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
 						m_SSU2Server->StartPeerTest (router, false);
+						excluded.insert (router->GetIdentHash ());
 					}
-					excluded.insert (router->GetIdentHash ());
-				}	
-			}	
+				}
+			}
 		}
 	}
 
@@ -847,9 +847,9 @@ namespace transport
 							session->SendLocalRouterInfo (true);
 						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL + 
 							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
-					}	
+					}
 					++it;
-				}	
+				}
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
