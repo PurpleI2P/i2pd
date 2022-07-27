@@ -36,7 +36,7 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-// inet_pton exists Windows since Vista, but XP doesn't have that function!
+// inet_pton and inet_ntop have been in Windows since Vista, but XP doesn't have these functions!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp (int af, const char *src, void *dst)
 {
@@ -62,6 +62,29 @@ int inet_pton_xp (int af, const char *src, void *dst)
 	}
 	return 0;
 }
+
+const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
+{
+	struct sockaddr_storage ss;
+	unsigned long s = size;
+
+	ZeroMemory(&ss, sizeof(ss));
+	ss.ss_family = af;
+
+	switch(af) {
+		case AF_INET:
+			((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
+			break;
+		case AF_INET6:
+			((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
+			break;
+		default:
+			return NULL;
+	}
+	/* cannot direclty use &size because of strict aliasing rules */
+	return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)? dst : NULL;
+}
+
 #else /* !_WIN32 => UNIX */
 #include <sys/types.h>
 #ifdef ANDROID
@@ -134,27 +157,12 @@ namespace util
 namespace net
 {
 #ifdef _WIN32
-	bool IsWindowsXPorLater ()
-	{
-		static bool isRequested = false;
-		static bool isXP = false;
-		if (!isRequested)
-		{
-			// request
-			OSVERSIONINFO osvi;
-
-			ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-			osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-			GetVersionEx(&osvi);
-
-			isXP = osvi.dwMajorVersion <= 5;
-			isRequested = true;
-		}
-		return isXP;
-	}
-
 	int GetMTUWindowsIpv4 (sockaddr_in inputAddress, int fallback)
 	{
+		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
+		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
+
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -194,7 +202,7 @@ namespace net
 				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
 				{
 					char addr[INET_ADDRSTRLEN];
-					inet_ntop(AF_INET, &(((struct sockaddr_in *)localInterfaceAddress)->sin_addr), addr, INET_ADDRSTRLEN);
+					inetntop(AF_INET, &(((struct sockaddr_in *)localInterfaceAddress)->sin_addr), addr, INET_ADDRSTRLEN);
 
 					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
@@ -214,6 +222,10 @@ namespace net
 
 	int GetMTUWindowsIpv6 (sockaddr_in6 inputAddress, int fallback)
 	{
+		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
+		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
+
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -262,7 +274,7 @@ namespace net
 				if (found_address)
 				{
 					char addr[INET6_ADDRSTRLEN];
-					inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)localInterfaceAddress)->sin6_addr), addr, INET6_ADDRSTRLEN);
+					inetntop(AF_INET6, &(((struct sockaddr_in6 *)localInterfaceAddress)->sin6_addr), addr, INET6_ADDRSTRLEN);
 
 					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
