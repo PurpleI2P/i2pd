@@ -24,7 +24,7 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
-		m_WindowSize (SSU2_MAX_WINDOW_SIZE), m_RelayTag (0), 
+		m_WindowSize (SSU2_MIN_WINDOW_SIZE), m_RelayTag (0), 
 		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
 	{
@@ -428,6 +428,8 @@ namespace transport
 #else
 			m_SentPackets.insert (resentPackets.begin (), resentPackets.end ());
 #endif
+			m_WindowSize >>= 1; // /2
+			if (m_WindowSize < SSU2_MIN_WINDOW_SIZE) m_WindowSize = SSU2_MIN_WINDOW_SIZE;
 		}
 		SendQueue ();
 	}
@@ -1451,8 +1453,18 @@ namespace transport
 		while (it != m_SentPackets.end () && it->first < firstPacketNum) it++; // find first acked packet
 		if (it == m_SentPackets.end () || it->first > lastPacketNum) return; // not found
 		auto it1 = it;
-		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) it1++;
+		int numPackets = 0;
+		while (it1 != m_SentPackets.end () && it1->first <= lastPacketNum) 
+		{	
+			it1++;
+			numPackets++;
+		}	
 		m_SentPackets.erase (it, it1);
+		if (numPackets > 0)
+		{
+			m_WindowSize += numPackets;
+			if (m_WindowSize > SSU2_MAX_WINDOW_SIZE) m_WindowSize = SSU2_MAX_WINDOW_SIZE;
+		}	
 	}
 
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
