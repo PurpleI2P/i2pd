@@ -35,7 +35,7 @@ namespace transport
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
-	const int SSU2_RESEND_INTERVAL = 3; // in seconds
+	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const size_t SSU2_MIN_WINDOW_SIZE = 8; // in packets
@@ -189,7 +189,7 @@ namespace transport
 		{
 			uint8_t payload[SSU2_MAX_PACKET_SIZE];
 			size_t payloadSize = 0;
-			uint32_t nextResendTime; // in seconds
+			uint64_t nextResendTime; // in milliseconds
 			int numResends = 0;
 		};
 
@@ -199,7 +199,7 @@ namespace transport
 			uint8_t headerX[48]; // part1 for SessionConfirmed
 			uint8_t payload[SSU2_MAX_PACKET_SIZE*2];
 			size_t payloadSize = 0;
-			uint32_t nextResendTime = 0; // in seconds
+			uint64_t nextResendTime = 0; // in milliseconds
 			bool isSecondFragment = false; // for SessionConfirmed
 		};
 

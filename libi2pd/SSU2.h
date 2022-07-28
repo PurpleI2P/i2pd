@@ -17,7 +17,8 @@ namespace i2p
 {
 namespace transport
 {
-	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // in seconds
+	const int SSU2_RESEND_CHECK_TIMEOUT = 500; // in milliseconds
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;

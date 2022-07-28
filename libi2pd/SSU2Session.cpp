@@ -265,7 +265,7 @@ namespace transport
 	{
 		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 		{
-			auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
+			auto nextResend = i2p::util::GetMillisecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
 			auto packet = std::make_shared<SentPacket>();
 			size_t ackBlockSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
 			bool ackBlockSent = false;
@@ -344,7 +344,7 @@ namespace transport
 		bool ackBlockSent = false;
 		uint32_t msgID;
 		memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4);
-		auto nextResend = i2p::util::GetSecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
+		auto nextResend = i2p::util::GetMillisecondsSinceEpoch () + SSU2_RESEND_INTERVAL;
 		auto packet = std::make_shared<SentPacket>();
 		if (extraSize >= 8)
 		{	
@@ -414,7 +414,6 @@ namespace transport
 					uint32_t packetNum = SendData (it->second->payload, it->second->payloadSize);
 					it->second->numResends++;
 					it->second->nextResendTime = ts + it->second->numResends*SSU2_RESEND_INTERVAL;
-					m_LastActivityTimestamp = ts;
 					resentPackets.emplace (packetNum, it->second);
 					it = m_SentPackets.erase (it);
 				}
@@ -486,7 +485,7 @@ namespace transport
 		// we are Alice
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		m_SentHandshakePacket.reset (new HandshakePacket);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
 		
 		Header& header = m_SentHandshakePacket->header;
@@ -505,7 +504,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, ts);
+		htobe32buf (payload + 3, ts/1000);
 		size_t payloadSize = 7;
 		if (GetRouterStatus () == eRouterStatusFirewalled && m_Address->IsIntroducer ())
 		{
@@ -587,7 +586,7 @@ namespace transport
 		// we are Bob
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 		m_SentHandshakePacket.reset (new HandshakePacket);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
 		
 		uint8_t kh2[32];
@@ -609,7 +608,7 @@ namespace transport
 		size_t maxPayloadSize = m_MaxPayloadSize - 48;
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, ts);
+		htobe32buf (payload + 3, ts/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, maxPayloadSize - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
@@ -700,8 +699,7 @@ namespace transport
 	{
 		// we are Alice
 		m_SentHandshakePacket.reset (new HandshakePacket);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		m_SentHandshakePacket->nextResendTime = ts + SSU2_HANDSHAKE_RESEND_INTERVAL;
+		m_SentHandshakePacket->nextResendTime = i2p::util::GetMillisecondsSinceEpoch () + SSU2_HANDSHAKE_RESEND_INTERVAL;
 		
 		uint8_t kh2[32];
 		i2p::crypto::HKDF (m_NoiseState->m_CK, nullptr, 0, "SessionConfirmed", kh2, 32); // k_header_2 = HKDF(chainKey, ZEROLEN, "SessionConfirmed", 32)
