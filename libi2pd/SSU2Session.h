@@ -34,15 +34,15 @@ namespace transport
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
-	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1; // in seconds
+	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in millseconds
 	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
-	const size_t SSU2_MIN_WINDOW_SIZE = 8; // in packets
-	const size_t SSU2_MAX_WINDOW_SIZE = 128; // in packets
-	const size_t SSU2_MIN_RTO = 10; // in milliseconds
-	const size_t SSU2_MAX_RTO = 2000; // in milliseconds
-	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 300; // in messages
+	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
+	const size_t SSU2_MAX_WINDOW_SIZE = 256; // in packets
+	const size_t SSU2_MIN_RTO = 100; // in milliseconds
+	const size_t SSU2_MAX_RTO = 2500; // in milliseconds
+	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 
 	enum SSU2MessageType
