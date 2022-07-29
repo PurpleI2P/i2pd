@@ -646,8 +646,9 @@ namespace transport
 			else	
 				s->SetOnEstablished ([s]() { s->SendPeerTest (); });	
 			return true;	
-		}	
-		CreateSession (router, addr, true);
+		}
+		else 
+			CreateSession (router, addr, true);
 		return true;
 	}	
 		
