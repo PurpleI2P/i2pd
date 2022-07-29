@@ -792,7 +792,7 @@ namespace transport
 		std::list<std::shared_ptr<SSU2Session> > ret;
 		for (const auto& s : m_Sessions)
 		{
-			if (s.second->IsEstablished () && (s.second->GetRelayTag () && !s.second->IsOutgoing ()) &&	
+			if (s.second->IsEstablished () && (s.second->GetRelayTag () && s.second->IsOutgoing ()) &&	
 			    !excluded.count (s.second->GetRemoteIdentity ()->GetIdentHash ()) &&
 			    ((v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V4)) ||
 			     (!v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V6))))
