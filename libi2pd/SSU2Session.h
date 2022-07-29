@@ -40,6 +40,8 @@ namespace transport
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const size_t SSU2_MIN_WINDOW_SIZE = 8; // in packets
 	const size_t SSU2_MAX_WINDOW_SIZE = 128; // in packets
+	const size_t SSU2_MIN_RTO = 10; // in milliseconds
+	const size_t SSU2_MAX_RTO = 2000; // in milliseconds
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 300; // in messages
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 
@@ -189,7 +191,7 @@ namespace transport
 		{
 			uint8_t payload[SSU2_MAX_PACKET_SIZE];
 			size_t payloadSize = 0;
-			uint64_t nextResendTime; // in milliseconds
+			uint64_t sendTime; // in milliseconds
 			int numResends = 0;
 		};
 
@@ -199,7 +201,7 @@ namespace transport
 			uint8_t headerX[48]; // part1 for SessionConfirmed
 			uint8_t payload[SSU2_MAX_PACKET_SIZE*2];
 			size_t payloadSize = 0;
-			uint64_t nextResendTime = 0; // in milliseconds
+			uint64_t sendTime = 0; // in milliseconds
 			bool isSecondFragment = false; // for SessionConfirmed
 		};
 
@@ -272,7 +274,7 @@ namespace transport
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
-			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum);
+			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
 			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
@@ -325,7 +327,7 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
-			size_t m_WindowSize;
+			size_t m_WindowSize, m_RTT, m_RTO;
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
 			boost::asio::deadline_timer m_ConnectTimer;
