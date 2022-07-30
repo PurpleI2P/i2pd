@@ -945,9 +945,9 @@ namespace data
 		}
 		uint16_t numExcluded = bufbe16toh (excluded);
 		excluded += 2;
-		if (numExcluded > 512)
+		if (numExcluded > 512 || (excluded - buf) + numExcluded*32 > (int)msg->GetPayloadLength ())
 		{
-			LogPrint (eLogWarning, "NetDb: Number of excluded peers", numExcluded, " exceeds 512");
+			LogPrint (eLogWarning, "NetDb: Number of excluded peers", numExcluded, " is too much");
 			return;
 		}
 
@@ -956,10 +956,11 @@ namespace data
 		{
 			LogPrint (eLogInfo, "NetDb: Exploratory close to ", key, " ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
+			const uint8_t * excluded_ident = excluded;
 			for (int i = 0; i < numExcluded; i++)
 			{
-				excludedRouters.insert (excluded);
-				excluded += 32;
+				excludedRouters.insert (excluded_ident);
+				excluded_ident += 32;
 			}
 			std::vector<IdentHash> routers;
 			for (int i = 0; i < 3; i++)
@@ -1017,7 +1018,7 @@ namespace data
 				if (closestFloodfills.empty ())
 					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
-		}
+			}
 		}
 		excluded += numExcluded * 32;
 		if (replyMsg)
