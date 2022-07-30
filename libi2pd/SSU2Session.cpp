@@ -2313,7 +2313,7 @@ namespace transport
 		size_t payloadSize = 12 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
 		if (!code)
 		{
-			memcpy (buf + payloadSize, &token, 8);
+			memcpy (buf + 3 + payloadSize, &token, 8);
 			payloadSize += 8;
 		}	
 		htobe16buf (buf + 1, payloadSize); // size
