@@ -1070,6 +1070,7 @@ namespace transport
 		const uint8_t * introKey, uint64_t token)
 	{
 		// we are Charlie
+		LogPrint (eLogDebug, "SSU2: Sending HolePunch to ", ep);
 		Header header;
 		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
 		// fill packet
@@ -1641,11 +1642,14 @@ namespace transport
 							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
 						}	
 						else
+						{	
+							LogPrint (eLogWarning, "SSU2: RelayIntro unsupported address");
 							code = eSSU2RelayResponseCodeCharlieUnsupportedAddress;
+						}	
 					}	
 					else
 					{
-						LogPrint (eLogWarning, "SSU2: RelayInfo unknown address");
+						LogPrint (eLogWarning, "SSU2: RelayIntro unknown address");
 						code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;	
 					}		
 				}

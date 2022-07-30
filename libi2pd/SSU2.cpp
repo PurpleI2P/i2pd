@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <random>
 #include "Log.h"
 #include "RouterContext.h"
 #include "Transports.h"
@@ -576,18 +577,27 @@ namespace transport
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		std::shared_ptr<i2p::data::RouterInfo> r;
 		uint32_t relayTag = 0;
-		for (auto& it: address->ssu->introducers)
-		{
-			if (it.iTag && ts < it.iExp)
-			{	
-				r = i2p::data::netdb.FindRouter (it.iKey);
-				if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
-				{
-					relayTag = it.iTag;
-					if (relayTag) break;
-				}
-			}	
-		}
+		if (!address->ssu->introducers.empty ())
+		{	
+			std::vector<int> indicies;
+			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indicies.push_back(i);
+			if (indicies.size () > 1)
+				std::shuffle (indicies.begin(), indicies.end(), std::mt19937(std::random_device()()));
+
+			for (auto i: indicies)
+			{
+				const auto& introducer = address->ssu->introducers[indicies[i]]; 
+				if (introducer.iTag && ts < introducer.iExp)
+				{	
+					r = i2p::data::netdb.FindRouter (introducer.iKey);
+					if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+					{
+						relayTag = introducer.iTag;
+						if (relayTag) break;
+					}
+				}	
+			}
+		}	
 		if (r)
 		{
 			if (relayTag)
