@@ -793,12 +793,13 @@ namespace http {
 		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
 		for (const auto& it: sessions )
 		{
-			if (it.second && it.second->IsEstablished () && !it.second->GetRemoteEndpoint ().address ().is_v6 ())
+			auto endpoint = it.second->GetRemoteEndpoint ();
+			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v4 ())
 			{
 				tmp_s << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< it.second->GetRemoteEndpoint ().address ().to_string ();
+					<< endpoint.address ().to_string () << ":" << endpoint.port ();
 				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
@@ -806,12 +807,12 @@ namespace http {
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
-			if (it.second && it.second->IsEstablished () && it.second->GetRemoteEndpoint ().address ().is_v6 ())
+			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v6 ())
 			{
 				tmp_s6 << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< "[" << it.second->GetRemoteEndpoint ().address ().to_string () << "]";
+					<< "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
 				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
