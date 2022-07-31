@@ -25,7 +25,7 @@ namespace transport
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_IsDataReceived (false), 
 		m_WindowSize (SSU2_MIN_WINDOW_SIZE), m_RTT (SSU2_RESEND_INTERVAL), 
-		m_RTO (SSU2_RESEND_INTERVAL*1.5), m_RelayTag (0), 
+		m_RTO (SSU2_RESEND_INTERVAL*SSU2_kAPPA), m_RelayTag (0), 
 		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
 	{
@@ -1462,7 +1462,7 @@ namespace transport
 				{
 					auto rtt = ts - it1->second->sendTime;
 					m_RTT = (m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1);
-					m_RTO = m_RTT*1.5;
+					m_RTO = m_RTT*SSU2_kAPPA;
 					if (m_RTO < SSU2_MIN_RTO) m_RTO = SSU2_MIN_RTO;
 					if (m_RTO > SSU2_MAX_RTO) m_RTO = SSU2_MAX_RTO;
 				}	
