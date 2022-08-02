@@ -292,7 +292,7 @@ namespace transport
 					// session already exists
 					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
 					// terminate existing
-					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonTerminationReceived));
+					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonReplacedByNewSession));
 					// update session
 					ret.first->second = session;
 				}

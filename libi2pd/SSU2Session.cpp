@@ -1403,8 +1403,11 @@ namespace transport
 					break;
 				}
 				case eSSU2BlkPathChallenge:
+					LogPrint (eLogDebug, "SSU2: Path challenge");
+					SendPathResponse (buf + offset, size);
 				break;
 				case eSSU2BlkPathResponse:
+					LogPrint (eLogDebug, "SSU2: Path response");
 				break;
 				case eSSU2BlkFirstPacketNumber:
 				break;
@@ -2440,6 +2443,19 @@ namespace transport
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 32 - payloadSize);
 		SendData (payload, payloadSize);
 	}
+
+	void SSU2Session::SendPathResponse (const uint8_t * data, size_t len)
+	{
+		if (len < 8 || len > m_MaxPayloadSize - 3)
+		{
+			LogPrint (eLogWarning, "SSU2: Incorrect data size for path response ", len);
+			return;
+		}	
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
+		payload[0] = eSSU2BlkPathResponse;
+		htobe16buf (payload + 1, len);
+		SendData (payload, len + 3);
+	}	
 		
 	void SSU2Session::CleanUp (uint64_t ts)
 	{

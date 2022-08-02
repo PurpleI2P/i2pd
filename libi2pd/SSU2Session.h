@@ -150,7 +150,8 @@ namespace transport
 		eSSU2TerminationReasonBadToken = 18,
 		eSSU2TerminationReasonConnectionLimits = 19,
 		eSSU2TerminationReasonIncompatibleVersion = 20,
-		eSSU2TerminationReasonWrongNetID = 21
+		eSSU2TerminationReasonWrongNetID = 21,
+		eSSU2TerminationReasonReplacedByNewSession = 22
 	};	
 	
 	struct SSU2IncompleteMessage
@@ -272,6 +273,7 @@ namespace transport
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);
 			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message 
+			void SendPathResponse (const uint8_t * data, size_t len);
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
