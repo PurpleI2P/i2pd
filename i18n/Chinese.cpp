@@ -12,7 +12,7 @@
 #include <memory>
 #include "I18N.h"
 
-// English localization file
+// Simplified Chinese localization file
 // This is an example translation file without strings in it.
 
 namespace i2p
