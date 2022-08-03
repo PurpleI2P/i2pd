@@ -18,6 +18,21 @@ namespace i2p
 {
 namespace transport
 {
+	void SSU2IncompleteMessage::AttachNextFragment (const uint8_t * fragment, size_t fragmentSize)
+	{
+		if (msg->len + fragmentSize > msg->maxLen)
+		{
+			LogPrint (eLogInfo, "SSU2: I2NP message size ", msg->maxLen, " is not enough");
+			auto newMsg = NewI2NPMessage ();
+			*newMsg = *msg;
+			msg = newMsg;
+		}
+		if (msg->Concat (fragment, fragmentSize) < fragmentSize)
+			LogPrint (eLogError, "SSU2: I2NP buffer overflow ", msg->maxLen);
+		nextFragmentNum++;
+	}
+	
+	
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
@@ -1519,7 +1534,7 @@ namespace transport
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
 	{
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
-		auto msg = NewI2NPMessage ();
+		auto msg = NewI2NPShortMessage ();
 		// same format as I2NP message block
 		msg->len = msg->offset + len + 7;
 		memcpy (msg->GetNTCP2Header (), buf, len);
@@ -1557,10 +1572,11 @@ namespace transport
 		auto it = m_IncompleteMessages.find (msgID);
 		if (it != m_IncompleteMessages.end ())
 		{
-			if (it->second->nextFragmentNum == fragmentNum && it->second->msg)
+			if (it->second->nextFragmentNum == fragmentNum && fragmentNum < SSU2_MAX_NUM_FRAGMENTS && 
+			    it->second->msg)
 			{
 				// in sequence
-				it->second->msg->Concat (buf + 5, len - 5);
+				it->second->AttachNextFragment (buf + 5, len - 5);
 				if (isLast)
 				{
 					it->second->msg->FromNTCP2 ();
@@ -1569,7 +1585,6 @@ namespace transport
 				}
 				else
 				{
-					it->second->nextFragmentNum++;
 					if (ConcatOutOfSequenceFragments (it->second))
 					{
 						m_Handler.PutNextMessage (std::move (it->second->msg));
@@ -1589,6 +1604,11 @@ namespace transport
 			it = m_IncompleteMessages.emplace (msgID, msg).first;
 		}
 		// insert out of sequence fragment
+		if (fragmentNum >= SSU2_MAX_NUM_FRAGMENTS)
+		{
+			LogPrint (eLogWarning, "SSU2: Fragment number ", fragmentNum, " exceeds ", SSU2_MAX_NUM_FRAGMENTS);
+			return;
+		}	
 		auto fragment = std::make_shared<SSU2IncompleteMessage::Fragment> ();
 		memcpy (fragment->buf, buf + 5, len -5);
 		fragment->len = len - 5;
@@ -1604,10 +1624,9 @@ namespace transport
 		for (auto it = m->outOfSequenceFragments.begin (); it != m->outOfSequenceFragments.end ();)
 			if (it->first == m->nextFragmentNum)
 			{
-				m->msg->Concat (it->second->buf, it->second->len);
+				m->AttachNextFragment (it->second->buf, it->second->len);
 				isLast = it->second->isLast;
 				it = m->outOfSequenceFragments.erase (it);
-				m->nextFragmentNum++;
 			}
 			else
 				break;

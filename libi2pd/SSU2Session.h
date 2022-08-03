@@ -45,6 +45,7 @@ namespace transport
 	const float SSU2_kAPPA = 1.8;
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
+	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 
 	enum SSU2MessageType
 	{
@@ -167,6 +168,8 @@ namespace transport
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
 		std::map<int, std::shared_ptr<Fragment> > outOfSequenceFragments;
+
+		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};
 
 	// RouterInfo flags
