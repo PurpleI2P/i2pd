@@ -1320,7 +1320,7 @@ namespace transport
 				case eSSU2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "SSU2: I2NP message");
-					auto nextMsg = NewI2NPShortMessage ();
+					auto nextMsg = (buf[offset] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), buf + offset, size);
 					nextMsg->FromNTCP2 (); // SSU2 has the same format as NTCP2
