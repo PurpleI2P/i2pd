@@ -73,6 +73,7 @@ namespace i18n
 	// Add localization here with language name as namespace
 	namespace afrikaans { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace armenian  { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace chinese   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace english   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace french    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace german    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -88,6 +89,7 @@ namespace i18n
 	{
 		{ "afrikaans", {"Afrikaans", "af", i2p::i18n::afrikaans::GetLocale} },
 		{ "armenian", {"հայերէն", "hy", i2p::i18n::armenian::GetLocale} },
+		{ "chinese", {"简体字", "zh-CN", i2p::i18n::chinese::GetLocale} },
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
