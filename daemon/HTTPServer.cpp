@@ -222,7 +222,7 @@ namespace http {
 		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, RouterError error)
 	{
 		switch (status)
 		{
@@ -235,7 +235,7 @@ namespace http {
 			case eRouterStatusError:
 			{
 				s << tr("Error");
-				switch (i2p::context.GetError ())
+				switch (error)
 				{
 					case eRouterErrorClockSkew:
 						s << " - " << tr("Clock skew");
@@ -260,12 +260,12 @@ namespace http {
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
 		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetError ());
 		s << "<br>\r\n";
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetErrorV6 ());
 			s << "<br>\r\n";
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))

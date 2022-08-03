@@ -55,6 +55,7 @@ namespace transport
 			boost::asio::io_service& GetService () { return GetIOService (); };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			bool IsSupported (const boost::asio::ip::address& addr) const;
+			uint16_t GetPort (bool v4) const;
 		
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);

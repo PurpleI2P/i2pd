@@ -109,6 +109,8 @@ namespace garlic
 			RouterStatus GetStatusV6 () const { return m_StatusV6; };
 			void SetStatusV6 (RouterStatus status);
 			void SetStatusV6SSU2 (RouterStatus status);
+			RouterError GetErrorV6 () const { return m_ErrorV6; };
+			void SetErrorV6 (RouterError error) { m_StatusV6 = eRouterStatusError; m_ErrorV6 = error; };
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);
@@ -197,7 +199,7 @@ namespace garlic
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;
 			RouterStatus m_Status, m_StatusV6;
-			RouterError m_Error;
+			RouterError m_Error, m_ErrorV6;
 			int m_NetID;
 			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;

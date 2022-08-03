@@ -1370,16 +1370,9 @@ namespace transport
 					HandleAck (buf + offset, size);
 				break;
 				case eSSU2BlkAddress:
-				{
-					boost::asio::ip::udp::endpoint ep;
-					if (ExtractEndpoint (buf + offset, size, ep))
-					{		
-						LogPrint (eLogInfo, "SSU2: Our external address is ", ep);
-						if (!i2p::util::net::IsInReservedRange (ep.address ()))
-							i2p::context.UpdateAddress (ep.address ());
-					}	
-					break;
-				}
+					LogPrint (eLogDebug, "SSU2: Address");
+					HandleAddress (buf + offset, size);
+				break;
 				case eSSU2BlkIntroKey:
 				break;
 				case eSSU2BlkRelayTagRequest:
@@ -1482,6 +1475,47 @@ namespace transport
 		}	
 	}
 
+	void SSU2Session::HandleAddress (const uint8_t * buf, size_t len)
+	{
+		boost::asio::ip::udp::endpoint ep;
+		if (ExtractEndpoint (buf, len, ep))
+		{		
+			LogPrint (eLogInfo, "SSU2: Our external address is ", ep);
+			if (!i2p::util::net::IsInReservedRange (ep.address ()))
+			{	
+				i2p::context.UpdateAddress (ep.address ());
+				// check our port
+				bool isV4 = ep.address ().is_v4 ();
+				if (ep.port () != m_Server.GetPort (isV4))
+				{
+					if (isV4)
+					{
+						if (i2p::context.GetStatus () == eRouterStatusTesting)
+							i2p::context.SetError (eRouterErrorSymmetricNAT);
+					}	
+					else
+					{
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
+					}						
+ 				}	
+				else
+				{
+					if (isV4)
+					{
+						if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
+							i2p::context.SetStatus (eRouterStatusTesting);
+					}	
+					else
+					{
+						if (i2p::context.GetStatusV6 () == eRouterStatusError && i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
+							i2p::context.SetStatusV6 (eRouterStatusTesting);
+					}		
+				}	
+			}	
+		}	
+	}	
+		
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
 	{
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);

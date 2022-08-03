@@ -155,6 +155,14 @@ namespace transport
 		}
 		return false;
 	}	
+
+	uint16_t SSU2Server::GetPort (bool v4) const
+	{
+		boost::system::error_code ec;
+		boost::asio::ip::udp::endpoint ep = v4 ? m_SocketV4.local_endpoint (ec) : m_SocketV6.local_endpoint (ec);
+		if (ec) return 0;
+		return ep.port ();
+	}	
 		
 	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)
 	{

@@ -29,7 +29,7 @@ namespace i2p
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
-		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
+		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
 
@@ -263,6 +263,7 @@ namespace i2p
 		if (status != m_StatusV6)
 		{
 			m_StatusV6 = status;
+			m_ErrorV6 = eRouterErrorNone;
 			switch (m_StatusV6)
 			{
 				case eRouterStatusOK:
