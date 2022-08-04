@@ -1106,7 +1106,7 @@ namespace transport
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, ep);
 		payloadSize += CreateRelayResponseBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, 
-			eSSU2RelayResponseCodeAccept, nonce, true, token);
+			eSSU2RelayResponseCodeAccept, nonce, token, ep.address ().is_v4 ());
 		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		// encrypt
 		uint8_t n[12];
@@ -1644,7 +1644,7 @@ namespace transport
 			// send relay response back to Alice
 			uint8_t payload[SSU2_MAX_PACKET_SIZE];
 			size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize, 
-				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), false, 0);
+				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), 0, false);
 			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 			SendData (payload, payloadSize);
 			return; 
@@ -1673,6 +1673,7 @@ namespace transport
 		// we are Charlie
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		uint64_t token = 0;
+		bool isV4 = false;
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
 		if (r)
 		{	
@@ -1695,6 +1696,7 @@ namespace transport
 						if (m_Server.IsSupported (ep.address ()))
 						{
 							token = m_Server.GetIncomingToken (ep);
+							isV4 = ep.address ().is_v4 ();
 							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
 						}	
 						else
@@ -1709,6 +1711,11 @@ namespace transport
 						code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;	
 					}		
 				}
+				else
+				{
+					LogPrint (eLogWarning, "SSU2: RelayIntro can't extract endpoint");
+					code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;	
+				}	
 			}
 			else
 			{
@@ -1724,7 +1731,7 @@ namespace transport
 		// send relay response to Bob
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize, 
-			code, bufbe32toh (buf + 33), true, token);
+			code, bufbe32toh (buf + 33), token, isV4);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		SendData (payload, payloadSize);
 	}
@@ -2345,7 +2352,7 @@ namespace transport
 	}
 
 	size_t SSU2Session::CreateRelayResponseBlock (uint8_t * buf, size_t len, 
-		SSU2RelayResponseCode code, uint32_t nonce, bool endpoint, uint64_t token)
+		SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4)
 	{
 		buf[0] = eSSU2BlkRelayResponse;
 		buf[3] = 0; // flag
@@ -2354,21 +2361,45 @@ namespace transport
 		htobe32buf (buf + 9, i2p::util::GetSecondsSinceEpoch ()); // timestamp
 		buf[13] = 2; // ver
 		size_t csz = 0;
-		if (endpoint)
+		if (code == eSSU2RelayResponseCodeAccept)
 		{	
-			csz = CreateEndpoint (buf + 15, len - 15, boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port));
-			if (!csz) return 0;
+			auto addr = i2p::context.GetRouterInfo ().GetSSU2Address (v4);
+			if (!addr)
+			{
+				LogPrint (eLogError, "SSU2: Can't find local address for RelayResponse");
+				return 0;
+			}	
+			csz = CreateEndpoint (buf + 15, len - 15, boost::asio::ip::udp::endpoint (addr->host, addr->port));
+			if (!csz) 
+			{	
+				LogPrint (eLogError, "SSU2: Can't create local endpoint for RelayResponse");
+				return 0;
+			}	
 		}	
 		buf[14] = csz; // csz
 		// signature
+		size_t signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
+		if (15 + csz + signatureLen > len)
+		{
+			LogPrint (eLogError, "SSU2: Buffer for RelayResponse signature is too small ", len);
+			return 0;
+		}	
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayAgreementOK", 16); // prologue
-		s.Insert (endpoint ? GetRemoteIdentity ()->GetIdentHash () : i2p::context.GetIdentity ()->GetIdentHash (), 32); // bhash
+		if (code == eSSU2RelayResponseCodeAccept || code >= 64) // Charlie
+			s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
+		else // Bob's reject
+			s.Insert (i2p::context.GetIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (buf + 5, 10 + csz); // nonce, timestamp, ver, csz and Charlie's endpoint
 		s.Sign (i2p::context.GetPrivateKeys (), buf + 15 + csz);
-		size_t payloadSize = 12 + csz + i2p::context.GetIdentity ()->GetSignatureLen ();
+		size_t payloadSize = 12 + csz + signatureLen;
 		if (!code)
 		{
+			if (payloadSize + 11 > len)
+			{
+				LogPrint (eLogError, "SSU2: Buffer for RelayResponse token is too small ", len);
+				return 0;
+			}	
 			memcpy (buf + 3 + payloadSize, &token, 8);
 			payloadSize += 8;
 		}	

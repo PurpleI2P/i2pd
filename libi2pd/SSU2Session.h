@@ -307,7 +307,7 @@ namespace transport
 			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
-			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, bool endpoint, uint64_t token); // add endpoint for Chralie and no endpoint for Bob
+			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4); 
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
