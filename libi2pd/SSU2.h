@@ -87,6 +87,8 @@ namespace transport
 		
 			void RescheduleIntroducersUpdateTimer ();
 			void RescheduleIntroducersUpdateTimerV6 ();
+
+			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
 		
 		private:
 
@@ -124,6 +126,7 @@ namespace transport
 			std::map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
+			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
 			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer,
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;

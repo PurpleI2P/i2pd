@@ -172,6 +172,14 @@ namespace transport
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 	};
 
+	struct SSU2SentPacket
+	{
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
+		size_t payloadSize = 0;
+		uint64_t sendTime; // in milliseconds
+		int numResends = 0;
+	};
+	
 	// RouterInfo flags
 	const uint8_t SSU2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
 	const uint8_t SSU2_ROUTER_INFO_FLAG_GZIP = 0x02;
@@ -190,14 +198,6 @@ namespace transport
 				uint8_t type;
 				uint8_t flags[3];
 			} h;
-		};
-
-		struct SentPacket
-		{
-			uint8_t payload[SSU2_MAX_PACKET_SIZE];
-			size_t payloadSize = 0;
-			uint64_t sendTime; // in milliseconds
-			int numResends = 0;
 		};
 
 		struct HandshakePacket
@@ -327,7 +327,7 @@ namespace transport
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64];
 			uint32_t m_SendPacketNum, m_ReceivePacketNum;
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
-			std::map<uint32_t, std::shared_ptr<SentPacket> > m_SentPackets; // packetNum -> packet
+			std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > m_SentPackets; // packetNum -> packet
 			std::map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // I2NP
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_PeerTests; // same as for relay sessions

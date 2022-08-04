@@ -282,7 +282,7 @@ namespace transport
 		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			auto packet = std::make_shared<SentPacket>();
+			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			size_t ackBlockSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
 			bool ackBlockSent = false;
 			packet->payloadSize += ackBlockSize;
@@ -304,7 +304,7 @@ namespace transport
 				else
 				{
 					// create new packet and copy ack block
-					auto newPacket = std::make_shared<SentPacket>();
+					auto newPacket = m_Server.GetSentPacketsPool ().AcquireShared ();
 					memcpy (newPacket->payload, packet->payload, ackBlockSize);
 					newPacket->payloadSize = ackBlockSize;
 					// complete current packet
@@ -361,7 +361,7 @@ namespace transport
 		uint32_t msgID;
 		memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4);
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		auto packet = std::make_shared<SentPacket>();
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 		if (extraSize >= 8)
 		{	
 			packet->payloadSize = CreateAckBlock (packet->payload, extraSize);
@@ -371,7 +371,7 @@ namespace transport
 				uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
 				packet->sendTime = ts;
 				m_SentPackets.emplace (packetNum, packet);
-				packet = std::make_shared<SentPacket>();
+				packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			}	
 			else	
 				extraSize -= packet->payloadSize;
@@ -389,7 +389,7 @@ namespace transport
 		while (msg->offset < msg->len)
 		{
 			offset = extraSize > 0 ? (rand () % extraSize) : 0;
-			packet = std::make_shared<SentPacket>();
+			packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			packet->payloadSize = CreateFollowOnFragmentBlock (packet->payload, m_MaxPayloadSize - offset, msg, fragmentNum, msgID);
 			extraSize -= offset;
 			if (msg->offset >= msg->len && packet->payloadSize + 16 < m_MaxPayloadSize) // last fragment
@@ -413,7 +413,7 @@ namespace transport
 		}	
 		// resend data packets
 		if (m_SentPackets.empty ()) return;
-		std::map<uint32_t, std::shared_ptr<SentPacket> > resentPackets;
+		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
 			if (ts >= it->second->sendTime + it->second->numResends*m_RTO)
 			{

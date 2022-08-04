@@ -742,6 +742,7 @@ namespace transport
 			}
 			
 			m_PacketsPool.CleanUpMt ();
+			m_SentPacketsPool.CleanUp ();
 			ScheduleTermination ();
 		}
 	}
