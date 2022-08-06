@@ -347,10 +347,11 @@ namespace i2p
 				{
 					(*it)->s = m_NTCP2Keys->staticPublicKey;
 					memcpy ((*it)->i, m_NTCP2Keys->iv, 16);
+					it++;
 				}	
 				else
 					it = addresses.erase (it);
-				updated = true;;
+				updated = true;
 			}
 			else
 				it++;
@@ -399,6 +400,7 @@ namespace i2p
 				{
 					(*it)->s = m_SSU2Keys->staticPublicKey;
 					(*it)->i = m_SSU2Keys->intro;
+					it++;
 				}	
 				else	
 					it = addresses.erase (it);
