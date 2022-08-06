@@ -338,18 +338,22 @@ namespace i2p
 	{
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		bool found = false, updated = false;
-		for (auto it = addresses.begin (); it != addresses.end (); ++it)
+		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
 			if ((*it)->IsNTCP2 ())
 			{
 				found = true;
-				if (!enable)
+				if (enable)
 				{
-					addresses.erase (it);
-					updated= true;
-				}
-				break;
+					(*it)->s = m_NTCP2Keys->staticPublicKey;
+					memcpy ((*it)->i, m_NTCP2Keys->iv, 16);
+				}	
+				else
+					it = addresses.erase (it);
+				updated = true;;
 			}
+			else
+				it++;
 		}
 		if (enable && !found)
 		{
@@ -386,18 +390,22 @@ namespace i2p
 	{
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		bool found = false, updated = false;
-		for (auto it = addresses.begin (); it != addresses.end (); ++it)
+		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
 			if ((*it)->IsSSU2 ())
 			{
 				found = true;
-				if (!enable)
+				if (enable)
 				{
-					addresses.erase (it);
-					updated= true;
-				}
-				break;
+					(*it)->s = m_SSU2Keys->staticPublicKey;
+					(*it)->i = m_SSU2Keys->intro;
+				}	
+				else	
+					it = addresses.erase (it);
+				updated = true;
 			}
+			else
+				it++;
 		}
 		if (enable && !found)
 		{
