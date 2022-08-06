@@ -127,6 +127,7 @@ namespace garlic
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
+			void ClearSSU2Introducers (bool v4);
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);
 			void SetUnreachableSSU2 (bool v4, bool v6);

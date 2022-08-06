@@ -481,6 +481,21 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::ClearSSU2Introducers (bool v4)
+	{
+		bool updated = false;
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto& addr : addresses)
+			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())) &&
+			    addr->ssu && !addr->ssu->introducers.empty ())
+			{
+				addr->ssu->introducers.clear ();
+				updated = true;
+			}
+		if (updated)
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::SetFloodfill (bool floodfill)
 	{
 		m_IsFloodfill = floodfill;

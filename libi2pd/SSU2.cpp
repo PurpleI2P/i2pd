@@ -981,6 +981,7 @@ namespace transport
 				if (i2p::context.GetStatus () != eRouterStatusFirewalled)
 				{
 					// we don't need introducers
+					i2p::context.ClearSSU2Introducers (true);
 					m_Introducers.clear ();
 					return;
 				}
@@ -1003,6 +1004,7 @@ namespace transport
 				if (i2p::context.GetStatusV6 () != eRouterStatusFirewalled)
 				{
 					// we don't need introducers
+					i2p::context.ClearSSU2Introducers (false);
 					m_IntroducersV6.clear ();
 					return;
 				}
