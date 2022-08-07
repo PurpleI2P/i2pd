@@ -876,7 +876,10 @@ namespace transport
 						{	
 							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 							if (std::find (newList.begin (), newList.end (), it) == newList.end ()) 
-								newList.push_back (it);	
+							{	
+								newList.push_back (it);
+								sessions.push_back (session);
+							}	
 						}	
 					}	
 				}	
