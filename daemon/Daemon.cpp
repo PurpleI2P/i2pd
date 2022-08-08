@@ -153,6 +153,9 @@ namespace util
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
 		bool avx; i2p::config::GetOption("cpuext.avx", avx);
 		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
+		bool ssu; i2p::config::GetOption("ssu", ssu);
+		if (!ssu && i2p::config::IsDefault ("precomputation.elgamal"))
+			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
 		i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
 
 		int netID; i2p::config::GetOption("netid", netID);
