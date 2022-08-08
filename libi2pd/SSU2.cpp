@@ -24,7 +24,7 @@ namespace transport
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
 		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ()), 
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
-		m_IsPublished (true)
+		m_IsPublished (true), m_IsSyncClockFromPeers (true)
 	{
 	}
 
@@ -34,6 +34,7 @@ namespace transport
 		{
 			StartIOService ();
 			i2p::config::GetOption ("ssu2.published", m_IsPublished);
+			i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
 			bool found = false;
 			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)

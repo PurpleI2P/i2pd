@@ -27,6 +27,7 @@ namespace transport
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU2_CLOCK_SKEW = 60; // in seconds
+	const int SSU2_CLOCK_THRESHOLD = 15; // in seconds, if more we should adjust
 	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // for Retry message, in seconds
 	const int SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT = 52*60; // for next token block, in seconds
 	const int SSU2_TOKEN_EXPIRATION_THRESHOLD = 2; // in seconds
@@ -92,6 +93,7 @@ namespace transport
 		eSSU2SessionStateSessionRequestSent,
 		eSSU2SessionStateSessionRequestReceived,
 		eSSU2SessionStateSessionCreatedSent,
+		eSSU2SessionStateSessionCreatedReceived,
 		eSSU2SessionStateSessionConfirmedSent,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateClosing,
@@ -280,6 +282,7 @@ namespace transport
 			void SendPathResponse (const uint8_t * data, size_t len);
 			
 			void HandlePayload (const uint8_t * buf, size_t len);
+			void HandleDateTime (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
 			void HandleAddress (const uint8_t * buf, size_t len);

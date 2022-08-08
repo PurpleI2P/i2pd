@@ -720,6 +720,7 @@ namespace transport
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || encrypted payload from SessionCreated) for SessionConfirmed
 		// payload
+		m_State = eSSU2SessionStateSessionCreatedReceived;
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 
 		m_Server.AddSession (shared_from_this ());
@@ -1320,13 +1321,7 @@ namespace transport
 			{
 				case eSSU2BlkDateTime:
 					LogPrint (eLogDebug, "SSU2: Datetime");
-					if (m_State == eSSU2SessionStateSessionRequestReceived)
-					{
-						auto ts = i2p::util::GetSecondsSinceEpoch ();
-						uint32_t signedOnTime = bufbe32toh (buf + offset);
-						if (signedOnTime < ts - SSU2_CLOCK_SKEW || signedOnTime > ts + SSU2_CLOCK_SKEW)
-							m_TerminationReason = eSSU2TerminationReasonClockSkew;
-					};	
+					HandleDateTime (buf + offset, size);
 				break;
 				case eSSU2BlkOptions:
 					LogPrint (eLogDebug, "SSU2: Options");
@@ -1437,6 +1432,38 @@ namespace transport
 		}
 	}
 
+	void SSU2Session::HandleDateTime (const uint8_t * buf, size_t len)
+	{
+		int64_t offset = (int64_t)i2p::util::GetSecondsSinceEpoch () - (int64_t)bufbe32toh (buf);
+		switch (m_State)
+		{
+			case eSSU2SessionStateSessionRequestReceived:
+				if (std::abs (offset) > SSU2_CLOCK_SKEW)
+					m_TerminationReason = eSSU2TerminationReasonClockSkew;
+			break;
+			case eSSU2SessionStateSessionCreatedReceived:	
+				if ((m_RemoteEndpoint.address ().is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting) ||
+				    (m_RemoteEndpoint.address ().is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusTesting))
+				{
+					if (m_Server.IsSyncClockFromPeers ())
+					{
+						if (std::abs (offset) > SSU2_CLOCK_THRESHOLD)
+						{
+							LogPrint (eLogWarning, "SSU2: Clock adjusted by ", -offset, " seconds");
+							i2p::util::AdjustTimeOffset (-offset);
+						}
+					}
+					else if (std::abs (offset) > SSU2_CLOCK_SKEW)
+					{
+						LogPrint (eLogError, "SSU2: Clock skew detected ", offset, ". Check your clock");
+						i2p::context.SetError (eRouterErrorClockSkew);
+					}
+				}	
+			break;	
+			default: ;	
+		};	
+	}	
+		
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
 	{
 		if (m_State == eSSU2SessionStateSessionConfirmedSent)

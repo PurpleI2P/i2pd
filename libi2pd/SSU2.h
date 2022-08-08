@@ -56,6 +56,7 @@ namespace transport
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
+			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 		
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
@@ -131,6 +132,7 @@ namespace transport
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
+			bool m_IsSyncClockFromPeers;
 			
 		public:
 
