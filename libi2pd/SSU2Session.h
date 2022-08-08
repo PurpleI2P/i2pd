@@ -261,6 +261,7 @@ namespace transport
 			bool SendQueue (); // returns true if ack block was sent
 			bool SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
 			void ResendHandshakePacket ();
+			void ConnectAfterIntroduction ();
 			
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
 			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);

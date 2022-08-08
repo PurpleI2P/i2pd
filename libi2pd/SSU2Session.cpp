@@ -147,6 +147,22 @@ namespace transport
 		m_State = eSSU2SessionStateIntroduced;
 		ScheduleConnectTimer ();
 	}
+
+	void SSU2Session::ConnectAfterIntroduction ()
+	{
+		if (m_State == eSSU2SessionStateIntroduced)
+		{
+			// create new connID
+			uint64_t oldConnID = GetConnID ();
+			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
+			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);	
+			// connect
+			m_State = eSSU2SessionStateTokenReceived;
+			m_Server.AddPendingOutgoingSession (shared_from_this ());
+			m_Server.RemoveSession (oldConnID);
+			Connect ();
+		}
+	}	
 		
 	void SSU2Session::SendPeerTest ()
 	{
@@ -486,7 +502,10 @@ namespace transport
 				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);	
 				LogPrint (eLogWarning, "SSU2: Unexpected PeerTest message SourceConnID=", connID, " DestConnID=", headerX[0]);
 				break;
-			}		
+			}	
+			case eSSU2HolePunch:
+				LogPrint (eLogDebug, "SSU2: Late HolePunch for ", connID);
+			break;	
 			default:
 			{
 				LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " from ", m_RemoteEndpoint, " of ", len, " bytes");
@@ -1152,18 +1171,7 @@ namespace transport
 		}
 		HandlePayload (payload, len - 48);
 		// connect to Charlie
-		if (m_State == eSSU2SessionStateIntroduced)
-		{
-			// create new connID
-			uint64_t oldConnID = GetConnID ();
-			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
-			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);	
-			// connect
-			m_State = eSSU2SessionStateTokenReceived;
-			m_Server.AddPendingOutgoingSession (shared_from_this ());
-			m_Server.RemoveSession (oldConnID);
-			Connect ();
-		}
+		ConnectAfterIntroduction ();
 
 		return true;
 	}
@@ -1783,8 +1791,21 @@ namespace transport
 					if (s.Verify (it->second.first->GetRemoteIdentity (), buf + 12 + csz))
 					{
 						if (it->second.first->m_State == eSSU2SessionStateIntroduced) // HolePunch not received yet
+						{	
 							// update Charlie's endpoint
-							ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint);
+							if (ExtractEndpoint (buf + 12, csz, it->second.first->m_RemoteEndpoint))
+							{	
+								// update token
+								uint64_t token;	
+								memcpy (&token, buf + len - 8, 8);
+								m_Server.UpdateOutgoingToken (it->second.first->m_RemoteEndpoint,
+									token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
+								// connect to Charlie, HolePunch will be ignored
+								it->second.first->ConnectAfterIntroduction ();
+							}
+							else
+								LogPrint (eLogWarning, "SSU2: RelayResponse can't extract endpoint");
+						}	
 					}
 					else
 					{	
