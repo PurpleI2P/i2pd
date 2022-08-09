@@ -49,8 +49,9 @@ namespace transport
 						if (ssu2Port) port = ssu2Port;
 						else
 						{
+							bool ssu;   i2p::config::GetOption("ssu", ssu);
 							uint16_t p; i2p::config::GetOption ("port", p);
-							if (p) port = p;
+							if (p) port = ssu ? (p + 1) : p;
 						}
 					}
 					if (port)

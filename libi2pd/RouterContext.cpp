@@ -121,7 +121,11 @@ namespace i2p
 			if (ssu2)
 			{
 				if (ssu2Published)
-					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v4::from_string (host), port);
+				{
+					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+					if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v4::from_string (host), ssu2Port);
+				}	
 				else
 				{
 					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
@@ -166,7 +170,11 @@ namespace i2p
 			if (ssu2)
 			{
 				if (ssu2Published)
-					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v6::from_string (host), port);
+				{
+					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
+					if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v6::from_string (host), ssu2Port);
+				}	
 				else
 				{
 					if (!ipv4) // no other ssu2 addresses yet
@@ -734,14 +742,11 @@ namespace i2p
 			}
 			if (!port) i2p::config::GetOption("port", port);
 			// SSU
-			if (!foundSSU)
+			bool ssu; i2p::config::GetOption("ssu", ssu);
+			if (!foundSSU && ssu)
 			{
-				bool ssu; i2p::config::GetOption("ssu", ssu);
-				if (ssu)
-				{
-					std::string host = "::1"; // TODO: read host
-					m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
-				}
+				std::string host = "::1"; // TODO: read host
+				m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
 			}
 			// NTCP2
 			if (!foundNTCP2)
@@ -775,7 +780,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-						if (!ssu2Port) ssu2Port = port;
+						if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("::1"), ssu2Port);
 					}
 					else
@@ -823,12 +828,10 @@ namespace i2p
 			}
 			if (!port) i2p::config::GetOption("port", port);
 			// SSU
-			if (!foundSSU)
-			{
-				bool ssu; i2p::config::GetOption("ssu", ssu);
-				if (ssu)
-					m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
-			}
+			bool ssu; i2p::config::GetOption("ssu", ssu);
+			if (!foundSSU && ssu)
+				m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
+
 			// NTCP2
 			if (!foundNTCP2)
 			{
@@ -856,7 +859,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-						if (!ssu2Port) ssu2Port = port;
+						if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("127.0.0.1"), ssu2Port);
 					}
 					else

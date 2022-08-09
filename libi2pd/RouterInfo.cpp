@@ -708,6 +708,7 @@ namespace data
 	{
 		auto addr = std::make_shared<Address>();
 		addr->transportStyle = eTransportSSU2;
+		addr->port = 0;
 		addr->caps = caps;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
