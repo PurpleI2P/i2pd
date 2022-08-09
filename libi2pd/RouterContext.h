@@ -123,6 +123,7 @@ namespace garlic
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
 			void UpdateSSU2Address (bool enable);
 			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
+			void RemoveSSUAddress (); // delete SSU address for older routers
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);

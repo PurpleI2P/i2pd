@@ -253,6 +253,7 @@ namespace util
 			if (!ipv4 && !ipv6)
 				i2p::context.SetStatus (eRouterStatusMesh);
 		}
+		if (!ssu) i2p::context.RemoveSSUAddress (); // TODO: remove later
 		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
 		if (ssu2)
 		{

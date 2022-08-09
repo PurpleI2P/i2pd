@@ -628,6 +628,18 @@ namespace i2p
 		}
 	}
 
+	void RouterContext::RemoveSSUAddress ()
+	{
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto it = addresses.begin (); it != addresses.end ();)
+		{
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+				it = addresses.erase (it);
+			else
+				++it;
+		}
+	}
+		
 	void RouterContext::SetUnreachableSSU2 (bool v4, bool v6)
 	{
 		if (IsSSU2Only ())
