@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -172,7 +172,7 @@ namespace data
 				m_ExpirationTime = lease.endDate;
 			if (m_StoreLeases)
 			{
-				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
+				auto ret = m_Leases.insert (i2p::data::netdb.NewLease (lease));
 				if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
 				(*ret.first)->isUpdated = true;
 			}

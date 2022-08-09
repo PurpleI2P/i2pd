@@ -1447,6 +1447,7 @@ namespace data
 			else
 				++it;
 		}
+		m_LeasesPool.CleanUpMt ();
 	}
 
 	void NetDb::PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r)
