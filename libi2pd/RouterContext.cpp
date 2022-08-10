@@ -419,12 +419,21 @@ namespace i2p
 		}
 		if (enable && !found)
 		{
-			uint8_t addressCaps = 0;
 			bool ipv4;           i2p::config::GetOption("ipv4", ipv4);
 			bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
-			if (ipv4) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
-			if (ipv6) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
-			m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addressCaps);
+			bool published; i2p::config::GetOption("ntcp2.published", published);
+			if (published)
+			{
+				if (ipv4) m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV4);
+				if (ipv6) m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV6);
+			}
+			else
+			{	
+				uint8_t addressCaps = 0;
+				if (ipv4) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
+				if (ipv6) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
+				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addressCaps);
+			}	
 			updated = true;
 		}
 		if (updated)
@@ -875,7 +884,7 @@ namespace i2p
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("127.0.0.1"), ssu2Port);
 					}
 					else
-						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::eV6);
+						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::eV4);
 				}
 			}
 			m_RouterInfo.EnableV4 ();
