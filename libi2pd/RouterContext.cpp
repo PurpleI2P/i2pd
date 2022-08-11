@@ -60,11 +60,7 @@ namespace i2p
 		i2p::data::LocalRouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (GetIdentity ());
 		uint16_t port; i2p::config::GetOption("port", port);
-		if (!port)
-		{
-			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-			if (port == 9150) port = 9151; // Tor browser
-		}
+		if (!port) port = SelectRandomPort ();
 		bool ipv4;  i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6;  i2p::config::GetOption("ipv6", ipv6);
 		bool ssu;   i2p::config::GetOption("ssu", ssu);
@@ -200,6 +196,13 @@ namespace i2p
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}
 
+	uint16_t RouterContext::SelectRandomPort () const
+	{
+		uint16_t port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+		if (port == 9150) port = 9151; // Tor browser
+		return port;
+	}	
+		
 	void RouterContext::UpdateRouterInfo ()
 	{
 		m_RouterInfo.CreateBuffer (m_Keys);
@@ -325,12 +328,7 @@ namespace i2p
 				}
 				if (isAddr)
 				{
-					if (!port && !address->port)
-					{
-						// select random port only if address's port is not set
-						port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-						if (port == 9150) port = 9151; // Tor browser
-					}
+					if (!port && !address->port) port = SelectRandomPort ();
 					if (port) address->port = port;
 					address->published = publish;
 					memcpy (address->i, m_NTCP2Keys->iv, 16);
@@ -761,7 +759,11 @@ namespace i2p
 				}
 				port = addr->port;
 			}
-			if (!port) i2p::config::GetOption("port", port);
+			if (!port) 
+			{	
+				i2p::config::GetOption("port", port);
+				if (!port) port = SelectRandomPort ();
+			}	
 			// SSU
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			if (!foundSSU && ssu)
@@ -847,7 +849,11 @@ namespace i2p
 				}
 				if (addr->port) port = addr->port;
 			}
-			if (!port) i2p::config::GetOption("port", port);
+			if (!port) 
+			{	
+				i2p::config::GetOption("port", port);
+				if (!port) port = SelectRandomPort ();
+			}	
 			// SSU
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			if (!foundSSU && ssu)

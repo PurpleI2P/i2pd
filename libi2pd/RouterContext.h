@@ -186,6 +186,7 @@ namespace garlic
 			bool IsSSU2Only () const; // SSU2 and no SSU
 			bool Load ();
 			void SaveKeys ();
+			uint16_t SelectRandomPort () const;
 
 			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
 
