@@ -2001,6 +2001,8 @@ namespace transport
 				{
 					if (buf[1] == eSSU2PeerTestCodeAccept)
 					{	
+						if (GetRouterStatus () == eRouterStatusUnknown)
+							SetRouterStatus (eRouterStatusTesting);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
 						if (r && it->second.first)
 						{	
