@@ -373,14 +373,26 @@ namespace i2p
 
 	void RouterContext::PublishSSU2Address (int port, bool publish, bool v4, bool v6)
 	{
-		if (!m_SSU2Keys || (publish && !port)) return;
+		if (!m_SSU2Keys) return;
+		int newPort = 0;
+		if (!port)
+		{
+			for (const auto& address : m_RouterInfo.GetAddresses ())
+				if (address->port)
+				{
+					newPort = address->port;
+					break;
+				}	
+			if (!newPort) newPort = SelectRandomPort ();
+		}	
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->IsSSU2 () && (address->port != port || address->published != publish) &&
+			if (address->IsSSU2 () && (!address->port || address->port != port || address->published != publish) &&
 				((v4 && address->IsV4 ()) || (v6 && address->IsV6 ())))
 			{
-				address->port = port;
+				if (port) address->port = port;
+				else if (!address->port) address->port = newPort;
 				address->published = publish;
 				if (publish)
 					address->caps |= (i2p::data::RouterInfo::eSSUIntroducer | i2p::data::RouterInfo::eSSUTesting);
