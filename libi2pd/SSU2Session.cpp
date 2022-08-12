@@ -284,13 +284,18 @@ namespace transport
 		for (auto it: msgs)
 			m_SendQueue.push_back (it);
 		SendQueue ();
-		
-		if (m_SendQueue.size () > SSU2_MAX_OUTGOING_QUEUE_SIZE)	
-		{
-			LogPrint (eLogWarning, "SSU2: Outgoing messages queue size to ",
-				GetIdentHashBase64(), " exceeds ", SSU2_MAX_OUTGOING_QUEUE_SIZE);
-			RequestTermination (eSSU2TerminationReasonTimeout);
-		}
+
+		if (m_SendQueue.size () > 0) // windows is full
+		{	
+			if (m_SendQueue.size () <= SSU2_MAX_OUTGOING_QUEUE_SIZE)
+				Resend (i2p::util::GetMillisecondsSinceEpoch ());
+			else	
+			{
+				LogPrint (eLogWarning, "SSU2: Outgoing messages queue size to ",
+					GetIdentHashBase64(), " exceeds ", SSU2_MAX_OUTGOING_QUEUE_SIZE);
+				RequestTermination (eSSU2TerminationReasonTimeout);
+			}
+		}	
 	}
 
 	bool SSU2Session::SendQueue ()
@@ -462,7 +467,6 @@ namespace transport
 			m_WindowSize >>= 1; // /2
 			if (m_WindowSize < SSU2_MIN_WINDOW_SIZE) m_WindowSize = SSU2_MIN_WINDOW_SIZE;
 		}
-		SendQueue ();
 	}
 
 	void SSU2Session::ResendHandshakePacket ()
