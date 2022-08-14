@@ -633,6 +633,7 @@ namespace i2p
 
 	void RouterContext::RemoveNTCPAddress (bool v4only)
 	{
+		bool updated = false;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
@@ -640,23 +641,32 @@ namespace i2p
 				(!v4only || (*it)->host.is_v4 ()))
 			{
 				it = addresses.erase (it);
+				updated = true;
 				if (v4only) break; // otherwise might be more than one address
 			}
 			else
 				++it;
 		}
+		if (updated)
+			m_RouterInfo.UpdateSupportedTransports ();
 	}
 
 	void RouterContext::RemoveSSUAddress ()
 	{
+		bool updated = false;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end ();)
 		{
 			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+			{	
 				it = addresses.erase (it);
+				updated = true;
+			}	
 			else
 				++it;
 		}
+		if (updated)
+			m_RouterInfo.UpdateSupportedTransports ();
 	}
 		
 	void RouterContext::SetUnreachableSSU2 (bool v4, bool v6)
