@@ -2592,6 +2592,7 @@ namespace transport
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		payload[0] = eSSU2BlkPathResponse;
 		htobe16buf (payload + 1, len);
+		memcpy (payload + 3, data, len);
 		SendData (payload, len + 3);
 	}	
 		
