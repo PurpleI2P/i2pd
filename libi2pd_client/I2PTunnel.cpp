@@ -660,6 +660,12 @@ namespace client
 
 	void I2PServerTunnel::Stop ()
 	{
+		if (m_PortDestination)
+			m_PortDestination->ResetAcceptor ();
+		auto localDestination = GetLocalDestination ();
+		if (localDestination)
+			localDestination->StopAcceptingStreams ();
+		
 		ClearHandlers ();
 	}
 
