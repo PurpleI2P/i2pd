@@ -1,6 +1,34 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.43.0] - 2022-08-22
+### Added
+- Complete SSU2 implementation
+- Localization to Chinese
+- Send RouterInfo update for long live sessions
+- Explicit ipv6 ranges of known tunnel brokers for MTU detection
+- Always send Connection: close and strip out Keep-Alive for server HTTP tunnel
+- Show ports for all transports in web console
+- Translation of webconsole site title 
+- Support for Windows ProgramData path when running as service 
+- Ability to turn off address book
+- Handle signals TSTP and CONT to stop and resume network
+### Changed
+- Case insensitive headers for server HTTP tunnel
+- Do not show 'Address registration' line if LeaseSet is encrypted 
+- SSU2 transports have higher priority than SSU
+- Disable ElGamal precalculated table if no SSU 
+- Deprecate limits.ntcpsoft, limits.ntcphard and limits.ntcpthreads config options
+- SSU2 is enabled and SSU is disabled by default for new installations
+### Fixed
+- Can't handle garlic message from an exploratory tunnel
+- Incorrect encryption key for exploratory lookup reply
+- MTU detection on Windows
+- Crash on stop of active server tunnel
+- Send datagram to wrong destination in SAM
+- Incorrect static key in RouterInfo if the keys were regenerated
+- Duplicated sessions in BOB
+
 ## [2.42.1] - 2022-05-24
 ### Fixed
 - Incorrect jump link in HTTP Proxy
