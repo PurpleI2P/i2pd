@@ -321,6 +321,8 @@ namespace client
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
+			else
+				StreamReceive (); // read more header
 		}
 	}
 
@@ -404,6 +406,8 @@ namespace client
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
+			else
+				StreamReceive (); // read more header	
 		}
 	}
 
