@@ -729,7 +729,7 @@ namespace stream
 				Terminate ();
 			break;
 			default:
-				LogPrint (eLogWarning, "Streaming: Unexpected stream status ", (int)m_Status, "sSID=", m_SendStreamID);
+				LogPrint (eLogWarning, "Streaming: Unexpected stream status=", (int)m_Status, " for sSID=", m_SendStreamID);
 		};
 	}
 
