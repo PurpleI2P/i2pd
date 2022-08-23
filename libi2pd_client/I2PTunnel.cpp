@@ -321,8 +321,13 @@ namespace client
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
-			else
+			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
 				StreamReceive (); // read more header
+			else
+			{
+				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);	
+				Terminate ();
+			}		
 		}
 	}
 
@@ -406,8 +411,13 @@ namespace client
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
+			else if (m_OutHeader.tellp () < I2P_TUNNEL_HTTP_MAX_HEADER_SIZE)
+				StreamReceive (); // read more header
 			else
-				StreamReceive (); // read more header	
+			{
+				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);	
+				Terminate ();
+			}
 		}
 	}
 
