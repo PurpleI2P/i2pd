@@ -1029,6 +1029,7 @@ namespace transport
 			return;
 		}
 		// payload
+		m_State = eSSU2SessionStateTokenRequestReceived;
 		HandlePayload (payload, len - 48);
 		SendRetry ();
 	}
@@ -1037,7 +1038,7 @@ namespace transport
 	{
 		// we are Bob
 		Header header;
-		uint8_t h[32], payload[64];
+		uint8_t h[32], payload[72];
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
 		RAND_bytes (header.buf + 8, 4); // random packet num
@@ -1047,15 +1048,19 @@ namespace transport
 		header.h.flags[2] = 0; // flag
 		memcpy (h, header.buf, 16);
 		memcpy (h + 16, &m_SourceConnID, 8); // source id
-		uint64_t token = m_Server.GetIncomingToken (m_RemoteEndpoint);
+		uint64_t token = 0;
+		if (m_TerminationReason == eSSU2TerminationReasonNormalClose)
+			token = m_Server.GetIncomingToken (m_RemoteEndpoint);
 		memcpy (h + 24, &token, 8); // token
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
 		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
 		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (payload + payloadSize, 64 - payloadSize, m_RemoteEndpoint);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, 64 - payloadSize);
+		payloadSize += CreateAddressBlock (payload + payloadSize, 56 - payloadSize, m_RemoteEndpoint);
+		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
+			payloadSize += CreateTerminationBlock (payload + payloadSize, 56 - payloadSize);
+		payloadSize += CreatePaddingBlock (payload + payloadSize, 56 - payloadSize);
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (be32toh (header.h.packetNum), nonce);
@@ -1449,6 +1454,7 @@ namespace transport
 		switch (m_State)
 		{
 			case eSSU2SessionStateSessionRequestReceived:
+			case eSSU2SessionStateTokenRequestReceived:	
 				if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					m_TerminationReason = eSSU2TerminationReasonClockSkew;
 			break;

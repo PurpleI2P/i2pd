@@ -101,7 +101,8 @@ namespace transport
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
 		eSSU2SessionStatePeerTest,
-		eSSU2SessionStatePeerTestReceived // 5 before 4
+		eSSU2SessionStatePeerTestReceived, // 5 before 4
+		eSSU2SessionStateTokenRequestReceived
 	};
 
 	enum SSU2PeerTestCode
