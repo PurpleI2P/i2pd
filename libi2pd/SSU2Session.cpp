@@ -1084,7 +1084,9 @@ namespace transport
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
-		m_Server.UpdateOutgoingToken (m_RemoteEndpoint, headerX[1], i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
+		uint64_t token = headerX[1];
+		if (token)
+			m_Server.UpdateOutgoingToken (m_RemoteEndpoint, token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT);
 		// decrypt and handle payload
 		uint8_t * payload = buf + 32;
 		CreateNonce (be32toh (header.h.packetNum), nonce);
@@ -1094,14 +1096,19 @@ namespace transport
 		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32,
 			m_Address->i, nonce, payload, len - 48, false))
 		{
-			LogPrint (eLogWarning, "SSU2: Retry AEAD verification failed ");
+			LogPrint (eLogWarning, "SSU2: Retry AEAD verification failed");
 			return false;
 		}
-		HandlePayload (payload, len - 48);
-
 		m_State = eSSU2SessionStateTokenReceived;
+		HandlePayload (payload, len - 48);
+		if (!token)
+		{
+			// we should handle payload even for zero token to handle Datetime block and adjust clock in case of clock skew
+			LogPrint (eLogWarning, "SSU2: Retry token is zero");
+			return false;
+		}	
 		InitNoiseXKState1 (*m_NoiseState, m_Address->s); // reset Noise TODO: check state
-		SendSessionRequest (headerX[1]);
+		SendSessionRequest (token);
 		return true;
 	}
 
@@ -1446,6 +1453,7 @@ namespace transport
 					m_TerminationReason = eSSU2TerminationReasonClockSkew;
 			break;
 			case eSSU2SessionStateSessionCreatedReceived:	
+			case eSSU2SessionStateTokenReceived:
 				if ((m_RemoteEndpoint.address ().is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting) ||
 				    (m_RemoteEndpoint.address ().is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusTesting))
 				{
