@@ -616,8 +616,13 @@ namespace transport
 		m_State = eSSU2SessionStateSessionRequestReceived;
 		HandlePayload (decryptedPayload.data (), decryptedPayload.size ());
 
-		m_Server.AddSession (shared_from_this ());
-		SendSessionCreated (headerX + 16);
+		if (m_TerminationReason == eSSU2TerminationReasonNormalClose)
+		{	
+			m_Server.AddSession (shared_from_this ());
+			SendSessionCreated (headerX + 16);
+		}	
+		else
+			SendRetry ();
 	}
 
 	void SSU2Session::SendSessionCreated (const uint8_t * X)
@@ -666,8 +671,6 @@ namespace transport
 			memcpy (payload + payloadSize + 7, &token.first, 8); // token
 			payloadSize += 15;
 		}	
-		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
-			payloadSize += CreateTerminationBlock (payload + payloadSize, maxPayloadSize - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, maxPayloadSize - payloadSize);
 		// KDF for SessionCreated
 		m_NoiseState->MixHash ( { {header.buf, 16}, {headerX, 16} } ); // h = SHA256(h || header)
@@ -687,9 +690,6 @@ namespace transport
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
-		// terminate if errors
-		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
-			Terminate ();
 	}
 
 	bool SSU2Session::ProcessSessionCreated (uint8_t * buf, size_t len)
