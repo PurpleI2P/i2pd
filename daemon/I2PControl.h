@@ -20,6 +20,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include "I2PControlHandlers.h"
 
 namespace i2p
 {
@@ -32,7 +33,7 @@ namespace client
 	const char I2P_CONTROL_CERTIFICATE_COMMON_NAME[] = "i2pd.i2pcontrol";
 	const char I2P_CONTROL_CERTIFICATE_ORGANIZATION[] = "Purple I2P";
 
-	class I2PControlService
+	class I2PControlService: public I2PControlHandlers
 	{
 		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
@@ -66,8 +67,7 @@ namespace client
 			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes = true) const;
-			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;
-
+	
 			// methods
 			typedef void (I2PControlService::*MethodHandler)(const boost::property_tree::ptree& params, std::ostringstream& results);
 
@@ -109,15 +109,6 @@ namespace client
 			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
 			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
 
-			// ClientServicesInfo
-			typedef void (I2PControlService::*ClientServicesInfoRequestHandler)(std::ostringstream& results);
-			void I2PTunnelInfoHandler (std::ostringstream& results);
-			void HTTPProxyInfoHandler (std::ostringstream& results);
-			void SOCKSInfoHandler (std::ostringstream& results);
-			void SAMInfoHandler (std::ostringstream& results);
-			void BOBInfoHandler (std::ostringstream& results);
-			void I2CPInfoHandler (std::ostringstream& results);
-
 		private:
 
 			std::string m_Password;
@@ -135,7 +126,6 @@ namespace client
 			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
 			std::map<std::string, RouterManagerRequestHandler> m_RouterManagerHandlers;
 			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
-			std::map<std::string, ClientServicesInfoRequestHandler> m_ClientServicesInfoHandlers;
 	};
 }
 }
