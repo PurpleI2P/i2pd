@@ -24,12 +24,40 @@ namespace client
 
 			I2PControlHandlers ();
 
+			// methods
 			// TODO: make protected
+			void RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
+			void NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
+		
+		protected:
+
+			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
+			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
+			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes = true) const;
+			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;		
 		
 		private:
 
-			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;
+			// RouterInfo
+			typedef void (I2PControlHandlers::*RouterInfoRequestHandler)(std::ostringstream& results);
+			void UptimeHandler (std::ostringstream& results);
+			void VersionHandler (std::ostringstream& results);
+			void StatusHandler (std::ostringstream& results);
+			void NetDbKnownPeersHandler (std::ostringstream& results);
+			void NetDbActivePeersHandler (std::ostringstream& results);
+			void NetStatusHandler (std::ostringstream& results);
+			void TunnelsParticipatingHandler (std::ostringstream& results);
+			void TunnelsSuccessRateHandler (std::ostringstream& results);
+			void InboundBandwidth1S (std::ostringstream& results);
+			void OutboundBandwidth1S (std::ostringstream& results);
+			void NetTotalReceivedBytes (std::ostringstream& results);
+			void NetTotalSentBytes (std::ostringstream& results);
+		
+			// NetworkSetting
+			typedef void (I2PControlHandlers::*NetworkSettingRequestHandler)(const std::string& value, std::ostringstream& results);
+			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
+			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
 		
 			// ClientServicesInfo
 			typedef void (I2PControlHandlers::*ClientServicesInfoRequestHandler)(std::ostringstream& results);
@@ -42,6 +70,8 @@ namespace client
 		
 		private:
 
+			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
+			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
 			std::map<std::string, ClientServicesInfoRequestHandler> m_ClientServicesInfoHandlers;
 	};
 }

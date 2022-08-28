@@ -63,10 +63,6 @@ namespace client
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
 		private:
-
-			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
-			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
-			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes = true) const;
 	
 			// methods
 			typedef void (I2PControlService::*MethodHandler)(const boost::property_tree::ptree& params, std::ostringstream& results);
@@ -74,40 +70,17 @@ namespace client
 			void AuthenticateHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void EchoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void I2PControlHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-			void RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-			void NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-			void ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-
+			
 			// I2PControl
 			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
 			void PasswordHandler (const std::string& value);
-
-			// RouterInfo
-			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::ostringstream& results);
-			void UptimeHandler (std::ostringstream& results);
-			void VersionHandler (std::ostringstream& results);
-			void StatusHandler (std::ostringstream& results);
-			void NetDbKnownPeersHandler (std::ostringstream& results);
-			void NetDbActivePeersHandler (std::ostringstream& results);
-			void NetStatusHandler (std::ostringstream& results);
-			void TunnelsParticipatingHandler (std::ostringstream& results);
-			void TunnelsSuccessRateHandler (std::ostringstream& results);
-			void InboundBandwidth1S (std::ostringstream& results);
-			void OutboundBandwidth1S (std::ostringstream& results);
-			void NetTotalReceivedBytes (std::ostringstream& results);
-			void NetTotalSentBytes (std::ostringstream& results);
 
 			// RouterManager
 			typedef void (I2PControlService::*RouterManagerRequestHandler)(std::ostringstream& results);
 			void ShutdownHandler (std::ostringstream& results);
 			void ShutdownGracefulHandler (std::ostringstream& results);
 			void ReseedHandler (std::ostringstream& results);
-
-			// NetworkSetting
-			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, std::ostringstream& results);
-			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
-			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
 
 		private:
 
@@ -123,9 +96,7 @@ namespace client
 
 			std::map<std::string, MethodHandler> m_MethodHandlers;
 			std::map<std::string, I2PControlRequestHandler> m_I2PControlHandlers;
-			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
 			std::map<std::string, RouterManagerRequestHandler> m_RouterManagerHandlers;
-			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
 	};
 }
 }
