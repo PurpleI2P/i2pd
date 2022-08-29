@@ -13,33 +13,33 @@
 #include <memory>
 #include <openssl/bn.h>
 
-namespace i2p
-{
-namespace crypto
-{
+namespace i2p {
+    namespace crypto {
 
-	class Elligator2
-	{
-		public:
+        class Elligator2 {
+        public:
 
-			Elligator2 ();
-			~Elligator2 ();
+            Elligator2();
 
-			bool Encode (const uint8_t * key, uint8_t * encoded, bool highY = false, bool random = true) const;
-			bool Decode (const uint8_t * encoded, uint8_t * key) const;
+            ~Elligator2();
 
-		private:
+            bool Encode(const uint8_t *key, uint8_t *encoded, bool highY = false, bool random = true) const;
 
-			void SquareRoot (const BIGNUM * x, BIGNUM * r, BN_CTX * ctx) const;
-			int Legendre (const BIGNUM * a, BN_CTX * ctx) const; // a/p
+            bool Decode(const uint8_t *encoded, uint8_t *key) const;
 
-		private:
+        private:
 
-			BIGNUM * p, * p38, * p12, * p14, * sqrtn1, * A, * nA, * u, * iu;
-	};
+            void SquareRoot(const BIGNUM *x, BIGNUM *r, BN_CTX *ctx) const;
 
-	std::unique_ptr<Elligator2>& GetElligator ();
-}
+            int Legendre(const BIGNUM *a, BN_CTX *ctx) const; // a/p
+
+        private:
+
+            BIGNUM *p, *p38, *p12, *p14, *sqrtn1, *A, *nA, *u, *iu;
+        };
+
+        std::unique_ptr <Elligator2> &GetElligator();
+    }
 }
 
 #endif

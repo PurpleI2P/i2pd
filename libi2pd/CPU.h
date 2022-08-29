@@ -9,15 +9,13 @@
 #ifndef LIBI2PD_CPU_H
 #define LIBI2PD_CPU_H
 
-namespace i2p
-{
-namespace cpu
-{
-	extern bool aesni;
-	extern bool avx;
+namespace i2p {
+    namespace cpu {
+        extern bool aesni;
+        extern bool avx;
 
-	void Detect(bool AesSwitch, bool AvxSwitch, bool force);
-}
+        void Detect(bool AesSwitch, bool AvxSwitch, bool force);
+    }
 }
 
 #endif

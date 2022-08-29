@@ -13,65 +13,70 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Identity.h"
 
-namespace i2p
-{
-namespace data
-{
-	// sections
-	const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
-	const char PEER_PROFILE_SECTION_USAGE[] = "usage";
-	// params
-	const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
-	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
-	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
-	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";
-	const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
-	const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
+namespace i2p {
+    namespace data {
+        // sections
+        const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
+        const char PEER_PROFILE_SECTION_USAGE[] = "usage";
+        // params
+        const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
+        const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
+        const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
+        const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";
+        const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
+        const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
 
-	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
-	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
-	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
+        const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
+        const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
+        const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
 
-	class RouterProfile
-	{
-		public:
+        class RouterProfile {
+        public:
 
-			RouterProfile ();
-			RouterProfile& operator= (const RouterProfile& ) = default;
+            RouterProfile();
 
-			void Save (const IdentHash& identHash);
-			void Load (const IdentHash& identHash);
+            RouterProfile &operator=(const RouterProfile &) = default;
 
-			bool IsBad ();
+            void Save(const IdentHash &identHash);
 
-			void TunnelBuildResponse (uint8_t ret);
-			void TunnelNonReplied ();
+            void Load(const IdentHash &identHash);
 
-		private:
+            bool IsBad();
 
-			boost::posix_time::ptime GetTime () const;
-			void UpdateTime ();
+            void TunnelBuildResponse(uint8_t ret);
 
-			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
-			bool IsLowPartcipationRate () const;
-			bool IsLowReplyRate () const;
+            void TunnelNonReplied();
 
-		private:
+        private:
 
-			boost::posix_time::ptime m_LastUpdateTime;
-			// participation
-			uint32_t m_NumTunnelsAgreed;
-			uint32_t m_NumTunnelsDeclined;
-			uint32_t m_NumTunnelsNonReplied;
-			// usage
-			uint32_t m_NumTimesTaken;
-			uint32_t m_NumTimesRejected;
-	};
+            boost::posix_time::ptime GetTime() const;
 
-	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);
-	void InitProfilesStorage ();
-	void DeleteObsoleteProfiles ();
-}
+            void UpdateTime();
+
+            bool IsAlwaysDeclining() const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
+
+            bool IsLowPartcipationRate() const;
+
+            bool IsLowReplyRate() const;
+
+        private:
+
+            boost::posix_time::ptime m_LastUpdateTime;
+            // participation
+            uint32_t m_NumTunnelsAgreed;
+            uint32_t m_NumTunnelsDeclined;
+            uint32_t m_NumTunnelsNonReplied;
+            // usage
+            uint32_t m_NumTimesTaken;
+            uint32_t m_NumTimesRejected;
+        };
+
+        std::shared_ptr<RouterProfile> GetRouterProfile(const IdentHash &identHash);
+
+        void InitProfilesStorage();
+
+        void DeleteObsoleteProfiles();
+    }
 }
 
 #endif

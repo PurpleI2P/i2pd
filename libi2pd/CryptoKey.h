@@ -12,153 +12,164 @@
 #include <inttypes.h>
 #include "Crypto.h"
 
-namespace i2p
-{
-namespace crypto
-{
-	class CryptoKeyEncryptor
-	{
-		public:
+namespace i2p {
+    namespace crypto {
+        class CryptoKeyEncryptor {
+        public:
 
-			virtual ~CryptoKeyEncryptor () {};
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted) = 0;
-	};
+            virtual ~CryptoKeyEncryptor() {};
 
-	class CryptoKeyDecryptor
-	{
-		public:
+            virtual void Encrypt(const uint8_t *data, uint8_t *encrypted) = 0;
+        };
 
-			virtual ~CryptoKeyDecryptor () {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data) = 0;
-			virtual size_t GetPublicKeyLen () const = 0; // we need it to set key in LS2
-	};
+        class CryptoKeyDecryptor {
+        public:
+
+            virtual ~CryptoKeyDecryptor() {};
+
+            virtual bool Decrypt(const uint8_t *encrypted, uint8_t *data) = 0;
+
+            virtual size_t GetPublicKeyLen() const = 0; // we need it to set key in LS2
+        };
 
 // ElGamal
-	class ElGamalEncryptor: public CryptoKeyEncryptor // for destination
-	{
-		public:
+        class ElGamalEncryptor : public CryptoKeyEncryptor // for destination
+        {
+        public:
 
-			ElGamalEncryptor (const uint8_t * pub);
-			void Encrypt (const uint8_t * data, uint8_t * encrypted) override; // 222 bytes data, 514 bytes encrypted
+            ElGamalEncryptor(const uint8_t *pub);
 
-		private:
+            void Encrypt(const uint8_t *data, uint8_t *encrypted) override; // 222 bytes data, 514 bytes encrypted
 
-			uint8_t m_PublicKey[256];
-	};
+        private:
 
-	class ElGamalDecryptor: public CryptoKeyDecryptor // for destination
-	{
-		public:
+            uint8_t m_PublicKey[256];
+        };
 
-			ElGamalDecryptor (const uint8_t * priv);
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override; // 514 bytes encrypted, 222 bytes data
-			size_t GetPublicKeyLen () const override { return 256; };
+        class ElGamalDecryptor : public CryptoKeyDecryptor // for destination
+        {
+        public:
 
-		private:
+            ElGamalDecryptor(const uint8_t *priv);
 
-			uint8_t m_PrivateKey[256];
-	};
+            bool Decrypt(const uint8_t *encrypted, uint8_t *data) override; // 514 bytes encrypted, 222 bytes data
+            size_t GetPublicKeyLen() const override { return 256; };
+
+        private:
+
+            uint8_t m_PrivateKey[256];
+        };
 
 // ECIES P256
 
-	class ECIESP256Encryptor: public CryptoKeyEncryptor
-	{
-		public:
+        class ECIESP256Encryptor : public CryptoKeyEncryptor {
+        public:
 
-			ECIESP256Encryptor (const uint8_t * pub);
-			~ECIESP256Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted) override;
+            ECIESP256Encryptor(const uint8_t *pub);
 
-		private:
+            ~ECIESP256Encryptor();
 
-			EC_GROUP * m_Curve;
-			EC_POINT * m_PublicKey;
-	};
+            void Encrypt(const uint8_t *data, uint8_t *encrypted) override;
+
+        private:
+
+            EC_GROUP *m_Curve;
+            EC_POINT *m_PublicKey;
+        };
 
 
-	class ECIESP256Decryptor: public CryptoKeyDecryptor
-	{
-		public:
+        class ECIESP256Decryptor : public CryptoKeyDecryptor {
+        public:
 
-			ECIESP256Decryptor (const uint8_t * priv);
-			~ECIESP256Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
-			size_t GetPublicKeyLen () const override { return 64; };
+            ECIESP256Decryptor(const uint8_t *priv);
 
-		private:
+            ~ECIESP256Decryptor();
 
-			EC_GROUP * m_Curve;
-			BIGNUM * m_PrivateKey;
-	};
+            bool Decrypt(const uint8_t *encrypted, uint8_t *data) override;
 
-	void CreateECIESP256RandomKeys (uint8_t * priv, uint8_t * pub);
+            size_t GetPublicKeyLen() const override { return 64; };
+
+        private:
+
+            EC_GROUP *m_Curve;
+            BIGNUM *m_PrivateKey;
+        };
+
+        void CreateECIESP256RandomKeys(uint8_t *priv, uint8_t *pub);
 
 // ECIES GOST R 34.10
 
-	class ECIESGOSTR3410Encryptor: public CryptoKeyEncryptor
-	{
-		public:
+        class ECIESGOSTR3410Encryptor : public CryptoKeyEncryptor {
+        public:
 
-			ECIESGOSTR3410Encryptor (const uint8_t * pub);
-			~ECIESGOSTR3410Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted) override;
+            ECIESGOSTR3410Encryptor(const uint8_t *pub);
 
-		private:
+            ~ECIESGOSTR3410Encryptor();
 
-			EC_POINT * m_PublicKey;
-	};
+            void Encrypt(const uint8_t *data, uint8_t *encrypted) override;
+
+        private:
+
+            EC_POINT *m_PublicKey;
+        };
 
 
-	class ECIESGOSTR3410Decryptor: public CryptoKeyDecryptor
-	{
-		public:
+        class ECIESGOSTR3410Decryptor : public CryptoKeyDecryptor {
+        public:
 
-			ECIESGOSTR3410Decryptor (const uint8_t * priv);
-			~ECIESGOSTR3410Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data) override;
-			size_t GetPublicKeyLen () const override { return 64; };
+            ECIESGOSTR3410Decryptor(const uint8_t *priv);
 
-		private:
+            ~ECIESGOSTR3410Decryptor();
 
-			BIGNUM * m_PrivateKey;
-	};
+            bool Decrypt(const uint8_t *encrypted, uint8_t *data) override;
 
-	void CreateECIESGOSTR3410RandomKeys (uint8_t * priv, uint8_t * pub);
+            size_t GetPublicKeyLen() const override { return 64; };
+
+        private:
+
+            BIGNUM *m_PrivateKey;
+        };
+
+        void CreateECIESGOSTR3410RandomKeys(uint8_t *priv, uint8_t *pub);
 
 // ECIES-X25519-AEAD-Ratchet
 
-	class ECIESX25519AEADRatchetEncryptor: public CryptoKeyEncryptor
-	{
-		public:
+        class ECIESX25519AEADRatchetEncryptor : public CryptoKeyEncryptor {
+        public:
 
-			ECIESX25519AEADRatchetEncryptor (const uint8_t * pub);
-			~ECIESX25519AEADRatchetEncryptor () {};
-			void Encrypt (const uint8_t *, uint8_t * pub) override;
-			// copies m_PublicKey to pub
+            ECIESX25519AEADRatchetEncryptor(const uint8_t *pub);
 
-		private:
+            ~ECIESX25519AEADRatchetEncryptor() {};
 
-			uint8_t m_PublicKey[32];
-	};
+            void Encrypt(const uint8_t *, uint8_t *pub) override;
+            // copies m_PublicKey to pub
 
-	class ECIESX25519AEADRatchetDecryptor: public CryptoKeyDecryptor
-	{
-		public:
+        private:
 
-			ECIESX25519AEADRatchetDecryptor (const uint8_t * priv, bool calculatePublic = false);
-			~ECIESX25519AEADRatchetDecryptor () {};
-			bool Decrypt (const uint8_t * epub, uint8_t * sharedSecret) override;
-			// agree with static and return in sharedSecret (32 bytes)
-			size_t GetPublicKeyLen () const override { return 32; };
-			const uint8_t * GetPubicKey () const { return m_StaticKeys.GetPublicKey (); };
+            uint8_t m_PublicKey[32];
+        };
 
-		private:
+        class ECIESX25519AEADRatchetDecryptor : public CryptoKeyDecryptor {
+        public:
 
-			X25519Keys m_StaticKeys;
-	};
+            ECIESX25519AEADRatchetDecryptor(const uint8_t *priv, bool calculatePublic = false);
 
-	void CreateECIESX25519AEADRatchetRandomKeys (uint8_t * priv, uint8_t * pub);
-}
+            ~ECIESX25519AEADRatchetDecryptor() {};
+
+            bool Decrypt(const uint8_t *epub, uint8_t *sharedSecret) override;
+
+            // agree with static and return in sharedSecret (32 bytes)
+            size_t GetPublicKeyLen() const override { return 32; };
+
+            const uint8_t *GetPubicKey() const { return m_StaticKeys.GetPublicKey(); };
+
+        private:
+
+            X25519Keys m_StaticKeys;
+        };
+
+        void CreateECIESX25519AEADRatchetRandomKeys(uint8_t *priv, uint8_t *pub);
+    }
 }
 
 #endif

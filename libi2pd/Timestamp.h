@@ -15,44 +15,48 @@
 #include <string>
 #include <boost/asio.hpp>
 
-namespace i2p
-{
-namespace util
-{
-	uint64_t GetMillisecondsSinceEpoch ();
-	uint64_t GetSecondsSinceEpoch ();
-	uint32_t GetMinutesSinceEpoch ();
-	uint32_t GetHoursSinceEpoch ();
+namespace i2p {
+    namespace util {
+        uint64_t GetMillisecondsSinceEpoch();
 
-	void GetCurrentDate (char * date); // returns date as YYYYMMDD string, 9 bytes
-	void GetDateString (uint64_t timestamp, char * date); // timestap is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
-	void AdjustTimeOffset (int64_t offset); // in seconds from current
+        uint64_t GetSecondsSinceEpoch();
 
-	class NTPTimeSync
-	{
-		public:
+        uint32_t GetMinutesSinceEpoch();
 
-			NTPTimeSync ();
-			~NTPTimeSync ();
+        uint32_t GetHoursSinceEpoch();
 
-			void Start ();
-			void Stop ();
+        void GetCurrentDate(char *date); // returns date as YYYYMMDD string, 9 bytes
+        void GetDateString(uint64_t timestamp,
+                           char *date); // timestap is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
+        void AdjustTimeOffset(int64_t offset); // in seconds from current
 
-		private:
+        class NTPTimeSync {
+        public:
 
-			void Run ();
-			void Sync ();
+            NTPTimeSync();
 
-		private:
+            ~NTPTimeSync();
 
-			bool m_IsRunning;
-			std::unique_ptr<std::thread> m_Thread;
-			boost::asio::io_service m_Service;
-			boost::asio::deadline_timer m_Timer;
-			int m_SyncInterval;
-			std::vector<std::string> m_NTPServersList;
-	};
-}
+            void Start();
+
+            void Stop();
+
+        private:
+
+            void Run();
+
+            void Sync();
+
+        private:
+
+            bool m_IsRunning;
+            std::unique_ptr <std::thread> m_Thread;
+            boost::asio::io_service m_Service;
+            boost::asio::deadline_timer m_Timer;
+            int m_SyncInterval;
+            std::vector <std::string> m_NTPServersList;
+        };
+    }
 }
 
 #endif

@@ -15,35 +15,36 @@
 #include <mutex>
 #include "I2PService.h"
 
-namespace i2p
-{
-namespace proxy
-{
-	class SOCKSServer: public i2p::client::TCPIPAcceptor
-	{
-		public:
+namespace i2p {
+    namespace proxy {
+        class SOCKSServer : public i2p::client::TCPIPAcceptor {
+        public:
 
-			SOCKSServer(const std::string& name, const std::string& address, int port, bool outEnable, const std::string& outAddress, uint16_t outPort,
-				std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
-			~SOCKSServer() {};
+            SOCKSServer(const std::string &name, const std::string &address, int port, bool outEnable,
+                        const std::string &outAddress, uint16_t outPort,
+                        std::shared_ptr <i2p::client::ClientDestination> localDestination = nullptr);
 
-			void SetUpstreamProxy(const std::string & addr, const uint16_t port);
+            ~SOCKSServer() {};
 
-		protected:
+            void SetUpstreamProxy(const std::string &addr, const uint16_t port);
 
-			// Implements TCPIPAcceptor
-			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			const char* GetName() { return m_Name.c_str (); }
+        protected:
 
-		private:
+            // Implements TCPIPAcceptor
+            std::shared_ptr <i2p::client::I2PServiceHandler>
+            CreateHandler(std::shared_ptr <boost::asio::ip::tcp::socket> socket);
 
-			std::string m_Name;
-			std::string m_UpstreamProxyAddress;
-			uint16_t m_UpstreamProxyPort;
-			bool m_UseUpstreamProxy;
-	};
+            const char *GetName() { return m_Name.c_str(); }
 
-	typedef SOCKSServer SOCKSProxy;
-}
+        private:
+
+            std::string m_Name;
+            std::string m_UpstreamProxyAddress;
+            uint16_t m_UpstreamProxyPort;
+            bool m_UseUpstreamProxy;
+        };
+
+        typedef SOCKSServer SOCKSProxy;
+    }
 }
 #endif

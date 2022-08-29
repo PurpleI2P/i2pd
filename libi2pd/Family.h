@@ -15,34 +15,36 @@
 #include "Signature.h"
 #include "Identity.h"
 
-namespace i2p
-{
-namespace data
-{
-	typedef int FamilyID;
-	class Families
-	{
-		public:
+namespace i2p {
+    namespace data {
+        typedef int FamilyID;
 
-			Families ();
-			~Families ();
-			void LoadCertificates ();
-			bool VerifyFamily (const std::string& family, const IdentHash& ident,
-				const char * signature, const char * key = nullptr) const;
-			FamilyID GetFamilyID (const std::string& family) const;
+        class Families {
+        public:
 
-		private:
+            Families();
 
-			void LoadCertificate (const std::string& filename);
+            ~Families();
 
-		private:
+            void LoadCertificates();
 
-			std::map<std::string, std::pair<std::shared_ptr<i2p::crypto::Verifier>, FamilyID> > m_SigningKeys; // family -> (verifier, id)
-	};
+            bool VerifyFamily(const std::string &family, const IdentHash &ident,
+                              const char *signature, const char *key = nullptr) const;
 
-	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident);
-	// return base64 signature of empty string in case of failure
-}
+            FamilyID GetFamilyID(const std::string &family) const;
+
+        private:
+
+            void LoadCertificate(const std::string &filename);
+
+        private:
+
+            std::map<std::string, std::pair<std::shared_ptr<i2p::crypto::Verifier>, FamilyID> > m_SigningKeys; // family -> (verifier, id)
+        };
+
+        std::string CreateFamilySignature(const std::string &family, const IdentHash &ident);
+        // return base64 signature of empty string in case of failure
+    }
 }
 
 #endif

@@ -15,50 +15,56 @@
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 
-namespace i2p
-{
-namespace tunnel
-{
-	class TunnelGatewayBuffer
-	{
-		public:
-			TunnelGatewayBuffer ();
-			~TunnelGatewayBuffer ();
-			void PutI2NPMsg (const TunnelMessageBlock& block);
-			const std::vector<std::shared_ptr<const I2NPMessage> >& GetTunnelDataMsgs () const { return m_TunnelDataMsgs; };
-			void ClearTunnelDataMsgs ();
-			void CompleteCurrentTunnelDataMessage ();
+namespace i2p {
+    namespace tunnel {
+        class TunnelGatewayBuffer {
+        public:
+            TunnelGatewayBuffer();
 
-		private:
+            ~TunnelGatewayBuffer();
 
-			void CreateCurrentTunnelDataMessage ();
+            void PutI2NPMsg(const TunnelMessageBlock &block);
 
-		private:
+            const std::vector<std::shared_ptr<const I2NPMessage> > &
+            GetTunnelDataMsgs() const { return m_TunnelDataMsgs; };
 
-			std::vector<std::shared_ptr<const I2NPMessage> > m_TunnelDataMsgs;
-			std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
-			size_t m_RemainingSize;
-			uint8_t * m_NonZeroRandomBuffer;
-	};
+            void ClearTunnelDataMsgs();
 
-	class TunnelGateway
-	{
-		public:
+            void CompleteCurrentTunnelDataMessage();
 
-			TunnelGateway (TunnelBase * tunnel):
-				m_Tunnel (tunnel), m_NumSentBytes (0) {};
-			void SendTunnelDataMsg (const TunnelMessageBlock& block);
-			void PutTunnelDataMsg (const TunnelMessageBlock& block);
-			void SendBuffer ();
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+        private:
 
-		private:
+            void CreateCurrentTunnelDataMessage();
 
-			TunnelBase * m_Tunnel;
-			TunnelGatewayBuffer m_Buffer;
-			size_t m_NumSentBytes;
-	};
-}
+        private:
+
+            std::vector<std::shared_ptr<const I2NPMessage> > m_TunnelDataMsgs;
+            std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
+            size_t m_RemainingSize;
+            uint8_t *m_NonZeroRandomBuffer;
+        };
+
+        class TunnelGateway {
+        public:
+
+            TunnelGateway(TunnelBase *tunnel) :
+                    m_Tunnel(tunnel), m_NumSentBytes(0) {};
+
+            void SendTunnelDataMsg(const TunnelMessageBlock &block);
+
+            void PutTunnelDataMsg(const TunnelMessageBlock &block);
+
+            void SendBuffer();
+
+            size_t GetNumSentBytes() const { return m_NumSentBytes; };
+
+        private:
+
+            TunnelBase *m_Tunnel;
+            TunnelGatewayBuffer m_Buffer;
+            size_t m_NumSentBytes;
+        };
+    }
 }
 
 #endif
