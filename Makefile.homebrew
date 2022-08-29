@@ -1,5 +1,13 @@
+ARCH_TARGET ?= $(shell uname -m)
+
 # root directory holding homebrew
-BREWROOT = /usr/local
+ifeq ($(ARCH_TARGET),arm64)
+    BREWROOT = /opt/homebrew
+endif
+ifeq ($(ARCH_TARGET),amd64)
+    BREWROOT = /usr/local
+endif
+
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/openssl@1.1
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
@@ -34,8 +42,12 @@ endif
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
-ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -D__AES__ -maes
+ifeq ($(ARCH_TARGET),amd64)
+    ifeq ($(USE_AESNI),yes)
+        CXXFLAGS += -D__AES__ -maes
+    else
+        CXXFLAGS += -msse
+    endif
 endif
 
 install: all
