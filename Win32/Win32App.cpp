@@ -158,7 +158,6 @@ namespace win32
 		};
 		if (i2p::context.GetError () != eRouterErrorNone)
 		{
-			s << "\n Error";
 			switch (i2p::context.GetError ())
 			{
 				case eRouterErrorClockSkew:
@@ -172,7 +171,7 @@ namespace win32
 				break;
 				default: ;
 			}
-		}	
+		}
 	}
 
 	static void PrintMainWindowText (std::stringstream& s)
