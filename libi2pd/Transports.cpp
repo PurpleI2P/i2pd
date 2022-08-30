@@ -665,7 +665,8 @@ namespace transport
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				for (int i = 0; i < 3; i++)
+				int numTests = m_SSUServer ? 3 : 5;
+				for (int i = 0; i < numTests; i++)
 				{
 					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 					if (router)
@@ -713,7 +714,8 @@ namespace transport
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				for (int i = 0; i < 3; i++)
+				int numTests = m_SSUServer ? 3 : 5;
+				for (int i = 0; i < numTests; i++)
 				{
 					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 					if (router)
