@@ -77,6 +77,7 @@ namespace i18n
 	namespace english   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace french    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace german    { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
+	namespace italian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace russian   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace turkmen   { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
 	namespace ukrainian { std::shared_ptr<const i2p::i18n::Locale> GetLocale (); }
@@ -93,6 +94,7 @@ namespace i18n
 		{ "english", {"English", "en", i2p::i18n::english::GetLocale} },
 		{ "french", {"Français", "fr", i2p::i18n::french::GetLocale} },
 		{ "german", {"Deutsch", "de", i2p::i18n::german::GetLocale} },
+		{ "italian", {"Italiano", "it", i2p::i18n::italian::GetLocale} },
 		{ "russian", {"русский язык", "ru", i2p::i18n::russian::GetLocale} },
 		{ "turkmen", {"türkmen dili", "tk", i2p::i18n::turkmen::GetLocale} },
 		{ "ukrainian", {"украї́нська мо́ва", "uk", i2p::i18n::ukrainian::GetLocale} },

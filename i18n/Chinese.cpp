@@ -38,9 +38,9 @@ namespace chinese // language namespace
 		{"building", "正在构建"},
 		{"failed", "连接失败"},
 		{"expiring", "即将过期"},
-		{"established", "连接已建立"},
+		{"established", "连接成功"},
 		{"unknown", "未知"},
-		{"exploratory", "探测"},
+		{"exploratory", "探索"},
 		{"Purple I2P Webconsole", "Purple I2P 网页控制台"},
 		{"<b>i2pd</b> webconsole", "<b>i2pd</b> 网页控制台"},
 		{"Main page", "主页"},
@@ -130,7 +130,7 @@ namespace chinese // language namespace
 		{"<b>Note:</b> any action done here are not persistent and not changes your config files.", "<b>注意：</b> 此处完成的任何操作都不是永久的，不会更改您的配置文件。"},
 		{"Logging level", "日志记录级别"},
 		{"Transit tunnels limit", "中转隧道限制"},
-		{"Change", "更改"},
+		{"Change", "修改"},
 		{"Change language", "更改语言"},
 		{"no transit tunnels currently built", "目前未构建中转隧道"},
 		{"SAM disabled", "SAM 已禁用"},
@@ -200,7 +200,7 @@ namespace chinese // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"天"}},
+		{"days", {"日"}},
 		{"hours", {"时"}},
 		{"minutes", {"分"}},
 		{"seconds", {"秒"}},
