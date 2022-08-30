@@ -232,26 +232,25 @@ namespace http {
 			case eRouterStatusUnknown: s << tr("Unknown"); break;
 			case eRouterStatusProxy: s << tr("Proxy"); break;
 			case eRouterStatusMesh: s << tr("Mesh"); break;
-			case eRouterStatusError:
-			{
-				s << tr("Error");
-				switch (error)
-				{
-					case eRouterErrorClockSkew:
-						s << " - " << tr("Clock skew");
-					break;
-					case eRouterErrorOffline:
-						s << " - " << tr("Offline");
-					break;
-					case eRouterErrorSymmetricNAT:
-						s << " - " << tr("Symmetric NAT");
-					break;
-					default: ;
-				}
-				break;
-			}
 			default: s << tr("Unknown");
 		}
+		if (error != eRouterErrorNone)
+		{
+			s << "<br>";
+			switch (error)
+			{
+				case eRouterErrorClockSkew:
+					s << " - " << tr("Clock skew");
+				break;
+				case eRouterErrorOffline:
+					s << " - " << tr("Offline");
+				break;
+				case eRouterErrorSymmetricNAT:
+					s << " - " << tr("Symmetric NAT");
+				break;
+				default: ;
+			}
+		}	
 	}
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)

@@ -37,10 +37,9 @@ namespace garlic
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
 		eRouterStatusFirewalled = 2,
-		eRouterStatusError = 3,
-		eRouterStatusUnknown = 4,
-		eRouterStatusProxy = 5,
-		eRouterStatusMesh = 6
+		eRouterStatusUnknown = 3,
+		eRouterStatusProxy = 4,
+		eRouterStatusMesh = 5
 	};
 
 	enum RouterError
@@ -105,12 +104,12 @@ namespace garlic
 			void SetStatus (RouterStatus status);
 			void SetStatusSSU2 (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
-			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
+			void SetError (RouterError error) { m_Error = error; };
 			RouterStatus GetStatusV6 () const { return m_StatusV6; };
 			void SetStatusV6 (RouterStatus status);
 			void SetStatusV6SSU2 (RouterStatus status);
 			RouterError GetErrorV6 () const { return m_ErrorV6; };
-			void SetErrorV6 (RouterError error) { m_StatusV6 = eRouterStatusError; m_ErrorV6 = error; };
+			void SetErrorV6 (RouterError error) { m_ErrorV6 = error; };
 			int GetNetID () const { return m_NetID; };
 			void SetNetID (int netID) { m_NetID = netID; };
 			bool DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data);

@@ -719,8 +719,8 @@ namespace transport
 				if (i2p::context.GetStatus () == eRouterStatusTesting)
 					i2p::context.SetError (eRouterErrorSymmetricNAT);
 			}
-			else if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
-				i2p::context.SetStatus (eRouterStatusTesting);
+			else if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
+				i2p::context.SetError (eRouterErrorNone);
 		}
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce

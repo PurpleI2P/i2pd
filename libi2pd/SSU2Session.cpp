@@ -1571,13 +1571,13 @@ namespace transport
 				{
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusError && i2p::context.GetError () == eRouterErrorSymmetricNAT)
-							i2p::context.SetStatus (eRouterStatusTesting);
+						if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
+							i2p::context.SetError (eRouterErrorNone);
 					}	
 					else
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusError && i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
-							i2p::context.SetStatusV6 (eRouterStatusTesting);
+						if (i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
+							i2p::context.SetErrorV6 (eRouterErrorNone);
 					}		
 				}	
 			}	
