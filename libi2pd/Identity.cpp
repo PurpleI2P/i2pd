@@ -382,7 +382,7 @@ namespace i2p {
                     break;
                 default:
                     LogPrint(eLogError, "Identity: Unknown crypto key type ", (int) keyType);
-            };
+            }
             return nullptr;
         }
 
@@ -626,7 +626,7 @@ namespace i2p {
                     break;
                 default:
                     LogPrint(eLogError, "Identity: Unknown crypto key type ", (int) cryptoType);
-            };
+            }
             return nullptr;
         }
 

@@ -319,7 +319,7 @@ namespace i2p {
                         m_SentPackets.emplace(packetNum, packet);
                         packet = newPacket; // just ack block
                     }
-                };
+                }
                 if (packet->payloadSize > ackBlockSize) {
                     ackBlockSent = true;
                     if (packet->payloadSize + 16 < m_MaxPayloadSize)
@@ -1392,7 +1392,7 @@ namespace i2p {
                     }
                     break;
                 default:;
-            };
+            }
         }
 
         void SSU2Session::HandleAck(const uint8_t *buf, size_t len) {

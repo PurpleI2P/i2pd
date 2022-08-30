@@ -7,9 +7,7 @@
 */
 
 #include <algorithm>
-#include <utility>
 #include <stdio.h>
-#include <ctime>
 #include "util.h"
 #include "Base.h"
 #include "HTTP.h"

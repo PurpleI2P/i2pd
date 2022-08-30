@@ -11,7 +11,7 @@ endif
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/openssl@1.1
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
-CXXFLAGS = ${CXX_DEBUG} -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
+CXXFLAGS = ${CXX_DEBUG} -Wall -Wextra -Wpedantic -std=c++20 -DMAC_OSX -Wno-overloaded-virtual
 INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include
 LDFLAGS = ${LD_DEBUG}
 

@@ -472,7 +472,7 @@ namespace i2p {
                         m_Status = eStreamStatusOpen;
                         if (!m_RemoteLeaseSet)
                             m_RemoteLeaseSet = m_LocalDestination.GetOwner()->FindLeaseSet(
-                                    m_RemoteIdentity->GetIdentHash());;
+                                    m_RemoteIdentity->GetIdentHash());
                         if (m_RemoteLeaseSet) {
                             m_RoutingSession = m_LocalDestination.GetOwner()->GetRoutingSession(m_RemoteLeaseSet, true);
                             m_MTU = m_RoutingSession->IsRatchets() ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
@@ -661,7 +661,7 @@ namespace i2p {
                 default:
                     LogPrint(eLogWarning, "Streaming: Unexpected stream status=", (int) m_Status, " for sSID=",
                              m_SendStreamID);
-            };
+            }
         }
 
         void Stream::SendClose() {

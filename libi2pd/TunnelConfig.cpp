@@ -195,7 +195,7 @@ namespace i2p {
             uint8_t *record = records + index * SHORT_TUNNEL_BUILD_RECORD_SIZE;
             uint8_t nonce[12];
             memset(nonce, 0, 12);
-            nonce[4] = index; // nonce is index
+            nonce[4] = index; // nonce is indexed
             i2p::crypto::ChaCha20(record, SHORT_TUNNEL_BUILD_RECORD_SIZE, replyKey, nonce, record);
         }
 

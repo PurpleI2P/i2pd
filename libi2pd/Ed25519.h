@@ -74,13 +74,13 @@ namespace i2p {
                 if (x) {
                     x1 = BN_dup(x);
                     BN_set_negative(x1, !BN_is_negative(x));
-                };
+                }
                 if (y) y1 = BN_dup(y);
                 if (z) z1 = BN_dup(z);
                 if (t) {
                     t1 = BN_dup(t);
                     BN_set_negative(t1, !BN_is_negative(t));
-                };
+                }
                 return EDDSAPoint{x1, y1, z1, t1};
             }
         };

@@ -318,7 +318,7 @@ namespace i2p {
                             if (ec) break;
                         } else {
                             LogPrint(eLogError, "SSU: v6 receive_from error: code ", ec.value(), ": ", ec.message());
-                            m_PacketsPool.ReleaseMt(packet);;
+                            m_PacketsPool.ReleaseMt(packet);
                             break;
                         }
                     }
