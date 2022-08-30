@@ -310,6 +310,11 @@ namespace transport
 			while (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 			{
 				auto msg = m_SendQueue.front ();
+				if (!msg)
+				{
+					m_SendQueue.pop_front ();
+					continue;
+				}	
 				size_t len = msg->GetNTCP2Length () + 3;
 				if (len > m_MaxPayloadSize) // message too long
 				{
@@ -376,6 +381,7 @@ namespace transport
 
 	bool SSU2Session::SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg)
 	{
+		if (!msg) return false;
 		size_t lastFragmentSize = (msg->GetNTCP2Length () + 3 - m_MaxPayloadSize) % (m_MaxPayloadSize - 8);
 		size_t extraSize = m_MaxPayloadSize - lastFragmentSize;
 		bool ackBlockSent = false;
