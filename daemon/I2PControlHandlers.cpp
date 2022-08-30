@@ -7,8 +7,10 @@
 */
 
 #include <iomanip>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
+
 #include "Log.h"
 #include "RouterContext.h"
 #include "NetDb.hpp"
