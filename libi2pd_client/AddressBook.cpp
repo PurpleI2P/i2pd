@@ -567,6 +567,7 @@ namespace client
 
 	void AddressBook::LoadLocal ()
 	{
+		if (!m_Storage) return;
 		std::map<std::string, std::shared_ptr<Address>> localAddresses;
 		m_Storage->LoadLocal (localAddresses);
 		for (const auto& it: localAddresses)
