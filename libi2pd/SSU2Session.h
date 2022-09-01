@@ -48,6 +48,9 @@ namespace transport
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 
+	// flags
+	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;	
+	
 	enum SSU2MessageType
 	{
 		eSSU2SessionRequest = 0,
@@ -275,7 +278,7 @@ namespace transport
 			void KDFDataPhase (uint8_t * keydata_ab, uint8_t * keydata_ba);
 			void SendTokenRequest ();
 			void SendRetry ();
-			uint32_t SendData (const uint8_t * buf, size_t len); // returns packet num
+			uint32_t SendData (const uint8_t * buf, size_t len, uint8_t flags = 0); // returns packet num
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);

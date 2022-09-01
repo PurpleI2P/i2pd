@@ -367,10 +367,11 @@ namespace transport
 			};
 			if (packet->payloadSize > ackBlockSize)
 			{
+				// last
 				ackBlockSent = true;
 				if (packet->payloadSize + 16 < m_MaxPayloadSize)
 					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-				uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+				uint32_t packetNum = SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
 				packet->sendTime = ts;
 				m_SentPackets.emplace (packetNum, packet);
 			}
@@ -419,9 +420,14 @@ namespace transport
 			packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			packet->payloadSize = CreateFollowOnFragmentBlock (packet->payload, m_MaxPayloadSize - offset, msg, fragmentNum, msgID);
 			extraSize -= offset;
+			uint8_t flags = 0;
 			if (msg->offset >= msg->len && packet->payloadSize + 16 < m_MaxPayloadSize) // last fragment
+			{	
 				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-			uint32_t followonPacketNum = SendData (packet->payload, packet->payloadSize);
+				if (fragmentNum > 2) // 3 or more fragments
+					flags |= SSU2_FLAG_IMMEDIATE_ACK_REQUESTED;
+			}	
+			uint32_t followonPacketNum = SendData (packet->payload, packet->payloadSize, flags);
 			packet->sendTime = ts;
 			m_SentPackets.emplace (followonPacketNum, packet);
 		}
@@ -1267,7 +1273,7 @@ namespace transport
 		return true;
 	}
 
-	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len)
+	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len, uint8_t flags)
 	{
 		if (len < 8)
 		{
@@ -1279,6 +1285,7 @@ namespace transport
 		header.h.packetNum = htobe32 (m_SendPacketNum);
 		header.h.type = eSSU2Data;
 		memset (header.h.flags, 0, 3);
+		if (flags) header.h.flags[0] = flags;
 		uint8_t nonce[12];
 		CreateNonce (m_SendPacketNum, nonce);
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
