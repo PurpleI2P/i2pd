@@ -434,7 +434,7 @@ namespace transport
 		return ackBlockSent;
 	}
 
-	void SSU2Session::Resend (uint64_t ts)
+	size_t SSU2Session::Resend (uint64_t ts)
 	{
 		// resend handshake packet
 		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->sendTime + SSU2_HANDSHAKE_RESEND_INTERVAL)
@@ -442,10 +442,10 @@ namespace transport
 			LogPrint (eLogDebug, "SSU2: Resending ", (int)m_State);
 			ResendHandshakePacket ();
 			m_SentHandshakePacket->sendTime = ts;
-			return;
+			return 0;
 		}	
 		// resend data packets
-		if (m_SentPackets.empty ()) return;
+		if (m_SentPackets.empty ()) return 0;
 		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
 			if (ts >= it->second->sendTime + it->second->numResends*m_RTO)
@@ -456,7 +456,7 @@ namespace transport
 					m_SentPackets.clear ();
 					m_SendQueue.clear ();
 					RequestTermination (eSSU2TerminationReasonTimeout);
-					return;
+					return resentPackets.size ();
 				}	
 				else
 				{
@@ -478,7 +478,9 @@ namespace transport
 #endif
 			m_WindowSize >>= 1; // /2
 			if (m_WindowSize < SSU2_MIN_WINDOW_SIZE) m_WindowSize = SSU2_MIN_WINDOW_SIZE;
+			return resentPackets.size ();
 		}
+		return 0;
 	}
 
 	void SSU2Session::ResendHandshakePacket ()

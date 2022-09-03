@@ -243,7 +243,7 @@ namespace transport
 			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
-			void Resend (uint64_t ts);
+			size_t Resend (uint64_t ts); // return number or resent packets
 			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };

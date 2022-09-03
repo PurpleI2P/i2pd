@@ -86,6 +86,7 @@ namespace transport
 			if (found)
 				m_ReceiveService.Start ();
 			ScheduleTermination ();
+			ScheduleResend (false);
 		}
 	}
 
@@ -749,9 +750,10 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::ScheduleResend ()
+	void SSU2Server::ScheduleResend (bool more)
 	{
-		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(SSU2_RESEND_CHECK_TIMEOUT));
+		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? SSU2_RESEND_CHECK_MORE_TIMEOUT : 
+			(SSU2_RESEND_CHECK_TIMEOUT + rand () % SSU2_RESEND_CHECK_TIMEOUT_VARIANCE)));
 		m_ResendTimer.async_wait (std::bind (&SSU2Server::HandleResendTimer,
 			this, std::placeholders::_1));
 	}
@@ -760,12 +762,16 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			size_t resentPacketsNum = 0;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			for (auto it: m_Sessions)
-				it.second->Resend (ts);
+			{	
+				resentPacketsNum += it.second->Resend (ts);
+				if (resentPacketsNum > SSU2_MAX_RESEND_PACKETS) break;
+			}	
 			for (auto it: m_PendingOutgoingSessions)
 				it.second->Resend (ts);
-			ScheduleResend ();
+			ScheduleResend (resentPacketsNum > SSU2_MAX_RESEND_PACKETS);
 		}
 	}
 

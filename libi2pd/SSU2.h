@@ -18,7 +18,10 @@ namespace i2p
 namespace transport
 {
 	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // in seconds
-	const int SSU2_RESEND_CHECK_TIMEOUT = 500; // in milliseconds
+	const int SSU2_RESEND_CHECK_TIMEOUT = 400; // in milliseconds
+	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 100; // in milliseconds
+	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 10; // in milliseconds
+	const size_t SSU2_MAX_RESEND_PACKETS = 128; // packets to resend at the time
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
@@ -104,7 +107,7 @@ namespace transport
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 
-			void ScheduleResend ();
+			void ScheduleResend (bool more);
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
