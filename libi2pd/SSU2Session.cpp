@@ -2196,6 +2196,7 @@ namespace transport
 				mtu = m_Address->ssu->mtu;
 			if (mtu)
 			{	
+				if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 				m_MaxPayloadSize = mtu - (addr->IsV6 () ? IPV6_HEADER_SIZE: IPV4_HEADER_SIZE) - UDP_HEADER_SIZE - 32;
 				LogPrint (eLogDebug, "SSU2: Session MTU=", mtu, ", max payload size=", m_MaxPayloadSize);
 			}	
