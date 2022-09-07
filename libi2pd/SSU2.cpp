@@ -410,7 +410,7 @@ namespace transport
 			{
 				case eSSU2SessionStateEstablished:
 				case eSSU2SessionStateSessionConfirmedSent:	
-					m_LastSession->ProcessData (buf, len);
+					m_LastSession->ProcessData (buf, len, senderEndpoint);
 				break;
 				case eSSU2SessionStateSessionCreatedSent:
 					if (!m_LastSession->ProcessSessionConfirmed (buf, len))
@@ -437,7 +437,7 @@ namespace transport
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
 				case eSSU2SessionStateClosing:
-					m_LastSession->ProcessData (buf, len); // we might receive termintaion block
+					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
 					if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;	

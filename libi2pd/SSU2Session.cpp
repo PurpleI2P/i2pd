@@ -1301,7 +1301,7 @@ namespace transport
 		return m_SendPacketNum - 1;
 	}
 
-	void SSU2Session::ProcessData (uint8_t * buf, size_t len)
+	void SSU2Session::ProcessData (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
 	{
 		Header header;
 		header.ll[0] = m_SourceConnID;
@@ -1316,6 +1316,12 @@ namespace transport
 				ResendHandshakePacket (); // assume we receive
 			return;
 		}
+		if (from != m_RemoteEndpoint)
+		{
+			LogPrint (eLogInfo, "SSU2: Remote endpoint update ", m_RemoteEndpoint, "->", from);
+			m_RemoteEndpoint = from;
+			SendPathChallenge ();
+		}	
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = len - 32;
 		uint32_t packetNum = be32toh (header.h.packetNum);
@@ -2624,6 +2630,20 @@ namespace transport
 		htobe16buf (payload + 1, len);
 		memcpy (payload + 3, data, len);
 		SendData (payload, len + 3);
+	}	
+
+	void SSU2Session::SendPathChallenge ()
+	{
+		uint8_t payload[SSU2_MAX_PACKET_SIZE];
+		payload[0] = eSSU2BlkPathChallenge;
+		size_t len = rand () % (m_MaxPayloadSize - 3);
+		htobe16buf (payload + 1, len);
+		if (len > 0)
+			RAND_bytes (payload + 3, len);
+		len += 3;
+		if (len < m_MaxPayloadSize)
+			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len);
+		SendData (payload, len);
 	}	
 		
 	void SSU2Session::CleanUp (uint64_t ts)
