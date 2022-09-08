@@ -1316,7 +1316,7 @@ namespace transport
 				ResendHandshakePacket (); // assume we receive
 			return;
 		}
-		if (from != m_RemoteEndpoint)
+		if (from != m_RemoteEndpoint && !i2p::util::net::IsInReservedRange (from.address ()))
 		{
 			LogPrint (eLogInfo, "SSU2: Remote endpoint update ", m_RemoteEndpoint, "->", from);
 			m_RemoteEndpoint = from;
