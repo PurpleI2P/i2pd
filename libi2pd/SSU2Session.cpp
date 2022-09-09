@@ -2366,10 +2366,10 @@ namespace transport
 
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
-		if (len < minSize) return 0;
-		uint8_t paddingSize = rand () & 0x0F; // 0 - 15
-		if (paddingSize > len) paddingSize = len;
-		else if (paddingSize < minSize) paddingSize = minSize;
+		if (len < 3 || len < minSize) return 0;
+		size_t paddingSize = rand () & 0x0F; // 0 - 15
+		if (paddingSize + 3 > len) paddingSize = len - 3;
+		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
 		if (paddingSize)
 		{
 			buf[0] = eSSU2BlkPadding;
