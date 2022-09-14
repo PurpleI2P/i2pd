@@ -207,6 +207,8 @@ namespace transport
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
 			m_SentHandshakePacket.reset (nullptr);
+			m_SessionConfirmedFragment.reset (nullptr);
+			m_PathChallenge.reset (nullptr);
 			m_SendQueue.clear ();
 			m_SentPackets.clear ();
 			m_IncompleteMessages.clear ();
@@ -1455,8 +1457,17 @@ namespace transport
 					SendPathResponse (buf + offset, size);
 				break;
 				case eSSU2BlkPathResponse:
+				{	
 					LogPrint (eLogDebug, "SSU2: Path response");
-				break;
+					if (m_PathChallenge)
+					{
+						i2p::data::IdentHash hash;
+						SHA256 (buf + offset, size, hash);
+						if (hash == *m_PathChallenge)
+							m_PathChallenge.reset (nullptr);
+					}	
+					break;
+				}		
 				case eSSU2BlkFirstPacketNumber:
 				break;
 				case eSSU2BlkPadding:
@@ -2639,7 +2650,12 @@ namespace transport
 		size_t len = rand () % (m_MaxPayloadSize - 3);
 		htobe16buf (payload + 1, len);
 		if (len > 0)
+		{	
 			RAND_bytes (payload + 3, len);
+			i2p::data::IdentHash * hash = new i2p::data::IdentHash ();
+			SHA256 (payload + 3, len, *hash);
+			m_PathChallenge.reset (hash);
+		}	
 		len += 3;
 		if (len < m_MaxPayloadSize)
 			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len);
@@ -2702,6 +2718,8 @@ namespace transport
 			else
 				++it;
 		}
+		if (m_PathChallenge)
+			RequestTermination (eSSU2TerminationReasonNormalClose);
 	}
 
 	void SSU2Session::FlushData ()

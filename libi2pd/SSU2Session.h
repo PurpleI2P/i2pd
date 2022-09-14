@@ -349,6 +349,7 @@ namespace transport
 			boost::asio::deadline_timer m_ConnectTimer;
 			SSU2TerminationReason m_TerminationReason;
 			size_t m_MaxPayloadSize;
+			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
