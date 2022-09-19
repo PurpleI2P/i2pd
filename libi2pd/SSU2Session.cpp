@@ -872,6 +872,7 @@ namespace transport
 					memmove (m_SessionConfirmedFragment->payload + (len - 16), m_SessionConfirmedFragment->payload, m_SessionConfirmedFragment->payloadSize);
 					memcpy (m_SessionConfirmedFragment->payload, buf + 16, len - 16);
 					m_SessionConfirmedFragment->payloadSize += (len - 16);
+					m_SessionConfirmedFragment->isSecondFragment = false;
 					buf = m_SessionConfirmedFragment->payload - 16;
 					len = m_SessionConfirmedFragment->payloadSize + 16;
 				}	
@@ -891,8 +892,11 @@ namespace transport
 					return true; 
 				}	
 				header = m_SessionConfirmedFragment->header;
-				memcpy (m_SessionConfirmedFragment->payload + m_SessionConfirmedFragment->payloadSize, buf + 16, len - 16);
-				m_SessionConfirmedFragment->payloadSize += (len - 16);
+				if (m_SessionConfirmedFragment->payloadSize + (len - 16) <= SSU2_MAX_PACKET_SIZE*2)
+				{	
+					memcpy (m_SessionConfirmedFragment->payload + m_SessionConfirmedFragment->payloadSize, buf + 16, len - 16);
+					m_SessionConfirmedFragment->payloadSize += (len - 16);
+				}	
 				buf = m_SessionConfirmedFragment->payload - 16;
 				len = m_SessionConfirmedFragment->payloadSize + 16;
 			}
