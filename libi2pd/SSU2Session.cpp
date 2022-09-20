@@ -851,9 +851,15 @@ namespace transport
 			return true;
 		}
 		// check if fragmented
-		if ((header.h.flags[0] & 0x0F) > 1)
+		uint8_t numFragments = header.h.flags[0] & 0x0F;
+		if (numFragments > 1)
 		{
 			// fragmented
+			if (numFragments > 2)
+			{
+				LogPrint (eLogError, "SSU2: Too many fragments ", numFragments, " in SessionConfirmed");
+				return false;
+			}	
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
@@ -911,6 +917,7 @@ namespace transport
 			m_NoiseState->m_CK + 32, nonce, S, 32, false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 1 AEAD verification failed ");
+			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 			return false;
 		}
 		m_NoiseState->MixHash (buf + 16, 48); // h = SHA256(h || ciphertext);
@@ -927,9 +934,11 @@ namespace transport
 			m_NoiseState->m_CK + 32, nonce, decryptedPayload.data (), decryptedPayload.size (), false))
 		{
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed part 2 AEAD verification failed ");
+			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 			return false;
 		}
 		m_NoiseState->MixHash (payload, len - 64); // h = SHA256(h || ciphertext);
+		if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 		// payload
 		// handle RouterInfo block that must be first
 		if (decryptedPayload[0] != eSSU2BlkRouterInfo)
