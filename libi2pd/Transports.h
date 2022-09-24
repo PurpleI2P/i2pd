@@ -195,6 +195,8 @@ namespace transport
 	};
 
 	extern Transports transports;
+
+	void InitTransports ();
 }
 }
 
