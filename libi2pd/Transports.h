@@ -71,7 +71,14 @@ namespace transport
 		std::list<std::shared_ptr<TransportSession> > sessions;
 		uint64_t creationTime, nextRouterInfoUpdateTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
+		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
 
+		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
+			numAttempts (0), router (r), creationTime (ts),
+			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL)
+		{
+		}	
+		
 		void Done ()
 		{
 			for (auto& it: sessions)
@@ -147,6 +154,7 @@ namespace transport
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
+			void SetPriority (Peer& peer) const;
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 

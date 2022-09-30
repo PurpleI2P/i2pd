@@ -417,8 +417,7 @@ namespace transport
 				{
 					auto ts = i2p::util::GetSecondsSinceEpoch ();
 					std::unique_lock<std::mutex> l(m_PeersMutex);
-					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
-						ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} })).first;
+					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, {r, ts})).first;
 				}
 				connected = ConnectToPeer (ident, it->second);
 			}
@@ -453,127 +452,81 @@ namespace transport
 			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
-			if (peer.numAttempts < 2) // NTCP2, 0 - ipv6, 1 - ipv4
+			if (peer.priority.empty ())
+				SetPriority (peer);
+			while (peer.numAttempts < (int)peer.priority.size ())
 			{
-				if (m_NTCP2Server) // we support NTCP2
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (!peer.numAttempts) // NTCP2 ipv6
-					{
-						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsReachableBy (RouterInfo::eNTCP2V6))
-						{
-							address = peer.router->GetPublishedNTCP2V6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 1) // NTCP2 ipv4
-					{
-						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsReachableBy (RouterInfo::eNTCP2V4))
-						{
-							address = peer.router->GetPublishedNTCP2V4Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address)
-					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-						if( m_NTCP2Server->UsingProxy())
-							m_NTCP2Server->ConnectWithProxy(s);
-						else
-							m_NTCP2Server->Connect (s);
-						return true;
-					}
-				}
-				else
-					peer.numAttempts = 2; // switch to SSU
-			}
-			if (peer.numAttempts == 2 || peer.numAttempts == 3) // SSU2, 2 - ipv6, 3 - ipv4
-			{
-				if (m_SSU2Server)
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (peer.numAttempts == 2) // SSU2 ipv6
-					{
-						if (context.GetRouterInfo ().IsSSU2V6 () && peer.router->IsReachableBy (RouterInfo::eSSU2V6))
-						{
-							address = peer.router->GetSSU2V6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 3) // SSU2 ipv4
-					{
-						if (context.GetRouterInfo ().IsSSU2V4 () && peer.router->IsReachableBy (RouterInfo::eSSU2V4))
-						{
-							address = peer.router->GetSSU2V4Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address && address->IsReachableSSU ())
-					{
-						if (m_SSU2Server->CreateSession (peer.router, address))
-							return true;
-					}
-				}
-				else
-					peer.numAttempts += 2; // switch to mesh
-			}
-			if (peer.numAttempts == 4) // Mesh
-			{
+				auto tr = peer.priority[peer.numAttempts];
 				peer.numAttempts++;
-				if (m_NTCP2Server && context.GetRouterInfo ().IsMesh () && peer.router->IsMesh ())
+				switch (tr)
 				{
-					auto address = peer.router->GetYggdrasilAddress ();
-					if (address)
-					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-						m_NTCP2Server->Connect (s);
-						return true;
-					}
-				}
-			}
-			if (peer.numAttempts == 5 || peer.numAttempts == 6) // SSU, 5 - ipv6, 6 - ipv4
-			{
-				if (m_SSUServer)
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (peer.numAttempts == 5) // SSU ipv6
-					{
-						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsReachableBy (RouterInfo::eSSUV6))
+					case i2p::data::RouterInfo::eNTCP2V4:
+					case i2p::data::RouterInfo::eNTCP2V6:
+					{	
+						if (!m_NTCP2Server) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eNTCP2V6) ?
+							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address)
 						{
-							address = peer.router->GetSSUV6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 6) // SSU ipv4
-					{
-						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsReachableBy (RouterInfo::eSSUV4))
-						{
-							address = peer.router->GetSSUAddress (true);
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address && address->IsReachableSSU ())
-					{
-						if (m_SSUServer->CreateSession (peer.router, address))
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							if( m_NTCP2Server->UsingProxy())
+								m_NTCP2Server->ConnectWithProxy(s);
+							else
+								m_NTCP2Server->Connect (s);
 							return true;
+						}
+						break;
 					}
-				}
-				else
-					peer.numAttempts += 2; 
-			}
-			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
+					case i2p::data::RouterInfo::eSSU2V4:
+					case i2p::data::RouterInfo::eSSU2V6:
+					{
+						if (!m_SSU2Server) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSU2V6) ?
+							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address && address->IsReachableSSU ())
+						{
+							if (m_SSU2Server->CreateSession (peer.router, address))
+								return true;
+						}
+						break;
+					}	
+					case i2p::data::RouterInfo::eSSUV4:
+					case i2p::data::RouterInfo::eSSUV6:
+					{
+						if (!m_SSUServer) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSUV6) ?
+							peer.router->GetSSUV6Address () : peer.router->GetSSUAddress (true);
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address && address->IsReachableSSU ())
+						{
+							if (m_SSUServer->CreateSession (peer.router, address))
+								return true;
+						}
+						break;
+					}	
+					case i2p::data::RouterInfo::eNTCP2V6Mesh:
+					{
+						if (!m_NTCP2Server) continue;
+						auto address = peer.router->GetYggdrasilAddress ();
+						if (address)
+						{
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							m_NTCP2Server->Connect (s);
+							return true;
+						}	
+						break;
+					}	
+					default:
+						LogPrint (eLogError, "Transports: Unknown transport ", (int)tr);
+				}	
+			}	
+			
+			LogPrint (eLogInfo, "Transports: No compatible addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
@@ -585,10 +538,32 @@ namespace transport
 			LogPrint (eLogInfo, "Transports: RouterInfo for ", ident.ToBase64 (), " not found, requested");
 			i2p::data::netdb.RequestDestination (ident, std::bind (
 				&Transports::RequestComplete, this, std::placeholders::_1, ident));
-		}
+		}	
 		return true;
-	}
-
+	}	
+		
+	void Transports::SetPriority (Peer& peer) const
+	{
+		static const std::vector<i2p::data::RouterInfo::SupportedTransports> ntcp2Priority = 
+		{
+			i2p::data::RouterInfo::eNTCP2V6,
+			i2p::data::RouterInfo::eNTCP2V4,
+			i2p::data::RouterInfo::eSSU2V6,
+			i2p::data::RouterInfo::eSSU2V4,
+			i2p::data::RouterInfo::eNTCP2V6Mesh,
+			i2p::data::RouterInfo::eSSUV6,
+			i2p::data::RouterInfo::eSSUV4
+		};	
+		if (!peer.router) return;
+		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
+			peer.router->GetCompatibleTransports (true);
+		peer.numAttempts = 0;
+		peer.priority.clear ();
+		for (auto transport: ntcp2Priority)
+			if (transport & compatibleTransports)
+				peer.priority.push_back (transport);	
+	}	
+		
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
 		m_Service->post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
@@ -779,8 +754,7 @@ namespace transport
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session },
-					ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} }));
+				m_Peers.insert (std::make_pair (ident, Peer{ nullptr, ts }));
 			}
 		});
 	}
