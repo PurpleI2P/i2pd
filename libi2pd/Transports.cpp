@@ -544,12 +544,23 @@ namespace transport
 		
 	void Transports::SetPriority (Peer& peer) const
 	{
-		static const std::vector<i2p::data::RouterInfo::SupportedTransports> ntcp2Priority = 
+		static const std::vector<i2p::data::RouterInfo::SupportedTransports> 
+			ntcp2Priority = 
 		{
 			i2p::data::RouterInfo::eNTCP2V6,
 			i2p::data::RouterInfo::eNTCP2V4,
 			i2p::data::RouterInfo::eSSU2V6,
 			i2p::data::RouterInfo::eSSU2V4,
+			i2p::data::RouterInfo::eNTCP2V6Mesh,
+			i2p::data::RouterInfo::eSSUV6,
+			i2p::data::RouterInfo::eSSUV4
+		}, 
+			ssu2Priority = 
+		{
+			i2p::data::RouterInfo::eSSU2V6,
+			i2p::data::RouterInfo::eSSU2V4,
+			i2p::data::RouterInfo::eNTCP2V6,
+			i2p::data::RouterInfo::eNTCP2V4,
 			i2p::data::RouterInfo::eNTCP2V6Mesh,
 			i2p::data::RouterInfo::eSSUV6,
 			i2p::data::RouterInfo::eSSUV4
@@ -559,7 +570,9 @@ namespace transport
 			peer.router->GetCompatibleTransports (true);
 		peer.numAttempts = 0;
 		peer.priority.clear ();
-		for (auto transport: ntcp2Priority)
+		bool ssu2 = rand () & 1;
+		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
+		for (auto transport: priority)
 			if (transport & compatibleTransports)
 				peer.priority.push_back (transport);	
 	}	
