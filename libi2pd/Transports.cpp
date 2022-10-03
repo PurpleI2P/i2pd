@@ -1066,7 +1066,7 @@ namespace transport
 		if (ssu2)
 		{
 			uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
-			if (!ssu2port) ssu2port = ssu ? (port + 1) : port;
+			if (!ssu2port && port) ssu2port = ssu ? (port + 1) : port;
 			bool published; i2p::config::GetOption("ssu2.published", published);
 			if (published)
 				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
