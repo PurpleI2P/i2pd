@@ -257,20 +257,38 @@ namespace data
 					if (!ecode && !address->host.is_unspecified ()) isHost = true;
 				}
 				else if (!strcmp (key, "port"))
-					address->port = boost::lexical_cast<int>(value);
+				{	
+					try 
+					{	
+						address->port = boost::lexical_cast<int>(value);
+					}
+					catch (std::exception& ex)
+					{
+						LogPrint (eLogWarning, "RouterInfo: 'port' exception ", ex.what ());
+					}	
+				}	
 				else if (!strcmp (key, "mtu"))
 				{
 					if (address->ssu)
-						address->ssu->mtu = boost::lexical_cast<int>(value);
+					{
+						try
+						{	
+							address->ssu->mtu = boost::lexical_cast<int>(value);
+						}
+						catch (std::exception& ex)
+						{
+							LogPrint (eLogWarning, "RouterInfo: 'mtu' exception ", ex.what ());
+						}	
+					}	
 					else
-						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'mtu' for NTCP");
+						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'mtu' for NTCP2");
 				}
 				else if (!strcmp (key, "key"))
 				{
 					if (address->ssu)
 						isIntroKey = (Base64ToByteStream (value, strlen (value), address->i, 32) == 32);
 					else
-						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP");
+						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP2");
 				}
 				else if (!strcmp (key, "caps"))
 					address->caps = ExtractAddressCaps (value);
@@ -327,13 +345,40 @@ namespace data
 						introducer.iHost = boost::asio::ip::address::from_string (value, ecode);
 					}
 					else if (!strcmp (key, "iport"))
-						introducer.iPort = boost::lexical_cast<int>(value);
+					{
+						try
+						{	
+							introducer.iPort = boost::lexical_cast<int>(value);
+						}
+						catch (std::exception& ex)
+						{
+							LogPrint (eLogWarning, "RouterInfo: 'iport' exception ", ex.what ());
+						}	
+					}	
 					else if (!strcmp (key, "itag"))
-						introducer.iTag = boost::lexical_cast<uint32_t>(value);
+					{
+						try
+						{	
+							introducer.iTag = boost::lexical_cast<uint32_t>(value);
+						}	
+						catch (std::exception& ex)
+						{
+							LogPrint (eLogWarning, "RouterInfo: 'itag' exception ", ex.what ());
+						}	
+					}
 					else if (!strcmp (key, "ikey") || !strcmp (key, "ih"))
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
 					else if (!strcmp (key, "iexp"))
-						introducer.iExp = boost::lexical_cast<uint32_t>(value);
+					{
+						try
+						{	
+							introducer.iExp = boost::lexical_cast<uint32_t>(value);
+						}
+						catch (std::exception& ex)
+						{
+							LogPrint (eLogWarning, "RouterInfo: 'iexp' exception ", ex.what ());
+						}	
+					}	
 				}
 				if (!s) return;
 			}
