@@ -80,7 +80,7 @@ namespace http {
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
 	const char HTTP_COMMAND_SHUTDOWN_NOW[] = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
-	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";
+	const char HTTP_COMMAND_RELOAD_TUNNELS_CONFIG[] = "reload_tunnels_config";
 	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
 	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
@@ -698,8 +698,7 @@ namespace http {
 
 		s << "<b>" << tr("Router commands") << "</b><br>\r\n<br>\r\n<div class=\"commands\">\r\n";
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a><br>\r\n";
-
-		// s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RELOAD_TUNNELS_CONFIG << "&token=" << token << "\">" << tr("Reload tunnels configuration") << "</a><br>\r\n";
 
 		if (i2p::context.AcceptsTunnels ())
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">" << tr("Decline transit tunnels") << "</a><br>\r\n";
@@ -1246,7 +1245,7 @@ namespace http {
 		std::string cmd = params["cmd"];
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			i2p::transport::transports.PeerTest ();
-		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
+		else if (cmd == HTTP_COMMAND_RELOAD_TUNNELS_CONFIG)
 			i2p::client::context.ReloadConfig ();
 		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (true);
