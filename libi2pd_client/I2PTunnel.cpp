@@ -152,7 +152,7 @@ namespace client
 	void I2PTunnelConnection::Receive ()
 	{
 		if (m_SSL)
-			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
 		else	
