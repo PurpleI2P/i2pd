@@ -184,7 +184,7 @@ namespace transport
 		{	
 			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 			SendData (payload, payloadSize);
-			LogPrint (eLogInfo, "SSU2: Peer test sent to ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()));
+			LogPrint (eLogDebug, "SSU2: PeerTest sent to ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()));
 		}	
 	}	
 
@@ -2100,7 +2100,9 @@ namespace transport
 											else
 												m_Server.RescheduleIntroducersUpdateTimerV6 ();
 										}	
-									}	
+									}
+									LogPrint (eLogDebug, "SSU2: Peer test 4 received from ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()),
+										" with information about ", i2p::data::GetIdentHashAbbreviation (i2p::data::IdentHash (buf + 3)));
 								}
 								else
 								{
@@ -2114,6 +2116,10 @@ namespace transport
 								it->second.first->Done ();
 							}	
 						}	
+						else
+						{
+							LogPrint (eLogWarning, "SSU2: Peer test 4 Charlie's Router Info is not found");
+						}
 					}
 					else
 					{
