@@ -726,7 +726,8 @@ namespace client
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
-
+					bool ssl = section.second.get(I2P_SERVER_TUNNEL_SSL, false);
+					
 					// I2CP
 					std::map<std::string, std::string> options;
 					ReadI2CPOptions (section, true, options);
@@ -799,11 +800,13 @@ namespace client
 
 					if (!address.empty ())
 						serverTunnel->SetLocalAddress (address);
-					if(!isUniqueLocal)
+					if (!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");
 						serverTunnel->SetUniqueLocal(isUniqueLocal);
 					}
+					if (ssl)
+						serverTunnel->SetSSL (true);
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;
