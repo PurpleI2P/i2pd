@@ -250,7 +250,7 @@ namespace http {
 				break;
 				default: ;
 			}
-		}	
+		}
 	}
 
 	void ShowStatus (std::stringstream& s, bool includeHiddenContent, i2p::http::OutputFormatEnum outputFormat)

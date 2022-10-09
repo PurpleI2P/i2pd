@@ -36,7 +36,7 @@ namespace client
 	const char X_I2P_DEST_B64[] = "X-I2P-DestB64"; // full address in base64
 	const char X_I2P_DEST_B32[] = "X-I2P-DestB32"; // .b32.i2p address
 	const int I2P_TUNNEL_HTTP_MAX_HEADER_SIZE = 8192;
-	
+
 	class I2PTunnelConnection: public I2PServiceHandler, public std::enable_shared_from_this<I2PTunnelConnection>
 	{
 		public:
@@ -73,7 +73,7 @@ namespace client
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWrite (const boost::system::error_code& ecode);
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-		
+
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
@@ -350,9 +350,9 @@ namespace client
 			void SetUniqueLocal (bool isUniqueLocal) { m_IsUniqueLocal = isUniqueLocal; }
 			bool IsUniqueLocal () const { return m_IsUniqueLocal; }
 
-			void SetSSL (bool ssl);				
+			void SetSSL (bool ssl);
 			std::shared_ptr<boost::asio::ssl::context> GetSSLCtx () const { return m_SSLCtx; };
-			
+
 			void SetLocalAddress (const std::string& localAddress);
 
 			const std::string& GetAddress() const { return m_Address; }

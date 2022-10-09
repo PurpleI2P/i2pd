@@ -29,14 +29,14 @@ namespace client
 			void RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-		
+
 		protected:
 
 			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value, bool quotes = true) const;
-			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;		
-		
+			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;
+
 		private:
 
 			// RouterInfo
@@ -53,12 +53,12 @@ namespace client
 			void OutboundBandwidth1S (std::ostringstream& results);
 			void NetTotalReceivedBytes (std::ostringstream& results);
 			void NetTotalSentBytes (std::ostringstream& results);
-		
+
 			// NetworkSetting
 			typedef void (I2PControlHandlers::*NetworkSettingRequestHandler)(const std::string& value, std::ostringstream& results);
 			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
 			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
-		
+
 			// ClientServicesInfo
 			typedef void (I2PControlHandlers::*ClientServicesInfoRequestHandler)(std::ostringstream& results);
 			void I2PTunnelInfoHandler (std::ostringstream& results);
@@ -67,7 +67,7 @@ namespace client
 			void SAMInfoHandler (std::ostringstream& results);
 			void BOBInfoHandler (std::ostringstream& results);
 			void I2CPInfoHandler (std::ostringstream& results);
-		
+
 		private:
 
 			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;

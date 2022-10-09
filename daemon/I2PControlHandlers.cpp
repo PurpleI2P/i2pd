@@ -43,7 +43,7 @@ namespace client
 		// NetworkSetting
 		m_NetworkSettingHandlers["i2p.router.net.bw.in"]  = &I2PControlHandlers::InboundBandwidthLimit;
 		m_NetworkSettingHandlers["i2p.router.net.bw.out"] = &I2PControlHandlers::OutboundBandwidthLimit;
-		
+
 		// ClientServicesInfo
 		m_ClientServicesInfoHandlers["I2PTunnel"] = &I2PControlHandlers::I2PTunnelInfoHandler;
 		m_ClientServicesInfoHandlers["HTTPProxy"] = &I2PControlHandlers::HTTPProxyInfoHandler;
@@ -51,7 +51,7 @@ namespace client
 		m_ClientServicesInfoHandlers["SAM"]       = &I2PControlHandlers::SAMInfoHandler;
 		m_ClientServicesInfoHandlers["BOB"]       = &I2PControlHandlers::BOBInfoHandler;
 		m_ClientServicesInfoHandlers["I2CP"]      = &I2PControlHandlers::I2CPInfoHandler;
-	}	
+	}
 
 	void I2PControlHandlers::InsertParam (std::ostringstream& ss, const std::string& name, int value) const
 	{
@@ -76,7 +76,7 @@ namespace client
 	{
 		ss << "\"" << name << "\":" << std::fixed << std::setprecision(2) << value;
 	}
-	
+
 	void I2PControlHandlers::InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const
 	{
 		std::ostringstream buf;
@@ -167,8 +167,8 @@ namespace client
 	void I2PControlHandlers::NetTotalSentBytes (std::ostringstream& results)
 	{
 		InsertParam (results, "i2p.router.net.total.sent.bytes", (double)i2p::transport::transports.GetTotalSentBytes ());
-	}	
-	
+	}
+
 // network setting
 	void I2PControlHandlers::NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
@@ -199,7 +199,7 @@ namespace client
 		int bw = i2p::context.GetBandwidthLimit();
 		InsertParam (results, "i2p.router.net.bw.out", bw);
 	}
-	
+
 // ClientServicesInfo
 
 	void I2PControlHandlers::ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
@@ -217,7 +217,7 @@ namespace client
 				LogPrint (eLogError, "I2PControl: ClientServicesInfo unknown request ", it->first);
 		}
 	}
-	
+
 	void I2PControlHandlers::I2PTunnelInfoHandler (std::ostringstream& results)
 	{
 		boost::property_tree::ptree pt;

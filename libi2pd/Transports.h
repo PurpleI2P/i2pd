@@ -62,8 +62,8 @@ namespace transport
 	};
 	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
 
-	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds  
-	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds  
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds
 	struct Peer
 	{
 		int numAttempts;
@@ -77,8 +77,8 @@ namespace transport
 			numAttempts (0), router (r), creationTime (ts),
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL)
 		{
-		}	
-		
+		}
+
 		void Done ()
 		{
 			for (auto& it: sessions)

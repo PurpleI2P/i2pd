@@ -727,7 +727,7 @@ namespace client
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 					bool ssl = section.second.get(I2P_SERVER_TUNNEL_SSL, false);
-					
+
 					// I2CP
 					std::map<std::string, std::string> options;
 					ReadI2CPOptions (section, true, options);
@@ -868,7 +868,7 @@ namespace client
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
 			if (httpAddresshelper)
-				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book	
+				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)

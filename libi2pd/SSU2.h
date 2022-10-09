@@ -28,7 +28,7 @@ namespace transport
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // 30 seconds
-		
+
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
 		struct Packet
@@ -60,7 +60,7 @@ namespace transport
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
-		
+
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);
@@ -70,7 +70,7 @@ namespace transport
 			std::shared_ptr<SSU2Session> FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const;
 			std::shared_ptr<SSU2Session> GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports,
 				const i2p::data::IdentHash& excluded) const;
-		
+
 			void AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay);
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSU2Session> FindRelaySession (uint32_t tag);
@@ -83,17 +83,17 @@ namespace transport
 			bool CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest = false);
 			bool StartPeerTest (std::shared_ptr<const i2p::data::RouterInfo> router, bool v4);
-			
+
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
 			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const;
 			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 			std::pair<uint64_t, uint32_t> NewIncomingToken (const boost::asio::ip::udp::endpoint& ep);
-		
+
 			void RescheduleIntroducersUpdateTimer ();
 			void RescheduleIntroducersUpdateTimerV6 ();
 
 			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
-		
+
 		private:
 
 			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
@@ -111,13 +111,13 @@ namespace transport
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
-			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers, 
+			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
 				bool v4, const std::set<i2p::data::IdentHash>& excluded) const;
 			void UpdateIntroducers (bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
 			void ScheduleIntroducersUpdateTimerV6 ();
-					
+
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -136,7 +136,7 @@ namespace transport
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
 			bool m_IsSyncClockFromPeers;
-			
+
 		public:
 
 			// for HTTP/I2PControl

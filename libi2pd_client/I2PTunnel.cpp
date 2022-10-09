@@ -86,7 +86,7 @@ namespace client
 	static void MapToLoopback(std::shared_ptr<boost::asio::ip::tcp::socket> sock, const i2p::data::IdentHash & addr)
 	{
 		if (sock)
-		{	
+		{
 			// bind to 127.x.x.x address
 			// where x.x.x are first three bytes from ident
 			auto ourIP = GetLoopbackAddressFor(addr);
@@ -101,7 +101,7 @@ namespace client
 	void I2PTunnelConnection::Connect (bool isUniqueLocal)
 	{
 		if (m_Socket)
-		{				
+		{
 			I2PTunnelSetSocketOptions (m_Socket);
 #ifdef __linux__
 			if (isUniqueLocal && m_RemoteEndpoint.address ().is_v4 () &&
@@ -132,7 +132,7 @@ namespace client
 		}
 		Connect (false);
 	}
-		
+
 	void I2PTunnelConnection::Terminate ()
 	{
 		if (Kill()) return;
@@ -155,7 +155,7 @@ namespace client
 			m_SSL->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
-		else	
+		else
 			m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
 				std::bind(&I2PTunnelConnection::HandleReceive, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
@@ -253,7 +253,7 @@ namespace client
 		if (m_SSL)
 			boost::asio::async_write (*m_SSL, boost::asio::buffer (buf, len), boost::asio::transfer_all (),
 				std::bind (&I2PTunnelConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-		else	
+		else
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),
 				std::bind (&I2PTunnelConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
 	}
@@ -269,9 +269,9 @@ namespace client
 		{
 			LogPrint (eLogDebug, "I2PTunnel: Connected");
 			if (m_SSL)
-				m_SSL->async_handshake (boost::asio::ssl::stream_base::client, 
+				m_SSL->async_handshake (boost::asio::ssl::stream_base::client,
 					std::bind (&I2PTunnelConnection::HandleHandshake, shared_from_this (), std::placeholders::_1));
-			else	
+			else
 				Established ();
 		}
 	}
@@ -289,7 +289,7 @@ namespace client
 			Established ();
 		}
 	}
-		
+
 	void I2PTunnelConnection::Established ()
 	{
 		if (m_IsQuiet)
@@ -305,8 +305,8 @@ namespace client
 			HandleStreamReceive (boost::system::error_code (), dest.size ());
 		}
 		Receive ();
-	}	
-		
+	}
+
 	void I2PClientTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
 	{
 		if (m_HeaderSent)
@@ -363,9 +363,9 @@ namespace client
 				StreamReceive (); // read more header
 			else
 			{
-				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);	
+				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
 				Terminate ();
-			}		
+			}
 		}
 	}
 
@@ -376,7 +376,7 @@ namespace client
 		m_HeaderSent (false), m_ResponseHeaderSent (false), m_From (stream->GetRemoteIdentity ())
 	{
 		if (sslCtx)
-			SSL_set_tlsext_host_name(GetSSL ()->native_handle(), host.c_str ());		
+			SSL_set_tlsext_host_name(GetSSL ()->native_handle(), host.c_str ());
 	}
 
 	void I2PServerTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
@@ -400,7 +400,7 @@ namespace client
 						// strip up some headers
 						static const std::vector<std::string> excluded // list of excluded headers
 						{
-							"Keep-Alive:", "X-I2P" 
+							"Keep-Alive:", "X-I2P"
 						};
 						bool matched = false;
 						for (const auto& it: excluded)
@@ -422,8 +422,8 @@ namespace client
 							else
 								m_OutHeader << "Connection: close\r\n";
 							connection = true;
-						}	
-						else // forward as is	
+						}
+						else // forward as is
 							m_OutHeader << line << "\n";
 					}
 				}
@@ -455,7 +455,7 @@ namespace client
 				StreamReceive (); // read more header
 			else
 			{
-				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);	
+				LogPrint (eLogError, "I2PTunnel: HTTP header exceeds max size ", I2P_TUNNEL_HTTP_MAX_HEADER_SIZE);
 				Terminate ();
 			}
 		}
@@ -526,7 +526,7 @@ namespace client
 		if (m_NeedsWebIrc)
 		{
 			m_NeedsWebIrc = false;
-			m_OutPacket << "WEBIRC " << m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) 
+			m_OutPacket << "WEBIRC " << m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ())
 				<< " " << GetSocket ()->local_endpoint ().address () << std::endl;
 		}
 
@@ -719,7 +719,7 @@ namespace client
 		auto localDestination = GetLocalDestination ();
 		if (localDestination)
 			localDestination->StopAcceptingStreams ();
-		
+
 		ClearHandlers ();
 	}
 
@@ -796,14 +796,14 @@ namespace client
 	void I2PServerTunnel::SetSSL (bool ssl)
 	{
 		if (ssl)
-		{	
+		{
 			m_SSLCtx = std::make_shared<boost::asio::ssl::context> (boost::asio::ssl::context::sslv23);
 			m_SSLCtx->set_verify_mode(boost::asio::ssl::context::verify_none);
-		}	
+		}
 		else
 			m_SSLCtx = nullptr;
-	}	
-		
+	}
+
 	void I2PServerTunnel::Accept ()
 	{
 		if (m_PortDestination)
@@ -1004,7 +1004,7 @@ namespace client
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel (const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip) :
-		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress), 
+		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress),
 		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_Gzip (gzip)
 	{
 	}

@@ -462,7 +462,7 @@ namespace transport
 				{
 					case i2p::data::RouterInfo::eNTCP2V4:
 					case i2p::data::RouterInfo::eNTCP2V6:
-					{	
+					{
 						if (!m_NTCP2Server) continue;
 						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eNTCP2V6) ?
 							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
@@ -493,7 +493,7 @@ namespace transport
 								return true;
 						}
 						break;
-					}	
+					}
 					case i2p::data::RouterInfo::eSSUV4:
 					case i2p::data::RouterInfo::eSSUV6:
 					{
@@ -508,7 +508,7 @@ namespace transport
 								return true;
 						}
 						break;
-					}	
+					}
 					case i2p::data::RouterInfo::eNTCP2V6Mesh:
 					{
 						if (!m_NTCP2Server) continue;
@@ -518,14 +518,14 @@ namespace transport
 							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
 							m_NTCP2Server->Connect (s);
 							return true;
-						}	
+						}
 						break;
-					}	
+					}
 					default:
 						LogPrint (eLogError, "Transports: Unknown transport ", (int)tr);
-				}	
-			}	
-			
+				}
+			}
+
 			LogPrint (eLogInfo, "Transports: No compatible addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
@@ -538,14 +538,14 @@ namespace transport
 			LogPrint (eLogInfo, "Transports: RouterInfo for ", ident.ToBase64 (), " not found, requested");
 			i2p::data::netdb.RequestDestination (ident, std::bind (
 				&Transports::RequestComplete, this, std::placeholders::_1, ident));
-		}	
+		}
 		return true;
-	}	
-		
+	}
+
 	void Transports::SetPriority (Peer& peer) const
 	{
-		static const std::vector<i2p::data::RouterInfo::SupportedTransports> 
-			ntcp2Priority = 
+		static const std::vector<i2p::data::RouterInfo::SupportedTransports>
+			ntcp2Priority =
 		{
 			i2p::data::RouterInfo::eNTCP2V6,
 			i2p::data::RouterInfo::eNTCP2V4,
@@ -554,8 +554,8 @@ namespace transport
 			i2p::data::RouterInfo::eNTCP2V6Mesh,
 			i2p::data::RouterInfo::eSSUV6,
 			i2p::data::RouterInfo::eSSUV4
-		}, 
-			ssu2Priority = 
+		},
+			ssu2Priority =
 		{
 			i2p::data::RouterInfo::eSSU2V6,
 			i2p::data::RouterInfo::eSSU2V4,
@@ -564,7 +564,7 @@ namespace transport
 			i2p::data::RouterInfo::eNTCP2V6Mesh,
 			i2p::data::RouterInfo::eSSUV6,
 			i2p::data::RouterInfo::eSSUV4
-		};	
+		};
 		if (!peer.router) return;
 		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
 			peer.router->GetCompatibleTransports (true);
@@ -574,9 +574,9 @@ namespace transport
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
 		for (auto transport: priority)
 			if (transport & compatibleTransports)
-				peer.priority.push_back (transport);	
-	}	
-		
+				peer.priority.push_back (transport);
+	}
+
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
 		m_Service->post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
@@ -834,7 +834,7 @@ namespace transport
 						auto session = it->second.sessions.front ();
 						if (session)
 							session->SendLocalRouterInfo (true);
-						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL + 
+						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL +
 							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
 					}
 					++it;
@@ -1074,6 +1074,6 @@ namespace transport
 				i2p::context.PublishSSU2Address (ssu2port, false, ipv4, ipv6); // unpublish
 		}
 
-	}	
+	}
 }
 }

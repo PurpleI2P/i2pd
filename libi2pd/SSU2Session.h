@@ -49,8 +49,8 @@ namespace transport
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 
 	// flags
-	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;	
-	
+	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
+
 	enum SSU2MessageType
 	{
 		eSSU2SessionRequest = 0,
@@ -123,7 +123,7 @@ namespace transport
 		eSSU2PeerTestCodeCharlieAliceIsBanned = 69,
 		eSSU2PeerTestCodeCharlieAliceIsUnknown = 70,
 		eSSU2PeerTestCodeUnspecified = 128
-	};	
+	};
 
 	enum SSU2RelayResponseCode
 	{
@@ -132,7 +132,7 @@ namespace transport
 		eSSU2RelayResponseCodeCharlieUnsupportedAddress = 65,
 		eSSU2RelayResponseCodeCharlieSignatureFailure = 67,
 		eSSU2RelayResponseCodeCharlieAliceIsUnknown = 70
-	};	
+	};
 
 	enum SSU2TerminationReason
 	{
@@ -159,8 +159,8 @@ namespace transport
 		eSSU2TerminationReasonIncompatibleVersion = 20,
 		eSSU2TerminationReasonWrongNetID = 21,
 		eSSU2TerminationReasonReplacedByNewSession = 22
-	};	
-	
+	};
+
 	struct SSU2IncompleteMessage
 	{
 		struct Fragment
@@ -185,7 +185,7 @@ namespace transport
 		uint64_t sendTime; // in milliseconds
 		int numResends = 0;
 	};
-	
+
 	// RouterInfo flags
 	const uint8_t SSU2_ROUTER_INFO_FLAG_REQUEST_FLOOD = 0x01;
 	const uint8_t SSU2_ROUTER_INFO_FLAG_GZIP = 0x02;
@@ -268,7 +268,7 @@ namespace transport
 			bool SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
 			void ResendHandshakePacket ();
 			void ConnectAfterIntroduction ();
-			
+
 			void ProcessSessionRequest (Header& header, uint8_t * buf, size_t len);
 			void ProcessTokenRequest (Header& header, uint8_t * buf, size_t len);
 
@@ -282,10 +282,10 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message 
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message
 			void SendPathResponse (const uint8_t * data, size_t len);
 			void SendPathChallenge ();
-			
+
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleDateTime (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
@@ -316,7 +316,7 @@ namespace transport
 			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
-			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4); 
+			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);

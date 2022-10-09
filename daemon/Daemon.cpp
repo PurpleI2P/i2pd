@@ -162,7 +162,7 @@ namespace util
 		i2p::context.Init ();
 
 		i2p::transport::InitTransports ();
-		
+
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);

@@ -63,7 +63,7 @@ namespace client
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
 		private:
-	
+
 			// methods
 			typedef void (I2PControlService::*MethodHandler)(const boost::property_tree::ptree& params, std::ostringstream& results);
 
@@ -71,7 +71,7 @@ namespace client
 			void EchoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void I2PControlHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
-			
+
 			// I2PControl
 			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
 			void PasswordHandler (const std::string& value);

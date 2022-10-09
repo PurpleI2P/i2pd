@@ -313,14 +313,14 @@ namespace client
 	{
 		i2p::config::GetOption("addressbook.enabled", m_IsEnabled);
 		if (m_IsEnabled)
-		{	
+		{
 			if (!m_Storage)
 				m_Storage = new AddressBookFilesystemStorage;
 			m_Storage->Init();
 			LoadHosts (); /* try storage, then hosts.txt, then download */
 			StartSubscriptions ();
 			StartLookups ();
-		}	
+		}
 	}
 
 	void AddressBook::StartResolvers ()

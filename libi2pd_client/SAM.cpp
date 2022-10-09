@@ -1481,7 +1481,7 @@ namespace client
 							auto localDest = session->GetLocalDestination ();
 							auto datagramDest = localDest ? localDest->GetDatagramDestination () : nullptr;
 							if (datagramDest)
-							{	
+							{
 								i2p::data::IdentityEx dest;
 								dest.FromBase64 (destination);
 								if (session->Type == eSAMSessionTypeDatagram)
@@ -1490,7 +1490,7 @@ namespace client
 									datagramDest->SendRawDatagramTo ((uint8_t *)eol, payloadLen, dest.GetIdentHash ());
 								else
 									LogPrint (eLogError, "SAM: Unexpected session type ", (int)session->Type, "for session ", sessionID);
-							}	
+							}
 							else
 								LogPrint (eLogError, "SAM: Datagram destination is not set for session ", sessionID);
 						}

@@ -274,7 +274,7 @@ namespace data
 				{
 					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 					r->Update (buf, len);
-				}	
+				}
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
 				{
@@ -438,14 +438,14 @@ namespace data
 
 		// try reseeding from floodfill first if specified
 		std::string riPath;
-		if(i2p::config::GetOption("reseed.floodfill", riPath)) 
+		if(i2p::config::GetOption("reseed.floodfill", riPath))
 		{
 			auto ri = std::make_shared<RouterInfo>(riPath);
-			if (ri->IsFloodfill()) 
+			if (ri->IsFloodfill())
 			{
 				const uint8_t * riData = ri->GetBuffer();
 				int riLen = ri->GetBufferLen();
-				if (!i2p::data::netdb.AddRouterInfo(riData, riLen)) 
+				if (!i2p::data::netdb.AddRouterInfo(riData, riLen))
 				{
 					// bad router info
 					LogPrint(eLogError, "NetDb: Bad router info");
@@ -629,7 +629,7 @@ namespace data
 				it.second->SetUnreachable (false);
 			// find & mark expired routers
 			if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & (RouterInfo::eSSUV4 | RouterInfo::eSSU2V4)))
-			// non-reachable router, but reachable by ipv4 SSU or SSU2 means introducers	
+			// non-reachable router, but reachable by ipv4 SSU or SSU2 means introducers
 			{
 				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
@@ -1218,7 +1218,7 @@ namespace data
 					router->IsSSU2PeerTesting (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
-	
+
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSUV6Router () const
 	{
 		return GetRandomRouter (
@@ -1243,11 +1243,11 @@ namespace data
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
 			{
-				return !router->IsHidden () && router->IsSSU2Introducer (v4) && 
+				return !router->IsHidden () && router->IsSSU2Introducer (v4) &&
 					!excluded.count (router->GetIdentHash ());
 			});
 	}
-	
+
 	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
 	{
 		return GetRandomRouter (
@@ -1455,6 +1455,6 @@ namespace data
 	{
 		if (!r || r->GetBuffer ()) return;
 		r->LoadBuffer (m_Storage.Path (r->GetIdentHashBase64 ()));
-	}	
+	}
 }
 }

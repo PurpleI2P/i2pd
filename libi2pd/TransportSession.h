@@ -27,7 +27,7 @@ namespace transport
 	const size_t IPV4_HEADER_SIZE = 20;
 	const size_t IPV6_HEADER_SIZE = 40;
 	const size_t UDP_HEADER_SIZE = 8;
-	
+
 	class SignedData
 	{
 		public:
@@ -42,7 +42,7 @@ namespace transport
 			{
 				m_Stream.str("");
 			}
-		
+
 			void Insert (const uint8_t * buf, size_t len)
 			{
 				m_Stream.write ((char *)buf, len);
@@ -68,7 +68,7 @@ namespace transport
 
 			std::stringstream m_Stream;
 	};
-	
+
 	class TransportSession
 	{
 		public:
@@ -79,7 +79,7 @@ namespace transport
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
-				m_CreationTime = m_LastActivityTimestamp;	
+				m_CreationTime = m_LastActivityTimestamp;
 			}
 
 			virtual ~TransportSession () {};
@@ -109,7 +109,7 @@ namespace transport
 
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
-			
+
 			virtual uint32_t GetRelayTag () const { return 0; };
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
