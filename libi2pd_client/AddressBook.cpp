@@ -397,6 +397,19 @@ namespace client
 		return nullptr;
 	}
 
+	bool AddressBook::RecordExists (const std::string& address, const std::string& jump)
+	{
+		auto addr = FindAddress(address);
+		if (!addr)
+			return false;
+
+		i2p::data::IdentityEx ident;
+		if (ident.FromBase64 (jump) && ident.GetIdentHash () == addr->identHash)
+			return true;
+
+		return false;
+	}
+
 	void AddressBook::InsertAddress (const std::string& address, const std::string& jump)
 	{
 		auto pos = jump.find(".b32.i2p");

@@ -80,8 +80,9 @@ namespace proxy {
 			/* error helpers */
 			void GenericProxyError(const std::string& title, const std::string& description);
 			void GenericProxyInfo(const std::string& title, const std::string& description);
-			void HostNotFound(std::string & host);
-			void SendProxyError(std::string & content);
+			void HostNotFound(std::string& host);
+			void SendProxyError(std::string& content);
+			void SendRedirect(std::string& address);
 
 			void ForwardToUpstreamProxy();
 			void HandleUpstreamHTTPProxyConnect(const boost::system::error_code & ec);
@@ -174,7 +175,7 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::HostNotFound(std::string & host) {
+	void HTTPReqHandler::HostNotFound(std::string& host) {
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error: Host not found") << "</h1>\r\n"
 		   << "<p>" << tr("Remote host not found in router's addressbook") << "</p>\r\n"
@@ -191,7 +192,7 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::SendProxyError(std::string & content)
+	void HTTPReqHandler::SendProxyError(std::string& content)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 500;
@@ -202,6 +203,17 @@ namespace proxy {
 		   << "<body>" << content << "</body>\r\n"
 		   << "</html>\r\n";
 		res.body = ss.str();
+		std::string response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
+			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+	}
+
+	void HTTPReqHandler::SendRedirect(std::string& address)
+	{
+		i2p::http::HTTPRes res;
+		res.code = 302;
+		res.add_header("Location", address);
+		res.add_header("Connection", "close");
 		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
@@ -297,7 +309,14 @@ namespace proxy {
 				GenericProxyError(tr("Invalid request"), tr("addresshelper is not supported"));
 				return true;
 			}
-			if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
+
+			if (i2p::client::context.GetAddressBook ().RecordExists (m_RequestURL.host, jump))
+			{
+				std::string full_url = m_RequestURL.to_string();
+				SendRedirect(full_url);
+				return true;
+			}
+			else if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
 			{
 				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, jump);
 				LogPrint (eLogInfo, "HTTPProxy: Added address from addresshelper for ", m_RequestURL.host);
@@ -313,7 +332,8 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
-				ss << tr(/* tr: The "record" means addressbook's record. That message appears when domain was already added to addressbook, but helper link is opened for it. */ "Click here to update record:" ) << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
+				ss << tr(/* tr: The "record" means addressbook's record. That message appears when domain was already added to addressbook, but helper link is opened for it. */ "Click here to update record:" );
+				ss << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
 				ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
 				GenericProxyInfo(tr("Addresshelper found"), ss.str());
 				return true; /* request processed */
