@@ -2118,7 +2118,9 @@ namespace transport
 						}
 						else
 						{
-							LogPrint (eLogWarning, "SSU2: Peer test 4 Charlie's Router Info is not found");
+							LogPrint (eLogWarning, "SSU2: Peer test 4 router not found");
+							if (it->second.first)
+								it->second.first->Done ();
 						}
 					}
 					else
