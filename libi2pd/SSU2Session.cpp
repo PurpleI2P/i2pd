@@ -184,6 +184,7 @@ namespace transport
 		{	
 			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 			SendData (payload, payloadSize);
+			LogPrint (eLogInfo, "SSU2: Peer test sent to ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()));
 		}	
 	}	
 
