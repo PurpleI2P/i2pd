@@ -178,13 +178,15 @@ namespace transport
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		// peer test block
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, nonce);
-		if (payloadSize > 0)
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		packet->payloadSize = CreatePeerTestBlock (packet->payload, m_MaxPayloadSize, nonce);
+		if (packet->payloadSize > 0)
 		{
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-			SendData (payload, payloadSize);
-			LogPrint (eLogDebug, "SSU2: PeerTest sent to ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()));
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+			uint32_t packetNum = SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
+			packet->sendTime = ts;
+			m_SentPackets.emplace (packetNum, packet);
+			LogPrint (eLogDebug, "SSU2: PeerTest msg=1 sent to ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()));
 		}
 	}
 
