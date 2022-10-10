@@ -514,8 +514,9 @@ namespace client
 	}
 
 	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass):
-		I2PTunnelConnection (owner, stream, target), m_From (stream->GetRemoteIdentity ()),
+		const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass,
+	    std::shared_ptr<boost::asio::ssl::context> sslCtx):
+		I2PTunnelConnection (owner, stream, target, true, sslCtx), m_From (stream->GetRemoteIdentity ()),
 		m_NeedsWebIrc (webircpass.length() ? true : false), m_WebircPass (webircpass)
 	{
 	}
@@ -871,7 +872,7 @@ namespace client
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnelIRC::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		return std::make_shared<I2PTunnelConnectionIRC> (this, stream, GetEndpoint (), m_WebircPass);
+		return std::make_shared<I2PTunnelConnectionIRC> (this, stream, GetEndpoint (), m_WebircPass, GetSSLCtx ());
 	}
 
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)

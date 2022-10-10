@@ -129,7 +129,8 @@ namespace client
 		public:
 
 			I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-				const boost::asio::ip::tcp::endpoint& target, const std::string& m_WebircPass);
+				const boost::asio::ip::tcp::endpoint& target, const std::string& m_WebircPass,
+			    std::shared_ptr<boost::asio::ssl::context> sslCtx = nullptr);
 
 		protected:
 
