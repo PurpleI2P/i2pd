@@ -157,6 +157,8 @@ namespace util
 			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
 		i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
 
+		i2p::transport::InitAddressFromIface (); // get address4/6 from interfaces
+
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
 		i2p::context.Init ();

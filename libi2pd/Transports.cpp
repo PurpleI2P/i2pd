@@ -965,7 +965,7 @@ namespace transport
 		}
 	}
 
-	void InitTransports ()
+	void InitAddressFromIface ()
 	{
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
@@ -988,8 +988,15 @@ namespace transport
 			else if (!ifname.empty ())
 				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
 		}
+	}
 
-		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
+	void InitTransports ()
+	{
+		bool ipv6;     i2p::config::GetOption("ipv6", ipv6);
+		bool ipv4;     i2p::config::GetOption("ipv4", ipv4);
+		bool ygg;      i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		uint16_t port; i2p::config::GetOption("port", port);
+
 		boost::asio::ip::address_v6 yggaddr;
 		if (ygg)
 		{
@@ -1015,7 +1022,6 @@ namespace transport
 			}
 		}
 
-		uint16_t port; i2p::config::GetOption("port", port);
 		if (!i2p::config::IsDefault("port"))
 		{
 			LogPrint(eLogInfo, "Transports: Accepting incoming connections at port ", port);

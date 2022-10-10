@@ -204,6 +204,7 @@ namespace transport
 
 	extern Transports transports;
 
+	void InitAddressFromIface ();
 	void InitTransports ();
 }
 }
