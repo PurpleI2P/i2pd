@@ -1925,6 +1925,7 @@ namespace transport
 		size_t offset = 3; // points to signed data
 		if (msg == 2 || msg == 4) offset += 32; // hash is presented for msg 2 and 4 only
 		if (len < offset + 5) return;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		uint32_t nonce = bufbe32toh (buf + offset + 1);
 		switch (msg) // msg
 		{
@@ -1935,24 +1936,28 @@ namespace transport
 				if (session) // session with Charlie
 				{
 					session->m_PeerTests.emplace (nonce, std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()));
-					uint8_t payload[SSU2_MAX_PACKET_SIZE];
+					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					// Alice's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
 					if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
-					size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-					if (!payloadSize && r)
+					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+					if (!packet->payloadSize && r)
 						session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-					if (payloadSize + len + 48 > m_MaxPayloadSize)
+					if (packet->payloadSize + len + 48 > m_MaxPayloadSize)
 					{
 						// doesn't fit one message, send RouterInfo in separate message
-						session->SendData (payload, payloadSize);
-						payloadSize = 0;
+						uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
+						packet->sendTime = ts;
+						session->m_SentPackets.emplace (packetNum, packet);
+						packet = m_Server.GetSentPacketsPool ().AcquireShared (); // new packet
 					}
 					// PeerTest to Charlie
-					payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, 2,
+					packet->payloadSize += CreatePeerTestBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, 2,
 						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
-					payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					session->SendData (payload, payloadSize);
+					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
+					packet->sendTime = ts;
+					session->m_SentPackets.emplace (packetNum, packet);
 				}
 				else
 				{
