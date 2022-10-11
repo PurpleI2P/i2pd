@@ -169,11 +169,11 @@ namespace transport
 		// we are Alice
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// session for message 5
 		auto session = std::make_shared<SSU2Session> (m_Server);
 		session->SetState (eSSU2SessionStatePeerTest);
-		m_PeerTests.emplace (nonce, std::make_pair (session, ts));
+		m_PeerTests.emplace (nonce, std::make_pair (session, ts/1000));
 		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
@@ -1925,7 +1925,7 @@ namespace transport
 		size_t offset = 3; // points to signed data
 		if (msg == 2 || msg == 4) offset += 32; // hash is presented for msg 2 and 4 only
 		if (len < offset + 5) return;
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t nonce = bufbe32toh (buf + offset + 1);
 		switch (msg) // msg
 		{
