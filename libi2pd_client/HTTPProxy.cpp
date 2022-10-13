@@ -249,6 +249,7 @@ namespace proxy {
 		req.RemoveHeader("Via");
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
+		req.RemoveHeader("DNT"); // Useless DoNotTrack flag
 		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
