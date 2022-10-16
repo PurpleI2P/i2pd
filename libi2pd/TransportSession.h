@@ -124,6 +124,13 @@ namespace transport
 			uint64_t m_LastActivityTimestamp;
 			uint32_t m_CreationTime; // seconds since epoch
 	};
+
+	// SOCKS5 proxy
+	const uint8_t SOCKS5_VER = 0x05;
+	const uint8_t SOCKS5_CMD_CONNECT = 0x01;
+	const uint8_t SOCKS5_CMD_UDP_ASSOCIATE = 0x03;
+	const uint8_t SOCKS5_ATYP_IPV4 = 0x01;
+	const uint8_t SOCKS5_ATYP_IPV6 = 0x04;
 }
 }
 
