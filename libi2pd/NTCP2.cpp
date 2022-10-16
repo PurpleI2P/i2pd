@@ -1558,7 +1558,7 @@ namespace transport
 			case eSocksProxy:
 			{
 				// TODO: support username/password auth etc
-				static const uint8_t buff[3] = {0x05, 0x01, 0x00};
+				static const uint8_t buff[3] = {SOCKS5_VER, 0x01, 0x00};
 				boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, 3), boost::asio::transfer_all(),
 					[] (const boost::system::error_code & ec, std::size_t transferred)
 					{
@@ -1672,21 +1672,21 @@ namespace transport
 		size_t sz = 6; // header + port
 		auto buff = std::make_shared<std::vector<int8_t> >(256);
 		auto readbuff = std::make_shared<std::vector<int8_t> >(256);
-		(*buff)[0] = 0x05;
-		(*buff)[1] = 0x01;
+		(*buff)[0] = SOCKS5_VER;
+		(*buff)[1] = SOCKS5_CMD_CONNECT;
 		(*buff)[2] = 0x00;
 
 		auto& ep = conn->GetRemoteEndpoint ();
 		if(ep.address ().is_v4 ())
 		{
-			(*buff)[3] = 0x01;
+			(*buff)[3] = SOCKS5_ATYP_IPV4;
 			auto addrbytes = ep.address ().to_v4().to_bytes();
 			sz += 4;
 			memcpy(buff->data () + 4, addrbytes.data(), 4);
 		}
 		else if (ep.address ().is_v6 ())
 		{
-			(*buff)[3] = 0x04;
+			(*buff)[3] = SOCKS5_ATYP_IPV6;
 			auto addrbytes = ep.address ().to_v6().to_bytes();
 			sz += 16;
 			memcpy(buff->data () + 4, addrbytes.data(), 16);
