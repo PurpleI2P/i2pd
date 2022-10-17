@@ -428,12 +428,12 @@ namespace transport
 				case eSSU2SessionStateIntroduced:
 					if (m_LastSession->GetRemoteEndpoint ().address ().is_unspecified ())
 						m_LastSession->SetRemoteEndpoint (senderEndpoint);
-					if (m_LastSession->GetRemoteEndpoint () == senderEndpoint)
+					if (m_LastSession->GetRemoteEndpoint ().address () == senderEndpoint.address ()) // port might be different
 						m_LastSession->ProcessHolePunch (buf, len);
 					else
 					{
-						LogPrint (eLogWarning, "SSU2: HolePunch endpoint ", senderEndpoint,
-							" doesn't match RelayResponse ", m_LastSession->GetRemoteEndpoint ());
+						LogPrint (eLogWarning, "SSU2: HolePunch address ", senderEndpoint.address (),
+							" doesn't match RelayResponse ", m_LastSession->GetRemoteEndpoint ().address ());
 						m_LastSession->Done ();
 						m_LastSession = nullptr;
 					}
