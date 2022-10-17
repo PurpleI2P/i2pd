@@ -118,6 +118,9 @@ namespace transport
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
 			void ScheduleIntroducersUpdateTimerV6 ();
 
+			void SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
+				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
+		
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -137,6 +140,13 @@ namespace transport
 			bool m_IsPublished; // if we maintain introducers
 			bool m_IsSyncClockFromPeers;
 
+			// proxy
+			bool m_IsThroughProxy;
+			uint8_t m_UDPRequestHeader[SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE];
+			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
+			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
+			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
+		
 		public:
 
 			// for HTTP/I2PControl

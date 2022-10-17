@@ -24,7 +24,7 @@ namespace transport
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
 		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
-		m_IsPublished (true), m_IsSyncClockFromPeers (true)
+		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_IsThroughProxy (false)
 	{
 	}
 
@@ -112,6 +112,12 @@ namespace transport
 		m_SocketV4.close ();
 		m_SocketV6.close ();
 
+		if (m_UDPAssociateSocket)
+		{	
+			m_UDPAssociateSocket->close ();
+			m_UDPAssociateSocket.reset (nullptr);
+		}	
+		
 		StopIOService ();
 
 		m_Sessions.clear ();
@@ -1033,5 +1039,39 @@ namespace transport
 			}
 		}
 	}
+
+	void SSU2Server::SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
+		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)
+	{
+		if (!m_ProxyRelayEndpoint) return;
+		size_t requestHeaderSize = 0;
+		memset (m_UDPRequestHeader, 0, 3);
+		if (to.address ().is_v6 ())
+		{	
+			m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV6;
+			memcpy (m_UDPRequestHeader + 4, to.address ().to_v6().to_bytes().data(), 16);
+			requestHeaderSize = SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
+		}	
+		else
+		{	
+			m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV4;
+			memcpy (m_UDPRequestHeader + 4, to.address ().to_v4().to_bytes().data(), 4);
+			requestHeaderSize = SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
+		}	
+		htobe16buf (m_UDPRequestHeader + requestHeaderSize - 2, to.port ());
+		
+		std::vector<boost::asio::const_buffer> bufs;
+		bufs.push_back (boost::asio::buffer (m_UDPRequestHeader, requestHeaderSize));
+		bufs.push_back (boost::asio::buffer (header, headerLen));
+		if (headerX) bufs.push_back (boost::asio::buffer (headerX, headerXLen));		
+		bufs.push_back (boost::asio::buffer (payload, payloadLen));
+
+		boost::system::error_code ec;
+		m_SocketV4.send_to (bufs, *m_ProxyRelayEndpoint, 0, ec); // TODO: implement ipv6 proxy
+		if (!ec)
+			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
+		else
+			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+	}	
 }
 }
