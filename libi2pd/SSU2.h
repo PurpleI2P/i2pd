@@ -120,6 +120,7 @@ namespace transport
 
 			void SendThroughProxy (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
+			void ProcessNextPacketFromProxy (uint8_t * buf, size_t len);
 		
 		private:
 

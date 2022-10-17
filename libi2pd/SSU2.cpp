@@ -394,7 +394,7 @@ namespace transport
 		}
 		return nullptr;
 	}
-
+		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		if (len < 24) return;
@@ -475,7 +475,7 @@ namespace transport
 			}
 		}
 	}
-
+		
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen,
 		const boost::asio::ip::udp::endpoint& to)
 	{
@@ -1072,6 +1072,41 @@ namespace transport
 			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
 		else
 			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+	}	
+
+	void SSU2Server::ProcessNextPacketFromProxy (uint8_t * buf, size_t len)
+	{
+		size_t offset = 0;
+		boost::asio::ip::udp::endpoint ep;
+		switch (buf[3]) // ATYP
+		{	
+			case SOCKS5_ATYP_IPV4:
+			{
+				offset = SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
+				if (offset > len) return;
+				boost::asio::ip::address_v4::bytes_type bytes;
+				memcpy (bytes.data (), buf + 4, 4);
+				uint16_t port = bufbe16toh (buf + 8);
+				ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v4 (bytes), port);
+				break;
+			}	
+			case SOCKS5_ATYP_IPV6:
+			{
+				offset = SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
+				if (offset > len) return;
+				boost::asio::ip::address_v6::bytes_type bytes;
+				memcpy (bytes.data (), buf + 4, 16);
+				uint16_t port = bufbe16toh (buf + 20);
+				ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v6 (bytes), port);
+				break;
+			}	
+			default:
+			{
+				LogPrint (eLogWarning, "SSU2: Unknown ATYP ", (int)buf[3], " from proxy relay");
+				return;
+			}	
+		}		
+		ProcessNextPacket (buf + offset, len - offset, ep);
 	}	
 }
 }
