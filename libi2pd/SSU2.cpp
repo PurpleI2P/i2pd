@@ -1108,5 +1108,147 @@ namespace transport
 		}		
 		ProcessNextPacket (buf + offset, len - offset, ep);
 	}	
+
+	void SSU2Server::ConnectToProxy ()
+	{
+		if (!m_ProxyEndpoint) return;
+		m_UDPAssociateSocket.reset (new boost::asio::ip::tcp::socket (m_ReceiveService.GetService ()));
+		m_UDPAssociateSocket->async_connect (*m_ProxyEndpoint, 
+		    [this] (const boost::system::error_code& ecode)
+			{                                    
+				if (ecode)
+				{
+					LogPrint (eLogError, "SSU2: Can't connect to proxy ", *m_ProxyEndpoint, " ", ecode.message ());
+					m_UDPAssociateSocket.reset (nullptr);
+				}
+				else
+					HandshakeWithProxy ();
+			});
+	}	
+
+	void SSU2Server::HandshakeWithProxy ()
+	{
+		if (!m_UDPAssociateSocket) return;
+		m_UDPRequestHeader[0] = SOCKS5_VER; 
+		m_UDPRequestHeader[1] = 1; // 1 method
+		m_UDPRequestHeader[2] = 0; // no authentication
+		boost::asio::async_write (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, 3), boost::asio::transfer_all(),
+			[this] (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				(void) bytes_transferred;
+				if (ecode)
+				{
+					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
+					m_UDPAssociateSocket.reset (nullptr);	
+				}	
+				else
+					ReadHandshakeWithProxyReply ();
+			});
+	}	
+
+	void SSU2Server::ReadHandshakeWithProxyReply ()
+	{
+		if (!m_UDPAssociateSocket) return;
+		boost::asio::async_read (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, 2), boost::asio::transfer_all(),
+			[this] (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				(void) bytes_transferred;
+				if (ecode)
+				{
+					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
+					m_UDPAssociateSocket.reset (nullptr);
+				}	
+				else
+				{
+					if (m_UDPRequestHeader[0] == SOCKS5_VER && !m_UDPRequestHeader[1])
+						SendUDPAssociateRequest ();
+					else
+					{
+						LogPrint(eLogError, "SSU2: Invalid proxy reply");
+						m_UDPAssociateSocket.reset (nullptr);
+					}	
+				}			
+			});	
+	}	
+
+	void SSU2Server::SendUDPAssociateRequest ()
+	{
+		if (!m_UDPAssociateSocket) return;
+		m_UDPRequestHeader[0] = SOCKS5_VER; 
+		m_UDPRequestHeader[1] = SOCKS5_CMD_UDP_ASSOCIATE; 
+		m_UDPRequestHeader[2] = 0; // RSV
+		m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV4; // TODO: implement ipv6 proxy
+		memset (m_UDPRequestHeader + 4, 0, 6); // address and port all zeros
+		boost::asio::async_write (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), boost::asio::transfer_all(),
+			[this] (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				(void) bytes_transferred;
+				if (ecode)
+				{
+					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
+					m_UDPAssociateSocket.reset (nullptr);	
+				}	
+				else
+					ReadUDPAssociateReply ();
+			});
+	}	
+
+	void SSU2Server::ReadUDPAssociateReply ()
+	{
+		if (!m_UDPAssociateSocket) return;
+		boost::asio::async_read (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), boost::asio::transfer_all(),
+			[this] (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				(void) bytes_transferred;
+				if (ecode)
+				{
+					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
+					m_UDPAssociateSocket.reset (nullptr);
+				}	
+				else
+				{
+					if (m_UDPRequestHeader[0] == SOCKS5_VER && !m_UDPRequestHeader[1])
+					{	
+						if (m_UDPRequestHeader[3] == SOCKS5_ATYP_IPV4)
+						{
+							boost::asio::ip::address_v4::bytes_type bytes;
+							memcpy (bytes.data (), m_UDPRequestHeader + 4, 4);
+							uint16_t port = bufbe16toh (m_UDPRequestHeader + 8);
+							m_ProxyRelayEndpoint.reset (new boost::asio::ip::udp::endpoint (boost::asio::ip::address_v4 (bytes), port));
+							m_SocketV4.open (boost::asio::ip::udp::v4 ());
+							Receive (m_SocketV4);
+							ReadUDPAssociateSocket ();
+						}	
+						else
+						{
+							LogPrint(eLogError, "SSU2: Proxy UDP associate unsupported ATYP ", (int)m_UDPRequestHeader[3]);
+							m_UDPAssociateSocket.reset (nullptr);
+						}	
+					}	
+					else
+					{
+						LogPrint(eLogError, "SSU2: Proxy UDP associate error ", (int)m_UDPRequestHeader[1]);
+						m_UDPAssociateSocket.reset (nullptr);
+					}	
+				}			
+			});	
+	}	
+
+	void SSU2Server::ReadUDPAssociateSocket ()
+	{
+		if (!m_UDPAssociateSocket) return;
+		m_UDPAssociateSocket->async_read_some (boost::asio::buffer (m_UDPRequestHeader, 1),
+			[this] (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				(void) bytes_transferred;
+				if (ecode)
+				{
+					LogPrint(eLogError, "SSU2: Proxy UDP Associate socket error ", ecode.message());
+					m_UDPAssociateSocket.reset (nullptr);
+				}	
+				else
+					ReadUDPAssociateSocket ();
+			});	
+	}	
 }
 }
