@@ -547,7 +547,7 @@ namespace client
 		}
 
 
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType, true);
 		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}
 

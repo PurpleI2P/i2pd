@@ -709,7 +709,7 @@ namespace client
 				LogPrint (eLogWarning, "SAM: ", SAM_PARAM_CRYPTO_TYPE, "error: ", ex.what ());
 			}
 		}
-		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
+		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType, true);
 #ifdef _MSC_VER
 		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
