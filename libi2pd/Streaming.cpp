@@ -855,7 +855,7 @@ namespace stream
 			for (const auto& it: packets)
 			{
 				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
-					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
+					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets (), it->IsSYN ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeTunnel,
@@ -1085,8 +1085,6 @@ namespace stream
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
-		if (m_Gzip)
-			m_Deflator.reset (new i2p::data::GzipDeflator);
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -1365,7 +1363,7 @@ namespace stream
 	}
 
 	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
-		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
+		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum, bool gzip)
 	{
 		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
@@ -1373,8 +1371,8 @@ namespace stream
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
 
-		if (m_Gzip && m_Deflator)
-			size = m_Deflator->Deflate (payload, len, buf, msg->maxLen - msg->len);
+		if (m_Gzip || gzip)
+			size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
 		else
 			size = i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len);
 

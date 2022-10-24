@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -284,7 +284,7 @@ namespace stream
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
@@ -315,7 +315,7 @@ namespace stream
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
-			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
+			i2p::data::GzipDeflator m_Deflator;
 
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
