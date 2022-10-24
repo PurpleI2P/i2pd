@@ -55,7 +55,7 @@ namespace data
 		{
 			memcpy (m_StandardIdentity.publicKey, publicKey ? publicKey : randomPaddingBlock, 32);
 			for (int i = 0; i < 7; i++) // 224 bytes
-				memcpy (m_StandardIdentity.publicKey + 32*i, randomPaddingBlock, 32);
+				memcpy (m_StandardIdentity.publicKey + 32*(i + 1), randomPaddingBlock, 32);
 		}
 		else
 		{
