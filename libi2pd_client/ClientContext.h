@@ -18,6 +18,7 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
+#include "UDPTunnel.h"
 #include "SAM.h"
 #include "BOB.h"
 #include "I2CP.h"
