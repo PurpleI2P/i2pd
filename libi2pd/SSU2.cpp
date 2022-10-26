@@ -42,6 +42,11 @@ namespace transport
 				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
 				{
+					if (m_IsThroughProxy)
+					{
+						found = true;
+						break; // we don't need port for proxy
+					}	
 					auto port = address->port;
 					if (!port)
 					{
@@ -84,7 +89,11 @@ namespace transport
 				}
 			}
 			if (found)
+			{	
 				m_ReceiveService.Start ();
+				if (m_IsThroughProxy)
+					ConnectToProxy ();
+			}	
 			ScheduleTermination ();
 			ScheduleResend (false);
 		}
@@ -257,7 +266,10 @@ namespace transport
 	{
 		if (packet)
 		{
-			ProcessNextPacket (packet->buf, packet->len, packet->from);
+			if (m_IsThroughProxy)
+				ProcessNextPacketFromProxy (packet->buf, packet->len);
+			else	
+				ProcessNextPacket (packet->buf, packet->len, packet->from);
 			m_PacketsPool.ReleaseMt (packet);
 			if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 				m_LastSession->FlushData ();
@@ -266,8 +278,12 @@ namespace transport
 
 	void SSU2Server::HandleReceivedPackets (std::vector<Packet *> packets)
 	{
-		for (auto& packet: packets)
-			ProcessNextPacket (packet->buf, packet->len, packet->from);
+		if (m_IsThroughProxy)
+			for (auto& packet: packets)
+				ProcessNextPacketFromProxy (packet->buf, packet->len);
+		else	
+			for (auto& packet: packets)
+				ProcessNextPacket (packet->buf, packet->len, packet->from);
 		m_PacketsPool.ReleaseMt (packets);
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
@@ -479,6 +495,11 @@ namespace transport
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen,
 		const boost::asio::ip::udp::endpoint& to)
 	{
+		if (m_IsThroughProxy)
+		{
+			SendThroughProxy (header, headerLen, nullptr, 0, payload, payloadLen, to);
+			return;
+		}	
 		std::vector<boost::asio::const_buffer> bufs
 		{
 			boost::asio::buffer (header, headerLen),
@@ -498,6 +519,11 @@ namespace transport
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
 		const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to)
 	{
+		if (m_IsThroughProxy)
+		{
+			SendThroughProxy (header, headerLen, headerX, headerXLen, payload, payloadLen, to);
+			return;
+		}
 		std::vector<boost::asio::const_buffer> bufs
 		{
 			boost::asio::buffer (header, headerLen),
@@ -1249,6 +1275,24 @@ namespace transport
 				else
 					ReadUDPAssociateSocket ();
 			});	
+	}	
+
+	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)
+	{
+		boost::system::error_code ecode;
+		auto addr = boost::asio::ip::address::from_string (address, ecode);
+		if (!ecode && !addr.is_unspecified () && port)
+		{
+			m_IsThroughProxy = true;
+			m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint (addr, port));
+		}	
+		else
+		{
+			if (ecode)
+				LogPrint (eLogError, "SSU2: Invalid proxy address ", address, " ", ecode.message());
+			return false;
+		}	
+		return true;
 	}	
 }
 }

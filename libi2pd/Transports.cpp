@@ -218,7 +218,23 @@ namespace transport
 			}
 		}
 		// create SSU2 server
-		if (enableSSU2) m_SSU2Server = new SSU2Server ();
+		if (enableSSU2) 
+		{	
+			m_SSU2Server = new SSU2Server ();
+			std::string ssu2proxy; i2p::config::GetOption("ssu2.proxy", ssu2proxy);
+			if (!ssu2proxy.empty())
+			{
+				if (proxyurl.parse (ssu2proxy) && proxyurl.schema == "socks")
+				{
+					if (m_SSU2Server->SetProxy (proxyurl.host, proxyurl.port))
+						i2p::context.SetStatus (eRouterStatusProxy);
+					else
+						LogPrint(eLogError, "Transports: Can't set SSU2 proxy ", ssu2proxy);
+				}	
+				else
+					LogPrint(eLogError, "Transports: Invalid SSU2 proxy URL ", ssu2proxy);
+			}	
+		}	
 
 		// bind to interfaces
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
