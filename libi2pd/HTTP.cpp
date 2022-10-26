@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -135,6 +135,7 @@ namespace http
 					? url.substr(pos_p, std::string::npos)
 					: url.substr(pos_p, pos_c - pos_p);
 				/* stoi throws exception on failure, we don't need it */
+				port = 0;
 				for (char c : port_str) {
 					if (c < '0' || c > '9')
 						return false;
