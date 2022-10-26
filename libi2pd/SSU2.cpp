@@ -45,7 +45,8 @@ namespace transport
 					if (m_IsThroughProxy)
 					{
 						found = true;
-						break; // we don't need port for proxy
+						i2p::context.SetMTU (SSU2_MIN_PACKET_SIZE, address->IsV4 ());
+						continue; // we don't need port for proxy
 					}	
 					auto port = address->port;
 					if (!port)
@@ -90,9 +91,9 @@ namespace transport
 			}
 			if (found)
 			{	
-				m_ReceiveService.Start ();
 				if (m_IsThroughProxy)
 					ConnectToProxy ();
+				m_ReceiveService.Start ();
 			}	
 			ScheduleTermination ();
 			ScheduleResend (false);
