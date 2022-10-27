@@ -58,6 +58,7 @@ namespace transport
 			boost::asio::io_service& GetService () { return GetIOService (); };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			bool SetProxy (const std::string& address, uint16_t port);
+			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };

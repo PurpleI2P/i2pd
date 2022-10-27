@@ -665,7 +665,7 @@ namespace transport
 					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
 			}
 			// SSU2
-			if (m_SSU2Server)
+			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
@@ -714,7 +714,7 @@ namespace transport
 			}
 
 			// SSU2
-			if (m_SSU2Server)
+			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
