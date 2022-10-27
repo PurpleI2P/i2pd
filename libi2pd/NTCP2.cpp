@@ -1708,7 +1708,7 @@ namespace transport
 				}
 			});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), 10),
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), sz),
 			[timer, conn, sz, readbuff](const boost::system::error_code & e, std::size_t transferred)
 			{
 				if(e)
