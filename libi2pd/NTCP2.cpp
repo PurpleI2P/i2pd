@@ -1708,22 +1708,24 @@ namespace transport
 				}
 			});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), sz),
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), // read min reply size
+		    boost::asio::transfer_all(),                    
 			[timer, conn, sz, readbuff](const boost::system::error_code & e, std::size_t transferred)
 			{
-				if(e)
-				{
+				if (e)
 					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
-				}
-				else if(transferred == sz)
+				else if (!(*readbuff)[1]) // succeeded
 				{
-					if((*readbuff)[1] == 0x00)
-					{
-						timer->cancel();
-						conn->ClientLogin();
-						return;
-					}
+					boost::system::error_code ec;
+					size_t moreBytes = conn->GetSocket ().available(ec);	
+					if (moreBytes) // read remaining portion of reply if ipv6 received
+						boost::asio::read (conn->GetSocket (), boost::asio::buffer(readbuff->data (), moreBytes), boost::asio::transfer_all (), ec);
+					timer->cancel();
+					conn->ClientLogin();
+					return;
 				}
+				else
+					LogPrint(eLogError, "NTCP2: Proxy reply error ", (int)(*readbuff)[1]);
 				timer->cancel();
 				conn->Terminate();
 			});
