@@ -463,7 +463,7 @@ namespace i2p
 				updated = true;
 			}
 			if (host.is_v6 () && address->IsV6 () && address->ssu &&
-			    (!address->ssu->mtu || updated))
+			    (!address->ssu->mtu || updated) && m_StatusV6 != eRouterStatusProxy)
 			{
 				// update MTU
 				auto mtu = i2p::util::net::GetMTU (host);

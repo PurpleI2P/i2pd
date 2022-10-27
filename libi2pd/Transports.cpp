@@ -167,6 +167,8 @@ namespace transport
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		i2p::config::GetOption("nat", m_IsNAT);
 		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
@@ -190,6 +192,8 @@ namespace transport
 
 						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port, proxyurl.user, proxyurl.pass);
 						i2p::context.SetStatus (eRouterStatusProxy);
+						if (ipv6)
+							i2p::context.SetStatusV6 (eRouterStatusProxy);
 					}
 					else
 						LogPrint(eLogError, "Transports: Unsupported NTCP2 proxy URL ", ntcp2proxy);
@@ -227,7 +231,11 @@ namespace transport
 				if (proxyurl.parse (ssu2proxy) && proxyurl.schema == "socks")
 				{
 					if (m_SSU2Server->SetProxy (proxyurl.host, proxyurl.port))
+					{	
 						i2p::context.SetStatus (eRouterStatusProxy);
+						if (ipv6)
+							i2p::context.SetStatusV6 (eRouterStatusProxy);
+					}	
 					else
 						LogPrint(eLogError, "Transports: Can't set SSU2 proxy ", ssu2proxy);
 				}	
@@ -237,7 +245,6 @@ namespace transport
 		}	
 
 		// bind to interfaces
-		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		if (ipv4)
 		{
 			std::string address; i2p::config::GetOption("address4", address);
@@ -254,7 +261,6 @@ namespace transport
 			}
 		}
 
-		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		if (ipv6)
 		{
 			std::string address; i2p::config::GetOption("address6", address);
