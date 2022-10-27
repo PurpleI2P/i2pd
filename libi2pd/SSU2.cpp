@@ -45,7 +45,10 @@ namespace transport
 					if (m_IsThroughProxy)
 					{
 						found = true;
-						i2p::context.SetMTU (SSU2_MIN_PACKET_SIZE, address->IsV4 ());
+						if (address->IsV6 ())
+							i2p::context.SetMTU (SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE, false);
+						else	
+							i2p::context.SetMTU (SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE, true);
 						continue; // we don't need port for proxy
 					}	
 					auto port = address->port;
@@ -162,6 +165,8 @@ namespace transport
 
 	bool SSU2Server::IsSupported (const boost::asio::ip::address& addr) const
 	{
+		if (m_IsThroughProxy)
+			return m_SocketV4.is_open ();
 		if (addr.is_v4 ())
 		{
 			if (m_SocketV4.is_open ())
@@ -178,7 +183,7 @@ namespace transport
 	uint16_t SSU2Server::GetPort (bool v4) const
 	{
 		boost::system::error_code ec;
-		boost::asio::ip::udp::endpoint ep = v4 ? m_SocketV4.local_endpoint (ec) : m_SocketV6.local_endpoint (ec);
+		boost::asio::ip::udp::endpoint ep = (v4 || m_IsThroughProxy) ? m_SocketV4.local_endpoint (ec) : m_SocketV6.local_endpoint (ec);
 		if (ec) return 0;
 		return ep.port ();
 	}
@@ -1103,6 +1108,11 @@ namespace transport
 
 	void SSU2Server::ProcessNextPacketFromProxy (uint8_t * buf, size_t len)
 	{
+		if (buf[2]) // FRAG
+		{
+			LogPrint (eLogWarning, "SSU2: Proxy packet fragmentation is not supported");
+			return;
+		}	
 		size_t offset = 0;
 		boost::asio::ip::udp::endpoint ep;
 		switch (buf[3]) // ATYP
