@@ -27,8 +27,9 @@ namespace transport
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
-	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // 30 seconds
-
+	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // in seconds
+	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
+	
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
 		struct Packet
@@ -124,6 +125,7 @@ namespace transport
 				const uint8_t * payload, size_t payloadLen, const boost::asio::ip::udp::endpoint& to);
 			void ProcessNextPacketFromProxy (uint8_t * buf, size_t len);
 			void ConnectToProxy ();
+			void ReconnectToProxy ();
 			void HandshakeWithProxy ();
 			void ReadHandshakeWithProxyReply ();
 			void SendUDPAssociateRequest ();
@@ -155,6 +157,7 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
 			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
+			std::unique_ptr<boost::asio::deadline_timer> m_ProxyConnectRetryTimer;
 		
 		public:
 

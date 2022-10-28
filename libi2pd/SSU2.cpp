@@ -1157,6 +1157,7 @@ namespace transport
 				{
 					LogPrint (eLogError, "SSU2: Can't connect to proxy ", *m_ProxyEndpoint, " ", ecode.message ());
 					m_UDPAssociateSocket.reset (nullptr);
+					ReconnectToProxy ();
 				}
 				else
 					HandshakeWithProxy ();
@@ -1177,6 +1178,7 @@ namespace transport
 				{
 					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);	
+					ReconnectToProxy ();
 				}	
 				else
 					ReadHandshakeWithProxyReply ();
@@ -1194,6 +1196,7 @@ namespace transport
 				{
 					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
+					ReconnectToProxy ();
 				}	
 				else
 				{
@@ -1224,6 +1227,7 @@ namespace transport
 				{
 					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);	
+					ReconnectToProxy ();
 				}	
 				else
 					ReadUDPAssociateReply ();
@@ -1241,6 +1245,7 @@ namespace transport
 				{
 					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
+					ReconnectToProxy ();
 				}	
 				else
 				{
@@ -1280,14 +1285,36 @@ namespace transport
 				(void) bytes_transferred;
 				if (ecode)
 				{
-					LogPrint(eLogError, "SSU2: Proxy UDP Associate socket error ", ecode.message());
+					LogPrint(eLogWarning, "SSU2: Proxy UDP Associate socket error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
+					m_ProxyRelayEndpoint.reset (nullptr);
+					ConnectToProxy (); // try to reconnect immediately
 				}	
 				else
 					ReadUDPAssociateSocket ();
 			});	
 	}	
 
+	void SSU2Server::ReconnectToProxy ()
+	{
+		LogPrint(eLogInfo, "SSU2: Reconnect to proxy after ", SSU2_PROXY_CONNECT_RETRY_TIMEOUT, " seconds");
+		if (m_ProxyConnectRetryTimer)
+			m_ProxyConnectRetryTimer->cancel ();
+		else	
+			m_ProxyConnectRetryTimer.reset (new boost::asio::deadline_timer (m_ReceiveService.GetService ()));
+		m_ProxyConnectRetryTimer->expires_from_now (boost::posix_time::seconds (SSU2_PROXY_CONNECT_RETRY_TIMEOUT));
+		m_ProxyConnectRetryTimer->async_wait (
+			[this](const boost::system::error_code& ecode)
+			{
+				if (ecode != boost::asio::error::operation_aborted)
+				{
+					m_UDPAssociateSocket.reset (nullptr);
+					m_ProxyRelayEndpoint.reset (nullptr);
+					ConnectToProxy ();
+				}
+			});	                                                               
+	}	
+		
 	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)
 	{
 		boost::system::error_code ecode;
