@@ -1288,6 +1288,7 @@ namespace transport
 					LogPrint(eLogWarning, "SSU2: Proxy UDP Associate socket error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
 					m_ProxyRelayEndpoint.reset (nullptr);
+					m_SocketV4.close ();
 					ConnectToProxy (); // try to reconnect immediately
 				}	
 				else
@@ -1310,6 +1311,7 @@ namespace transport
 				{
 					m_UDPAssociateSocket.reset (nullptr);
 					m_ProxyRelayEndpoint.reset (nullptr);
+					LogPrint(eLogInfo, "SSU2: Reconnecting to proxy");
 					ConnectToProxy ();
 				}
 			});	                                                               
