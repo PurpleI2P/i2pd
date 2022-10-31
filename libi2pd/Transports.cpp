@@ -259,6 +259,17 @@ namespace transport
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
+
+			if (enableSSU2)
+			{
+				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
+				if (mtu)
+				{	
+					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
+					i2p::context.SetMTU (mtu, true);
+				}	
+			}	
 		}
 
 		if (ipv6)
@@ -275,6 +286,17 @@ namespace transport
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
+
+			if (enableSSU2)
+			{
+				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
+				if (mtu)
+				{	
+					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
+					i2p::context.SetMTU (mtu, false);
+				}	
+			}	
 		}
 
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);

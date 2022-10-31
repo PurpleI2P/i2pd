@@ -277,6 +277,8 @@ namespace config {
 			("ssu2.enabled", value<bool>()->default_value(true),         "Enable SSU2 (default: enabled)")
 			("ssu2.published", value<bool>()->default_value(true),        "Publish SSU2 (default: enabled)")
 			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
+			("ssu2.mtu4", value<uint16_t>()->default_value(0),            "MTU for ipv4 address (default: detect)")
+			("ssu2.mtu6", value<uint16_t>()->default_value(0),            "MTU for ipv6 address (default: detect)")
 			("ssu2.proxy", value<std::string>()->default_value(""),       "Socks5 proxy URL for SSU2 transport")
 		;
 

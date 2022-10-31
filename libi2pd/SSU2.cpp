@@ -46,9 +46,19 @@ namespace transport
 					{
 						found = true;
 						if (address->IsV6 ())
-							i2p::context.SetMTU (SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE, false);
+						{	
+							uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
+							if (!mtu || mtu > SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE)
+								mtu = SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
+							i2p::context.SetMTU (mtu, false);
+						}	
 						else	
-							i2p::context.SetMTU (SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE, true);
+						{	
+							uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
+							if (!mtu || mtu > SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE)
+								mtu = SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
+							i2p::context.SetMTU (mtu, true);
+						}	
 						continue; // we don't need port for proxy
 					}	
 					auto port = address->port;
@@ -147,7 +157,8 @@ namespace transport
 		if (localAddress.is_v4 ())
 		{
 			m_AddressV4 = localAddress;
-			int mtu = i2p::util::net::GetMTU (localAddress);
+			uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
+			if (!mtu) mtu = i2p::util::net::GetMTU (localAddress);
 			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 			if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 			i2p::context.SetMTU (mtu, true);
@@ -155,9 +166,15 @@ namespace transport
 		else if (localAddress.is_v6 ())
 		{
 			m_AddressV6 = localAddress;
-			int maxMTU = i2p::util::net::GetMaxMTU (localAddress.to_v6 ());
-			int mtu = i2p::util::net::GetMTU (localAddress);
-			if (mtu > maxMTU) mtu = maxMTU;
+			uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
+			if (!mtu)
+			{	
+				int maxMTU = i2p::util::net::GetMaxMTU (localAddress.to_v6 ());
+				mtu = i2p::util::net::GetMTU (localAddress);
+				if (mtu > maxMTU) mtu = maxMTU;
+			}	
+			else 
+				if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 			i2p::context.SetMTU (mtu, false);
 		}
