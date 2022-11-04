@@ -19,6 +19,7 @@
 #include "Identity.h"
 #include "Destination.h"
 #include "Datagram.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -47,7 +48,7 @@ namespace client
 
 		UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
 			const std::shared_ptr<i2p::client::ClientDestination> & localDestination,
-			boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash * ident,
+			const boost::asio::ip::udp::endpoint& remote, const i2p::data::IdentHash& ident,
 			uint16_t ourPort, uint16_t theirPort);
 		void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
 		void Receive();
@@ -84,8 +85,8 @@ namespace client
 
 			I2PUDPServerTunnel (const std::string & name,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination,
-				boost::asio::ip::address localAddress,
-				boost::asio::ip::udp::endpoint forwardTo, uint16_t port, bool gzip);
+				const boost::asio::ip::address& localAddress,
+				const boost::asio::ip::udp::endpoint& forwardTo, uint16_t port, bool gzip);
 			~I2PUDPServerTunnel ();
 
 			/** expire stale udp conversations */
@@ -126,7 +127,7 @@ namespace client
 		public:
 
 			I2PUDPClientTunnel (const std::string & name, const std::string &remoteDest,
-				boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination,
+				const boost::asio::ip::udp::endpoint& localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 				uint16_t remotePort, bool gzip);
 			~I2PUDPClientTunnel ();
 
@@ -164,7 +165,7 @@ namespace client
 			const std::string m_RemoteDest;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
-			i2p::data::IdentHash * m_RemoteIdent;
+			std::shared_ptr<const Address> m_RemoteAddr;
 			std::thread * m_ResolveThread;
 			std::unique_ptr<boost::asio::ip::udp::socket> m_LocalSocket;
 			boost::asio::ip::udp::endpoint m_RecvEndpoint;
