@@ -328,8 +328,7 @@ namespace client
 		i2p::util::SetThreadName ("UDP Resolver");
 		LogPrint (eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
 
-		std::shared_ptr<const Address> addr;
-		while (!(addr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)
+		while (!(m_RemoteAddr = context.GetAddressBook().GetAddress(m_RemoteDest)) && !m_cancel_resolve)
 		{
 			LogPrint (eLogWarning, "UDP Tunnel: Failed to lookup ", m_RemoteDest);
 			std::this_thread::sleep_for (std::chrono::seconds (1));
@@ -339,7 +338,7 @@ namespace client
 			LogPrint(eLogError, "UDP Tunnel: Lookup of ", m_RemoteDest, " was cancelled");
 			return;
 		}
-		if (!addr)
+		if (!m_RemoteAddr)
 		{
 			LogPrint (eLogError, "UDP Tunnel: ", m_RemoteDest, " not found");
 			return;
