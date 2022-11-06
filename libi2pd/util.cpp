@@ -22,6 +22,9 @@
 #include <pthread_np.h>
 #endif
 
+#if defined(__APPLE__)
+# include <AvailabilityMacros.h>
+#endif
 
 #ifdef _WIN32
 #include <stdlib.h>
@@ -143,8 +146,15 @@ namespace util
 	}
 
 	void SetThreadName (const char *name) {
-#if defined(__APPLE__) && !defined(__powerpc__)
+#if defined(__APPLE__)
+# if (!defined(MAC_OS_X_VERSION_10_6) || \
+		(MAC_OS_X_VERSION_MAX_ALLOWED < 1060) || \
+		defined(__POWERPC__))
+		/* pthread_setname_np is not there on <10.6 and all PPC.
+		So do nothing. */
+# else
 		pthread_setname_np((char*)name);
+# endif
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
 #elif defined(__NetBSD__)
