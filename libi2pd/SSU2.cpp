@@ -277,10 +277,20 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU2: Receive error: code ", ecode.value(), ": ", ecode.message ());
-				auto ep = socket.local_endpoint ();
-				socket.close ();
-				OpenSocket (ep);
-				Receive (socket);
+				if (m_IsThroughProxy)
+				{
+					m_UDPAssociateSocket.reset (nullptr);
+					m_ProxyRelayEndpoint.reset (nullptr);
+					m_SocketV4.close ();
+					ConnectToProxy ();
+				}
+				else
+				{	
+					auto ep = socket.local_endpoint ();
+					socket.close ();
+					OpenSocket (ep);
+					Receive (socket);
+				}	
 			}
 		}
 	}
