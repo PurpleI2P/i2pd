@@ -474,6 +474,29 @@ namespace stream
 			Close (); // check is all outgoing messages have been sent and we can send close
 	}
 
+	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
+	{
+		if (!len) return 0;
+		size_t ret = 0;
+		std::condition_variable newDataReceived;
+		std::mutex newDataReceivedMutex;
+		std::unique_lock<std::mutex> l(newDataReceivedMutex);
+		AsyncReceive (boost::asio::buffer (buf, len),
+			[&ret, &newDataReceived, &newDataReceivedMutex](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				if (ecode == boost::asio::error::timed_out)
+					ret = 0;
+				else
+					ret = bytes_transferred;
+				std::unique_lock<std::mutex> l(newDataReceivedMutex);
+				newDataReceived.notify_all ();
+			},
+			timeout);
+		if (newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)
+			ret = 0;
+		return ret;
+	}	
+		
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
 		AsyncSend (buf, len, nullptr);

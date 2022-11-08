@@ -185,7 +185,8 @@ namespace stream
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
-
+			size_t Receive (uint8_t * buf, size_t len, int timeout);
+			
 			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
 
 			/** only call close from destination thread, use Stream::AsyncClose for other threads */
@@ -336,11 +337,10 @@ namespace stream
 				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
 				int left = timeout - t;
-				auto self = s->shared_from_this();
-				self->m_ReceiveTimer.async_wait (
-					[self, buffer, handler, left](const boost::system::error_code & ec)
+				s->m_ReceiveTimer.async_wait (
+					[s, buffer, handler, left](const boost::system::error_code & ec)
 					{
-						self->HandleReceiveTimer(ec, buffer, handler, left);
+						s->HandleReceiveTimer(ec, buffer, handler, left);
 					});
 			}
 		});

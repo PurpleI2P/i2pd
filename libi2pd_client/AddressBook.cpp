@@ -892,24 +892,20 @@ namespace client
 		int numAttempts = 0;
 		while (!end)
 		{
-			stream->AsyncReceive (boost::asio::buffer (recv_buf, 4096),
-				[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
-				{
-					if (bytes_transferred)
-						response.append ((char *)recv_buf, bytes_transferred);
-					if (ecode == boost::asio::error::timed_out || !stream->IsOpen ())
-						end = true;
-					newDataReceived.notify_all ();
-				},
-				SUBSCRIPTION_REQUEST_TIMEOUT);
-			std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			// wait 1 more second
-			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT + 1)) == std::cv_status::timeout)
+			size_t received = stream->Receive (recv_buf, 4096, SUBSCRIPTION_REQUEST_TIMEOUT);
+			if (received)
+			{
+				response.append ((char *)recv_buf, received);
+				if (!stream->IsOpen ()) end = true;
+			}	
+			else if (!stream->IsOpen ())
+				end = true;
+			else
 			{
 				LogPrint (eLogError, "Addressbook: Subscriptions request timeout expired");
 				numAttempts++;
 				if (numAttempts > 5) end = true;
-			}
+			}	
 		}
 		// process remaining buffer
 		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf)))
