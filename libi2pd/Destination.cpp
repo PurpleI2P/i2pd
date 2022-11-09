@@ -1096,7 +1096,13 @@ namespace client
 		}
 		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
-			streamRequestComplete(CreateStream (leaseSet, port));
+		{	
+			auto stream = CreateStream (leaseSet, port);
+			GetService ().post ([streamRequestComplete, stream]() 
+				{                
+					streamRequestComplete(stream);
+				});
+		}	
 		else
 		{
 			auto s = GetSharedFromThis ();
