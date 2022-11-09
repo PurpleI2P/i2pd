@@ -247,6 +247,8 @@ namespace client
 			// following methods operate with default streaming destination
 			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
 			void CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port = 0);
+			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::IdentHash& dest, int port = 0); // sync
+			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port = 0); // sync
 			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void SendPing (const i2p::data::IdentHash& to);
 			void SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to);
@@ -282,6 +284,9 @@ namespace client
 			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
+			template<typename Dest>	
+			std::shared_ptr<i2p::stream::Stream> CreateStreamSync (const Dest& dest, int port);
+			
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
