@@ -1362,6 +1362,26 @@ namespace stream
 		acceptor (stream);
 	}
 
+	std::shared_ptr<Stream> StreamingDestination::AcceptStream (int timeout)
+	{
+		std::shared_ptr<i2p::stream::Stream> stream;
+		std::condition_variable streamAccept;
+		std::mutex streamAcceptMutex;
+		std::unique_lock<std::mutex> l(streamAcceptMutex);
+		AcceptOnce (
+			[&streamAccept, &streamAcceptMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
+		    {
+				stream = s;
+				std::unique_lock<std::mutex> l(streamAcceptMutex);
+				streamAccept.notify_all ();
+			});
+		if (timeout)
+			streamAccept.wait_for (l, std::chrono::seconds (timeout));
+		else	
+			streamAccept.wait (l);
+		return stream;
+	}	
+		
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
