@@ -172,6 +172,13 @@ if(WITH_THREADSANITIZER)
 endif()
 
 
+# Enable usage of STD's Atomic instead of Boost's on PowerPC
+# For more information refer to https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
+if(ARCHITECTURE MATCHES "ppc")
+  add_definitions(-DBOOST_SP_USE_STD_ATOMIC)
+endif()
+
+
 # libraries
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
