@@ -31,7 +31,6 @@ namespace german // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"Purple I2P Webconsole", "Purple-I2P-Webkonsole"},
 		{"KiB", "KiB"},
 		{"MiB", "MiB"},
 		{"GiB", "GiB"},
@@ -41,6 +40,7 @@ namespace german // language namespace
 		{"established", "hergestellt"},
 		{"unknown", "Unbekannt"},
 		{"exploratory", "erforschend"},
+		{"Purple I2P Webconsole", "Purple I2P-Webkonsole"},
 		{"<b>i2pd</b> webconsole", "<b>i2pd</b>-Webkonsole"},
 		{"Main page", "Startseite"},
 		{"Router commands", "Routerbefehle"},
@@ -49,8 +49,8 @@ namespace german // language namespace
 		{"Tunnels", "Tunnel"},
 		{"Transit Tunnels", "Transittunnel"},
 		{"Transports", "Transporte"},
-		{"I2P tunnels", "I2P-Tunnel"},
-		{"SAM sessions", "SAM-Sitzungen"},
+		{"I2P tunnels", "I2P Tunnel"},
+		{"SAM sessions", "SAM Sitzungen"},
 		{"ERROR", "FEHLER"},
 		{"OK", "OK"},
 		{"Testing", "Testen"},
