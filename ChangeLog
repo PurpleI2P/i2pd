@@ -1,6 +1,36 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.44.0] - 2022-11-21
+### Added
+- SSL connection for server I2P tunnels
+- Localization to Italian and Spanish
+- SSU2 through SOCKS5 UDP proxy
+- Reload tunnels through web console
+- SSU2 send immediate ack request flag
+- SSU2 send and verify path challenge
+- Configurable ssu2.mtu4 and ssu2.mtu6 
+### Changed
+- SSU2 is enbaled and SSU is disabled by default
+- Separate network status and error
+- Random selection between NTCP2 and SSU2 priority
+- Added notbob.i2p to jump services
+- Remove DoNotTrack flag from HTTP Request header
+- Skip addresshelper page if destination was not changed
+- SSU2 allow different ports from RelayReponse and HolePunch
+- SSU2 resend PeerTest msg 1 and msg 2
+- SSU2 Send Retry instead SessionCreated if clock skew detected
+### Fixed
+- Long HTTP headers for HTTP proxy and HTTP server tunnel
+- SSU2 resends and resend limits
+- Crash at startup if addressbook is disabled
+- NTCP2 ipv6 connection through SOCKS5 proxy
+- SSU2 SessionRequest with zero token
+- SSU2 MTU less than 1280
+- SSU2 port=1
+- Incorrect addresses from network interfaces
+- Definitions for Darwin PPC; do not use pthread_setname_np 
+
 ## [2.43.0] - 2022-08-22
 ### Added
 - Complete SSU2 implementation
