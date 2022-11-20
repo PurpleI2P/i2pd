@@ -1,7 +1,7 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.44.0] - 2022-11-21
+## [2.44.0] - 2022-11-20
 ### Added
 - SSL connection for server I2P tunnels
 - Localization to Italian and Spanish
@@ -9,7 +9,7 @@
 - Reload tunnels through web console
 - SSU2 send immediate ack request flag
 - SSU2 send and verify path challenge
-- Configurable ssu2.mtu4 and ssu2.mtu6 
+- Configurable ssu2.mtu4 and ssu2.mtu6
 ### Changed
 - SSU2 is enbaled and SSU is disabled by default
 - Separate network status and error
@@ -29,7 +29,7 @@
 - SSU2 MTU less than 1280
 - SSU2 port=1
 - Incorrect addresses from network interfaces
-- Definitions for Darwin PPC; do not use pthread_setname_np 
+- Definitions for Darwin PPC; do not use pthread_setname_np
 
 ## [2.43.0] - 2022-08-22
 ### Added
@@ -441,7 +441,7 @@
 ### Added
 - Client auth flag for b33 address
 ### Changed
-- Remove incoming  NTCP2 session from pending list when established
+- Remove incoming NTCP2 session from pending list when established
 - Handle errors for NTCP2 SessionConfrimed send
 ### Fixed
 - Failure to start on Windows XP
@@ -745,7 +745,7 @@
 ### Added
 - Datagram i2p tunnels
 - Unique local addresses for server tunnels
-- Configurable list of reseed servers  and initial addressbook
+- Configurable list of reseed servers and initial addressbook
 - Configurable netid
 - Initial iOS support
 
