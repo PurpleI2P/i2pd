@@ -749,6 +749,11 @@ namespace data
 	{
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();
+		if (len < DATABASE_STORE_HEADER_SIZE)
+		{
+			LogPrint (eLogError, "NetDb: Database store msg is too short ", len, ". Dropped");
+			return;
+		}	
 		IdentHash ident (buf + DATABASE_STORE_KEY_OFFSET);
 		if (ident.IsZero ())
 		{
@@ -759,6 +764,11 @@ namespace data
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
+			if (len < offset + 36) // 32 + 4
+			{
+				LogPrint (eLogError, "NetDb: Database store msg with reply token is too short ", len, ". Dropped");
+				return;
+			}	
 			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;

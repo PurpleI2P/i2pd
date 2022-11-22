@@ -37,14 +37,7 @@ namespace data
 
 	void LeaseSet::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{
-		if (len > m_BufferLen)
-		{
-			auto oldBuffer = m_Buffer;
-			m_Buffer = new uint8_t[len];
-			delete[] oldBuffer;
-		}
-		memcpy (m_Buffer, buf, len);
-		m_BufferLen = len;
+		SetBuffer (buf, len);
 		ReadFromBuffer (false, verifySignature);
 	}
 
@@ -264,8 +257,18 @@ namespace data
 
 	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
 	{
-		if (m_Buffer) delete[] m_Buffer;
-		m_Buffer = new uint8_t[len];
+		if (len > MAX_LS_BUFFER_SIZE)
+		{
+			LogPrint (eLogError, "LeaseSet: Buffer is too long ", len);
+			len = MAX_LS_BUFFER_SIZE;
+		}	
+		if (m_Buffer && len > m_BufferLen) 
+		{	
+			delete[] m_Buffer;
+			m_Buffer = nullptr;
+		}	
+		if (!m_Buffer)
+			m_Buffer = new uint8_t[len];
 		m_BufferLen = len;
 		memcpy (m_Buffer, buf, len);
 	}
