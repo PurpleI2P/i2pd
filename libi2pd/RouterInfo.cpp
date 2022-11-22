@@ -217,15 +217,14 @@ namespace data
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
-			bool isHost = false, isIntroKey = false, isStaticKey = false, isV2 = false;
-			Tag<32> iV2; // for 'i' field in SSU, TODO: remove later
+			bool isHost = false, isStaticKey = false, isV2 = false;
 			char transportStyle[6];
 			ReadString (transportStyle, 6, s);
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
 				address->transportStyle = eTransportNTCP;
 			else if (!strncmp (transportStyle, "SSU", 3)) // SSU or SSU2
 			{
-				address->transportStyle = (transportStyle[3] == '2') ? eTransportSSU2 : eTransportSSU;
+				address->transportStyle = eTransportSSU2;
 				address->ssu.reset (new SSUExt ());
 				address->ssu->mtu = 0;
 			}
@@ -283,13 +282,6 @@ namespace data
 					else
 						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'mtu' for NTCP2");
 				}
-				else if (!strcmp (key, "key"))
-				{
-					if (address->ssu)
-						isIntroKey = (Base64ToByteStream (value, strlen (value), address->i, 32) == 32);
-					else
-						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP2");
-				}
 				else if (!strcmp (key, "caps"))
 					address->caps = ExtractAddressCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 or ssu2 static key
@@ -306,8 +298,6 @@ namespace data
 					}
 					else if (address->IsSSU2 ())
 						Base64ToByteStream (value, strlen (value), address->i, 32);
-					else
-						Base64ToByteStream (value, strlen (value), iV2, 32);
 				}
 				else if (!strcmp (key, "v"))
 				{
@@ -406,49 +396,7 @@ namespace data
 					}
 				}
 			}
-			else if (address->transportStyle == eTransportSSU)
-			{
-				if (isIntroKey)
-				{
-					if (isHost)
-						supportedTransports |= address->host.is_v4 () ? eSSUV4 : eSSUV6;
-					else if (address->caps & AddressCaps::eV6)
-					{
-						supportedTransports |= eSSUV6;
-						if (address->caps & AddressCaps::eV4) supportedTransports |= eSSUV4; // in additional to v6
-					}
-					else
-						supportedTransports |= eSSUV4; // in case if host or 6 caps is not preasented, we assume 4
-					if (address->ssu && !address->ssu->introducers.empty ())
-					{
-						// exclude invalid introducers
-						uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-						int numValid = 0;
-						for (auto& it: address->ssu->introducers)
-						{
-							if (!it.iExp) it.iExp = m_Timestamp/1000 + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT;
-							if (ts <= it.iExp && it.iPort > 0 &&
-								((it.iHost.is_v4 () && address->IsV4 ()) || (it.iHost.is_v6 () && address->IsV6 ())))
-								numValid++;
-							else
-							{
-								it.iPort = 0;
-								if (isV2) numValid++;
-							}
-						}
-						if (numValid)
-							m_ReachableTransports |= supportedTransports;
-						else
-							address->ssu->introducers.resize (0);
-					}
-					else if (isHost && address->port)
-					{
-						address->published = true;
-						m_ReachableTransports |= supportedTransports;
-					}
-				}
-			}
-			if (address->transportStyle == eTransportSSU2 || (isV2 && address->transportStyle == eTransportSSU))
+			else if (address->transportStyle == eTransportSSU2 && isV2)
 			{
 				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
@@ -456,48 +404,24 @@ namespace data
 				{
 					if (address->host.is_v4 ()) m_ReachableTransports |= eSSU2V4;
 					if (address->host.is_v6 ()) m_ReachableTransports |= eSSU2V6;
+					address->published = true;
 				}
-				if (address->transportStyle == eTransportSSU2)
+				if (address->ssu && !address->ssu->introducers.empty ())
 				{
-					if (address->port) address->published = true;
-					if (address->ssu && !address->ssu->introducers.empty ())
-					{
-						// exclude invalid introducers
-						uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-						int numValid = 0;
-						for (auto& it: address->ssu->introducers)
-						{
-							if (it.iTag && ts <= it.iExp)
-								numValid++;
-							else
-								it.iTag = 0;
-						}
-						if (numValid)
-							m_ReachableTransports |= supportedTransports;
-						else
-							address->ssu->introducers.resize (0);
-					}
-				}
-				else
-				{
-					// create additional SSU2 address. TODO: remove later
-					auto ssu2addr = std::make_shared<Address> ();
-					ssu2addr->transportStyle = eTransportSSU2;
-					ssu2addr->host = address->host; ssu2addr->port = address->port;
-					ssu2addr->s = address->s; ssu2addr->i = iV2;
-					ssu2addr->date = address->date; ssu2addr->caps = address->caps;
-					ssu2addr->published = address->published;
-					ssu2addr->ssu.reset (new SSUExt ()); ssu2addr->ssu->mtu = address->ssu->mtu;
+					// exclude invalid introducers
 					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					if (!address->ssu->introducers.empty ())
+					int numValid = 0;
+					for (auto& it: address->ssu->introducers)
 					{
-						for (const auto& introducer: address->ssu->introducers)
-							if (!introducer.iPort && introducer.iHost.is_unspecified () && ts < introducer.iExp) // SSU2
-								ssu2addr->ssu->introducers.push_back (introducer);
-						if (!ssu2addr->ssu->introducers.empty ())
-							m_ReachableTransports |= supportedTransports;
+						if (it.iTag && ts < it.iExp && !it.iPort && it.iHost.is_unspecified ()) // SSU2 only
+							numValid++;
+						else
+							it.iTag = 0;
 					}
-					addresses->push_back(ssu2addr);
+					if (numValid)
+						m_ReachableTransports |= supportedTransports;
+					else
+						address->ssu->introducers.resize (0);
 				}
 			}
 			if (supportedTransports)
