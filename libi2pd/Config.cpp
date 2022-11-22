@@ -64,7 +64,7 @@ namespace config {
 			("bandwidth", value<std::string>()->default_value(""),            "Transit traffic bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", bool_switch()->default_value(false),                     "Ignored. Always false")
-			("ssu", bool_switch()->default_value(true),                       "Enable SSU transport (default: enabled)")
+			("ssu", bool_switch()->default_value(false),                      "Enable SSU transport (default: disabled)")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Ignored")
@@ -274,9 +274,12 @@ namespace config {
 
 		options_description ssu2("SSU2 Options");
 		ssu2.add_options()
-			("ssu2.enabled", value<bool>()->default_value(false),         "Enable SSU2 (default: disabled)")
-			("ssu2.published", value<bool>()->default_value(false),        "Publish SSU2 (default: disabled)")
+			("ssu2.enabled", value<bool>()->default_value(true),         "Enable SSU2 (default: enabled)")
+			("ssu2.published", value<bool>()->default_value(true),        "Publish SSU2 (default: enabled)")
 			("ssu2.port", value<uint16_t>()->default_value(0),            "Port to listen for incoming SSU2 packets (default: auto)")
+			("ssu2.mtu4", value<uint16_t>()->default_value(0),            "MTU for ipv4 address (default: detect)")
+			("ssu2.mtu6", value<uint16_t>()->default_value(0),            "MTU for ipv6 address (default: detect)")
+			("ssu2.proxy", value<std::string>()->default_value(""),       "Socks5 proxy URL for SSU2 transport")
 		;
 
 		options_description nettime("Time sync options");

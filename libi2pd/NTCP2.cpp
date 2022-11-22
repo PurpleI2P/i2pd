@@ -1558,7 +1558,7 @@ namespace transport
 			case eSocksProxy:
 			{
 				// TODO: support username/password auth etc
-				static const uint8_t buff[3] = {0x05, 0x01, 0x00};
+				static const uint8_t buff[3] = {SOCKS5_VER, 0x01, 0x00};
 				boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, 3), boost::asio::transfer_all(),
 					[] (const boost::system::error_code & ec, std::size_t transferred)
 					{
@@ -1672,21 +1672,21 @@ namespace transport
 		size_t sz = 6; // header + port
 		auto buff = std::make_shared<std::vector<int8_t> >(256);
 		auto readbuff = std::make_shared<std::vector<int8_t> >(256);
-		(*buff)[0] = 0x05;
-		(*buff)[1] = 0x01;
+		(*buff)[0] = SOCKS5_VER;
+		(*buff)[1] = SOCKS5_CMD_CONNECT;
 		(*buff)[2] = 0x00;
 
 		auto& ep = conn->GetRemoteEndpoint ();
 		if(ep.address ().is_v4 ())
 		{
-			(*buff)[3] = 0x01;
+			(*buff)[3] = SOCKS5_ATYP_IPV4;
 			auto addrbytes = ep.address ().to_v4().to_bytes();
 			sz += 4;
 			memcpy(buff->data () + 4, addrbytes.data(), 4);
 		}
 		else if (ep.address ().is_v6 ())
 		{
-			(*buff)[3] = 0x04;
+			(*buff)[3] = SOCKS5_ATYP_IPV6;
 			auto addrbytes = ep.address ().to_v6().to_bytes();
 			sz += 16;
 			memcpy(buff->data () + 4, addrbytes.data(), 16);
@@ -1708,22 +1708,24 @@ namespace transport
 				}
 			});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), 10),
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), // read min reply size
+		    boost::asio::transfer_all(),                    
 			[timer, conn, sz, readbuff](const boost::system::error_code & e, std::size_t transferred)
 			{
-				if(e)
-				{
+				if (e)
 					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
-				}
-				else if(transferred == sz)
+				else if (!(*readbuff)[1]) // succeeded
 				{
-					if((*readbuff)[1] == 0x00)
-					{
-						timer->cancel();
-						conn->ClientLogin();
-						return;
-					}
+					boost::system::error_code ec;
+					size_t moreBytes = conn->GetSocket ().available(ec);	
+					if (moreBytes) // read remaining portion of reply if ipv6 received
+						boost::asio::read (conn->GetSocket (), boost::asio::buffer(readbuff->data (), moreBytes), boost::asio::transfer_all (), ec);
+					timer->cancel();
+					conn->ClientLogin();
+					return;
 				}
+				else
+					LogPrint(eLogError, "NTCP2: Proxy reply error ", (int)(*readbuff)[1]);
 				timer->cancel();
 				conn->Terminate();
 			});

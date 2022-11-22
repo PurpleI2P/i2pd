@@ -167,6 +167,8 @@ namespace transport
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		i2p::config::GetOption("nat", m_IsNAT);
 		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
@@ -190,6 +192,8 @@ namespace transport
 
 						m_NTCP2Server->UseProxy(proxytype, proxyurl.host, proxyurl.port, proxyurl.user, proxyurl.pass);
 						i2p::context.SetStatus (eRouterStatusProxy);
+						if (ipv6)
+							i2p::context.SetStatusV6 (eRouterStatusProxy);
 					}
 					else
 						LogPrint(eLogError, "Transports: Unsupported NTCP2 proxy URL ", ntcp2proxy);
@@ -218,10 +222,29 @@ namespace transport
 			}
 		}
 		// create SSU2 server
-		if (enableSSU2) m_SSU2Server = new SSU2Server ();
+		if (enableSSU2) 
+		{	
+			m_SSU2Server = new SSU2Server ();
+			std::string ssu2proxy; i2p::config::GetOption("ssu2.proxy", ssu2proxy);
+			if (!ssu2proxy.empty())
+			{
+				if (proxyurl.parse (ssu2proxy) && proxyurl.schema == "socks")
+				{
+					if (m_SSU2Server->SetProxy (proxyurl.host, proxyurl.port))
+					{	
+						i2p::context.SetStatus (eRouterStatusProxy);
+						if (ipv6)
+							i2p::context.SetStatusV6 (eRouterStatusProxy);
+					}	
+					else
+						LogPrint(eLogError, "Transports: Can't set SSU2 proxy ", ssu2proxy);
+				}	
+				else
+					LogPrint(eLogError, "Transports: Invalid SSU2 proxy URL ", ssu2proxy);
+			}	
+		}	
 
 		// bind to interfaces
-		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		if (ipv4)
 		{
 			std::string address; i2p::config::GetOption("address4", address);
@@ -236,9 +259,19 @@ namespace transport
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
+
+			if (enableSSU2)
+			{
+				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
+				if (mtu)
+				{	
+					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
+					i2p::context.SetMTU (mtu, true);
+				}	
+			}	
 		}
 
-		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		if (ipv6)
 		{
 			std::string address; i2p::config::GetOption("address6", address);
@@ -253,6 +286,17 @@ namespace transport
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
+
+			if (enableSSU2)
+			{
+				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
+				if (mtu)
+				{	
+					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
+					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
+					i2p::context.SetMTU (mtu, false);
+				}	
+			}	
 		}
 
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
@@ -285,8 +329,8 @@ namespace transport
 				delete m_SSUServer;
 				m_SSUServer = nullptr;
 			}
-			if (m_SSUServer) DetectExternalIP ();
 		}
+		if (m_SSUServer || m_SSU2Server) DetectExternalIP ();
 
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
@@ -417,8 +461,7 @@ namespace transport
 				{
 					auto ts = i2p::util::GetSecondsSinceEpoch ();
 					std::unique_lock<std::mutex> l(m_PeersMutex);
-					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
-						ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} })).first;
+					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, {r, ts})).first;
 				}
 				connected = ConnectToPeer (ident, it->second);
 			}
@@ -453,127 +496,81 @@ namespace transport
 			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
-			if (peer.numAttempts < 2) // NTCP2, 0 - ipv6, 1- ipv4
+			if (peer.priority.empty ())
+				SetPriority (peer);
+			while (peer.numAttempts < (int)peer.priority.size ())
 			{
-				if (m_NTCP2Server) // we support NTCP2
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (!peer.numAttempts) // NTCP2 ipv6
-					{
-						if (context.GetRouterInfo ().IsNTCP2V6 () && peer.router->IsReachableBy (RouterInfo::eNTCP2V6))
-						{
-							address = peer.router->GetPublishedNTCP2V6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 1) // NTCP2 ipv4
-					{
-						if (context.GetRouterInfo ().IsNTCP2 (true) && peer.router->IsReachableBy (RouterInfo::eNTCP2V4))
-						{
-							address = peer.router->GetPublishedNTCP2V4Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address)
-					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-						if( m_NTCP2Server->UsingProxy())
-							m_NTCP2Server->ConnectWithProxy(s);
-						else
-							m_NTCP2Server->Connect (s);
-						return true;
-					}
-				}
-				else
-					peer.numAttempts = 2; // switch to SSU
-			}
-			if (peer.numAttempts == 2 || peer.numAttempts == 3) // SSU
-			{
-				if (m_SSUServer)
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (peer.numAttempts == 2) // SSU ipv6
-					{
-						if (context.GetRouterInfo ().IsSSUV6 () && peer.router->IsReachableBy (RouterInfo::eSSUV6))
-						{
-							address = peer.router->GetSSUV6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 3) // SSU ipv4
-					{
-						if (context.GetRouterInfo ().IsSSU (true) && peer.router->IsReachableBy (RouterInfo::eSSUV4))
-						{
-							address = peer.router->GetSSUAddress (true);
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address && address->IsReachableSSU ())
-					{
-						if (m_SSUServer->CreateSession (peer.router, address))
-							return true;
-					}
-				}
-				else
-					peer.numAttempts += 2; // switch to Mesh
-			}
-			if (peer.numAttempts == 4) // Mesh
-			{
+				auto tr = peer.priority[peer.numAttempts];
 				peer.numAttempts++;
-				if (m_NTCP2Server && context.GetRouterInfo ().IsMesh () && peer.router->IsMesh ())
+				switch (tr)
 				{
-					auto address = peer.router->GetYggdrasilAddress ();
-					if (address)
+					case i2p::data::RouterInfo::eNTCP2V4:
+					case i2p::data::RouterInfo::eNTCP2V6:
 					{
-						auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
-						m_NTCP2Server->Connect (s);
-						return true;
-					}
-				}
-			}
-			if (peer.numAttempts == 5 || peer.numAttempts == 6) // SSU2
-			{
-				if (m_SSU2Server)
-				{
-					std::shared_ptr<const RouterInfo::Address> address;
-					if (peer.numAttempts == 5) // SSU2 ipv6
-					{
-						if (context.GetRouterInfo ().IsSSU2V6 () && peer.router->IsReachableBy (RouterInfo::eSSU2V6))
+						if (!m_NTCP2Server) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eNTCP2V6) ?
+							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address)
 						{
-							address = peer.router->GetSSU2V6Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (!address && peer.numAttempts == 6) // SSU2 ipv4
-					{
-						if (context.GetRouterInfo ().IsSSU2V4 () && peer.router->IsReachableBy (RouterInfo::eSSU2V4))
-						{
-							address = peer.router->GetSSU2V4Address ();
-							if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-								address = nullptr;
-						}
-						peer.numAttempts++;
-					}
-					if (address && address->IsReachableSSU ())
-					{
-						if (m_SSU2Server->CreateSession (peer.router, address))
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							if( m_NTCP2Server->UsingProxy())
+								m_NTCP2Server->ConnectWithProxy(s);
+							else
+								m_NTCP2Server->Connect (s);
 							return true;
+						}
+						break;
 					}
+					case i2p::data::RouterInfo::eSSU2V4:
+					case i2p::data::RouterInfo::eSSU2V6:
+					{
+						if (!m_SSU2Server) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSU2V6) ?
+							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address && address->IsReachableSSU ())
+						{
+							if (m_SSU2Server->CreateSession (peer.router, address))
+								return true;
+						}
+						break;
+					}
+					case i2p::data::RouterInfo::eSSUV4:
+					case i2p::data::RouterInfo::eSSUV6:
+					{
+						if (!m_SSUServer) continue;
+						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSUV6) ?
+							peer.router->GetSSUV6Address () : peer.router->GetSSUAddress (true);
+						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+							address = nullptr;
+						if (address && address->IsReachableSSU ())
+						{
+							if (m_SSUServer->CreateSession (peer.router, address))
+								return true;
+						}
+						break;
+					}
+					case i2p::data::RouterInfo::eNTCP2V6Mesh:
+					{
+						if (!m_NTCP2Server) continue;
+						auto address = peer.router->GetYggdrasilAddress ();
+						if (address)
+						{
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							m_NTCP2Server->Connect (s);
+							return true;
+						}
+						break;
+					}
+					default:
+						LogPrint (eLogError, "Transports: Unknown transport ", (int)tr);
 				}
-				else
-					peer.numAttempts += 2;
 			}
-			LogPrint (eLogInfo, "Transports: No compatble NTCP2 or SSU addresses available");
+
+			LogPrint (eLogInfo, "Transports: No compatible addresses available");
 			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
@@ -587,6 +584,41 @@ namespace transport
 				&Transports::RequestComplete, this, std::placeholders::_1, ident));
 		}
 		return true;
+	}
+
+	void Transports::SetPriority (Peer& peer) const
+	{
+		static const std::vector<i2p::data::RouterInfo::SupportedTransports>
+			ntcp2Priority =
+		{
+			i2p::data::RouterInfo::eNTCP2V6,
+			i2p::data::RouterInfo::eNTCP2V4,
+			i2p::data::RouterInfo::eSSU2V6,
+			i2p::data::RouterInfo::eSSU2V4,
+			i2p::data::RouterInfo::eNTCP2V6Mesh,
+			i2p::data::RouterInfo::eSSUV6,
+			i2p::data::RouterInfo::eSSUV4
+		},
+			ssu2Priority =
+		{
+			i2p::data::RouterInfo::eSSU2V6,
+			i2p::data::RouterInfo::eSSU2V4,
+			i2p::data::RouterInfo::eNTCP2V6,
+			i2p::data::RouterInfo::eNTCP2V4,
+			i2p::data::RouterInfo::eNTCP2V6Mesh,
+			i2p::data::RouterInfo::eSSUV6,
+			i2p::data::RouterInfo::eSSUV4
+		};
+		if (!peer.router) return;
+		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
+			peer.router->GetCompatibleTransports (true);
+		peer.numAttempts = 0;
+		peer.priority.clear ();
+		bool ssu2 = rand () & 1;
+		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
+		for (auto transport: priority)
+			if (transport & compatibleTransports)
+				peer.priority.push_back (transport);
 	}
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
@@ -622,88 +654,111 @@ namespace transport
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;
 		}
-		if (m_SSUServer)
+		if (m_SSUServer || m_SSU2Server)
 			PeerTest ();
 		else
-			LogPrint (eLogError, "Transports: Can't detect external IP. SSU is not available");
+			LogPrint (eLogWarning, "Transports: Can't detect external IP. SSU or SSU2 is not available");
 	}
 
 	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
-		if (RoutesRestricted() || !m_SSUServer) return;
+		if (RoutesRestricted() || (!m_SSUServer && !m_SSU2Server)) return;
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
-			bool statusChanged = false;
-			for (int i = 0; i < 5; i++)
+			if (m_SSUServer)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true, excluded); // v4
-				if (router)
+				bool statusChanged = false;
+				for (int i = 0; i < 5; i++)
 				{
-					auto addr = router->GetSSUAddress (true); // ipv4
-					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
+					auto router = i2p::data::netdb.GetRandomPeerTestRouter (true, excluded); // v4
+					if (router)
 					{
-						if (!statusChanged)
+						auto addr = router->GetSSUAddress (true); // ipv4
+						if (addr && !i2p::util::net::IsInReservedRange(addr->host))
 						{
-							statusChanged = true;
-							i2p::context.SetStatus (eRouterStatusTesting); // first time only
+							if (!statusChanged)
+							{
+								statusChanged = true;
+								i2p::context.SetStatus (eRouterStatusTesting); // first time only
+							}
+							m_SSUServer->CreateSession (router, addr, true); // peer test v4
 						}
-						m_SSUServer->CreateSession (router, addr, true); // peer test v4
+						excluded.insert (router->GetIdentHash ());
 					}
-					excluded.insert (router->GetIdentHash ());
 				}
+				if (!statusChanged)
+					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
 			}
-			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
-
 			// SSU2
-			if (m_SSU2Server)
+			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
-				if (router)
-					m_SSU2Server->StartPeerTest (router, true);
-			}	
+				int numTests = m_SSUServer ? 3 : 5;
+				for (int i = 0; i < numTests; i++)
+				{
+					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
+					if (router)
+					{
+						if (i2p::context.GetStatus () != eRouterStatusTesting)
+							i2p::context.SetStatusSSU2 (eRouterStatusTesting);
+						m_SSU2Server->StartPeerTest (router, true);
+						excluded.insert (router->GetIdentHash ());
+					}
+				}
+			}
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
-			bool statusChanged = false;
-			for (int i = 0; i < 5; i++)
+			if (m_SSUServer)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter (false, excluded); // v6
-				if (router)
+				bool statusChanged = false;
+				for (int i = 0; i < 5; i++)
 				{
-					auto addr = router->GetSSUV6Address ();
-					if (addr && !i2p::util::net::IsInReservedRange(addr->host))
+					auto router = i2p::data::netdb.GetRandomPeerTestRouter (false, excluded); // v6
+					if (router)
 					{
-						if (!statusChanged)
+						auto addr = router->GetSSUV6Address ();
+						if (addr && !i2p::util::net::IsInReservedRange(addr->host))
 						{
-							statusChanged = true;
-							i2p::context.SetStatusV6 (eRouterStatusTesting); // first time only
+							if (!statusChanged)
+							{
+								statusChanged = true;
+								i2p::context.SetStatusV6 (eRouterStatusTesting); // first time only
+							}
+							m_SSUServer->CreateSession (router, addr, true); // peer test v6
 						}
-						m_SSUServer->CreateSession (router, addr, true); // peer test v6
+						excluded.insert (router->GetIdentHash ());
 					}
-					excluded.insert (router->GetIdentHash ());
 				}
+				if (!statusChanged)
+					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
 			}
-			if (!statusChanged)
-				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
 
 			// SSU2
-			if (m_SSU2Server)
+			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
 			{
 				excluded.clear ();
 				excluded.insert (i2p::context.GetIdentHash ());
-				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
-				if (router)
-					m_SSU2Server->StartPeerTest (router, false);
-			}	
+				int numTests = m_SSUServer ? 3 : 5;
+				for (int i = 0; i < numTests; i++)
+				{
+					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
+					if (router)
+					{
+						if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
+							i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
+						m_SSU2Server->StartPeerTest (router, false);
+						excluded.insert (router->GetIdentHash ());
+					}
+				}
+			}
 		}
 	}
 
@@ -756,8 +811,7 @@ namespace transport
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session },
-					ts, ts + PEER_ROUTER_INFO_UPDATE_INTERVAL, {} }));
+				m_Peers.insert (std::make_pair (ident, Peer{ nullptr, ts }));
 			}
 		});
 	}
@@ -824,11 +878,11 @@ namespace transport
 						auto session = it->second.sessions.front ();
 						if (session)
 							session->SendLocalRouterInfo (true);
-						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL + 
+						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL +
 							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
-					}	
+					}
 					++it;
-				}	
+				}
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
@@ -953,6 +1007,123 @@ namespace transport
 			else
 				i2p::context.SetError (eRouterErrorOffline);
 		}
+	}
+
+	void InitAddressFromIface ()
+	{
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+
+		// ifname -> address
+		std::string ifname; i2p::config::GetOption("ifname", ifname);
+		if (ipv4 && i2p::config::IsDefault ("address4"))
+		{
+			std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
+			if (!ifname4.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname4, false).to_string ()); // v4
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4
+		}
+		if (ipv6 && i2p::config::IsDefault ("address6"))
+		{
+			std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+			if (!ifname6.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname6, true).to_string ()); // v6
+			else if (!ifname.empty ())
+				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
+		}
+	}
+
+	void InitTransports ()
+	{
+		bool ipv6;     i2p::config::GetOption("ipv6", ipv6);
+		bool ipv4;     i2p::config::GetOption("ipv4", ipv4);
+		bool ygg;      i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		uint16_t port; i2p::config::GetOption("port", port);
+
+		boost::asio::ip::address_v6 yggaddr;
+		if (ygg)
+		{
+			std::string yggaddress; i2p::config::GetOption ("meshnets.yggaddress", yggaddress);
+			if (!yggaddress.empty ())
+			{
+				yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
+				if (yggaddr.is_unspecified () || !i2p::util::net::IsYggdrasilAddress (yggaddr) ||
+					!i2p::util::net::IsLocalAddress (yggaddr))
+				{
+					LogPrint(eLogWarning, "Transports: Can't find Yggdrasil address ", yggaddress);
+					ygg = false;
+				}
+			}
+			else
+			{
+				yggaddr = i2p::util::net::GetYggdrasilAddress ();
+				if (yggaddr.is_unspecified ())
+				{
+					LogPrint(eLogWarning, "Transports: Yggdrasil is not running. Disabled");
+					ygg = false;
+				}
+			}
+		}
+
+		if (!i2p::config::IsDefault("port"))
+		{
+			LogPrint(eLogInfo, "Transports: Accepting incoming connections at port ", port);
+			i2p::context.UpdatePort (port);
+		}
+		i2p::context.SetSupportsV6 (ipv6);
+		i2p::context.SetSupportsV4 (ipv4);
+		i2p::context.SetSupportsMesh (ygg, yggaddr);
+
+		i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		if (ntcp2)
+		{
+			bool published; i2p::config::GetOption("ntcp2.published", published);
+			if (published)
+			{
+				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
+				if (!ntcp2proxy.empty ()) published = false;
+			}
+			if (published)
+			{
+				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
+				if (!ntcp2port) ntcp2port = port; // use standard port
+				i2p::context.PublishNTCP2Address (ntcp2port, true, ipv4, ipv6, false); // publish
+				if (ipv6)
+				{
+					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
+					auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
+					if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
+						i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
+				}
+			}
+			else
+				i2p::context.PublishNTCP2Address (port, false, ipv4, ipv6, false); // unpublish
+		}
+		if (ygg)
+		{
+			i2p::context.PublishNTCP2Address (port, true, false, false, true);
+			i2p::context.UpdateNTCP2V6Address (yggaddr);
+			if (!ipv4 && !ipv6)
+				i2p::context.SetStatus (eRouterStatusMesh);
+		}
+		bool ssu; i2p::config::GetOption("ssu", ssu);
+		if (!ssu) i2p::context.RemoveSSUAddress (); // TODO: remove later
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+		if (ssu2 && i2p::config::IsDefault ("ssu2.enabled") && !ipv4 && !ipv6)
+			ssu2 = false; // don't enable ssu2 for yggdrasil only router
+		if (ssu2)
+		{
+			uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
+			if (!ssu2port && port) ssu2port = ssu ? (port + 1) : port;
+			bool published; i2p::config::GetOption("ssu2.published", published);
+			if (published)
+				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
+			else
+				i2p::context.PublishSSU2Address (ssu2port, false, ipv4, ipv6); // unpublish
+		}
+
 	}
 }
 }

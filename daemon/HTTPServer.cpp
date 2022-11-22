@@ -80,7 +80,7 @@ namespace http {
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
 	const char HTTP_COMMAND_SHUTDOWN_NOW[] = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
-	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";
+	const char HTTP_COMMAND_RELOAD_TUNNELS_CONFIG[] = "reload_tunnels_config";
 	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_COMMAND_KILLSTREAM[] = "closestream";
 	const char HTTP_COMMAND_LIMITTRANSIT[] = "limittransit";
@@ -182,7 +182,7 @@ namespace http {
 			"  <meta charset=\"UTF-8\">\r\n"
 			"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
-			"  <title>Purple I2P Webconsole</title>\r\n";
+			"  <title>" << tr(/* tr: Webconsole page title */ "Purple I2P Webconsole") << "</title>\r\n";
 		GetStyles(s);
 		s <<
 			"</head>\r\n"
@@ -222,7 +222,7 @@ namespace http {
 		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, RouterError error)
 	{
 		switch (status)
 		{
@@ -232,25 +232,24 @@ namespace http {
 			case eRouterStatusUnknown: s << tr("Unknown"); break;
 			case eRouterStatusProxy: s << tr("Proxy"); break;
 			case eRouterStatusMesh: s << tr("Mesh"); break;
-			case eRouterStatusError:
-			{
-				s << tr("Error");
-				switch (i2p::context.GetError ())
-				{
-					case eRouterErrorClockSkew:
-						s << " - " << tr("Clock skew");
-					break;
-					case eRouterErrorOffline:
-						s << " - " << tr("Offline");
-					break;
-					case eRouterErrorSymmetricNAT:
-						s << " - " << tr("Symmetric NAT");
-					break;
-					default: ;
-				}
-				break;
-			}
 			default: s << tr("Unknown");
+		}
+		if (error != eRouterErrorNone)
+		{
+			s << "<br>";
+			switch (error)
+			{
+				case eRouterErrorClockSkew:
+					s << " - " << tr("Clock skew");
+				break;
+				case eRouterErrorOffline:
+					s << " - " << tr("Offline");
+				break;
+				case eRouterErrorSymmetricNAT:
+					s << " - " << tr("Symmetric NAT");
+				break;
+				default: ;
+			}
 		}
 	}
 
@@ -260,12 +259,12 @@ namespace http {
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
 		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetError ());
 		s << "<br>\r\n";
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetErrorV6 ());
 			s << "<br>\r\n";
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
@@ -531,19 +530,21 @@ namespace http {
 			ShowLeaseSetDestination (s, dest, token);
 
 			// Print table with streams information
-			s << "<table>\r\n<caption>" << tr("Streams") << "</caption>\r\n<thead>\r\n<tr>";
-			s << "<th style=\"width:25px;\">StreamID</th>";
-			s << "<th style=\"width:5px;\" \\>"; // Stream closing button column
-			s << "<th class=\"streamdest\">Destination</th>";
-			s << "<th>Sent</th>";
-			s << "<th>Received</th>";
-			s << "<th>Out</th>";
-			s << "<th>In</th>";
-			s << "<th>Buf</th>";
-			s << "<th>RTT</th>";
-			s << "<th>Window</th>";
-			s << "<th>Status</th>";
-			s << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
+			s << "<table>\r\n<caption>"
+			  << tr("Streams")
+			  << "</caption>\r\n<thead>\r\n<tr>"
+			  << "<th style=\"width:25px;\">StreamID</th>"
+			  << "<th style=\"width:5px;\" \\>" // Stream closing button column
+			  << "<th class=\"streamdest\">Destination</th>"
+			  << "<th>Sent</th>"
+			  << "<th>Received</th>"
+			  << "<th>Out</th>"
+			  << "<th>In</th>"
+			  << "<th>Buf</th>"
+			  << "<th>RTT</th>"
+			  << "<th>Window</th>"
+			  << "<th>Status</th>"
+			  << "</tr>\r\n</thead>\r\n<tbody class=\"tableitem\">\r\n";
 
 			for (const auto& it: dest->GetAllStreams ())
 			{
@@ -697,8 +698,7 @@ namespace http {
 
 		s << "<b>" << tr("Router commands") << "</b><br>\r\n<br>\r\n<div class=\"commands\">\r\n";
 		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">" << tr("Run peer test") << "</a><br>\r\n";
-
-		// s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
+		s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_RELOAD_TUNNELS_CONFIG << "&token=" << token << "\">" << tr("Reload tunnels configuration") << "</a><br>\r\n";
 
 		if (i2p::context.AcceptsTunnels ())
 			s << "  <a href=\"" << webroot << "?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">" << tr("Decline transit tunnels") << "</a><br>\r\n";
@@ -739,17 +739,25 @@ namespace http {
 		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
 		s << "</form>\r\n<br>\r\n";
 
-		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage(); // get current used language
-		s << "<b>" << tr("Change language") << "</b><br>\r\n";
-		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n";
-		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
-		s << "  <select name=\"lang\" id=\"lang\">\r\n";
+		// get current used language
+		std::string currLang = i2p::client::context.GetLanguage ()->GetLanguage();
+
+		s << "<b>"
+		  << tr("Change language")
+		  << "</b><br>\r\n"
+		  << "<form method=\"get\" action=\"" << webroot << "\">\r\n"
+		  << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_SETLANGUAGE << "\">\r\n"
+		  << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
+		  << "  <select name=\"lang\" id=\"lang\">\r\n";
+
 		for (const auto& it: i2p::i18n::languages)
 			s << "    <option value=\"" << it.first << "\"" << ((it.first.compare(currLang) == 0) ? " selected" : "") << ">" << it.second.LocaleName << "</option>\r\n";
-		s << "  </select>\r\n";
-		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
-		s << "</form>\r\n<br>\r\n";
+
+		s << "  </select>\r\n"
+		  << "  <button type=\"submit\">"
+		  << tr("Change")
+		  << "</button>\r\n"
+		  << "</form>\r\n<br>\r\n";
 
 	}
 
@@ -783,12 +791,13 @@ namespace http {
 		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
 		for (const auto& it: sessions )
 		{
-			if (it.second && it.second->IsEstablished () && !it.second->GetRemoteEndpoint ().address ().is_v6 ())
+			auto endpoint = it.second->GetRemoteEndpoint ();
+			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v4 ())
 			{
 				tmp_s << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< it.second->GetRemoteEndpoint ().address ().to_string ();
+					<< endpoint.address ().to_string () << ":" << endpoint.port ();
 				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
 				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
@@ -796,12 +805,12 @@ namespace http {
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
-			if (it.second && it.second->IsEstablished () && it.second->GetRemoteEndpoint ().address ().is_v6 ())
+			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v6 ())
 			{
 				tmp_s6 << "<div class=\"listitem\">\r\n";
 				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
-					<< "[" << it.second->GetRemoteEndpoint ().address ().to_string () << "]";
+					<< "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
 				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
 				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
@@ -1236,7 +1245,7 @@ namespace http {
 		std::string cmd = params["cmd"];
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			i2p::transport::transports.PeerTest ();
-		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
+		else if (cmd == HTTP_COMMAND_RELOAD_TUNNELS_CONFIG)
 			i2p::client::context.ReloadConfig ();
 		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (true);

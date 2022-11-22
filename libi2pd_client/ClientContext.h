@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,6 +18,7 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
+#include "UDPTunnel.h"
 #include "SAM.h"
 #include "BOB.h"
 #include "I2CP.h"
@@ -61,7 +62,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
 	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
-
+	const char I2P_SERVER_TUNNEL_SSL[] = "ssl";
 
 	class ClientContext
 	{

@@ -1,0 +1,32 @@
+name: Build Debian packages
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.dist }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dist: ['buster', 'bullseye', 'bookworm']
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: change debian changelog
+      run: |
+        sudo apt-get update
+        sudo apt-get install devscripts
+        debchange -v "`git describe --tags`-${{ matrix.dist }}" -b -M --distribution ${{ matrix.dist }} "trunk build"
+    - uses: jtdor/build-deb-action@v1
+      with:
+        docker-image: debian:${{ matrix.dist }}-slim
+        buildpackage-opts: --build=binary --no-sign
+    - uses: actions/upload-artifact@v3
+      with:
+        name: i2pd_${{ matrix.dist }}
+        path: debian/artifacts/i2pd_*.deb
+    - uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-dbgsym_${{ matrix.dist }}
+        path: debian/artifacts/i2pd-dbgsym_*.deb

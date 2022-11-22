@@ -62,8 +62,8 @@ namespace transport
 	};
 	typedef EphemeralKeysSupplier<i2p::crypto::X25519Keys> X25519KeysPairSupplier;
 
-	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds  
-	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds  
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds
+	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds
 	struct Peer
 	{
 		int numAttempts;
@@ -71,6 +71,13 @@ namespace transport
 		std::list<std::shared_ptr<TransportSession> > sessions;
 		uint64_t creationTime, nextRouterInfoUpdateTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
+		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
+
+		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
+			numAttempts (0), router (r), creationTime (ts),
+			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL)
+		{
+		}
 
 		void Done ()
 		{
@@ -93,6 +100,7 @@ namespace transport
 			void Stop ();
 
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
+			bool IsBoundSSU2() const { return m_SSU2Server != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
 
 			bool IsOnline() const { return m_IsOnline; };
@@ -146,6 +154,7 @@ namespace transport
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
+			void SetPriority (Peer& peer) const;
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 
@@ -194,6 +203,9 @@ namespace transport
 	};
 
 	extern Transports transports;
+
+	void InitAddressFromIface ();
+	void InitTransports ();
 }
 }
 

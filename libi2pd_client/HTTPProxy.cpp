@@ -36,12 +36,14 @@ namespace proxy {
 		"reg.i2p",
 		"stats.i2p",
 		"identiguy.i2p",
+		"notbob.i2p"
 	};
 
 	static const std::map<std::string, std::string> jumpservices = {
 		{ "reg.i2p",       "http://shx5vqsw7usdaunyzr2qmes2fq37oumybpudrd4jjj4e4vk4uusa.b32.i2p/jump/" },
 		{ "identiguy.i2p", "http://3mzmrus2oron5fxptw7hw2puho3bnqmw2hqy7nw64dsrrjwdilva.b32.i2p/cgi-bin/query?hostname=" },
 		{ "stats.i2p",     "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
+		{ "notbob.i2p",    "http://nytzrhrjjfsutowojvxi7hphesskpqqr65wpistz6wa7cpajhp7a.b32.i2p/cgi-bin/jump.cgi?q=" }
 	};
 
 	static const char *pageHead =
@@ -80,8 +82,9 @@ namespace proxy {
 			/* error helpers */
 			void GenericProxyError(const std::string& title, const std::string& description);
 			void GenericProxyInfo(const std::string& title, const std::string& description);
-			void HostNotFound(std::string & host);
-			void SendProxyError(std::string & content);
+			void HostNotFound(std::string& host);
+			void SendProxyError(std::string& content);
+			void SendRedirect(std::string& address);
 
 			void ForwardToUpstreamProxy();
 			void HandleUpstreamHTTPProxyConnect(const boost::system::error_code & ec);
@@ -174,7 +177,7 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::HostNotFound(std::string & host) {
+	void HTTPReqHandler::HostNotFound(std::string& host) {
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error: Host not found") << "</h1>\r\n"
 		   << "<p>" << tr("Remote host not found in router's addressbook") << "</p>\r\n"
@@ -191,7 +194,7 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::SendProxyError(std::string & content)
+	void HTTPReqHandler::SendProxyError(std::string& content)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 500;
@@ -202,6 +205,17 @@ namespace proxy {
 		   << "<body>" << content << "</body>\r\n"
 		   << "</html>\r\n";
 		res.body = ss.str();
+		std::string response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
+			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+	}
+
+	void HTTPReqHandler::SendRedirect(std::string& address)
+	{
+		i2p::http::HTTPRes res;
+		res.code = 302;
+		res.add_header("Location", address);
+		res.add_header("Connection", "close");
 		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
@@ -237,6 +251,7 @@ namespace proxy {
 		req.RemoveHeader("Via");
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
+		req.RemoveHeader("DNT"); // Useless DoNotTrack flag
 		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
@@ -297,7 +312,14 @@ namespace proxy {
 				GenericProxyError(tr("Invalid request"), tr("addresshelper is not supported"));
 				return true;
 			}
-			if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
+
+			if (i2p::client::context.GetAddressBook ().RecordExists (m_RequestURL.host, jump))
+			{
+				std::string full_url = m_RequestURL.to_string();
+				SendRedirect(full_url);
+				return true;
+			}
+			else if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
 			{
 				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, jump);
 				LogPrint (eLogInfo, "HTTPProxy: Added address from addresshelper for ", m_RequestURL.host);
@@ -313,7 +335,8 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
-				ss << tr("Click here to update record:") << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
+				ss << tr(/* tr: The "record" means addressbook's record. That message appears when domain was already added to addressbook, but helper link is opened for it. */ "Click here to update record:" );
+				ss << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
 				ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
 				GenericProxyInfo(tr("Addresshelper found"), ss.str());
 				return true; /* request processed */
@@ -422,8 +445,8 @@ namespace proxy {
 	void HTTPReqHandler::ForwardToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: Forwarded to upstream");
-		// build http request
 
+		/* build http request */
 		m_ClientRequestURL = m_RequestURL;
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
 		m_ClientRequestURL.schema = "";
@@ -431,17 +454,17 @@ namespace proxy {
 		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to change uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
-		// update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections
+		/* update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections */
 		if(m_ClientRequest.method != "CONNECT")
 			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0");
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
 
-		// assume http if empty schema
+		/* assume http if empty schema */
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http")
 		{
-			// handle upstream http proxy
+			/* handle upstream http proxy */
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
@@ -449,9 +472,9 @@ namespace proxy {
 				auto auth = i2p::http::CreateBasicAuthorizationString (m_ProxyURL.user, m_ProxyURL.pass);
 				if (!auth.empty ())
 				{
-					// remove existing authorization if any
+					/* remove existing authorization if any */
 					m_ClientRequest.RemoveHeader("Proxy-");
-					// add own http proxy authorization
+					/* add own http proxy authorization */
 					m_ClientRequest.AddHeader("Proxy-Authorization", auth);
 				}
 				m_send_buf = m_ClientRequest.to_string();
@@ -470,7 +493,7 @@ namespace proxy {
 		}
 		else if (m_ProxyURL.schema == "socks")
 		{
-			// handle upstream socks proxy
+			/* handle upstream socks proxy */
 			if (!m_ProxyURL.port) m_ProxyURL.port = 9050; // default to tor default if not specified
 			boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
 			m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
@@ -479,7 +502,7 @@ namespace proxy {
 		}
 		else
 		{
-			// unknown type, complain
+			/* unknown type, complain */
 			GenericProxyError(tr("unknown outproxy url"), m_ProxyURL.to_string());
 		}
 	}

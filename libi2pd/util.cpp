@@ -12,6 +12,7 @@
 
 #include "util.h"
 #include "Log.h"
+#include "I2PEndian.h"
 
 #if not defined (__FreeBSD__)
 #include <pthread.h>
@@ -21,6 +22,9 @@
 #include <pthread_np.h>
 #endif
 
+#if defined(__APPLE__)
+# include <AvailabilityMacros.h>
+#endif
 
 #ifdef _WIN32
 #include <stdlib.h>
@@ -35,7 +39,7 @@
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
-// inet_pton exists Windows since Vista, but XP doesn't have that function!
+// inet_pton and inet_ntop have been in Windows since Vista, but XP doesn't have these functions!
 // This function was written by Petar Korponai?. See http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton_xp (int af, const char *src, void *dst)
 {
@@ -61,6 +65,29 @@ int inet_pton_xp (int af, const char *src, void *dst)
 	}
 	return 0;
 }
+
+const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
+{
+	struct sockaddr_storage ss;
+	unsigned long s = size;
+
+	ZeroMemory(&ss, sizeof(ss));
+	ss.ss_family = af;
+
+	switch(af) {
+		case AF_INET:
+			((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
+			break;
+		case AF_INET6:
+			((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
+			break;
+		default:
+			return NULL;
+	}
+	/* cannot direclty use &size because of strict aliasing rules */
+	return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)? dst : NULL;
+}
+
 #else /* !_WIN32 => UNIX */
 #include <sys/types.h>
 #ifdef ANDROID
@@ -119,8 +146,15 @@ namespace util
 	}
 
 	void SetThreadName (const char *name) {
-#if defined(__APPLE__) && !defined(__powerpc__)
+#if defined(__APPLE__)
+# if (!defined(MAC_OS_X_VERSION_10_6) || \
+		(MAC_OS_X_VERSION_MAX_ALLOWED < 1060) || \
+		defined(__POWERPC__))
+		/* pthread_setname_np is not there on <10.6 and all PPC.
+		So do nothing. */
+# else
 		pthread_setname_np((char*)name);
+# endif
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
 		pthread_set_name_np(pthread_self(), name);
 #elif defined(__NetBSD__)
@@ -133,27 +167,12 @@ namespace util
 namespace net
 {
 #ifdef _WIN32
-	bool IsWindowsXPorLater ()
-	{
-		static bool isRequested = false;
-		static bool isXP = false;
-		if (!isRequested)
-		{
-			// request
-			OSVERSIONINFO osvi;
-
-			ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-			osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-			GetVersionEx(&osvi);
-
-			isXP = osvi.dwMajorVersion <= 5;
-			isRequested = true;
-		}
-		return isXP;
-	}
-
 	int GetMTUWindowsIpv4 (sockaddr_in inputAddress, int fallback)
 	{
+		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
+		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
+
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -172,7 +191,7 @@ namespace net
 
 		if(dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU: Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
@@ -184,7 +203,7 @@ namespace net
 
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv4 address, this is not supported");
+				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv4 address, this is not supported");
 
 			for(int i = 0; pUnicast != nullptr; ++i)
 			{
@@ -192,8 +211,13 @@ namespace net
 				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
 				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
 				{
-					auto result = pAddresses->Mtu;
+					char addr[INET_ADDRSTRLEN];
+					inetntop(AF_INET, &(((struct sockaddr_in *)localInterfaceAddress)->sin_addr), addr, INET_ADDRSTRLEN);
+
+					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
+					pAddresses = nullptr;
+					LogPrint(eLogInfo, "NetIface: GetMTU: Using ", result, " bytes for IPv4 address ", addr);
 					return result;
 				}
 				pUnicast = pUnicast->Next;
@@ -201,19 +225,23 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv4 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU: No usable unicast IPv4 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
 
 	int GetMTUWindowsIpv6 (sockaddr_in6 inputAddress, int fallback)
 	{
+		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
+		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
+
 		ULONG outBufLen = 0;
 		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+		if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
 			== ERROR_BUFFER_OVERFLOW)
 		{
 			FREE(pAddresses);
@@ -224,23 +252,23 @@ namespace net
 			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR)
+		if (dwRetVal != NO_ERROR)
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Enclosed GetAdaptersAddresses() call has failed");
+			LogPrint(eLogError, "NetIface: GetMTU: Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
 			return fallback;
 		}
 
 		bool found_address = false;
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses)
+		while (pCurrAddresses)
 		{
 			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
-			if(pUnicast == nullptr)
-				LogPrint(eLogError, "NetIface: GetMTU(): Not a unicast IPv6 address, this is not supported");
+			if (pUnicast == nullptr)
+				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv6 address, this is not supported");
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			for (int i = 0; pUnicast != nullptr; ++i)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
@@ -255,9 +283,13 @@ namespace net
 
 				if (found_address)
 				{
-					auto result = pAddresses->Mtu;
+					char addr[INET6_ADDRSTRLEN];
+					inetntop(AF_INET6, &(((struct sockaddr_in6 *)localInterfaceAddress)->sin6_addr), addr, INET6_ADDRSTRLEN);
+
+					auto result = pCurrAddresses->Mtu;
 					FREE(pAddresses);
 					pAddresses = nullptr;
+					LogPrint(eLogInfo, "NetIface: GetMTU: Using ", result, " bytes for IPv6 address ", addr);
 					return result;
 				}
 				pUnicast = pUnicast->Next;
@@ -266,7 +298,7 @@ namespace net
 			pCurrAddresses = pCurrAddresses->Next;
 		}
 
-		LogPrint(eLogError, "NetIface: GetMTU(): No usable unicast IPv6 addresses found");
+		LogPrint(eLogError, "NetIface: GetMTU: No usable unicast IPv6 addresses found");
 		FREE(pAddresses);
 		return fallback;
 	}
@@ -298,7 +330,7 @@ namespace net
 		}
 		else
 		{
-			LogPrint(eLogError, "NetIface: GetMTU(): Address family is not supported");
+			LogPrint(eLogError, "NetIface: GetMTU: Address family is not supported");
 			return fallback;
 		}
 	}
@@ -421,6 +453,27 @@ namespace net
 		}
 		return boost::asio::ip::address::from_string(fallback);
 #endif
+	}
+
+	int GetMaxMTU (const boost::asio::ip::address_v6& localAddress)
+	{
+		uint32_t prefix = bufbe32toh (localAddress.to_bytes ().data ());
+		switch (prefix)
+		{
+			case 0x20010470:
+			case 0x260070ff:
+			// Hurricane Electric
+				return 1480;
+			break;
+			case 0x2a06a003:
+			case 0x2a06a004:
+			case 0x2a06a005:
+			// route48
+				return 1420;
+			break;
+			default: ;
+		}
+		return 1500;
 	}
 
 	static bool IsYggdrasilAddress (const uint8_t addr[16])

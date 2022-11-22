@@ -156,7 +156,7 @@ namespace client
 	{
 		if (stream)
 		{
-			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), m_Endpoint, m_IsQuiet);
+			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, m_Endpoint, m_IsQuiet);
 			AddHandler (conn);
 			conn->Connect ();
 		}
@@ -547,7 +547,7 @@ namespace client
 		}
 
 
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType, true);
 		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}
 

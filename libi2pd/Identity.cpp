@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -49,13 +49,30 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
+		/*uint8_t randomPaddingBlock[32];
+		RAND_bytes (randomPaddingBlock, 32);*/
 		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
-			memcpy (m_StandardIdentity.publicKey, publicKey, 32);
-			RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
+			/*memcpy (m_StandardIdentity.publicKey, publicKey ? publicKey : randomPaddingBlock, 32);
+			for (int i = 0; i < 7; i++) // 224 bytes
+				memcpy (m_StandardIdentity.publicKey + 32*(i + 1), randomPaddingBlock, 32);*/
+			if (publicKey)
+			{	
+				memcpy (m_StandardIdentity.publicKey, publicKey, 32);
+				RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
+			}	
+			else
+				RAND_bytes (m_StandardIdentity.publicKey, 256);
 		}
 		else
-			memcpy (m_StandardIdentity.publicKey, publicKey, 256);
+		{
+			if (publicKey)
+				memcpy (m_StandardIdentity.publicKey, publicKey, 256);
+			else
+				RAND_bytes (m_StandardIdentity.publicKey, 256);
+				/*for (int i = 0; i < 8; i++) // 256 bytes
+					memcpy (m_StandardIdentity.publicKey + 32*i, randomPaddingBlock, 32);*/
+		}	
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;
@@ -93,7 +110,9 @@ namespace data
 				case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				{
 					size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
-					RAND_bytes (m_StandardIdentity.signingKey, padding);
+					/*for (int i = 0; i < 3; i++) // 96 bytes
+						memcpy (m_StandardIdentity.signingKey + 32*i, randomPaddingBlock, 32);*/
+					RAND_bytes (m_StandardIdentity.signingKey, 96);	
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}
@@ -695,7 +714,7 @@ namespace data
 		return nullptr;
 	}
 
-	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType)
+	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType, bool isDestination)
 	{
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
@@ -705,9 +724,12 @@ namespace data
 			GenerateSigningKeyPair (type, keys.m_SigningPrivateKey, signingPublicKey);
 			// encryption
 			uint8_t publicKey[256];
-			GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
+			if (isDestination)
+				RAND_bytes (keys.m_PrivateKey, 256);
+			else	
+				GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
 			// identity
-			keys.m_Public = std::make_shared<IdentityEx> (publicKey, signingPublicKey, type, cryptoType);
+			keys.m_Public = std::make_shared<IdentityEx> (isDestination ? nullptr : publicKey, signingPublicKey, type, cryptoType);
 
 			keys.CreateSigner ();
 			return keys;

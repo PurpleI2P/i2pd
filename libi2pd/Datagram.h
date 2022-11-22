@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,6 +15,7 @@
 #include <map>
 #include <vector>
 #include "Base.h"
+#include "Gzip.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"

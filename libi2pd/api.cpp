@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -60,6 +60,7 @@ namespace api
 		else
 			i2p::log::Logger().SendTo (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
 		i2p::log::Logger().Start ();
+		i2p::transport::InitTransports ();
 		LogPrint(eLogInfo, "API: Starting NetDB");
 		i2p::data::netdb.Start();
 		LogPrint(eLogInfo, "API: Starting Transports");

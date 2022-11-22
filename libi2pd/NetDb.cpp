@@ -240,11 +240,10 @@ namespace data
 		m_HiddenMode = hide;
 	}
 
-	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
+	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
 		bool updated;
-		AddRouterInfo (buf, len, updated);
-		return updated;
+		return AddRouterInfo (buf, len, updated);
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len, bool& updated)
@@ -272,7 +271,10 @@ namespace data
 			if (r->IsNewer (buf, len))
 			{
 				bool wasFloodfill = r->IsFloodfill ();
-				r->Update (buf, len);
+				{
+					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					r->Update (buf, len);
+				}
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
 				{
@@ -436,12 +438,15 @@ namespace data
 
 		// try reseeding from floodfill first if specified
 		std::string riPath;
-		if(i2p::config::GetOption("reseed.floodfill", riPath)) {
+		if(i2p::config::GetOption("reseed.floodfill", riPath))
+		{
 			auto ri = std::make_shared<RouterInfo>(riPath);
-			if (ri->IsFloodfill()) {
+			if (ri->IsFloodfill())
+			{
 				const uint8_t * riData = ri->GetBuffer();
 				int riLen = ri->GetBufferLen();
-				if(!i2p::data::netdb.AddRouterInfo(riData, riLen)) {
+				if (!i2p::data::netdb.AddRouterInfo(riData, riLen))
+				{
 					// bad router info
 					LogPrint(eLogError, "NetDb: Bad router info");
 					return;
@@ -623,7 +628,8 @@ namespace data
 				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				it.second->SetUnreachable (false);
 			// find & mark expired routers
-			if (!it.second->IsReachable () && it.second->IsSSU (false))
+			if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & (RouterInfo::eSSUV4 | RouterInfo::eSSU2V4)))
+			// non-reachable router, but reachable by ipv4 SSU or SSU2 means introducers
 			{
 				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
@@ -743,6 +749,11 @@ namespace data
 	{
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();
+		if (len < DATABASE_STORE_HEADER_SIZE)
+		{
+			LogPrint (eLogError, "NetDb: Database store msg is too short ", len, ". Dropped");
+			return;
+		}	
 		IdentHash ident (buf + DATABASE_STORE_KEY_OFFSET);
 		if (ident.IsZero ())
 		{
@@ -753,6 +764,11 @@ namespace data
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
+			if (len < offset + 36) // 32 + 4
+			{
+				LogPrint (eLogError, "NetDb: Database store msg with reply token is too short ", len, ". Dropped");
+				return;
+			}	
 			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
@@ -940,9 +956,9 @@ namespace data
 		}
 		uint16_t numExcluded = bufbe16toh (excluded);
 		excluded += 2;
-		if (numExcluded > 512)
+		if (numExcluded > 512 || (excluded - buf) + numExcluded*32 > (int)msg->GetPayloadLength ())
 		{
-			LogPrint (eLogWarning, "NetDb: Number of excluded peers", numExcluded, " exceeds 512");
+			LogPrint (eLogWarning, "NetDb: Number of excluded peers", numExcluded, " is too much");
 			return;
 		}
 
@@ -951,10 +967,11 @@ namespace data
 		{
 			LogPrint (eLogInfo, "NetDb: Exploratory close to ", key, " ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
+			const uint8_t * excluded_ident = excluded;
 			for (int i = 0; i < numExcluded; i++)
 			{
-				excludedRouters.insert (excluded);
-				excluded += 32;
+				excludedRouters.insert (excluded_ident);
+				excluded_ident += 32;
 			}
 			std::vector<IdentHash> routers;
 			for (int i = 0; i < 3; i++)
@@ -1012,7 +1029,7 @@ namespace data
 				if (closestFloodfills.empty ())
 					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
-		}
+			}
 		}
 		excluded += numExcluded * 32;
 		if (replyMsg)
@@ -1211,7 +1228,7 @@ namespace data
 					router->IsSSU2PeerTesting (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
-	
+
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSUV6Router () const
 	{
 		return GetRandomRouter (
@@ -1228,6 +1245,16 @@ namespace data
 			{
 				return !router->IsHidden () && router->IsECIES () && !router->IsFloodfill () && // floodfills don't send relay tag
 					router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ());
+			});
+	}
+
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const
+	{
+		return GetRandomRouter (
+			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
+			{
+				return !router->IsHidden () && router->IsSSU2Introducer (v4) &&
+					!excluded.count (router->GetIdentHash ());
 			});
 	}
 
@@ -1431,12 +1458,13 @@ namespace data
 			else
 				++it;
 		}
+		m_LeasesPool.CleanUpMt ();
 	}
 
 	void NetDb::PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r)
 	{
 		if (!r || r->GetBuffer ()) return;
 		r->LoadBuffer (m_Storage.Path (r->GetIdentHashBase64 ()));
-	}	
+	}
 }
 }

@@ -1,3 +1,15 @@
+i2pd (2.44.0-1) unstable; urgency=medium
+
+  * updated to version 2.44.0/0.9.56
+
+ -- orignal <orignal@i2pmail.org>  Sun, 20 Nov 2022 19:00:00 +0000
+
+i2pd (2.43.0-1) unstable; urgency=medium
+
+  * updated to version 2.43.0/0.9.55
+
+ -- orignal <orignal@i2pmail.org>  Mon, 22 Aug 2022 16:00:00 +0000
+
 i2pd (2.42.1-1) unstable; urgency=medium
 
   * updated to version 2.42.1/0.9.54

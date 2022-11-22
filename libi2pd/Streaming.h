@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -185,7 +185,8 @@ namespace stream
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
-
+			size_t Receive (uint8_t * buf, size_t len, int timeout);
+			
 			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
 
 			/** only call close from destination thread, use Stream::AsyncClose for other threads */
@@ -278,13 +279,14 @@ namespace stream
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
 			void AcceptOnce (const Acceptor& acceptor);
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
-
+			std::shared_ptr<Stream> AcceptStream (int timeout = 0); // sync
+			
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
@@ -315,7 +317,7 @@ namespace stream
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
-			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
+			i2p::data::GzipDeflator m_Deflator;
 
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
@@ -336,11 +338,10 @@ namespace stream
 				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
 				int left = timeout - t;
-				auto self = s->shared_from_this();
-				self->m_ReceiveTimer.async_wait (
-					[self, buffer, handler, left](const boost::system::error_code & ec)
+				s->m_ReceiveTimer.async_wait (
+					[s, buffer, handler, left](const boost::system::error_code & ec)
 					{
-						self->HandleReceiveTimer(ec, buffer, handler, left);
+						s->HandleReceiveTimer(ec, buffer, handler, left);
 					});
 			}
 		});

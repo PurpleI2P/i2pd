@@ -261,7 +261,7 @@ namespace client
 		static const std::string transient("transient");
 		if (!filename.compare (0, transient.length (), transient)) // starts with transient
 		{
-			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
 			return true;
 		}
@@ -288,7 +288,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
-			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
@@ -328,7 +328,7 @@ namespace client
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
-		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 		auto localDestination = std::make_shared<RunnableClientDestination> (keys, isPublic, params);
 		AddLocalDestination (localDestination);
 		return localDestination;
@@ -339,7 +339,7 @@ namespace client
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
-		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 		auto localDestination = std::make_shared<ClientDestination> (service, keys, isPublic, params);
 		AddLocalDestination (localDestination);
 		return localDestination;
@@ -726,6 +726,7 @@ namespace client
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+					bool ssl = section.second.get(I2P_SERVER_TUNNEL_SSL, false);
 
 					// I2CP
 					std::map<std::string, std::string> options;
@@ -799,11 +800,13 @@ namespace client
 
 					if (!address.empty ())
 						serverTunnel->SetLocalAddress (address);
-					if(!isUniqueLocal)
+					if (!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");
 						serverTunnel->SetUniqueLocal(isUniqueLocal);
 					}
+					if (ssl)
+						serverTunnel->SetSSL (true);
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;
@@ -865,7 +868,7 @@ namespace client
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
 			if (httpAddresshelper)
-				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book	
+				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
 			LogPrint(eLogInfo, "Clients: Starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)

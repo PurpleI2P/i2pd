@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -154,25 +154,23 @@ namespace win32
 			case eRouterStatusUnknown: s << "Unk"; break;
 			case eRouterStatusProxy: s << "Proxy"; break;
 			case eRouterStatusMesh: s << "Mesh"; break;
-			case eRouterStatusError:
-			{
-				s << "Err";
-				switch (i2p::context.GetError ())
-				{
-					case eRouterErrorClockSkew:
-						s << " - Clock skew";
-					break;
-					case eRouterErrorOffline:
-						s << " - Offline";
-					break;
-					case eRouterErrorSymmetricNAT:
-						s << " - Symmetric NAT";
-					break;
-					default: ;
-				}
-				break;
-			}
 			default: s << "Unk";
+		};
+		if (i2p::context.GetError () != eRouterErrorNone)
+		{
+			switch (i2p::context.GetError ())
+			{
+				case eRouterErrorClockSkew:
+					s << " - Clock skew";
+				break;
+				case eRouterErrorOffline:
+					s << " - Offline";
+				break;
+				case eRouterErrorSymmetricNAT:
+					s << " - Symmetric NAT";
+				break;
+				default: ;
+			}
 		}
 	}
 

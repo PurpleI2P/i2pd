@@ -1,6 +1,66 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.44.0] - 2022-11-20
+### Added
+- SSL connection for server I2P tunnels
+- Localization to Italian and Spanish
+- SSU2 through SOCKS5 UDP proxy
+- Reload tunnels through web console
+- SSU2 send immediate ack request flag
+- SSU2 send and verify path challenge
+- Configurable ssu2.mtu4 and ssu2.mtu6
+### Changed
+- SSU2 is enbaled and SSU is disabled by default
+- Separate network status and error
+- Random selection between NTCP2 and SSU2 priority
+- Added notbob.i2p to jump services
+- Remove DoNotTrack flag from HTTP Request header
+- Skip addresshelper page if destination was not changed
+- SSU2 allow different ports from RelayReponse and HolePunch
+- SSU2 resend PeerTest msg 1 and msg 2
+- SSU2 Send Retry instead SessionCreated if clock skew detected
+### Fixed
+- Long HTTP headers for HTTP proxy and HTTP server tunnel
+- SSU2 resends and resend limits
+- Crash at startup if addressbook is disabled
+- NTCP2 ipv6 connection through SOCKS5 proxy
+- SSU2 SessionRequest with zero token
+- SSU2 MTU less than 1280
+- SSU2 port=1
+- Incorrect addresses from network interfaces
+- Definitions for Darwin PPC; do not use pthread_setname_np
+
+## [2.43.0] - 2022-08-22
+### Added
+- Complete SSU2 implementation
+- Localization to Chinese
+- Send RouterInfo update for long live sessions
+- Explicit ipv6 ranges of known tunnel brokers for MTU detection
+- Always send "Connection: close" and strip out Keep-Alive for server HTTP tunnel
+- Show ports for all transports in web console
+- Translation of webconsole site title
+- Support for Windows ProgramData path when running as service
+- Ability to turn off address book
+- Handle signals TSTP and CONT to stop and resume network
+### Changed
+- Case insensitive headers for server HTTP tunnel
+- Do not show 'Address registration' line if LeaseSet is encrypted
+- SSU2 transports have higher priority than SSU
+- Disable ElGamal precalculated table if no SSU
+- Deprecate limits.ntcpsoft, limits.ntcphard and limits.ntcpthreads config options
+- SSU2 is enabled and SSU is disabled by default for new installations
+### Fixed
+- Typo with Referer header name in HTTP proxy
+- Can't handle garlic message from an exploratory tunnel
+- Incorrect encryption key for exploratory lookup reply
+- Bound checks issues in LeaseSets code
+- MTU detection on Windows
+- Crash on stop of active server tunnel
+- Send datagram to wrong destination in SAM
+- Incorrect static key in RouterInfo if the keys were regenerated
+- Duplicated sessions in BOB
+
 ## [2.42.1] - 2022-05-24
 ### Fixed
 - Incorrect jump link in HTTP Proxy
@@ -381,7 +441,7 @@
 ### Added
 - Client auth flag for b33 address
 ### Changed
-- Remove incoming  NTCP2 session from pending list when established
+- Remove incoming NTCP2 session from pending list when established
 - Handle errors for NTCP2 SessionConfrimed send
 ### Fixed
 - Failure to start on Windows XP
@@ -685,7 +745,7 @@
 ### Added
 - Datagram i2p tunnels
 - Unique local addresses for server tunnels
-- Configurable list of reseed servers  and initial addressbook
+- Configurable list of reseed servers and initial addressbook
 - Configurable netid
 - Initial iOS support
 

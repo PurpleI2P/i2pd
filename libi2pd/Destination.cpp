@@ -1096,7 +1096,13 @@ namespace client
 		}
 		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
-			streamRequestComplete(CreateStream (leaseSet, port));
+		{	
+			auto stream = CreateStream (leaseSet, port);
+			GetService ().post ([streamRequestComplete, stream]() 
+				{                
+					streamRequestComplete(stream);
+				});
+		}	
 		else
 		{
 			auto s = GetSharedFromThis ();
@@ -1129,6 +1135,35 @@ namespace client
 			});
 	}
 
+	template<typename Dest>	
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, int port) 
+	{
+		std::shared_ptr<i2p::stream::Stream> stream;
+		std::condition_variable streamRequestComplete;
+		std::mutex streamRequestCompleteMutex;
+		std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
+		CreateStream (
+			[&streamRequestComplete, &streamRequestCompleteMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
+		    {
+				stream = s;
+				std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
+				streamRequestComplete.notify_all ();
+			},
+		    dest, port);
+		streamRequestComplete.wait (l);
+		return stream;
+	}	
+
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, int port) 
+	{
+		return CreateStreamSync (dest, port);
+	}	
+
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port)
+	{
+		return CreateStreamSync (dest, port);
+	}	
+		
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
 	{
 		if (m_StreamingDestination)

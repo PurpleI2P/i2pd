@@ -69,7 +69,7 @@ namespace data
 			void Start ();
 			void Stop ();
 
-			bool AddRouterInfo (const uint8_t * buf, int len);
+			std::shared_ptr<const RouterInfo> AddRouterInfo (const uint8_t * buf, int len);
 			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType);
@@ -93,6 +93,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSUV6Router () const; // TODO: change to v6 peer test later
 			std::shared_ptr<const RouterInfo> GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
@@ -124,7 +125,8 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
-			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r); 
+			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
+			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -181,6 +183,7 @@ namespace data
 			uint32_t m_PublishReplyToken = 0;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
+			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
 	};
 
 	extern NetDb netdb;

@@ -235,6 +235,7 @@ namespace data
 			bool IsPeerTesting (bool v4) const;
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsIntroducer (bool v4) const;
+			bool IsSSU2Introducer (bool v4) const;
 
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps) { m_Caps = caps; };
@@ -274,6 +275,8 @@ namespace data
 			void SetBufferLen (size_t len) { m_BufferLen = len; };
 			void RefreshTimestamp ();
 			const Addresses& GetAddresses () const { return *m_Addresses; };
+			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
+			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
 
 		private:
 
@@ -315,6 +318,9 @@ namespace data
 			void DeleteProperty (const std::string& key);
 			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };
+
+			bool AddSSU2Introducer (const Introducer& introducer, bool v4);
+			bool RemoveSSU2Introducer (const IdentHash& h, bool v4);
 
 		private:
 

@@ -31,7 +31,6 @@
 #include "Crypto.h"
 #include "UPnP.h"
 #include "Timestamp.h"
-#include "util.h"
 #include "I18N.h"
 
 namespace i2p
@@ -153,115 +152,18 @@ namespace util
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
 		bool avx; i2p::config::GetOption("cpuext.avx", avx);
 		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
+		bool ssu; i2p::config::GetOption("ssu", ssu);
+		if (!ssu && i2p::config::IsDefault ("precomputation.elgamal"))
+			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
 		i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
+
+		i2p::transport::InitAddressFromIface (); // get address4/6 from interfaces
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
 		i2p::context.Init ();
 
-		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
-		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
-
-		// ifname -> address
-		std::string ifname; i2p::config::GetOption("ifname", ifname);
-		if (ipv4 && i2p::config::IsDefault ("address4"))
-		{
-			std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
-			if (!ifname4.empty ())
-				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname4, false).to_string ()); // v4
-			else if (!ifname.empty ())
-				i2p::config::SetOption ("address4", i2p::util::net::GetInterfaceAddress(ifname, false).to_string ()); // v4
-		}
-		if (ipv6 && i2p::config::IsDefault ("address6"))
-		{
-			std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
-			if (!ifname6.empty ())
-				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname6, true).to_string ()); // v6
-			else if (!ifname.empty ())
-				i2p::config::SetOption ("address6", i2p::util::net::GetInterfaceAddress(ifname, true).to_string ()); // v6
-		}
-
-		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
-		boost::asio::ip::address_v6 yggaddr;
-		if (ygg)
-		{
-			std::string yggaddress; i2p::config::GetOption ("meshnets.yggaddress", yggaddress);
-			if (!yggaddress.empty ())
-			{
-				yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
-				if (yggaddr.is_unspecified () || !i2p::util::net::IsYggdrasilAddress (yggaddr) ||
-					!i2p::util::net::IsLocalAddress (yggaddr))
-				{
-					LogPrint(eLogWarning, "Daemon: Can't find Yggdrasil address ", yggaddress);
-					ygg = false;
-				}
-			}
-			else
-			{
-				yggaddr = i2p::util::net::GetYggdrasilAddress ();
-				if (yggaddr.is_unspecified ())
-				{
-					LogPrint(eLogWarning, "Daemon: Yggdrasil is not running. Disabled");
-					ygg = false;
-				}
-			}
-		}
-
-		uint16_t port; i2p::config::GetOption("port", port);
-		if (!i2p::config::IsDefault("port"))
-		{
-			LogPrint(eLogInfo, "Daemon: Accepting incoming connections at port ", port);
-			i2p::context.UpdatePort (port);
-		}
-		i2p::context.SetSupportsV6 (ipv6);
-		i2p::context.SetSupportsV4 (ipv4);
-		i2p::context.SetSupportsMesh (ygg, yggaddr);
-
-		i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later
-		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-		if (ntcp2)
-		{
-			bool published; i2p::config::GetOption("ntcp2.published", published);
-			if (published)
-			{
-				std::string ntcp2proxy; i2p::config::GetOption("ntcp2.proxy", ntcp2proxy);
-				if (!ntcp2proxy.empty ()) published = false;
-			}
-			if (published)
-			{
-				uint16_t ntcp2port; i2p::config::GetOption("ntcp2.port", ntcp2port);
-				if (!ntcp2port) ntcp2port = port; // use standard port
-				i2p::context.PublishNTCP2Address (ntcp2port, true, ipv4, ipv6, false); // publish
-				if (ipv6)
-				{
-					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
-					auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
-					if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
-						i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
-				}
-			}
-			else
-				i2p::context.PublishNTCP2Address (port, false, ipv4, ipv6, false); // unpublish
-		}
-		if (ygg)
-		{
-			i2p::context.PublishNTCP2Address (port, true, false, false, true);
-			i2p::context.UpdateNTCP2V6Address (yggaddr);
-			if (!ipv4 && !ipv6)
-				i2p::context.SetStatus (eRouterStatusMesh);
-		}
-		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-		if (ssu2)
-		{
-			bool published; i2p::config::GetOption("ssu2.published", published);
-			if (published)
-			{
-				uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
-				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
-			}
-			else
-				i2p::context.PublishSSU2Address (0, false, ipv4, ipv6); // unpublish
-		}
+		i2p::transport::InitTransports ();
 
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
@@ -404,7 +306,7 @@ namespace util
 
 		i2p::transport::transports.SetCheckReserved(checkInReserved);
 		i2p::transport::transports.Start(ntcp2, ssu, ssu2);
-		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundNTCP2())
+		if (i2p::transport::transports.IsBoundSSU() || i2p::transport::transports.IsBoundSSU2() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{

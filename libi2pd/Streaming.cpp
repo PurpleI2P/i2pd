@@ -474,6 +474,29 @@ namespace stream
 			Close (); // check is all outgoing messages have been sent and we can send close
 	}
 
+	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
+	{
+		if (!len) return 0;
+		size_t ret = 0;
+		std::condition_variable newDataReceived;
+		std::mutex newDataReceivedMutex;
+		std::unique_lock<std::mutex> l(newDataReceivedMutex);
+		AsyncReceive (boost::asio::buffer (buf, len),
+			[&ret, &newDataReceived, &newDataReceivedMutex](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+			{
+				if (ecode == boost::asio::error::timed_out)
+					ret = 0;
+				else
+					ret = bytes_transferred;
+				std::unique_lock<std::mutex> l(newDataReceivedMutex);
+				newDataReceived.notify_all ();
+			},
+			timeout);
+		if (newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)
+			ret = 0;
+		return ret;
+	}	
+		
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
 		AsyncSend (buf, len, nullptr);
@@ -729,7 +752,7 @@ namespace stream
 				Terminate ();
 			break;
 			default:
-				LogPrint (eLogWarning, "Streaming: Unexpected stream status ", (int)m_Status, "sSID=", m_SendStreamID);
+				LogPrint (eLogWarning, "Streaming: Unexpected stream status=", (int)m_Status, " for sSID=", m_SendStreamID);
 		};
 	}
 
@@ -855,7 +878,7 @@ namespace stream
 			for (const auto& it: packets)
 			{
 				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (
-					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets ()));
+					it->GetBuffer (), it->GetLength (), m_Port, !m_RoutingSession->IsRatchets (), it->IsSYN ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeTunnel,
@@ -1085,8 +1108,6 @@ namespace stream
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
-		if (m_Gzip)
-			m_Deflator.reset (new i2p::data::GzipDeflator);
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -1341,6 +1362,26 @@ namespace stream
 		acceptor (stream);
 	}
 
+	std::shared_ptr<Stream> StreamingDestination::AcceptStream (int timeout)
+	{
+		std::shared_ptr<i2p::stream::Stream> stream;
+		std::condition_variable streamAccept;
+		std::mutex streamAcceptMutex;
+		std::unique_lock<std::mutex> l(streamAcceptMutex);
+		AcceptOnce (
+			[&streamAccept, &streamAcceptMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
+		    {
+				stream = s;
+				std::unique_lock<std::mutex> l(streamAcceptMutex);
+				streamAccept.notify_all ();
+			});
+		if (timeout)
+			streamAccept.wait_for (l, std::chrono::seconds (timeout));
+		else	
+			streamAccept.wait (l);
+		return stream;
+	}	
+		
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
@@ -1365,7 +1406,7 @@ namespace stream
 	}
 
 	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (
-		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum)
+		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum, bool gzip)
 	{
 		size_t size;
 		auto msg = m_I2NPMsgsPool.AcquireShared ();
@@ -1373,8 +1414,8 @@ namespace stream
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
 
-		if (m_Gzip && m_Deflator)
-			size = m_Deflator->Deflate (payload, len, buf, msg->maxLen - msg->len);
+		if (m_Gzip || gzip)
+			size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
 		else
 			size = i2p::data::GzipNoCompression (payload, len, buf, msg->maxLen - msg->len);
 

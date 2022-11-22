@@ -85,6 +85,7 @@ set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
   "${DAEMON_SRC_DIR}/HTTPServer.cpp"
   "${DAEMON_SRC_DIR}/I2PControl.cpp"
+  "${DAEMON_SRC_DIR}/I2PControlHandlers.cpp"
   "${DAEMON_SRC_DIR}/i2pd.cpp"
   "${DAEMON_SRC_DIR}/UPnP.cpp"
 )
@@ -168,6 +169,13 @@ if(WITH_THREADSANITIZER)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread")
   endif()
+endif()
+
+
+# Enable usage of STD's Atomic instead of Boost's on PowerPC
+# For more information refer to https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
+if(ARCHITECTURE MATCHES "ppc")
+  add_definitions(-DBOOST_SP_USE_STD_ATOMIC)
 endif()
 
 

@@ -61,7 +61,7 @@ set(archdetect_c_code "
     #else
         #error cmake_ARCH mips
     #endif
-#elif defined(__ppc__) || defined(__ppc) || defined(__powerpc__) \\
+#elif defined(__ppc__) || defined(__ppc) || defined(__powerpc__) || defined(__POWERPC__) \\
       || defined(_ARCH_COM) || defined(_ARCH_PWR) || defined(_ARCH_PPC)  \\
       || defined(_M_MPPC) || defined(_M_PPC)
     #if defined(__ppc64__) || defined(__powerpc64__) || defined(__64BIT__)
