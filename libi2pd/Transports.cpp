@@ -616,7 +616,7 @@ namespace transport
 				if (router)
 				{
 					if (i2p::context.GetStatus () != eRouterStatusTesting)
-						i2p::context.SetStatusSSU2 (eRouterStatusTesting);
+						i2p::context.SetStatus (eRouterStatusTesting);
 					m_SSU2Server->StartPeerTest (router, true);
 					excluded.insert (router->GetIdentHash ());
 				}
@@ -635,7 +635,7 @@ namespace transport
 				if (router)
 				{
 					if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
-						i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
+						i2p::context.SetStatusV6 (eRouterStatusTesting);
 					m_SSU2Server->StartPeerTest (router, false);
 					excluded.insert (router->GetIdentHash ());
 				}

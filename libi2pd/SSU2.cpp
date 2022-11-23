@@ -68,9 +68,8 @@ namespace transport
 						if (ssu2Port) port = ssu2Port;
 						else
 						{
-							bool ssu;   i2p::config::GetOption("ssu", ssu);
 							uint16_t p; i2p::config::GetOption ("port", p);
-							if (p) port = ssu ? (p + 1) : p;
+							if (p) port = p;
 						}
 					}
 					if (port)
@@ -1068,7 +1067,7 @@ namespace transport
 				// we are firewalled
 				auto addr = i2p::context.GetRouterInfo ().GetSSU2V4Address ();
 				if (addr && addr->ssu && addr->ssu->introducers.empty ())
-					i2p::context.SetUnreachableSSU2 (true, false); // v4
+					i2p::context.SetUnreachable (true, false); // v4
 
 				UpdateIntroducers (true);
 				ScheduleIntroducersUpdateTimer ();
@@ -1091,7 +1090,7 @@ namespace transport
 				// we are firewalled
 				auto addr = i2p::context.GetRouterInfo ().GetSSU2V6Address ();
 				if (addr && addr->ssu && addr->ssu->introducers.empty ())
-					i2p::context.SetUnreachableSSU2 (false, true); // v6
+					i2p::context.SetUnreachable (false, true); // v6
 
 				UpdateIntroducers (false);
 				ScheduleIntroducersUpdateTimerV6 ();

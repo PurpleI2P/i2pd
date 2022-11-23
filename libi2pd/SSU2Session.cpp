@@ -2266,9 +2266,9 @@ namespace transport
 		if (m_Address)
 		{
 			if (m_Address->IsV4 ())
-				i2p::context.SetStatusSSU2 (status);
+				i2p::context.SetStatus (status);
 			else if (m_Address->IsV6 ())
-				i2p::context.SetStatusV6SSU2 (status);
+				i2p::context.SetStatusV6 (status);
 		}
 	}
 
