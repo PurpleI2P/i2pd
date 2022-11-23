@@ -62,24 +62,6 @@ namespace crypto
 	// RSA
 	const BIGNUM * GetRSAE ();
 
-	// DH
-	class DHKeys
-	{
-		public:
-
-			DHKeys ();
-			~DHKeys ();
-
-			void GenerateKeys ();
-			const uint8_t * GetPublicKey () const { return m_PublicKey; };
-			void Agree (const uint8_t * pub, uint8_t * shared);
-
-		private:
-
-			DH * m_DH;
-			uint8_t m_PublicKey[256];
-	};
-
 	// x25519
 	class X25519Keys
 	{
@@ -120,10 +102,6 @@ namespace crypto
 	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted); // 222 bytes data, 514 bytes encrypted
 	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data); // 514 bytes encrypted, 222 data
 	void GenerateECIESKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub);
-
-	// HMAC
-	typedef i2p::data::Tag<32> MACKey;
-	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest);
 
 	// AES
 	struct ChipherBlock
