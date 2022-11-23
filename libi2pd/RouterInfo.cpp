@@ -330,21 +330,9 @@ namespace data
 					}
 					Introducer& introducer = address->ssu->introducers.at (index);
 					if (!strcmp (key, "ihost"))
-					{
-						boost::system::error_code ecode;
-						introducer.iHost = boost::asio::ip::address::from_string (value, ecode);
-					}
+						introducer.isH = false; // SSU1 
 					else if (!strcmp (key, "iport"))
-					{
-						try
-						{
-							introducer.iPort = boost::lexical_cast<int>(value);
-						}
-						catch (std::exception& ex)
-						{
-							LogPrint (eLogWarning, "RouterInfo: 'iport' exception ", ex.what ());
-						}
-					}
+						introducer.isH = false; // SSU1 
 					else if (!strcmp (key, "itag"))
 					{
 						try
@@ -356,8 +344,11 @@ namespace data
 							LogPrint (eLogWarning, "RouterInfo: 'itag' exception ", ex.what ());
 						}
 					}
-					else if (!strcmp (key, "ikey") || !strcmp (key, "ih"))
-						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
+					else if (!strcmp (key, "ih"))
+					{	
+						Base64ToByteStream (value, strlen (value), introducer.iH, 32);
+						introducer.isH = true; 
+					}	
 					else if (!strcmp (key, "iexp"))
 					{
 						try
@@ -413,7 +404,7 @@ namespace data
 					int numValid = 0;
 					for (auto& it: address->ssu->introducers)
 					{
-						if (it.iTag && ts < it.iExp && !it.iPort && it.iHost.is_unspecified ()) // SSU2 only
+						if (it.iTag && ts < it.iExp && it.isH)
 							numValid++;
 						else
 							it.iTag = 0;
@@ -625,29 +616,6 @@ namespace data
 		return l+1;
 	}
 
-
-	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
-	{
-		auto addr = std::make_shared<Address>();
-		addr->host = boost::asio::ip::address::from_string (host);
-		addr->port = port;
-		addr->transportStyle = eTransportSSU;
-		addr->published = true;
-		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
-		addr->date = 0;
-		addr->ssu.reset (new SSUExt ());
-		addr->ssu->mtu = mtu;
-		if (key)
-			memcpy (addr->i, key, 32);
-		else
-			RAND_bytes (addr->i, 32);
-		for (const auto& it: *m_Addresses) // don't insert same address twice
-			if (*it == *addr) return;
-		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
-		m_ReachableTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
-		m_Addresses->push_back(std::move(addr));
-	}
-
 	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 		const boost::asio::ip::address& host, int port, uint8_t caps)
 	{
@@ -714,51 +682,6 @@ namespace data
 			m_ReachableTransports |= eSSU2V6;
 		}
 		m_Addresses->push_back(std::move(addr));
-	}
-
-	bool RouterInfo::AddIntroducer (const Introducer& introducer)
-	{
-		for (auto& addr : *m_Addresses)
-		{
-			if (addr->transportStyle == eTransportSSU &&
-				((addr->IsV4 () && introducer.iHost.is_v4 ()) || (addr->IsV6 () && introducer.iHost.is_v6 ())))
-			{
-				for (auto& intro: addr->ssu->introducers)
-					if (intro.iTag == introducer.iTag) return false; // already presented
-				addr->ssu->introducers.push_back (introducer);
-				m_ReachableTransports |= (addr->IsV4 () ? eSSUV4 : eSSUV6);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool RouterInfo::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
-	{
-		for (auto& addr: *m_Addresses)
-		{
-			if (addr->transportStyle == eTransportSSU &&
-				((addr->IsV4 () && e.address ().is_v4 ()) || (addr->IsV6 () && e.address ().is_v6 ())))
-			{
-				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
-					if (boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e)
-					{
-						addr->ssu->introducers.erase (it);
-						if (addr->ssu->introducers.empty ())
-							m_ReachableTransports &= ~(addr->IsV4 () ? eSSUV4 : eSSUV6);
-						return true;
-					}
-			}
-		}
-		return false;
-	}
-
-	bool RouterInfo::IsSSU (bool v4only) const
-	{
-		if (v4only)
-			return m_SupportedTransports & eSSUV4;
-		else
-			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
 	bool RouterInfo::IsNTCP2 (bool v4only) const
@@ -865,15 +788,6 @@ namespace data
 					++it;
 			}
 		}
-	}
-
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const
-	{
-		return GetAddress (
-			[v4only](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU) && (!v4only || address->IsV4 ());
-			});
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUV6Address () const
@@ -1051,7 +965,6 @@ namespace data
 	{
 		for (auto& addr: *m_Addresses)
 		{
-			// TODO: implement SSU
 			if (!addr->published && (addr->transportStyle == eTransportNTCP || addr->transportStyle == eTransportSSU2))
 			{
 				addr->caps &= ~(eV4 | eV6);
@@ -1074,12 +987,6 @@ namespace data
 					if (addr->IsV6 ())
 						transports |= (i2p::util::net::IsYggdrasilAddress (addr->host) ? eNTCP2V6Mesh : eNTCP2V6);
 					if (addr->IsPublishedNTCP2 ())
-						m_ReachableTransports |= transports;
-				break;
-				case eTransportSSU:
-					if (addr->IsV4 ()) transports |= eSSUV4;
-					if (addr->IsV6 ()) transports |= eSSUV6;
-					if (addr->IsReachableSSU ())
 						m_ReachableTransports |= transports;
 				break;
 				case eTransportSSU2:
@@ -1183,8 +1090,6 @@ namespace data
 			uint8_t cost = 0x7f;
 			if (address.transportStyle == eTransportNTCP)
 				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
-			else if (address.transportStyle == eTransportSSU)
-				cost = address.published ? COST_SSU_DIRECT : COST_SSU_THROUGH_INTRODUCERS;
 			else if (address.transportStyle == eTransportSSU2)
 				cost = address.published ? COST_SSU2_DIRECT : COST_SSU2_NON_PUBLISHED;
 			s.write ((const char *)&cost, sizeof (cost));
@@ -1212,43 +1117,6 @@ namespace data
 				}
 				else
 					continue; // don't write NTCP address
-			}
-			else if (address.transportStyle == eTransportSSU)
-			{
-				WriteString ("SSU", s);
-				// caps
-				WriteString ("caps", properties);
-				properties << '=';
-				std::string caps;
-				if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-				if (address.host.is_v4 ())
-				{
-					if (address.published)
-					{
-						isPublished = true;
-						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-					}
-					else
-						caps += CAPS_FLAG_V4;
-				}
-				else if (address.host.is_v6 ())
-				{
-					if (address.published)
-					{
-						isPublished = true;
-						if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
-					}
-					else
-						caps += CAPS_FLAG_V6;
-				}
-				else
-				{
-					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-					if (caps.empty ()) caps += CAPS_FLAG_V4;
-				}
-				WriteString (caps, properties);
-				properties << ';';
 			}
 			else if (address.transportStyle == eTransportSSU2)
 			{
@@ -1292,7 +1160,7 @@ namespace data
 				size_t len = address.IsSSU2 () ? 32 : 16;
 				WriteString (address.i.ToBase64 (len), properties); properties << ';';
 			}
-			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
+			if (address.transportStyle == eTransportSSU2)
 			{
 				// write introducers if any
 				if (address.ssu && !address.ssu->introducers.empty())
@@ -1309,44 +1177,17 @@ namespace data
 						}
 						i++;
 					}
-					if (address.transportStyle == eTransportSSU)
-					{
-						i = 0;
-						for (const auto& introducer: address.ssu->introducers)
-						{
-							WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
-							properties << '=';
-							WriteString (introducer.iHost.to_string (), properties);
-							properties << ';';
-							i++;
-						}
-					}
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
-						if (address.IsSSU2 ())
-							WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);
-						else
-							WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
+						WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);	
 						properties << '=';
 						char value[64];
-						size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
+						size_t l = ByteStreamToBase64 (introducer.iH, 32, value, 64);
 						value[l] = 0;
 						WriteString (value, properties);
 						properties << ';';
 						i++;
-					}
-					if (address.transportStyle == eTransportSSU)
-					{
-						i = 0;
-						for (const auto& introducer: address.ssu->introducers)
-						{
-							WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
-							properties << '=';
-							WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
-							properties << ';';
-							i++;
-						}
 					}
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
@@ -1359,18 +1200,8 @@ namespace data
 					}
 				}
 			}
-			if (address.transportStyle == eTransportSSU)
-			{
-				// write intro key
-				WriteString ("key", properties);
-				properties << '=';
-				char value[64];
-				size_t l = ByteStreamToBase64 (address.i, 32, value, 64);
-				value[l] = 0;
-				WriteString (value, properties);
-				properties << ';';
-			}
-			if (address.transportStyle == eTransportSSU || address.IsSSU2 ())
+			
+			if (address.transportStyle == eTransportSSU2)
 			{
 				// write mtu
 				if (address.ssu && address.ssu->mtu)
@@ -1381,7 +1212,7 @@ namespace data
 					properties << ';';
 				}
 			}
-			if ((isPublished || (address.ssu && !address.IsSSU2 ())) && address.port)
+			if (isPublished && address.port)
 			{
 				WriteString ("port", properties);
 				properties << '=';
@@ -1473,7 +1304,7 @@ namespace data
 			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
 				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
-					if (h == it->iKey)
+					if (h == it->iH)
 					{
 						addr->ssu->introducers.erase (it);
 						if (addr->ssu->introducers.empty ())

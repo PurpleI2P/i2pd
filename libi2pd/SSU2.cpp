@@ -641,7 +641,7 @@ namespace transport
 		// try to find existing session first
 		for (auto& it: address->ssu->introducers)
 		{
-			auto it1 = m_SessionsByRouterHash.find (it.iKey);
+			auto it1 = m_SessionsByRouterHash.find (it.iH);
 			if (it1 != m_SessionsByRouterHash.end ())
 			{
 				it1->second->Introduce (session, it.iTag);
@@ -664,7 +664,7 @@ namespace transport
 				const auto& introducer = address->ssu->introducers[indicies[i]];
 				if (introducer.iTag && ts < introducer.iExp)
 				{
-					r = i2p::data::netdb.FindRouter (introducer.iKey);
+					r = i2p::data::netdb.FindRouter (introducer.iH);
 					if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
 					{
 						relayTag = introducer.iTag;
@@ -713,7 +713,7 @@ namespace transport
 			// introducers not found, try to request them
 			for (auto& it: address->ssu->introducers)
 				if (it.iTag && ts < it.iExp)
-					i2p::data::netdb.RequestDestination (it.iKey);
+					i2p::data::netdb.RequestDestination (it.iH);
 		}
 	}
 
@@ -961,7 +961,8 @@ namespace transport
 			{
 				i2p::data::RouterInfo::Introducer introducer;
 				introducer.iTag = it->GetRelayTag ();
-				introducer.iKey = it->GetRemoteIdentity ()->GetIdentHash ();
+				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
+				introducer.isH = true;
 				introducer.iExp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
 				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
 				if (i2p::context.AddSSU2Introducer (introducer, v4))

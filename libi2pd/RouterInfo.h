@@ -101,15 +101,13 @@ namespace data
 				eTransportSSU2
 			};
 
-			typedef Tag<32> IntroKey; // should be castable to MacKey and AESKey
 			struct Introducer
 			{
-				Introducer (): iPort (0), iExp (0) {};
-				boost::asio::ip::address iHost;
-				int iPort;
-				IntroKey iKey; // or ih for SSU2
+				Introducer (): iTag (0), iExp (0), isH (false) {};
 				uint32_t iTag;
 				uint32_t iExp;
+				IdentHash iH; 
+				bool isH; // TODO: remove later
 			};
 
 			struct SSUExt
@@ -188,28 +186,22 @@ namespace data
 			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
-			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 			std::shared_ptr<const Address> GetSSU2V4Address () const;
 			std::shared_ptr<const Address> GetSSU2V6Address () const;
 			std::shared_ptr<const Address> GetSSU2Address (bool v4) const;
 
-			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps = 0); // non published
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
 				const boost::asio::ip::address& host, int port); // published
-			bool AddIntroducer (const Introducer& introducer);
-			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
-			bool IsSSU (bool v4only = true) const;
-			bool IsSSUV6 () const { return m_SupportedTransports & eSSUV6; };
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
 			bool IsSSU2V4 () const { return m_SupportedTransports & eSSU2V4; };
