@@ -136,7 +136,7 @@ namespace transport
 	Transports::Transports ():
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
-		m_SSUServer (nullptr), m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
+		m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
 		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
@@ -157,7 +157,7 @@ namespace transport
 		}
 	}
 
-	void Transports::Start (bool enableNTCP2, bool enableSSU, bool enableSSU2)
+	void Transports::Start (bool enableNTCP2, bool enableSSU2)
 	{
 		if (!m_Service)
 		{
@@ -205,22 +205,6 @@ namespace transport
 				m_NTCP2Server = new NTCP2Server ();
 		}
 
-		// create SSU server
-		int ssuPort = 0;
-		if (enableSSU)
-		{
-			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
-			{
-				if (!address) continue;
-				if (address->transportStyle == RouterInfo::eTransportSSU)
-				{
-					ssuPort = address->port;
-					m_SSUServer = new SSUServer (address->port);
-					break;
-				}
-			}
-		}
 		// create SSU2 server
 		if (enableSSU2) 
 		{	
@@ -255,7 +239,6 @@ namespace transport
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
-					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
@@ -282,7 +265,6 @@ namespace transport
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
-					if (m_SSUServer) m_SSUServer->SetLocalAddress (addr);
 					if (m_SSU2Server) m_SSU2Server->SetLocalAddress (addr);
 				}
 			}
@@ -315,22 +297,7 @@ namespace transport
 		// start servers
 		if (m_NTCP2Server) m_NTCP2Server->Start ();
 		if (m_SSU2Server) m_SSU2Server->Start ();
-		if (m_SSUServer)
-		{
-			LogPrint (eLogInfo, "Transports: Start listening UDP port ", ssuPort);
-			try
-			{
-				m_SSUServer->Start ();
-			}
-			catch (std::exception& ex )
-			{
-				LogPrint(eLogError, "Transports: Failed to bind to UDP port", ssuPort);
-				m_SSUServer->Stop ();
-				delete m_SSUServer;
-				m_SSUServer = nullptr;
-			}
-		}
-		if (m_SSUServer || m_SSU2Server) DetectExternalIP ();
+		if (m_SSU2Server) DetectExternalIP ();
 
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
@@ -347,12 +314,6 @@ namespace transport
 		if (m_PeerCleanupTimer) m_PeerCleanupTimer->cancel ();
 		if (m_PeerTestTimer) m_PeerTestTimer->cancel ();
 		m_Peers.clear ();
-		if (m_SSUServer)
-		{
-			m_SSUServer->Stop ();
-			delete m_SSUServer;
-			m_SSUServer = nullptr;
-		}
 
 		if (m_SSU2Server)
 		{
@@ -538,21 +499,6 @@ namespace transport
 						}
 						break;
 					}
-					case i2p::data::RouterInfo::eSSUV4:
-					case i2p::data::RouterInfo::eSSUV6:
-					{
-						if (!m_SSUServer) continue;
-						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSUV6) ?
-							peer.router->GetSSUV6Address () : peer.router->GetSSUAddress (true);
-						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
-							address = nullptr;
-						if (address && address->IsReachableSSU ())
-						{
-							if (m_SSUServer->CreateSession (peer.router, address))
-								return true;
-						}
-						break;
-					}
 					case i2p::data::RouterInfo::eNTCP2V6Mesh:
 					{
 						if (!m_NTCP2Server) continue;
@@ -595,9 +541,7 @@ namespace transport
 			i2p::data::RouterInfo::eNTCP2V4,
 			i2p::data::RouterInfo::eSSU2V6,
 			i2p::data::RouterInfo::eSSU2V4,
-			i2p::data::RouterInfo::eNTCP2V6Mesh,
-			i2p::data::RouterInfo::eSSUV6,
-			i2p::data::RouterInfo::eSSUV4
+			i2p::data::RouterInfo::eNTCP2V6Mesh
 		},
 			ssu2Priority =
 		{
@@ -605,9 +549,7 @@ namespace transport
 			i2p::data::RouterInfo::eSSU2V4,
 			i2p::data::RouterInfo::eNTCP2V6,
 			i2p::data::RouterInfo::eNTCP2V4,
-			i2p::data::RouterInfo::eNTCP2V6Mesh,
-			i2p::data::RouterInfo::eSSUV6,
-			i2p::data::RouterInfo::eSSUV4
+			i2p::data::RouterInfo::eNTCP2V6Mesh
 		};
 		if (!peer.router) return;
 		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
@@ -654,7 +596,7 @@ namespace transport
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;
 		}
-		if (m_SSUServer || m_SSU2Server)
+		if (m_SSU2Server)
 			PeerTest ();
 		else
 			LogPrint (eLogWarning, "Transports: Can't detect external IP. SSU or SSU2 is not available");
@@ -662,103 +604,44 @@ namespace transport
 
 	void Transports::PeerTest (bool ipv4, bool ipv6)
 	{
-		if (RoutesRestricted() || (!m_SSUServer && !m_SSU2Server)) return;
+		if (RoutesRestricted() || !m_SSU2Server || m_SSU2Server->UsesProxy ()) return;
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
-			if (m_SSUServer)
+			for (int i = 0; i < 5; i++)
 			{
-				bool statusChanged = false;
-				for (int i = 0; i < 5; i++)
+				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
+				if (router)
 				{
-					auto router = i2p::data::netdb.GetRandomPeerTestRouter (true, excluded); // v4
-					if (router)
-					{
-						auto addr = router->GetSSUAddress (true); // ipv4
-						if (addr && !i2p::util::net::IsInReservedRange(addr->host))
-						{
-							if (!statusChanged)
-							{
-								statusChanged = true;
-								i2p::context.SetStatus (eRouterStatusTesting); // first time only
-							}
-							m_SSUServer->CreateSession (router, addr, true); // peer test v4
-						}
-						excluded.insert (router->GetIdentHash ());
-					}
-				}
-				if (!statusChanged)
-					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
-			}
-			// SSU2
-			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
-			{
-				excluded.clear ();
-				excluded.insert (i2p::context.GetIdentHash ());
-				int numTests = m_SSUServer ? 3 : 5;
-				for (int i = 0; i < numTests; i++)
-				{
-					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
-					if (router)
-					{
-						if (i2p::context.GetStatus () != eRouterStatusTesting)
-							i2p::context.SetStatusSSU2 (eRouterStatusTesting);
-						m_SSU2Server->StartPeerTest (router, true);
-						excluded.insert (router->GetIdentHash ());
-					}
+					if (i2p::context.GetStatus () != eRouterStatusTesting)
+						i2p::context.SetStatusSSU2 (eRouterStatusTesting);
+					m_SSU2Server->StartPeerTest (router, true);
+					excluded.insert (router->GetIdentHash ());
 				}
 			}
+			if (excluded.size () <= 1)
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv4");
 		}
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
-			if (m_SSUServer)
+			for (int i = 0; i < 5; i++)
 			{
-				bool statusChanged = false;
-				for (int i = 0; i < 5; i++)
+				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
+				if (router)
 				{
-					auto router = i2p::data::netdb.GetRandomPeerTestRouter (false, excluded); // v6
-					if (router)
-					{
-						auto addr = router->GetSSUV6Address ();
-						if (addr && !i2p::util::net::IsInReservedRange(addr->host))
-						{
-							if (!statusChanged)
-							{
-								statusChanged = true;
-								i2p::context.SetStatusV6 (eRouterStatusTesting); // first time only
-							}
-							m_SSUServer->CreateSession (router, addr, true); // peer test v6
-						}
-						excluded.insert (router->GetIdentHash ());
-					}
-				}
-				if (!statusChanged)
-					LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
-			}
-
-			// SSU2
-			if (m_SSU2Server && !m_SSU2Server->UsesProxy ())
-			{
-				excluded.clear ();
-				excluded.insert (i2p::context.GetIdentHash ());
-				int numTests = m_SSUServer ? 3 : 5;
-				for (int i = 0; i < numTests; i++)
-				{
-					auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
-					if (router)
-					{
-						if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
-							i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
-						m_SSU2Server->StartPeerTest (router, false);
-						excluded.insert (router->GetIdentHash ());
-					}
+					if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
+						i2p::context.SetStatusV6SSU2 (eRouterStatusTesting);
+					m_SSU2Server->StartPeerTest (router, false);
+					excluded.insert (router->GetIdentHash ());
 				}
 			}
+			if (excluded.size () <= 1)
+				LogPrint (eLogWarning, "Transports: Can't find routers for peer test IPv6");
 		}
 	}
 

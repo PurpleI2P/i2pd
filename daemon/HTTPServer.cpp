@@ -843,46 +843,6 @@ namespace http {
 			if (!sessions.empty ())
 				ShowTransportSessions (s, sessions, "NTCP2");
 		}
-		auto ssuServer = i2p::transport::transports.GetSSUServer ();
-		if (ssuServer)
-		{
-			auto sessions = ssuServer->GetSessions ();
-			if (!sessions.empty ())
-			{
-				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssu\" />\r\n<div class=\"slidecontent list\">";
-				for (const auto& it: sessions)
-				{
-					s << "<div class=\"listitem\">\r\n";
-					auto endpoint = it.second->GetRemoteEndpoint ();
-					if (it.second->IsOutgoing ()) s << " &#8658; ";
-					s << endpoint.address ().to_string () << ":" << endpoint.port ();
-					if (!it.second->IsOutgoing ()) s << " &#8658; ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-					if (it.second->GetRelayTag ())
-						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "</div>\r\n" << std::endl;
-				}
-				s << "</div>\r\n</div>\r\n";
-			}
-			auto sessions6 = ssuServer->GetSessionsV6 ();
-			if (!sessions6.empty ())
-			{
-				s << "<div class='slide'><label for='slide_ssuv6'><b>SSUv6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type=\"checkbox\" id=\"slide_ssuv6\" />\r\n<div class=\"slidecontent list\">";
-				for (const auto& it: sessions6)
-				{
-					s << "<div class=\"listitem\">\r\n";
-					auto endpoint = it.second->GetRemoteEndpoint ();
-					if (it.second->IsOutgoing ()) s << " &#8658; ";
-					s << "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
-					if (!it.second->IsOutgoing ()) s << " &#8658; ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-					if (it.second->GetRelayTag ())
-						s << " [itag:" << it.second->GetRelayTag () << "]";
-					s << "</div>\r\n" << std::endl;
-				}
-				s << "</div>\r\n</div>\r\n";
-			}
-		}
 		auto ssu2Server = i2p::transport::transports.GetSSU2Server ();
 		if (ssu2Server)
 		{

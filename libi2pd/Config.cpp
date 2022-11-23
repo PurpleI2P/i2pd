@@ -64,7 +64,7 @@ namespace config {
 			("bandwidth", value<std::string>()->default_value(""),            "Transit traffic bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
 			("share", value<int>()->default_value(100),                       "Limit of transit traffic from max bandwidth in percents. (default: 100)")
 			("ntcp", bool_switch()->default_value(false),                     "Ignored. Always false")
-			("ssu", bool_switch()->default_value(false),                      "Enable SSU transport (default: disabled)")
+			("ssu", bool_switch()->default_value(false),                      "Ignored. Always false")
 			("ntcpproxy", value<std::string>()->default_value(""),            "Ignored")
 #ifdef _WIN32
 			("svcctl", value<std::string>()->default_value(""),               "Ignored")
