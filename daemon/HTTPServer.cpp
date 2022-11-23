@@ -311,11 +311,8 @@ namespace http {
 				s << "<tr>\r\n<td>";
 				switch (address->transportStyle)
 				{
-					case i2p::data::RouterInfo::eTransportNTCP:
+					case i2p::data::RouterInfo::eTransportNTCP2:
 						s << "NTCP2";
-					break;
-					case i2p::data::RouterInfo::eTransportSSU:
-						s << "SSU";
 					break;
 					case i2p::data::RouterInfo::eTransportSSU2:
 						s << "SSU2";

@@ -583,44 +583,6 @@ namespace i2p
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
 	}
 
-	void RouterContext::RemoveNTCPAddress (bool v4only)
-	{
-		bool updated = false;
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end ();)
-		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
-				(!v4only || (*it)->host.is_v4 ()))
-			{
-				it = addresses.erase (it);
-				updated = true;
-				if (v4only) break; // otherwise might be more than one address
-			}
-			else
-				++it;
-		}
-		if (updated)
-			m_RouterInfo.UpdateSupportedTransports ();
-	}
-
-	void RouterContext::RemoveSSUAddress ()
-	{
-		bool updated = false;
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end ();)
-		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportSSU)
-			{
-				it = addresses.erase (it);
-				updated = true;
-			}
-			else
-				++it;
-		}
-		if (updated)
-			m_RouterInfo.UpdateSupportedTransports ();
-	}
-
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
 		if (v4 || (v6 && !SupportsV4 ()))
@@ -708,7 +670,7 @@ namespace i2p
 				{
 					switch (addr->transportStyle)
 					{
-						case i2p::data::RouterInfo::eTransportNTCP:
+						case i2p::data::RouterInfo::eTransportNTCP2:
 							foundNTCP2 = true;
 						break;
 						case i2p::data::RouterInfo::eTransportSSU2:
@@ -788,7 +750,7 @@ namespace i2p
 				{
 					switch (addr->transportStyle)
 					{
-						case i2p::data::RouterInfo::eTransportNTCP:
+						case i2p::data::RouterInfo::eTransportNTCP2:
 							foundNTCP2 = true;
 						break;
 						case i2p::data::RouterInfo::eTransportSSU2:

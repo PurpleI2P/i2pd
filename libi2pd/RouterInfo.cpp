@@ -221,7 +221,7 @@ namespace data
 			char transportStyle[6];
 			ReadString (transportStyle, 6, s);
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
-				address->transportStyle = eTransportNTCP;
+				address->transportStyle = eTransportNTCP2;
 			else if (!strncmp (transportStyle, "SSU", 3)) // SSU or SSU2
 			{
 				address->transportStyle = eTransportSSU2;
@@ -363,7 +363,7 @@ namespace data
 				}
 				if (!s) return;
 			}
-			if (address->transportStyle == eTransportNTCP)
+			if (address->transportStyle == eTransportNTCP2)
 			{
 				if (isStaticKey)
 				{
@@ -550,10 +550,10 @@ namespace data
 				case CAPS_FLAG_V6:
 					caps |= AddressCaps::eV6;
 				break;
-				case CAPS_FLAG_SSU_TESTING:
+				case CAPS_FLAG_SSU2_TESTING:
 					caps |= AddressCaps::eSSUTesting;
 				break;
-				case CAPS_FLAG_SSU_INTRODUCER:
+				case CAPS_FLAG_SSU2_INTRODUCER:
 					caps |= AddressCaps::eSSUIntroducer;
 				break;
 				default: ;
@@ -622,7 +622,7 @@ namespace data
 		auto addr = std::make_shared<Address>();
 		addr->host = host;
 		addr->port = port;
-		addr->transportStyle = eTransportNTCP;
+		addr->transportStyle = eTransportNTCP2;
 		addr->caps = caps;
 		addr->date = 0;
 		if (port) addr->published = true;
@@ -790,15 +790,6 @@ namespace data
 		}
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUV6Address () const
-	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU) && address->IsV6();
-			});
-	}
-
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2V4Address () const
 	{
 		return GetAddress (
@@ -913,19 +904,8 @@ namespace data
 	bool RouterInfo::IsEligibleFloodfill () const
 	{
 		// floodfill must be reachable by ipv4, >= 0.9.38 and not DSA
-		return IsReachableBy (eNTCP2V4 | eSSUV4) && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+		return IsReachableBy (eNTCP2V4 | eSSU2V4) && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1;
-	}
-
-	bool RouterInfo::IsPeerTesting (bool v4) const
-	{
-		if (!(m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6))) return false;
-		return (bool)GetAddress (
-			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU) && address->IsPeerTesting () &&
-					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && address->IsReachableSSU ();
-			});
 	}
 
 	bool RouterInfo::IsSSU2PeerTesting (bool v4) const
@@ -936,17 +916,6 @@ namespace data
 			{
 				return (address->IsSSU2 ()) && address->IsPeerTesting () &&
 					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && address->IsReachableSSU ();
-			});
-	}
-
-	bool RouterInfo::IsIntroducer (bool v4) const
-	{
-		if (!(m_SupportedTransports & (v4 ? eSSUV4 : eSSUV6))) return false;
-		return (bool)GetAddress (
-			[v4](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU) && address->IsIntroducer () &&
-					((v4 && address->IsV4 ()) || (!v4 && address->IsV6 ())) && !address->host.is_unspecified ();
 			});
 	}
 
@@ -965,7 +934,7 @@ namespace data
 	{
 		for (auto& addr: *m_Addresses)
 		{
-			if (!addr->published && (addr->transportStyle == eTransportNTCP || addr->transportStyle == eTransportSSU2))
+			if (!addr->published && (addr->transportStyle == eTransportNTCP2 || addr->transportStyle == eTransportSSU2))
 			{
 				addr->caps &= ~(eV4 | eV6);
 				addr->caps |= transports;
@@ -982,7 +951,7 @@ namespace data
 			uint8_t transports = 0;
 			switch (addr->transportStyle)
 			{
-				case eTransportNTCP:
+				case eTransportNTCP2:
 					if (addr->IsV4 ()) transports |= eNTCP2V4;
 					if (addr->IsV6 ())
 						transports |= (i2p::util::net::IsYggdrasilAddress (addr->host) ? eNTCP2V6Mesh : eNTCP2V6);
@@ -1088,15 +1057,17 @@ namespace data
 			const Address& address = *addr_ptr;
 			// calculate cost
 			uint8_t cost = 0x7f;
-			if (address.transportStyle == eTransportNTCP)
+			if (address.transportStyle == eTransportNTCP2)
 				cost = address.published ? COST_NTCP2_PUBLISHED : COST_NTCP2_NON_PUBLISHED;
 			else if (address.transportStyle == eTransportSSU2)
 				cost = address.published ? COST_SSU2_DIRECT : COST_SSU2_NON_PUBLISHED;
+			else
+				continue; // skip unknown address
 			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
 			bool isPublished = false;
-			if (address.transportStyle == eTransportNTCP)
+			if (address.transportStyle == eTransportNTCP2)
 			{
 				if (address.IsNTCP2 ())
 				{
@@ -1126,8 +1097,8 @@ namespace data
 				if (address.published)
 				{
 					isPublished = true;
-					if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
-					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
+					if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU2_TESTING;
+					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU2_INTRODUCER;
 				}
 				else
 				{

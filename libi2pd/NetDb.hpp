@@ -89,9 +89,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
-			std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,

@@ -47,14 +47,12 @@ namespace data
 
 	const char CAPS_FLAG_V4 = '4';
 	const char CAPS_FLAG_V6 = '6';
-	const char CAPS_FLAG_SSU_TESTING = 'B';
-	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
+	const char CAPS_FLAG_SSU2_TESTING = 'B';
+	const char CAPS_FLAG_SSU2_INTRODUCER = 'C';
 
 	const uint8_t COST_NTCP2_PUBLISHED = 3;
 	const uint8_t COST_NTCP2_NON_PUBLISHED = 14;
 	const uint8_t COST_SSU2_DIRECT = 8;
-	const uint8_t COST_SSU_DIRECT = 9;
-	const uint8_t COST_SSU_THROUGH_INTRODUCERS = 11;
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
 
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
@@ -66,11 +64,9 @@ namespace data
 			{
 				eNTCP2V4 = 0x01,
 				eNTCP2V6 = 0x02,
-				eSSUV4 = 0x04,
-				eSSUV6 = 0x08,
+				eSSU2V4 = 0x04,
+				eSSU2V6 = 0x08,
 				eNTCP2V6Mesh = 0x10,
-				eSSU2V4 = 0x20,
-				eSSU2V6 = 0x40,
 				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
@@ -96,17 +92,16 @@ namespace data
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
-				eTransportNTCP,
-				eTransportSSU,
+				eTransportNTCP2,
 				eTransportSSU2
 			};
 
 			struct Introducer
 			{
 				Introducer (): iTag (0), iExp (0), isH (false) {};
+				IdentHash iH;
 				uint32_t iTag;
 				uint32_t iExp;
-				IdentHash iH; 
 				bool isH; // TODO: remove later
 			};
 
@@ -144,7 +139,7 @@ namespace data
 					return !(*this == other);
 				}
 
-				bool IsNTCP2 () const { return transportStyle == eTransportNTCP; };
+				bool IsNTCP2 () const { return transportStyle == eTransportNTCP2; };
 				bool IsSSU2 () const { return transportStyle == eTransportSSU2; };
 				bool IsPublishedNTCP2 () const { return IsNTCP2 () && published; };
 				bool IsReachableSSU () const { return (bool)ssu && (published || UsesIntroducer ()); };
@@ -186,7 +181,6 @@ namespace data
 			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
-			std::shared_ptr<const Address> GetSSUV6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
 			std::shared_ptr<const Address> GetSSU2V4Address () const;
 			std::shared_ptr<const Address> GetSSU2V6Address () const;
@@ -206,8 +200,8 @@ namespace data
 			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
 			bool IsSSU2V4 () const { return m_SupportedTransports & eSSU2V4; };
 			bool IsSSU2V6 () const { return m_SupportedTransports & eSSU2V6; };
-			bool IsV6 () const { return m_SupportedTransports & (eSSUV6 | eNTCP2V6 | eSSU2V6); };
-			bool IsV4 () const { return m_SupportedTransports & (eSSUV4 | eNTCP2V4 | eSSU2V4); };
+			bool IsV6 () const { return m_SupportedTransports & (eNTCP2V6 | eSSU2V6); };
+			bool IsV4 () const { return m_SupportedTransports & (eNTCP2V4 | eSSU2V4); };
 			bool IsMesh () const { return m_SupportedTransports & eNTCP2V6Mesh; };
 			void EnableV6 ();
 			void DisableV6 ();
@@ -224,9 +218,7 @@ namespace data
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
-			bool IsPeerTesting (bool v4) const;
 			bool IsSSU2PeerTesting (bool v4) const;
-			bool IsIntroducer (bool v4) const;
 			bool IsSSU2Introducer (bool v4) const;
 
 			uint8_t GetCaps () const { return m_Caps; };

@@ -119,8 +119,6 @@ namespace garlic
 			void UpdateNTCP2Address (bool enable);
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
 			void UpdateSSU2Address (bool enable);
-			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
-			void RemoveSSUAddress (); // delete SSU address for older routers
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
 			void ClearSSU2Introducers (bool v4);

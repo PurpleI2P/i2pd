@@ -628,8 +628,8 @@ namespace data
 				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				it.second->SetUnreachable (false);
 			// find & mark expired routers
-			if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & (RouterInfo::eSSUV4 | RouterInfo::eSSU2V4)))
-			// non-reachable router, but reachable by ipv4 SSU or SSU2 means introducers
+			if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & RouterInfo::eSSU2V4))
+			// non-reachable router, but reachable by ipv4  SSU2 means introducers
 			{
 				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
 				// RouterInfo expires after 1 hour if uses introducer
@@ -1209,16 +1209,6 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const
-	{
-		return GetRandomRouter (
-			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
-			{
-				return !router->IsHidden () && router->IsECIES () &&
-					router->IsPeerTesting (v4) && !excluded.count (router->GetIdentHash ());
-			});
-	}
-
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
@@ -1226,16 +1216,6 @@ namespace data
 			{
 				return !router->IsHidden () && router->IsECIES () &&
 					router->IsSSU2PeerTesting (v4) && !excluded.count (router->GetIdentHash ());
-			});
-	}
-
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const
-	{
-		return GetRandomRouter (
-			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
-			{
-				return !router->IsHidden () && router->IsECIES () && !router->IsFloodfill () && // floodfills don't send relay tag
-					router->IsIntroducer (v4) && !excluded.count (router->GetIdentHash ());
 			});
 	}
 

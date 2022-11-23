@@ -958,7 +958,6 @@ namespace transport
 		i2p::context.SetSupportsV4 (ipv4);
 		i2p::context.SetSupportsMesh (ygg, yggaddr);
 
-		i2p::context.RemoveNTCPAddress (!ipv6); // TODO: remove later
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		if (ntcp2)
 		{
@@ -991,15 +990,13 @@ namespace transport
 			if (!ipv4 && !ipv6)
 				i2p::context.SetStatus (eRouterStatusMesh);
 		}
-		bool ssu; i2p::config::GetOption("ssu", ssu);
-		if (!ssu) i2p::context.RemoveSSUAddress (); // TODO: remove later
 		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
 		if (ssu2 && i2p::config::IsDefault ("ssu2.enabled") && !ipv4 && !ipv6)
 			ssu2 = false; // don't enable ssu2 for yggdrasil only router
 		if (ssu2)
 		{
 			uint16_t ssu2port; i2p::config::GetOption("ssu2.port", ssu2port);
-			if (!ssu2port && port) ssu2port = ssu ? (port + 1) : port;
+			if (!ssu2port && port) ssu2port = port;
 			bool published; i2p::config::GetOption("ssu2.published", published);
 			if (published)
 				i2p::context.PublishSSU2Address (ssu2port, true, ipv4, ipv6); // publish
