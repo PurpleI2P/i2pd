@@ -9,60 +9,12 @@
 #ifndef __I18N_LANGS_H__
 #define __I18N_LANGS_H__
 
+#include "I18N.h"
+
 namespace i2p
 {
 namespace i18n
 {
-	class Locale
-	{
-		public:
-			Locale (
-				const std::string& language,
-				const std::map<std::string, std::string>& strings,
-				const std::map<std::string, std::vector<std::string>>& plurals,
-				std::function<int(int)> formula
-			): m_Language (language), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
-
-			// Get activated language name for webconsole
-			std::string GetLanguage() const
-			{
-				return m_Language;
-			}
-
-			std::string GetString (const std::string& arg) const
-			{
-				const auto it = m_Strings.find(arg);
-				if (it == m_Strings.end())
-				{
-					return arg;
-				}
-				else
-				{
-					return it->second;
-				}
-			}
-
-			std::string GetPlural (const std::string& arg, const std::string& arg2, const int& n) const
-			{
-				const auto it = m_Plurals.find(arg2);
-				if (it == m_Plurals.end()) // not found, fallback to english
-				{
-					return n == 1 ? arg : arg2;
-				}
-				else
-				{
-					int form = m_Formula(n);
-					return it->second[form];
-				}
-			}
-
-		private:
-			const std::string m_Language;
-			const std::map<std::string, std::string> m_Strings;
-			const std::map<std::string, std::vector<std::string>> m_Plurals;
-			std::function<int(int)> m_Formula;
-	};
-
 	struct langData
 	{
 		std::string LocaleName; // localized name

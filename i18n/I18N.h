@@ -9,30 +9,68 @@
 #ifndef __I18N_H__
 #define __I18N_H__
 
-#include "ClientContext.h"
+#include <string>
+#include <map>
+#include <utility>
+#include <functional>
 
 namespace i2p
 {
 namespace i18n
 {
-	inline void SetLanguage(const std::string &lang)
+	class Locale
 	{
-		const auto it = i2p::i18n::languages.find(lang);
-		if (it == i2p::i18n::languages.end()) // fallback
-			i2p::client::context.SetLanguage (i2p::i18n::english::GetLocale());
-		else
-			i2p::client::context.SetLanguage (it->second.LocaleFunc());
-	}
+		public:
+			Locale (
+				const std::string& language,
+				const std::map<std::string, std::string>& strings,
+				const std::map<std::string, std::vector<std::string>>& plurals,
+				std::function<int(int)> formula
+			): m_Language (language), m_Strings (strings), m_Plurals (plurals), m_Formula (formula) { };
 
-	inline std::string translate (const std::string& arg)
-	{
-		return i2p::client::context.GetLanguage ()->GetString (arg);
-	}
+			// Get activated language name for webconsole
+			std::string GetLanguage() const
+			{
+				return m_Language;
+			}
 
-	inline std::string translate (const std::string& arg, const std::string& arg2, const int& n)
-	{
-		return i2p::client::context.GetLanguage ()->GetPlural (arg, arg2, n);
-	}
+			std::string GetString (const std::string& arg) const
+			{
+				const auto it = m_Strings.find(arg);
+				if (it == m_Strings.end())
+				{
+					return arg;
+				}
+				else
+				{
+					return it->second;
+				}
+			}
+
+			std::string GetPlural (const std::string& arg, const std::string& arg2, const int& n) const
+			{
+				const auto it = m_Plurals.find(arg2);
+				if (it == m_Plurals.end()) // not found, fallback to english
+				{
+					return n == 1 ? arg : arg2;
+				}
+				else
+				{
+					int form = m_Formula(n);
+					return it->second[form];
+				}
+			}
+
+		private:
+			const std::string m_Language;
+			const std::map<std::string, std::string> m_Strings;
+			const std::map<std::string, std::vector<std::string>> m_Plurals;
+			std::function<int(int)> m_Formula;
+	};
+	
+	void SetLanguage(const std::string &lang);
+	std::string translate (const std::string& arg);
+	std::string translate (const std::string& arg, const std::string& arg2, const int& n);
 } // i18n
 } // i2p
 
