@@ -295,6 +295,7 @@ namespace data
 		public:
 
 			LocalRouterInfo () = default;
+			LocalRouterInfo (const std::string& fullPath): RouterInfo (fullPath) {};
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
 
