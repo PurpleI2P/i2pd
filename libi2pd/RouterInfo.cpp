@@ -213,7 +213,7 @@ namespace data
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			auto address = std::make_shared<Address> ();
+			auto address = netdb.NewRouterInfoAddress ();
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));

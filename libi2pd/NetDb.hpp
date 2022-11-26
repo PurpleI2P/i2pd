@@ -123,6 +123,7 @@ namespace data
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
 			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
+			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
@@ -180,6 +181,7 @@ namespace data
 			uint32_t m_PublishReplyToken = 0;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
+			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;
 			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
 	};
 
