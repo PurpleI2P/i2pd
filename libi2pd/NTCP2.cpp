@@ -309,7 +309,7 @@ namespace transport
 
 		KDF3Bob ();
 		if (i2p::crypto::AEADChaCha20Poly1305 (m_SessionConfirmedBuffer + 48, m3p2Len - 16, GetH (), 32, GetK (), nonce, m3p2Buf, m3p2Len - 16, false)) // decrypt
-			// caclulate new h again for KDF data
+			// calculate new h again for KDF data
 			MixHash (m_SessionConfirmedBuffer + 48, m3p2Len); // h = SHA256(h || ciphertext)
 		else
 		{

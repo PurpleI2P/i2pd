@@ -103,7 +103,7 @@ namespace transport
 	{
 		// we are Alice
 		if (!session || !relayTag) return false;
-		// find local adddress to introduce
+		// find local address to introduce
 		auto localAddress = session->FindLocalAddress ();
 		if (!localAddress) return false;
 		// create nonce

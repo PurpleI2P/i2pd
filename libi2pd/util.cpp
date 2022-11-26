@@ -84,7 +84,7 @@ const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
 		default:
 			return NULL;
 	}
-	/* cannot direclty use &size because of strict aliasing rules */
+	/* cannot directly use &size because of strict aliasing rules */
 	return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)? dst : NULL;
 }
 

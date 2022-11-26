@@ -408,7 +408,7 @@ namespace transport
 				return it->second;
 			it++;
 		}
-		// not found, try from begining
+		// not found, try from beginning
 		it = m_Sessions.begin ();
 		while (it != m_Sessions.end () && ind)
 		{
@@ -654,14 +654,14 @@ namespace transport
 		uint32_t relayTag = 0;
 		if (!address->ssu->introducers.empty ())
 		{
-			std::vector<int> indicies;
-			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indicies.push_back(i);
-			if (indicies.size () > 1)
-				std::shuffle (indicies.begin(), indicies.end(), std::mt19937(std::random_device()()));
+			std::vector<int> indices;
+			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indices.push_back(i);
+			if (indices.size () > 1)
+				std::shuffle (indices.begin(), indices.end(), std::mt19937(std::random_device()()));
 
-			for (auto i: indicies)
+			for (auto i: indices)
 			{
-				const auto& introducer = address->ssu->introducers[indicies[i]];
+				const auto& introducer = address->ssu->introducers[indices[i]];
 				if (introducer.iTag && ts < introducer.iExp)
 				{
 					r = i2p::data::netdb.FindRouter (introducer.iH);
