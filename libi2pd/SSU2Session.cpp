@@ -94,7 +94,10 @@ namespace transport
 		if (!ecode)
 		{
 			// timeout expired
-			LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
+			if (m_State == eSSU2SessionStateIntroduced) // WaitForIntroducer
+				LogPrint (eLogWarning, "SSU2: Session was not introduced after ", SSU2_CONNECT_TIMEOUT, " seconds");
+			else	
+				LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
 			Terminate ();
 		}
 	}
