@@ -35,7 +35,7 @@ namespace transport
 	const int SSU2_PEER_TEST_EXPIRATION_TIMEOUT = 60; // 60 seconds
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
-	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in millseconds
+	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in milliseconds
 	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds

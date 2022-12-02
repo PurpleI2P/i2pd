@@ -94,7 +94,10 @@ namespace transport
 		if (!ecode)
 		{
 			// timeout expired
-			LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
+			if (m_State == eSSU2SessionStateIntroduced) // WaitForIntroducer
+				LogPrint (eLogWarning, "SSU2: Session was not introduced after ", SSU2_CONNECT_TIMEOUT, " seconds");
+			else	
+				LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
 			Terminate ();
 		}
 	}
@@ -103,7 +106,7 @@ namespace transport
 	{
 		// we are Alice
 		if (!session || !relayTag) return false;
-		// find local adddress to introduce
+		// find local address to introduce
 		auto localAddress = session->FindLocalAddress ();
 		if (!localAddress) return false;
 		// create nonce
@@ -520,6 +523,11 @@ namespace transport
 			case eSSU2PeerTest:
 			{
 				// TODO: remove later
+				if (len < 32)
+				{
+					LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
+					break;
+				}		
 				const uint8_t nonce[12] = {0};
 				uint64_t headerX[2];
 				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -603,6 +611,11 @@ namespace transport
 	void SSU2Session::ProcessSessionRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		if (len < 80)
+		{
+			LogPrint (eLogWarning, "SSU2: SessionRequest message too short ", len);
+			return;
+		}	
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
@@ -723,6 +736,11 @@ namespace transport
 		if (header.h.type != eSSU2SessionCreated)
 		// this situation is valid, because it might be Retry with different encryption
 			return false;
+		if (len < 80)
+		{
+			LogPrint (eLogWarning, "SSU2: SessionCreated message too short ", len);
+			return false;
+		}
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
@@ -863,6 +881,12 @@ namespace transport
 				LogPrint (eLogError, "SSU2: Too many fragments ", numFragments, " in SessionConfirmed");
 				return false;
 			}
+			if (len < 32)
+			{
+				LogPrint (eLogWarning, "SSU2: SessionConfirmed fragment too short ", len);
+				if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
+				return false;
+			}	
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
@@ -910,6 +934,12 @@ namespace transport
 				len = m_SessionConfirmedFragment->payloadSize + 16;
 			}
 		}
+		if (len < 80)
+		{
+			LogPrint (eLogWarning, "SSU2: SessionConfirmed message too short ", len);
+			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
+			return false;
+		}	
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header)
 		// decrypt part1
@@ -1118,6 +1148,11 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2Retry);
 			return false;
 		}
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: Retry message too short ", len);
+			return false;
+		}	
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
@@ -1202,6 +1237,11 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2HolePunch);
 			return false;
 		}
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: HolePunch message too short ", len);
+			return false;
+		}	
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -1273,6 +1313,11 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
 			return false;
 		}
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
+			return false;
+		}	
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -1340,6 +1385,11 @@ namespace transport
 			m_RemoteEndpoint = from;
 			SendPathChallenge ();
 		}
+		if (len < 32)
+		{
+			LogPrint (eLogWarning, "SSU2: Data message too short ", len);
+			return;
+		}	
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = len - 32;
 		uint32_t packetNum = be32toh (header.h.packetNum);
@@ -2266,9 +2316,9 @@ namespace transport
 		if (m_Address)
 		{
 			if (m_Address->IsV4 ())
-				i2p::context.SetStatusSSU2 (status);
+				i2p::context.SetStatus (status);
 			else if (m_Address->IsV6 ())
-				i2p::context.SetStatusV6SSU2 (status);
+				i2p::context.SetStatusV6 (status);
 		}
 	}
 

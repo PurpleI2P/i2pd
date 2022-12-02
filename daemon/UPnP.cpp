@@ -248,10 +248,10 @@ namespace transport
 	{
 		switch (address->transportStyle)
 		{
-			case i2p::data::RouterInfo::eTransportNTCP:
+			case i2p::data::RouterInfo::eTransportNTCP2:
 				return "TCP";
 				break;
-			case i2p::data::RouterInfo::eTransportSSU:
+			case i2p::data::RouterInfo::eTransportSSU2:
 			default:
 				return "UDP";
 		}

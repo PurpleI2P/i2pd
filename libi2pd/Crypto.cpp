@@ -239,55 +239,6 @@ namespace crypto
 
 	static BIGNUM * (* g_ElggTable)[255] = nullptr;
 
-// DH
-
-	DHKeys::DHKeys ()
-	{
-		m_DH = DH_new ();
-		DH_set0_pqg (m_DH, BN_dup (elgp), NULL, BN_dup (elgg));
-		DH_set0_key (m_DH, NULL, NULL);
-	}
-
-	DHKeys::~DHKeys ()
-	{
-		DH_free (m_DH);
-	}
-
-	void DHKeys::GenerateKeys ()
-	{
-		BIGNUM * priv_key = NULL, * pub_key = NULL;
-#if !defined(__x86_64__) // use short exponent for non x64
-		priv_key = BN_new ();
-		BN_rand (priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);
-#endif
-		if (g_ElggTable)
-		{
-#if defined(__x86_64__)
-			priv_key = BN_new ();
-			BN_rand (priv_key, ELGAMAL_FULL_EXPONENT_NUM_BITS, 0, 1);
-#endif
-			auto ctx = BN_CTX_new ();
-			pub_key = ElggPow (priv_key, g_ElggTable, ctx);
-			DH_set0_key (m_DH, pub_key, priv_key);
-			BN_CTX_free (ctx);
-		}
-		else
-		{
-			DH_set0_key (m_DH, NULL, priv_key);
-			DH_generate_key (m_DH);
-			DH_get0_key (m_DH, (const BIGNUM **)&pub_key, (const BIGNUM **)&priv_key);
-		}
-
-		bn2buf (pub_key, m_PublicKey, 256);
-	}
-
-	void DHKeys::Agree (const uint8_t * pub, uint8_t * shared)
-	{
-		BIGNUM * pk = BN_bin2bn (pub, 256, NULL);
-		DH_compute_key (shared, pk, m_DH);
-		BN_free (pk);
-	}
-
 // x25519
 	X25519Keys::X25519Keys ()
 	{
@@ -599,77 +550,6 @@ namespace crypto
 		EC_POINT_mul (curve, pub, priv, nullptr, nullptr, ctx);
 		BN_free (q);
 		BN_CTX_free (ctx);
-	}
-
-// HMAC
-	const uint64_t IPAD = 0x3636363636363636;
-	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
-
-
-	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
-	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
-
-	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
-	// key is 32 bytes
-	// digest is 16 bytes
-	// block size is 64 bytes
-	{
-		uint64_t buf[256];
-		uint64_t hash[12]; // 96 bytes
-#if (defined(__x86_64__) || defined(__i386__)) && defined(__AVX__) // not all X86 targets supports AVX (like old Pentium, see #1600)
-		if(i2p::cpu::avx)
-		{
-			__asm__
-				(
-					"vmovups %[key], %%ymm0 \n"
-					"vmovups %[ipad], %%ymm1 \n"
-					"vmovups %%ymm1, 32(%[buf]) \n"
-					"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-					"vmovups %%ymm1, (%[buf]) \n"
-					"vmovups %[opad], %%ymm1 \n"
-					"vmovups %%ymm1, 32(%[hash]) \n"
-					"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-					"vmovups %%ymm1, (%[hash]) \n"
-					"vzeroall \n" // end of AVX
-					"movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
-					:
-					: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
-						[buf]"r"(buf), [hash]"r"(hash)
-					: "memory", "%xmm0" // TODO: change to %ymm0 later
-					);
-		}
-		else
-#endif
-		{
-			// ikeypad
-			buf[0] = key.GetLL ()[0] ^ IPAD;
-			buf[1] = key.GetLL ()[1] ^ IPAD;
-			buf[2] = key.GetLL ()[2] ^ IPAD;
-			buf[3] = key.GetLL ()[3] ^ IPAD;
-			buf[4] = IPAD;
-			buf[5] = IPAD;
-			buf[6] = IPAD;
-			buf[7] = IPAD;
-			// okeypad
-			hash[0] = key.GetLL ()[0] ^ OPAD;
-			hash[1] = key.GetLL ()[1] ^ OPAD;
-			hash[2] = key.GetLL ()[2] ^ OPAD;
-			hash[3] = key.GetLL ()[3] ^ OPAD;
-			hash[4] = OPAD;
-			hash[5] = OPAD;
-			hash[6] = OPAD;
-			hash[7] = OPAD;
-			// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-			memset (hash + 10, 0, 16);
-		}
-
-		// concatenate with msg
-		memcpy (buf + 8, msg, len);
-		// calculate first hash
-		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8)); // 16 bytes
-
-		// calculate digest
-		MD5((uint8_t *)hash, 96, digest);
 	}
 
 // AES

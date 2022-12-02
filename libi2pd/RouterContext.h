@@ -102,12 +102,10 @@ namespace garlic
 			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
-			void SetStatusSSU2 (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Error = error; };
 			RouterStatus GetStatusV6 () const { return m_StatusV6; };
 			void SetStatusV6 (RouterStatus status);
-			void SetStatusV6SSU2 (RouterStatus status);
 			RouterError GetErrorV6 () const { return m_ErrorV6; };
 			void SetErrorV6 (RouterError error) { m_ErrorV6 = error; };
 			int GetNetID () const { return m_NetID; };
@@ -121,16 +119,11 @@ namespace garlic
 			void UpdateNTCP2Address (bool enable);
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
 			void UpdateSSU2Address (bool enable);
-			void RemoveNTCPAddress (bool v4only = true); // delete NTCP address for older routers. TODO: remove later
-			void RemoveSSUAddress (); // delete SSU address for older routers
-			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
-			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
 			void ClearSSU2Introducers (bool v4);
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);
-			void SetUnreachableSSU2 (bool v4, bool v6);
 			void SetReachable (bool v4, bool v6);
 			bool IsFloodfill () const { return m_IsFloodfill; };
 			void SetFloodfill (bool floodfill);

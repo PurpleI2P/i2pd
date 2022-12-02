@@ -89,10 +89,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
-			std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetRandomSSUV6Router () const; // TODO: change to v6 peer test later
-			std::shared_ptr<const RouterInfo> GetRandomIntroducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
@@ -126,6 +123,7 @@ namespace data
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
 			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
+			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
@@ -183,6 +181,7 @@ namespace data
 			uint32_t m_PublishReplyToken = 0;
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
+			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;
 			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
 	};
 

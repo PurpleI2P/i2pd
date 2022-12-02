@@ -25,7 +25,7 @@ namespace util
 	uint32_t GetHoursSinceEpoch ();
 
 	void GetCurrentDate (char * date); // returns date as YYYYMMDD string, 9 bytes
-	void GetDateString (uint64_t timestamp, char * date); // timestap is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
+	void GetDateString (uint64_t timestamp, char * date); // timestamp is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
 	void AdjustTimeOffset (int64_t offset); // in seconds from current
 
 	class NTPTimeSync

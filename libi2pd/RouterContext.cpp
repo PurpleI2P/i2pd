@@ -63,7 +63,6 @@ namespace i2p
 		if (!port) port = SelectRandomPort ();
 		bool ipv4;  i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6;  i2p::config::GetOption("ipv6", ipv6);
-		bool ssu;   i2p::config::GetOption("ssu", ssu);
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ssu2;  i2p::config::GetOption("ssu2.enabled", ssu2);
 		bool ygg;   i2p::config::GetOption("meshnets.yggdrasil", ygg);
@@ -109,17 +108,12 @@ namespace i2p
 					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
 				}
 			}
-			if (ssu)
-			{
-				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
-				caps |= i2p::data::RouterInfo::eReachable; // R
-			}
 			if (ssu2)
 			{
 				if (ssu2Published)
 				{
 					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-					if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+					if (!ssu2Port) ssu2Port = port;
 					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v4::from_string (host), ssu2Port);
 				}
 				else
@@ -158,17 +152,12 @@ namespace i2p
 					addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
 				}
 			}
-			if (ssu)
-			{
-				routerInfo.AddSSUAddress (host.c_str(), port, nullptr);
-				caps |= i2p::data::RouterInfo::eReachable; // R
-			}
 			if (ssu2)
 			{
 				if (ssu2Published)
 				{
 					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-					if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+					if (!ssu2Port) ssu2Port = port;
 					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v6::from_string (host), ssu2Port);
 				}
 				else
@@ -236,13 +225,6 @@ namespace i2p
 		fk.write ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
 	}
 
-	bool RouterContext::IsSSU2Only () const
-	{
-		auto transports = m_RouterInfo.GetCompatibleTransports (false);
-		return (transports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)) &&
-			!(transports & (i2p::data::RouterInfo::eSSUV4 | i2p::data::RouterInfo::eSSUV6));
-	}
-
 	void RouterContext::SetStatus (RouterStatus status)
 	{
 		if (status != m_Status)
@@ -262,13 +244,7 @@ namespace i2p
 			}
 		}
 	}
-
-	void RouterContext::SetStatusSSU2 (RouterStatus status)
-	{
-		if (IsSSU2Only ())
-			SetStatus (status);
-	}
-
+		
 	void RouterContext::SetStatusV6 (RouterStatus status)
 	{
 		if (status != m_StatusV6)
@@ -288,19 +264,13 @@ namespace i2p
 			}
 		}
 	}
-
-	void RouterContext::SetStatusV6SSU2 (RouterStatus status)
-	{
-		if (IsSSU2Only ())
-			SetStatusV6 (status);
-	}
-
+		
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address->port != port && (address->transportStyle == i2p::data::RouterInfo::eTransportSSU || IsSSU2Only ()))
+			if (address->port != port && address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
 			{
 				address->port = port;
 				updated = true;
@@ -476,8 +446,6 @@ namespace i2p
 						mtu = maxMTU;
 						LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
 					}
-					if (mtu && !address->IsSSU2 ()) // SSU1
-						mtu = (mtu >> 4) << 4; // round to multiple of 16
 					address->ssu->mtu = mtu;
 					updated = true;
 				}
@@ -488,23 +456,8 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	bool RouterContext::AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer)
-	{
-		bool ret = m_RouterInfo.AddIntroducer (introducer);
-		if (ret)
-			UpdateRouterInfo ();
-		return ret;
-	}
-
-	void RouterContext::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
-	{
-		if (m_RouterInfo.RemoveIntroducer (e))
-			UpdateRouterInfo ();
-	}
-
 	bool RouterContext::AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4)
 	{
-		if (!IsSSU2Only ()) return false;
 		bool ret = m_RouterInfo.AddSSU2Introducer (introducer, v4);
 		if (ret)
 			UpdateRouterInfo ();
@@ -513,7 +466,6 @@ namespace i2p
 
 	void RouterContext::RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4)
 	{
-		if (!IsSSU2Only ()) return;
 		if (m_RouterInfo.RemoveSSU2Introducer (h, v4))
 			UpdateRouterInfo ();
 	}
@@ -631,50 +583,6 @@ namespace i2p
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
 	}
 
-	void RouterContext::RemoveNTCPAddress (bool v4only)
-	{
-		bool updated = false;
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end ();)
-		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP && !(*it)->IsNTCP2 () &&
-				(!v4only || (*it)->host.is_v4 ()))
-			{
-				it = addresses.erase (it);
-				updated = true;
-				if (v4only) break; // otherwise might be more than one address
-			}
-			else
-				++it;
-		}
-		if (updated)
-			m_RouterInfo.UpdateSupportedTransports ();
-	}
-
-	void RouterContext::RemoveSSUAddress ()
-	{
-		bool updated = false;
-		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end ();)
-		{
-			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportSSU)
-			{
-				it = addresses.erase (it);
-				updated = true;
-			}
-			else
-				++it;
-		}
-		if (updated)
-			m_RouterInfo.UpdateSupportedTransports ();
-	}
-
-	void RouterContext::SetUnreachableSSU2 (bool v4, bool v6)
-	{
-		if (IsSSU2Only ())
-			SetUnreachable (v4, v6);
-	}
-
 	void RouterContext::SetUnreachable (bool v4, bool v6)
 	{
 		if (v4 || (v6 && !SupportsV4 ()))
@@ -691,8 +599,7 @@ namespace i2p
 		// delete previous introducers
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu && (!addr->IsSSU2 () || IsSSU2Only ()) &&
-			    ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+			if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->published = false;
 				addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
@@ -722,19 +629,15 @@ namespace i2p
 		}
 		uint16_t port = 0;
 		// delete previous introducers
-		bool isSSU2Published = IsSSU2Only (); // TODO
-		if (isSSU2Published)
-			i2p::config::GetOption ("ssu2.published", isSSU2Published);
+		bool isSSU2Published; i2p::config::GetOption ("ssu2.published", isSSU2Published);
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
-			if (addr->ssu && (!addr->IsSSU2 () || isSSU2Published) &&
-			    ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+			if (addr->ssu && isSSU2Published && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 			{
 				addr->published = true;
 				addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
 				addr->ssu->introducers.clear ();
-				if (addr->port && (!addr->IsSSU2 () || IsSSU2Only ()))
-					port = addr->port;
+				if (addr->port) port = addr->port;
 			}
 		// publish NTCP2
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
@@ -758,7 +661,7 @@ namespace i2p
 		if (supportsV6)
 		{
 			// insert v6 addresses if necessary
-			bool foundSSU = false, foundNTCP2 = false, foundSSU2 = false;
+			bool foundNTCP2 = false, foundSSU2 = false;
 			uint16_t port = 0;
 			auto& addresses = m_RouterInfo.GetAddresses ();
 			for (auto& addr: addresses)
@@ -767,10 +670,7 @@ namespace i2p
 				{
 					switch (addr->transportStyle)
 					{
-						case i2p::data::RouterInfo::eTransportSSU:
-							foundSSU = true;
-						break;
-						case i2p::data::RouterInfo::eTransportNTCP:
+						case i2p::data::RouterInfo::eTransportNTCP2:
 							foundNTCP2 = true;
 						break;
 						case i2p::data::RouterInfo::eTransportSSU2:
@@ -785,13 +685,6 @@ namespace i2p
 			{
 				i2p::config::GetOption("port", port);
 				if (!port) port = SelectRandomPort ();
-			}
-			// SSU
-			bool ssu; i2p::config::GetOption("ssu", ssu);
-			if (!foundSSU && ssu)
-			{
-				std::string host = "::1"; // TODO: read host
-				m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
 			}
 			// NTCP2
 			if (!foundNTCP2)
@@ -825,7 +718,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-						if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+						if (!ssu2Port) ssu2Port = port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("::1"), ssu2Port);
 					}
 					else
@@ -847,7 +740,7 @@ namespace i2p
 		// update
 		if (supportsV4)
 		{
-			bool foundSSU = false, foundNTCP2 = false, foundSSU2 = false;
+			bool foundNTCP2 = false, foundSSU2 = false;
 			std::string host = "127.0.0.1";
 			uint16_t port = 0;
 			auto& addresses = m_RouterInfo.GetAddresses ();
@@ -857,10 +750,7 @@ namespace i2p
 				{
 					switch (addr->transportStyle)
 					{
-						case i2p::data::RouterInfo::eTransportSSU:
-							foundSSU = true;
-						break;
-						case i2p::data::RouterInfo::eTransportNTCP:
+						case i2p::data::RouterInfo::eTransportNTCP2:
 							foundNTCP2 = true;
 						break;
 						case i2p::data::RouterInfo::eTransportSSU2:
@@ -876,11 +766,6 @@ namespace i2p
 				i2p::config::GetOption("port", port);
 				if (!port) port = SelectRandomPort ();
 			}
-			// SSU
-			bool ssu; i2p::config::GetOption("ssu", ssu);
-			if (!foundSSU && ssu)
-				m_RouterInfo.AddSSUAddress (host.c_str (), port, nullptr);
-
 			// NTCP2
 			if (!foundNTCP2)
 			{
@@ -908,7 +793,7 @@ namespace i2p
 					if (ssu2Published)
 					{
 						uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
-						if (!ssu2Port) ssu2Port = ssu ? (port + 1) : port;
+						if (!ssu2Port) ssu2Port = port;
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address::from_string ("127.0.0.1"), ssu2Port);
 					}
 					else
@@ -956,32 +841,9 @@ namespace i2p
 		for (auto& addr: addresses)
 		{
 			if (addr->ssu && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
-			{
-				if (!addr->IsSSU2 ()) // SSU1
-				{
-					// round to multiple of 16
-					if (v4)
-					{
-						if (mtu > 1484) mtu = 1484;
-						else
-						{
-							mtu -= 12;
-							mtu = (mtu >> 4) << 4;
-							mtu += 12;
-						}
-					}
-					else
-					{
-						if (mtu > 1488) mtu = 1488;
-						else
-							mtu = (mtu >> 4) << 4;
-					}
-				}
-				if (mtu)
-				{
-					addr->ssu->mtu = mtu;
-					LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address ", addr->host.to_string(), " is set to ", mtu);
-				}
+			{	
+				addr->ssu->mtu = mtu;
+				LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address ", addr->host.to_string(), " is set to ", mtu);
 			}
 		}
 	}

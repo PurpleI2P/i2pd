@@ -68,9 +68,8 @@ namespace transport
 						if (ssu2Port) port = ssu2Port;
 						else
 						{
-							bool ssu;   i2p::config::GetOption("ssu", ssu);
 							uint16_t p; i2p::config::GetOption ("port", p);
-							if (p) port = ssu ? (p + 1) : p;
+							if (p) port = p;
 						}
 					}
 					if (port)
@@ -409,7 +408,7 @@ namespace transport
 				return it->second;
 			it++;
 		}
-		// not found, try from begining
+		// not found, try from beginning
 		it = m_Sessions.begin ();
 		while (it != m_Sessions.end () && ind)
 		{
@@ -642,7 +641,7 @@ namespace transport
 		// try to find existing session first
 		for (auto& it: address->ssu->introducers)
 		{
-			auto it1 = m_SessionsByRouterHash.find (it.iKey);
+			auto it1 = m_SessionsByRouterHash.find (it.iH);
 			if (it1 != m_SessionsByRouterHash.end ())
 			{
 				it1->second->Introduce (session, it.iTag);
@@ -655,17 +654,17 @@ namespace transport
 		uint32_t relayTag = 0;
 		if (!address->ssu->introducers.empty ())
 		{
-			std::vector<int> indicies;
-			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indicies.push_back(i);
-			if (indicies.size () > 1)
-				std::shuffle (indicies.begin(), indicies.end(), std::mt19937(std::random_device()()));
+			std::vector<int> indices;
+			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indices.push_back(i);
+			if (indices.size () > 1)
+				std::shuffle (indices.begin(), indices.end(), std::mt19937(std::random_device()()));
 
-			for (auto i: indicies)
+			for (auto i: indices)
 			{
-				const auto& introducer = address->ssu->introducers[indicies[i]];
+				const auto& introducer = address->ssu->introducers[indices[i]];
 				if (introducer.iTag && ts < introducer.iExp)
 				{
-					r = i2p::data::netdb.FindRouter (introducer.iKey);
+					r = i2p::data::netdb.FindRouter (introducer.iH);
 					if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
 					{
 						relayTag = introducer.iTag;
@@ -714,7 +713,7 @@ namespace transport
 			// introducers not found, try to request them
 			for (auto& it: address->ssu->introducers)
 				if (it.iTag && ts < it.iExp)
-					i2p::data::netdb.RequestDestination (it.iKey);
+					i2p::data::netdb.RequestDestination (it.iH);
 		}
 	}
 
@@ -962,7 +961,8 @@ namespace transport
 			{
 				i2p::data::RouterInfo::Introducer introducer;
 				introducer.iTag = it->GetRelayTag ();
-				introducer.iKey = it->GetRemoteIdentity ()->GetIdentHash ();
+				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
+				introducer.isH = true;
 				introducer.iExp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
 				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
 				if (i2p::context.AddSSU2Introducer (introducer, v4))
@@ -1068,7 +1068,7 @@ namespace transport
 				// we are firewalled
 				auto addr = i2p::context.GetRouterInfo ().GetSSU2V4Address ();
 				if (addr && addr->ssu && addr->ssu->introducers.empty ())
-					i2p::context.SetUnreachableSSU2 (true, false); // v4
+					i2p::context.SetUnreachable (true, false); // v4
 
 				UpdateIntroducers (true);
 				ScheduleIntroducersUpdateTimer ();
@@ -1091,7 +1091,7 @@ namespace transport
 				// we are firewalled
 				auto addr = i2p::context.GetRouterInfo ().GetSSU2V6Address ();
 				if (addr && addr->ssu && addr->ssu->introducers.empty ())
-					i2p::context.SetUnreachableSSU2 (false, true); // v6
+					i2p::context.SetUnreachable (false, true); // v6
 
 				UpdateIntroducers (false);
 				ScheduleIntroducersUpdateTimerV6 ();

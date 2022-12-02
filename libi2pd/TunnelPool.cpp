@@ -76,12 +76,12 @@ namespace tunnel
 			if (m_NumInboundHops > size)
 			{
 				m_NumInboundHops = size;
-				LogPrint (eLogInfo, "Tunnels: Inbound tunnel length has beed adjusted to ", size, " for explicit peers");
+				LogPrint (eLogInfo, "Tunnels: Inbound tunnel length has been adjusted to ", size, " for explicit peers");
 			}
 			if (m_NumOutboundHops > size)
 			{
 				m_NumOutboundHops = size;
-				LogPrint (eLogInfo, "Tunnels: Outbound tunnel length has beed adjusted to ", size, " for explicit peers");
+				LogPrint (eLogInfo, "Tunnels: Outbound tunnel length has been adjusted to ", size, " for explicit peers");
 			}
 			m_NumInboundTunnels = 1;
 			m_NumOutboundTunnels = 1;
