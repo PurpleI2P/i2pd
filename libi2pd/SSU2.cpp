@@ -368,6 +368,7 @@ namespace transport
 	bool SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (!session) return false;
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		return m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session).second;
 	}
 
@@ -381,6 +382,7 @@ namespace transport
 
 	std::shared_ptr<SSU2Session> SSU2Server::FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const
 	{
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		auto it = m_PendingOutgoingSessions.find (ep);
 		if (it != m_PendingOutgoingSessions.end ())
 			return it->second;
@@ -389,6 +391,7 @@ namespace transport
 
 	void SSU2Server::RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep)
 	{
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		m_PendingOutgoingSessions.erase (ep);
 	}
 
@@ -510,7 +513,10 @@ namespace transport
 			{
 				if (it1->second->GetState () == eSSU2SessionStateSessionRequestSent &&
 					it1->second->ProcessSessionCreated (buf, len))
+				{
+					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint
+				}	
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
@@ -754,6 +760,7 @@ namespace transport
 				if (it->second->IsTerminationTimeoutExpired (ts))
 				{
 					//it->second->Terminate ();
+					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					it = m_PendingOutgoingSessions.erase (it);
 				}
 				else
