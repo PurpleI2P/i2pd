@@ -851,13 +851,17 @@ namespace transport
 		m_OutgoingTokens[ep] = {token, exp};
 	}
 
-	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const
+	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
 		auto it = m_OutgoingTokens.find (ep);
 		if (it != m_OutgoingTokens.end ())
 		{
 			if (i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_THRESHOLD > it->second.second)
-				return 0; // token expired
+			{	
+				// token expired
+				m_OutgoingTokens.erase (it);
+				return 0; 
+			}	
 			return it->second.first;
 		}
 		return 0;
@@ -865,12 +869,18 @@ namespace transport
 
 	uint64_t SSU2Server::GetIncomingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		auto it = m_IncomingTokens.find (ep);
 		if (it != m_IncomingTokens.end ())
-			return it->second.first;
+		{
+			if (ts + SSU2_TOKEN_EXPIRATION_THRESHOLD <= it->second.second)
+				return it->second.first;
+			else // token expired
+				m_IncomingTokens.erase (it);
+		}	
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT));
+		m_IncomingTokens.emplace (ep, std::make_pair (token, ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
 		return token;
 	}
 
