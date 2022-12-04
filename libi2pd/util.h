@@ -112,7 +112,7 @@ namespace util
 	};
 
 	template<class T>
-	class MemoryPoolMt: public MemoryPool<T>
+	class MemoryPoolMt: private MemoryPool<T>
 	{
 		public:
 
