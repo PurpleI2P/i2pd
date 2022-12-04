@@ -878,7 +878,7 @@ namespace transport
 			// fragmented
 			if (numFragments > 2)
 			{
-				LogPrint (eLogError, "SSU2: Too many fragments ", numFragments, " in SessionConfirmed");
+				LogPrint (eLogError, "SSU2: Too many fragments ", (int)numFragments, " in SessionConfirmed from ", m_RemoteEndpoint);
 				return false;
 			}
 			if (len < 32)
