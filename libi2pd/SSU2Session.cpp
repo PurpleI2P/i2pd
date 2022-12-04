@@ -1656,13 +1656,23 @@ namespace transport
 				{
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusTesting)
+						if (i2p::context.GetStatus () == eRouterStatusTesting || 
+						    m_State == eSSU2SessionStatePeerTest)
+						{	
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
+							i2p::context.SetStatus (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimer ();
+						}	
 					}
 					else
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting ||
+						    m_State == eSSU2SessionStatePeerTest)
+						{
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
+							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimerV6 ();
+						}	
 					}
 				}
 				else
