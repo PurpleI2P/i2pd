@@ -1210,8 +1210,9 @@ namespace transport
 			else
 				LogPrint(eLogInfo, "NTCP2: Proxy is not used");
 			// start acceptors
-			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
+			auto addresses = context.GetRouterInfo ().GetAddresses ();
+			if (!addresses) return;
+			for (const auto& address: *addresses)
 			{
 				if (!address) continue;
 				if (address->IsPublishedNTCP2 () && address->port)

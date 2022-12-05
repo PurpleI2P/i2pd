@@ -36,8 +36,9 @@ namespace transport
 			i2p::config::GetOption ("ssu2.published", m_IsPublished);
 			i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
 			bool found = false;
-			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
+			auto addresses = i2p::context.GetRouterInfo ().GetAddresses ();
+			if (!addresses) return;
+			for (const auto& address: *addresses)
 			{
 				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)

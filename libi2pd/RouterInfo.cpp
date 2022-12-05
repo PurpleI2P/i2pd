@@ -826,6 +826,15 @@ namespace data
 		return nullptr;
 	}
 
+	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::GetAddresses () const
+	{
+#if (BOOST_VERSION >= 105300)
+		return boost::atomic_load (&m_Addresses);
+#else
+		return m_Addresses;
+#endif
+	}	
+		
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
@@ -1048,14 +1057,15 @@ namespace data
 
 	void LocalRouterInfo::WriteToStream (std::ostream& s) const
 	{
+		auto addresses = GetAddresses ();
+		if (!addresses) return;
+		
 		uint64_t ts = htobe64 (GetTimestamp ());
 		s.write ((const char *)&ts, sizeof (ts));
-
 		// addresses
-		const Addresses& addresses = GetAddresses ();
-		uint8_t numAddresses = addresses.size ();
+		uint8_t numAddresses = addresses->size ();
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (const auto& addr_ptr : addresses)
+		for (const auto& addr_ptr : *addresses)
 		{
 			const Address& address = *addr_ptr;
 			// calculate cost
@@ -1257,7 +1267,9 @@ namespace data
 
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
-		for (auto& addr : GetAddresses ())
+		auto addresses = GetAddresses ();
+		if (!addresses) return false;
+		for (auto& addr : *addresses)
 		{
 			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
@@ -1273,7 +1285,9 @@ namespace data
 
 	bool LocalRouterInfo::RemoveSSU2Introducer (const IdentHash& h, bool v4)
 	{
-		for (auto& addr: GetAddresses ())
+		auto addresses = GetAddresses ();
+		if (!addresses) return false;
+		for (auto& addr: *addresses)
 		{
 			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
