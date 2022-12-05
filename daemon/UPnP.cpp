@@ -211,7 +211,7 @@ namespace transport
 
 	void UPnP::CloseMapping ()
 	{
-		const a = context.GetRouterInfo().GetAddresses();
+		auto a = context.GetRouterInfo().GetAddresses();
 		if (!a) return;
 		for (const auto& address : *a)
 		{
