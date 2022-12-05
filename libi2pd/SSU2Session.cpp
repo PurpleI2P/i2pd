@@ -1623,7 +1623,7 @@ namespace transport
 				if (ts > it1->second->sendTime)
 				{
 					auto rtt = ts - it1->second->sendTime;
-					m_RTT = (m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1);
+					m_RTT = std::round ((m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1.0));
 					m_RTO = m_RTT*SSU2_kAPPA;
 					if (m_RTO < SSU2_MIN_RTO) m_RTO = SSU2_MIN_RTO;
 					if (m_RTO > SSU2_MAX_RTO) m_RTO = SSU2_MAX_RTO;
