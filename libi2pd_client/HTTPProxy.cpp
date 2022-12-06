@@ -252,6 +252,7 @@ namespace proxy {
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
 		req.RemoveHeader("DNT"); // Useless DoNotTrack flag
+		req.RemoveHeader("X-Requested-With"); // Android Webview send this with the value set to the application ID
 		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
