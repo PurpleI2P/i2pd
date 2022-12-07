@@ -649,7 +649,8 @@ namespace data
 		} // m_RouterInfos iteration
 
 		m_RouterInfoBuffersPool.CleanUpMt ();
-	//	m_RouterInfoAddressesPool.CleanUpMt ();
+		m_RouterInfoAddressesPool.CleanUpMt ();
+		m_RouterInfoAddressVectorsPool.CleanUpMt ();	
 			
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: Saved ", updatedCount, " new/updated routers");

@@ -206,13 +206,14 @@ namespace data
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
-		if (!m_NewAddresses) m_NewAddresses = boost::make_shared<Addresses>();
+		auto addresses = netdb.NewRouterInfoAddresses ();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
+		addresses->reserve (numAddresses);
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			auto address = std::make_shared<Address> (); // netdb.NewRouterInfoAddress ();
+			auto address = netdb.NewRouterInfoAddress ();
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
@@ -417,19 +418,16 @@ namespace data
 			if (supportedTransports)
 			{
 				if (!(m_SupportedTransports & supportedTransports)) // avoid duplicates
-					m_NewAddresses->push_back(address);
+					addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
 		// update addresses
-		auto prev = m_Addresses;
 #if (BOOST_VERSION >= 105300)
-		boost::atomic_store (&m_Addresses, m_NewAddresses);
+		boost::atomic_store (&m_Addresses, addresses);
 #else
-		m_Addresses = m_NewAddresses; // race condition
+		m_Addresses = addresses; // race condition
 #endif
-		if (prev) prev->clear ();
-		m_NewAddresses = prev;
 		// read peers
 		uint8_t numPeers;
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;

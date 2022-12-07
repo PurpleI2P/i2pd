@@ -281,7 +281,7 @@ namespace data
 			std::shared_ptr<Buffer> m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
-			boost::shared_ptr<Addresses> m_Addresses, m_NewAddresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
+			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			bool m_IsUpdated, m_IsUnreachable;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
 			uint8_t m_Caps;
