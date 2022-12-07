@@ -496,9 +496,10 @@ namespace transport
 				break;
 				case eSSU2SessionStateClosing:
 					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
-					if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
+					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)
 						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;
+				case eSSU2SessionStateClosingConfirmed:	
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;
 				break;

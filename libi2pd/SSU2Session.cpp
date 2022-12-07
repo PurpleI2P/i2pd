@@ -1462,12 +1462,19 @@ namespace transport
 					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkTermination:
-					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)buf[11]);
-					if (IsEstablished () && buf[11] != eSSU2TerminationReasonTerminationReceived)
+				{	
+					uint8_t rsn = buf[11]; // reason		
+					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)rsn);
+					if (IsEstablished () && rsn != eSSU2TerminationReasonTerminationReceived)
 						RequestTermination (eSSU2TerminationReasonTerminationReceived);
-					else
+					else if (m_State != eSSU2SessionStateTerminated)	
+					{
+						if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)	
+							m_State = eSSU2SessionStateClosingConfirmed;
 						Done ();
-				break;
+					}		
+					break;
+				}		
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
 					HandleRelayRequest (buf + offset, size);

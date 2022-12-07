@@ -100,6 +100,7 @@ namespace transport
 		eSSU2SessionStateSessionConfirmedSent,
 		eSSU2SessionStateEstablished,
 		eSSU2SessionStateClosing,
+		eSSU2SessionStateClosingConfirmed,
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
