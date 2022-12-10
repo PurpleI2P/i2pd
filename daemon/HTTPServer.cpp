@@ -248,6 +248,9 @@ namespace http {
 				case eRouterErrorSymmetricNAT:
 					s << " - " << tr("Symmetric NAT");
 				break;
+				case eRouterErrorNoDescriptors:
+					s << " - " << tr("No Descriptors");
+				break;	
 				default: ;
 			}
 		}

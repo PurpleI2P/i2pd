@@ -1425,10 +1425,18 @@ namespace transport
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
+		{	
 			LogPrint (eLogError, "NTCP2: Accept error ", error.message ());
-
+			if (error == boost::asio::error::no_descriptors)
+			{
+				i2p::context.SetError (eRouterErrorNoDescriptors);
+				// TODO
+				return; 
+			}	
+		}	
+		
 		if (error != boost::asio::error::operation_aborted)
-		{
+		{			
 			if (!conn) // connection is used, create new one
 				conn = std::make_shared<NTCP2Session> (*this);
 			else // reuse failed
@@ -1457,6 +1465,16 @@ namespace transport
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
+		else
+		{	
+			LogPrint (eLogError, "NTCP2: Accept ipv6 error ", error.message ());
+			if (error == boost::asio::error::no_descriptors)
+			{
+				i2p::context.SetErrorV6 (eRouterErrorNoDescriptors);
+				// TODO
+				return; 
+			}	
+		}	
 
 		if (error != boost::asio::error::operation_aborted)
 		{
