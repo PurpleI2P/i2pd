@@ -43,8 +43,6 @@ namespace transport
 	const int NTCP2_CLOCK_SKEW = 60; // in seconds
 	const int NTCP2_MAX_OUTGOING_QUEUE_SIZE = 500; // how many messages we can queue up
 
-	const int NTCP2_DESCRIPTORS_EXHAUST_TIMEOUT = 60; // 1 minute
-
 	enum NTCP2BlockType
 	{
 		eNTCP2BlkDateTime = 0,
@@ -287,8 +285,6 @@ namespace transport
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
-
-			uint64_t m_NoFileExhaustTimestamp;
 
 		public:
 
