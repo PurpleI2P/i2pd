@@ -250,7 +250,7 @@ namespace http {
 				break;
 				case eRouterErrorNoDescriptors:
 					s << " - " << tr("No Descriptors");
-				break;	
+				break;
 				default: ;
 			}
 		}
