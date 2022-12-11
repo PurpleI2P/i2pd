@@ -159,8 +159,9 @@ namespace transport
 
 	void UPnP::PortMapping ()
 	{
-		const auto& a = context.GetRouterInfo().GetAddresses();
-		for (const auto& address : a)
+		auto a = context.GetRouterInfo().GetAddresses();
+		if (!a) return;
+		for (const auto& address : *a)
 		{
 			if (!address->host.is_v6 () && address->port)
 				TryPortMapping (address);
@@ -210,8 +211,9 @@ namespace transport
 
 	void UPnP::CloseMapping ()
 	{
-		const auto& a = context.GetRouterInfo().GetAddresses();
-		for (const auto& address : a)
+		auto a = context.GetRouterInfo().GetAddresses();
+		if (!a) return;
+		for (const auto& address : *a)
 		{
 			if (!address->host.is_v6 () && address->port)
 			CloseMapping (address);

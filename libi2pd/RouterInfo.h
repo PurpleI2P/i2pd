@@ -176,7 +176,7 @@ namespace data
 			int GetVersion () const { return m_Version; };
 			virtual void SetProperty (const std::string& key, const std::string& value) {};
 			virtual void ClearProperties () {};
-			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
+			boost::shared_ptr<Addresses> GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
 			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
@@ -258,7 +258,6 @@ namespace data
 			void UpdateBuffer (const uint8_t * buf, size_t len);
 			void SetBufferLen (size_t len) { m_BufferLen = len; };
 			void RefreshTimestamp ();
-			const Addresses& GetAddresses () const { return *m_Addresses; };
 			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
 			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
 
@@ -282,7 +281,7 @@ namespace data
 			std::shared_ptr<Buffer> m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
-			boost::shared_ptr<Addresses> m_Addresses, m_NewAddresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
+			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			bool m_IsUpdated, m_IsUnreachable;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
 			uint8_t m_Caps;

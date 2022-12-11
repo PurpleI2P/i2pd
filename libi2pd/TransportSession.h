@@ -113,7 +113,8 @@ namespace transport
 			virtual uint32_t GetRelayTag () const { return 0; };
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
-
+			virtual bool IsEstablished () const = 0;
+			
 		protected:
 
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;

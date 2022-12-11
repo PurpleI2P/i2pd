@@ -10,6 +10,7 @@
 #define SSU2_H__
 
 #include <unordered_map>
+#include <mutex>
 #include "util.h"
 #include "SSU2Session.h"
 
@@ -88,7 +89,7 @@ namespace transport
 			bool StartPeerTest (std::shared_ptr<const i2p::data::RouterInfo> router, bool v4);
 
 			void UpdateOutgoingToken (const boost::asio::ip::udp::endpoint& ep, uint64_t token, uint32_t exp);
-			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const;
+			uint64_t FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep);
 			uint64_t GetIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 			std::pair<uint64_t, uint32_t> NewIncomingToken (const boost::asio::ip::udp::endpoint& ep);
 
@@ -140,6 +141,7 @@ namespace transport
 			std::unordered_map<uint64_t, std::shared_ptr<SSU2Session> > m_Sessions;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<SSU2Session> > m_SessionsByRouterHash;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
+			mutable std::mutex m_PendingOutgoingSessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
 			std::map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to

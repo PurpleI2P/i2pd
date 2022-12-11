@@ -743,7 +743,12 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Peers.begin (); it != m_Peers.end (); )
 			{
-				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+				it->second.sessions.remove_if (
+					[](std::shared_ptr<TransportSession> session)->bool
+				    {
+						return !session || !session->IsEstablished ();
+					});
+ 				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
 					auto profile = i2p::data::GetRouterProfile(it->first);

@@ -206,9 +206,10 @@ namespace data
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
-		if (!m_NewAddresses) m_NewAddresses = boost::make_shared<Addresses>();
+		auto addresses = netdb.NewRouterInfoAddresses ();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
+		addresses->reserve (numAddresses);
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
@@ -417,19 +418,16 @@ namespace data
 			if (supportedTransports)
 			{
 				if (!(m_SupportedTransports & supportedTransports)) // avoid duplicates
-					m_NewAddresses->push_back(address);
+					addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
 		// update addresses
-		auto prev = m_Addresses;
 #if (BOOST_VERSION >= 105300)
-		boost::atomic_store (&m_Addresses, m_NewAddresses);
+		boost::atomic_store (&m_Addresses, addresses);
 #else
-		m_Addresses = m_NewAddresses; // race condition
+		m_Addresses = addresses; // race condition
 #endif
-		if (prev) prev->clear ();
-		m_NewAddresses = prev;
 		// read peers
 		uint8_t numPeers;
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;
@@ -826,6 +824,15 @@ namespace data
 		return nullptr;
 	}
 
+	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::GetAddresses () const
+	{
+#if (BOOST_VERSION >= 105300)
+		return boost::atomic_load (&m_Addresses);
+#else
+		return m_Addresses;
+#endif
+	}	
+		
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
@@ -1048,14 +1055,15 @@ namespace data
 
 	void LocalRouterInfo::WriteToStream (std::ostream& s) const
 	{
+		auto addresses = GetAddresses ();
+		if (!addresses) return;
+		
 		uint64_t ts = htobe64 (GetTimestamp ());
 		s.write ((const char *)&ts, sizeof (ts));
-
 		// addresses
-		const Addresses& addresses = GetAddresses ();
-		uint8_t numAddresses = addresses.size ();
+		uint8_t numAddresses = addresses->size ();
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (const auto& addr_ptr : addresses)
+		for (const auto& addr_ptr : *addresses)
 		{
 			const Address& address = *addr_ptr;
 			// calculate cost
@@ -1257,7 +1265,9 @@ namespace data
 
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
-		for (auto& addr : GetAddresses ())
+		auto addresses = GetAddresses ();
+		if (!addresses) return false;
+		for (auto& addr : *addresses)
 		{
 			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
@@ -1273,7 +1283,9 @@ namespace data
 
 	bool LocalRouterInfo::RemoveSSU2Introducer (const IdentHash& h, bool v4)
 	{
-		for (auto& addr: GetAddresses ())
+		auto addresses = GetAddresses ();
+		if (!addresses) return false;
+		for (auto& addr: *addresses)
 		{
 			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{

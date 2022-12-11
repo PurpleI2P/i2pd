@@ -878,7 +878,7 @@ namespace transport
 			// fragmented
 			if (numFragments > 2)
 			{
-				LogPrint (eLogError, "SSU2: Too many fragments ", numFragments, " in SessionConfirmed");
+				LogPrint (eLogError, "SSU2: Too many fragments ", (int)numFragments, " in SessionConfirmed from ", m_RemoteEndpoint);
 				return false;
 			}
 			if (len < 32)
@@ -1462,12 +1462,19 @@ namespace transport
 					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkTermination:
-					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)buf[11]);
-					if (IsEstablished () && buf[11] != eSSU2TerminationReasonTerminationReceived)
+				{	
+					uint8_t rsn = buf[11]; // reason		
+					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)rsn);
+					if (IsEstablished () && rsn != eSSU2TerminationReasonTerminationReceived)
 						RequestTermination (eSSU2TerminationReasonTerminationReceived);
-					else
+					else if (m_State != eSSU2SessionStateTerminated)	
+					{
+						if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)	
+							m_State = eSSU2SessionStateClosingConfirmed;
 						Done ();
-				break;
+					}		
+					break;
+				}		
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
 					HandleRelayRequest (buf + offset, size);
@@ -1623,7 +1630,7 @@ namespace transport
 				if (ts > it1->second->sendTime)
 				{
 					auto rtt = ts - it1->second->sendTime;
-					m_RTT = (m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1);
+					m_RTT = std::round ((m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1.0));
 					m_RTO = m_RTT*SSU2_kAPPA;
 					if (m_RTO < SSU2_MIN_RTO) m_RTO = SSU2_MIN_RTO;
 					if (m_RTO > SSU2_MAX_RTO) m_RTO = SSU2_MAX_RTO;
@@ -1656,13 +1663,23 @@ namespace transport
 				{
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusTesting)
+						if (i2p::context.GetStatus () == eRouterStatusTesting || 
+						    m_State == eSSU2SessionStatePeerTest)
+						{	
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
+							i2p::context.SetStatus (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimer ();
+						}	
 					}
 					else
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting ||
+						    m_State == eSSU2SessionStatePeerTest)
+						{
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
+							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+							m_Server.RescheduleIntroducersUpdateTimerV6 ();
+						}	
 					}
 				}
 				else

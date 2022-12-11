@@ -1210,8 +1210,9 @@ namespace transport
 			else
 				LogPrint(eLogInfo, "NTCP2: Proxy is not used");
 			// start acceptors
-			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
+			auto addresses = context.GetRouterInfo ().GetAddresses ();
+			if (!addresses) return;
+			for (const auto& address: *addresses)
 			{
 				if (!address) continue;
 				if (address->IsPublishedNTCP2 () && address->port)
@@ -1424,10 +1425,17 @@ namespace transport
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
+		{	
 			LogPrint (eLogError, "NTCP2: Accept error ", error.message ());
-
+			if (error == boost::asio::error::no_descriptors)
+			{
+				i2p::context.SetError (eRouterErrorNoDescriptors);
+				return; 
+			}	
+		}	
+		
 		if (error != boost::asio::error::operation_aborted)
-		{
+		{			
 			if (!conn) // connection is used, create new one
 				conn = std::make_shared<NTCP2Session> (*this);
 			else // reuse failed
@@ -1456,6 +1464,15 @@ namespace transport
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
+		else
+		{	
+			LogPrint (eLogError, "NTCP2: Accept ipv6 error ", error.message ());
+			if (error == boost::asio::error::no_descriptors)
+			{
+				i2p::context.SetErrorV6 (eRouterErrorNoDescriptors);
+				return; 
+			}	
+		}	
 
 		if (error != boost::asio::error::operation_aborted)
 		{
@@ -1500,8 +1517,24 @@ namespace transport
 				else
 					it++;
 			}
-
 			ScheduleTermination ();
+			
+			// try to restart acceptors if no description
+			// we do it after timer to let timer take descriptor first 
+			if (i2p::context.GetError () == eRouterErrorNoDescriptors)
+			{
+				i2p::context.SetError (eRouterErrorNone);
+				auto conn = std::make_shared<NTCP2Session> (*this);
+				m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
+					conn, std::placeholders::_1));
+			}	
+			if (i2p::context.GetErrorV6 () == eRouterErrorNoDescriptors)
+			{
+				i2p::context.SetErrorV6 (eRouterErrorNone);
+				auto conn = std::make_shared<NTCP2Session> (*this);
+				m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
+					conn, std::placeholders::_1));
+			}	
 		}
 	}
 

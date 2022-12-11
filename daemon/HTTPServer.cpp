@@ -248,6 +248,9 @@ namespace http {
 				case eRouterErrorSymmetricNAT:
 					s << " - " << tr("Symmetric NAT");
 				break;
+				case eRouterErrorNoDescriptors:
+					s << " - " << tr("No Descriptors");
+				break;
 				default: ;
 			}
 		}
@@ -299,44 +302,49 @@ namespace http {
 		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
 			s << "<label for=\"slide-info\">" << tr("Hidden content. Press on text to see.") << "</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
 		}
-		if (includeHiddenContent) {
+		if (includeHiddenContent) 
+		{
 			s << "<b>" << tr("Router Ident") << ":</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
 				s << "<b>" << tr("Router Family") << ":</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
 			s << "<b>" << tr("Router Caps") << ":</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
 			s << "<b>" << tr("Version") << ":</b> " VERSION "<br>\r\n";
 			s << "<b>"<< tr("Our external address") << ":</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
-			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
-			{
-				s << "<tr>\r\n<td>";
-				switch (address->transportStyle)
+			auto addresses = i2p::context.GetRouterInfo().GetAddresses ();
+			if (addresses)
+			{	
+				for (const auto& address : *addresses)
 				{
-					case i2p::data::RouterInfo::eTransportNTCP2:
-						s << "NTCP2";
-					break;
-					case i2p::data::RouterInfo::eTransportSSU2:
-						s << "SSU2";
-					break;
-					default:
-						s << tr("Unknown");
-				}
-				if (address->IsV6 ())
-				{
-					if (address->IsV4 ()) s << "v4";
-					s << "v6";
-				}
-				s << "</td>\r\n";
-				if (address->published)
-					s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
-				else
-				{
-					s << "<td>" << tr("supported");
-					if (address->port)
-						s << " :" << address->port;
+					s << "<tr>\r\n<td>";
+					switch (address->transportStyle)
+					{
+						case i2p::data::RouterInfo::eTransportNTCP2:
+							s << "NTCP2";
+						break;
+						case i2p::data::RouterInfo::eTransportSSU2:
+							s << "SSU2";
+						break;
+						default:
+							s << tr("Unknown");
+					}
+					if (address->IsV6 ())
+					{
+						if (address->IsV4 ()) s << "v4";
+						s << "v6";
+					}
 					s << "</td>\r\n";
+					if (address->published)
+						s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
+					else
+					{
+						s << "<td>" << tr("supported");
+						if (address->port)
+							s << " :" << address->port;
+						s << "</td>\r\n";
+					}
+					s << "</tr>\r\n";
 				}
-				s << "</tr>\r\n";
-			}
+			}	
 			s << "</tbody></table>\r\n";
 		}
 		s << "</div>\r\n</div>\r\n";

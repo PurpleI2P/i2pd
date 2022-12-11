@@ -36,8 +36,9 @@ namespace transport
 			i2p::config::GetOption ("ssu2.published", m_IsPublished);
 			i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
 			bool found = false;
-			auto& addresses = i2p::context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
+			auto addresses = i2p::context.GetRouterInfo ().GetAddresses ();
+			if (!addresses) return;
+			for (const auto& address: *addresses)
 			{
 				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
@@ -368,6 +369,7 @@ namespace transport
 	bool SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (!session) return false;
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		return m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session).second;
 	}
 
@@ -381,6 +383,7 @@ namespace transport
 
 	std::shared_ptr<SSU2Session> SSU2Server::FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const
 	{
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		auto it = m_PendingOutgoingSessions.find (ep);
 		if (it != m_PendingOutgoingSessions.end ())
 			return it->second;
@@ -389,6 +392,7 @@ namespace transport
 
 	void SSU2Server::RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep)
 	{
+		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		m_PendingOutgoingSessions.erase (ep);
 	}
 
@@ -492,9 +496,10 @@ namespace transport
 				break;
 				case eSSU2SessionStateClosing:
 					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
-					if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
+					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)
 						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;
+				case eSSU2SessionStateClosingConfirmed:	
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;
 				break;
@@ -510,7 +515,10 @@ namespace transport
 			{
 				if (it1->second->GetState () == eSSU2SessionStateSessionRequestSent &&
 					it1->second->ProcessSessionCreated (buf, len))
+				{
+					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint
+				}	
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
@@ -754,6 +762,7 @@ namespace transport
 				if (it->second->IsTerminationTimeoutExpired (ts))
 				{
 					//it->second->Terminate ();
+					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					it = m_PendingOutgoingSessions.erase (it);
 				}
 				else
@@ -844,13 +853,17 @@ namespace transport
 		m_OutgoingTokens[ep] = {token, exp};
 	}
 
-	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep) const
+	uint64_t SSU2Server::FindOutgoingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
 		auto it = m_OutgoingTokens.find (ep);
 		if (it != m_OutgoingTokens.end ())
 		{
 			if (i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_THRESHOLD > it->second.second)
-				return 0; // token expired
+			{	
+				// token expired
+				m_OutgoingTokens.erase (it);
+				return 0; 
+			}	
 			return it->second.first;
 		}
 		return 0;
@@ -858,12 +871,18 @@ namespace transport
 
 	uint64_t SSU2Server::GetIncomingToken (const boost::asio::ip::udp::endpoint& ep)
 	{
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		auto it = m_IncomingTokens.find (ep);
 		if (it != m_IncomingTokens.end ())
-			return it->second.first;
+		{
+			if (ts + SSU2_TOKEN_EXPIRATION_THRESHOLD <= it->second.second)
+				return it->second.first;
+			else // token expired
+				m_IncomingTokens.erase (it);
+		}	
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_TIMEOUT));
+		m_IncomingTokens.emplace (ep, std::make_pair (token, ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
 		return token;
 	}
 
