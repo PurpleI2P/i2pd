@@ -50,7 +50,9 @@ namespace client
 			void TunnelsParticipatingHandler (std::ostringstream& results);
 			void TunnelsSuccessRateHandler (std::ostringstream& results);
 			void InboundBandwidth1S (std::ostringstream& results);
+			void InboundBandwidth15S (std::ostringstream& results);
 			void OutboundBandwidth1S (std::ostringstream& results);
+			void OutboundBandwidth15S (std::ostringstream& results);
 			void NetTotalReceivedBytes (std::ostringstream& results);
 			void NetTotalSentBytes (std::ostringstream& results);
 

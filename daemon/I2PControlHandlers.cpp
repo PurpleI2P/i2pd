@@ -33,7 +33,9 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.netdb.knownpeers"]          = &I2PControlHandlers::NetDbKnownPeersHandler;
 		m_RouterInfoHandlers["i2p.router.netdb.activepeers"]         = &I2PControlHandlers::NetDbActivePeersHandler;
 		m_RouterInfoHandlers["i2p.router.net.bw.inbound.1s"]         = &I2PControlHandlers::InboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.bw.inbound.15s"]        = &I2PControlHandlers::InboundBandwidth15S;
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"]        = &I2PControlHandlers::OutboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.bw.outbound.15s"]       = &I2PControlHandlers::OutboundBandwidth15S;
 		m_RouterInfoHandlers["i2p.router.net.status"]                = &I2PControlHandlers::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlHandlers::TunnelsParticipatingHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"]   = &I2PControlHandlers::TunnelsSuccessRateHandler;
@@ -153,10 +155,22 @@ namespace client
 		InsertParam (results, "i2p.router.net.bw.inbound.1s", bw);
 	}
 
+	void I2PControlHandlers::InboundBandwidth15S (std::ostringstream& results)
+	{
+		double bw = i2p::transport::transports.GetInBandwidth15s ();
+		InsertParam (results, "i2p.router.net.bw.inbound.15s", bw);
+	}
+
 	void I2PControlHandlers::OutboundBandwidth1S (std::ostringstream& results)
 	{
 		double bw = i2p::transport::transports.GetOutBandwidth ();
 		InsertParam (results, "i2p.router.net.bw.outbound.1s", bw);
+	}
+
+	void I2PControlHandlers::OutboundBandwidth15S (std::ostringstream& results)
+	{
+		double bw = i2p::transport::transports.GetOutBandwidth15s ();
+		InsertParam (results, "i2p.router.net.bw.outbound.15s", bw);
 	}
 
 	void I2PControlHandlers::NetTotalReceivedBytes (std::ostringstream& results)

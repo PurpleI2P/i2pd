@@ -136,12 +136,14 @@ namespace transport
 	Transports::Transports ():
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
-		m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
+		m_UpdateBandwidthTimer (nullptr), m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
 		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
-		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
-		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
-		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
-		m_LastTransitBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)
+		m_TotalSentBytes (0), m_TotalReceivedBytes (0), m_TotalTransitTransmittedBytes (0),
+		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth (0),
+		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0), m_LastTransitBandwidthUpdateBytes (0),
+		m_InBandwidth15s (0), m_OutBandwidth15s (0), m_TransitBandwidth15s (0),
+		m_LastInBandwidth15sUpdateBytes (0), m_LastOutBandwidth15sUpdateBytes (0), m_LastTransitBandwidth15sUpdateBytes (0),
+		m_LastBandwidth15sUpdateTime (0)
 	{
 	}
 
@@ -152,6 +154,7 @@ namespace transport
 		{
 			delete m_PeerCleanupTimer; m_PeerCleanupTimer = nullptr;
 			delete m_PeerTestTimer; m_PeerTestTimer = nullptr;
+			delete m_UpdateBandwidthTimer; m_UpdateBandwidthTimer = nullptr;
 			delete m_Work; m_Work = nullptr;
 			delete m_Service; m_Service = nullptr;
 		}
@@ -165,6 +168,7 @@ namespace transport
 			m_Work = new boost::asio::io_service::work (*m_Service);
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
+			m_UpdateBandwidthTimer = new boost::asio::steady_timer (*m_Service);
 		}
 
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
@@ -299,8 +303,11 @@ namespace transport
 		if (m_SSU2Server) m_SSU2Server->Start ();
 		if (m_SSU2Server) DetectExternalIP ();
 
-		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5 * SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+
+		m_UpdateBandwidthTimer->expires_from_now (std::chrono::seconds(1));
+		m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 
 		if (m_IsNAT)
 		{
@@ -357,23 +364,38 @@ namespace transport
 		}
 	}
 
-	void Transports::UpdateBandwidth ()
+	void Transports::HandleUpdateBandwidthTimer (const boost::system::error_code& ecode)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
-		if (m_LastBandwidthUpdateTime > 0)
+		if (ecode != boost::asio::error::operation_aborted)
 		{
-			auto delta = ts - m_LastBandwidthUpdateTime;
-			if (delta > 0)
+			uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
+
+			// updated every second
+			m_InBandwidth = m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes;
+			m_OutBandwidth = m_TotalSentBytes - m_LastOutBandwidthUpdateBytes;
+			m_TransitBandwidth = m_TotalTransitTransmittedBytes - m_LastTransitBandwidthUpdateBytes;
+			
+			m_LastInBandwidthUpdateBytes = m_TotalReceivedBytes;
+			m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;
+			m_LastTransitBandwidthUpdateBytes = m_TotalTransitTransmittedBytes;
+
+			// updated every 15 seconds
+			auto delta = ts - m_LastBandwidth15sUpdateTime;
+			if (delta > 15 * 1000)
 			{
-				m_InBandwidth = (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes)*1000/delta; // per second
-				m_OutBandwidth = (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes)*1000/delta; // per second
-				m_TransitBandwidth = (m_TotalTransitTransmittedBytes - m_LastTransitBandwidthUpdateBytes)*1000/delta;
+				m_InBandwidth15s = (m_TotalReceivedBytes - m_LastInBandwidth15sUpdateBytes) * 1000 / delta;
+				m_OutBandwidth15s = (m_TotalSentBytes - m_LastOutBandwidth15sUpdateBytes) * 1000 / delta;
+				m_TransitBandwidth15s = (m_TotalTransitTransmittedBytes - m_LastTransitBandwidth15sUpdateBytes) * 1000 / delta;
+
+				m_LastBandwidth15sUpdateTime = ts;
+				m_LastInBandwidth15sUpdateBytes = m_TotalReceivedBytes;
+				m_LastOutBandwidth15sUpdateBytes = m_TotalSentBytes;
+				m_LastTransitBandwidth15sUpdateBytes = m_TotalTransitTransmittedBytes;
 			}
+
+			m_UpdateBandwidthTimer->expires_from_now (std::chrono::seconds(1));
+			m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 		}
-		m_LastBandwidthUpdateTime = ts;
-		m_LastInBandwidthUpdateBytes = m_TotalReceivedBytes;
-		m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;
-		m_LastTransitBandwidthUpdateBytes = m_TotalTransitTransmittedBytes;
 	}
 
 	bool Transports::IsBandwidthExceeded () const
@@ -745,7 +767,7 @@ namespace transport
 			{
 				it->second.sessions.remove_if (
 					[](std::shared_ptr<TransportSession> session)->bool
-				    {
+					{
 						return !session || !session->IsEstablished ();
 					});
  				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
@@ -772,13 +794,12 @@ namespace transport
 					++it;
 				}
 			}
-			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
 			bool ipv6Testing = i2p::context.GetStatusV6 () == eRouterStatusTesting;
 			// if still testing, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
-			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3*SESSION_CREATION_TIMEOUT));
+			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3 * SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}
 	}
