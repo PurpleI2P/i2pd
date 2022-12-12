@@ -401,7 +401,7 @@ namespace transport
 	bool Transports::IsBandwidthExceeded () const
 	{
 		auto limit = i2p::context.GetBandwidthLimit() * 1024; // convert to bytes
-		auto bw = std::max (m_InBandwidth, m_OutBandwidth);
+		auto bw = std::max (m_InBandwidth15s, m_OutBandwidth15s);
 		return bw > limit;
 	}
 
