@@ -47,21 +47,21 @@ namespace transport
 					{
 						found = true;
 						if (address->IsV6 ())
-						{	
+						{
 							uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
 							if (!mtu || mtu > SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE)
 								mtu = SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
 							i2p::context.SetMTU (mtu, false);
-						}	
-						else	
-						{	
+						}
+						else
+						{
 							uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
 							if (!mtu || mtu > SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE)
 								mtu = SSU2_MAX_PACKET_SIZE - SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
 							i2p::context.SetMTU (mtu, true);
-						}	
+						}
 						continue; // we don't need port for proxy
-					}	
+					}
 					auto port = address->port;
 					if (!port)
 					{
@@ -103,11 +103,11 @@ namespace transport
 				}
 			}
 			if (found)
-			{	
+			{
 				if (m_IsThroughProxy)
 					ConnectToProxy ();
 				m_ReceiveService.Start ();
-			}	
+			}
 			ScheduleTermination ();
 			ScheduleResend (false);
 		}
@@ -136,11 +136,11 @@ namespace transport
 		m_SocketV6.close ();
 
 		if (m_UDPAssociateSocket)
-		{	
+		{
 			m_UDPAssociateSocket->close ();
 			m_UDPAssociateSocket.reset (nullptr);
-		}	
-		
+		}
+
 		StopIOService ();
 
 		m_Sessions.clear ();
@@ -168,11 +168,11 @@ namespace transport
 			m_AddressV6 = localAddress;
 			uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
 			if (!mtu)
-			{	
+			{
 				int maxMTU = i2p::util::net::GetMaxMTU (localAddress.to_v6 ());
 				mtu = i2p::util::net::GetMTU (localAddress);
 				if (mtu > maxMTU) mtu = maxMTU;
-			}	
+			}
 			else 
 				if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
@@ -236,7 +236,19 @@ namespace transport
 	void SSU2Server::HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred,
 		Packet * packet, boost::asio::ip::udp::socket& socket)
 	{
-		if (!ecode)
+		if (!ecode
+			|| ecode == boost::asio::error::connection_refused
+			|| ecode == boost::asio::error::connection_reset
+			|| ecode == boost::asio::error::network_unreachable
+			|| ecode == boost::asio::error::host_unreachable
+#ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
+			|| ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+			|| ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
+			|| ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
+#endif
+		)
+		// just try continue reading when received ICMP response otherwise socket can crash,
+		// but better to find out which host were sent it and mark that router as unreachable
 		{
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			packet->len = bytes_transferred;
@@ -285,12 +297,12 @@ namespace transport
 					ConnectToProxy ();
 				}
 				else
-				{	
+				{
 					auto ep = socket.local_endpoint ();
 					socket.close ();
 					OpenSocket (ep);
 					Receive (socket);
-				}	
+				}
 			}
 		}
 	}
@@ -301,7 +313,7 @@ namespace transport
 		{
 			if (m_IsThroughProxy)
 				ProcessNextPacketFromProxy (packet->buf, packet->len);
-			else	
+			else
 				ProcessNextPacket (packet->buf, packet->len, packet->from);
 			m_PacketsPool.ReleaseMt (packet);
 			if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
@@ -314,7 +326,7 @@ namespace transport
 		if (m_IsThroughProxy)
 			for (auto& packet: packets)
 				ProcessNextPacketFromProxy (packet->buf, packet->len);
-		else	
+		else
 			for (auto& packet: packets)
 				ProcessNextPacket (packet->buf, packet->len, packet->from);
 		m_PacketsPool.ReleaseMt (packets);
@@ -446,7 +458,7 @@ namespace transport
 		}
 		return nullptr;
 	}
-		
+
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		if (len < 24) return;
@@ -499,7 +511,7 @@ namespace transport
 					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)
 						m_LastSession->RequestTermination (eSSU2TerminationReasonIdleTimeout); // send termination again
 				break;
-				case eSSU2SessionStateClosingConfirmed:	
+				case eSSU2SessionStateClosingConfirmed:
 				case eSSU2SessionStateTerminated:
 					m_LastSession = nullptr;
 				break;
@@ -518,7 +530,7 @@ namespace transport
 				{
 					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint
-				}	
+				}
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
@@ -531,7 +543,7 @@ namespace transport
 			}
 		}
 	}
-		
+
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen,
 		const boost::asio::ip::udp::endpoint& to)
 	{
@@ -539,7 +551,7 @@ namespace transport
 		{
 			SendThroughProxy (header, headerLen, nullptr, 0, payload, payloadLen, to);
 			return;
-		}	
+		}
 		std::vector<boost::asio::const_buffer> bufs
 		{
 			boost::asio::buffer (header, headerLen),
@@ -859,11 +871,11 @@ namespace transport
 		if (it != m_OutgoingTokens.end ())
 		{
 			if (i2p::util::GetSecondsSinceEpoch () + SSU2_TOKEN_EXPIRATION_THRESHOLD > it->second.second)
-			{	
+			{
 				// token expired
 				m_OutgoingTokens.erase (it);
 				return 0; 
-			}	
+			}
 			return it->second.first;
 		}
 		return 0;
@@ -879,7 +891,7 @@ namespace transport
 				return it->second.first;
 			else // token expired
 				m_IncomingTokens.erase (it);
-		}	
+		}
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
 		m_IncomingTokens.emplace (ep, std::make_pair (token, ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
@@ -1125,23 +1137,23 @@ namespace transport
 		size_t requestHeaderSize = 0;
 		memset (m_UDPRequestHeader, 0, 3);
 		if (to.address ().is_v6 ())
-		{	
+		{
 			m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV6;
 			memcpy (m_UDPRequestHeader + 4, to.address ().to_v6().to_bytes().data(), 16);
 			requestHeaderSize = SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
-		}	
+		}
 		else
-		{	
+		{
 			m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV4;
 			memcpy (m_UDPRequestHeader + 4, to.address ().to_v4().to_bytes().data(), 4);
 			requestHeaderSize = SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
-		}	
+		}
 		htobe16buf (m_UDPRequestHeader + requestHeaderSize - 2, to.port ());
-		
+
 		std::vector<boost::asio::const_buffer> bufs;
 		bufs.push_back (boost::asio::buffer (m_UDPRequestHeader, requestHeaderSize));
 		bufs.push_back (boost::asio::buffer (header, headerLen));
-		if (headerX) bufs.push_back (boost::asio::buffer (headerX, headerXLen));		
+		if (headerX) bufs.push_back (boost::asio::buffer (headerX, headerXLen));
 		bufs.push_back (boost::asio::buffer (payload, payloadLen));
 
 		boost::system::error_code ec;
@@ -1150,7 +1162,7 @@ namespace transport
 			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
 		else
 			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
-	}	
+	}
 
 	void SSU2Server::ProcessNextPacketFromProxy (uint8_t * buf, size_t len)
 	{
@@ -1158,11 +1170,11 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: Proxy packet fragmentation is not supported");
 			return;
-		}	
+		}
 		size_t offset = 0;
 		boost::asio::ip::udp::endpoint ep;
 		switch (buf[3]) // ATYP
-		{	
+		{
 			case SOCKS5_ATYP_IPV4:
 			{
 				offset = SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE;
@@ -1172,7 +1184,7 @@ namespace transport
 				uint16_t port = bufbe16toh (buf + 8);
 				ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v4 (bytes), port);
 				break;
-			}	
+			}
 			case SOCKS5_ATYP_IPV6:
 			{
 				offset = SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE;
@@ -1182,15 +1194,15 @@ namespace transport
 				uint16_t port = bufbe16toh (buf + 20);
 				ep = boost::asio::ip::udp::endpoint (boost::asio::ip::address_v6 (bytes), port);
 				break;
-			}	
+			}
 			default:
 			{
 				LogPrint (eLogWarning, "SSU2: Unknown ATYP ", (int)buf[3], " from proxy relay");
 				return;
-			}	
-		}		
+			}
+		}
 		ProcessNextPacket (buf + offset, len - offset, ep);
-	}	
+	}
 
 	void SSU2Server::ConnectToProxy ()
 	{
@@ -1208,7 +1220,7 @@ namespace transport
 				else
 					HandshakeWithProxy ();
 			});
-	}	
+	}
 
 	void SSU2Server::HandshakeWithProxy ()
 	{
@@ -1223,13 +1235,13 @@ namespace transport
 				if (ecode)
 				{
 					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
-					m_UDPAssociateSocket.reset (nullptr);	
+					m_UDPAssociateSocket.reset (nullptr);
 					ReconnectToProxy ();
-				}	
+				}
 				else
 					ReadHandshakeWithProxyReply ();
 			});
-	}	
+	}
 
 	void SSU2Server::ReadHandshakeWithProxyReply ()
 	{
@@ -1243,7 +1255,7 @@ namespace transport
 					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
 					ReconnectToProxy ();
-				}	
+				}
 				else
 				{
 					if (m_UDPRequestHeader[0] == SOCKS5_VER && !m_UDPRequestHeader[1])
@@ -1252,10 +1264,10 @@ namespace transport
 					{
 						LogPrint(eLogError, "SSU2: Invalid proxy reply");
 						m_UDPAssociateSocket.reset (nullptr);
-					}	
-				}			
-			});	
-	}	
+					}
+				}
+			});
+	}
 
 	void SSU2Server::SendUDPAssociateRequest ()
 	{
@@ -1272,13 +1284,13 @@ namespace transport
 				if (ecode)
 				{
 					LogPrint(eLogError, "SSU2: Proxy write error ", ecode.message());
-					m_UDPAssociateSocket.reset (nullptr);	
+					m_UDPAssociateSocket.reset (nullptr);
 					ReconnectToProxy ();
-				}	
+				}
 				else
 					ReadUDPAssociateReply ();
 			});
-	}	
+	}
 
 	void SSU2Server::ReadUDPAssociateReply ()
 	{
@@ -1292,11 +1304,11 @@ namespace transport
 					LogPrint(eLogError, "SSU2: Proxy read error ", ecode.message());
 					m_UDPAssociateSocket.reset (nullptr);
 					ReconnectToProxy ();
-				}	
+				}
 				else
 				{
 					if (m_UDPRequestHeader[0] == SOCKS5_VER && !m_UDPRequestHeader[1])
-					{	
+					{
 						if (m_UDPRequestHeader[3] == SOCKS5_ATYP_IPV4)
 						{
 							boost::asio::ip::address_v4::bytes_type bytes;
@@ -1306,21 +1318,21 @@ namespace transport
 							m_SocketV4.open (boost::asio::ip::udp::v4 ());
 							Receive (m_SocketV4);
 							ReadUDPAssociateSocket ();
-						}	
+						}
 						else
 						{
 							LogPrint(eLogError, "SSU2: Proxy UDP associate unsupported ATYP ", (int)m_UDPRequestHeader[3]);
 							m_UDPAssociateSocket.reset (nullptr);
-						}	
-					}	
+						}
+					}
 					else
 					{
 						LogPrint(eLogError, "SSU2: Proxy UDP associate error ", (int)m_UDPRequestHeader[1]);
 						m_UDPAssociateSocket.reset (nullptr);
-					}	
-				}			
-			});	
-	}	
+					}
+				}
+			});
+	}
 
 	void SSU2Server::ReadUDPAssociateSocket ()
 	{
@@ -1336,18 +1348,18 @@ namespace transport
 					m_ProxyRelayEndpoint.reset (nullptr);
 					m_SocketV4.close ();
 					ConnectToProxy (); // try to reconnect immediately
-				}	
+				}
 				else
 					ReadUDPAssociateSocket ();
-			});	
-	}	
+			});
+	}
 
 	void SSU2Server::ReconnectToProxy ()
 	{
 		LogPrint(eLogInfo, "SSU2: Reconnect to proxy after ", SSU2_PROXY_CONNECT_RETRY_TIMEOUT, " seconds");
 		if (m_ProxyConnectRetryTimer)
 			m_ProxyConnectRetryTimer->cancel ();
-		else	
+		else
 			m_ProxyConnectRetryTimer.reset (new boost::asio::deadline_timer (m_ReceiveService.GetService ()));
 		m_ProxyConnectRetryTimer->expires_from_now (boost::posix_time::seconds (SSU2_PROXY_CONNECT_RETRY_TIMEOUT));
 		m_ProxyConnectRetryTimer->async_wait (
@@ -1361,8 +1373,8 @@ namespace transport
 					ConnectToProxy ();
 				}
 			});	                                                               
-	}	
-		
+	}
+
 	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)
 	{
 		boost::system::error_code ecode;
@@ -1371,14 +1383,14 @@ namespace transport
 		{
 			m_IsThroughProxy = true;
 			m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint (addr, port));
-		}	
+		}
 		else
 		{
 			if (ecode)
 				LogPrint (eLogError, "SSU2: Invalid proxy address ", address, " ", ecode.message());
 			return false;
-		}	
+		}
 		return true;
-	}	
+	}
 }
 }
