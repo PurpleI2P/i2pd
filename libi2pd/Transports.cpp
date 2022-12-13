@@ -168,7 +168,7 @@ namespace transport
 			m_Work = new boost::asio::io_service::work (*m_Service);
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
-			m_UpdateBandwidthTimer = new boost::asio::steady_timer (*m_Service);
+			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
@@ -210,8 +210,8 @@ namespace transport
 		}
 
 		// create SSU2 server
-		if (enableSSU2) 
-		{	
+		if (enableSSU2)
+		{
 			m_SSU2Server = new SSU2Server ();
 			std::string ssu2proxy; i2p::config::GetOption("ssu2.proxy", ssu2proxy);
 			if (!ssu2proxy.empty())
@@ -219,18 +219,18 @@ namespace transport
 				if (proxyurl.parse (ssu2proxy) && proxyurl.schema == "socks")
 				{
 					if (m_SSU2Server->SetProxy (proxyurl.host, proxyurl.port))
-					{	
+					{
 						i2p::context.SetStatus (eRouterStatusProxy);
 						if (ipv6)
 							i2p::context.SetStatusV6 (eRouterStatusProxy);
-					}	
+					}
 					else
 						LogPrint(eLogError, "Transports: Can't set SSU2 proxy ", ssu2proxy);
-				}	
+				}
 				else
 					LogPrint(eLogError, "Transports: Invalid SSU2 proxy URL ", ssu2proxy);
-			}	
-		}	
+			}
+		}
 
 		// bind to interfaces
 		if (ipv4)
@@ -251,12 +251,12 @@ namespace transport
 			{
 				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu4", mtu);
 				if (mtu)
-				{	
+				{
 					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 					i2p::context.SetMTU (mtu, true);
-				}	
-			}	
+				}
+			}
 		}
 
 		if (ipv6)
@@ -277,12 +277,12 @@ namespace transport
 			{
 				uint16_t mtu; i2p::config::GetOption ("ssu2.mtu6", mtu);
 				if (mtu)
-				{	
+				{
 					if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 					if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 					i2p::context.SetMTU (mtu, false);
-				}	
-			}	
+				}
+			}
 		}
 
 		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
@@ -306,7 +306,7 @@ namespace transport
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5 * SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
-		m_UpdateBandwidthTimer->expires_from_now (std::chrono::seconds(1));
+		m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
 		m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 
 		if (m_IsNAT)
@@ -374,7 +374,7 @@ namespace transport
 			m_InBandwidth = m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes;
 			m_OutBandwidth = m_TotalSentBytes - m_LastOutBandwidthUpdateBytes;
 			m_TransitBandwidth = m_TotalTransitTransmittedBytes - m_LastTransitBandwidthUpdateBytes;
-			
+
 			m_LastInBandwidthUpdateBytes = m_TotalReceivedBytes;
 			m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;
 			m_LastTransitBandwidthUpdateBytes = m_TotalTransitTransmittedBytes;
@@ -393,7 +393,7 @@ namespace transport
 				m_LastTransitBandwidth15sUpdateBytes = m_TotalTransitTransmittedBytes;
 			}
 
-			m_UpdateBandwidthTimer->expires_from_now (std::chrono::seconds(1));
+			m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
 			m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 		}
 	}
