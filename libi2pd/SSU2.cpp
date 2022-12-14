@@ -534,13 +534,15 @@ namespace transport
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
-			else
+			else if (!i2p::util::net::IsInReservedRange(senderEndpoint.address ()) && senderEndpoint.port ())
 			{
 				// assume new incoming session
 				auto session = std::make_shared<SSU2Session> (*this);
 				session->SetRemoteEndpoint (senderEndpoint);
 				session->ProcessFirstIncomingMessage (connID, buf, len);
 			}
+			else
+				LogPrint (eLogError, "SSU2: Incoming packet received from invalid endpoint ", senderEndpoint);
 		}
 	}
 
