@@ -611,7 +611,7 @@ namespace transport
 	void SSU2Session::ProcessSessionRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
-		if (len < 80)
+		if (len < 88)
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest message too short ", len);
 			return;
