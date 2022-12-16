@@ -352,7 +352,7 @@ namespace i2p
 		if (!port)
 		{
 			for (const auto& address : *addresses)
-				if (address->port)
+				if (address && address->port)
 				{
 					newPort = address->port;
 					break;
@@ -693,7 +693,7 @@ namespace i2p
 							default: ;
 						}
 					}
-					port = addr->port;
+					if (addr) port = addr->port;
 				}
 			}
 			if (!port)
