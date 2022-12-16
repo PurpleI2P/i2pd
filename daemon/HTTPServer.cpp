@@ -315,6 +315,7 @@ namespace http {
 			{	
 				for (const auto& address : *addresses)
 				{
+					if (!address) continue;
 					s << "<tr>\r\n<td>";
 					switch (address->transportStyle)
 					{

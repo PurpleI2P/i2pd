@@ -60,13 +60,25 @@ namespace data
 	{
 		public:
 
+			enum SupportedTransportsIdx
+			{
+				eNTCP2V4Idx = 0,
+				eNTCP2V6Idx,
+				eSSU2V4Idx,
+				eSSU2V6Idx,
+				eNTCP2V6MeshIdx,
+				eNumTransports
+			};
+
+#define TransportBit(tr) e##tr = (1 << e##tr##Idx)
+		
 			enum SupportedTransports
 			{
-				eNTCP2V4 = 0x01,
-				eNTCP2V6 = 0x02,
-				eSSU2V4 = 0x04,
-				eSSU2V6 = 0x08,
-				eNTCP2V6Mesh = 0x10,
+				TransportBit(NTCP2V4), // 0x01
+				TransportBit(NTCP2V6), // 0x02
+				TransportBit(SSU2V4),  // 0x04
+				TransportBit(SSU2V6),  // 0x08
+				TransportBit(NTCP2V6Mesh), // 0x10
 				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
@@ -160,7 +172,7 @@ namespace data
 					Buffer (const uint8_t * buf, size_t len);
 			};
 
-			typedef std::vector<std::shared_ptr<Address> > Addresses;
+			typedef std::array<std::shared_ptr<Address>, eNumTransports> Addresses;
 
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (const RouterInfo& ) = default;

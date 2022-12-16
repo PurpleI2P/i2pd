@@ -272,7 +272,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : *addresses)
 		{
-			if (address->port != port && address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
+			if (address && address->port != port && address->transportStyle == i2p::data::RouterInfo::eTransportSSU2)
 			{
 				address->port = port;
 				updated = true;
@@ -290,7 +290,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : *addresses)
 		{
-			if (address->IsNTCP2 () && (address->port != port || address->published != publish))
+			if (address && address->IsNTCP2 () && (address->port != port || address->published != publish))
 			{
 				bool isAddr = v4 && address->IsV4 ();
 				if (!isAddr && (v6 || ygg))
@@ -319,23 +319,20 @@ namespace i2p
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
 		bool found = false, updated = false;
-		for (auto it = addresses->begin (); it != addresses->end ();)
+		for (auto& it: *addresses)
 		{
-			if ((*it)->IsNTCP2 ())
+			if (it && it->IsNTCP2 ())
 			{
 				found = true;
 				if (enable)
 				{
-					(*it)->s = m_NTCP2Keys->staticPublicKey;
-					memcpy ((*it)->i, m_NTCP2Keys->iv, 16);
-					it++;
+					it->s = m_NTCP2Keys->staticPublicKey;
+					memcpy (it->i, m_NTCP2Keys->iv, 16);
 				}
 				else
-					it = addresses->erase (it);
+					it.reset ();
 				updated = true;
-			}
-			else
-				it++;
+			}	
 		}
 		if (enable && !found)
 		{
@@ -365,7 +362,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : *addresses)
 		{
-			if (address->IsSSU2 () && (!address->port || address->port != port || address->published != publish) &&
+			if (address && address->IsSSU2 () && (!address->port || address->port != port || address->published != publish) &&
 				((v4 && address->IsV4 ()) || (v6 && address->IsV6 ())))
 			{
 				if (port) address->port = port;
@@ -387,23 +384,20 @@ namespace i2p
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
 		bool found = false, updated = false;
-		for (auto it = addresses->begin (); it != addresses->end ();)
+		for (auto& it : *addresses)
 		{
-			if ((*it)->IsSSU2 ())
+			if (it && it->IsSSU2 ())
 			{
 				found = true;
 				if (enable)
 				{
-					(*it)->s = m_SSU2Keys->staticPublicKey;
-					(*it)->i = m_SSU2Keys->intro;
-					it++;
+					it->s = m_SSU2Keys->staticPublicKey;
+					it->i = m_SSU2Keys->intro;
 				}
 				else
-					it = addresses->erase (it);
+					it.reset ();
 				updated = true;
 			}
-			else
-				it++;
 		}
 		if (enable && !found)
 		{
@@ -435,6 +429,7 @@ namespace i2p
 		bool updated = false;
 		for (auto& address : *addresses)
 		{
+			if (!address) continue;
 			if (address->host != host && address->IsCompatible (host) &&
 				!i2p::util::net::IsYggdrasilAddress (address->host))
 			{
@@ -486,7 +481,7 @@ namespace i2p
 		if (!addresses) return;
 		bool updated = false;
 		for (auto& addr : *addresses)
-			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())) &&
+			if (addr && addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())) &&
 			    addr->ssu && !addr->ssu->introducers.empty ())
 			{
 				addr->ssu->introducers.clear ();
@@ -612,7 +607,7 @@ namespace i2p
 		if (addresses) 
 		{	
 			for (auto& addr : *addresses)
-				if (addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+				if (addr && addr->ssu && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 				{
 					addr->published = false;
 					addr->caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
@@ -648,7 +643,7 @@ namespace i2p
 		if (addresses) 
 		{	
 			for (auto& addr : *addresses)
-				if (addr->ssu && isSSU2Published && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
+				if (addr && addr->ssu && isSSU2Published && ((v4 && addr->IsV4 ()) || (v6 && addr->IsV6 ())))
 				{
 					addr->published = true;
 					addr->caps |= i2p::data::RouterInfo::eSSUIntroducer;
@@ -685,7 +680,7 @@ namespace i2p
 			{
 				for (auto& addr: *addresses)
 				{
-					if (addr->IsV6 () && !i2p::util::net::IsYggdrasilAddress (addr->host))
+					if (addr && addr->IsV6 () && !i2p::util::net::IsYggdrasilAddress (addr->host))
 					{
 						switch (addr->transportStyle)
 						{
@@ -768,7 +763,7 @@ namespace i2p
 			{
 				for (auto& addr: *addresses)
 				{
-					if (addr->IsV4 ())
+					if (addr && addr->IsV4 ())
 					{
 						switch (addr->transportStyle)
 						{
@@ -781,7 +776,7 @@ namespace i2p
 							default: ;
 						}
 					}
-					if (addr->port) port = addr->port;
+					if (addr && addr->port) port = addr->port;
 				}
 			}	
 			if (!port)
@@ -844,8 +839,8 @@ namespace i2p
 			{
 				for (auto& addr: *addresses)
 				{
-					if (!port) port = addr->port;
-					if (i2p::util::net::IsYggdrasilAddress (addr->host))
+					if (!port && addr) port = addr->port;
+					if (addr && i2p::util::net::IsYggdrasilAddress (addr->host))
 					{
 						foundMesh = true;
 						break;
@@ -867,7 +862,7 @@ namespace i2p
 		if (!addresses) return;
 		for (auto& addr: *addresses)
 		{
-			if (addr->ssu && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			if (addr && addr->ssu && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{	
 				addr->ssu->mtu = mtu;
 				LogPrint (eLogDebug, "Router: MTU for ", v4 ? "ipv4" : "ipv6", " address ", addr->host.to_string(), " is set to ", mtu);
@@ -883,7 +878,7 @@ namespace i2p
 		if (!addresses) return;
 		for (auto& addr: *addresses)
 		{
-			if (addr->IsPublishedNTCP2 ())
+			if (addr && addr->IsPublishedNTCP2 ())
 			{
 				bool isYgg1 = i2p::util::net::IsYggdrasilAddress (addr->host);
 				if (addr->IsV6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))

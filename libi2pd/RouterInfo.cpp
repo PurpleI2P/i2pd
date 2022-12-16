@@ -209,7 +209,6 @@ namespace data
 		auto addresses = netdb.NewRouterInfoAddresses ();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
-		addresses->reserve (numAddresses);
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
@@ -418,7 +417,11 @@ namespace data
 			if (supportedTransports)
 			{
 				if (!(m_SupportedTransports & supportedTransports)) // avoid duplicates
-					addresses->push_back(address);
+				{
+					for (uint8_t i = 0; i < eNumTransports; i++)
+						if ((1 << i) & supportedTransports)
+							(*addresses)[i] = address;
+				}	
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
@@ -633,13 +636,23 @@ namespace data
 		{
 			m_SupportedTransports |= eNTCP2V4;
 			if (addr->published) m_ReachableTransports |= eNTCP2V4;
+			(*m_Addresses)[eNTCP2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
-			m_SupportedTransports |= eNTCP2V6;
-			if (addr->published) m_ReachableTransports |= eNTCP2V6;
+			if (i2p::util::net::IsYggdrasilAddress (addr->host))
+			{
+				m_SupportedTransports |= eNTCP2V6Mesh;
+				m_ReachableTransports |= eNTCP2V6Mesh;
+				(*m_Addresses)[eNTCP2V6MeshIdx] = addr;
+			}
+			else
+			{	
+				m_SupportedTransports |= eNTCP2V6;
+				if (addr->published) m_ReachableTransports |= eNTCP2V6;
+				(*m_Addresses)[eNTCP2V6Idx] = addr;
+			}	
 		}
-		m_Addresses->push_back(std::move(addr));
 	}
 
 	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps)
@@ -653,9 +666,16 @@ namespace data
 		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
-		if (addr->IsV4 ()) m_SupportedTransports |= eSSU2V4;
-		if (addr->IsV6 ()) m_SupportedTransports |= eSSU2V6;
-		m_Addresses->push_back(std::move(addr));
+		if (addr->IsV4 ()) 
+		{	
+			m_SupportedTransports |= eSSU2V4;
+			(*m_Addresses)[eSSU2V4Idx] = addr;
+		}	
+		if (addr->IsV6 ()) 
+		{	
+			m_SupportedTransports |= eSSU2V6;
+			(*m_Addresses)[eSSU2V6Idx] = addr;
+		}
 	}
 
 	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
@@ -676,13 +696,14 @@ namespace data
 		{
 			m_SupportedTransports |= eSSU2V4;
 			m_ReachableTransports |= eSSU2V4;
+			(*m_Addresses)[eSSU2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
 			m_SupportedTransports |= eSSU2V6;
 			m_ReachableTransports |= eSSU2V6;
+			(*m_Addresses)[eSSU2V6Idx] = addr;
 		}
-		m_Addresses->push_back(std::move(addr));
 	}
 
 	bool RouterInfo::IsNTCP2 (bool v4only) const
@@ -721,21 +742,15 @@ namespace data
 	{
 		if (IsV6 ())
 		{
-			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
+			for (auto& it : *m_Addresses)
 			{
-				auto addr = *it;
-				if (addr->IsV6 ())
+				if (it && it->IsV6 ())
 				{
-					if (addr->IsV4 ())
-					{
-						addr->caps &= ~AddressCaps::eV6;
-						++it;
-					}
+					if (it->IsV4 ())
+						it->caps &= ~AddressCaps::eV6;
 					else
-						it = m_Addresses->erase (it);
+						it.reset ();
 				}
-				else
-					++it;
 			}
 			UpdateSupportedTransports ();
 		}
@@ -745,21 +760,15 @@ namespace data
 	{
 		if (IsV4 ())
 		{
-			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
+			for (auto& it : *m_Addresses)
 			{
-				auto addr = *it;
-				if (addr->IsV4 ())
+				if (it && it->IsV4 ())
 				{
-					if (addr->IsV6 ())
-					{
-						addr->caps &= ~AddressCaps::eV4;
-						++it;
-					}
+					if (it->IsV6 ())
+						it->caps &= ~AddressCaps::eV4;
 					else
-						it = m_Addresses->erase (it);
+						it.reset ();
 				}
-				else
-					++it;
 			}
 			UpdateSupportedTransports ();
 		}
@@ -780,33 +789,22 @@ namespace data
 		{
 			m_SupportedTransports &= ~eNTCP2V6Mesh;
 			m_ReachableTransports &= ~eNTCP2V6Mesh;
-			for (auto it = m_Addresses->begin (); it != m_Addresses->end ();)
+			for (auto& it: *m_Addresses)
 			{
-				auto addr = *it;
-				if (i2p::util::net::IsYggdrasilAddress (addr->host))
-					it = m_Addresses->erase (it);
-				else
-					++it;
+				if (it && i2p::util::net::IsYggdrasilAddress (it->host))
+					it.reset ();
 			}
 		}
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2V4Address () const
 	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU2) && address->IsV4();
-			});
+		return (*GetAddresses ())[eSSU2V4Idx];
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2V6Address () const
 	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return (address->transportStyle == eTransportSSU2) && address->IsV6();
-			});
+		return (*GetAddresses ())[eSSU2V6Idx];
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2Address (bool v4) const
@@ -843,7 +841,7 @@ namespace data
 		auto addresses = m_Addresses;
 #endif
 		for (const auto& address : *addresses)
-			if (filter (address)) return address;
+			if (address && filter (address)) return address;
 
 		return nullptr;
 	}
@@ -871,30 +869,21 @@ namespace data
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
 	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return address->IsPublishedNTCP2 () && address->host.is_v4 ();
-			});
+		auto addr = (*GetAddresses ())[eNTCP2V4Idx];
+		if (addr && addr->IsPublishedNTCP2 ()) return addr;
+		return nullptr;
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V6Address () const
 	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return address->IsPublishedNTCP2 () && address->host.is_v6 () &&
-					!i2p::util::net::IsYggdrasilAddress (address->host);
-			});
+		auto addr = (*GetAddresses ())[eNTCP2V6Idx];
+		if (addr && addr->IsPublishedNTCP2 ()) return addr;
+		return nullptr;
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetYggdrasilAddress () const
 	{
-		return GetAddress (
-			[](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return address->IsPublishedNTCP2 () && i2p::util::net::IsYggdrasilAddress (address->host);
-			});
+		return (*GetAddresses ())[eNTCP2V6MeshIdx];
 	}
 
 	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const
@@ -944,7 +933,7 @@ namespace data
 	{
 		for (auto& addr: *m_Addresses)
 		{
-			if (!addr->published && (addr->transportStyle == eTransportNTCP2 || addr->transportStyle == eTransportSSU2))
+			if (addr && !addr->published)
 			{
 				addr->caps &= ~(eV4 | eV6);
 				addr->caps |= transports;
@@ -958,6 +947,7 @@ namespace data
 		m_ReachableTransports = 0;
 		for (const auto& addr: *m_Addresses)
 		{
+			if (!addr) continue;
 			uint8_t transports = 0;
 			switch (addr->transportStyle)
 			{
@@ -1061,10 +1051,22 @@ namespace data
 		uint64_t ts = htobe64 (GetTimestamp ());
 		s.write ((const char *)&ts, sizeof (ts));
 		// addresses
-		uint8_t numAddresses = addresses->size ();
-		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (const auto& addr_ptr : *addresses)
+		uint8_t numAddresses = 0;
+		for (size_t idx = 0; idx < addresses->size(); idx++)
 		{
+			auto addr_ptr = (*addresses)[idx];
+			if (!addr_ptr) continue;
+			if (idx == eNTCP2V6Idx && addr_ptr == (*addresses)[eNTCP2V4Idx]) continue;
+			if (idx == eSSU2V6Idx && addr_ptr == (*addresses)[eSSU2V4Idx]) continue;
+			numAddresses++;
+		}	
+		s.write ((char *)&numAddresses, sizeof (numAddresses));
+		for (size_t idx = 0; idx < addresses->size(); idx++)
+		{
+			auto addr_ptr = (*addresses)[idx];
+			if (!addr_ptr) continue;
+			if (idx == eNTCP2V6Idx && addr_ptr == (*addresses)[eNTCP2V4Idx]) continue;
+			if (idx == eSSU2V6Idx && addr_ptr == (*addresses)[eSSU2V4Idx]) continue;
 			const Address& address = *addr_ptr;
 			// calculate cost
 			uint8_t cost = 0x7f;
@@ -1269,7 +1271,7 @@ namespace data
 		if (!addresses) return false;
 		for (auto& addr : *addresses)
 		{
-			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			if (addr && addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
 				for (auto& intro: addr->ssu->introducers)
 					if (intro.iTag == introducer.iTag) return false; // already presented
@@ -1287,7 +1289,7 @@ namespace data
 		if (!addresses) return false;
 		for (auto& addr: *addresses)
 		{
-			if (addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
+			if (addr && addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())))
 			{
 				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
 					if (h == it->iH)
