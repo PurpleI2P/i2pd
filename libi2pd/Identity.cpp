@@ -49,29 +49,21 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType)
 	{
-		/*uint8_t randomPaddingBlock[32];
-		RAND_bytes (randomPaddingBlock, 32);*/
+		uint8_t randomPaddingBlock[32];
+		RAND_bytes (randomPaddingBlock, 32);
 		if (cryptoType == CRYPTO_KEY_TYPE_ECIES_X25519_AEAD)
 		{
-			/*memcpy (m_StandardIdentity.publicKey, publicKey ? publicKey : randomPaddingBlock, 32);
+			memcpy (m_StandardIdentity.publicKey, publicKey ? publicKey : randomPaddingBlock, 32);
 			for (int i = 0; i < 7; i++) // 224 bytes
-				memcpy (m_StandardIdentity.publicKey + 32*(i + 1), randomPaddingBlock, 32);*/
-			if (publicKey)
-			{	
-				memcpy (m_StandardIdentity.publicKey, publicKey, 32);
-				RAND_bytes (m_StandardIdentity.publicKey + 32, 224);
-			}	
-			else
-				RAND_bytes (m_StandardIdentity.publicKey, 256);
+				memcpy (m_StandardIdentity.publicKey + 32*(i + 1), randomPaddingBlock, 32);
 		}
 		else
 		{
 			if (publicKey)
 				memcpy (m_StandardIdentity.publicKey, publicKey, 256);
 			else
-				RAND_bytes (m_StandardIdentity.publicKey, 256);
-				/*for (int i = 0; i < 8; i++) // 256 bytes
-					memcpy (m_StandardIdentity.publicKey + 32*i, randomPaddingBlock, 32);*/
+				for (int i = 0; i < 8; i++) // 256 bytes
+					memcpy (m_StandardIdentity.publicKey + 32*i, randomPaddingBlock, 32);
 		}	
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
@@ -110,9 +102,8 @@ namespace data
 				case SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519:
 				{
 					size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
-					/*for (int i = 0; i < 3; i++) // 96 bytes
-						memcpy (m_StandardIdentity.signingKey + 32*i, randomPaddingBlock, 32);*/
-					RAND_bytes (m_StandardIdentity.signingKey, 96);	
+					for (int i = 0; i < 3; i++) // 96 bytes
+						memcpy (m_StandardIdentity.signingKey + 32*i, randomPaddingBlock, 32);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}

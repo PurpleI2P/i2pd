@@ -611,7 +611,7 @@ namespace transport
 	void SSU2Session::ProcessSessionRequest (Header& header, uint8_t * buf, size_t len)
 	{
 		// we are Bob
-		if (len < 80)
+		if (len < 88)
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest message too short ", len);
 			return;
@@ -2477,14 +2477,9 @@ namespace transport
 		size_t paddingSize = rand () & 0x0F; // 0 - 15
 		if (paddingSize + 3 > len) paddingSize = len - 3;
 		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
-		if (paddingSize)
-		{
-			buf[0] = eSSU2BlkPadding;
-			htobe16buf (buf + 1, paddingSize);
-			memset (buf + 3, 0, paddingSize);
-		}
-		else
-			return 0;
+		buf[0] = eSSU2BlkPadding;
+		htobe16buf (buf + 1, paddingSize);
+		memset (buf + 3, 0, paddingSize);
 		return paddingSize + 3;
 	}
 
