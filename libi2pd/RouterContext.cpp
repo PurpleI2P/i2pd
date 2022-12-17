@@ -427,35 +427,53 @@ namespace i2p
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
 		bool updated = false;
-		for (auto& address : *addresses)
+		if (host.is_v4 ())
 		{
-			if (!address) continue;
-			if (address->host != host && address->IsCompatible (host) &&
-				!i2p::util::net::IsYggdrasilAddress (address->host))
+			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V4Idx];
+			if (addr && addr->host != host)
 			{
-				// update host
-				address->host = host;
+				addr->host = host;
 				updated = true;
-			}
-			if (host.is_v6 () && address->IsV6 () && address->ssu &&
-			    (!address->ssu->mtu || updated) && m_StatusV6 != eRouterStatusProxy)
+			}	
+			addr = (*addresses)[i2p::data::RouterInfo::eSSU2V4Idx];
+			if (addr && addr->host != host)
 			{
-				// update MTU
-				auto mtu = i2p::util::net::GetMTU (host);
-				if (mtu)
-				{
-					LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
-					int maxMTU = i2p::util::net::GetMaxMTU (host.to_v6 ());
-					if (mtu > maxMTU)
-					{
-						mtu = maxMTU;
-						LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
-					}
-					address->ssu->mtu = mtu;
-					updated = true;
-				}
-			}
+				addr->host = host;
+				updated = true;
+			}	
 		}
+		else if (host.is_v6 ())
+		{
+			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6Idx];
+			if (addr && addr->host != host)
+			{
+				addr->host = host;
+				updated = true;
+			}	
+			addr = (*addresses)[i2p::data::RouterInfo::eSSU2V6Idx];
+			if (addr && (addr->host != host || !addr->ssu->mtu))
+			{
+				addr->host = host;
+				if (m_StatusV6 != eRouterStatusProxy)
+				{
+					// update MTU
+					auto mtu = i2p::util::net::GetMTU (host);
+					if (mtu)
+					{
+						LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
+						int maxMTU = i2p::util::net::GetMaxMTU (host.to_v6 ());
+						if (mtu > maxMTU)
+						{
+							mtu = maxMTU;
+							LogPrint(eLogWarning, "Router: MTU dropped to upper limit of ", maxMTU, " bytes");
+						}
+						addr->ssu->mtu = mtu;
+					}
+				}	
+				updated = true;
+			}	
+		}	
+		
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
 			UpdateRouterInfo ();
@@ -477,18 +495,12 @@ namespace i2p
 
 	void RouterContext::ClearSSU2Introducers (bool v4)
 	{
-		auto addresses = m_RouterInfo.GetAddresses ();
-		if (!addresses) return;
-		bool updated = false;
-		for (auto& addr : *addresses)
-			if (addr && addr->IsSSU2 () && ((v4 && addr->IsV4 ()) || (!v4 && addr->IsV6 ())) &&
-			    addr->ssu && !addr->ssu->introducers.empty ())
-			{
-				addr->ssu->introducers.clear ();
-				updated = true;
-			}
-		if (updated)
+		auto addr = m_RouterInfo.GetSSU2Address (v4);
+		if (addr && !addr->ssu->introducers.empty ())
+		{
+			addr->ssu->introducers.clear ();
 			UpdateRouterInfo ();
+		}	
 	}
 
 	void RouterContext::SetFloodfill (bool floodfill)
@@ -829,26 +841,26 @@ namespace i2p
 	{
 		if (supportsmesh)
 		{
+			auto addresses = m_RouterInfo.GetAddresses ();
+			if (!addresses) return;
 			m_RouterInfo.EnableMesh ();
+			if ((*addresses)[i2p::data::RouterInfo::eNTCP2V6MeshIdx]) return; // we have mesh address already
 			uint16_t port = 0;
 			i2p::config::GetOption ("ntcp2.port", port);
 			if (!port) i2p::config::GetOption("port", port);
-			bool foundMesh = false;
-			auto addresses = m_RouterInfo.GetAddresses ();
-			if (addresses) 
+			if (!port) 
 			{
 				for (auto& addr: *addresses)
 				{
-					if (!port && addr) port = addr->port;
-					if (addr && i2p::util::net::IsYggdrasilAddress (addr->host))
-					{
-						foundMesh = true;
+					if (addr && addr->port) 
+					{	
+						port = addr->port;
 						break;
-					}
+					}	
 				}
 			}	
-			if (!foundMesh)
-				m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
+			if (!port) port = SelectRandomPort ();
+			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, host, port);
 		}
 		else
 			m_RouterInfo.DisableMesh ();
