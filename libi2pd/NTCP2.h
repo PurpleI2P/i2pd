@@ -134,7 +134,7 @@ namespace transport
 			~NTCP2Session ();
 			void Terminate ();
 			void TerminateByTimeout ();
-			void Done ();
+			void Done () override;
 			void Close () { m_Socket.close (); }; // for accept
 			void DeleteNextReceiveBuffer (uint64_t ts);
 
@@ -142,14 +142,14 @@ namespace transport
 			const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SetRemoteEndpoint (const boost::asio::ip::tcp::endpoint& ep) { m_RemoteEndpoint = ep; };
 
-			bool IsEstablished () const { return m_IsEstablished; };
+			bool IsEstablished () const override { return m_IsEstablished; };
 			bool IsTerminated () const { return m_IsTerminated; };
 
 			void ClientLogin (); // Alice
 			void ServerLogin (); // Bob
 
-			void SendLocalRouterInfo (bool update); // after handshake or by update
-			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+			void SendLocalRouterInfo (bool update) override; // after handshake or by update
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 
 		private:
 
