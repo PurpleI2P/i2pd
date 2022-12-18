@@ -245,7 +245,7 @@ namespace transport
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
 			size_t Resend (uint64_t ts); // return number or resent packets
-			override bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
+			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };
 			void SetState (SSU2SessionState state) { m_State = state; };
