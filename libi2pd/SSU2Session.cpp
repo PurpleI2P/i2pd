@@ -1836,7 +1836,7 @@ namespace transport
 		session->SendData (payload, payloadSize);
 	}
 
-	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len)
+	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
@@ -1891,9 +1891,22 @@ namespace transport
 				code = eSSU2RelayResponseCodeCharlieSignatureFailure;
 			}
 		}
-		else
+		else if (!attempts)
 		{
-			LogPrint (eLogError, "SSU2: RelayIntro unknown router to introduce");
+			// RouterInfo migth come in the next packet, try again
+			auto vec = std::make_shared<std::vector<uint8_t> >(len);
+			memcpy (vec->data (), buf, len);
+			auto s = shared_from_this ();
+			m_Server.GetService ().post ([s, vec, attempts]()
+				{
+					LogPrint (eLogDebug, "SSU2: RelayIntro attempt ", attempts + 1);
+					s->HandleRelayIntro (vec->data (), vec->size (), attempts + 1);
+				});	
+			return;
+		}	
+		else	
+		{
+			LogPrint (eLogWarning, "SSU2: RelayIntro unknown router to introduce");
 			code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
 		}
 		// send relay response to Bob

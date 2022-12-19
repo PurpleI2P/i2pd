@@ -305,7 +305,7 @@ namespace transport
 			void HandleFollowOnFragment (const uint8_t * buf, size_t len);
 			bool ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m); // true if message complete
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
-			void HandleRelayIntro (const uint8_t * buf, size_t len);
+			void HandleRelayIntro (const uint8_t * buf, size_t len, int attempts = 0);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			void HandlePeerTest (const uint8_t * buf, size_t len);
 
