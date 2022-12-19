@@ -570,7 +570,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, ts/1000);
+		htobe32buf (payload + 3, (ts + 500)/1000);
 		size_t payloadSize = 7;
 		if (GetRouterStatus () == eRouterStatusFirewalled && m_Address->IsIntroducer ())
 		{
@@ -684,7 +684,7 @@ namespace transport
 		size_t maxPayloadSize = m_MaxPayloadSize - 48;
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, ts/1000);
+		htobe32buf (payload + 3, (ts + 500)/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, maxPayloadSize - payloadSize, m_RemoteEndpoint);
 		if (m_RelayTag)
@@ -1046,7 +1046,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 25 - payloadSize, 1);
 		// encrypt
@@ -1117,7 +1117,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, 56 - payloadSize, m_RemoteEndpoint);
 		if (m_TerminationReason != eSSU2TerminationReasonNormalClose)
@@ -1205,7 +1205,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, ep);
 		payloadSize += CreateRelayResponseBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize,
@@ -1281,7 +1281,7 @@ namespace transport
 		// payload
 		payload[0] = eSSU2BlkDateTime;
 		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 		size_t payloadSize = 7;
 		if (msg == 6 || msg == 7)
 			payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, m_RemoteEndpoint);

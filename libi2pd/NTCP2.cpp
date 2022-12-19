@@ -139,7 +139,7 @@ namespace transport
 		m3p2[3] = 0; // flag
 		memcpy (m3p2 + 4, i2p::context.GetRouterInfo ().GetBuffer (), bufLen); // TODO: own RI should be protected by mutex
 		// 2 bytes reserved
-		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
+		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsA, rounded to seconds
 		// 4 bytes reserved
 		// sign and encrypt options, use m_H as AD
 		uint8_t nonce[12];
@@ -162,7 +162,7 @@ namespace transport
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
-		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsB
+		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsB, rounded to seconds
 		// sign and encrypt options, use m_H as AD
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
