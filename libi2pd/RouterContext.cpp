@@ -125,7 +125,7 @@ namespace i2p
 		}
 		if (ipv6)
 		{
-			std::string host = "::1";
+			std::string host;
 			if (!i2p::config::IsDefault("host") && !ipv4) // override if v6 only
 				i2p::config::GetOption("host", host);
 			else
@@ -136,6 +136,7 @@ namespace i2p
 
 			if (ntcp2)
 			{
+				bool added = false;
 				if (ntcp2Published)
 				{
 					std::string ntcp2Host;
@@ -143,9 +144,13 @@ namespace i2p
 						i2p::config::GetOption ("ntcp2.addressv6", ntcp2Host);
 					else
 						ntcp2Host = host;
-					routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (ntcp2Host), port);
+					if (!ntcp2Host.empty () && port)
+					{
+						routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address_v6::from_string (ntcp2Host), port);
+						added = true;
+					}
 				}
-				else
+				if (!added)
 				{
 					if (!ipv4) // no other ntcp2 addresses yet
 						routerInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
@@ -154,13 +159,18 @@ namespace i2p
 			}
 			if (ssu2)
 			{
+				bool added = false;
 				if (ssu2Published)
 				{
 					uint16_t ssu2Port; i2p::config::GetOption ("ssu2.port", ssu2Port);
 					if (!ssu2Port) ssu2Port = port;
-					routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v6::from_string (host), ssu2Port);
+					if (!host.empty () && ssu2Port)
+					{
+						routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, boost::asio::ip::address_v6::from_string (host), ssu2Port);
+						added = true;
+					}
 				}
-				else
+				if (!added)
 				{
 					if (!ipv4) // no other ssu2 addresses yet
 						routerInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro);
