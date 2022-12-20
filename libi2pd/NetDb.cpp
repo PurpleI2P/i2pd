@@ -295,7 +295,8 @@ namespace data
 		else
 		{
 			r = std::make_shared<RouterInfo> (buf, len);
-			if (!r->IsUnreachable () && r->HasValidAddresses ())
+			if (!r->IsUnreachable () && r->HasValidAddresses () &&
+			    i2p::util::GetMillisecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ())
 			{
 				bool inserted = false;
 				{
@@ -365,15 +366,16 @@ namespace data
 
 	bool NetDb::AddLeaseSet2 (const IdentHash& ident, const uint8_t * buf, int len, uint8_t storeType)
 	{
-		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
 		if (leaseSet->IsValid ())
 		{
+			std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 			auto it = m_LeaseSets.find(ident);
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
-				if (leaseSet->IsPublic () && !leaseSet->IsExpired ())
+				if (leaseSet->IsPublic () && !leaseSet->IsExpired () &&
+				     i2p::util::GetSecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD > leaseSet->GetPublishedTimestamp ())
 				{
 					// TODO: implement actual update
 					LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
@@ -382,7 +384,7 @@ namespace data
 				}
 				else
 				{
-					LogPrint (eLogWarning, "NetDb: Unpublished or expired LeaseSet2 received: ", ident.ToBase32());
+					LogPrint (eLogWarning, "NetDb: Unpublished or expired or future LeaseSet2 received: ", ident.ToBase32());
 					m_LeaseSets.erase (ident);
 				}
 			}
@@ -494,8 +496,7 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses () &&
-			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL && // too old
-			ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ()) // from future
+			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL) // too old
 		{
 			r->DeleteBuffer ();
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
