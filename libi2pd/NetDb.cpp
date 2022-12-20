@@ -494,7 +494,8 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () && r->HasValidAddresses () &&
-			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL)
+			ts < r->GetTimestamp () + 24*60*60*NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT*1000LL && // too old
+			ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ()) // from future
 		{
 			r->DeleteBuffer ();
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
@@ -637,7 +638,12 @@ namespace data
 					it.second->SetUnreachable (true);
 			}
 			else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
-					it.second->SetUnreachable (true);
+				it.second->SetUnreachable (true);
+			else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
+			{
+				LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (it.second->GetTimestamp () - ts)/1000LL, " seconds");
+				it.second->SetUnreachable (true);
+			}
 
 			if (it.second->IsUnreachable ())
 			{

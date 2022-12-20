@@ -44,6 +44,7 @@ namespace data
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
+	const int NETDB_EXPIRATION_TIMEOUT_THRESHOLD = 2*60; // 2 minutes
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
