@@ -1661,6 +1661,7 @@ namespace transport
 				bool isV4 = ep.address ().is_v4 ();
 				if (ep.port () != m_Server.GetPort (isV4))
 				{
+					LogPrint (eLogInfo, "SSU2: Our port ", ep.port (), " received from ", m_RemoteEndpoint, " is different from ", m_Server.GetPort (isV4));
 					if (isV4)
 					{
 						if (i2p::context.GetStatus () == eRouterStatusTesting || 
@@ -1687,12 +1688,18 @@ namespace transport
 					if (isV4)
 					{
 						if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
+						{	
 							i2p::context.SetError (eRouterErrorNone);
+							if (m_State == eSSU2SessionStatePeerTest)
+								i2p::context.SetStatus (eRouterStatusOK);
+						}	
 					}
 					else
 					{
 						if (i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
 							i2p::context.SetErrorV6 (eRouterErrorNone);
+						if (m_State == eSSU2SessionStatePeerTest)
+							i2p::context.SetStatusV6 (eRouterStatusOK);
 					}
 				}
 			}
