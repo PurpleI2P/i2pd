@@ -77,7 +77,7 @@ namespace config {
 		limits.add_options()
 			("limits.coresize", value<uint32_t>()->default_value(0),          "Maximum size of corefile in Kb (0 - use system limit)")
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
-			("limits.transittunnels", value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+			("limits.transittunnels", value<uint16_t>()->default_value(5000), "Maximum active transit tunnels (default:5000)")
 			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Ignored")

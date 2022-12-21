@@ -309,7 +309,7 @@ namespace tunnel
 			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
 
-	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 2500;
+	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 5000;
 	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
 	uint16_t GetMaxNumTransitTunnels ();
 }
