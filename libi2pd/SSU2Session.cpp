@@ -1667,8 +1667,8 @@ namespace transport
 						if (i2p::context.GetStatus () == eRouterStatusTesting || 
 						    m_State == eSSU2SessionStatePeerTest)
 						{	
-							i2p::context.SetError (eRouterErrorSymmetricNAT);
 							i2p::context.SetStatus (eRouterStatusFirewalled);
+							i2p::context.SetError (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimer ();
 						}	
 					}
@@ -1677,8 +1677,8 @@ namespace transport
 						if (i2p::context.GetStatusV6 () == eRouterStatusTesting ||
 						    m_State == eSSU2SessionStatePeerTest)
 						{
-							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
 							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
+							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimerV6 ();
 						}	
 					}
@@ -1689,17 +1689,19 @@ namespace transport
 					{
 						if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
 						{	
-							i2p::context.SetError (eRouterErrorNone);
 							if (m_State == eSSU2SessionStatePeerTest)
 								i2p::context.SetStatus (eRouterStatusOK);
+							i2p::context.SetError (eRouterErrorNone);
 						}	
 					}
 					else
 					{
 						if (i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
+						{	
+							if (m_State == eSSU2SessionStatePeerTest)
+								i2p::context.SetStatusV6 (eRouterStatusOK);
 							i2p::context.SetErrorV6 (eRouterErrorNone);
-						if (m_State == eSSU2SessionStatePeerTest)
-							i2p::context.SetStatusV6 (eRouterStatusOK);
+						}	
 					}
 				}
 			}
