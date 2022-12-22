@@ -252,13 +252,24 @@ namespace proxy {
 		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");
 		req.RemoveHeader("DNT"); // Useless DoNotTrack flag
-		req.RemoveHeader("X-Requested-With"); // Android Webview send this with the value set to the application ID
 		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
 		req.RemoveHeader("Proxy-"); // Proxy-*
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
+
+		/**
+		 * i2pd PR #1816:
+		 * Android Webview send this with the value set to the application ID, so we drop it,
+		 * but only if it does not belong to an AJAX request (*HttpRequest, like XMLHttpRequest).
+		 */
+		if(req.GetHeader("X-Requested-With") != "") {
+			auto h = req.GetHeader ("X-Requested-With");
+			auto x = h.find("HttpRequest");
+			if (x == std::string::npos) // not found
+				req.RemoveHeader("X-Requested-With");
+		}
 
 		/**
 		 * according to i2p ticket #1862:
