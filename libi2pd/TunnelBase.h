@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -41,7 +41,7 @@ namespace tunnel
 	{
 		public:
 
-			TunnelBase (uint32_t tunnelID, uint32_t nextTunnelID, i2p::data::IdentHash nextIdent):
+			TunnelBase (uint32_t tunnelID, uint32_t nextTunnelID, const i2p::data::IdentHash& nextIdent):
 				m_TunnelID (tunnelID), m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent),
 				m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
