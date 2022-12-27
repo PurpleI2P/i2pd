@@ -1902,7 +1902,7 @@ namespace transport
 		}
 		else if (!attempts)
 		{
-			// RouterInfo migth come in the next packet, try again
+			// RouterInfo might come in the next packet, try again
 			auto vec = std::make_shared<std::vector<uint8_t> >(len);
 			memcpy (vec->data (), buf, len);
 			auto s = shared_from_this ();
@@ -2427,7 +2427,7 @@ namespace transport
 						d.quot = maxNumRanges;
 						d.rem = 0;
 					}
-					// Acks only ragnes for acnt
+					// Acks only ranges for acnt
 					for (int i = 0; i < d.quot; i++)
 					{
 						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = 255; // NACKs 0, Acks 255
@@ -2476,7 +2476,7 @@ namespace transport
 				}
 				if (numRanges < maxNumRanges && it == m_OutOfSequencePackets.rend ())
 				{
-					// add range between out-of-seqence and received
+					// add range between out-of-sequence and received
 					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
 					if (nacks > 0)
 					{
