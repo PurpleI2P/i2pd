@@ -1313,19 +1313,31 @@ namespace transport
 		if (!session) return false;
 		if (incoming)
 			m_PendingIncomingSessions.erase (session->GetRemoteEndpoint ().address ());
-		if (!session->GetRemoteIdentity ()) return false;
+		if (!session->GetRemoteIdentity ()) 
+		{
+			LogPrint (eLogWarning, "NTCP2: Unknown identity for ", session->GetRemoteEndpoint ());
+			session->Terminate ();
+			return false;
+		}	
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
 		auto it = m_NTCP2Sessions.find (ident);
 		if (it != m_NTCP2Sessions.end ())
 		{
-			LogPrint (eLogWarning, "NTCP2: Session to ", ident.ToBase64 (), " already exists");
+			LogPrint (eLogWarning, "NTCP2: Session with ", ident.ToBase64 (), " already exists. ", incoming ? "Replaced" : "Dropped");
 			if (incoming)
+			{	
 				// replace by new session
-				it->second->Terminate ();
+				auto s = it->second;
+				m_NTCP2Sessions.erase (it);
+				s->Terminate ();
+			}	
 			else
+			{	
+				session->Terminate ();
 				return false;
+			}	
 		}
-		m_NTCP2Sessions.insert (std::make_pair (ident, session));
+		m_NTCP2Sessions.emplace (ident, session);
 		return true;
 	}
 
