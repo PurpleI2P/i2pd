@@ -716,7 +716,8 @@ namespace transport
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				m_Peers.insert (std::make_pair (ident, Peer{ nullptr, ts }));
+				auto it = m_Peers.insert (std::make_pair (ident, Peer{ nullptr, ts })).first;
+				it->second.sessions.push_back (session);
 			}
 		});
 	}
