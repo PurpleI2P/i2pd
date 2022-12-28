@@ -378,6 +378,13 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::Close () 
+	{
+		m_Socket.close (); 
+		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch (); 
+	}
+		
 	void NTCP2Session::TerminateByTimeout ()
 	{
 		SendTerminationAndTerminate (eNTCP2IdleTimeout);
@@ -395,7 +402,7 @@ namespace transport
 		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
 	}
-
+		
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
 	{
 		memset (nonce, 0, 4);
@@ -1289,7 +1296,7 @@ namespace transport
 			for (auto& it: ntcpSessions)
 				it.second->Terminate ();
 			for (auto& it: m_PendingIncomingSessions)
-				it->Terminate ();
+				it.second->Terminate ();
 		}
 		m_NTCP2Sessions.clear ();
 
@@ -1305,7 +1312,7 @@ namespace transport
 	{
 		if (!session) return false;
 		if (incoming)
-			m_PendingIncomingSessions.remove (session);
+			m_PendingIncomingSessions.erase (session->GetRemoteEndpoint ().address ());
 		if (!session->GetRemoteIdentity ()) return false;
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
 		auto it = m_NTCP2Sessions.find (ident);
@@ -1413,13 +1420,22 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (conn)
-				{
-					conn->SetRemoteEndpoint (ep);
-					conn->ServerLogin ();
-					m_PendingIncomingSessions.push_back (conn);
-					conn = nullptr;
-				}
+				if (!i2p::util::net::IsInReservedRange(ep.address ()))
+				{    
+					if (conn)
+					{
+						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
+						{	
+							conn->SetRemoteEndpoint (ep);
+							conn->ServerLogin ();
+							conn = nullptr;
+						}	
+						else
+							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
+					}
+				}	
+				else
+					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
@@ -1454,12 +1470,22 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (conn)
-				{
-					conn->SetRemoteEndpoint (ep);
-					conn->ServerLogin ();
-					m_PendingIncomingSessions.push_back (conn);
-				}
+				if (!i2p::util::net::IsInReservedRange(ep.address ()))
+				{    
+					if (conn)
+					{
+						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
+						{	
+							conn->SetRemoteEndpoint (ep);
+							conn->ServerLogin ();
+							conn = nullptr;
+						}	
+						else
+							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
+					}
+				}	
+				else
+					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
@@ -1476,7 +1502,10 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-			conn = std::make_shared<NTCP2Session> (*this);
+			if (!conn) // connection is used, create new one
+				conn = std::make_shared<NTCP2Session> (*this);
+			else // reuse failed
+				conn->Close ();
 			m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
 				conn, std::placeholders::_1));
 		}
@@ -1507,12 +1536,12 @@ namespace transport
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{
-				if ((*it)->IsEstablished () || (*it)->IsTerminationTimeoutExpired (ts))
+				if (it->second->IsEstablished () || it->second->IsTerminationTimeoutExpired (ts))
 				{
-					(*it)->Terminate ();
+					it->second->Terminate ();
 					it = m_PendingIncomingSessions.erase (it); // established of expired
 				}
-				else if ((*it)->IsTerminated ())
+				else if (it->second->IsTerminated ())
 					it = m_PendingIncomingSessions.erase (it); // already terminated
 				else
 					it++;

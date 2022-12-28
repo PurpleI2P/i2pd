@@ -135,7 +135,7 @@ namespace transport
 			void Terminate ();
 			void TerminateByTimeout ();
 			void Done () override;
-			void Close () { m_Socket.close (); }; // for accept
+			void Close (); // for accept
 			void DeleteNextReceiveBuffer (uint64_t ts);
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
@@ -277,7 +277,7 @@ namespace transport
 			boost::asio::deadline_timer m_TerminationTimer;
 			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCP2Acceptor, m_NTCP2V6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCP2Session> > m_NTCP2Sessions;
-			std::list<std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
+			std::map<boost::asio::ip::address, std::shared_ptr<NTCP2Session> > m_PendingIncomingSessions;
 
 			ProxyType m_ProxyType;
 			std::string m_ProxyAddress, m_ProxyAuthorization;
