@@ -380,9 +380,7 @@ namespace transport
 
 	void NTCP2Session::Close () 
 	{
-		m_Socket.close (); 
-		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch (); 
+		m_Socket.close ();  
 	}
 		
 	void NTCP2Session::TerminateByTimeout ()
@@ -753,6 +751,8 @@ namespace transport
 
 	void NTCP2Session::ServerLogin ()
 	{
+		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_Establisher->CreateEphemeralKey ();
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
