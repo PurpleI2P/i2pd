@@ -40,7 +40,11 @@ namespace tunnel
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
 	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
-
+	const int MAX_NUM_TUNNEL_MSGS_AT_THE_TIME = 100; // handle message without break
+	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
+	const int TUNNEL_POOLS_MANAGE_INTERVAL = 5; // in seconds
+	const int TUNNEL_MEMORY_POOL_MANAGE_INTERVAL = 120; // in seconds
+	
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
 

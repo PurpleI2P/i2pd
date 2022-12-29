@@ -472,6 +472,7 @@ namespace tunnel
 				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				if (msg)
 				{
+					int numMsgs = 0;
 					uint32_t prevTunnelID = 0, tunnelID = 0;
 					std::shared_ptr<TunnelBase> prevTunnel;
 					do
@@ -515,11 +516,12 @@ namespace tunnel
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
 						}
 
-						msg = m_Queue.Get ();
+						msg = (numMsgs <= MAX_NUM_TUNNEL_MSGS_AT_THE_TIME) ? m_Queue.Get () : nullptr;
 						if (msg)
 						{
 							prevTunnelID = tunnelID;
 							prevTunnel = tunnel;
+							numMsgs++;
 						}
 						else if (tunnel)
 							tunnel->FlushTunnelDataMsgs ();
@@ -530,17 +532,17 @@ namespace tunnel
 				if (i2p::transport::transports.IsOnline())
 				{
 					uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-					if (ts - lastTs >= 15) // manage tunnels every 15 seconds
+					if (ts - lastTs >= TUNNEL_MANAGE_INTERVAL) // manage tunnels every 15 seconds
 					{
 						ManageTunnels ();
 						lastTs = ts;
 					}
-					if (ts - lastPoolsTs >= 5) // manage pools every 5 seconds
+					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL) // manage pools every 5 seconds
 					{
 						ManageTunnelPools (ts);
 						lastPoolsTs = ts;
 					}
-					if (ts - lastMemoryPoolTs >= 120) // manage memory pool every 2 minutes
+					if (ts - lastMemoryPoolTs >= TUNNEL_MEMORY_POOL_MANAGE_INTERVAL) // manage memory pool every 2 minutes
 					{
 						m_I2NPTunnelEndpointMessagesMemoryPool.CleanUpMt ();
 						m_I2NPTunnelMessagesMemoryPool.CleanUpMt ();
