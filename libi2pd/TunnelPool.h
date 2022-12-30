@@ -30,6 +30,7 @@ namespace tunnel
 	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
 	const int TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY = 16;
 	const int TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY = 16;
+	const int TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS = 2;
 
 	class Tunnel;
 	class InboundTunnel;

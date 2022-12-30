@@ -516,7 +516,7 @@ namespace tunnel
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
 						}
 
-						msg = (numMsgs <= MAX_NUM_TUNNEL_MSGS_AT_THE_TIME) ? m_Queue.Get () : nullptr;
+						msg = (numMsgs <= MAX_TUNNEL_MSGS_BATCH_SIZE) ? m_Queue.Get () : nullptr;
 						if (msg)
 						{
 							prevTunnelID = tunnelID;

@@ -282,9 +282,14 @@ namespace tunnel
 			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		for (int i = num; i < m_NumOutboundTunnels; i++)
-			CreateOutboundTunnel ();
-
+		num = m_NumOutboundTunnels - num;
+		if (num > 0)
+		{	
+			if (num > TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS) num = TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS;
+			for (int i = 0; i < num; i++)
+				CreateOutboundTunnel ();
+		}	
+			
 		num = 0;
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
@@ -300,9 +305,14 @@ namespace tunnel
 				if (num >= m_NumInboundTunnels) break;
 			}
 		}
-		for (int i = num; i < m_NumInboundTunnels; i++)
-			CreateInboundTunnel ();
-
+		num = m_NumInboundTunnels - num;
+		if (num > 0)
+		{	
+			if (num > TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS) num = TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS;
+			for (int i = 0; i < num; i++)
+				CreateInboundTunnel ();
+		}
+			
 		if (num < m_NumInboundTunnels && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
 			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
 	}
