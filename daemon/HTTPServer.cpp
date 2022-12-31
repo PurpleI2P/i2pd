@@ -236,7 +236,6 @@ namespace http {
 		}
 		if (error != eRouterErrorNone)
 		{
-			s << "<br>";
 			switch (error)
 			{
 				case eRouterErrorClockSkew:
