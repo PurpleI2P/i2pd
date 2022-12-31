@@ -481,7 +481,6 @@ namespace stream
 		volatile bool done = false;
 		std::condition_variable newDataReceived;
 		std::mutex newDataReceivedMutex;
-		std::unique_lock<std::mutex> l(newDataReceivedMutex);
 		AsyncReceive (boost::asio::buffer (buf, len),
 			[&ret, &done, &newDataReceived, &newDataReceivedMutex](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 			{
@@ -490,12 +489,15 @@ namespace stream
 				else
 					ret = bytes_transferred;
 				std::unique_lock<std::mutex> l(newDataReceivedMutex);
-				done = true;
 				newDataReceived.notify_all ();
+				done = true;
 			},
 			timeout);
-		if (newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)	
-			ret = 0;
+		if (!done)
+		{	std::unique_lock<std::mutex> l(newDataReceivedMutex);
+			if (!done && newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)	
+				ret = 0;
+		}	
 		if (!done)
 		{
 			// make sure that AsycReceive complete
