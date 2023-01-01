@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -374,6 +374,7 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
 			m_SendQueue.clear ();
+			m_SendQueueSize = 0;
 			LogPrint (eLogDebug, "NTCP2: Session terminated");
 		}
 	}
@@ -1057,7 +1058,10 @@ namespace transport
 				SendRouterInfo ();
 			}
 			else
+			{	
 				SendQueue ();
+				m_SendQueueSize = m_SendQueue.size ();
+			}	
 		}
 	}
 
@@ -1165,7 +1169,7 @@ namespace transport
 	{
 		if (m_IsTerminated) return;
 		for (auto it: msgs)
-			m_SendQueue.push_back (it);
+			m_SendQueue.push_back (std::move (it));
 		if (!m_IsSending)
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
@@ -1174,6 +1178,7 @@ namespace transport
 				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
+		m_SendQueueSize = m_SendQueue.size ();
 	}
 
 	void NTCP2Session::SendLocalRouterInfo (bool update)

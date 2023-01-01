@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -216,6 +216,7 @@ namespace transport
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
 			m_SendQueue.clear ();
+			m_SendQueueSize = 0;
 			m_SentPackets.clear ();
 			m_IncompleteMessages.clear ();
 			m_RelaySessions.clear ();
@@ -290,7 +291,7 @@ namespace transport
 	{
 		if (m_State == eSSU2SessionStateTerminated) return;
 		for (auto it: msgs)
-			m_SendQueue.push_back (it);
+			m_SendQueue.push_back (std::move (it));
 		SendQueue ();
 
 		if (m_SendQueue.size () > 0) // windows is full
@@ -304,6 +305,7 @@ namespace transport
 				RequestTermination (eSSU2TerminationReasonTimeout);
 			}
 		}
+		m_SendQueueSize = m_SendQueue.size ();
 	}
 
 	bool SSU2Session::SendQueue ()
@@ -463,6 +465,7 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Packet was not Acked after ", it->second->numResends, " attempts. Terminate session");
 					m_SentPackets.clear ();
 					m_SendQueue.clear ();
+					m_SendQueueSize = 0;
 					RequestTermination (eSSU2TerminationReasonTimeout);
 					return resentPackets.size ();
 				}
@@ -2838,6 +2841,8 @@ namespace transport
 	void SSU2Session::FlushData ()
 	{
 		bool sent = SendQueue (); // if we have something to send
+		if (sent)
+			m_SendQueueSize = m_SendQueue.size ();
 		if (m_IsDataReceived)
 		{
 			if (!sent) SendQuickAck ();
