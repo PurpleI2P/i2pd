@@ -8,4 +8,4 @@ I2PD_ENABLED="yes"
 DAEMON_OPTS=""
 
 # If you have problems with hunging i2pd, you can try enable this
-ulimit -n 4096
+ulimit -n 8192
