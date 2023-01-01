@@ -1,5 +1,5 @@
 #include <cassert>
-#include "../HTTP.h"
+#include "HTTP.h"
 
 using namespace i2p::http;
 

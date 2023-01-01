@@ -17,7 +17,7 @@ test-gost: ../libi2pd/Gost.cpp ../libi2pd/I2PEndian.cpp test-gost.cpp
 test-gost-sig: ../libi2pd/Gost.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Crypto.cpp ../libi2pd/Log.cpp test-gost-sig.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
 
-test-x25519: ../libi2pd/Ed25519.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Log.cpp ../libi2pd/Crypto.cpp  test-x25519.cpp
+test-x25519: ../libi2pd/Ed25519.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Log.cpp ../libi2pd/Crypto.cpp test-x25519.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
 
 test-aeadchacha20poly1305: ../libi2pd/Crypto.cpp ../libi2pd/ChaCha20.cpp ../libi2pd/Poly1305.cpp test-aeadchacha20poly1305.cpp

@@ -20,12 +20,17 @@ option(WITH_UPNP            "Include support for UPnP client"         OFF)
 option(WITH_GIT_VERSION     "Use git commit info as version"          OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
+option(BUILD_TESTING        "Build tests"                             OFF)
+
+IF(BUILD_TESTING)
+  enable_testing()
+ENDIF()
 
 # paths
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 set(CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
-#Handle paths nicely
+# Handle paths nicely
 include(GNUInstallDirs)
 
 # architecture
@@ -171,13 +176,11 @@ if(WITH_THREADSANITIZER)
   endif()
 endif()
 
-
-# Enable usage of STD's Atomic instead of Boost's on PowerPC
-# For more information refer to https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
-if(ARCHITECTURE MATCHES "ppc")
+# Use std::atomic instead of GCC builtins on macOS PowerPC:
+# For more information refer to: https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
+if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc")
   add_definitions(-DBOOST_SP_USE_STD_ATOMIC)
 endif()
-
 
 # libraries
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -275,9 +278,13 @@ if(WITH_BINARY)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
 
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${DL_LIB} ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
   set(DIRS "${Boost_LIBRARY_DIR};${OPENSSL_INCLUDE_DIR}/../bin;${ZLIB_INCLUDE_DIR}/../bin;/mingw32/bin")
+endif()
+
+if(BUILD_TESTING)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
 endif()
