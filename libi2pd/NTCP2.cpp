@@ -1453,17 +1453,17 @@ namespace transport
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
-		{	
+		{
 			LogPrint (eLogError, "NTCP2: Accept error ", error.message ());
 			if (error == boost::asio::error::no_descriptors)
 			{
 				i2p::context.SetError (eRouterErrorNoDescriptors);
-				return; 
-			}	
-		}	
-		
+				return;
+			}
+		}
+
 		if (error != boost::asio::error::operation_aborted)
-		{			
+		{
 			if (!conn) // connection is used, create new one
 				conn = std::make_shared<NTCP2Session> (*this);
 			else // reuse failed
@@ -1504,14 +1504,14 @@ namespace transport
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
-		{	
+		{
 			LogPrint (eLogError, "NTCP2: Accept ipv6 error ", error.message ());
 			if (error == boost::asio::error::no_descriptors)
 			{
 				i2p::context.SetErrorV6 (eRouterErrorNoDescriptors);
-				return; 
-			}	
-		}	
+				return;
+			}
+		}
 
 		if (error != boost::asio::error::operation_aborted)
 		{
@@ -1560,23 +1560,23 @@ namespace transport
 					it++;
 			}
 			ScheduleTermination ();
-			
+
 			// try to restart acceptors if no description
-			// we do it after timer to let timer take descriptor first 
+			// we do it after timer to let timer take descriptor first
 			if (i2p::context.GetError () == eRouterErrorNoDescriptors)
 			{
 				i2p::context.SetError (eRouterErrorNone);
 				auto conn = std::make_shared<NTCP2Session> (*this);
 				m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
 					conn, std::placeholders::_1));
-			}	
+			}
 			if (i2p::context.GetErrorV6 () == eRouterErrorNoDescriptors)
 			{
 				i2p::context.SetErrorV6 (eRouterErrorNone);
 				auto conn = std::make_shared<NTCP2Session> (*this);
 				m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
 					conn, std::placeholders::_1));
-			}	
+			}
 		}
 	}
 
@@ -1784,15 +1784,15 @@ namespace transport
 			});
 
 		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), // read min reply size
-		    boost::asio::transfer_all(),                    
-			[timer, conn, sz, readbuff](const boost::system::error_code & e, std::size_t transferred)
+		    boost::asio::transfer_all(),
+			[timer, conn, readbuff](const boost::system::error_code & e, std::size_t transferred)
 			{
 				if (e)
 					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
 				else if (!(*readbuff)[1]) // succeeded
 				{
 					boost::system::error_code ec;
-					size_t moreBytes = conn->GetSocket ().available(ec);	
+					size_t moreBytes = conn->GetSocket ().available(ec);
 					if (moreBytes) // read remaining portion of reply if ipv6 received
 						boost::asio::read (conn->GetSocket (), boost::asio::buffer(readbuff->data (), moreBytes), boost::asio::transfer_all (), ec);
 					timer->cancel();

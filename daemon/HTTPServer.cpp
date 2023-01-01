@@ -87,8 +87,6 @@ namespace http {
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
-	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
-	const char HTTP_PARAM_ADDRESS[] = "address";
 
 	static std::string ConvertTime (uint64_t time)
 	{
@@ -301,7 +299,7 @@ namespace http {
 		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
 			s << "<label for=\"slide-info\">" << tr("Hidden content. Press on text to see.") << "</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
 		}
-		if (includeHiddenContent) 
+		if (includeHiddenContent)
 		{
 			s << "<b>" << tr("Router Ident") << ":</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
@@ -311,7 +309,7 @@ namespace http {
 			s << "<b>"<< tr("Our external address") << ":</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
 			auto addresses = i2p::context.GetRouterInfo().GetAddresses ();
 			if (addresses)
-			{	
+			{
 				for (const auto& address : *addresses)
 				{
 					if (!address) continue;
@@ -344,7 +342,7 @@ namespace http {
 					}
 					s << "</tr>\r\n";
 				}
-			}	
+			}
 			s << "</tbody></table>\r\n";
 		}
 		s << "</div>\r\n</div>\r\n";
