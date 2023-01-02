@@ -1,6 +1,35 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.45.0] - 2023-01-02
+### Added
+- Test for Symmnetric NAT with peer test msgs 6 and 7
+- Show non-zero send queue size for transports in web console
+- Compressible padding for I2P addresses
+- Localization to Czech
+- Don't accept incoming session from invalid/reserved addresses for NTCP2 and SSU2
+- Limit simultaneous tunnel build requests by 4 per pool
+### Changed
+- Removed SSU support
+- Reduced bandwidth caluclation interval from 60 to 15 seconds
+- Increased default max transit tunnels number from 2500 to 5000 or 10000 for floodfill
+- NTCP2 and SSU2 timetamps are rounded to seconds
+- Drop RouterInfos and LeaseSets with timestamp from future
+- Don't delete unreachable routers if tunnel creation success rate is too low
+- Refuse duplicated incoming pending NTCP2 session from same IP
+- Don't send SSU2 termination again if termination received block received
+- Handle standard network error for SSU2 without throwing an exception
+- Don't select overloaded peer for next tunnel 
+- Remove "X-Requested-With" in HTTP Proxy
+### Fixed
+- File descriptors leak
+- Random crash on AddressBook update
+- Crash if incorrect LeaseSet size
+- Spamming to log if no descriptors
+- ::1 address in RouterInfo
+- Race condition with pending outgoing SSU2 sessions 
+- RTT self-reduction for long-live streams
+
 ## [2.44.0] - 2022-11-20
 ### Added
 - SSL connection for server I2P tunnels
