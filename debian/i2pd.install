@@ -1,7 +1,6 @@
 i2pd usr/sbin/
 contrib/i2pd.conf etc/i2pd/
 contrib/tunnels.conf etc/i2pd/
-contrib/subscriptions.txt etc/i2pd/
 contrib/certificates/ usr/share/i2pd/
 contrib/tunnels.d/README etc/i2pd/tunnels.conf.d/
 contrib/apparmor/usr.sbin.i2pd etc/apparmor.d
