@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -823,7 +823,9 @@ namespace transport
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			auto it = m_Peers.begin ();
 			std::advance (it, rand () % m_Peers.size ());
-			if (it == m_Peers.end () || it->second.router) return nullptr; // not connected
+			if (it == m_Peers.end () || it->second.router || it->second.sessions.empty () || 
+			    it->second.sessions.front ()->GetSendQueueSize () > PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE) 
+				return nullptr; // not connected or overloaded
 			ident = it->first;
 		}
 		return i2p::data::netdb.FindRouter (ident);
