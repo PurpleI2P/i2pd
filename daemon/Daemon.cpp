@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -165,21 +165,22 @@ namespace util
 
 		i2p::transport::InitTransports ();
 
-		bool transit; i2p::config::GetOption("notransit", transit);
-		i2p::context.SetAcceptsTunnels (!transit);
-		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
-		SetMaxNumTransitTunnels (transitTunnels);
-
 		bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-		if (isFloodfill) {
+		if (isFloodfill) 
+		{
 			LogPrint(eLogInfo, "Daemon: Router configured as floodfill");
 			i2p::context.SetFloodfill (true);
 		}
 		else
-		{
 			i2p::context.SetFloodfill (false);
-		}
 
+		bool transit; i2p::config::GetOption("notransit", transit);
+		i2p::context.SetAcceptsTunnels (!transit);
+		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
+			transitTunnels *= 2; // double default number of transit tunnels for floodfill
+		SetMaxNumTransitTunnels (transitTunnels);
+		
 		/* this section also honors 'floodfill' flag, if set above */
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
 		if (bandwidth.length () > 0)
