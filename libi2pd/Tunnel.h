@@ -44,9 +44,12 @@ namespace tunnel
 	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
 	const int TUNNEL_POOLS_MANAGE_INTERVAL = 5; // in seconds
 	const int TUNNEL_MEMORY_POOL_MANAGE_INTERVAL = 120; // in seconds
-	
+
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
+
+	const double TCSR_SMOOTHING_CONSTANT = 0.0005; // smoothing constant in exponentially weighted moving average
+	const double TCSR_START_VALUE = 0.1; // start value of tunnel creation success rate
 
 	enum TunnelState
 	{
@@ -267,8 +270,19 @@ namespace tunnel
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 
-			// some stats
-			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
+			// Calculating of tunnel creation success rate
+			// A modified version of the EWMA algorithm, where alpha is increased at the beginning to accelerate similarity
+			void SuccesiveTunnelCreation() {
+				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
+				m_TunnelCreationSuccessRate = alpha * 1 + (1 - alpha) * m_TunnelCreationSuccessRate;
+
+			};
+			void FailedTunnelCreation() {
+				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
+				m_TunnelCreationSuccessRate = alpha * 0 + (1 - alpha) * m_TunnelCreationSuccessRate;
+			};
+			double m_TunnelCreationSuccessRate;
+			int m_TunnelCreationAttemptsNum;
 
 		public:
 
@@ -282,11 +296,7 @@ namespace tunnel
 			size_t CountOutboundTunnels() const;
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
-			int GetTunnelCreationSuccessRate () const // in percents
-			{
-				int totalNum = m_NumSuccesiveTunnelCreations + m_NumFailedTunnelCreations;
-				return totalNum ? m_NumSuccesiveTunnelCreations*100/totalNum : 0;
-			}
+			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
 	};
 
 	extern Tunnels tunnels;
