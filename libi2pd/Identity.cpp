@@ -64,7 +64,7 @@ namespace data
 			else
 				for (int i = 0; i < 8; i++) // 256 bytes
 					memcpy (m_StandardIdentity.publicKey + 32*i, randomPaddingBlock, 32);
-		}	
+		}
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;
@@ -717,7 +717,7 @@ namespace data
 			uint8_t publicKey[256];
 			if (isDestination)
 				RAND_bytes (keys.m_PrivateKey, 256);
-			else	
+			else
 				GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
 			// identity
 			keys.m_Public = std::make_shared<IdentityEx> (isDestination ? nullptr : publicKey, signingPublicKey, type, cryptoType);

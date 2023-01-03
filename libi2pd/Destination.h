@@ -284,9 +284,9 @@ namespace client
 			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
-			template<typename Dest>	
+			template<typename Dest>
 			std::shared_ptr<i2p::stream::Stream> CreateStreamSync (const Dest& dest, int port);
-			
+
 		private:
 
 			i2p::data::PrivateKeys m_Keys;

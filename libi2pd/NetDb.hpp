@@ -126,11 +126,11 @@ namespace data
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
 			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
-			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses () 
-			{  
-				return boost::shared_ptr<RouterInfo::Addresses>(m_RouterInfoAddressVectorsPool.AcquireMt (), 
+			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses ()
+			{
+				return boost::shared_ptr<RouterInfo::Addresses>(m_RouterInfoAddressVectorsPool.AcquireMt (),
 					std::bind <void (i2p::util::MemoryPoolMt<RouterInfo::Addresses>::*)(RouterInfo::Addresses *)>
-						(&i2p::util::MemoryPoolMt<RouterInfo::Addresses>::ReleaseMt, 
+						(&i2p::util::MemoryPoolMt<RouterInfo::Addresses>::ReleaseMt,
 						&m_RouterInfoAddressVectorsPool, std::placeholders::_1));
 			};
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };

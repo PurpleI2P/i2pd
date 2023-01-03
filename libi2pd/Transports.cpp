@@ -823,8 +823,8 @@ namespace transport
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			auto it = m_Peers.begin ();
 			std::advance (it, rand () % m_Peers.size ());
-			if (it == m_Peers.end () || it->second.router || it->second.sessions.empty () || 
-			    it->second.sessions.front ()->GetSendQueueSize () > PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE) 
+			if (it == m_Peers.end () || it->second.router || it->second.sessions.empty () ||
+			    it->second.sessions.front ()->GetSendQueueSize () > PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE)
 				return nullptr; // not connected or overloaded
 			ident = it->first;
 		}

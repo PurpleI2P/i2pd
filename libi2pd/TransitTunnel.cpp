@@ -33,7 +33,7 @@ namespace tunnel
 		{
 			m_Encryption.reset (new i2p::crypto::TunnelEncryption);
 			m_Encryption->SetKeys (m_LayerKey, m_IVKey);
-		}	
+		}
 		m_Encryption->Encrypt (in->GetPayload () + 4, out->GetPayload () + 4);
 		i2p::transport::transports.UpdateTotalTransitTransmittedBytes (TUNNEL_DATA_MSG_SIZE);
 	}

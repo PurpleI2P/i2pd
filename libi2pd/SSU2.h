@@ -30,7 +30,7 @@ namespace transport
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
-	
+
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
 		struct Packet
@@ -132,7 +132,7 @@ namespace transport
 			void SendUDPAssociateRequest ();
 			void ReadUDPAssociateReply ();
 			void ReadUDPAssociateSocket (); // handle if closed by peer
-		
+
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -160,7 +160,7 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
 			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
 			std::unique_ptr<boost::asio::deadline_timer> m_ProxyConnectRetryTimer;
-		
+
 		public:
 
 			// for HTTP/I2PControl

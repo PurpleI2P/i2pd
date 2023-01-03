@@ -329,9 +329,9 @@ namespace data
 					}
 					Introducer& introducer = address->ssu->introducers.at (index);
 					if (!strcmp (key, "ihost"))
-						introducer.isH = false; // SSU1 
+						introducer.isH = false; // SSU1
 					else if (!strcmp (key, "iport"))
-						introducer.isH = false; // SSU1 
+						introducer.isH = false; // SSU1
 					else if (!strcmp (key, "itag"))
 					{
 						try
@@ -344,10 +344,10 @@ namespace data
 						}
 					}
 					else if (!strcmp (key, "ih"))
-					{	
+					{
 						Base64ToByteStream (value, strlen (value), introducer.iH, 32);
-						introducer.isH = true; 
-					}	
+						introducer.isH = true;
+					}
 					else if (!strcmp (key, "iexp"))
 					{
 						try
@@ -421,7 +421,7 @@ namespace data
 					for (uint8_t i = 0; i < eNumTransports; i++)
 						if ((1 << i) & supportedTransports)
 							(*addresses)[i] = address;
-				}	
+				}
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
@@ -647,11 +647,11 @@ namespace data
 				(*m_Addresses)[eNTCP2V6MeshIdx] = addr;
 			}
 			else
-			{	
+			{
 				m_SupportedTransports |= eNTCP2V6;
 				if (addr->published) m_ReachableTransports |= eNTCP2V6;
 				(*m_Addresses)[eNTCP2V6Idx] = addr;
-			}	
+			}
 		}
 	}
 
@@ -666,13 +666,13 @@ namespace data
 		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
-		if (addr->IsV4 ()) 
-		{	
+		if (addr->IsV4 ())
+		{
 			m_SupportedTransports |= eSSU2V4;
 			(*m_Addresses)[eSSU2V4Idx] = addr;
-		}	
-		if (addr->IsV6 ()) 
-		{	
+		}
+		if (addr->IsV6 ())
+		{
 			m_SupportedTransports |= eSSU2V6;
 			(*m_Addresses)[eSSU2V6Idx] = addr;
 		}
@@ -747,13 +747,13 @@ namespace data
 				if ((*m_Addresses)[eNTCP2V6Idx]->IsV4 ())
 					(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV6;
 				(*m_Addresses)[eNTCP2V6Idx].reset ();
-			}	
+			}
 			if ((*m_Addresses)[eSSU2V6Idx])
 			{
 				if ((*m_Addresses)[eSSU2V6Idx]->IsV4 ())
 					(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV6;
 				(*m_Addresses)[eSSU2V6Idx].reset ();
-			}	
+			}
 			UpdateSupportedTransports ();
 		}
 	}
@@ -767,13 +767,13 @@ namespace data
 				if ((*m_Addresses)[eNTCP2V4Idx]->IsV6 ())
 					(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV4;
 				(*m_Addresses)[eNTCP2V4Idx].reset ();
-			}	
+			}
 			if ((*m_Addresses)[eSSU2V4Idx])
 			{
 				if ((*m_Addresses)[eSSU2V4Idx]->IsV6 ())
 					(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV4;
 				(*m_Addresses)[eSSU2V4Idx].reset ();
-			}	
+			}
 			UpdateSupportedTransports ();
 		}
 	}
@@ -829,8 +829,8 @@ namespace data
 #else
 		return m_Addresses;
 #endif
-	}	
-		
+	}
+
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
@@ -862,7 +862,7 @@ namespace data
 		auto addr = (*GetAddresses ())[isV6 ? eSSU2V6Idx : eSSU2V4Idx];
 		if (addr && !memcmp (addr->s, key, 32))
 		    return addr;
-		return nullptr; 
+		return nullptr;
 	}
 
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
@@ -1037,7 +1037,7 @@ namespace data
 	{
 		auto addresses = GetAddresses ();
 		if (!addresses) return;
-		
+
 		uint64_t ts = htobe64 (GetTimestamp ());
 		s.write ((const char *)&ts, sizeof (ts));
 		// addresses
@@ -1049,7 +1049,7 @@ namespace data
 			if (idx == eNTCP2V6Idx && addr_ptr == (*addresses)[eNTCP2V4Idx]) continue;
 			if (idx == eSSU2V6Idx && addr_ptr == (*addresses)[eSSU2V4Idx]) continue;
 			numAddresses++;
-		}	
+		}
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
 		for (size_t idx = 0; idx < addresses->size(); idx++)
 		{
@@ -1154,7 +1154,7 @@ namespace data
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
-						WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);	
+						WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
 						char value[64];
 						size_t l = ByteStreamToBase64 (introducer.iH, 32, value, 64);
@@ -1174,7 +1174,7 @@ namespace data
 					}
 				}
 			}
-			
+
 			if (address.transportStyle == eTransportSSU2)
 			{
 				// write mtu

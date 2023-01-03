@@ -180,7 +180,7 @@ namespace client
 			bool isUpdated; // transient, used during reload only
 	};
 
-	
+
 }
 }
 

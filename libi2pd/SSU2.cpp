@@ -173,7 +173,7 @@ namespace transport
 				mtu = i2p::util::net::GetMTU (localAddress);
 				if (mtu > maxMTU) mtu = maxMTU;
 			}
-			else 
+			else
 				if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 			i2p::context.SetMTU (mtu, false);
@@ -876,7 +876,7 @@ namespace transport
 			{
 				// token expired
 				m_OutgoingTokens.erase (it);
-				return 0; 
+				return 0;
 			}
 			return it->second.first;
 		}
@@ -1210,9 +1210,9 @@ namespace transport
 	{
 		if (!m_ProxyEndpoint) return;
 		m_UDPAssociateSocket.reset (new boost::asio::ip::tcp::socket (m_ReceiveService.GetService ()));
-		m_UDPAssociateSocket->async_connect (*m_ProxyEndpoint, 
+		m_UDPAssociateSocket->async_connect (*m_ProxyEndpoint,
 		    [this] (const boost::system::error_code& ecode)
-			{                                    
+			{
 				if (ecode)
 				{
 					LogPrint (eLogError, "SSU2: Can't connect to proxy ", *m_ProxyEndpoint, " ", ecode.message ());
@@ -1227,7 +1227,7 @@ namespace transport
 	void SSU2Server::HandshakeWithProxy ()
 	{
 		if (!m_UDPAssociateSocket) return;
-		m_UDPRequestHeader[0] = SOCKS5_VER; 
+		m_UDPRequestHeader[0] = SOCKS5_VER;
 		m_UDPRequestHeader[1] = 1; // 1 method
 		m_UDPRequestHeader[2] = 0; // no authentication
 		boost::asio::async_write (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, 3), boost::asio::transfer_all(),
@@ -1274,8 +1274,8 @@ namespace transport
 	void SSU2Server::SendUDPAssociateRequest ()
 	{
 		if (!m_UDPAssociateSocket) return;
-		m_UDPRequestHeader[0] = SOCKS5_VER; 
-		m_UDPRequestHeader[1] = SOCKS5_CMD_UDP_ASSOCIATE; 
+		m_UDPRequestHeader[0] = SOCKS5_VER;
+		m_UDPRequestHeader[1] = SOCKS5_CMD_UDP_ASSOCIATE;
 		m_UDPRequestHeader[2] = 0; // RSV
 		m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV4; // TODO: implement ipv6 proxy
 		memset (m_UDPRequestHeader + 4, 0, 6); // address and port all zeros
@@ -1374,7 +1374,7 @@ namespace transport
 					LogPrint(eLogInfo, "SSU2: Reconnecting to proxy");
 					ConnectToProxy ();
 				}
-			});	                                                               
+			});
 	}
 
 	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)

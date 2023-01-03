@@ -833,7 +833,7 @@ namespace client
 		}
 		else
 			m_Ident = addr->identHash;
-		// save url parts for later use 
+		// save url parts for later use
 		std::string dest_host = url.host;
 		int         dest_port = url.port ? url.port : 80;
 		// try to create stream to addressbook site
@@ -842,13 +842,13 @@ namespace client
 		{
 			LogPrint (eLogError, "Addressbook: LeaseSet for address ", url.host, " not found");
 			return false;
-		}	
-		if (m_Etag.empty() && m_LastModified.empty()) 
+		}
+		if (m_Etag.empty() && m_LastModified.empty())
 		{
 			m_Book.GetEtag (m_Ident, m_Etag, m_LastModified);
 			LogPrint (eLogDebug, "Addressbook: Loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
 		}
-		// create http request & send it 
+		// create http request & send it
 		i2p::http::HTTPReq req;
 		req.AddHeader("Host", dest_host);
 		req.AddHeader("User-Agent", "Wget/1.11.4");
@@ -859,7 +859,7 @@ namespace client
 			req.AddHeader("If-None-Match", m_Etag);
 		if (!m_LastModified.empty())
 			req.AddHeader("If-Modified-Since", m_LastModified);
-		// convert url to relative 
+		// convert url to relative
 		url.schema  = "";
 		url.host    = "";
 		req.uri     = url.to_string();
@@ -878,7 +878,7 @@ namespace client
 			{
 				response.append ((char *)recv_buf, received);
 				if (!stream->IsOpen ()) end = true;
-			}	
+			}
 			else if (!stream->IsOpen ())
 				end = true;
 			else
@@ -886,12 +886,12 @@ namespace client
 				LogPrint (eLogError, "Addressbook: Subscriptions request timeout expired");
 				numAttempts++;
 				if (numAttempts > 5) end = true;
-			}	
+			}
 		}
 		// process remaining buffer
 		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf)))
 			response.append ((char *)recv_buf, len);
-		// parse response 
+		// parse response
 		i2p::http::HTTPRes res;
 		int res_head_len = res.parse(response);
 		if (res_head_len < 0)
@@ -904,7 +904,7 @@ namespace client
 			LogPrint(eLogError, "Addressbook: Incomplete http response from ", dest_host, ", interrupted by timeout");
 			return false;
 		}
-		// assert: res_head_len > 0 
+		// assert: res_head_len > 0
 		response.erase(0, res_head_len);
 		if (res.code == 304)
 		{
@@ -927,7 +927,7 @@ namespace client
 			LogPrint(eLogError, "Addressbook: Response size mismatch, expected: ", len, ", got: ", response.length(), "bytes");
 			return false;
 		}
-		// assert: res.code == 200 
+		// assert: res.code == 200
 		auto it = res.headers.find("ETag");
 		if (it != res.headers.end()) m_Etag = it->second;
 		it = res.headers.find("Last-Modified");

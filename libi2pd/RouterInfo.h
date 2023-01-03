@@ -71,7 +71,7 @@ namespace data
 			};
 
 #define TransportBit(tr) e##tr = (1 << e##tr##Idx)
-		
+
 			enum SupportedTransports
 			{
 				TransportBit(NTCP2V4), // 0x01

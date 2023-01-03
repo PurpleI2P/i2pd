@@ -96,7 +96,7 @@ namespace transport
 			// timeout expired
 			if (m_State == eSSU2SessionStateIntroduced) // WaitForIntroducer
 				LogPrint (eLogWarning, "SSU2: Session was not introduced after ", SSU2_CONNECT_TIMEOUT, " seconds");
-			else	
+			else
 				LogPrint (eLogWarning, "SSU2: Session with ", m_RemoteEndpoint, " was not established after ", SSU2_CONNECT_TIMEOUT, " seconds");
 			Terminate ();
 		}
@@ -530,7 +530,7 @@ namespace transport
 				{
 					LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
 					break;
-				}		
+				}
 				const uint8_t nonce[12] = {0};
 				uint64_t headerX[2];
 				i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -618,7 +618,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: SessionRequest message too short ", len);
 			return;
-		}	
+		}
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, i2p::context.GetSSU2IntroKey (), nonce, headerX);
@@ -889,7 +889,7 @@ namespace transport
 				LogPrint (eLogWarning, "SSU2: SessionConfirmed fragment too short ", len);
 				if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 				return false;
-			}	
+			}
 			if (!(header.h.flags[0] & 0xF0))
 			{
 				// first fragment
@@ -942,7 +942,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionConfirmed message too short ", len);
 			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 			return false;
-		}	
+		}
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header)
 		// decrypt part1
@@ -1155,7 +1155,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: Retry message too short ", len);
 			return false;
-		}	
+		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, m_Address->i, nonce, (uint8_t *)headerX);
@@ -1244,7 +1244,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: HolePunch message too short ", len);
 			return false;
-		}	
+		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -1320,7 +1320,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
 			return false;
-		}	
+		}
 		uint8_t nonce[12] = {0};
 		uint64_t headerX[2]; // sourceConnID, token
 		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
@@ -1392,7 +1392,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: Data message too short ", len);
 			return;
-		}	
+		}
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = len - 32;
 		uint32_t packetNum = be32toh (header.h.packetNum);
@@ -1465,19 +1465,19 @@ namespace transport
 					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkTermination:
-				{	
-					uint8_t rsn = buf[11]; // reason		
+				{
+					uint8_t rsn = buf[11]; // reason
 					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)rsn);
 					if (IsEstablished () && rsn != eSSU2TerminationReasonTerminationReceived)
 						RequestTermination (eSSU2TerminationReasonTerminationReceived);
-					else if (m_State != eSSU2SessionStateTerminated)	
+					else if (m_State != eSSU2SessionStateTerminated)
 					{
-						if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)	
+						if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)
 							m_State = eSSU2SessionStateClosingConfirmed;
 						Done ();
-					}		
+					}
 					break;
-				}		
+				}
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
 					HandleRelayRequest (buf + offset, size);
@@ -1667,13 +1667,13 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Our port ", ep.port (), " received from ", m_RemoteEndpoint, " is different from ", m_Server.GetPort (isV4));
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusTesting || 
+						if (i2p::context.GetStatus () == eRouterStatusTesting ||
 						    m_State == eSSU2SessionStatePeerTest)
-						{	
+						{
 							i2p::context.SetStatus (eRouterStatusFirewalled);
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimer ();
-						}	
+						}
 					}
 					else
 					{
@@ -1683,7 +1683,7 @@ namespace transport
 							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimerV6 ();
-						}	
+						}
 					}
 				}
 				else
@@ -1691,20 +1691,20 @@ namespace transport
 					if (isV4)
 					{
 						if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
-						{	
+						{
 							if (m_State == eSSU2SessionStatePeerTest)
 								i2p::context.SetStatus (eRouterStatusOK);
 							i2p::context.SetError (eRouterErrorNone);
-						}	
+						}
 					}
 					else
 					{
 						if (i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
-						{	
+						{
 							if (m_State == eSSU2SessionStatePeerTest)
 								i2p::context.SetStatusV6 (eRouterStatusOK);
 							i2p::context.SetErrorV6 (eRouterErrorNone);
-						}	
+						}
 					}
 				}
 			}
@@ -1913,10 +1913,10 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU2: RelayIntro attempt ", attempts + 1);
 					s->HandleRelayIntro (vec->data (), vec->size (), attempts + 1);
-				});	
+				});
 			return;
-		}	
-		else	
+		}
+		else
 		{
 			LogPrint (eLogWarning, "SSU2: RelayIntro unknown router to introduce");
 			code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;

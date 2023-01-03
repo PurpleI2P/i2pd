@@ -495,27 +495,27 @@ namespace stream
 			timeout);
 		if (!done)
 		{	std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			if (!done && newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)	
+			if (!done && newDataReceived.wait_for (l, std::chrono::seconds (timeout)) == std::cv_status::timeout)
 				ret = 0;
-		}	
+		}
 		if (!done)
 		{
 			// make sure that AsycReceive complete
 			auto s = shared_from_this();
 			m_Service.post ([s]()
-		    {               
+		    {
 				s->m_ReceiveTimer.cancel ();
 			});
 			int i = 0;
 			while (!done && i < 100) // 1 sec
-			{	
+			{
 				std::this_thread::sleep_for (std::chrono::milliseconds(10));
 				i++;
-			}	
-		}		
+			}
+		}
 		return ret;
-	}	
-		
+	}
+
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
 		AsyncSend (buf, len, nullptr);
@@ -1396,11 +1396,11 @@ namespace stream
 			});
 		if (timeout)
 			streamAccept.wait_for (l, std::chrono::seconds (timeout));
-		else	
+		else
 			streamAccept.wait (l);
 		return stream;
-	}	
-		
+	}
+
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)

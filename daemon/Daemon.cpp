@@ -166,7 +166,7 @@ namespace util
 		i2p::transport::InitTransports ();
 
 		bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-		if (isFloodfill) 
+		if (isFloodfill)
 		{
 			LogPrint(eLogInfo, "Daemon: Router configured as floodfill");
 			i2p::context.SetFloodfill (true);
@@ -180,7 +180,7 @@ namespace util
 		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
 			transitTunnels *= 2; // double default number of transit tunnels for floodfill
 		SetMaxNumTransitTunnels (transitTunnels);
-		
+
 		/* this section also honors 'floodfill' flag, if set above */
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
 		if (bandwidth.length () > 0)

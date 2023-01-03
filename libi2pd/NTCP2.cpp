@@ -379,11 +379,11 @@ namespace transport
 		}
 	}
 
-	void NTCP2Session::Close () 
+	void NTCP2Session::Close ()
 	{
-		m_Socket.close ();  
+		m_Socket.close ();
 	}
-		
+
 	void NTCP2Session::TerminateByTimeout ()
 	{
 		SendTerminationAndTerminate (eNTCP2IdleTimeout);
@@ -401,7 +401,7 @@ namespace transport
 		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
 		transports.PeerConnected (shared_from_this ());
 	}
-		
+
 	void NTCP2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
 	{
 		memset (nonce, 0, 4);
@@ -1058,10 +1058,10 @@ namespace transport
 				SendRouterInfo ();
 			}
 			else
-			{	
+			{
 				SendQueue ();
 				m_SendQueueSize = m_SendQueue.size ();
-			}	
+			}
 		}
 	}
 
@@ -1318,29 +1318,29 @@ namespace transport
 		if (!session) return false;
 		if (incoming)
 			m_PendingIncomingSessions.erase (session->GetRemoteEndpoint ().address ());
-		if (!session->GetRemoteIdentity ()) 
+		if (!session->GetRemoteIdentity ())
 		{
 			LogPrint (eLogWarning, "NTCP2: Unknown identity for ", session->GetRemoteEndpoint ());
 			session->Terminate ();
 			return false;
-		}	
+		}
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
 		auto it = m_NTCP2Sessions.find (ident);
 		if (it != m_NTCP2Sessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP2: Session with ", ident.ToBase64 (), " already exists. ", incoming ? "Replaced" : "Dropped");
 			if (incoming)
-			{	
+			{
 				// replace by new session
 				auto s = it->second;
 				m_NTCP2Sessions.erase (it);
 				s->Terminate ();
-			}	
+			}
 			else
-			{	
+			{
 				session->Terminate ();
 				return false;
-			}	
+			}
 		}
 		m_NTCP2Sessions.emplace (ident, session);
 		return true;
@@ -1438,19 +1438,19 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
 				if (!i2p::util::net::IsInReservedRange(ep.address ()))
-				{    
+				{
 					if (conn)
 					{
 						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
-						{	
+						{
 							conn->SetRemoteEndpoint (ep);
 							conn->ServerLogin ();
 							conn = nullptr;
-						}	
+						}
 						else
 							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 					}
-				}	
+				}
 				else
 					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}
@@ -1487,21 +1487,21 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (!i2p::util::net::IsInReservedRange(ep.address ()) || 
+				if (!i2p::util::net::IsInReservedRange(ep.address ()) ||
 				    i2p::util::net::IsYggdrasilAddress (ep.address ()))
-				{    
+				{
 					if (conn)
 					{
 						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
-						{	
+						{
 							conn->SetRemoteEndpoint (ep);
 							conn->ServerLogin ();
 							conn = nullptr;
-						}	
+						}
 						else
 							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 					}
-				}	
+				}
 				else
 					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}

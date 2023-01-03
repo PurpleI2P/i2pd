@@ -658,8 +658,8 @@ namespace data
 
 		m_RouterInfoBuffersPool.CleanUpMt ();
 		m_RouterInfoAddressesPool.CleanUpMt ();
-		m_RouterInfoAddressVectorsPool.CleanUpMt ();	
-			
+		m_RouterInfoAddressVectorsPool.CleanUpMt ();
+
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: Saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
@@ -763,7 +763,7 @@ namespace data
 		{
 			LogPrint (eLogError, "NetDb: Database store msg is too short ", len, ". Dropped");
 			return;
-		}	
+		}
 		IdentHash ident (buf + DATABASE_STORE_KEY_OFFSET);
 		if (ident.IsZero ())
 		{
@@ -778,7 +778,7 @@ namespace data
 			{
 				LogPrint (eLogError, "NetDb: Database store msg with reply token is too short ", len, ". Dropped");
 				return;
-			}	
+			}
 			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
