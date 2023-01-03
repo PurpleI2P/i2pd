@@ -1,8 +1,13 @@
-i2pd (2.45.0-1) unstable; urgency=medium
+i2pd (2.45.0-1) unstable; urgency=high
 
   * updated to version 2.45.0/0.9.57
+  * compat level 12
+  * standards version 4.3.0
+  * increased nofile limit in service and init.d to 8192
+  * added conffiles
+  * removed #1210 patch
 
- -- orignal <orignal@i2pmail.org>  Mon, 2 Jan 2023 19:00:00 +0000
+ -- r4sas <r4sas@i2pmail.org>  Tue, 3 Jan 2023 18:00:00 +0000
 
 i2pd (2.44.0-1) unstable; urgency=medium
 
