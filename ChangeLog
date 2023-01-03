@@ -15,6 +15,7 @@
 - Removed SSU support
 - Reduced bandwidth calculation interval from 60 to 15 seconds
 - Increased default max transit tunnels number from 2500 to 5000 or 10000 for floodfill
+- Transit tunnels limit is doubled if floodfill mode is enabled
 - NTCP2 and SSU2 timestamps are rounded to seconds
 - Drop RouterInfos and LeaseSets with timestamp from future
 - Don't delete unreachable routers if tunnel creation success rate is too low
