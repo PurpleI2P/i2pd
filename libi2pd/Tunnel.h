@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -210,7 +210,7 @@ namespace tunnel
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
-			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
+			bool AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
 			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			std::shared_ptr<InboundTunnel> CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel);

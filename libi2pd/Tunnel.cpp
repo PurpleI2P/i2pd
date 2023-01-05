@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -433,12 +433,16 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
+	bool Tunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
 		if (m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second)
 			m_TransitTunnels.push_back (tunnel);
 		else
+		{	
 			LogPrint (eLogError, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " already exists");
+			return false;	
+		}		
+		return true;	
 	}
 
 	void Tunnels::Start ()
