@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2022-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -39,6 +39,9 @@ namespace transport
 	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
+	const int SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS = 5000; // how many msgID we store for duplicates check
+	const int SSU2_RECEIVED_I2NP_MSGIDS_CLEANUP_TIMEOUT = 10; // in seconds
+	const int SSU2_DECAY_INTERVAL = 20; // in seconds
 	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
 	const size_t SSU2_MAX_WINDOW_SIZE = 256; // in packets
 	const size_t SSU2_MIN_RTO = 100; // in milliseconds
@@ -47,7 +50,7 @@ namespace transport
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
-
+	
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
 
@@ -308,7 +311,8 @@ namespace transport
 			void HandleRelayIntro (const uint8_t * buf, size_t len, int attempts = 0);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			void HandlePeerTest (const uint8_t * buf, size_t len);
-
+			void HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg);
+			
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
@@ -351,6 +355,7 @@ namespace transport
 			SSU2TerminationReason m_TerminationReason;
 			size_t m_MaxPayloadSize;
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
+			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

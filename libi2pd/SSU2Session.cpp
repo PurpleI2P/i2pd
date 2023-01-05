@@ -221,6 +221,7 @@ namespace transport
 			m_IncompleteMessages.clear ();
 			m_RelaySessions.clear ();
 			m_PeerTests.clear ();
+			m_ReceivedI2NPMsgIDs.clear ();
 			m_Server.RemoveSession (m_SourceConnID);
 			transports.PeerDisconnected (shared_from_this ());
 			LogPrint (eLogDebug, "SSU2: Session terminated");
@@ -1450,7 +1451,7 @@ namespace transport
 					nextMsg->len = nextMsg->offset + size + 7; // 7 more bytes for full I2NP header
 					memcpy (nextMsg->GetNTCP2Header (), buf + offset, size);
 					nextMsg->FromNTCP2 (); // SSU2 has the same format as NTCP2
-					m_Handler.PutNextMessage (std::move (nextMsg));
+					HandleI2NPMsg (std::move (nextMsg));
 					m_IsDataReceived = true;
 					break;
 				}
@@ -1738,7 +1739,7 @@ namespace transport
 		{
 			// we have all follow-on fragments already
 			m->msg->FromNTCP2 ();
-			m_Handler.PutNextMessage (std::move (m->msg));
+			HandleI2NPMsg (std::move (m->msg));
 			m_IncompleteMessages.erase (it);
 		}
 	}
@@ -1760,14 +1761,14 @@ namespace transport
 				if (isLast)
 				{
 					it->second->msg->FromNTCP2 ();
-					m_Handler.PutNextMessage (std::move (it->second->msg));
+					HandleI2NPMsg (std::move (it->second->msg));
 					m_IncompleteMessages.erase (it);
 				}
 				else
 				{
 					if (ConcatOutOfSequenceFragments (it->second))
 					{
-						m_Handler.PutNextMessage (std::move (it->second->msg));
+						HandleI2NPMsg (std::move (it->second->msg));
 						m_IncompleteMessages.erase (it);
 					}
 					else
@@ -2268,6 +2269,25 @@ namespace transport
 		}
 	}
 
+	void SSU2Session::HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg)
+	{	
+		if (!msg) return;
+		int32_t msgID = msg->GetMsgID ();
+		if (!m_ReceivedI2NPMsgIDs.count (msgID))
+		{	
+			if (!msg->IsExpired ())
+			{
+				// m_LastActivityTimestamp is updated in ProcessData before
+				m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)m_LastActivityTimestamp);
+				m_Handler.PutNextMessage (std::move (msg)); 
+			}
+			else
+				LogPrint (eLogDebug, "SSU2: Message ", msgID, " expired");
+		}	
+		else
+			LogPrint (eLogDebug, "SSU2: Message ", msgID, " already received");
+	}	
+		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
 	{
 		if (size < 2) return false;
@@ -2789,6 +2809,20 @@ namespace transport
 			}
 			else
 				++it;
+		}
+		if (m_ReceivedI2NPMsgIDs.size () > SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS || ts > m_LastActivityTimestamp + SSU2_DECAY_INTERVAL)
+			// decay
+			m_ReceivedI2NPMsgIDs.clear ();
+		else
+		{
+			// delete old received msgIDs
+			for (auto it = m_ReceivedI2NPMsgIDs.begin (); it != m_ReceivedI2NPMsgIDs.end ();)
+			{
+				if (ts > it->second + SSU2_RECEIVED_I2NP_MSGIDS_CLEANUP_TIMEOUT)
+					it = m_ReceivedI2NPMsgIDs.erase (it);
+				else
+					++it;
+			}
 		}
 		if (!m_OutOfSequencePackets.empty ())
 		{
