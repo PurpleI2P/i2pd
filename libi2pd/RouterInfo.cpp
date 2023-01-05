@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -206,13 +206,13 @@ namespace data
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
-		auto addresses = netdb.NewRouterInfoAddresses ();
+		auto addresses = NewAddresses ();
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			auto address = netdb.NewRouterInfoAddress ();
+			auto address = NewAddress ();
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
@@ -974,6 +974,16 @@ namespace data
 		return netdb.NewRouterInfoBuffer ();
 	}
 
+	std::shared_ptr<RouterInfo::Address> RouterInfo::NewAddress () const
+	{
+		return netdb.NewRouterInfoAddress ();
+	}	
+		
+	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::NewAddresses () const
+	{
+		return netdb.NewRouterInfoAddresses ();
+	}	
+		
 	void RouterInfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -1255,6 +1265,16 @@ namespace data
 		return std::make_shared<Buffer> ();
 	}
 
+	std::shared_ptr<RouterInfo::Address> LocalRouterInfo::NewAddress () const
+	{
+		return std::make_shared<Address> ();
+	}
+		
+	boost::shared_ptr<RouterInfo::Addresses> LocalRouterInfo::NewAddresses () const
+	{
+		return boost::make_shared<Addresses> ();
+	}	
+		
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
 		auto addresses = GetAddresses ();

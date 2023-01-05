@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -285,6 +285,8 @@ namespace data
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
+			virtual std::shared_ptr<Address> NewAddress () const;
+			virtual boost::shared_ptr<Addresses> NewAddresses () const;
 
 		private:
 
@@ -324,6 +326,8 @@ namespace data
 			void UpdateCapsProperty ();
 			void WriteString (const std::string& str, std::ostream& s) const;
 			std::shared_ptr<Buffer> NewBuffer () const override;
+			std::shared_ptr<Address> NewAddress () const override;
+			boost::shared_ptr<Addresses> NewAddresses () const override;
 
 		private:
 
