@@ -2273,7 +2273,11 @@ namespace transport
 	{	
 		if (!msg) return;
 		int32_t msgID = msg->GetMsgID ();
+#if __cplusplus >= 202002L // C++ 20 or higher
+		if (!m_ReceivedI2NPMsgIDs.contains (msgID))
+#else
 		if (!m_ReceivedI2NPMsgIDs.count (msgID))
+#endif		
 		{	
 			if (!msg->IsExpired ())
 			{
