@@ -48,7 +48,8 @@ namespace garlic
 		eRouterErrorClockSkew = 1,
 		eRouterErrorOffline = 2,
 		eRouterErrorSymmetricNAT = 3,
-		eRouterErrorNoDescriptors = 4
+		eRouterErrorFullConeNAT = 4,
+		eRouterErrorNoDescriptors = 5
 	};
 
 	class RouterContext: public i2p::garlic::GarlicDestination
