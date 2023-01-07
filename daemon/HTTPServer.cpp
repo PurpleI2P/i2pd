@@ -245,6 +245,9 @@ namespace http {
 				case eRouterErrorSymmetricNAT:
 					s << " - " << tr("Symmetric NAT");
 				break;
+				case eRouterErrorFullConeNAT:
+					s << " - " << tr("Full cone NAT");
+				break;	
 				case eRouterErrorNoDescriptors:
 					s << " - " << tr("No Descriptors");
 				break;

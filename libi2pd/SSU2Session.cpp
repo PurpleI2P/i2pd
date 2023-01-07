@@ -1668,23 +1668,25 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Our port ", ep.port (), " received from ", m_RemoteEndpoint, " is different from ", m_Server.GetPort (isV4));
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusTesting ||
-						    m_State == eSSU2SessionStatePeerTest)
+						if (i2p::context.GetStatus () == eRouterStatusTesting)
 						{
 							i2p::context.SetStatus (eRouterStatusFirewalled);
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimer ();
 						}
+						else if (m_State == eSSU2SessionStatePeerTest)
+							i2p::context.SetError (eRouterErrorFullConeNAT);
 					}
 					else
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusTesting ||
-						    m_State == eSSU2SessionStatePeerTest)
+						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
 						{
 							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
 							m_Server.RescheduleIntroducersUpdateTimerV6 ();
 						}
+						else if (m_State == eSSU2SessionStatePeerTest)
+							i2p::context.SetErrorV6 (eRouterErrorFullConeNAT);
 					}
 				}
 				else
@@ -1697,6 +1699,8 @@ namespace transport
 								i2p::context.SetStatus (eRouterStatusOK);
 							i2p::context.SetError (eRouterErrorNone);
 						}
+						else if (i2p::context.GetError () == eRouterErrorFullConeNAT)
+							i2p::context.SetError (eRouterErrorNone);
 					}
 					else
 					{
@@ -1706,6 +1710,8 @@ namespace transport
 								i2p::context.SetStatusV6 (eRouterStatusOK);
 							i2p::context.SetErrorV6 (eRouterErrorNone);
 						}
+						else if (i2p::context.GetErrorV6 () == eRouterErrorFullConeNAT)
+							i2p::context.SetErrorV6 (eRouterErrorNone);
 					}
 				}
 			}
