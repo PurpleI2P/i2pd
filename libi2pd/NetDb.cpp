@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -807,6 +807,11 @@ namespace data
 		uint8_t storeType = buf[DATABASE_STORE_TYPE_OFFSET];
 		if (storeType) // LeaseSet or LeaseSet2
 		{
+			if (len > MAX_LS_BUFFER_SIZE + offset)
+			{
+				LogPrint (eLogError, "NetDb: Database store message is too long ", len);
+				return;
+			}	
 			if (!m->from) // unsolicited LS must be received directly
 			{
 				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
