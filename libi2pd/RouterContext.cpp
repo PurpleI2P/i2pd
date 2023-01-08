@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -240,7 +240,6 @@ namespace i2p
 		if (status != m_Status)
 		{
 			m_Status = status;
-			m_Error = eRouterErrorNone;
 			switch (m_Status)
 			{
 				case eRouterStatusOK:
@@ -249,6 +248,9 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
+				case eRouterStatusTesting:
+					m_Error = eRouterErrorNone;
+				break;	
 				default:
 					;
 			}
@@ -260,7 +262,6 @@ namespace i2p
 		if (status != m_StatusV6)
 		{
 			m_StatusV6 = status;
-			m_ErrorV6 = eRouterErrorNone;
 			switch (m_StatusV6)
 			{
 				case eRouterStatusOK:
@@ -269,6 +270,9 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (false, true); // ipv6
 				break;
+				case eRouterStatusTesting:
+					m_ErrorV6 = eRouterErrorNone;
+				break;		
 				default:
 					;
 			}

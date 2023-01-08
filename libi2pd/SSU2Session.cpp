@@ -1669,22 +1669,14 @@ namespace transport
 					if (isV4)
 					{
 						if (i2p::context.GetStatus () == eRouterStatusTesting)
-						{
-							i2p::context.SetStatus (eRouterStatusFirewalled);
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
-							m_Server.RescheduleIntroducersUpdateTimer ();
-						}
 						else if (m_State == eSSU2SessionStatePeerTest)
 							i2p::context.SetError (eRouterErrorFullConeNAT);
 					}
 					else
 					{
 						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
-						{
-							i2p::context.SetStatusV6 (eRouterStatusFirewalled);
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
-							m_Server.RescheduleIntroducersUpdateTimerV6 ();
-						}
 						else if (m_State == eSSU2SessionStatePeerTest)
 							i2p::context.SetErrorV6 (eRouterErrorFullConeNAT);
 					}
