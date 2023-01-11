@@ -332,8 +332,7 @@ namespace tunnel
 	Tunnels tunnels;
 
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
-		m_NumSuccesiveTunnelCreations (0), m_NumFailedTunnelCreations (0)
-	{
+		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0) {
 	}
 
 	Tunnels::~Tunnels ()
@@ -634,7 +633,7 @@ namespace tunnel
 						}
 						// delete
 						it = pendingTunnels.erase (it);
-						m_NumFailedTunnelCreations++;
+						FailedTunnelCreation();
 					}
 					else
 						++it;
@@ -642,7 +641,7 @@ namespace tunnel
 				case eTunnelStateBuildFailed:
 					LogPrint (eLogDebug, "Tunnel: Pending build request ", it->first, " failed, deleted");
 					it = pendingTunnels.erase (it);
-					m_NumFailedTunnelCreations++;
+					FailedTunnelCreation();
 				break;
 				case eTunnelStateBuildReplyReceived:
 					// intermediate state, will be either established of build failed
@@ -651,7 +650,7 @@ namespace tunnel
 				default:
 					// success
 					it = pendingTunnels.erase (it);
-					m_NumSuccesiveTunnelCreations++;
+					SuccesiveTunnelCreation();
 			}
 		}
 	}
