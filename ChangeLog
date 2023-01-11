@@ -1,6 +1,17 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.45.1] - 2023-01-11
+### Added
+- Full Cone NAT status error
+### Changed
+- Drop duplicated I2NP messages in SSU2
+- Set rejection code 30 if tunnel with id already exists
+- Network status is always OK if peer test msg 5 received
+### Fixed
+- UPnP crash if SSU2 or NTCP2 is disabled 
+- Crash on termination for some platforms
+
 ## [2.45.0] - 2023-01-03
 ### Added
 - Test for Symmetric NAT with peer test msgs 6 and 7
