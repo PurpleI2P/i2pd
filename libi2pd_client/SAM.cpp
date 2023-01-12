@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -440,18 +440,23 @@ namespace client
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			auto session = m_Owner.FindSession(m_ID);
-			if(session)
+			if (m_Socket.is_open ())
 			{
-				if (session->GetLocalDestination ()->IsReady ())
-					SendSessionCreateReplyOk ();
-				else
+				auto session = m_Owner.FindSession(m_ID);
+				if(session)
 				{
-					m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
-					m_Timer.async_wait (std::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
-						shared_from_this (), std::placeholders::_1));
+					if (session->GetLocalDestination ()->IsReady ())
+						SendSessionCreateReplyOk ();
+					else
+					{
+						m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
+						m_Timer.async_wait (std::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
+							shared_from_this (), std::placeholders::_1));
+					}
 				}
 			}
+			else
+				Terminate ("SAM: session socket closed");
 		}
 	}
 

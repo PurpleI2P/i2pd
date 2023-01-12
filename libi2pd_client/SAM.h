@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,7 +30,7 @@ namespace client
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
-	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds
+	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
 	const char SAM_HANDSHAKE_NOVERSION[] = "HELLO REPLY RESULT=NOVERSION\n";
