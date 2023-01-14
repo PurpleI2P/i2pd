@@ -2271,23 +2271,16 @@ namespace transport
 	{	
 		if (!msg) return;
 		int32_t msgID = msg->GetMsgID ();
-#if __cplusplus >= 202002L // C++ 20 or higher
-		if (!m_ReceivedI2NPMsgIDs.contains (msgID))
-#else
-		if (!m_ReceivedI2NPMsgIDs.count (msgID))
-#endif		
-		{	
-			if (!msg->IsExpired ())
-			{
-				// m_LastActivityTimestamp is updated in ProcessData before
-				m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)m_LastActivityTimestamp);
+		if (!msg->IsExpired ())
+		{
+			// m_LastActivityTimestamp is updated in ProcessData before
+			if (m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)m_LastActivityTimestamp).second)
 				m_Handler.PutNextMessage (std::move (msg)); 
-			}
 			else
-				LogPrint (eLogDebug, "SSU2: Message ", msgID, " expired");
-		}	
+				LogPrint (eLogDebug, "SSU2: Message ", msgID, " already received");
+		}
 		else
-			LogPrint (eLogDebug, "SSU2: Message ", msgID, " already received");
+			LogPrint (eLogDebug, "SSU2: Message ", msgID, " expired");
 	}	
 		
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
