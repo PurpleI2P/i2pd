@@ -1788,7 +1788,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Fragment number ", fragmentNum, " exceeds ", SSU2_MAX_NUM_FRAGMENTS);
 			return;
 		}
-		auto fragment = std::make_shared<SSU2IncompleteMessage::Fragment> ();
+		auto fragment = m_Server.GetFragmentsPool ().AcquireShared ();
 		memcpy (fragment->buf, buf + 5, len -5);
 		fragment->len = len - 5;
 		fragment->isLast = isLast;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2022-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -22,7 +22,7 @@ namespace transport
 		RunnableServiceWithWork ("SSU2"), m_ReceiveService ("SSU2r"),
 		m_SocketV4 (m_ReceiveService.GetService ()), m_SocketV6 (m_ReceiveService.GetService ()),
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
-		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ()),
+		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_IsThroughProxy (false)
 	{
@@ -109,6 +109,7 @@ namespace transport
 				m_ReceiveService.Start ();
 			}
 			ScheduleTermination ();
+			ScheduleCleanup ();
 			ScheduleResend (false);
 		}
 	}
@@ -118,6 +119,7 @@ namespace transport
 		if (IsRunning ())
 		{
 			m_TerminationTimer.cancel ();
+			m_CleanupTimer.cancel ();
 			m_ResendTimer.cancel ();
 			m_IntroducersUpdateTimer.cancel ();
 			m_IntroducersUpdateTimerV6.cancel ();
@@ -807,6 +809,22 @@ namespace transport
 					it++;
 			}
 
+			ScheduleTermination ();
+		}
+	}
+
+	void SSU2Server::ScheduleCleanup ()
+	{
+		m_CleanupTimer.expires_from_now (boost::posix_time::seconds(SSU2_CLEANUP_INTERVAL));
+		m_CleanupTimer.async_wait (std::bind (&SSU2Server::HandleCleanupTimer,
+			this, std::placeholders::_1));
+	}
+		
+	void SSU2Server::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
 			{
 				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
@@ -830,13 +848,14 @@ namespace transport
 				else
 					it++;
 			}
-
+			
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
-			ScheduleTermination ();
-		}
-	}
-
+			m_FragmentsPool.CleanUp ();
+			ScheduleCleanup ();
+		}	
+	}	
+		
 	void SSU2Server::ScheduleResend (bool more)
 	{
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? SSU2_RESEND_CHECK_MORE_TIMEOUT :
