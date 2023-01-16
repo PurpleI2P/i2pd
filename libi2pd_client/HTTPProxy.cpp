@@ -333,6 +333,30 @@ namespace proxy {
 			}
 			else if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
 			{
+				if (m_Confirm)
+				{
+					// Referer check to prevent forced overwriting by link with "&update=true" from harmful URL
+					const std::string referer_raw = m_ClientRequest.GetHeader("Referer");
+					i2p::http::URL referer_url;
+					if (!referer_raw.empty ())
+					{
+						referer_url.parse (referer_raw);
+					}
+					if (m_RequestURL.host != referer_url.host)
+					{
+						LogPrint (eLogWarning, "HTTPProxy: Address update from addresshelper rejected for ", m_RequestURL.host, " (referer is ", m_RequestURL.host.empty() ? "empty" : "harmful");
+						std::string full_url = m_RequestURL.to_string();
+						std::stringstream ss;
+						ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
+						ss << "<b>" << tr("Be careful: source of this URL may be harmful") << "!</b> ";
+						ss << tr(/* tr: The "record" means addressbook's record. That message appears when domain was already added to addressbook, but helper link is opened for it. */ "Click here to update record:" );
+						ss << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
+						ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
+						GenericProxyInfo(tr("Addresshelper forced update rejected"), ss.str());
+						return true; /* request processed */
+					}
+				}
+
 				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, jump);
 				LogPrint (eLogInfo, "HTTPProxy: Added address from addresshelper for ", m_RequestURL.host);
 				std::string full_url = m_RequestURL.to_string();
