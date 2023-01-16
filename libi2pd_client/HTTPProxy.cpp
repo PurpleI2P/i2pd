@@ -344,7 +344,7 @@ namespace proxy {
 					}
 					if (m_RequestURL.host != referer_url.host)
 					{
-						LogPrint (eLogWarning, "HTTPProxy: Address update from addresshelper rejected for ", m_RequestURL.host, " (referer is ", m_RequestURL.host.empty() ? "empty" : "harmful");
+						LogPrint (eLogWarning, "HTTPProxy: Address update from addresshelper rejected for ", m_RequestURL.host, " (referer is ", m_RequestURL.host.empty() ? "empty" : "harmful", ")");
 						std::string full_url = m_RequestURL.to_string();
 						std::stringstream ss;
 						ss << tr("Host") << " " << m_RequestURL.host << " <font color=red>" << tr("already in router's addressbook") << "</font>. ";
