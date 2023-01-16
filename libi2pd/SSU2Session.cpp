@@ -32,7 +32,55 @@ namespace transport
 		nextFragmentNum++;
 	}
 
+	bool SSU2IncompleteMessage::ConcatOutOfSequenceFragments ()
+	{
+		bool isLast = false;
+		if (nextFragmentNum == 1)
+		{
+			if (secondFragment)
+			{
+				AttachNextFragment (secondFragment->buf, secondFragment->len);
+				isLast = secondFragment->isLast;
+				secondFragment = nullptr;
+			}	
+			else
+				return false;
+			if (isLast) return true;
+		}
+		// might be more
+		if (outOfSequenceFragments)
+		{	
+			for (auto it = outOfSequenceFragments->begin (); it != outOfSequenceFragments->end ();)
+				if (it->first == nextFragmentNum)
+				{
+					AttachNextFragment (it->second->buf, it->second->len);
+					isLast = it->second->isLast;
+					it = outOfSequenceFragments->erase (it);
+				}
+				else
+					break;
+		}	
+		return isLast;
+	}	
 
+	void SSU2IncompleteMessage::AddOutOfSequenceFragment (int fragmentNum, 
+		std::shared_ptr<SSU2IncompleteMessage::Fragment> fragment)
+	{	
+		if (!fragmentNum || !fragment) return; // fragment 0 nun allowed
+		if (fragmentNum < nextFragmentNum) return; // already processed
+		if (fragmentNum == 1)
+		{	
+			if (!secondFragment) secondFragment = fragment;
+		}	
+		else
+		{
+			if (!outOfSequenceFragments) 
+				outOfSequenceFragments.reset (new std::map<int, std::shared_ptr<Fragment> >());
+			outOfSequenceFragments->emplace (fragmentNum, fragment);
+		}	
+		lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
+	}
+		
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
@@ -1733,7 +1781,7 @@ namespace transport
 		m->msg = msg;
 		m->nextFragmentNum = 1;
 		m->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
-		if (found && ConcatOutOfSequenceFragments (m))
+		if (found && m->ConcatOutOfSequenceFragments ())
 		{
 			// we have all follow-on fragments already
 			m->msg->FromNTCP2 ();
@@ -1764,7 +1812,7 @@ namespace transport
 				}
 				else
 				{
-					if (ConcatOutOfSequenceFragments (it->second))
+					if (it->second->ConcatOutOfSequenceFragments ())
 					{
 						HandleI2NPMsg (std::move (it->second->msg));
 						m_IncompleteMessages.erase (it);
@@ -1792,24 +1840,7 @@ namespace transport
 		memcpy (fragment->buf, buf + 5, len -5);
 		fragment->len = len - 5;
 		fragment->isLast = isLast;
-		it->second->outOfSequenceFragments.emplace (fragmentNum, fragment);
-		it->second->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
-	}
-
-	bool SSU2Session::ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m)
-	{
-		if (!m) return false;
-		bool isLast = false;
-		for (auto it = m->outOfSequenceFragments.begin (); it != m->outOfSequenceFragments.end ();)
-			if (it->first == m->nextFragmentNum)
-			{
-				m->AttachNextFragment (it->second->buf, it->second->len);
-				isLast = it->second->isLast;
-				it = m->outOfSequenceFragments.erase (it);
-			}
-			else
-				break;
-		return isLast;
+		it->second->AddOutOfSequenceFragment (fragmentNum, fragment);
 	}
 
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)

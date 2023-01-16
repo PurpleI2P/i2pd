@@ -177,9 +177,12 @@ namespace transport
 		std::shared_ptr<I2NPMessage> msg;
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
-		std::map<int, std::shared_ptr<Fragment> > outOfSequenceFragments;
+		std::shared_ptr<Fragment> secondFragment; // fragment #1
+		std::unique_ptr<std::map<int, std::shared_ptr<Fragment> > > outOfSequenceFragments; // fragments #2 and more
 
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
+		bool ConcatOutOfSequenceFragments (); // true if message complete
+		void AddOutOfSequenceFragment (int fragmentNum, std::shared_ptr<Fragment> fragment);
 	};
 
 	struct SSU2SentPacket
@@ -306,7 +309,6 @@ namespace transport
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
 			void HandleFirstFragment (const uint8_t * buf, size_t len);
 			void HandleFollowOnFragment (const uint8_t * buf, size_t len);
-			bool ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m); // true if message complete
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
 			void HandleRelayIntro (const uint8_t * buf, size_t len, int attempts = 0);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
