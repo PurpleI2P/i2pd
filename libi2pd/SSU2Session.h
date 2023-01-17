@@ -171,18 +171,19 @@ namespace transport
 		{
 			uint8_t buf[SSU2_MAX_PACKET_SIZE];
 			size_t len;
+			int fragmentNum;
 			bool isLast;
+			std::shared_ptr<Fragment> next;
 		};
 
 		std::shared_ptr<I2NPMessage> msg;
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
-		std::shared_ptr<Fragment> secondFragment; // fragment #1
-		std::unique_ptr<std::map<int, std::shared_ptr<Fragment> > > outOfSequenceFragments; // fragments #2 and more
+		std::shared_ptr<Fragment> outOfSequenceFragments; // #1 and more
 
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
 		bool ConcatOutOfSequenceFragments (); // true if message complete
-		void AddOutOfSequenceFragment (int fragmentNum, std::shared_ptr<Fragment> fragment);
+		void AddOutOfSequenceFragment (std::shared_ptr<Fragment> fragment);
 	};
 
 	struct SSU2SentPacket

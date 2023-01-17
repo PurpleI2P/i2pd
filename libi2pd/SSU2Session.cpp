@@ -35,48 +35,45 @@ namespace transport
 	bool SSU2IncompleteMessage::ConcatOutOfSequenceFragments ()
 	{
 		bool isLast = false;
-		if (nextFragmentNum == 1)
-		{
-			if (secondFragment)
+		while (outOfSequenceFragments)
+		{	
+			if (outOfSequenceFragments->fragmentNum == nextFragmentNum)
 			{
-				AttachNextFragment (secondFragment->buf, secondFragment->len);
-				isLast = secondFragment->isLast;
-				secondFragment = nullptr;
+				AttachNextFragment (outOfSequenceFragments->buf, outOfSequenceFragments->len);
+				isLast = outOfSequenceFragments->isLast;
+				if (isLast)
+					outOfSequenceFragments = nullptr;
+				else	
+					outOfSequenceFragments = outOfSequenceFragments->next;
 			}	
 			else
-				return false;
-			if (isLast) return true;
-		}
-		// might be more
-		if (outOfSequenceFragments)
-		{	
-			for (auto it = outOfSequenceFragments->begin (); it != outOfSequenceFragments->end ();)
-				if (it->first == nextFragmentNum)
-				{
-					AttachNextFragment (it->second->buf, it->second->len);
-					isLast = it->second->isLast;
-					it = outOfSequenceFragments->erase (it);
-				}
-				else
-					break;
+				break;
 		}	
 		return isLast;
 	}	
 
-	void SSU2IncompleteMessage::AddOutOfSequenceFragment (int fragmentNum, 
-		std::shared_ptr<SSU2IncompleteMessage::Fragment> fragment)
+	void SSU2IncompleteMessage::AddOutOfSequenceFragment (std::shared_ptr<SSU2IncompleteMessage::Fragment> fragment)
 	{	
-		if (!fragmentNum || !fragment) return; // fragment 0 nun allowed
-		if (fragmentNum < nextFragmentNum) return; // already processed
-		if (fragmentNum == 1)
-		{	
-			if (!secondFragment) secondFragment = fragment;
-		}	
+		if (!fragment || !fragment->fragmentNum) return; // fragment 0 not allowed
+		if (fragment->fragmentNum < nextFragmentNum) return; // already processed
+		if (!outOfSequenceFragments) 
+			outOfSequenceFragments = fragment;
 		else
 		{
-			if (!outOfSequenceFragments) 
-				outOfSequenceFragments.reset (new std::map<int, std::shared_ptr<Fragment> >());
-			outOfSequenceFragments->emplace (fragmentNum, fragment);
+			auto frag = outOfSequenceFragments;
+			std::shared_ptr<Fragment> prev;
+			do
+			{	
+				if (fragment->fragmentNum < frag->fragmentNum) break; // found
+				if (fragment->fragmentNum == frag->fragmentNum) return; // duplicate
+				prev = frag; frag = frag->next;
+			}
+			while (frag);
+			fragment->next = frag;
+			if (prev)
+				prev->next = fragment; 
+			else
+				outOfSequenceFragments = fragment;
 		}	
 		lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -1839,8 +1836,9 @@ namespace transport
 		auto fragment = m_Server.GetFragmentsPool ().AcquireShared ();
 		memcpy (fragment->buf, buf + 5, len -5);
 		fragment->len = len - 5;
+		fragment->fragmentNum = fragmentNum;
 		fragment->isLast = isLast;
-		it->second->AddOutOfSequenceFragment (fragmentNum, fragment);
+		it->second->AddOutOfSequenceFragment (fragment);
 	}
 
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
