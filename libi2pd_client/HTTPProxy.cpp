@@ -333,7 +333,6 @@ namespace proxy {
 			}
 			else if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
 			{
-				// Referer check to prevent forced overwriting by link with "&update=true" from harmful URL
 				const std::string referer_raw = m_ClientRequest.GetHeader("Referer");
 				i2p::http::URL referer_url;
 				if (!referer_raw.empty ())
@@ -342,6 +341,7 @@ namespace proxy {
 				}
 				if (m_RequestURL.host != referer_url.host)
 				{
+					// Attempt to forced overwriting by link with "&update=true" from harmful URL
 					if (m_Confirm)
 					{
 						LogPrint (eLogWarning, "HTTPProxy: Address update from addresshelper rejected for ", m_RequestURL.host, " (referer is ", m_RequestURL.host.empty() ? "empty" : "harmful", ")");
@@ -354,13 +354,13 @@ namespace proxy {
 						ss << jump << "&update=true\">" << tr("Continue") << "</a>.";
 						GenericProxyInfo(tr("Addresshelper forced update rejected"), ss.str());
 					}
+					// Preventing unauthorized additions to the address book
 					else
 					{
 						LogPrint (eLogDebug, "HTTPProxy: Adding address from addresshelper for ", m_RequestURL.host, " (generate refer-base page)");
 						std::string full_url = m_RequestURL.to_string();
 						std::stringstream ss;
-						ss << tr("To add host") << " <b>" << m_RequestURL.host << "</b> " << tr("in router's addressbook") << ", ";
-						ss << tr("click here") << ":";
+						ss << tr("To add host" /*... in router's addressbook, click here */ ) << " <b>" << m_RequestURL.host << "</b> " << tr( /* To add host SOMESHORT.i2p ... */ "in router's addressbook, click here") << ":";
 						ss << " <a href=\"" << full_url << (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper=");
 						ss << jump << "\">" << tr("Continue") << "</a>.";
 						GenericProxyInfo(tr("Addresshelper request"), ss.str());
