@@ -103,18 +103,18 @@ namespace http {
 		int num;
 
 		if ((num = seconds / 86400) > 0) {
-			s << num << " " << tr("day", "days", num) << ", ";
+			s << ntr("%d day", "%d days", num, num) << ", ";
 			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
-			s << num << " " << tr("hour", "hours", num) << ", ";
+			s << ntr("%d hour", "%d hours", num, num) << ", ";
 			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
-			s << num << " " << tr("minute", "minutes", num) << ", ";
+			s << ntr("%d minute", "%d minutes", num, num) << ", ";
 			seconds -= num * 60;
 		}
-		s << seconds << " " << tr("second", "seconds", seconds);
+		s << ntr("%d second", "%d seconds", seconds, seconds);
 	}
 
 	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
@@ -122,11 +122,11 @@ namespace http {
 		s << std::fixed << std::setprecision(2);
 		auto numKBytes = (double) bytes / 1024;
 		if (numKBytes < 1024)
-			s << numKBytes << " " << tr(/* tr: Kibibit */ "KiB");
+			s << tr(/* tr: Kibibyte */ "%.2f KiB", numKBytes);
 		else if (numKBytes < 1024 * 1024)
-			s << numKBytes / 1024 << " " << tr(/* tr: Mebibit */ "MiB");
+			s << tr(/* tr: Mebibyte */ "%.2f MiB", numKBytes / 1024);
 		else
-			s << numKBytes / 1024 / 1024 << " " << tr(/* tr: Gibibit */ "GiB");
+			s << tr(/* tr: Gibibyte */ "%.2f GiB", numKBytes / 1024 / 1024);
 	}
 
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
@@ -150,7 +150,7 @@ namespace http {
 		else stateText = tr("unknown");
 
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << (int) (bytes / 1024) << "&nbsp;" << tr(/* tr: Kibibit */ "KiB") << "\r\n";
+		s << " " << tr(/* tr: Kibibit */ "%.2f KiB", (double) bytes / 1024) << "\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -247,7 +247,7 @@ namespace http {
 				break;
 				case eRouterErrorFullConeNAT:
 					s << " - " << tr("Full cone NAT");
-				break;	
+				break;
 				case eRouterErrorNoDescriptors:
 					s << " - " << tr("No Descriptors");
 				break;
@@ -290,13 +290,13 @@ namespace http {
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetInBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Sent") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetOutBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Transit") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
 		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
@@ -338,7 +338,7 @@ namespace http {
 						s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
 					else
 					{
-						s << "<td>" << tr("supported");
+						s << "<td>" << tr(/* tr: Shown when router doesn't publish itself and have "Firewalled" state */ "supported");
 						if (address->port)
 							s << " :" << address->port;
 						s << "</td>\r\n";
@@ -466,7 +466,7 @@ namespace http {
 				}
 				s << "&#8658; " << it->GetTunnelID () << ":me";
 				if (it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << " )";
+					s << " ( " << tr(/* tr: Milliseconds */ "%dms", it->GetMeanLatency()) << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</div>\r\n";
 			}
@@ -486,22 +486,26 @@ namespace http {
 					);
 				}
 				if (it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+					s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</div>\r\n";
 			}
 		}
 		s << "<br>\r\n";
 
-		s << "<b>" << tr("Tags") << "</b><br>\r\n" << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
+		s << "<b>" << tr("Tags") << "</b><br>\r\n"
+		  << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
 		if (!dest->GetSessions ().empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
 			for (const auto& it: dest->GetSessions ()) {
 				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<div class='slide'><label for='slide-tags'>" << tr("Outgoing") << ": <i>" << out_tags << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
-			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Amount") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			s << "<div class='slide'><label for='slide-tags'>" << tr("Outgoing") << ": <i>" << out_tags << "</i></label>\r\n"
+			  << "<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
+			  << "<div class=\"slidecontent\">\r\n"
+			  << "<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Amount") << "</th></thead>\r\n"
+			  << "<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << tr("Outgoing") << ": <i>0</i><br>\r\n";
 		s << "<br>\r\n";
@@ -516,8 +520,11 @@ namespace http {
 					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
 					ecies_sessions++;
 				}
-				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
-				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n"
+				  << "<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
+				  << "<div class=\"slidecontent\">\r\n<table>\r\n"
+				  << "<thead><th>" << tr("Destination") << "</th><th>" << tr("Status") << "</th></thead>\r\n"
+				  << "<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
 				s << tr("Tags sessions") << ": <i>0</i><br>\r\n";
 			s << "<br>\r\n";
@@ -671,7 +678,7 @@ namespace http {
 			}
 			s << "&#8658; " << it->GetTunnelID () << ":me";
 			if (it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+			s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</div>\r\n";
 		}
@@ -691,7 +698,7 @@ namespace http {
 				);
 			}
 			if (it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+			s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</div>\r\n";
 		}

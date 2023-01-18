@@ -31,9 +31,9 @@ namespace armenian // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "ԿիԲ"},
-		{"MiB", "ՄիԲ"},
-		{"GiB", "ԳիԲ"},
+		{"%.2f KiB", "%.2f ԿիԲ"},
+		{"%.2f MiB", "%.2f ՄիԲ"},
+		{"%.2f GiB", "%.2f ԳիԲ"},
 		{"building", "կառուցվում է"},
 		{"failed", "Անհաջող"},
 		{"expiring", "Լրանում է"},
@@ -68,7 +68,7 @@ namespace armenian // language namespace
 		{"Family", "Խմբատեսակ"},
 		{"Tunnel creation success rate", "Հաջողությամբ կառուցված թունելներ"},
 		{"Received", "Ստացվել է"},
-		{"KiB/s", "ԿիԲ/վ"},
+		{"%.2f KiB/s", "%.2f ԿիԲ/վ"},
 		{"Sent", "Ուղարկվել է"},
 		{"Transit", "Տարանցում"},
 		{"Data path", "Տվյալների ուղին"},
@@ -94,7 +94,7 @@ namespace armenian // language namespace
 		{"Type", "Տեսակը"},
 		{"EncType", "Գաղտնագրի տեսակը"},
 		{"Inbound tunnels", "Մուտքային թունելներ"},
-		{"ms", "մլվ"},
+		{"%dms", "%dմլվ"},
 		{"Outbound tunnels", "Ելքային թունելներ"},
 		{"Tags", "Թեգեր"},
 		{"Incoming", "Մուտքային"},
@@ -198,10 +198,10 @@ namespace armenian // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days",    {"օր", "օր"}},
-		{"hours",   {"ժամ", "ժամ"}},
-		{"minutes", {"րոպե", "րոպե"}},
-		{"seconds", {"վարկյան", "վարկյան"}},
+		{"%d days",    {"%d օր", "%d օր"}},
+		{"%d hours",   {"%d ժամ", "%d ժամ"}},
+		{"%d minutes", {"%d րոպե", "%d րոպե"}},
+		{"%d seconds", {"%d վարկյան", "%d վարկյան"}},
 		{"", {"", ""}},
 	};
 

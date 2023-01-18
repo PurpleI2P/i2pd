@@ -67,17 +67,71 @@ namespace i18n
 			const std::map<std::string, std::vector<std::string>> m_Plurals;
 			std::function<int(int)> m_Formula;
 	};
-	
+
 	void SetLanguage(const std::string &lang);
 	std::string translate (const std::string& arg);
 	std::string translate (const std::string& arg, const std::string& arg2, const int& n);
 } // i18n
 } // i2p
 
-template<typename... TArgs>
-std::string tr (TArgs&&... args)
+/**
+ * @brief Get translation of string
+ * @param arg String with message
+ */
+template<typename TValue>
+std::string tr (TValue&& arg)
 {
-	return i2p::i18n::translate(std::forward<TArgs>(args)...);
+	return i2p::i18n::translate(std::forward<TValue>(arg));
+}
+
+/**
+ * @brief Get translation of string and format it
+ * @param arg String with message
+ * @param args Array of arguments for string formatting
+*/
+template<typename TValue, typename... TArgs>
+std::string tr (TValue&& arg, TArgs&&... args)
+{
+	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg));
+
+	size_t size = snprintf(NULL, 0, tr_str.c_str(), std::forward<TArgs>(args)...);
+	size = size + 1;
+	std::string str(size, 0);
+	snprintf(str.data(), size, tr_str.c_str(), std::forward<TArgs>(args)...);
+
+	return str;
+}
+
+/**
+ * @brief Get translation of string with plural forms
+ * @param arg String with message in singular form
+ * @param arg2 String with message in plural form
+ * @param n Integer, used for selection of form
+ */
+template<typename TValue, typename TValue2>
+std::string ntr (TValue&& arg, TValue2&& arg2, int& n)
+{
+	return i2p::i18n::translate(std::forward<TValue>(arg), std::forward<TValue2>(arg2), std::forward<int>(n));
+}
+
+/**
+ * @brief Get translation of string with plural forms and format it
+ * @param arg String with message in singular form
+ * @param arg2 String with message in plural form
+ * @param n Integer, used for selection of form
+ * @param args Array of arguments for string formatting
+ */
+template<typename TValue, typename TValue2, typename... TArgs>
+std::string ntr (TValue&& arg, TValue2&& arg2, int& n, TArgs&&... args)
+{
+	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg), std::forward<TValue2>(arg2), std::forward<int>(n));
+
+	size_t size = snprintf(NULL, 0, tr_str.c_str(), std::forward<TArgs>(args)...);
+	size = size + 1;
+	std::string str(size, 0);
+	snprintf(str.data(), size, tr_str.c_str(), std::forward<TArgs>(args)...);
+
+	return str;
 }
 
 #endif // __I18N_H__

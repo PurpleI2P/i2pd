@@ -31,9 +31,9 @@ namespace turkmen // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "bina"},
 		{"failed", "şowsuz"},
 		{"expiring", "möhleti gutarýar"},
@@ -68,7 +68,7 @@ namespace turkmen // language namespace
 		{"Family", "Maşgala"},
 		{"Tunnel creation success rate", "Gurlan teneller üstünlikli gurlan teneller"},
 		{"Received", "Alnan"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "Ýerleşdirildi"},
 		{"Transit", "Tranzit"},
 		{"Data path", "Maglumat ýoly"},
@@ -94,7 +94,7 @@ namespace turkmen // language namespace
 		{"Type", "Görnüş"},
 		{"EncType", "Şifrlemek görnüşi"},
 		{"Inbound tunnels", "Gelýän tuneller"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Çykýan tuneller"},
 		{"Tags", "Bellikler"},
 		{"Incoming", "Gelýän"},
@@ -198,10 +198,10 @@ namespace turkmen // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days",    {"gün", "gün"}},
-		{"hours",   {"sagat", "sagat"}},
-		{"minutes", {"minut", "minut"}},
-		{"seconds", {"sekunt", "sekunt"}},
+		{"%d days",    {"%d gün", "%d gün"}},
+		{"%d hours",   {"%d sagat", "%d sagat"}},
+		{"%d minutes", {"%d minut", "%d minut"}},
+		{"%d seconds", {"%d sekunt", "%d sekunt"}},
 		{"", {"", ""}},
 	};
 

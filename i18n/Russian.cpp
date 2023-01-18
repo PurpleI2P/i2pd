@@ -31,9 +31,9 @@ namespace russian // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "КиБ"},
-		{"MiB", "МиБ"},
-		{"GiB", "ГиБ"},
+		{"%.2f KiB", "%.2f КиБ"},
+		{"%.2f MiB", "%.2f МиБ"},
+		{"%.2f GiB", "%.2f ГиБ"},
 		{"building", "строится"},
 		{"failed", "неудачный"},
 		{"expiring", "истекает"},
@@ -68,7 +68,7 @@ namespace russian // language namespace
 		{"Family", "Семейство"},
 		{"Tunnel creation success rate", "Успешно построенных туннелей"},
 		{"Received", "Получено"},
-		{"KiB/s", "КиБ/с"},
+		{"%.2f KiB/s", "%.2f КиБ/с"},
 		{"Sent", "Отправлено"},
 		{"Transit", "Транзит"},
 		{"Data path", "Путь к данным"},
@@ -94,7 +94,7 @@ namespace russian // language namespace
 		{"Type", "Тип"},
 		{"EncType", "ТипШифр"},
 		{"Inbound tunnels", "Входящие туннели"},
-		{"ms", "мс"},
+		{"%dms", "%dмс"},
 		{"Outbound tunnels", "Исходящие туннели"},
 		{"Tags", "Теги"},
 		{"Incoming", "Входящие"},
@@ -198,10 +198,10 @@ namespace russian // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days",    {"день", "дня", "дней"}},
-		{"hours",   {"час", "часа", "часов"}},
-		{"minutes", {"минуту", "минуты", "минут"}},
-		{"seconds", {"секунду", "секунды", "секунд"}},
+		{"%d days",    {"%d день", "%d дня", "%d дней"}},
+		{"%d hours",   {"%d час", "%d часа", "%d часов"}},
+		{"%d minutes", {"%d минуту", "%d минуты", "%d минут"}},
+		{"%d seconds", {"%d секунду", "%d секунды", "%d секунд"}},
 		{"", {"", "", ""}},
 	};
 

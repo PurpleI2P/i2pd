@@ -31,9 +31,9 @@ namespace uzbek // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "yaratilmoqda"},
 		{"failed", "muvaffaqiyatsiz"},
 		{"expiring", "muddati tugaydi"},
@@ -68,7 +68,7 @@ namespace uzbek // language namespace
 		{"Family", "Oila"},
 		{"Tunnel creation success rate", "Tunnel yaratish muvaffaqiyat darajasi"},
 		{"Received", "Qabul qilindi"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "Yuborilgan"},
 		{"Transit", "Tranzit"},
 		{"Data path", "Ma'lumotlar joylanishi"},
@@ -94,7 +94,7 @@ namespace uzbek // language namespace
 		{"Type", "Turi"},
 		{"EncType", "ShifrlashTuri"},
 		{"Inbound tunnels", "Kirish tunnellari"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Chiquvchi tunnellar"},
 		{"Tags", "Teglar"},
 		{"Incoming", "Kiruvchi"},
@@ -198,10 +198,10 @@ namespace uzbek // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"kun", "kun"}},
-		{"hours", {"soat", "soat"}},
-		{"minutes", {"daqiqa", "daqiqa"}},
-		{"seconds", {"soniya", "soniya"}},
+		{"%d days", {"%d kun", "%d kun"}},
+		{"%d hours", {"%d soat", "%d soat"}},
+		{"%d minutes", {"%d daqiqa", "%d daqiqa"}},
+		{"%d seconds", {"%d soniya", "%d soniya"}},
 		{"", {"", ""}},
 	};
 

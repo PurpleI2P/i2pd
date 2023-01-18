@@ -31,9 +31,9 @@ namespace german // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "In Bau"},
 		{"failed", "fehlgeschlagen"},
 		{"expiring", "läuft ab"},
@@ -69,7 +69,7 @@ namespace german // language namespace
 		{"Family", "Familie"},
 		{"Tunnel creation success rate", "Erfolgsrate der Tunnelerstellung"},
 		{"Received", "Eingegangen"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "Gesendet"},
 		{"Transit", "Transit"},
 		{"Data path", "Datenpfad"},
@@ -95,7 +95,7 @@ namespace german // language namespace
 		{"Type", "Typ"},
 		{"EncType", "Verschlüsselungstyp"},
 		{"Inbound tunnels", "Eingehende Tunnel"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Ausgehende Tunnel"},
 		{"Tags", "Tags"},
 		{"Incoming", "Eingehend"},
@@ -199,10 +199,10 @@ namespace german // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"Tag", "Tage"}},
-		{"hours", {"Stunde", "Stunden"}},
-		{"minutes", {"Minute", "Minuten"}},
-		{"seconds", {"Sekunde", "Sekunden"}},
+		{"%d days", {"%d Tag", "%d Tage"}},
+		{"%d hours", {"%d Stunde", "%d Stunden"}},
+		{"%d minutes", {"%d Minute", "%d Minuten"}},
+		{"%d seconds", {"%d Sekunde", "%d Sekunden"}},
 		{"", {"", ""}},
 	};
 

@@ -31,9 +31,9 @@ namespace spanish // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "pendiente"},
 		{"failed", "fallido"},
 		{"expiring", "expiró"},
@@ -69,7 +69,7 @@ namespace spanish // language namespace
 		{"Family", "Familia"},
 		{"Tunnel creation success rate", "Tasa de éxito de creación de túneles"},
 		{"Received", "Recibido"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "Enviado"},
 		{"Transit", "Tránsito"},
 		{"Data path", "Ruta de datos"},
@@ -95,7 +95,7 @@ namespace spanish // language namespace
 		{"Type", "Tipo"},
 		{"EncType", "TipoEncrip"},
 		{"Inbound tunnels", "Túneles entrantes"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Túneles salientes"},
 		{"Tags", "Etiquetas"},
 		{"Incoming", "Entrante"},
@@ -199,10 +199,10 @@ namespace spanish // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"día", "días"}},
-		{"hours", {"hora", "horas"}},
-		{"minutes", {"minuto", "minutos"}},
-		{"seconds", {"segundo", "segundos"}},
+		{"%d days", {"%d día", "%d días"}},
+		{"%d hours", {"%d hora", "%d horas"}},
+		{"%d minutes", {"%d minuto", "%d minutos"}},
+		{"%d seconds", {"%d segundo", "%d segundos"}},
 		{"", {"", ""}},
 	};
 

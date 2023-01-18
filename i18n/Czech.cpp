@@ -31,9 +31,9 @@ namespace czech // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "vytváří se"},
 		{"failed", "selhalo"},
 		{"expiring", "končící"},
@@ -69,7 +69,7 @@ namespace czech // language namespace
 		{"Family", "Rodina"},
 		{"Tunnel creation success rate", "Úspěšnost vytváření tunelů"},
 		{"Received", "Přijato"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "Odesláno"},
 		{"Transit", "Tranzit"},
 		{"Data path", "Cesta k data souborům"},
@@ -95,7 +95,7 @@ namespace czech // language namespace
 		{"Type", "Typ"},
 		{"EncType", "EncType"},
 		{"Inbound tunnels", "Příchozí tunely"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Odchozí tunely"},
 		{"Tags", "Štítky"},
 		{"Incoming", "Příchozí"},
@@ -199,10 +199,10 @@ namespace czech // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"den", "dny", "dní", "dní"}},
-		{"hours", {"hodina", "hodiny", "hodin", "hodin"}},
-		{"minutes", {"minuta", "minuty", "minut", "minut"}},
-		{"seconds", {"vteřina", "vteřiny", "vteřin", "vteřin"}},
+		{"%d days", {"%d den", "%d dny", "%d dní", "%d dní"}},
+		{"%d hours", {"%d hodina", "%d hodiny", "%d hodin", "%d hodin"}},
+		{"%d minutes", {"%d minuta", "%d minuty", "%d minut", "%d minut"}},
+		{"%d seconds", {"%d vteřina", "%d vteřiny", "%d vteřin", "%d vteřin"}},
 		{"", {"", "", "", ""}},
 	};
 

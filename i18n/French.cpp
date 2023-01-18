@@ -31,9 +31,9 @@ namespace french // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "Kio"},
-		{"MiB", "Mio"},
-		{"GiB", "Gio"},
+		{"%.2f KiB", "%.2f Kio"},
+		{"%.2f MiB", "%.2f Mio"},
+		{"%.2f GiB", "%.2f Gio"},
 		{"building", "En construction"},
 		{"failed", "échoué"},
 		{"expiring", "expiré"},
@@ -69,7 +69,7 @@ namespace french // language namespace
 		{"Family", "Famille"},
 		{"Tunnel creation success rate", "Taux de succès de création de tunnels"},
 		{"Received", "Reçu"},
-		{"KiB/s", "kio/s"},
+		{"%.2f KiB/s", "%.2f kio/s"},
 		{"Sent", "Envoyé"},
 		{"Transit", "Transité"},
 		{"Data path", "Emplacement des données"},
@@ -93,7 +93,7 @@ namespace french // language namespace
 		{"Address", "Adresse"},
 		{"Type", "Type"},
 		{"Inbound tunnels", "Tunnels entrants"},
-		{"ms", "ms"},
+		{"%dms", "%dms"},
 		{"Outbound tunnels", "Tunnels sortants"},
 		{"Tags", "Balises"},
 		{"Incoming", "Entrant"},
@@ -194,10 +194,10 @@ namespace french // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"jour", "jours"}},
-		{"hours", {"heure", "heures"}},
-		{"minutes", {"minute", "minutes"}},
-		{"seconds", {"seconde", "secondes"}},
+		{"%d days", {"%d jour", "%d jours"}},
+		{"%d hours", {"%d heure", "%d heures"}},
+		{"%d minutes", {"%d minute", "%d minutes"}},
+		{"%d seconds", {"%d seconde", "%d secondes"}},
 		{"", {"", ""}},
 	};
 

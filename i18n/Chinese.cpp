@@ -32,9 +32,9 @@ namespace chinese // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "KiB"},
-		{"MiB", "MiB"},
-		{"GiB", "GiB"},
+		{"%.2f KiB", "%.2f KiB"},
+		{"%.2f MiB", "%.2f MiB"},
+		{"%.2f GiB", "%.2f GiB"},
 		{"building", "正在构建"},
 		{"failed", "连接失败"},
 		{"expiring", "即将过期"},
@@ -70,7 +70,7 @@ namespace chinese // language namespace
 		{"Family", "家族"},
 		{"Tunnel creation success rate", "隧道创建成功率"},
 		{"Received", "已接收"},
-		{"KiB/s", "KiB/s"},
+		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "已发送"},
 		{"Transit", "中转"},
 		{"Data path", "数据文件路径"},
@@ -96,7 +96,7 @@ namespace chinese // language namespace
 		{"Type", "类型"},
 		{"EncType", "加密类型"},
 		{"Inbound tunnels", "入站隧道"},
-		{"ms", "毫秒"},
+		{"%dms", "%d毫秒"},
 		{"Outbound tunnels", "出站隧道"},
 		{"Tags", "标签"},
 		{"Incoming", "传入"},
@@ -200,10 +200,10 @@ namespace chinese // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"日"}},
-		{"hours", {"时"}},
-		{"minutes", {"分"}},
-		{"seconds", {"秒"}},
+		{"%d days", {"%d 日"}},
+		{"%d hours", {"%d 时"}},
+		{"%d minutes", {"%d 分"}},
+		{"%d seconds", {"%d 秒"}},
 		{"", {""}},
 	};
 

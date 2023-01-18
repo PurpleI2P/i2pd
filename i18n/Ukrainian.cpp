@@ -31,9 +31,9 @@ namespace ukrainian // language namespace
 
 	static std::map<std::string, std::string> strings
 	{
-		{"KiB", "КіБ"},
-		{"MiB", "МіБ"},
-		{"GiB", "ГіБ"},
+		{"%.2f KiB", "%.2f КіБ"},
+		{"%.2f MiB", "%.2f МіБ"},
+		{"%.2f GiB", "%.2f ГіБ"},
 		{"building", "будується"},
 		{"failed", "невдалий"},
 		{"expiring", "завершується"},
@@ -68,7 +68,7 @@ namespace ukrainian // language namespace
 		{"Family", "Сімейство"},
 		{"Tunnel creation success rate", "Успішно побудованих тунелів"},
 		{"Received", "Отримано"},
-		{"KiB/s", "КіБ/с"},
+		{"%.2f KiB/s", "%.2f КіБ/с"},
 		{"Sent", "Відправлено"},
 		{"Transit", "Транзит"},
 		{"Data path", "Шлях до даних"},
@@ -94,7 +94,7 @@ namespace ukrainian // language namespace
 		{"Type", "Тип"},
 		{"EncType", "ТипШифр"},
 		{"Inbound tunnels", "Вхідні тунелі"},
-		{"ms", "мс"},
+		{"%dms", "%dмс"},
 		{"Outbound tunnels", "Вихідні тунелі"},
 		{"Tags", "Теги"},
 		{"Incoming", "Вхідні"},
@@ -198,10 +198,10 @@ namespace ukrainian // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"день", "дня", "днів"}},
-		{"hours", {"годину", "години", "годин"}},
-		{"minutes", {"хвилину", "хвилини", "хвилин"}},
-		{"seconds", {"секунду", "секунди", "секунд"}},
+		{"%d days", {"%d день", "%d дня", "%d днів"}},
+		{"%d hours", {"%d годину", "%d години", "%d годин"}},
+		{"%d minutes", {"%d хвилину", "%d хвилини", "%d хвилин"}},
+		{"%d seconds", {"%d секунду", "%d секунди", "%d секунд"}},
 		{"", {"", "", ""}},
 	};
 
