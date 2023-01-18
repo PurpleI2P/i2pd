@@ -345,7 +345,7 @@ namespace transport
 			uint32_t m_SendPacketNum, m_ReceivePacketNum;
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > m_SentPackets; // packetNum -> packet
-			std::map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // I2NP
+			std::unordered_map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // msgID -> I2NP
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_PeerTests; // same as for relay sessions
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;

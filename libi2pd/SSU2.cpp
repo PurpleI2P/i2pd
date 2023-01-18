@@ -851,6 +851,7 @@ namespace transport
 			
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
+			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();
 			ScheduleCleanup ();
 		}	

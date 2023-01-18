@@ -98,8 +98,9 @@ namespace transport
 			void RescheduleIntroducersUpdateTimerV6 ();
 
 			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
+			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
-		
+					
 		private:
 
 			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
@@ -152,6 +153,7 @@ namespace transport
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
+			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
 			boost::asio::deadline_timer m_TerminationTimer, m_CleanupTimer, m_ResendTimer,
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;

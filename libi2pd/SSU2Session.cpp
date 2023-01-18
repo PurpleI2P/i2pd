@@ -1772,7 +1772,7 @@ namespace transport
 		}
 		else
 		{
-			m = std::make_shared<SSU2IncompleteMessage>();
+			m = m_Server.GetIncompleteMessagesPool ().AcquireShared ();
 			m_IncompleteMessages.emplace (msgID, m);
 		}
 		m->msg = msg;
@@ -1791,11 +1791,17 @@ namespace transport
 	{
 		if (len < 5) return;
 		uint8_t fragmentNum = buf[0] >> 1;
+		if (!fragmentNum || fragmentNum >= SSU2_MAX_NUM_FRAGMENTS)
+		{
+			LogPrint (eLogWarning, "SSU2: Invalid follow-on fragment num ", fragmentNum);
+			return;
+		}	
 		bool isLast = buf[0] & 0x01;
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
 		auto it = m_IncompleteMessages.find (msgID);
 		if (it != m_IncompleteMessages.end ())
 		{
+			if (fragmentNum < it->second->nextFragmentNum) return; // duplicate
 			if (it->second->nextFragmentNum == fragmentNum && fragmentNum < SSU2_MAX_NUM_FRAGMENTS &&
 			    it->second->msg)
 			{
@@ -1823,16 +1829,11 @@ namespace transport
 		else
 		{
 			// follow-on fragment before first fragment
-			auto msg = std::make_shared<SSU2IncompleteMessage> ();
+			auto msg = m_Server.GetIncompleteMessagesPool ().AcquireShared ();
 			msg->nextFragmentNum = 0;
 			it = m_IncompleteMessages.emplace (msgID, msg).first;
 		}
 		// insert out of sequence fragment
-		if (fragmentNum >= SSU2_MAX_NUM_FRAGMENTS)
-		{
-			LogPrint (eLogWarning, "SSU2: Fragment number ", fragmentNum, " exceeds ", SSU2_MAX_NUM_FRAGMENTS);
-			return;
-		}
 		auto fragment = m_Server.GetFragmentsPool ().AcquireShared ();
 		memcpy (fragment->buf, buf + 5, len -5);
 		fragment->len = len - 5;
