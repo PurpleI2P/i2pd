@@ -150,7 +150,7 @@ namespace http {
 		else stateText = tr("unknown");
 
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << tr(/* tr: Kibibit */ "%.2f KiB", (double) bytes / 1024) << "\r\n";
+		s << " " << tr(/* tr: Kibibyte */ "%.2f KiB", (double) bytes / 1024) << "\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -290,13 +290,13 @@ namespace http {
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetInBandwidth15s () / 1024) << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetInBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Sent") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetOutBandwidth15s () / 1024) << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetOutBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Transit") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << tr(/* tr: Kibibit/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024) << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
 		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
@@ -649,7 +649,7 @@ namespace http {
 		}
 		else if (!i2p::context.IsFloodfill ())
 		{
-			s << "<b>" << tr("LeaseSets") << ":</b> " << tr("not floodfill") << ".<br>\r\n";
+			s << "<b>" << tr("LeaseSets") << ":</b> " << tr(/* Message on LeaseSets page */ "floodfill mode is disabled") << ".<br>\r\n";
 		}
 		else
 		{
@@ -794,7 +794,7 @@ namespace http {
 		}
 		else
 		{
-			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr("no transit tunnels currently built") << ".<br>\r\n";
+			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr(/* Message on transit tunnels page */ "no transit tunnels currently built") << ".<br>\r\n";
 		}
 	}
 
@@ -891,7 +891,7 @@ namespace http {
 			s << "</div>\r\n";
 		}
 		else
-			s << "<b>" << tr("SAM sessions") << ":</b> " << tr("no sessions currently running") << ".<br>\r\n";
+			s << "<b>" << tr("SAM sessions") << ":</b> " << tr(/* Message on SAM sessions page */ "no sessions currently running") << ".<br>\r\n";
 	}
 
 	void ShowSAMSession (std::stringstream& s, const std::string& id)
@@ -1210,7 +1210,7 @@ namespace http {
 		url.parse_query(params);
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		std::string redirect = "5; url=" + webroot + "?page=commands";
+		std::string redirect = COMMAND_REDIRECT_TIMEOUT + "; url=" + webroot + "?page=commands";
 		std::string token = params["token"];
 
 		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
@@ -1284,20 +1284,20 @@ namespace http {
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
-			s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
-			redirect = "5; url=" + webroot + "?page=local_destination&b32=" + b32;
+			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
+			redirect = COMMAND_REDIRECT_TIMEOUT + "; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
 		}
 		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
 		{
 			uint32_t limit = std::stoul(params["limit"], nullptr);
-			if (limit > 0 && limit <= 65535)
+			if (limit > 0 && limit <= TRANSIT_TUNNELS_LIMIT)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed 65535") << "\r\n<br>\r\n<br>\r\n";
+				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed %d", TRANSIT_TUNNELS_LIMIT) << "\r\n<br>\r\n<br>\r\n";
 				s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a>\r\n<br>\r\n";
-				s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+				s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
@@ -1372,7 +1372,7 @@ namespace http {
 
 		s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Command accepted") << "<br><br>\r\n";
 		s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a><br>\r\n";
-		s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+		s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
 		res.add_header("Refresh", redirect.c_str());
 	}
 

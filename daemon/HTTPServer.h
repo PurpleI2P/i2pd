@@ -24,6 +24,8 @@ namespace http
 {
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
 	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
+	const int COMMAND_REDIRECT_TIMEOUT = 5; // in seconds
+	const int TRANSIT_TUNNELS_LIMIT = 65535;
 
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
