@@ -347,7 +347,7 @@ namespace proxy {
 						std::string full_url = m_RequestURL.to_string();
 						std::stringstream ss;
 						ss << tr("Host %s is <font color=red>already in router's addressbook</font>. <b>Be careful: source of this URL may be harmful!</b> Click here to update record: <a href=\"%s%s%s&update=true\">Continue</a>.",
-							m_RequestURL.host, full_url, (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump);
+							m_RequestURL.host.c_str(), full_url.c_str(), (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump.c_str());
 						GenericProxyInfo(tr("Addresshelper forced update rejected"), ss.str());
 					}
 					else // Preventing unauthorized additions to the address book
@@ -356,7 +356,7 @@ namespace proxy {
 						std::string full_url = m_RequestURL.to_string();
 						std::stringstream ss;
 						ss << tr("To add host <b>%s</b> in router's addressbook, click here: <a href=\"%s%s%s\">Continue</a>.",
-							m_RequestURL.host, full_url, (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump);
+							m_RequestURL.host.c_str(), full_url.c_str(), (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump.c_str());
 						GenericProxyInfo(tr("Addresshelper request"), ss.str());
 					}
 					return true; /* request processed */
@@ -366,7 +366,8 @@ namespace proxy {
 				LogPrint (eLogInfo, "HTTPProxy: Added address from addresshelper for ", m_RequestURL.host);
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
-				ss << tr("Host %s added to router's addressbook from helper. Click here to proceed: <a href=\"%s\">Continue</a>.", m_RequestURL.host, full_url);
+				ss << tr("Host %s added to router's addressbook from helper. Click here to proceed: <a href=\"%s\">Continue</a>.",
+					m_RequestURL.host.c_str(), full_url.c_str());
 				GenericProxyInfo(tr("Addresshelper adding"), ss.str());
 				return true; /* request processed */
 			}
@@ -375,7 +376,7 @@ namespace proxy {
 				std::string full_url = m_RequestURL.to_string();
 				std::stringstream ss;
 				ss << tr("Host %s is <font color=red>already in router's addressbook</font>. Click here to update record: <a href=\"%s%s%s&update=true\">Continue</a>.",
-					m_RequestURL.host, full_url, (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump);
+					m_RequestURL.host.c_str(), full_url.c_str(), (full_url.find('?') != std::string::npos ? "&i2paddresshelper=" : "?i2paddresshelper="), jump.c_str());
 				GenericProxyInfo(tr("Addresshelper update"), ss.str());
 				return true; /* request processed */
 			}
@@ -452,7 +453,7 @@ namespace proxy {
 					GenericProxyError(tr("Outproxy failure"), tr("Bad outproxy settings"));
 			} else {
 				LogPrint (eLogWarning, "HTTPProxy: Outproxy failure for ", dest_host, ": no outproxy enabled");
-				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host);
+				std::stringstream ss; ss << tr("Host %s is not inside I2P network, but outproxy is not enabled", dest_host.c_str());
 				GenericProxyError(tr("Outproxy failure"), ss.str());
 			}
 			return true;

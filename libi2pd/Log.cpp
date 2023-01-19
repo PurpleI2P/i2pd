@@ -126,7 +126,7 @@ namespace log {
 		if      (level == "none")  { m_MinLevel = eLogNone; }
 		else if (level == "error") { m_MinLevel = eLogError; }
 		else if (level == "warn")  { m_MinLevel = eLogWarning; }
-		else if (level == "info")  { m_MinLevel = eLogInfo;  }
+		else if (level == "info")  { m_MinLevel = eLogInfo; }
 		else if (level == "debug") { m_MinLevel = eLogDebug; }
 		else {
 			LogPrint(eLogError, "Log: Unknown loglevel: ", level);

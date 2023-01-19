@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,7 +38,7 @@ namespace http
 		"@media (prefers-color-scheme: dark) { :root { --main-bg-color: #242424; --main-text-color: #17ab5c; --main-link-color: #bf64b7; --main-link-hover-color: #000000; } }\r\n"
 		"body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: var(--main-bg-color); color: var(--main-text-color); }\r\n"
 		"a, .slide label { text-decoration: none; color: var(--main-link-color); }\r\n"
-		"a:hover, .slide label:hover, button[type=submit]:hover { color: var(--main-link-hover-color); background: var(--main-link-color); }\r\n"
+		"a:hover, a.button.selected, .slide label:hover, button[type=submit]:hover { color: var(--main-link-hover-color); background: var(--main-link-color); }\r\n"
 		"a.button { appearance: button; text-decoration: none; padding: 0 5px; border: 1px solid var(--main-link-color); }\r\n"
 		".header { font-size: 2.5em; text-align: center; margin: 1em 0; color: var(--main-link-color); }\r\n"
 		".wrapper { margin: 0 auto; padding: 1em; max-width: 64em; }\r\n"
