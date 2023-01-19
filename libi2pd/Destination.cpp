@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1138,19 +1138,25 @@ namespace client
 	template<typename Dest>
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, int port)
 	{
+		volatile bool done = false;
 		std::shared_ptr<i2p::stream::Stream> stream;
 		std::condition_variable streamRequestComplete;
 		std::mutex streamRequestCompleteMutex;
-		std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
 		CreateStream (
-			[&streamRequestComplete, &streamRequestCompleteMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
+			[&done, &streamRequestComplete, &streamRequestCompleteMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
 		    {
 				stream = s;
 				std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
 				streamRequestComplete.notify_all ();
+				done = true;
 			},
 		    dest, port);
-		streamRequestComplete.wait (l);
+		while (!done)
+		{	
+			std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
+			if (!done)
+				streamRequestComplete.wait (l);
+		}	
 		return stream;
 	}
 
