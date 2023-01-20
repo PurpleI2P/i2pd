@@ -1001,7 +1001,7 @@ namespace http {
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</div>\r\n"<< std::endl;
