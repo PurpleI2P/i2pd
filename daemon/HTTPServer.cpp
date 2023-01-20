@@ -1212,7 +1212,7 @@ namespace http {
 		url.parse_query(params);
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		std::string redirect = COMMAND_REDIRECT_TIMEOUT + "; url=" + webroot + "?page=commands";
+		std::string redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=commands";
 		std::string token = params["token"];
 
 		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
@@ -1287,7 +1287,7 @@ namespace http {
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
 			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
-			redirect = COMMAND_REDIRECT_TIMEOUT + "; url=" + webroot + "?page=local_destination&b32=" + b32;
+			redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
 		}
