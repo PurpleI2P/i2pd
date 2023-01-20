@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -31,6 +31,7 @@ namespace data
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
+	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
 
 	class RouterProfile
 	{
@@ -55,10 +56,12 @@ namespace data
 			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
 			bool IsLowPartcipationRate () const;
 			bool IsLowReplyRate () const;
+			bool IsDeclinedRecently ();
 
 		private:
 
-			boost::posix_time::ptime m_LastUpdateTime;
+			boost::posix_time::ptime m_LastUpdateTime; // TODO: use std::chrono
+			uint64_t m_LastDeclineTime; // in seconds
 			// participation
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;

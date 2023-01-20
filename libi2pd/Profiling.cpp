@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,6 +12,7 @@
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "Profiling.h"
 
 namespace i2p
@@ -22,6 +23,7 @@ namespace data
 
 	RouterProfile::RouterProfile ():
 		m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
+		m_LastDeclineTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0)
 	{
@@ -131,9 +133,15 @@ namespace data
 	{
 		UpdateTime ();
 		if (ret > 0)
+		{	
 			m_NumTunnelsDeclined++;
+			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
+		}	
 		else
+		{	
 			m_NumTunnelsAgreed++;
+			m_LastDeclineTime = 0;
+		}	
 	}
 
 	void RouterProfile::TunnelNonReplied ()
@@ -153,8 +161,18 @@ namespace data
 		return m_NumTunnelsNonReplied > 10*(total + 1);
 	}
 
+	bool RouterProfile::IsDeclinedRecently ()
+	{
+		if (!m_LastDeclineTime) return false;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts > m_LastDeclineTime + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL)
+			m_LastDeclineTime = 0;
+		return m_LastDeclineTime;
+	}	
+		
 	bool RouterProfile::IsBad ()
 	{
+		if (IsDeclinedRecently ()) return true;
 		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () /*|| IsLowReplyRate ()*/;
 		if (isBad && m_NumTimesRejected > 10*(m_NumTimesTaken + 1))
 		{
