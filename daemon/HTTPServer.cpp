@@ -150,7 +150,8 @@ namespace http {
 		else stateText = tr("unknown");
 
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << tr(/* tr: Kibibyte */ "%.2f KiB", (double) bytes / 1024) << "\r\n";
+		ShowTraffic(s, bytes);
+		s << "\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
