@@ -33,21 +33,21 @@ endif
 
 NEEDED_CXXFLAGS += -fPIC
 
-# NOTE: on glibc you will get this warning:
-#   Using 'getaddrinfo' in statically linked applications requires at runtime
-#   the shared libraries from the glibc version used for linking
-ifeq ($(USE_STATIC),yes)
-	LDLIBS += -ldl -Wl,-Bstatic -pthread -static-libgcc -static-libstdc++
-else
-	LDLIBS += -lpthread
-endif
-
 LDLIBS += -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lssl -lcrypto -lz
 
 # UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
 	NEEDED_CXXFLAGS += -DUSE_UPNP
+endif
+
+# NOTE: on glibc you will get this warning:
+#   Using 'getaddrinfo' in statically linked applications requires at runtime
+#   the shared libraries from the glibc version used for linking
+ifeq ($(USE_STATIC),yes)
+	LDLIBS += -static -ldl -lpthread -static-libgcc -static-libstdc++
+else
+	LDLIBS += -lpthread
 endif
 
 ifeq ($(USE_AESNI),yes)
