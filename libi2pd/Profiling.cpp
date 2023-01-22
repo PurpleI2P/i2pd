@@ -148,6 +148,8 @@ namespace data
 	{
 		m_NumTunnelsNonReplied++;
 		UpdateTime ();
+		if (m_NumTunnelsNonReplied > 2*m_NumTunnelsAgreed && m_NumTunnelsNonReplied > 3)
+			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
 	bool RouterProfile::IsLowPartcipationRate () const
