@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build-make:
     name: Make with USE_UPNP=${{ matrix.with_upnp }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
       matrix:
@@ -20,7 +20,7 @@ jobs:
       run: make USE_UPNP=${{ matrix.with_upnp }} -j3
   build-cmake:
     name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
       matrix:
@@ -38,7 +38,7 @@ jobs:
         make -j3
   build-static:
     name: Static build with UPnP
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
