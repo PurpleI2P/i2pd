@@ -38,3 +38,20 @@ jobs:
         cd build
         cmake -DWITH_UPNP=${{ matrix.with_upnp }} .
         make -j3
+  build-static:
+    name: Static build with UPnP
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: |
+        sudo add-apt-repository ppa:mhier/libboost-latest
+        sudo apt-get update
+        sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+    - name: build application
+      run: make DEBUG=no USE_STATIC=yes USE_UPNP=yes -j`nproc`
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: i2pd-static-linux-x86_64
+        path: i2pd
