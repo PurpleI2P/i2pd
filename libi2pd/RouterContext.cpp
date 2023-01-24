@@ -397,41 +397,59 @@ namespace i2p
 	{
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
-		bool found = false, updated = false;
-		for (auto& it : *addresses)
-		{
-			if (it && it->IsSSU2 ())
-			{
-				found = true;
-				if (enable)
-				{
-					it->s = m_SSU2Keys->staticPublicKey;
-					it->i = m_SSU2Keys->intro;
-				}
-				else
-					it.reset ();
-				updated = true;
-			}
-		}
-		if (enable && !found)
+		bool updated = false;
+		if (enable)
 		{
 			bool ipv4;           i2p::config::GetOption("ipv4", ipv4);
 			bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
-			bool published; i2p::config::GetOption("ntcp2.published", published);
-			if (published)
+			if (ipv4 && (*addresses)[i2p::data::RouterInfo::eSSU2V4Idx])
 			{
-				if (ipv4) m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV4);
-				if (ipv6) m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV6);
-			}
-			else
+				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx]->s = m_SSU2Keys->staticPublicKey;
+				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx]->i = m_SSU2Keys->intro;
+				ipv4 = false;
+			}	
+			if (ipv6 && (*addresses)[i2p::data::RouterInfo::eSSU2V6Idx])
 			{
-				uint8_t addressCaps = 0;
-				if (ipv4) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV4;
-				if (ipv6) addressCaps |= i2p::data::RouterInfo::AddressCaps::eV6;
-				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, addressCaps);
+				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx]->s = m_SSU2Keys->staticPublicKey;
+				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx]->i = m_SSU2Keys->intro;
+				ipv6 = false;
 			}
-			updated = true;
-		}
+			if (ipv4 && ipv6)
+			{
+				bool published; i2p::config::GetOption("ssu2.published", published);
+				if (!published)
+				{
+					m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro,
+						i2p::data::RouterInfo::AddressCaps::eV4 | i2p::data::RouterInfo::AddressCaps::eV6);
+					ipv4 = false; ipv6 = false;
+					updated = true;
+				}	
+			}	
+			if (ipv4)
+			{	
+				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV4);
+				updated = true;
+			}	
+			if (ipv6)
+			{	
+				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV6);
+				updated= true;
+			}	
+		}	
+		else	
+		{
+			if ((*addresses)[i2p::data::RouterInfo::eSSU2V4Idx])
+			{
+				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx] = nullptr;
+				updated = true;
+			}
+			if ((*addresses)[i2p::data::RouterInfo::eSSU2V6Idx])
+			{
+				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx] = nullptr;
+				updated = true;
+			}
+		}	
+		
 		if (updated)
 			UpdateRouterInfo ();
 	}
