@@ -296,34 +296,50 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address,
+		int port, bool publish) const
+	{
+		if (!address) return;
+		if (!port && !address->port) port = SelectRandomPort ();
+		if (port) address->port = port;
+		address->published = publish;
+		memcpy (address->i, m_NTCP2Keys->iv, 16);
+	}	
+		
 	void RouterContext::PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg)
 	{
 		if (!m_NTCP2Keys) return;
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
 		bool updated = false;
-		for (auto& address : *addresses)
+		if (v4)
 		{
-			if (address && address->IsNTCP2 () && (address->port != port || address->published != publish))
+			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V4Idx];
+			if (addr)
 			{
-				bool isAddr = v4 && address->IsV4 ();
-				if (!isAddr && (v6 || ygg))
-				{
-					if (i2p::util::net::IsYggdrasilAddress (address->host))
-						isAddr = ygg;
-					else
-						isAddr = v6 && address->IsV6 ();
-				}
-				if (isAddr)
-				{
-					if (!port && !address->port) port = SelectRandomPort ();
-					if (port) address->port = port;
-					address->published = publish;
-					memcpy (address->i, m_NTCP2Keys->iv, 16);
-					updated = true;
-				}
-			}
+				PublishNTCP2Address (addr, port, publish);
+				updated = true;
+			}	
+		}	
+		if (v6)
+		{
+			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6Idx];
+			if (addr)
+			{
+				PublishNTCP2Address (addr, port, publish);
+				updated = true;
+			}	
 		}
+		if (ygg)
+		{
+			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6MeshIdx];
+			if (addr)
+			{
+				PublishNTCP2Address (addr, port, publish);
+				updated = true;
+			}	
+		}
+		
 		if (updated)
 			UpdateRouterInfo ();
 	}
@@ -916,29 +932,18 @@ namespace i2p
 
 	void RouterContext::UpdateNTCP2V6Address (const boost::asio::ip::address& host)
 	{
-		bool isYgg = i2p::util::net::IsYggdrasilAddress (host);
-		bool updated = false;
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
-		for (auto& addr: *addresses)
+		std::shared_ptr<i2p::data::RouterInfo::Address> addr;
+		if (i2p::util::net::IsYggdrasilAddress (host)) // yggdrasil
+			addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6MeshIdx];
+		else if (host.is_v6 ())
+			addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6Idx];
+		if (addr && addr->IsPublishedNTCP2 () && addr->host != host)
 		{
-			if (addr && addr->IsPublishedNTCP2 ())
-			{
-				bool isYgg1 = i2p::util::net::IsYggdrasilAddress (addr->host);
-				if (addr->IsV6 () && ((isYgg && isYgg1) || (!isYgg && !isYgg1)))
-				{
-					if (addr->host != host)
-					{
-						addr->host = host;
-						updated = true;
-					}
-					break;
-				}
-			}
-		}
-
-		if (updated)
+			addr->host = host;
 			UpdateRouterInfo ();
+		}	
 	}
 
 	void RouterContext::UpdateStats ()
