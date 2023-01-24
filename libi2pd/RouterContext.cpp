@@ -315,7 +315,7 @@ namespace i2p
 		if (v4)
 		{
 			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V4Idx];
-			if (addr)
+			if (addr && (addr->port != port || addr->published != publish))
 			{
 				PublishNTCP2Address (addr, port, publish);
 				updated = true;
@@ -324,7 +324,7 @@ namespace i2p
 		if (v6)
 		{
 			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6Idx];
-			if (addr)
+			if (addr && (addr->port != port || addr->published != publish))
 			{
 				PublishNTCP2Address (addr, port, publish);
 				updated = true;
@@ -333,7 +333,7 @@ namespace i2p
 		if (ygg)
 		{
 			auto addr = (*addresses)[i2p::data::RouterInfo::eNTCP2V6MeshIdx];
-			if (addr)
+			if (addr && (addr->port != port || addr->published != publish))
 			{
 				PublishNTCP2Address (addr, port, publish);
 				updated = true;
@@ -1011,6 +1011,27 @@ namespace i2p
 			}
 			n2k.close ();
 		}
+		// create new NTCP2 keys if required
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		if ((ntcp2 || ygg) && !m_NTCP2Keys) NewNTCP2Keys ();
+		// read SSU2 keys if available
+		std::ifstream s2k (i2p::fs::DataDirPath (SSU2_KEYS), std::ifstream::in | std::ifstream::binary);
+		if (s2k)
+		{
+			s2k.seekg (0, std::ios::end);
+			size_t len = s2k.tellg();
+			s2k.seekg (0, std::ios::beg);
+			if (len == sizeof (SSU2PrivateKeys))
+			{
+				m_SSU2Keys.reset (new SSU2PrivateKeys ());
+				s2k.read ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
+			}
+			s2k.close ();
+		}
+		// create new SSU2 keys if required
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+		if (ssu2 && !m_SSU2Keys) NewSSU2Keys ();
 		// read RouterInfo
 		m_RouterInfo.SetRouterIdentity (oldIdentity ? oldIdentity : GetIdentity ());
 		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
@@ -1030,42 +1051,6 @@ namespace i2p
 
 		if (IsUnreachable ())
 			SetReachable (true, true); // we assume reachable until we discover firewall through peer tests
-
-		// read NTCP2
-		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
-		if (ntcp2 || ygg)
-		{
-			if (!m_NTCP2Keys) NewNTCP2Keys ();
-			UpdateNTCP2Address (true); // enable NTCP2
-		}
-		else
-			UpdateNTCP2Address (false); // disable NTCP2
-
-		// read SSU2
-		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-		if (ssu2)
-		{
-			// read SSU2 keys if available
-			std::ifstream s2k (i2p::fs::DataDirPath (SSU2_KEYS), std::ifstream::in | std::ifstream::binary);
-			if (s2k)
-			{
-				s2k.seekg (0, std::ios::end);
-				size_t len = s2k.tellg();
-				s2k.seekg (0, std::ios::beg);
-				if (len == sizeof (SSU2PrivateKeys))
-				{
-					m_SSU2Keys.reset (new SSU2PrivateKeys ());
-					s2k.read ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
-				}
-				s2k.close ();
-			}
-			if (!m_SSU2Keys) NewSSU2Keys ();
-			UpdateSSU2Address (true); // enable SSU2
-		}
-		else
-			UpdateSSU2Address (false); // disable SSU2
-
 		return true;
 	}
 
@@ -1097,7 +1082,6 @@ namespace i2p
 		i2p::HandleI2NPMessage (msg);
 		return true;
 	}
-
 
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
