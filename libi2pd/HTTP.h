@@ -33,6 +33,7 @@ namespace http
 		std::string host;
 		unsigned short int port;
 		std::string path;
+		bool hasquery;
 		std::string query;
 		std::string frag;
 

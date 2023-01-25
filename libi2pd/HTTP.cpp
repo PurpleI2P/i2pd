@@ -160,6 +160,7 @@ namespace http
 			return true;
 		} else if (url.at(pos_c) == '?') {
 			/* found query part */
+			hasquery = true;
 			path = url.substr(pos_p, pos_c - pos_p);
 			pos_p = pos_c + 1;
 			pos_c = url.find('#', pos_p);
@@ -218,8 +219,10 @@ namespace http
 			}
 		}
 		out += path;
+		if (hasquery) // add query even if it was empty
+			out += "?";
 		if (query != "")
-			out += "?" + query;
+			out += query;
 		if (frag != "")
 			out += "#" + frag;
 		return out;
