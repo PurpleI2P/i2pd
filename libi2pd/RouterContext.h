@@ -116,11 +116,9 @@ namespace garlic
 			bool DecryptTunnelShortRequestRecord (const uint8_t * encrypted, uint8_t * data);
 
 			void UpdatePort (int port); // called from Daemon
-			void UpdateAddress (const boost::asio::ip::address& host); // called from SSU or Daemon
+			void UpdateAddress (const boost::asio::ip::address& host); // called from SSU2 or Daemon
 			void PublishNTCP2Address (int port, bool publish, bool v4, bool v6, bool ygg);
-			void UpdateNTCP2Address (bool enable);
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
-			void UpdateSSU2Address (bool enable);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
 			void ClearSSU2Introducers (bool v4);
@@ -177,7 +175,8 @@ namespace garlic
 			void UpdateRouterInfo ();
 			void NewNTCP2Keys ();
 			void NewSSU2Keys ();
-			bool IsSSU2Only () const; // SSU2 and no SSU
+			void UpdateNTCP2Keys ();
+			void UpdateSSU2Keys ();
 			bool Load ();
 			void SaveKeys ();
 			uint16_t SelectRandomPort () const;

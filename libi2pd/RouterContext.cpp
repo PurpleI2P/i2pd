@@ -344,35 +344,21 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::UpdateNTCP2Address (bool enable)
+	void RouterContext::UpdateNTCP2Keys ()
 	{
+		if (!m_NTCP2Keys) return;
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
-		bool found = false, updated = false;
 		for (auto& it: *addresses)
 		{
 			if (it && it->IsNTCP2 ())
 			{
-				found = true;
-				if (enable)
-				{
-					it->s = m_NTCP2Keys->staticPublicKey;
-					memcpy (it->i, m_NTCP2Keys->iv, 16);
-				}
-				else
-					it.reset ();
-				updated = true;
+				it->s = m_NTCP2Keys->staticPublicKey;
+				memcpy (it->i, m_NTCP2Keys->iv, 16);
 			}
 		}
-		if (enable && !found)
-		{
-			m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv);
-			updated = true;
-		}
-		if (updated)
-			UpdateRouterInfo ();
-	}
-
+	}	
+		
 	void RouterContext::PublishSSU2Address (int port, bool publish, bool v4, bool v6)
 	{
 		if (!m_SSU2Keys) return;
@@ -409,67 +395,21 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::UpdateSSU2Address (bool enable)
+	void RouterContext::UpdateSSU2Keys ()
 	{
+		if (!m_SSU2Keys) return;
 		auto addresses = m_RouterInfo.GetAddresses ();
 		if (!addresses) return;
-		bool updated = false;
-		if (enable)
+		for (auto& it: *addresses)
 		{
-			bool ipv4;           i2p::config::GetOption("ipv4", ipv4);
-			bool ipv6;           i2p::config::GetOption("ipv6", ipv6);
-			if (ipv4 && (*addresses)[i2p::data::RouterInfo::eSSU2V4Idx])
+			if (it && it->IsSSU2 ())
 			{
-				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx]->s = m_SSU2Keys->staticPublicKey;
-				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx]->i = m_SSU2Keys->intro;
-				ipv4 = false;
-			}	
-			if (ipv6 && (*addresses)[i2p::data::RouterInfo::eSSU2V6Idx])
-			{
-				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx]->s = m_SSU2Keys->staticPublicKey;
-				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx]->i = m_SSU2Keys->intro;
-				ipv6 = false;
+				it->s = m_SSU2Keys->staticPublicKey;
+				it->i = m_SSU2Keys->intro;
 			}
-			if (ipv4 && ipv6)
-			{
-				bool published; i2p::config::GetOption("ssu2.published", published);
-				if (!published)
-				{
-					m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro,
-						i2p::data::RouterInfo::AddressCaps::eV4 | i2p::data::RouterInfo::AddressCaps::eV6);
-					ipv4 = false; ipv6 = false;
-					updated = true;
-				}	
-			}	
-			if (ipv4)
-			{	
-				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV4);
-				updated = true;
-			}	
-			if (ipv6)
-			{	
-				m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::AddressCaps::eV6);
-				updated= true;
-			}	
-		}	
-		else	
-		{
-			if ((*addresses)[i2p::data::RouterInfo::eSSU2V4Idx])
-			{
-				(*addresses)[i2p::data::RouterInfo::eSSU2V4Idx] = nullptr;
-				updated = true;
-			}
-			if ((*addresses)[i2p::data::RouterInfo::eSSU2V6Idx])
-			{
-				(*addresses)[i2p::data::RouterInfo::eSSU2V6Idx] = nullptr;
-				updated = true;
-			}
-		}	
+		}
+	}	
 		
-		if (updated)
-			UpdateRouterInfo ();
-	}
-
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
 	{
 		auto addresses = m_RouterInfo.GetAddresses ();
@@ -1011,10 +951,6 @@ namespace i2p
 			}
 			n2k.close ();
 		}
-		// create new NTCP2 keys if required
-		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
-		if ((ntcp2 || ygg) && !m_NTCP2Keys) NewNTCP2Keys ();
 		// read SSU2 keys if available
 		std::ifstream s2k (i2p::fs::DataDirPath (SSU2_KEYS), std::ifstream::in | std::ifstream::binary);
 		if (s2k)
@@ -1029,9 +965,6 @@ namespace i2p
 			}
 			s2k.close ();
 		}
-		// create new SSU2 keys if required
-		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-		if (ssu2 && !m_SSU2Keys) NewSSU2Keys ();
 		// read RouterInfo
 		m_RouterInfo.SetRouterIdentity (oldIdentity ? oldIdentity : GetIdentity ());
 		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
@@ -1051,6 +984,28 @@ namespace i2p
 
 		if (IsUnreachable ())
 			SetReachable (true, true); // we assume reachable until we discover firewall through peer tests
+		
+		bool updated = false;
+		// create new NTCP2 keys if required
+		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+		bool ygg; i2p::config::GetOption("meshnets.yggdrasil", ygg);
+		if ((ntcp2 || ygg) && !m_NTCP2Keys) 
+		{	
+			NewNTCP2Keys ();
+			UpdateNTCP2Keys ();
+			updated = true;
+		}	
+		// create new SSU2 keys if required
+		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+		if (ssu2 && !m_SSU2Keys) 
+		{	
+			NewSSU2Keys ();
+			UpdateSSU2Keys ();
+			updated = true;
+		}	
+		if (updated)
+			UpdateRouterInfo ();
+		
 		return true;
 	}
 
