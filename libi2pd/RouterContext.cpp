@@ -749,10 +749,6 @@ namespace i2p
 
 	void RouterContext::SetSupportsV4 (bool supportsV4)
 	{
-		// check if updates
-		if (supportsV4 && SupportsV4 ()) return;
-		if (!supportsV4 && !SupportsV4 ()) return;
-		// update
 		if (supportsV4)
 		{
 			bool foundNTCP2 = false, foundSSU2 = false;
