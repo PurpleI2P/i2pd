@@ -763,9 +763,17 @@ namespace client
 				request->requestTime = ts;
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
-					// request failed
-					m_LeaseSetRequests.erase (ret.first);
-					if (requestComplete) requestComplete (nullptr);
+					// try another
+					LogPrint (eLogWarning, "Destination: Couldn't send LeaseSet request to ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another");
+					request->excluded.insert (floodfill->GetIdentHash ());
+					floodfill = i2p::data::netdb.GetClosestFloodfill (dest, request->excluded);
+					if (!SendLeaseSetRequest (dest, floodfill, request))
+					{
+						// request failed
+						LogPrint (eLogWarning, "Destination: LeaseSet request for ", dest.ToBase32 (), " was not sent");
+						m_LeaseSetRequests.erase (ret.first);
+						if (requestComplete) requestComplete (nullptr);
+					}	
 				}
 			}
 			else // duplicate
@@ -792,11 +800,11 @@ namespace client
 		std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		if (!request->replyTunnel || !request->replyTunnel->IsEstablished ())
-			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true));
-		if (!request->replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
+			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false)); // outbound from floodfill
+		if (!request->replyTunnel) LogPrint (eLogWarning, "Destination: Can't send LeaseSet request, no compatible inbound tunnels found");
 		if (!request->outboundTunnel || !request->outboundTunnel->IsEstablished ())
-			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false));
-		if (!request->outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
+			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true)); // inbound from floodfill
+		if (!request->outboundTunnel) LogPrint (eLogWarning, "Destination: Can't send LeaseSet request, no compatible outbound tunnels found");
 
 		if (request->replyTunnel && request->outboundTunnel)
 		{
