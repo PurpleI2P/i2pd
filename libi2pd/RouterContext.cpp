@@ -803,7 +803,7 @@ namespace i2p
 				}
 			}
 			else
-				m_RouterInfo.RemoveNTCP2Address (false);
+				m_RouterInfo.RemoveNTCP2Address (true);
 			// SSU2
 			bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
 			if (ssu2)
@@ -822,7 +822,7 @@ namespace i2p
 				}
 			}
 			else
-				m_RouterInfo.RemoveSSU2Address (false);
+				m_RouterInfo.RemoveSSU2Address (true);
 			if (ntcp2 || ssu2)
 				m_RouterInfo.EnableV4 ();
 		}
