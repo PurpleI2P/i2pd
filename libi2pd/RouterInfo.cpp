@@ -655,6 +655,23 @@ namespace data
 		}
 	}
 
+	void RouterInfo::RemoveNTCP2Address (bool v4)
+	{
+		if (v4)
+		{	
+			if ((*m_Addresses)[eNTCP2V6Idx])
+				(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
+			(*m_Addresses)[eNTCP2V4Idx].reset ();
+		}	
+		else
+		{	
+			if ((*m_Addresses)[eNTCP2V4Idx])
+				(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
+			(*m_Addresses)[eNTCP2V6Idx].reset ();
+		}	
+		UpdateSupportedTransports ();
+	}	
+		
 	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
@@ -706,6 +723,23 @@ namespace data
 		}
 	}
 
+	void RouterInfo::RemoveSSU2Address (bool v4)
+	{
+		if (v4)
+		{	
+			if ((*m_Addresses)[eSSU2V6Idx])
+				(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
+			(*m_Addresses)[eSSU2V4Idx].reset ();
+		}	
+		else
+		{	
+			if ((*m_Addresses)[eSSU2V4Idx])
+				(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
+			(*m_Addresses)[eSSU2V6Idx].reset ();
+		}	
+		UpdateSupportedTransports ();
+	}	
+		
 	bool RouterInfo::IsNTCP2 (bool v4only) const
 	{
 		if (v4only)
@@ -744,14 +778,14 @@ namespace data
 		{
 			if ((*m_Addresses)[eNTCP2V6Idx])
 			{
-				if ((*m_Addresses)[eNTCP2V6Idx]->IsV4 ())
-					(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV6;
+				if ((*m_Addresses)[eNTCP2V6Idx]->IsV4 () && (*m_Addresses)[eNTCP2V4Idx])
+					(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
 				(*m_Addresses)[eNTCP2V6Idx].reset ();
 			}
 			if ((*m_Addresses)[eSSU2V6Idx])
 			{
-				if ((*m_Addresses)[eSSU2V6Idx]->IsV4 ())
-					(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV6;
+				if ((*m_Addresses)[eSSU2V6Idx]->IsV4 () && (*m_Addresses)[eSSU2V4Idx])
+					(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
 				(*m_Addresses)[eSSU2V6Idx].reset ();
 			}
 			UpdateSupportedTransports ();
@@ -764,14 +798,14 @@ namespace data
 		{
 			if ((*m_Addresses)[eNTCP2V4Idx])
 			{
-				if ((*m_Addresses)[eNTCP2V4Idx]->IsV6 ())
-					(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV4;
+				if ((*m_Addresses)[eNTCP2V4Idx]->IsV6 () && (*m_Addresses)[eNTCP2V6Idx])
+					(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
 				(*m_Addresses)[eNTCP2V4Idx].reset ();
 			}
 			if ((*m_Addresses)[eSSU2V4Idx])
 			{
-				if ((*m_Addresses)[eSSU2V4Idx]->IsV6 ())
-					(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV4;
+				if ((*m_Addresses)[eSSU2V4Idx]->IsV6 () && (*m_Addresses)[eSSU2V6Idx])
+					(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
 				(*m_Addresses)[eSSU2V4Idx].reset ();
 			}
 			UpdateSupportedTransports ();

@@ -702,12 +702,12 @@ namespace i2p
 				if (!port) port = SelectRandomPort ();
 			}
 			// NTCP2
-			if (!foundNTCP2)
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
 			{
-				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-				bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
-				if (ntcp2)
+				if (!foundNTCP2)
 				{
+					bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
 					if (ntcp2Published)
 					{
 						std::string ntcp2Host;
@@ -723,11 +723,13 @@ namespace i2p
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV6);
 				}
 			}
+			else
+				m_RouterInfo.RemoveNTCP2Address (false);
 			// SSU2
-			if (!foundSSU2)
+			bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+			if (ssu2)
 			{
-				bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-				if (ssu2)
+				if (!foundSSU2)
 				{
 					bool ssu2Published; i2p::config::GetOption("ssu2.published", ssu2Published);
 					if (ssu2Published)
@@ -740,7 +742,10 @@ namespace i2p
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::eV6);
 				}
 			}
-			m_RouterInfo.EnableV6 ();
+			else
+				m_RouterInfo.RemoveSSU2Address (false);
+			if (ntcp2 || ssu2)
+				m_RouterInfo.EnableV6 ();
 		}
 		else
 			m_RouterInfo.DisableV6 ();
@@ -781,10 +786,10 @@ namespace i2p
 				if (!port) port = SelectRandomPort ();
 			}
 			// NTCP2
-			if (!foundNTCP2)
+			bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
+			if (ntcp2)
 			{
-				bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
-				if (ntcp2)
+				if (!foundNTCP2)
 				{
 					bool ntcp2Published; i2p::config::GetOption("ntcp2.published", ntcp2Published);
 					if (ntcp2Published)
@@ -797,11 +802,13 @@ namespace i2p
 						m_RouterInfo.AddNTCP2Address (m_NTCP2Keys->staticPublicKey, m_NTCP2Keys->iv, boost::asio::ip::address(), 0, i2p::data::RouterInfo::eV4);
 				}
 			}
+			else
+				m_RouterInfo.RemoveNTCP2Address (false);
 			// SSU2
-			if (!foundSSU2)
+			bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
+			if (ssu2)
 			{
-				bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-				if (ssu2)
+				if (!foundSSU2)
 				{
 					bool ssu2Published; i2p::config::GetOption("ssu2.published", ssu2Published);
 					if (ssu2Published)
@@ -814,7 +821,10 @@ namespace i2p
 						m_RouterInfo.AddSSU2Address (m_SSU2Keys->staticPublicKey, m_SSU2Keys->intro, i2p::data::RouterInfo::eV4);
 				}
 			}
-			m_RouterInfo.EnableV4 ();
+			else
+				m_RouterInfo.RemoveSSU2Address (false);
+			if (ntcp2 || ssu2)
+				m_RouterInfo.EnableV4 ();
 		}
 		else
 			m_RouterInfo.DisableV4 ();

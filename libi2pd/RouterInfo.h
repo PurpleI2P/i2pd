@@ -200,9 +200,11 @@ namespace data
 
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
+			void RemoveNTCP2Address (bool v4);
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps = 0); // non published
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
 				const boost::asio::ip::address& host, int port); // published
+			void RemoveSSU2Address (bool v4);
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
