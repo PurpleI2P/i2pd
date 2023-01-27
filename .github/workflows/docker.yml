@@ -57,6 +57,7 @@ jobs:
           tags: |
             purplei2p/i2pd:latest-${{ matrix.archname }}
             ghcr.io/purplei2p/i2pd:latest-${{ matrix.archname }}
+          provenance: false
 
   push:
     runs-on: ubuntu-latest
@@ -92,15 +93,15 @@ jobs:
       - name: Create and push latest manifest image to Docker Hub
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: purplei2p/i2pd:latest
-          extra-images: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
+          images: purplei2p/i2pd:latest
+          inputs: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
           push: true
 
       - name: Create and push latest manifest image to GHCR
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: ghcr.io/purplei2p/i2pd:latest
-          extra-images: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
+          images: ghcr.io/purplei2p/i2pd:latest
+          inputs: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
           push: true
 
       - name: Store release version to env
@@ -111,30 +112,30 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: purplei2p/i2pd:latest-release
-          extra-images: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
+          images: purplei2p/i2pd:latest-release
+          inputs: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
           push: true
 
       - name: Create and push release manifest image to GHCR
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: ghcr.io/purplei2p/i2pd:latest-release
-          extra-images: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
+          images: ghcr.io/purplei2p/i2pd:latest-release
+          inputs: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
           push: true
 
       - name: Create and push versioned manifest image to Docker Hub
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
-          extra-images: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
+          images: purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
+          inputs: purplei2p/i2pd:latest-amd64,purplei2p/i2pd:latest-i386,purplei2p/i2pd:latest-arm64,purplei2p/i2pd:latest-armv7
           push: true
 
       - name: Create and push versioned manifest image to GHCR
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: Noelware/docker-manifest-action@master
         with:
-          base-image: ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
-          extra-images: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
+          images: ghcr.io/purplei2p/i2pd:release-${{ env.RELEASE_VERSION }}
+          inputs: ghcr.io/purplei2p/i2pd:latest-amd64,ghcr.io/purplei2p/i2pd:latest-i386,ghcr.io/purplei2p/i2pd:latest-arm64,ghcr.io/purplei2p/i2pd:latest-armv7
           push: true
