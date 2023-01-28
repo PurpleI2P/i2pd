@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -350,6 +350,14 @@ namespace http
 		return "";
 	}
 
+	size_t HTTPReq::GetNumHeaders (const std::string& name) const
+	{
+		size_t num = 0;
+		for (auto& it : headers)
+			if (it.first == name) num++;
+		return num;
+	}	
+	
 	bool HTTPRes::is_chunked() const
 	{
 		auto it = headers.find("Transfer-Encoding");

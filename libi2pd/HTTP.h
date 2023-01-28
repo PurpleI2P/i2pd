@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -102,6 +102,8 @@ namespace http
 		void RemoveHeader (const std::string& name, const std::string& exempt); // remove all headers starting with name, but exempt
 		void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); };
 		std::string GetHeader (const std::string& name) const;
+		size_t GetNumHeaders (const std::string& name) const;
+		size_t GetNumHeaders () const { return headers.size (); };
 	};
 
 	struct HTTPRes : HTTPMsg {
