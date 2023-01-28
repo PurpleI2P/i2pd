@@ -5,8 +5,6 @@ include_directories(${CHECK_INCLUDE_DIRS})
 # Compiler flags:
 if(APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -Wl,-undefined,dynamic_lookup")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -D_GLIBCXX_USE_NANOSLEEP=1 -Wl,--unresolved-symbols=ignore-in-object-files")
 endif()
 
 set(TEST_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -18,80 +16,50 @@ include_directories(
 )
 
 set(test-http-merge_chunked_SRCS
-  ../libi2pd/HTTP.cpp
   test-http-merge_chunked.cpp
 )
 
 set(test-http-req_SRCS
-  ../libi2pd/HTTP.cpp
   test-http-req.cpp
 )
 
 set(test-http-res_SRCS
-  ../libi2pd/HTTP.cpp
   test-http-res.cpp
 )
 
 set(test-http-url_decode_SRCS
-  ../libi2pd/HTTP.cpp
   test-http-url_decode.cpp
 )
 
 set(test-http-url_SRCS
-  ../libi2pd/HTTP.cpp
   test-http-url.cpp
 )
 
 set(test-base-64_SRCS
-  ../libi2pd/Base.cpp
   test-base-64.cpp
 )
 
 set(test-gost_SRCS
-  ../libi2pd/Gost.cpp
-  ../libi2pd/I2PEndian.cpp
   test-gost.cpp
 )
 
 set(test-gost-sig_SRCS
-  ../libi2pd/Gost.cpp
-  ../libi2pd/I2PEndian.cpp
-  ../libi2pd/Crypto.cpp
-  ../libi2pd/Log.cpp
   test-gost-sig.cpp
 )
 
 set(test-x25519_SRCS
-  ../libi2pd/Ed25519.cpp
-  ../libi2pd/I2PEndian.cpp
-  ../libi2pd/Log.cpp
-  ../libi2pd/Crypto.cpp
   test-x25519.cpp
 )
 
 set(test-aeadchacha20poly1305_SRCS
-  ../libi2pd/Crypto.cpp
-  ../libi2pd/ChaCha20.cpp
-  ../libi2pd/Poly1305.cpp
   test-aeadchacha20poly1305.cpp
 )
 
 set(test-blinding_SRCS
-  ../libi2pd/Crypto.cpp
-  ../libi2pd/Blinding.cpp
-  ../libi2pd/Ed25519.cpp
-  ../libi2pd/I2PEndian.cpp
-  ../libi2pd/Log.cpp
-  ../libi2pd/util.cpp
-  ../libi2pd/Identity.cpp
-  ../libi2pd/Signature.cpp
-  ../libi2pd/Timestamp.cpp
   test-blinding.cpp
 )
 
 SET(test-elligator_SRCS
-  ../libi2pd/Elligator.cpp
-  ../libi2pd/Crypto.cpp
   test-elligator.cpp
 )
 
@@ -115,9 +83,15 @@ set(LIBS
   OpenSSL::SSL
   OpenSSL::Crypto
   Threads::Threads
+  libi2pd
 )
 
-target_link_libraries(test-gost OpenSSL::Crypto Threads::Threads)
+target_link_libraries(test-http-merge_chunked ${LIBS})
+target_link_libraries(test-http-req ${LIBS})
+target_link_libraries(test-http-res ${LIBS})
+target_link_libraries(test-http-url_decode ${LIBS})
+target_link_libraries(test-http-url ${LIBS})
+target_link_libraries(test-gost ${LIBS})
 target_link_libraries(test-gost-sig ${LIBS})
 target_link_libraries(test-x25519 ${LIBS})
 target_link_libraries(test-aeadchacha20poly1305 ${LIBS})
