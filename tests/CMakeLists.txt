@@ -115,6 +115,7 @@ set(LIBS
   OpenSSL::SSL
   OpenSSL::Crypto
   Threads::Threads
+  libi2pd
 )
 
 target_link_libraries(test-gost OpenSSL::Crypto Threads::Threads)
