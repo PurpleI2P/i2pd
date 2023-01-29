@@ -467,12 +467,15 @@ namespace client
 				{
 					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
 						it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
-					if (ls2->IsValid ())
+					if (ls2->IsValid () && !ls2->IsExpired ())
 					{
+						leaseSet = ls2;
+						std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
 						m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
-						leaseSet = ls2;
 					}
+					else
+						LogPrint (eLogError, "Destination: New remote encrypted LeaseSet2 failed");
 				}
 				else
 					LogPrint (eLogInfo, "Destination: Couldn't find request for encrypted LeaseSet2");
