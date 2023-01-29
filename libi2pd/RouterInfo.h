@@ -198,10 +198,11 @@ namespace data
 			std::shared_ptr<const Address> GetSSU2V6Address () const;
 			std::shared_ptr<const Address> GetSSU2Address (bool v4) const;
 
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,int port, uint8_t caps); // non published
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
-				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
+				const boost::asio::ip::address& host, int port); // published
 			void RemoveNTCP2Address (bool v4);
-			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps = 0); // non published
+			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, int port, uint8_t caps); // non published
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
 				const boost::asio::ip::address& host, int port); // published
 			void RemoveSSU2Address (bool v4);

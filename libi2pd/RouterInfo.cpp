@@ -620,22 +620,44 @@ namespace data
 		return l+1;
 	}
 
-	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
-		const boost::asio::ip::address& host, int port, uint8_t caps)
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,int port, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
-		addr->host = host;
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP2;
 		addr->caps = caps;
 		addr->date = 0;
-		if (port) addr->published = true;
+		addr->published = false;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, iv, 16);
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eNTCP2V4;
-			if (addr->published) m_ReachableTransports |= eNTCP2V4;
+			(*m_Addresses)[eNTCP2V4Idx] = addr;
+		}
+		if (addr->IsV6 ())
+		{
+			m_SupportedTransports |= eNTCP2V6;
+			(*m_Addresses)[eNTCP2V6Idx] = addr;
+		}
+	}	
+		
+	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
+		const boost::asio::ip::address& host, int port)
+	{
+		auto addr = std::make_shared<Address>();
+		addr->host = host;
+		addr->port = port;
+		addr->transportStyle = eTransportNTCP2;
+		addr->caps = 0;
+		addr->date = 0;
+		addr->published = true;
+		memcpy (addr->s, staticKey, 32);
+		memcpy (addr->i, iv, 16);
+		if (addr->IsV4 ())
+		{
+			m_SupportedTransports |= eNTCP2V4;
+			m_ReachableTransports |= eNTCP2V4;
 			(*m_Addresses)[eNTCP2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
@@ -649,7 +671,7 @@ namespace data
 			else
 			{
 				m_SupportedTransports |= eNTCP2V6;
-				if (addr->published) m_ReachableTransports |= eNTCP2V6;
+				m_ReachableTransports |= eNTCP2V6;
 				(*m_Addresses)[eNTCP2V6Idx] = addr;
 			}
 		}
@@ -672,11 +694,11 @@ namespace data
 		UpdateSupportedTransports ();
 	}	
 		
-	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps)
+	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, int port, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
 		addr->transportStyle = eTransportSSU2;
-		addr->port = 0;
+		addr->port = port;
 		addr->caps = caps;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
