@@ -356,8 +356,8 @@ namespace http
 		for (auto& it : headers)
 			if (it.first == name) num++;
 		return num;
-	}	
-	
+	}
+
 	bool HTTPRes::is_chunked() const
 	{
 		auto it = headers.find("Transfer-Encoding");

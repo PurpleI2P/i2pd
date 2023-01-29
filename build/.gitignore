@@ -1,5 +1,7 @@
 # Various generated files
 /CMakeFiles/
+/Testing/
+/tests/
 /i2pd
 /libi2pd.a
 /libi2pdclient.a
@@ -8,6 +10,7 @@
 /CMakeCache.txt
 /CPackConfig.cmake
 /CPackSourceConfig.cmake
+/CTestTestfile.cmake
 /install_manifest.txt
 /arch.c
 # windows build script

@@ -118,9 +118,9 @@ obj/%.o: %.cpp | mk_obj_dir
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-$(SHLIB): $(LIB_OBJS) $(SHLIB_LANG)
+$(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS) $(SHLIB_LANG)
+	$(CXX) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
 endif
 
 $(SHLIB_CLIENT): $(LIB_CLIENT_OBJS) $(SHLIB) $(SHLIB_LANG)

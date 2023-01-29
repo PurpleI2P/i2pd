@@ -4,7 +4,9 @@ include_directories(${CHECK_INCLUDE_DIRS})
 
 # Compiler flags:
 if(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -Wl,-undefined,dynamic_lookup")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -Wl,-undefined,dynamic_lookup")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -Wl,--unresolved-symbols=ignore-in-object-files")
 endif()
 
 set(TEST_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -77,13 +79,14 @@ add_executable(test-blinding ${test-blinding_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
 
 set(LIBS
+  libi2pd
   ${Boost_LIBRARIES}
-  ${CHECK_LDFLAGS}
-  ${CMAKE_REQUIRED_LIBRARIES}
   OpenSSL::SSL
   OpenSSL::Crypto
+  ZLIB::ZLIB
   Threads::Threads
-  libi2pd
+  ${CHECK_LDFLAGS}
+  ${CMAKE_REQUIRED_LIBRARIES}
 )
 
 target_link_libraries(test-http-merge_chunked ${LIBS})
@@ -91,6 +94,7 @@ target_link_libraries(test-http-req ${LIBS})
 target_link_libraries(test-http-res ${LIBS})
 target_link_libraries(test-http-url_decode ${LIBS})
 target_link_libraries(test-http-url ${LIBS})
+target_link_libraries(test-base-64 ${LIBS})
 target_link_libraries(test-gost ${LIBS})
 target_link_libraries(test-gost-sig ${LIBS})
 target_link_libraries(test-x25519 ${LIBS})
