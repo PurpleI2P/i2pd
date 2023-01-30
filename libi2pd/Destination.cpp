@@ -399,6 +399,11 @@ namespace client
 
 	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
 	{
+		if (len < DATABASE_STORE_HEADER_SIZE)
+		{
+			LogPrint (eLogError, "Destination: Database store msg is too short ", len);
+			return;
+		}
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
@@ -406,6 +411,11 @@ namespace client
 			LogPrint (eLogInfo, "Destination: Reply token is ignored for DatabaseStore");
 			offset += 36;
 		}
+		if (offset > len || len > i2p::data::MAX_LS_BUFFER_SIZE + offset)
+		{
+			LogPrint (eLogError, "Destination: Database store message is too long ", len);
+			return;
+		}	
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		switch (buf[DATABASE_STORE_TYPE_OFFSET])
