@@ -1,0 +1,12 @@
+/test-http-merge_chunked
+/test-http-req
+/test-http-res
+/test-http-url
+/test-http-url_decode
+/test-gost
+/test-gost-sig
+/test-base-64
+/test-x25519
+/test-aeadchacha20poly1305
+/test-blinding
+/test-elligator

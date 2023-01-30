@@ -1,36 +1,50 @@
-CXXFLAGS += -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1 -pthread -Wl,--unresolved-symbols=ignore-in-object-files
+CXXFLAGS += -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1 -DOPENSSL_SUPPRESS_DEPRECATED -pthread -Wl,--unresolved-symbols=ignore-in-object-files
 INCFLAGS += -I../libi2pd
 
-TESTS = test-gost test-gost-sig test-base-64 test-x25519 test-aeadchacha20poly1305 test-blinding test-elligator
+LIBI2PD = ../libi2pd.a
+
+TESTS = \
+	test-http-merge_chunked test-http-req test-http-res test-http-url test-http-url_decode \
+	test-gost test-gost-sig test-base-64 test-x25519 test-aeadchacha20poly1305 test-blinding test-elligator
+
+LDLIBS = \
+	-lcrypto \
+	-lssl \
+	-lboost_filesystem \
+	-lboost_program_options \
+	-lpthread
 
 all: $(TESTS) run
 
-test-http-%: ../libi2pd/HTTP.cpp test-http-%.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^
+$(LIBI2PD):
+	@echo "Building libi2pd.a ..." && cd .. && $(MAKE) libi2pd.a
 
-test-base-%: ../libi2pd/Base.cpp test-base-%.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^
+test-http-%: test-http-%.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-gost: ../libi2pd/Gost.cpp ../libi2pd/I2PEndian.cpp test-gost.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto
+test-base-%: test-base-%.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-gost-sig: ../libi2pd/Gost.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Crypto.cpp ../libi2pd/Log.cpp test-gost-sig.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
+test-gost: test-gost.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-x25519: ../libi2pd/Ed25519.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Log.cpp ../libi2pd/Crypto.cpp test-x25519.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
+test-gost-sig: test-gost-sig.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-aeadchacha20poly1305: ../libi2pd/Crypto.cpp ../libi2pd/ChaCha20.cpp ../libi2pd/Poly1305.cpp test-aeadchacha20poly1305.cpp
-	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
+test-x25519: test-x25519.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-blinding: ../libi2pd/Crypto.cpp ../libi2pd/Blinding.cpp ../libi2pd/Ed25519.cpp ../libi2pd/I2PEndian.cpp ../libi2pd/Log.cpp ../libi2pd/util.cpp ../libi2pd/Identity.cpp ../libi2pd/Signature.cpp ../libi2pd/Timestamp.cpp test-blinding.cpp
-	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
+test-aeadchacha20poly1305: test-aeadchacha20poly1305.cpp $(LIBI2PD)
+	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
-test-elligator: ../libi2pd/Elligator.cpp ../libi2pd/Crypto.cpp test-elligator.cpp
-	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ -lcrypto -lssl -lboost_system
+test-blinding: test-blinding.cpp $(LIBI2PD)
+	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
+
+test-elligator: test-elligator.cpp $(LIBI2PD)
+	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -o $@ $^ $(LDLIBS)
 
 run: $(TESTS)
-	@for TEST in $(TESTS); do ./$$TEST ; done
+	@for TEST in $(TESTS); do echo Running $$TEST; ./$$TEST ; done
 
 clean:
 	rm -f $(TESTS)

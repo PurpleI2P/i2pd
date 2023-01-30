@@ -13,12 +13,12 @@ void BlindTest (SigningKeyType sigType)
 {
 	auto keys = PrivateKeys::CreateRandomKeys (sigType);
 	BlindedPublicKey blindedKey (keys.GetPublic ());
-	auto timestamp = GetSecondsSinceEpoch ();	
+	auto timestamp = GetSecondsSinceEpoch ();
 	char date[9];
 	GetDateString (timestamp, date);
-	uint8_t blindedPriv[32], blindedPub[32]; 
+	uint8_t blindedPriv[32], blindedPub[32];
 	auto publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
-	uint8_t blindedPub1[32];	
+	uint8_t blindedPub1[32];
 	blindedKey.GetBlindedKey (date, blindedPub1);
 	// check if public key produced from private blinded key matches blided public key
 	assert (!memcmp (blindedPub, blindedPub1, publicKeyLen));
@@ -26,16 +26,16 @@ void BlindTest (SigningKeyType sigType)
 	std::unique_ptr<Signer> blindedSigner (PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
 	uint8_t buf[100], signature[64];
 	memset (buf, 1, 100);
-	blindedSigner->Sign (buf, 100, signature);	
+	blindedSigner->Sign (buf, 100, signature);
 	std::unique_ptr<Verifier> blindedVerifier (IdentityEx::CreateVerifier (blindedKey.GetBlindedSigType ()));
 	blindedVerifier->SetPublicKey (blindedPub);
-	assert (blindedVerifier->Verify (buf, 100, signature));		
+	assert (blindedVerifier->Verify (buf, 100, signature));
 }
 
 int main ()
 {
-	// EdDSA test	
+	// EdDSA test
 	BlindTest (SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-	// RedDSA test	
+	// RedDSA test
 	BlindTest (SIGNING_KEY_TYPE_REDDSA_SHA512_ED25519);
 }
