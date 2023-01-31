@@ -329,14 +329,15 @@ namespace http {
 						default:
 							s << tr("Unknown");
 					}
-					if (address->IsV6 ())
+					bool v6 = address->IsV6 ();
+					if (v6)
 					{
 						if (address->IsV4 ()) s << "v4";
 						s << "v6";
 					}
 					s << "</td>\r\n";
 					if (address->published)
-						s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
+						s << "<td>" << (v6 ? "[" : "") << address->host.to_string() << (v6 ? "]:" : ":") << address->port << "</td>\r\n";
 					else
 					{
 						s << "<td>" << tr(/* tr: Shown when router doesn't publish itself and have "Firewalled" state */ "supported");
