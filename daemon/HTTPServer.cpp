@@ -289,10 +289,10 @@ namespace http {
 		if (family.length () > 0)
 			s << "<b>"<< tr("Family") << ":</b> " << family << "<br>\r\n";
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
-		bool isOldTCSR;
-		i2p::config::GetOption("http.old_tcsr", isOldTCSR);
-		if (isOldTCSR) {
-			s << "<b>" << tr("Tunnel creation success rate (old algorithm)") << ":</b> " << i2p::tunnel::tunnels.OldGetTunnelCreationSuccessRate() << "%<br/>\r\n";
+		bool isTotalTCSR;
+		i2p::config::GetOption("http.showTotalTCSR", isTotalTCSR);
+		if (isTotalTCSR) {
+			s << "<b>" << tr("Total tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTotalTunnelCreationSuccessRate() << "%<br/>\r\n";
 		}
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());

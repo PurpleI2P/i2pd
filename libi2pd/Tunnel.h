@@ -269,17 +269,21 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-			// some old stats
-			int m_OldNumSuccesiveTunnelCreations, m_OldNumFailedTunnelCreations;
+			// count of tunnels for total TCSR algorithm
+			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			
 			// Calculating of tunnel creation success rate
-			// A modified version of the EWMA algorithm, where alpha is increased at the beginning to accelerate similarity
 			void SuccesiveTunnelCreation() {
+				// total TCSR
+				m_TotalNumSuccesiveTunnelCreations++;
+				// A modified version of the EWMA algorithm, where alpha is increased at the beginning to accelerate similarity
 				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
 				m_TunnelCreationSuccessRate = alpha * 1 + (1 - alpha) * m_TunnelCreationSuccessRate;
 
 			};
 			void FailedTunnelCreation() {
+				m_TotalNumFailedTunnelCreations++;
+				
 				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
 				m_TunnelCreationSuccessRate = alpha * 0 + (1 - alpha) * m_TunnelCreationSuccessRate;
 			};
@@ -299,10 +303,10 @@ namespace tunnel
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
-			int OldGetTunnelCreationSuccessRate () const // in percents
+			int GetTotalTunnelCreationSuccessRate () const // in percents
 			{
-				int totalNum = m_OldNumSuccesiveTunnelCreations + m_OldNumFailedTunnelCreations;
-				return totalNum ? m_OldNumSuccesiveTunnelCreations*100/totalNum : 0;
+				int totalNum = m_TotalNumSuccesiveTunnelCreations + m_TotalNumFailedTunnelCreations;
+				return totalNum ? m_TotalNumSuccesiveTunnelCreations*100/totalNum : 0;
 			}
 	};
 

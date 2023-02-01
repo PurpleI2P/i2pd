@@ -95,7 +95,7 @@ namespace config {
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
 			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
 			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
-			("http.old_tcsr", value<bool>()->default_value(false),          "Show TCSR with old algorithm (default: false)")
+			("http.showTotalTCSR", value<bool>()->default_value(false),         "Show additional value with total TCSR since router's start (default: false)")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
