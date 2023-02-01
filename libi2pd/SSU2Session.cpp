@@ -2851,7 +2851,8 @@ namespace transport
 		}
 		if (!m_OutOfSequencePackets.empty ())
 		{
-			if (m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
+			int ranges = 0;
+			while (m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
 			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8)
 			{
 				uint32_t packet = *m_OutOfSequencePackets.begin ();
@@ -2861,9 +2862,14 @@ namespace transport
 					packet--;
 					m_ReceivePacketNum = packet - 1;
 					UpdateReceivePacketNum (packet);
+					ranges++;
+					if (ranges > SSU2_MAX_NUM_ACK_RANGES) break;
 				}
 				else
+				{	
 					LogPrint (eLogError, "SSU2: Out of sequence packet ", packet, " is less than last received ", m_ReceivePacketNum);
+					break;
+				}	
 			}
 			if (m_OutOfSequencePackets.size () > 255*4)
 			{
