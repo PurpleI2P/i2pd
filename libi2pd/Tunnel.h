@@ -269,7 +269,9 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-
+			// some old stats
+			int m_OldNumSuccesiveTunnelCreations, m_OldNumFailedTunnelCreations;
+			
 			// Calculating of tunnel creation success rate
 			// A modified version of the EWMA algorithm, where alpha is increased at the beginning to accelerate similarity
 			void SuccesiveTunnelCreation() {
@@ -297,6 +299,11 @@ namespace tunnel
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
+			int OldGetTunnelCreationSuccessRate () const // in percents
+			{
+				int totalNum = m_OldNumSuccesiveTunnelCreations + m_OldNumFailedTunnelCreations;
+				return totalNum ? m_OldNumSuccesiveTunnelCreations*100/totalNum : 0;
+			}
 	};
 
 	extern Tunnels tunnels;
