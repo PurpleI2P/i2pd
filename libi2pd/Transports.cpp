@@ -815,20 +815,100 @@ namespace transport
 		}
 	}
 
-	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
+	template<typename Filter>
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (Filter filter) const
 	{
-		if (m_Peers.empty ()) return nullptr;
+		if (m_Peers.empty()) return nullptr;
+		bool found = false;
 		i2p::data::IdentHash ident;
 		{
+			uint16_t inds[3];
+			RAND_bytes ((uint8_t *)inds, sizeof (inds));
 			std::unique_lock<std::mutex> l(m_PeersMutex);
+			inds[0] %= m_Peers.size ();
 			auto it = m_Peers.begin ();
-			std::advance (it, rand () % m_Peers.size ());
-			if (it == m_Peers.end () || it->second.router || it->second.sessions.empty () ||
-			    it->second.sessions.front ()->GetSendQueueSize () > PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE)
-				return nullptr; // not connected or overloaded
-			ident = it->first;
-		}
-		return i2p::data::netdb.FindRouter (ident);
+			std::advance (it, inds[0]);
+			// try random peer
+			if (it != m_Peers.end () && filter (it->second))
+			{	
+				ident = it->first;
+				found = true;
+			}	
+			else
+			{	
+				// try some peers around
+				auto it1 = m_Peers.begin ();
+				if (inds[0])
+				{
+					// before
+					inds[1] %= inds[0];
+					std::advance (it1, (inds[1] + inds[0])/2);
+				}
+				else
+					it1 = it;
+				auto it2 = it;
+				if (inds[0] < m_Peers.size () - 1)
+				{
+					// after
+					inds[2] %= (m_Peers.size () - 1 - inds[0]); inds[2] /= 2;
+					std::advance (it2, inds[2]);
+				}
+				// it1 - from, it2 - to
+				it = it1;
+				while (it != it2 && it != m_Peers.end ())
+				{
+					if (filter (it->second))
+					{	
+						ident = it->first;
+						found = true;
+						break;
+					}	
+					it++;
+				}
+				if (!found)
+				{	
+					// still not found, try from the beginning
+					it = m_Peers.begin ();
+					while (it != it1 && it != m_Peers.end ())
+					{
+						if (filter (it->second))
+						{	
+							ident = it->first;
+							found = true;
+							break;
+						}	
+						it++;
+					}
+					if (!found)
+					{	
+						// still not found, try to the beginning
+						it = it2;
+						while (it != m_Peers.end ())
+						{
+							if (filter (it->second))
+							{	
+								ident = it->first;
+								found = true;
+								break;
+							}			
+							it++;
+						}
+					}	
+				}	
+			}	
+		}	
+		return found ? i2p::data::netdb.FindRouter (ident) : nullptr;
+	}
+		
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
+	{
+		return GetRandomPeer (
+			[](const Peer& peer)->bool
+			{
+				// connected and not overloaded
+				return !peer.router && !peer.sessions.empty () &&
+					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE;
+			});
 	}
 
 	void Transports::RestrictRoutesToFamilies(const std::set<std::string>& families)

@@ -163,6 +163,9 @@ namespace transport
 
 			void DetectExternalIP ();
 
+			template<typename Filter>
+				std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (Filter filter) const;
+			
 		private:
 
 			volatile bool m_IsOnline;
