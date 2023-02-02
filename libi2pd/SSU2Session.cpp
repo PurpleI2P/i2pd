@@ -2757,15 +2757,25 @@ namespace transport
 		if (packetNum <= m_ReceivePacketNum) return false; // duplicate
 		if (packetNum == m_ReceivePacketNum + 1)
 		{
-			for (auto it = m_OutOfSequencePackets.begin (); it != m_OutOfSequencePackets.end ();)
+			if (!m_OutOfSequencePackets.empty ())
 			{
+				auto it = m_OutOfSequencePackets.begin ();
 				if (*it == packetNum + 1)
 				{
-					packetNum++;
-					it = m_OutOfSequencePackets.erase (it);
-				}
-				else
-					break;
+					// first out of sequence packet is in sequence now
+					packetNum++; it++;
+					while (it != m_OutOfSequencePackets.end ())
+					{
+						if (*it == packetNum + 1)
+						{	
+							packetNum++;
+							it++;
+						}
+						else // next out of sequence
+							break;
+					}
+					m_OutOfSequencePackets.erase (m_OutOfSequencePackets.begin (), it);
+				}	
 			}
 			m_ReceivePacketNum = packetNum;
 		}
@@ -2852,7 +2862,7 @@ namespace transport
 		if (!m_OutOfSequencePackets.empty ())
 		{
 			int ranges = 0;
-			while (ranges < SSU2_MAX_NUM_ACK_RANGES && !m_OutOfSequencePackets.empty () && 
+			while (ranges < 8 && !m_OutOfSequencePackets.empty () && 
 				(m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
 			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8))
 			{
