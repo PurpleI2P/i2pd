@@ -332,8 +332,9 @@ namespace tunnel
 	Tunnels tunnels;
 
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
-		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0),
-		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0) { // for normal avarage
+		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal avarage
+		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
+	{ 
 	}
 
 	Tunnels::~Tunnels ()
