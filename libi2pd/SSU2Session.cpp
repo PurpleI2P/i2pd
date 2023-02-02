@@ -2852,8 +2852,9 @@ namespace transport
 		if (!m_OutOfSequencePackets.empty ())
 		{
 			int ranges = 0;
-			while (m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
-			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8)
+			while (ranges < SSU2_MAX_NUM_ACK_RANGES && !m_OutOfSequencePackets.empty () && 
+				(m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
+			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8))
 			{
 				uint32_t packet = *m_OutOfSequencePackets.begin ();
 				if (packet > m_ReceivePacketNum + 1)
@@ -2863,7 +2864,6 @@ namespace transport
 					m_ReceivePacketNum = packet - 1;
 					UpdateReceivePacketNum (packet);
 					ranges++;
-					if (ranges > SSU2_MAX_NUM_ACK_RANGES) break;
 				}
 				else
 				{	
