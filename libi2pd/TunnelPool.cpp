@@ -496,7 +496,7 @@ namespace tunnel
 		else if (i2p::transport::transports.GetNumPeers () > 100 ||
 			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
-			auto r = i2p::transport::transports.GetRandomPeer (IsExploratory ());
+			auto r = i2p::transport::transports.GetRandomPeer (!IsExploratory ());
 			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsReachable ())))) // first inbound must be reachable
 			{
