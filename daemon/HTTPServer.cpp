@@ -810,37 +810,46 @@ namespace http {
 	template<typename Sessions>
 	static void ShowTransportSessions (std::stringstream& s, const Sessions& sessions, const std::string name)
 	{
-		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
-		for (const auto& it: sessions )
+		auto comp = [](typename Sessions::mapped_type a, typename Sessions::mapped_type b)
+			{ return a->GetRemoteEndpoint() < b->GetRemoteEndpoint(); };
+		std::set<typename Sessions::mapped_type, decltype(comp)> sortedSessions(comp);
+		for (const auto& it : sessions)
 		{
-			auto endpoint = it.second->GetRemoteEndpoint ();
-			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v4 ())
+			auto ret = sortedSessions.insert(it.second);
+			if (!ret.second)
+				LogPrint(eLogError, "HTTPServer: Duplicate remote endpoint detected: ", (*ret.first)->GetRemoteEndpoint());
+		}
+		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
+		for (const auto& it: sortedSessions)
+		{
+			auto endpoint = it->GetRemoteEndpoint ();
+			if (it && it->IsEstablished () && endpoint.address ().is_v4 ())
 			{
 				tmp_s << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				if (it->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					tmp_s << " [itag:" << it.second->GetRelayTag () << "]";
-				if (it.second->GetSendQueueSize () > 0)
-					tmp_s << " [queue:" << it.second->GetSendQueueSize () << "]";
+				if (!it->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << " [" << it->GetNumSentBytes () << ":" << it->GetNumReceivedBytes () << "]";
+				if (it->GetRelayTag ())
+					tmp_s << " [itag:" << it->GetRelayTag () << "]";
+				if (it->GetSendQueueSize () > 0)
+					tmp_s << " [queue:" << it->GetSendQueueSize () << "]";
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
-			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v6 ())
+			if (it && it->IsEstablished () && endpoint.address ().is_v6 ())
 			{
 				tmp_s6 << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				if (it->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					tmp_s6 << " [itag:" << it.second->GetRelayTag () << "]";
-				if (it.second->GetSendQueueSize () > 0)
-					tmp_s6 << " [queue:" << it.second->GetSendQueueSize () << "]";
+				if (!it->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << " [" << it->GetNumSentBytes () << ":" << it->GetNumReceivedBytes () << "]";
+				if (it->GetRelayTag ())
+					tmp_s6 << " [itag:" << it->GetRelayTag () << "]";
+				if (it->GetSendQueueSize () > 0)
+					tmp_s6 << " [queue:" << it->GetSendQueueSize () << "]";
 				tmp_s6 << "</div>\r\n" << std::endl;
 				cnt6++;
 			}
