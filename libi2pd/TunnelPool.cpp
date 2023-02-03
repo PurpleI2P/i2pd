@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -480,7 +480,7 @@ namespace tunnel
 		return hop;
 	}
 
-	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop)
+	bool TunnelPool::StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop)
 	{
 		int start = 0;
 		std::shared_ptr<const i2p::data::RouterInfo> prevHop = i2p::context.GetSharedRouterInfo ();
@@ -496,7 +496,7 @@ namespace tunnel
 		else if (i2p::transport::transports.GetNumPeers () > 100 ||
 			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
-			auto r = i2p::transport::transports.GetRandomPeer ();
+			auto r = i2p::transport::transports.GetRandomPeer (IsExploratory ());
 			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsReachable ())))) // first inbound must be reachable
 			{
@@ -512,7 +512,7 @@ namespace tunnel
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
 			{
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
-				hop = i2p::transport::transports.GetRandomPeer ();
+				hop = i2p::transport::transports.GetRandomPeer (false);
 				if (hop && !hop->IsECIES ()) hop = nullptr;
 			}
 			if (!hop)

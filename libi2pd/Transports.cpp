@@ -476,7 +476,7 @@ namespace transport
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
 	{
 		if (!peer.router) // reconnect
-			peer.router = netdb.FindRouter (ident); // try to get new one from netdb
+			peer.SetRouter (netdb.FindRouter (ident)); // try to get new one from netdb
 		if (peer.router) // we have RI already
 		{
 			if (peer.priority.empty ())
@@ -598,7 +598,7 @@ namespace transport
 			if (r)
 			{
 				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
-				it->second.router = r;
+				it->second.SetRouter (r);
 				ConnectToPeer (ident, it->second);
 			}
 			else
@@ -900,14 +900,15 @@ namespace transport
 		return found ? i2p::data::netdb.FindRouter (ident) : nullptr;
 	}
 		
-	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth) const
 	{
 		return GetRandomPeer (
-			[](const Peer& peer)->bool
+			[isHighBandwidth](const Peer& peer)->bool
 			{
 				// connected and not overloaded
 				return !peer.router && !peer.sessions.empty () &&
-					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE;
+					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
+					(!isHighBandwidth || peer.isHighBandwidth);
 			});
 	}
 
