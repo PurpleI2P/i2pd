@@ -48,6 +48,8 @@ namespace transport
 	const size_t SSU2_MAX_RTO = 2500; // in milliseconds
 	const float SSU2_kAPPA = 1.8;
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
+	const int SSU2_MAX_NUM_ACNT = 255; // acnt, acks or nacks
+	const int SSU2_MAX_NUM_ACK_PACKETS = 510; // 2*255 ack + nack
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 	

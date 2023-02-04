@@ -2455,21 +2455,24 @@ namespace transport
 		if (ackThrough)
 		{
 			if (m_OutOfSequencePackets.empty ())
-				acnt = std::min ((int)ackThrough, 255); // no gaps
+				acnt = std::min ((int)ackThrough, SSU2_MAX_NUM_ACNT); // no gaps
 			else
 			{
 				auto it = m_OutOfSequencePackets.rbegin (); it++; // prev packet num
 				while (it != m_OutOfSequencePackets.rend () && *it == ackThrough - acnt	- 1)
 				{
 					acnt++;
-					it++;
+					if (acnt >= SSU2_MAX_NUM_ACK_PACKETS)
+						break;
+					else 
+						it++;
 				}
 				// ranges
 				uint32_t lastNum = ackThrough - acnt;
-				if (acnt > 255)
+				if (acnt > SSU2_MAX_NUM_ACNT)
 				{
-					auto d = std::div (acnt - 255, 255);
-					acnt = 255;
+					auto d = std::div (acnt - SSU2_MAX_NUM_ACNT, SSU2_MAX_NUM_ACNT);
+					acnt = SSU2_MAX_NUM_ACNT;
 					if (d.quot > maxNumRanges)
 					{
 						d.quot = maxNumRanges;
@@ -2478,7 +2481,7 @@ namespace transport
 					// Acks only ranges for acnt
 					for (int i = 0; i < d.quot; i++)
 					{
-						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = 255; // NACKs 0, Acks 255
+						buf[8 + numRanges*2] = 0; buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // NACKs 0, Acks 255
 						numRanges++;
 					}
 					if (d.rem > 0)
@@ -2487,21 +2490,25 @@ namespace transport
 						numRanges++;
 					}
 				}
-				while (it != m_OutOfSequencePackets.rend () && numRanges < maxNumRanges)
+				int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;	
+				while (it != m_OutOfSequencePackets.rend () && 
+					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 				{
-					if (lastNum - (*it) > 255)
+					if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
 					{
 						// NACKs only ranges
-						if (lastNum > (*it) + 255*(maxNumRanges - numRanges)) break; // too many NACKs
-						while (lastNum - (*it) > 255)
+						if (lastNum > (*it) + SSU2_MAX_NUM_ACNT*(maxNumRanges - numRanges)) break; // too many NACKs
+						while (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
 						{
-							buf[8 + numRanges*2] = 255; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
-							lastNum -= 255;
+							buf[8 + numRanges*2] = SSU2_MAX_NUM_ACNT; buf[8 + numRanges*2 + 1] = 0; // NACKs 255, Acks 0
+							lastNum -= SSU2_MAX_NUM_ACNT;
 							numRanges++;
+							numPackets += SSU2_MAX_NUM_ACNT;
 						}
 					}
 					// NACKs and Acks ranges
 					buf[8 + numRanges*2] = lastNum - (*it) - 1; // NACKs
+					numPackets += buf[8 + numRanges*2];
 					lastNum = *it; it++;
 					int numAcks = 1;
 					while (it != m_OutOfSequencePackets.rend () && lastNum > 0 && *it == lastNum - 1)
@@ -2509,28 +2516,31 @@ namespace transport
 						numAcks++; lastNum--;
 						it++;
 					}
-					while (numAcks > 255)
+					while (numAcks > SSU2_MAX_NUM_ACNT)
 					{
 						// Acks only ranges
-						buf[8 + numRanges*2 + 1] = 255; // Acks 255
-						numAcks -= 255;
+						buf[8 + numRanges*2 + 1] = SSU2_MAX_NUM_ACNT; // Acks 255
+						numAcks -= SSU2_MAX_NUM_ACNT;
 						numRanges++;
+						numPackets += SSU2_MAX_NUM_ACNT;
 						buf[8 + numRanges*2] = 0; // NACKs 0
-						if (numRanges >= maxNumRanges) break;
+						if (numRanges >= maxNumRanges || numPackets >= SSU2_MAX_NUM_ACK_PACKETS) break;
 					}
-					if (numAcks > 255) numAcks = 255;
+					if (numAcks > SSU2_MAX_NUM_ACNT) numAcks = SSU2_MAX_NUM_ACNT;
 					buf[8 + numRanges*2 + 1] = (uint8_t)numAcks; // Acks
+					numPackets += numAcks;
 					numRanges++;
 				}
-				if (numRanges < maxNumRanges && it == m_OutOfSequencePackets.rend ())
+				if (it == m_OutOfSequencePackets.rend () &&
+					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 				{
 					// add range between out-of-sequence and received
 					int nacks = *m_OutOfSequencePackets.begin () - m_ReceivePacketNum - 1;
 					if (nacks > 0)
 					{
-						if (nacks > 255) nacks = 255;
+						if (nacks > SSU2_MAX_NUM_ACNT) nacks = SSU2_MAX_NUM_ACNT;
 						buf[8 + numRanges*2] = nacks;
-						buf[8 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, 255);
+						buf[8 + numRanges*2 + 1] = std::min ((int)m_ReceivePacketNum + 1, SSU2_MAX_NUM_ACNT);
 						numRanges++;
 					}
 				}
@@ -2864,7 +2874,7 @@ namespace transport
 			int ranges = 0;
 			while (ranges < 8 && !m_OutOfSequencePackets.empty () && 
 				(m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
-			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + 255*8))
+			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + SSU2_MAX_NUM_ACK_PACKETS))
 			{
 				uint32_t packet = *m_OutOfSequencePackets.begin ();
 				if (packet > m_ReceivePacketNum + 1)
