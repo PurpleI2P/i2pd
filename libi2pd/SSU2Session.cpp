@@ -1047,6 +1047,12 @@ namespace transport
 			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
+		if (m_Address->published && m_RemoteEndpoint.address () != m_Address->host)
+		{
+			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host, 
+				" and actual enpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
+			return false;
+		}	
 		// update RouterInfo in netdb
 		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
 		if (!ri)
