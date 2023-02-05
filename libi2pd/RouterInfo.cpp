@@ -910,25 +910,16 @@ namespace data
 		return nullptr;
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2AddressWithStaticKey (const uint8_t * key) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2V4Address () const
 	{
-		if (!key) return nullptr;
-		return GetAddress (
-			[key](std::shared_ptr<const RouterInfo::Address> address)->bool
-			{
-				return address->IsNTCP2 () && !memcmp (address->s, key, 32);
-			});
+		return (*GetAddresses ())[eNTCP2V4Idx];
 	}
 
-	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCP2V6Address () const
 	{
-		if (!key) return nullptr;
-		auto addr = (*GetAddresses ())[isV6 ? eSSU2V6Idx : eSSU2V4Idx];
-		if (addr && !memcmp (addr->s, key, 32))
-		    return addr;
-		return nullptr;
+		return (*GetAddresses ())[eNTCP2V6Idx];
 	}
-
+		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
 	{
 		auto addr = (*GetAddresses ())[eNTCP2V4Idx];

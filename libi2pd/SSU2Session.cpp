@@ -1041,16 +1041,16 @@ namespace transport
 			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
 			return false;
 		}
-		m_Address = ri->GetSSU2AddressWithStaticKey (S, m_RemoteEndpoint.address ().is_v6 ());
-		if (!m_Address)
+		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();			
+		if (!m_Address || memcmp (S, m_Address->s, 32))
 		{
-			LogPrint (eLogError, "SSU2: No SSU2 address with static key found in SessionConfirmed from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
+			LogPrint (eLogError, "SSU2: Wrong static key in SessionConfirmed from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
 		if (m_Address->published && m_RemoteEndpoint.address () != m_Address->host)
 		{
 			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host, 
-				" and actual enpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
+				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}	
 		// update RouterInfo in netdb

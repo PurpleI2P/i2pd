@@ -693,13 +693,20 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = ri.GetNTCP2AddressWithStaticKey (m_Establisher->m_RemoteStaticKey);
-					if (!addr)
+					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () : 
+						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());			
+					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
 					{
-						LogPrint (eLogError, "NTCP2: No NTCP2 address with static key found in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
 						Terminate ();
 						return;
 					}
+					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host)
+					{
+						LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
+						Terminate ();
+						return;
+					}		
 					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
 					// TODO: process options
 

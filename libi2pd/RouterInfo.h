@@ -189,8 +189,8 @@ namespace data
 			virtual void SetProperty (const std::string& key, const std::string& value) {};
 			virtual void ClearProperties () {};
 			boost::shared_ptr<Addresses> GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
-			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
-			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const;
+			std::shared_ptr<const Address> GetNTCP2V4Address () const;
+			std::shared_ptr<const Address> GetNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
