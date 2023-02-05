@@ -252,7 +252,15 @@ namespace data
 				{
 					boost::system::error_code ecode;
 					address->host = boost::asio::ip::address::from_string (value, ecode);
-					if (!ecode && !address->host.is_unspecified ()) isHost = true;
+					if (!ecode && !address->host.is_unspecified ()) 
+					{
+						if (!i2p::util::net::IsInReservedRange (address->host) || 
+						    i2p::util::net::IsYggdrasilAddress (address->host))
+							isHost = true;
+						else
+							// we consider such address as invalid	
+							address->transportStyle = eTransportUnknown;	
+					}	
 				}
 				else if (!strcmp (key, "port"))
 				{
@@ -390,7 +398,7 @@ namespace data
 			{
 				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
-				if (address->port)
+				if (isHost && address->port)
 				{
 					if (address->host.is_v4 ()) m_ReachableTransports |= eSSU2V4;
 					if (address->host.is_v6 ()) m_ReachableTransports |= eSSU2V6;
