@@ -22,6 +22,7 @@ namespace data
 	const char PEER_PROFILE_SECTION_USAGE[] = "usage";
 	// params
 	const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
+	const char PEER_PROFILE_LAST_UNREACHABLE_TIME[] = "lastunreachabletime";
 	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
 	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
 	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";
@@ -32,7 +33,8 @@ namespace data
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
-
+	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 2*3600; // on seconds (2 hours) 
+	
 	class RouterProfile
 	{
 		public:
@@ -44,10 +46,13 @@ namespace data
 			void Load (const IdentHash& identHash);
 
 			bool IsBad ();
-
+			bool IsUnreachable ();
+			
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
 
+			void Unreachable ();
+			
 		private:
 
 			boost::posix_time::ptime GetTime () const;
@@ -61,7 +66,7 @@ namespace data
 		private:
 
 			boost::posix_time::ptime m_LastUpdateTime; // TODO: use std::chrono
-			uint64_t m_LastDeclineTime; // in seconds
+			uint64_t m_LastDeclineTime, m_LastUnreachableTime; // in seconds
 			// participation
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;

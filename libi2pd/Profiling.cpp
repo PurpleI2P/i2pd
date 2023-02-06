@@ -23,7 +23,7 @@ namespace data
 
 	RouterProfile::RouterProfile ():
 		m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
-		m_LastDeclineTime (0),
+		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0)
 	{
@@ -52,6 +52,8 @@ namespace data
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
+		if (m_LastUnreachableTime)
+			pt.put (PEER_PROFILE_LAST_UNREACHABLE_TIME, m_LastUnreachableTime);
 		pt.put_child (PEER_PROFILE_SECTION_PARTICIPATION, participation);
 		pt.put_child (PEER_PROFILE_SECTION_USAGE, usage);
 
@@ -96,6 +98,7 @@ namespace data
 				m_LastUpdateTime = boost::posix_time::time_from_string (t);
 			if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT)
 			{
+				m_LastUnreachableTime = pt.get (PEER_PROFILE_LAST_UNREACHABLE_TIME, 0);
 				try
 				{
 					// read participations
@@ -152,6 +155,11 @@ namespace data
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
+	void RouterProfile::Unreachable ()
+	{
+		m_LastUnreachableTime = i2p::util::GetSecondsSinceEpoch ();
+	}	
+		
 	bool RouterProfile::IsLowPartcipationRate () const
 	{
 		return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // < 20% rate
@@ -169,12 +177,12 @@ namespace data
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		if (ts > m_LastDeclineTime + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL)
 			m_LastDeclineTime = 0;
-		return m_LastDeclineTime;
+		return (bool)m_LastDeclineTime;
 	}	
 		
 	bool RouterProfile::IsBad ()
 	{
-		if (IsDeclinedRecently ()) return true;
+		if (IsDeclinedRecently () || IsUnreachable ()) return true;
 		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () /*|| IsLowReplyRate ()*/;
 		if (isBad && m_NumTimesRejected > 10*(m_NumTimesTaken + 1))
 		{
@@ -188,6 +196,15 @@ namespace data
 		return isBad;
 	}
 
+	bool RouterProfile::IsUnreachable ()
+	{
+		if (!m_LastUnreachableTime) return false;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts > m_LastUnreachableTime + PEER_PROFILE_UNREACHABLE_INTERVAL)
+			m_LastUnreachableTime = 0;
+		return (bool)m_LastUnreachableTime;
+	}	
+		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
 		auto profile = std::make_shared<RouterProfile> ();

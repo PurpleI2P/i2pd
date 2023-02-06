@@ -427,7 +427,15 @@ namespace data
 	{
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
-			return it->second->SetUnreachable (unreachable);
+		{	
+			it->second->SetUnreachable (unreachable);
+			if (unreachable)
+			{	
+				auto profile = it->second->GetProfile ();
+				if (profile)
+					profile->Unreachable ();
+			}	
+		}	
 	}
 
 	void NetDb::Reseed ()
@@ -626,6 +634,8 @@ namespace data
 				updatedCount++;
 				continue;
 			}
+			if (it.second->GetProfile ()->IsUnreachable ())
+				it.second->SetUnreachable (true);
 			// make router reachable back if too few routers or floodfills
 			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate ||
 				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
@@ -1334,7 +1344,7 @@ namespace data
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (const auto& it: m_Floodfills)
 		{
-			if (!it->IsUnreachable ())
+			if (!it->IsUnreachable () && !it->GetProfile ()->IsUnreachable ())
 			{
 				XORMetric m = destKey ^ it->GetIdentHash ();
 				if (m < minMetric && !excluded.count (it->GetIdentHash ()))
