@@ -1047,7 +1047,9 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Wrong static key in SessionConfirmed from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
-		if (m_Address->published && m_RemoteEndpoint.address () != m_Address->host)
+		if (m_Address->published && m_RemoteEndpoint.address () != m_Address->host &&
+		    (!m_RemoteEndpoint.address ().is_v6 () || 
+			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
 			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host, 
 				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
