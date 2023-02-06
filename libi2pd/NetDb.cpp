@@ -295,7 +295,7 @@ namespace data
 		else
 		{
 			r = std::make_shared<RouterInfo> (buf, len);
-			if (!r->IsUnreachable () && r->HasValidAddresses () &&
+			if (!r->IsUnreachable () && r->HasValidAddresses () && !r->GetProfile ()->IsUnreachable () &&
 			    i2p::util::GetMillisecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ())
 			{
 				bool inserted = false;
