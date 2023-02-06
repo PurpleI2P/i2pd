@@ -539,7 +539,8 @@ namespace transport
 			}
 
 			LogPrint (eLogInfo, "Transports: No compatible addresses available");
-			i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed
+			if (peer.router->IsReachableFrom (i2p::context.GetRouterInfo ()))
+				i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed but router claimed them
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
