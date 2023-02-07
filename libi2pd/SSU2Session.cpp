@@ -2296,9 +2296,9 @@ namespace transport
 				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			case 7: // Alice from Charlie 2
-				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
 				if (m_Address->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
+				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
 			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
