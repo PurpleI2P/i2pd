@@ -702,9 +702,9 @@ namespace transport
 						return;
 					}
 					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
-					    (!m_RemoteEndpoint.address ().is_v6 () || i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
+					    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
 					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet                                                                            
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
+					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
 					{
 						LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 						Terminate ();
