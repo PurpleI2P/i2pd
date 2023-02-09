@@ -175,7 +175,8 @@ namespace data
 	{
 		if (!m_LastDeclineTime) return false;
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		if (ts > m_LastDeclineTime + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL)
+		if (ts > m_LastDeclineTime + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL ||
+		    ts + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL < m_LastDeclineTime)
 			m_LastDeclineTime = 0;
 		return (bool)m_LastDeclineTime;
 	}	
@@ -200,7 +201,8 @@ namespace data
 	{
 		if (!m_LastUnreachableTime) return false;
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		if (ts > m_LastUnreachableTime + PEER_PROFILE_UNREACHABLE_INTERVAL)
+		if (ts > m_LastUnreachableTime + PEER_PROFILE_UNREACHABLE_INTERVAL ||
+		    ts + PEER_PROFILE_UNREACHABLE_INTERVAL < m_LastUnreachableTime)
 			m_LastUnreachableTime = 0;
 		return (bool)m_LastUnreachableTime;
 	}	

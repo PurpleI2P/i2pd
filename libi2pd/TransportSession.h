@@ -107,7 +107,10 @@ namespace transport
 			int GetTerminationTimeout () const { return m_TerminationTimeout; };
 			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
-			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };
+			{ 
+				return ts >= m_LastActivityTimestamp + GetTerminationTimeout () ||
+					ts + GetTerminationTimeout () < m_LastActivityTimestamp; 
+			};
 
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
