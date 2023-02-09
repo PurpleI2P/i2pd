@@ -241,13 +241,13 @@ namespace tunnel
 			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
 
 			void Run ();
-			void ManageTunnels ();
-			void ManageOutboundTunnels ();
-			void ManageInboundTunnels ();
-			void ManageTransitTunnels ();
-			void ManagePendingTunnels ();
+			void ManageTunnels (uint64_t ts);
+			void ManageOutboundTunnels (uint64_t ts);
+			void ManageInboundTunnels (uint64_t ts);
+			void ManageTransitTunnels (uint64_t ts);
+			void ManagePendingTunnels (uint64_t ts);
 			template<class PendingTunnels>
-			void ManagePendingTunnels (PendingTunnels& pendingTunnels);
+			void ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts);
 			void ManageTunnelPools (uint64_t ts);
 
 			std::shared_ptr<ZeroHopsInboundTunnel> CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool);

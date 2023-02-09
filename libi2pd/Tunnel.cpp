@@ -537,17 +537,20 @@ namespace tunnel
 				if (i2p::transport::transports.IsOnline())
 				{
 					uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-					if (ts - lastTs >= TUNNEL_MANAGE_INTERVAL) // manage tunnels every 15 seconds
+					if (ts - lastTs >= TUNNEL_MANAGE_INTERVAL || // manage tunnels every 15 seconds
+					    ts + TUNNEL_MANAGE_INTERVAL < lastTs) 
 					{
-						ManageTunnels ();
+						ManageTunnels (ts);
 						lastTs = ts;
 					}
-					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL) // manage pools every 5 seconds
+					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 secondsts
+					    ts + TUNNEL_POOLS_MANAGE_INTERVAL < lastPoolsTs) 
 					{
 						ManageTunnelPools (ts);
 						lastPoolsTs = ts;
 					}
-					if (ts - lastMemoryPoolTs >= TUNNEL_MEMORY_POOL_MANAGE_INTERVAL) // manage memory pool every 2 minutes
+					if (ts - lastMemoryPoolTs >= TUNNEL_MEMORY_POOL_MANAGE_INTERVAL ||
+					    ts + TUNNEL_MEMORY_POOL_MANAGE_INTERVAL < lastMemoryPoolTs) // manage memory pool every 2 minutes
 					{
 						m_I2NPTunnelEndpointMessagesMemoryPool.CleanUpMt ();
 						m_I2NPTunnelMessagesMemoryPool.CleanUpMt ();
@@ -589,32 +592,32 @@ namespace tunnel
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
-	void Tunnels::ManageTunnels ()
+	void Tunnels::ManageTunnels (uint64_t ts)
 	{
-		ManagePendingTunnels ();
-		ManageInboundTunnels ();
-		ManageOutboundTunnels ();
-		ManageTransitTunnels ();
+		ManagePendingTunnels (ts);
+		ManageInboundTunnels (ts);
+		ManageOutboundTunnels (ts);
+		ManageTransitTunnels (ts);
 	}
 
-	void Tunnels::ManagePendingTunnels ()
+	void Tunnels::ManagePendingTunnels (uint64_t ts)
 	{
-		ManagePendingTunnels (m_PendingInboundTunnels);
-		ManagePendingTunnels (m_PendingOutboundTunnels);
+		ManagePendingTunnels (m_PendingInboundTunnels, ts);
+		ManagePendingTunnels (m_PendingOutboundTunnels, ts);
 	}
 
 	template<class PendingTunnels>
-	void Tunnels::ManagePendingTunnels (PendingTunnels& pendingTunnels)
+	void Tunnels::ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts)
 	{
 		// check pending tunnel. delete failed or timeout
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = pendingTunnels.begin (); it != pendingTunnels.end ();)
 		{
 			auto tunnel = it->second;
 			switch (tunnel->GetState ())
 			{
 				case eTunnelStatePending:
-					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
+					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT ||
+					    ts + TUNNEL_CREATION_TIMEOUT < tunnel->GetCreationTime ())
 					{
 						LogPrint (eLogDebug, "Tunnel: Pending build request ", it->first, " timeout, deleted");
 						// update stats
@@ -657,41 +660,38 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageOutboundTunnels ()
+	void Tunnels::ManageOutboundTunnels (uint64_t ts)
 	{
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 		{
-			for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
+			auto tunnel = *it;
+			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
-				auto tunnel = *it;
-				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
+				auto pool = tunnel->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (tunnel);
+				// we don't have outbound tunnels in m_Tunnels
+				it = m_OutboundTunnels.erase (it);
+			}
+			else
+			{
+				if (tunnel->IsEstablished ())
 				{
-					LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
-					auto pool = tunnel->GetTunnelPool ();
-					if (pool)
-						pool->TunnelExpired (tunnel);
-					// we don't have outbound tunnels in m_Tunnels
-					it = m_OutboundTunnels.erase (it);
-				}
-				else
-				{
-					if (tunnel->IsEstablished ())
+					if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 					{
-						if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						auto pool = tunnel->GetTunnelPool ();
+						// let it die if the tunnel pool has been reconfigured and this is old
+						if (pool && tunnel->GetNumHops() == pool->GetNumOutboundHops())
 						{
-							auto pool = tunnel->GetTunnelPool ();
-							// let it die if the tunnel pool has been reconfigured and this is old
-							if (pool && tunnel->GetNumHops() == pool->GetNumOutboundHops())
-							{
-								tunnel->SetRecreated (true);
-								pool->RecreateOutboundTunnel (tunnel);
-							}
+							tunnel->SetRecreated (true);
+							pool->RecreateOutboundTunnel (tunnel);
 						}
-						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
-							tunnel->SetState (eTunnelStateExpiring);
 					}
-					++it;
+					if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						tunnel->SetState (eTunnelStateExpiring);
 				}
+				++it;
 			}
 		}
 
@@ -711,44 +711,42 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageInboundTunnels ()
+	void Tunnels::ManageInboundTunnels (uint64_t ts)
 	{
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 		{
-			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
+			auto tunnel = *it;
+			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
+			    ts + TUNNEL_EXPIRATION_TIMEOUT < tunnel->GetCreationTime ())
 			{
-				auto tunnel = *it;
-				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
+				auto pool = tunnel->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (tunnel);
+				m_Tunnels.erase (tunnel->GetTunnelID ());
+				it = m_InboundTunnels.erase (it);
+			}
+			else
+			{
+				if (tunnel->IsEstablished ())
 				{
-					LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
-					auto pool = tunnel->GetTunnelPool ();
-					if (pool)
-						pool->TunnelExpired (tunnel);
-					m_Tunnels.erase (tunnel->GetTunnelID ());
-					it = m_InboundTunnels.erase (it);
-				}
-				else
-				{
-					if (tunnel->IsEstablished ())
+					if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 					{
-						if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						auto pool = tunnel->GetTunnelPool ();
+						// let it die if the tunnel pool was reconfigured and has different number of hops
+						if (pool && tunnel->GetNumHops() == pool->GetNumInboundHops())
 						{
-							auto pool = tunnel->GetTunnelPool ();
-							// let it die if the tunnel pool was reconfigured and has different number of hops
-							if (pool && tunnel->GetNumHops() == pool->GetNumInboundHops())
-							{
-								tunnel->SetRecreated (true);
-								pool->RecreateInboundTunnel (tunnel);
-							}
+							tunnel->SetRecreated (true);
+							pool->RecreateInboundTunnel (tunnel);
 						}
-
-						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
-							tunnel->SetState (eTunnelStateExpiring);
-						else // we don't need to cleanup expiring tunnels
-							tunnel->Cleanup ();
 					}
-					it++;
+
+					if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						tunnel->SetState (eTunnelStateExpiring);
+					else // we don't need to cleanup expiring tunnels
+						tunnel->Cleanup ();
 				}
+				it++;
 			}
 		}
 
@@ -787,13 +785,13 @@ namespace tunnel
 		}
 	}
 
-	void Tunnels::ManageTransitTunnels ()
+	void Tunnels::ManageTransitTunnels (uint64_t ts)
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
 		{
 			auto tunnel = *it;
-			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
+			    ts + TUNNEL_EXPIRATION_TIMEOUT < tunnel->GetCreationTime ())
 			{
 				LogPrint (eLogDebug, "Tunnel: Transit tunnel with id ", tunnel->GetTunnelID (), " expired");
 				m_Tunnels.erase (tunnel->GetTunnelID ());

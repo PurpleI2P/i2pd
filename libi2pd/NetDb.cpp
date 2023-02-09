@@ -153,13 +153,13 @@ namespace data
 				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
+				if (ts - lastManageRequest >= 15 || ts + 15 < lastManageRequest) // manage requests every 15 seconds
 				{
 					m_Requests.ManageRequests ();
 					lastManageRequest = ts;
 				}
 
-				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
+				if (ts - lastSave >= 60 || ts + 60 < lastSave) // save routers, manage leasesets and validate subscriptions every minute
 				{
 					if (lastSave)
 					{
@@ -169,13 +169,15 @@ namespace data
 					lastSave = ts;
 				}
 
-				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT)
+				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT ||
+				    ts + i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT < lastDestinationCleanup)
 				{
 					i2p::context.CleanupDestination ();
 					lastDestinationCleanup = ts;
 				}
 
-				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance))
+				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
+				    ts + i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT < lastProfilesCleanup)
 				{
 					DeleteObsoleteProfiles ();
 					lastProfilesCleanup = ts;
@@ -192,7 +194,8 @@ namespace data
 						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
 					}
 					else if (i2p::context.GetLastUpdateTime () > lastPublish ||
-						ts - lastPublish >= NETDB_PUBLISH_INTERVAL)
+						ts - lastPublish >= NETDB_PUBLISH_INTERVAL ||
+					    ts + NETDB_PUBLISH_INTERVAL < lastPublish)
 					{
 						// new publish
 						m_PublishExcluded.clear ();
@@ -208,7 +211,7 @@ namespace data
 					}
 				}
 
-				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
+				if (ts - lastExploratory >= 30 || ts + 30 < lastExploratory) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
 					if (!numRouters)
