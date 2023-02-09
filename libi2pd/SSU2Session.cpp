@@ -2308,7 +2308,7 @@ namespace transport
 	void SSU2Session::HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{	
 		if (!msg) return;
-		int32_t msgID = msg->GetMsgID ();
+		uint32_t msgID = msg->GetMsgID ();
 		if (!msg->IsExpired ())
 		{
 			// m_LastActivityTimestamp is updated in ProcessData before
