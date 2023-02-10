@@ -285,7 +285,7 @@ namespace config {
 
 		options_description nettime("Time sync options");
 		nettime.add_options()
-			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")
+			("nettime.enabled", value<bool>()->default_value(false),       "Enable NTP time sync (default: disabled)")
 			("nettime.ntpservers", value<std::string>()->default_value(
 				"0.pool.ntp.org,"
 				"1.pool.ntp.org,"
