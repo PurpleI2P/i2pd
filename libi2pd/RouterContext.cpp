@@ -1100,6 +1100,12 @@ namespace i2p
 
 	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
 	{
+		if (typeID == eI2NPGarlic)
+		{
+			// TODO: implement
+			LogPrint (eLogWarning, "Router: garlic message in garlic clove. Dropped");
+			return false;
+		}	
 		auto msg = CreateI2NPMessage (typeID, payload, len, msgID);
 		if (!msg) return false;
 		i2p::HandleI2NPMessage (msg);
