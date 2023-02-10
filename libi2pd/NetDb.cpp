@@ -834,7 +834,7 @@ namespace data
 				}
 				else // all others are considered as LeaseSet2
 				{
-					LogPrint (eLogDebug, "NetDb: Store request: LeaseSet2 of type ", storeType, " for ", ident.ToBase32());
+					LogPrint (eLogDebug, "NetDb: Store request: LeaseSet2 of type ", int(storeType), " for ", ident.ToBase32());
 					updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
 				}
 			}
