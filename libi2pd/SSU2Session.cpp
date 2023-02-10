@@ -1617,6 +1617,7 @@ namespace transport
 		{
 			case eSSU2SessionStateSessionRequestReceived:
 			case eSSU2SessionStateTokenRequestReceived:
+			case eSSU2SessionStateEstablished:	
 				if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					m_TerminationReason = eSSU2TerminationReasonClockSkew;
 			break;

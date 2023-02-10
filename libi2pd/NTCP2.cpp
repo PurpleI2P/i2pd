@@ -884,8 +884,20 @@ namespace transport
 			switch (blk)
 			{
 				case eNTCP2BlkDateTime:
+				{	
 					LogPrint (eLogDebug, "NTCP2: Datetime");
-				break;
+					if (m_IsEstablished)
+					{
+						uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+						uint64_t tsA = bufbe32toh (frame + offset);
+						if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
+						{
+							LogPrint (eLogWarning, "NTCP2: Established session time difference ", (int)(ts - tsA), " exceeds clock skew");
+							SendTerminationAndTerminate (eNTCP2ClockSkew);
+						}	
+					}		
+					break;
+				}
 				case eNTCP2BlkOptions:
 					LogPrint (eLogDebug, "NTCP2: Options");
 				break;
