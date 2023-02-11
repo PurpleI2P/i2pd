@@ -212,6 +212,8 @@ namespace transport
 		boost::asio::ip::udp::socket& socket = localEndpoint.address ().is_v6 () ? m_SocketV6 : m_SocketV4;
 		try
 		{
+			if (socket.is_open ())
+				socket.close ();
 			socket.open (localEndpoint.protocol ());
 			if (localEndpoint.address ().is_v6 ())
 				socket.set_option (boost::asio::ip::v6_only (true));
@@ -819,7 +821,7 @@ namespace transport
 		m_CleanupTimer.async_wait (std::bind (&SSU2Server::HandleCleanupTimer,
 			this, std::placeholders::_1));
 	}
-		
+
 	void SSU2Server::HandleCleanupTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
@@ -848,15 +850,15 @@ namespace transport
 				else
 					it++;
 			}
-			
+
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();
 			ScheduleCleanup ();
-		}	
-	}	
-		
+		}
+	}
+
 	void SSU2Server::ScheduleResend (bool more)
 	{
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? SSU2_RESEND_CHECK_MORE_TIMEOUT :
