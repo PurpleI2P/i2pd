@@ -56,7 +56,7 @@ namespace tunnel
 
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
-		typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;	
+		typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
 		public:
 
 			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
@@ -114,7 +114,7 @@ namespace tunnel
 			// for overriding tunnel peer selection
 			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const;
 			bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
-			
+
 		private:
 
 			void TestTunnels ();

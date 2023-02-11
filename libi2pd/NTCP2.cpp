@@ -693,8 +693,8 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () : 
-						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());			
+					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () :
+						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());
 					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
 					{
 						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
@@ -703,13 +703,13 @@ namespace transport
 					}
 					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
 					    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
-					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet                                                                            
+					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
 					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
 					{
 						LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 						Terminate ();
 						return;
-					}		
+					}
 					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
 					// TODO: process options
 
@@ -884,7 +884,7 @@ namespace transport
 			switch (blk)
 			{
 				case eNTCP2BlkDateTime:
-				{	
+				{
 					LogPrint (eLogDebug, "NTCP2: Datetime");
 					if (m_IsEstablished)
 					{
@@ -894,8 +894,8 @@ namespace transport
 						{
 							LogPrint (eLogWarning, "NTCP2: Established session time difference ", (int)(ts - tsA), " exceeds clock skew");
 							SendTerminationAndTerminate (eNTCP2ClockSkew);
-						}	
-					}		
+						}
+					}
 					break;
 				}
 				case eNTCP2BlkOptions:

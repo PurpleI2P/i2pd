@@ -45,7 +45,7 @@ namespace config {
 			("logclftime", bool_switch()->default_value(false),               "Write full CLF-formatted date and time to log (default: disabled, write only time)")
 			("family", value<std::string>()->default_value(""),               "Specify a family, router belongs to")
 			("datadir", value<std::string>()->default_value(""),              "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
-			("host", value<std::string>()->default_value(""),          		  "External IP")
+			("host", value<std::string>()->default_value(""),                 "External IP")
 			("ifname", value<std::string>()->default_value(""),               "Network interface to bind to")
 			("ifname4", value<std::string>()->default_value(""),              "Network interface to bind to for ipv4")
 			("ifname6", value<std::string>()->default_value(""),              "Network interface to bind to for ipv6")

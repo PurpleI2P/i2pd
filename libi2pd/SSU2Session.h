@@ -52,7 +52,7 @@ namespace transport
 	const int SSU2_MAX_NUM_ACK_PACKETS = 510; // 2*255 ack + nack
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
-	
+
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
 
@@ -317,7 +317,7 @@ namespace transport
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			void HandlePeerTest (const uint8_t * buf, size_t len);
 			void HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg);
-			
+
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);

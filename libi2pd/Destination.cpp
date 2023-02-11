@@ -415,7 +415,7 @@ namespace client
 		{
 			LogPrint (eLogError, "Destination: Database store message is too long ", len);
 			return;
-		}	
+		}
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		switch (buf[DATABASE_STORE_TYPE_OFFSET])
@@ -786,7 +786,7 @@ namespace client
 						LogPrint (eLogWarning, "Destination: LeaseSet request for ", dest.ToBase32 (), " was not sent");
 						m_LeaseSetRequests.erase (ret.first);
 						if (requestComplete) requestComplete (nullptr);
-					}	
+					}
 				}
 			}
 			else // duplicate
@@ -1173,11 +1173,11 @@ namespace client
 			},
 		    dest, port);
 		while (!done)
-		{	
+		{
 			std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
 			if (!done)
 				streamRequestComplete.wait (l);
-		}	
+		}
 		return stream;
 	}
 

@@ -94,7 +94,7 @@ namespace transport
 			router = r;
 			if (router)
 				isHighBandwidth = router->IsHighBandwidth ();
-		}	
+		}
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
@@ -176,7 +176,7 @@ namespace transport
 
 			template<typename Filter>
 				std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (Filter filter) const;
-			
+
 		private:
 
 			volatile bool m_IsOnline;

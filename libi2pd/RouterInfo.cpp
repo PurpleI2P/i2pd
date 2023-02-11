@@ -252,15 +252,15 @@ namespace data
 				{
 					boost::system::error_code ecode;
 					address->host = boost::asio::ip::address::from_string (value, ecode);
-					if (!ecode && !address->host.is_unspecified ()) 
+					if (!ecode && !address->host.is_unspecified ())
 					{
-						if (!i2p::util::net::IsInReservedRange (address->host) || 
+						if (!i2p::util::net::IsInReservedRange (address->host) ||
 						    i2p::util::net::IsYggdrasilAddress (address->host))
 							isHost = true;
 						else
-							// we consider such address as invalid	
-							address->transportStyle = eTransportUnknown;	
-					}	
+							// we consider such address as invalid
+							address->transportStyle = eTransportUnknown;
+					}
 				}
 				else if (!strcmp (key, "port"))
 				{
@@ -648,8 +648,8 @@ namespace data
 			m_SupportedTransports |= eNTCP2V6;
 			(*m_Addresses)[eNTCP2V6Idx] = addr;
 		}
-	}	
-		
+	}
+
 	void RouterInfo::AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
 		const boost::asio::ip::address& host, int port)
 	{
@@ -688,20 +688,20 @@ namespace data
 	void RouterInfo::RemoveNTCP2Address (bool v4)
 	{
 		if (v4)
-		{	
+		{
 			if ((*m_Addresses)[eNTCP2V6Idx])
 				(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
 			(*m_Addresses)[eNTCP2V4Idx].reset ();
-		}	
+		}
 		else
-		{	
+		{
 			if ((*m_Addresses)[eNTCP2V4Idx])
 				(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
 			(*m_Addresses)[eNTCP2V6Idx].reset ();
-		}	
+		}
 		UpdateSupportedTransports ();
-	}	
-		
+	}
+
 	void RouterInfo::AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, int port, uint8_t caps)
 	{
 		auto addr = std::make_shared<Address>();
@@ -756,20 +756,20 @@ namespace data
 	void RouterInfo::RemoveSSU2Address (bool v4)
 	{
 		if (v4)
-		{	
+		{
 			if ((*m_Addresses)[eSSU2V6Idx])
 				(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
 			(*m_Addresses)[eSSU2V4Idx].reset ();
-		}	
+		}
 		else
-		{	
+		{
 			if ((*m_Addresses)[eSSU2V4Idx])
 				(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
 			(*m_Addresses)[eSSU2V6Idx].reset ();
-		}	
+		}
 		UpdateSupportedTransports ();
-	}	
-		
+	}
+
 	bool RouterInfo::IsNTCP2 (bool v4only) const
 	{
 		if (v4only)
@@ -919,7 +919,7 @@ namespace data
 	{
 		return (*GetAddresses ())[eNTCP2V6Idx];
 	}
-		
+
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetPublishedNTCP2V4Address () const
 	{
 		auto addr = (*GetAddresses ())[eNTCP2V4Idx];
@@ -1032,13 +1032,13 @@ namespace data
 	std::shared_ptr<RouterInfo::Address> RouterInfo::NewAddress () const
 	{
 		return netdb.NewRouterInfoAddress ();
-	}	
-		
+	}
+
 	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::NewAddresses () const
 	{
 		return netdb.NewRouterInfoAddresses ();
-	}	
-		
+	}
+
 	void RouterInfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -1324,12 +1324,12 @@ namespace data
 	{
 		return std::make_shared<Address> ();
 	}
-		
+
 	boost::shared_ptr<RouterInfo::Addresses> LocalRouterInfo::NewAddresses () const
 	{
 		return boost::make_shared<Addresses> ();
-	}	
-		
+	}
+
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
 		auto addresses = GetAddresses ();

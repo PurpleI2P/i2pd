@@ -430,15 +430,15 @@ namespace data
 	{
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
-		{	
+		{
 			it->second->SetUnreachable (unreachable);
 			if (unreachable)
-			{	
+			{
 				auto profile = it->second->GetProfile ();
 				if (profile)
 					profile->Unreachable ();
-			}	
-		}	
+			}
+		}
 	}
 
 	void NetDb::Reseed ()
@@ -824,7 +824,7 @@ namespace data
 			{
 				LogPrint (eLogError, "NetDb: Database store message is too long ", len);
 				return;
-			}	
+			}
 			if (!m->from) // unsolicited LS must be received directly
 			{
 				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1

@@ -136,15 +136,15 @@ namespace data
 	{
 		UpdateTime ();
 		if (ret > 0)
-		{	
+		{
 			m_NumTunnelsDeclined++;
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
-		}	
+		}
 		else
-		{	
+		{
 			m_NumTunnelsAgreed++;
 			m_LastDeclineTime = 0;
-		}	
+		}
 	}
 
 	void RouterProfile::TunnelNonReplied ()
@@ -158,8 +158,8 @@ namespace data
 	void RouterProfile::Unreachable ()
 	{
 		m_LastUnreachableTime = i2p::util::GetSecondsSinceEpoch ();
-	}	
-		
+	}
+
 	bool RouterProfile::IsLowPartcipationRate () const
 	{
 		return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // < 20% rate
@@ -179,8 +179,8 @@ namespace data
 		    ts + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL < m_LastDeclineTime)
 			m_LastDeclineTime = 0;
 		return (bool)m_LastDeclineTime;
-	}	
-		
+	}
+
 	bool RouterProfile::IsBad ()
 	{
 		if (IsDeclinedRecently () || IsUnreachable ()) return true;
@@ -205,8 +205,8 @@ namespace data
 		    ts + PEER_PROFILE_UNREACHABLE_INTERVAL < m_LastUnreachableTime)
 			m_LastUnreachableTime = 0;
 		return (bool)m_LastUnreachableTime;
-	}	
-		
+	}
+
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
 		auto profile = std::make_shared<RouterProfile> ();

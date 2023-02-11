@@ -33,8 +33,8 @@ namespace data
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 24 * 3600; // in seconds (1 day)
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3 * 3600; // in seconds (3 hours)
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
-	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 2*3600; // on seconds (2 hours) 
-	
+	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 2*3600; // on seconds (2 hours)
+
 	class RouterProfile
 	{
 		public:
@@ -47,12 +47,12 @@ namespace data
 
 			bool IsBad ();
 			bool IsUnreachable ();
-			
+
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
 
 			void Unreachable ();
-			
+
 		private:
 
 			boost::posix_time::ptime GetTime () const;

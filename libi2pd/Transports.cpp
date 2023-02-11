@@ -831,12 +831,12 @@ namespace transport
 			std::advance (it, inds[0]);
 			// try random peer
 			if (it != m_Peers.end () && filter (it->second))
-			{	
+			{
 				ident = it->first;
 				found = true;
-			}	
+			}
 			else
-			{	
+			{
 				// try some peers around
 				auto it1 = m_Peers.begin ();
 				if (inds[0])
@@ -859,48 +859,48 @@ namespace transport
 				while (it != it2 && it != m_Peers.end ())
 				{
 					if (filter (it->second))
-					{	
+					{
 						ident = it->first;
 						found = true;
 						break;
-					}	
+					}
 					it++;
 				}
 				if (!found)
-				{	
+				{
 					// still not found, try from the beginning
 					it = m_Peers.begin ();
 					while (it != it1 && it != m_Peers.end ())
 					{
 						if (filter (it->second))
-						{	
+						{
 							ident = it->first;
 							found = true;
 							break;
-						}	
+						}
 						it++;
 					}
 					if (!found)
-					{	
+					{
 						// still not found, try to the beginning
 						it = it2;
 						while (it != m_Peers.end ())
 						{
 							if (filter (it->second))
-							{	
+							{
 								ident = it->first;
 								found = true;
 								break;
-							}			
+							}
 							it++;
 						}
-					}	
-				}	
-			}	
-		}	
+					}
+				}
+			}
+		}
 		return found ? i2p::data::netdb.FindRouter (ident) : nullptr;
 	}
-		
+
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth) const
 	{
 		return GetRandomPeer (

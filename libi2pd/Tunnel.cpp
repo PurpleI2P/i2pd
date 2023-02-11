@@ -334,7 +334,7 @@ namespace tunnel
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
 		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal avarage
 		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
-	{ 
+	{
 	}
 
 	Tunnels::~Tunnels ()
@@ -439,11 +439,11 @@ namespace tunnel
 		if (m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second)
 			m_TransitTunnels.push_back (tunnel);
 		else
-		{	
+		{
 			LogPrint (eLogError, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " already exists");
-			return false;	
-		}		
-		return true;	
+			return false;
+		}
+		return true;
 	}
 
 	void Tunnels::Start ()
@@ -538,13 +538,13 @@ namespace tunnel
 				{
 					uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 					if (ts - lastTs >= TUNNEL_MANAGE_INTERVAL || // manage tunnels every 15 seconds
-					    ts + TUNNEL_MANAGE_INTERVAL < lastTs) 
+					    ts + TUNNEL_MANAGE_INTERVAL < lastTs)
 					{
 						ManageTunnels (ts);
 						lastTs = ts;
 					}
 					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 secondsts
-					    ts + TUNNEL_POOLS_MANAGE_INTERVAL < lastPoolsTs) 
+					    ts + TUNNEL_POOLS_MANAGE_INTERVAL < lastPoolsTs)
 					{
 						ManageTunnelPools (ts);
 						lastPoolsTs = ts;

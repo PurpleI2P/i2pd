@@ -254,7 +254,7 @@ namespace tunnel
 			std::shared_ptr<ZeroHopsOutboundTunnel> CreateZeroHopsOutboundTunnel (std::shared_ptr<TunnelPool> pool);
 
 			// Calculating of tunnel creation success rate
-			void SuccesiveTunnelCreation() 
+			void SuccesiveTunnelCreation()
 			{
 				// total TCSR
 				m_TotalNumSuccesiveTunnelCreations++;
@@ -263,14 +263,14 @@ namespace tunnel
 				m_TunnelCreationSuccessRate = alpha * 1 + (1 - alpha) * m_TunnelCreationSuccessRate;
 
 			}
-			void FailedTunnelCreation() 
+			void FailedTunnelCreation()
 			{
 				m_TotalNumFailedTunnelCreations++;
-				
+
 				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
 				m_TunnelCreationSuccessRate = alpha * 0 + (1 - alpha) * m_TunnelCreationSuccessRate;
 			}
-			
+
 		private:
 
 			bool m_IsRunning;
@@ -288,7 +288,7 @@ namespace tunnel
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
 			// count of tunnels for total TCSR algorithm
-			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;		
+			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;
 			int m_TunnelCreationAttemptsNum;
 

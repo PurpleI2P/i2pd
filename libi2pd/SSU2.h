@@ -100,7 +100,7 @@ namespace transport
 			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
 			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
-					
+
 		private:
 
 			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
@@ -116,7 +116,7 @@ namespace transport
 
 			void ScheduleCleanup ();
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
-		
+
 			void ScheduleResend (bool more);
 			void HandleResendTimer (const boost::system::error_code& ecode);
 

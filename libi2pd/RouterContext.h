@@ -181,7 +181,7 @@ namespace garlic
 			void SaveKeys ();
 			uint16_t SelectRandomPort () const;
 			void PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address, int port, bool publish) const;
-			
+
 			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
 
 		private:

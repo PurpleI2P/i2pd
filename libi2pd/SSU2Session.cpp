@@ -36,34 +36,34 @@ namespace transport
 	{
 		bool isLast = false;
 		while (outOfSequenceFragments)
-		{	
+		{
 			if (outOfSequenceFragments->fragmentNum == nextFragmentNum)
 			{
 				AttachNextFragment (outOfSequenceFragments->buf, outOfSequenceFragments->len);
 				isLast = outOfSequenceFragments->isLast;
 				if (isLast)
 					outOfSequenceFragments = nullptr;
-				else	
+				else
 					outOfSequenceFragments = outOfSequenceFragments->next;
-			}	
+			}
 			else
 				break;
-		}	
+		}
 		return isLast;
-	}	
+	}
 
 	void SSU2IncompleteMessage::AddOutOfSequenceFragment (std::shared_ptr<SSU2IncompleteMessage::Fragment> fragment)
-	{	
+	{
 		if (!fragment || !fragment->fragmentNum) return; // fragment 0 not allowed
 		if (fragment->fragmentNum < nextFragmentNum) return; // already processed
-		if (!outOfSequenceFragments) 
+		if (!outOfSequenceFragments)
 			outOfSequenceFragments = fragment;
 		else
 		{
 			auto frag = outOfSequenceFragments;
 			std::shared_ptr<Fragment> prev;
 			do
-			{	
+			{
 				if (fragment->fragmentNum < frag->fragmentNum) break; // found
 				if (fragment->fragmentNum == frag->fragmentNum) return; // duplicate
 				prev = frag; frag = frag->next;
@@ -71,13 +71,13 @@ namespace transport
 			while (frag);
 			fragment->next = frag;
 			if (prev)
-				prev->next = fragment; 
+				prev->next = fragment;
 			else
 				outOfSequenceFragments = fragment;
-		}	
+		}
 		lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
 	}
-		
+
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
@@ -1041,20 +1041,20 @@ namespace transport
 			LogPrint (eLogError, "SSU2: SessionConfirmed malformed RouterInfo block");
 			return false;
 		}
-		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();			
+		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))
 		{
 			LogPrint (eLogError, "SSU2: Wrong static key in SessionConfirmed from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
 		if (m_Address->published && m_RemoteEndpoint.address () != m_Address->host &&
-		    (!m_RemoteEndpoint.address ().is_v6 () || 
+		    (!m_RemoteEndpoint.address ().is_v6 () ||
 			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
-			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host, 
+			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
 				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
-		}	
+		}
 		// update RouterInfo in netdb
 		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
 		if (!ri)
@@ -1617,7 +1617,7 @@ namespace transport
 		{
 			case eSSU2SessionStateSessionRequestReceived:
 			case eSSU2SessionStateTokenRequestReceived:
-			case eSSU2SessionStateEstablished:	
+			case eSSU2SessionStateEstablished:
 				if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					m_TerminationReason = eSSU2TerminationReasonClockSkew;
 			break;
@@ -1804,7 +1804,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "SSU2: Invalid follow-on fragment num ", fragmentNum);
 			return;
-		}	
+		}
 		bool isLast = buf[0] & 0x01;
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
 		auto it = m_IncompleteMessages.find (msgID);
@@ -2307,21 +2307,21 @@ namespace transport
 	}
 
 	void SSU2Session::HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg)
-	{	
+	{
 		if (!msg) return;
 		uint32_t msgID = msg->GetMsgID ();
 		if (!msg->IsExpired ())
 		{
 			// m_LastActivityTimestamp is updated in ProcessData before
 			if (m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)m_LastActivityTimestamp).second)
-				m_Handler.PutNextMessage (std::move (msg)); 
+				m_Handler.PutNextMessage (std::move (msg));
 			else
 				LogPrint (eLogDebug, "SSU2: Message ", msgID, " already received");
 		}
 		else
 			LogPrint (eLogDebug, "SSU2: Message ", msgID, " expired");
-	}	
-		
+	}
+
 	bool SSU2Session::ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep)
 	{
 		if (size < 2) return false;
@@ -2473,7 +2473,7 @@ namespace transport
 					acnt++;
 					if (acnt >= SSU2_MAX_NUM_ACK_PACKETS)
 						break;
-					else 
+					else
 						it++;
 				}
 				// ranges
@@ -2499,8 +2499,8 @@ namespace transport
 						numRanges++;
 					}
 				}
-				int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;	
-				while (it != m_OutOfSequencePackets.rend () && 
+				int numPackets = acnt + numRanges*SSU2_MAX_NUM_ACNT;
+				while (it != m_OutOfSequencePackets.rend () &&
 					numRanges < maxNumRanges && numPackets < SSU2_MAX_NUM_ACK_PACKETS)
 				{
 					if (lastNum - (*it) > SSU2_MAX_NUM_ACNT)
@@ -2786,7 +2786,7 @@ namespace transport
 					while (it != m_OutOfSequencePackets.end ())
 					{
 						if (*it == packetNum + 1)
-						{	
+						{
 							packetNum++;
 							it++;
 						}
@@ -2794,7 +2794,7 @@ namespace transport
 							break;
 					}
 					m_OutOfSequencePackets.erase (m_OutOfSequencePackets.begin (), it);
-				}	
+				}
 			}
 			m_ReceivePacketNum = packetNum;
 		}
@@ -2881,7 +2881,7 @@ namespace transport
 		if (!m_OutOfSequencePackets.empty ())
 		{
 			int ranges = 0;
-			while (ranges < 8 && !m_OutOfSequencePackets.empty () && 
+			while (ranges < 8 && !m_OutOfSequencePackets.empty () &&
 				(m_OutOfSequencePackets.size () > 2*SSU2_MAX_NUM_ACK_RANGES ||
 			    *m_OutOfSequencePackets.rbegin () > m_ReceivePacketNum + SSU2_MAX_NUM_ACK_PACKETS))
 			{
@@ -2895,10 +2895,10 @@ namespace transport
 					ranges++;
 				}
 				else
-				{	
+				{
 					LogPrint (eLogError, "SSU2: Out of sequence packet ", packet, " is less than last received ", m_ReceivePacketNum);
 					break;
-				}	
+				}
 			}
 			if (m_OutOfSequencePackets.size () > 255*4)
 			{
