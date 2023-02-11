@@ -85,8 +85,7 @@ namespace data
 		if (m_IsRunning)
 		{
 			if (m_PersistProfiles)
-				for (auto& it: m_RouterInfos)
-					it.second->SaveProfile ();
+				SaveProfiles ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
 			m_Floodfills.clear ();
@@ -179,6 +178,7 @@ namespace data
 				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
 				    ts + i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT < lastProfilesCleanup)
 				{
+					if (m_PersistProfiles) PersistProfiles ();
 					DeleteObsoleteProfiles ();
 					lastProfilesCleanup = ts;
 					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
@@ -684,12 +684,12 @@ namespace data
 				for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 				{
 					if (it->second->IsUnreachable ())
-					{
-						if (m_PersistProfiles) it->second->SaveProfile ();
 						it = m_RouterInfos.erase (it);
-						continue;
-					}
-					++it;
+					else
+					{	
+						it->second->DropProfile ();
+						it++;
+					}	
 				}
 			}
 			// clean up expired floodfills or not floodfills anymore
@@ -699,7 +699,7 @@ namespace data
 					if ((*it)->IsUnreachable () || !(*it)->IsFloodfill ())
 						it = m_Floodfills.erase (it);
 					else
-						++it;
+						it++;
 			}
 		}
 	}

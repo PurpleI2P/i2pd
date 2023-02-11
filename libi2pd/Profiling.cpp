@@ -7,6 +7,7 @@
 */
 
 #include <sys/stat.h>
+#include <unordered_map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Base.h"
@@ -19,24 +20,26 @@ namespace i2p
 {
 namespace data
 {
-	i2p::fs::HashedStorage m_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
+	static i2p::fs::HashedStorage g_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
+	static std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > g_Profiles;
 
+	static boost::posix_time::ptime GetTime ()
+	{
+		return boost::posix_time::second_clock::local_time();
+	}
+	
 	RouterProfile::RouterProfile ():
-		m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
+		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0)
 	{
 	}
 
-	boost::posix_time::ptime RouterProfile::GetTime () const
-	{
-		return boost::posix_time::second_clock::local_time();
-	}
-
 	void RouterProfile::UpdateTime ()
 	{
 		m_LastUpdateTime = GetTime ();
+		m_IsUpdated = true;
 	}
 
 	void RouterProfile::Save (const IdentHash& identHash)
@@ -59,7 +62,7 @@ namespace data
 
 		// save to file
 		std::string ident = identHash.ToBase64 ();
-		std::string path = m_ProfilesStorage.Path(ident);
+		std::string path = g_ProfilesStorage.Path(ident);
 
 		try {
 			boost::property_tree::write_ini (path, pt);
@@ -72,7 +75,7 @@ namespace data
 	void RouterProfile::Load (const IdentHash& identHash)
 	{
 		std::string ident = identHash.ToBase64 ();
-		std::string path = m_ProfilesStorage.Path(ident);
+		std::string path = g_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
 
 		if (!i2p::fs::Exists(path))
@@ -158,6 +161,7 @@ namespace data
 	void RouterProfile::Unreachable ()
 	{
 		m_LastUnreachableTime = i2p::util::GetSecondsSinceEpoch ();
+		UpdateTime ();
 	}
 
 	bool RouterProfile::IsLowPartcipationRate () const
@@ -209,30 +213,68 @@ namespace data
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
+		auto it = g_Profiles.find (identHash);
+		if (it != g_Profiles.end ())
+			return it->second;
 		auto profile = std::make_shared<RouterProfile> ();
 		profile->Load (identHash); // if possible
+		g_Profiles.emplace (identHash, profile);
 		return profile;
 	}
 
 	void InitProfilesStorage ()
 	{
-		m_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
-		m_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+		g_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
+		g_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 	}
 
+	void PersistProfiles ()
+	{
+		auto ts = GetTime ();
+		for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
+		{	
+			if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
+			{
+				if (it->second->IsUpdated ())
+					it->second->Save (it->first);
+				it = g_Profiles.erase (it);
+			}
+			else
+				it++;
+		}     
+	}	
+
+	void SaveProfiles ()
+	{
+		auto ts = GetTime ();
+		for (auto it: g_Profiles)
+			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+				it.second->Save (it.first);
+		g_Profiles.clear ();
+	}	
+		
 	void DeleteObsoleteProfiles ()
 	{
+		auto ts = GetTime ();
+		for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
+		{	
+			if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+				it = g_Profiles.erase (it);
+			else
+				it++;
+		}     
+		
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 
 		std::vector<std::string> files;
-		m_ProfilesStorage.Traverse(files);
+		g_ProfilesStorage.Traverse(files);
 		for (const auto& path: files) {
 			if (stat(path.c_str(), &st) != 0) {
 				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
 				continue;
 			}
-			if (((now - st.st_mtime) / 3600) >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
+			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600) {
 				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
 				i2p::fs::Remove(path);
 			}
