@@ -595,14 +595,16 @@ namespace data
 
 	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
+		if (m_IsUnreachable) return false; // don't save bad router
 		if (!m_Buffer)
 		{
-			LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL");
+			LogPrint (eLogWarning, "RouterInfo: Can't save, m_Buffer == NULL");
 			return false;
 		}
 		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-		if (!f.is_open ()) {
-			LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
+		if (!f.is_open ()) 
+		{
+			LogPrint (eLogError, "RouterInfo: Can't save to ", fullPath);
 			return false;
 		}
 		f.write ((char *)m_Buffer->data (), m_BufferLen);
