@@ -52,6 +52,7 @@ namespace transport
 	const int SSU2_MAX_NUM_ACK_PACKETS = 510; // 2*255 ack + nack
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
+	const int SSU2_SEND_DATETIME_NUM_PACKETS = 250;
 
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
@@ -344,7 +345,7 @@ namespace transport
 			uint64_t m_DestConnID, m_SourceConnID;
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64];
-			uint32_t m_SendPacketNum, m_ReceivePacketNum;
+			uint32_t m_SendPacketNum, m_ReceivePacketNum, m_LastDatetimeSentPacketNum;
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > m_SentPackets; // packetNum -> packet
 			std::unordered_map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // msgID -> I2NP
