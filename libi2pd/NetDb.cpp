@@ -276,7 +276,22 @@ namespace data
 				bool wasFloodfill = r->IsFloodfill ();
 				{
 					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-					r->Update (buf, len);
+					if (!r->Update (buf, len))
+					{
+						updated = false;
+						return r;
+					}	
+					if (r->IsUnreachable ())
+					{
+						// delete router as invalid after update
+						m_RouterInfos.erase (ident);
+						if (wasFloodfill)
+						{	
+							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+							m_Floodfills.remove (r);
+						}	
+						return nullptr;	
+					}	
 				}
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated

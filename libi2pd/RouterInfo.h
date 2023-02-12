@@ -253,7 +253,7 @@ namespace data
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void DropProfile () { m_Profile = nullptr; };
 
-			void Update (const uint8_t * buf, size_t len);
+			bool Update (const uint8_t * buf, size_t len);
 			void DeleteBuffer () { m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 

@@ -79,13 +79,12 @@ namespace data
 	{
 	}
 
-	void RouterInfo::Update (const uint8_t * buf, size_t len)
+	bool RouterInfo::Update (const uint8_t * buf, size_t len)
 	{
 		if (len > MAX_RI_BUFFER_SIZE)
 		{
-			LogPrint (eLogError, "RouterInfo: Buffer is too long ", len);
-			m_IsUnreachable = true;
-			return;
+			LogPrint (eLogWarning, "RouterInfo: Updated buffer is too long ", len, ". Not changed");
+			return false;
 		}
 		// verify signature since we have identity already
 		int l = len - m_RouterIdentity->GetSignatureLen ();
@@ -109,10 +108,11 @@ namespace data
 			// don't delete buffer until saved to the file
 		}
 		else
-		{
-			LogPrint (eLogError, "RouterInfo: Signature verification failed");
-			m_IsUnreachable = true;
-		}
+		{	
+			LogPrint (eLogWarning, "RouterInfo: Updated signature verification failed. Not changed");
+			return false;
+		}	
+		return true;
 	}
 
 	void RouterInfo::SetRouterIdentity (std::shared_ptr<const IdentityEx> identity)
