@@ -99,13 +99,13 @@ namespace data
 			m_Caps = 0;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			ClearProperties ();
-			// copy buffer
-			UpdateBuffer (buf, len);
 			// skip identity
 			size_t identityLen = m_RouterIdentity->GetFullLen ();
 			// read new RI
-			std::stringstream str (std::string ((char *)m_Buffer->data () + identityLen, m_BufferLen - identityLen));
+			std::stringstream str (std::string ((char *)buf + identityLen, len - identityLen));
 			ReadFromStream (str);
+			if (!m_IsUnreachable)
+				UpdateBuffer (buf, len); // save buffer	
 			// don't delete buffer until saved to the file
 		}
 		else
