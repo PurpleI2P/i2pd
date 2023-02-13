@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -48,8 +48,8 @@ namespace data
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
-	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
-	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 38); // 0.9.38
+	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
+	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 
 	/** function for visiting a leaseset stored in a floodfill */
