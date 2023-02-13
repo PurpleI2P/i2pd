@@ -1142,12 +1142,17 @@ namespace transport
 	{
 		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
-		size_t payloadLen = riLen + 4; // 3 bytes block header + 1 byte RI flag
+		size_t payloadLen = riLen + 4 + 1 + 7; // 3 bytes block header + 1 byte RI flag + 7 bytes DateTime
 		m_NextSendBuffer = new uint8_t[payloadLen + 16 + 2 + 64]; // up to 64 bytes padding
-		m_NextSendBuffer[2] = eNTCP2BlkRouterInfo;
-		htobe16buf (m_NextSendBuffer + 3, riLen + 1); // size
-		m_NextSendBuffer[5] = 0; // flag
-		memcpy (m_NextSendBuffer + 6, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
+		// DateTime	block
+		m_NextSendBuffer[2] = eNTCP2BlkDateTime;
+		htobe16buf (m_NextSendBuffer + 3, 4);
+		htobe32buf (m_NextSendBuffer + 5, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		// RouterInfo block
+		m_NextSendBuffer[9] = eNTCP2BlkRouterInfo;
+		htobe16buf (m_NextSendBuffer + 10, riLen + 1); // size
+		m_NextSendBuffer[12] = 0; // flag
+		memcpy (m_NextSendBuffer + 13, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
 		// padding block
 		auto paddingSize = CreatePaddingBlock (payloadLen, m_NextSendBuffer + 2 + payloadLen, 64);
 		payloadLen += paddingSize;
