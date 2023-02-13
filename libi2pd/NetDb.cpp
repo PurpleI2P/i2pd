@@ -279,6 +279,7 @@ namespace data
 					if (!r->Update (buf, len))
 					{
 						updated = false;
+						m_Requests.RequestComplete (ident, r);
 						return r;
 					}	
 					if (r->IsUnreachable ())
@@ -290,6 +291,7 @@ namespace data
 							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.remove (r);
 						}	
+						m_Requests.RequestComplete (ident, nullptr);
 						return nullptr;	
 					}	
 				}
@@ -645,10 +647,14 @@ namespace data
 			std::string ident = it.second->GetIdentHashBase64();
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (m_Storage.Path(ident));
+				if (it.second->GetBuffer ())
+				{    
+					// we have something to save
+					it.second->SaveToFile (m_Storage.Path(ident));
+					it.second->SetUnreachable (false);
+					it.second->DeleteBuffer ();
+				}	
 				it.second->SetUpdated (false);
-				it.second->SetUnreachable (false);
-				it.second->DeleteBuffer ();
 				updatedCount++;
 				continue;
 			}

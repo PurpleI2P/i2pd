@@ -242,7 +242,7 @@ namespace data
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
-			const uint8_t * GetBuffer () const { return m_Buffer->data (); };
+			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			size_t GetBufferLen () const { return m_BufferLen; };
 
