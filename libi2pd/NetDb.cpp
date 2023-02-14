@@ -1043,8 +1043,7 @@ namespace data
 				if (router && !router->IsUnreachable ())
 				{
 					LogPrint (eLogDebug, "NetDb: Requested RouterInfo ", key, " found");
-					PopulateRouterInfoBuffer (router);
-					if (router->GetBuffer ())
+					if (PopulateRouterInfoBuffer (router))
 						replyMsg = CreateDatabaseStoreMsg (router);
 				}
 			}
@@ -1481,10 +1480,11 @@ namespace data
 		m_LeasesPool.CleanUpMt ();
 	}
 
-	void NetDb::PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r)
+	bool NetDb::PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r)
 	{
-		if (!r || r->GetBuffer ()) return;
-		r->LoadBuffer (m_Storage.Path (r->GetIdentHashBase64 ()));
+		if (!r) return false;
+		if (r->GetBuffer ()) return true;
+		return r->LoadBuffer (m_Storage.Path (r->GetIdentHashBase64 ()));
 	}
 }
 }

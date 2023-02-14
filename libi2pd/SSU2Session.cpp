@@ -1872,10 +1872,9 @@ namespace transport
 
 		// send relay intro to Charlie
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
-		if (r)
-			i2p::data::netdb.PopulateRouterInfoBuffer (r);
-		else
-			LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
+		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
+		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
+		
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
 		if (!payloadSize && r)
@@ -2069,7 +2068,7 @@ namespace transport
 					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					// Alice's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
-					if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
+					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
 					if (!packet->payloadSize && r)
 						session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
@@ -2173,7 +2172,7 @@ namespace transport
 					uint8_t payload[SSU2_MAX_PACKET_SIZE];
 					// Charlie's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
-					if (r) i2p::data::netdb.PopulateRouterInfoBuffer (r);
+					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 					size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
 					if (!payloadSize && r)
 						it->second.first->SendFragmentedMessage (CreateDatabaseStoreMsg (r));

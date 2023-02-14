@@ -124,7 +124,7 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
-			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
+			bool PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
 			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses ()
 			{

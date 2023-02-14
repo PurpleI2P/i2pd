@@ -589,6 +589,8 @@ namespace data
 		{
 			if (LoadFile (fullPath))
 				LogPrint (eLogDebug, "RouterInfo: Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
+			else
+				return nullptr;
 		}
 		return m_Buffer->data ();
 	}
