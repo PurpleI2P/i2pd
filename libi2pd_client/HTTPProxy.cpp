@@ -238,9 +238,33 @@ namespace proxy {
 		std::string value = params["i2paddresshelper"];
 		len += value.length();
 		b64 = i2p::http::UrlDecode(value);
+
 		// if we need update exists, request formed with update param
-		if (params["update"] == "true") { len += std::strlen("&update=true"); confirm = true; }
-		if (pos != 0 && url.query[pos-1] == '&') { pos--; len++; } // if helper is not only one query option
+		if (params["update"] == "true")
+		{
+			len += std::strlen("&update=true");
+			confirm = true;
+		}
+
+		// if helper is not only one query option and it placed after user's query
+		if (pos != 0 && url.query[pos-1] == '&')
+		{
+			pos--;
+			len++;
+		}
+		// if helper is not only one query option and it placed before user's query
+		else if (pos == 0 && url.query.length () > len && url.query[len] == '&')
+		{
+			// we don't touch the '?' but remove the trailing '&'
+			len++;
+		}
+		else
+		{
+			// there is no more query options, resetting hasquery flag
+			url.hasquery = false;
+		}
+
+		// reset hasquery flag and remove addresshelper from URL
 		url.query.replace(pos, len, "");
 		return true;
 	}

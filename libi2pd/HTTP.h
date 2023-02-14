@@ -37,7 +37,7 @@ namespace http
 		std::string query;
 		std::string frag;
 
-		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), query(""), frag("") {};
+		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag("") {};
 
 		/**
 		 * @brief Tries to parse url from string
