@@ -8,6 +8,7 @@
 
 #include <sys/stat.h>
 #include <unordered_map>
+#include <list>
 #include <thread>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
@@ -237,28 +238,37 @@ namespace data
 	void PersistProfiles ()
 	{
 		auto ts = GetTime ();
-		std::unique_lock<std::mutex> l(g_ProfilesMutex);
-		for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-		{	
-			if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
-			{
-				if (it->second->IsUpdated ())
-					it->second->Save (it->first);
-				it = g_Profiles.erase (it);
-			}
-			else
-				it++;
-		}     
+		std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > > tmp;
+		{
+			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
+			{	
+				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
+				{
+					if (it->second->IsUpdated ())
+						tmp.push_back (std::make_pair (it->first, it->second));
+					it = g_Profiles.erase (it);
+				}
+				else
+					it++;
+			}     
+		}
+		for (auto& it: tmp)
+			if (it.second) it.second->Save (it.first);
 	}	
 
 	void SaveProfiles ()
 	{
+		std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > tmp;
+		{
+			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			tmp = g_Profiles;
+			g_Profiles.clear ();
+		}
 		auto ts = GetTime ();
-		std::unique_lock<std::mutex> l(g_ProfilesMutex);
-		for (auto it: g_Profiles)
+		for (auto& it: tmp)
 			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 				it.second->Save (it.first);
-		g_Profiles.clear ();
 	}	
 		
 	void DeleteObsoleteProfiles ()
