@@ -8,6 +8,7 @@
 
 #include <sys/stat.h>
 #include <unordered_map>
+#include <thread>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Base.h"
@@ -22,6 +23,7 @@ namespace data
 {
 	static i2p::fs::HashedStorage g_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
 	static std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > g_Profiles;
+	static std::mutex g_ProfilesMutex;
 
 	static boost::posix_time::ptime GetTime ()
 	{
@@ -213,11 +215,15 @@ namespace data
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
-		auto it = g_Profiles.find (identHash);
-		if (it != g_Profiles.end ())
-			return it->second;
+		{
+			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			auto it = g_Profiles.find (identHash);
+			if (it != g_Profiles.end ())
+				return it->second;
+		}	
 		auto profile = std::make_shared<RouterProfile> ();
 		profile->Load (identHash); // if possible
+		std::unique_lock<std::mutex> l(g_ProfilesMutex);
 		g_Profiles.emplace (identHash, profile);
 		return profile;
 	}
@@ -231,6 +237,7 @@ namespace data
 	void PersistProfiles ()
 	{
 		auto ts = GetTime ();
+		std::unique_lock<std::mutex> l(g_ProfilesMutex);
 		for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 		{	
 			if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
@@ -247,6 +254,7 @@ namespace data
 	void SaveProfiles ()
 	{
 		auto ts = GetTime ();
+		std::unique_lock<std::mutex> l(g_ProfilesMutex);
 		for (auto it: g_Profiles)
 			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 				it.second->Save (it.first);
@@ -255,14 +263,17 @@ namespace data
 		
 	void DeleteObsoleteProfiles ()
 	{
-		auto ts = GetTime ();
-		for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-		{	
-			if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
-				it = g_Profiles.erase (it);
-			else
-				it++;
-		}     
+		{
+			auto ts = GetTime ();
+			std::unique_lock<std::mutex> l(g_ProfilesMutex);
+			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
+			{	
+				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+					it = g_Profiles.erase (it);
+				else
+					it++;
+			}
+		}
 		
 		struct stat st;
 		std::time_t now = std::time(nullptr);
