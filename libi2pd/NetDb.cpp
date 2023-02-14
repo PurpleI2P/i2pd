@@ -1040,7 +1040,7 @@ namespace data
 				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
 			{
 				auto router = FindRouter (ident);
-				if (router)
+				if (router && !router->IsUnreachable ())
 				{
 					LogPrint (eLogDebug, "NetDb: Requested RouterInfo ", key, " found");
 					PopulateRouterInfoBuffer (router);
