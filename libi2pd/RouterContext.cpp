@@ -202,7 +202,13 @@ namespace i2p
 
 	uint16_t RouterContext::SelectRandomPort () const
 	{
-		uint16_t port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+		uint16_t port;
+		do
+        {
+            port = rand () % (30777 - 9111) + 9111; // I2P network ports range
+        }
+        while(i2p::util::net::IsPortInReservedRange(port));
+
 		if (port == 9150) port = 9151; // Tor browser
 		return port;
 	}

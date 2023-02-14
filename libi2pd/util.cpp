@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <unordered_set>
 #include <boost/asio.hpp>
 
 #include "util.h"
@@ -486,6 +487,21 @@ namespace net
 		if (!addr.is_v6 ()) return false;
 		return IsYggdrasilAddress (addr.to_v6 ().to_bytes ().data ());
 	}
+
+    bool IsPortInReservedRange (const uint16_t port) noexcept
+    {
+        static const std::unordered_set<uint16_t> reservedPorts{
+            9119,9306,9312,9389,9418,9535,9536,9695,
+            9800,9899,10000,10050,10051,10110,10212,
+            10933,11001,11112,11235,11371,12222,12223,
+            13075,13400,13720,13721,13724,13782,13783,
+            13785,13786,15345,17224,17225,17500,18104,
+            19788,19812,19813,19814,19999,20000,24465,
+            24554,26000,27000,27001,27002,27003,27004,
+            27005,27006,27007,27008,27009,28000};
+
+        return (reservedPorts.find(port) != reservedPorts.end());
+    }
 
 	boost::asio::ip::address_v6 GetYggdrasilAddress ()
 	{
