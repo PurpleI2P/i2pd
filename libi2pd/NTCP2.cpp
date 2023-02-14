@@ -1142,7 +1142,7 @@ namespace transport
 	{
 		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
-		size_t payloadLen = riLen + 4 + 1 + 7; // 3 bytes block header + 1 byte RI flag + 7 bytes DateTime
+		size_t payloadLen = riLen + 3 + 1 + 7; // 3 bytes block header + 1 byte RI flag + 7 bytes DateTime
 		m_NextSendBuffer = new uint8_t[payloadLen + 16 + 2 + 64]; // up to 64 bytes padding
 		// DateTime	block
 		m_NextSendBuffer[2] = eNTCP2BlkDateTime;
