@@ -178,6 +178,7 @@ endif()
 
 # Use std::atomic instead of GCC builtins on macOS PowerPC:
 # For more information refer to: https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
+# This has been fixed in Boost 1.81, nevertheless we retain the setting for the sake of compatibility.
 if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc")
   add_definitions(-DBOOST_SP_USE_STD_ATOMIC)
 endif()
