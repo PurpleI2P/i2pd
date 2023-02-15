@@ -1,6 +1,36 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.46.0] - 2023-02-15
+### Added
+- Limit number of acked SSU2 packets to 511 
+- Localization to Swedish
+- Periodically send Datetime block in NTCP2 and SSU2
+- Don't select random port from reserved
+- In memory table for peer profiles
+- Store if router was unreachable in it's peer profile
+- Show IPv6 addresses in square brackets in webconsole
+### Changed
+- Algorithm for tunnel creation success rate calculation
+- Drop incoming NTCP2 and SSU2 connection if published IP doesn't match actual endpoint'
+- Exclude actually unreachable router from netdb for 2 hours
+- Select first hop from high bandwidth peers for client tunnels 
+- Drop too long or too short LeaseSet
+- Delete router from netdb if became inavlid after update
+- Terminate existing session if clock skew detected
+- Close previous UDP socket if open before reopening 
+- Minimal version for floodfill is 0.9.51
+- Sort transports by endpoints in webconsole 
+### Fixed  
+- Deadlock druing processing I2NP block with Garlic in ECIES encrypted message to router
+- Race condition with encrypted LeaseSets
+- HTTP query detection
+- Connection attempts to IPs from invalid ranges
+- Publish "0.0.0.0" in RouterInfo
+- Crash upon receiving PeerTest 7
+- Tunnels for closed SAM session socket
+- Missing NTCP2 address in RouterInfo if enabled back
+
 ## [2.45.1] - 2023-01-11
 ### Added
 - Full Cone NAT status error
