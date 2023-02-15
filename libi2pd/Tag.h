@@ -83,8 +83,8 @@ namespace data {
 			uint8_t GetBit (int i) const
 			{
 				int pos = i >> 3; // /8
-				if (pos >= sz) return 0;
-				return m_Buf[pos] & (1 << (7 - (i & 0x07))); 
+				if (pos >= (int)sz) return 0;
+				return m_Buf[pos] & (0x80 >> (i & 0x07)); 
 			}		
 		
 		private:
