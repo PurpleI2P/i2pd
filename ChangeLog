@@ -3,26 +3,27 @@
 
 ## [2.46.0] - 2023-02-15
 ### Added
-- Limit number of acked SSU2 packets to 511 
+- Limit number of acked SSU2 packets to 511
 - Localization to Swedish
 - Periodically send Datetime block in NTCP2 and SSU2
 - Don't select random port from reserved
 - In memory table for peer profiles
 - Store if router was unreachable in it's peer profile
 - Show IPv6 addresses in square brackets in webconsole
+- Check referer when processing Addresshelper
 ### Changed
 - Algorithm for tunnel creation success rate calculation
-- Drop incoming NTCP2 and SSU2 connection if published IP doesn't match actual endpoint'
+- Drop incoming NTCP2 and SSU2 connection if published IP doesn't match actual endpoint
 - Exclude actually unreachable router from netdb for 2 hours
-- Select first hop from high bandwidth peers for client tunnels 
+- Select first hop from high bandwidth peers for client tunnels
 - Drop too long or too short LeaseSet
-- Delete router from netdb if became inavlid after update
+- Delete router from netdb if became invalid after update
 - Terminate existing session if clock skew detected
-- Close previous UDP socket if open before reopening 
+- Close previous UDP socket if open before reopening
 - Minimal version for floodfill is 0.9.51
-- Sort transports by endpoints in webconsole 
-### Fixed  
-- Deadlock druing processing I2NP block with Garlic in ECIES encrypted message to router
+- Sort transports by endpoints in webconsole
+### Fixed
+- Deadlock during processing I2NP block with Garlic in ECIES encrypted message to router
 - Race condition with encrypted LeaseSets
 - HTTP query detection
 - Connection attempts to IPs from invalid ranges
@@ -39,7 +40,7 @@
 - Set rejection code 30 if tunnel with id already exists
 - Network status is always OK if peer test msg 5 received
 ### Fixed
-- UPnP crash if SSU2 or NTCP2 is disabled 
+- UPnP crash if SSU2 or NTCP2 is disabled
 - Crash on termination for some platforms
 
 ## [2.45.0] - 2023-01-03
