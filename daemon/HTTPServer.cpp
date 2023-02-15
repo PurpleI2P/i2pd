@@ -554,7 +554,7 @@ namespace http {
 			  << tr("Streams")
 			  << "</caption>\r\n<thead>\r\n<tr>"
 			  << "<th style=\"width:25px;\">StreamID</th>"
-			  << "<th style=\"width:5px;\" \\>" // Stream closing button column
+			  << "<th style=\"width:5px;\">&nbsp;</th>" // Stream closing button column
 			  << "<th class=\"streamdest\">Destination</th>"
 			  << "<th>Sent</th>"
 			  << "<th>Received</th>"
