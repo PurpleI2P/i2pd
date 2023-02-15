@@ -4,7 +4,7 @@
 ## [2.46.0] - 2023-02-15
 ### Added
 - Limit number of acked SSU2 packets to 511
-- Localization to Swedish
+- Localization to Swedish, Portuguese, Turkish, Polish
 - Periodically send Datetime block in NTCP2 and SSU2
 - Don't select random port from reserved
 - In memory table for peer profiles
