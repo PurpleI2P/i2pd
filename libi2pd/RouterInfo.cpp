@@ -945,9 +945,13 @@ namespace data
 
 	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const
 	{
-		if (!m_Profile)
-			m_Profile = GetRouterProfile (GetIdentHash ());
-		return m_Profile;
+		auto profile = m_Profile;
+		if (!profile)
+		{	
+			profile = GetRouterProfile (GetIdentHash ());
+			m_Profile = profile;
+		}	
+		return profile;
 	}
 
 	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted) const
