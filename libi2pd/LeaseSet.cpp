@@ -366,6 +366,8 @@ namespace data
 				VerifySignature (identity, buf, len, offset);
 			SetIsValid (verified);
 		}
+		else
+			SetIsValid (true);
 		offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : identity->GetSignatureLen ();
 		if (offset > len) {
 			LogPrint (eLogWarning, "LeaseSet2: short buffer: wanted ", int(offset), "bytes, have ", int(len));
