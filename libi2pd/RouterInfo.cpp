@@ -661,11 +661,16 @@ namespace data
 		addr->host = host;
 		addr->port = port;
 		addr->transportStyle = eTransportNTCP2;
-		addr->caps = 0;
 		addr->date = 0;
 		addr->published = true;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, iv, 16);
+		addr->caps = 0;
+		if (host.is_unspecified ())
+		{	
+			if (host.is_v4 ()) addr->caps |= eV4;
+			if (host.is_v6 ()) addr->caps |= eV6;
+		}	
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eNTCP2V4;
@@ -737,12 +742,19 @@ namespace data
 		addr->host = host;
 		addr->port = port;
 		addr->published = true;
-		addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
 		addr->date = 0;
 		addr->ssu.reset (new SSUExt ());
 		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
+		if (!host.is_unspecified ())
+			addr->caps = i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer; // BC;
+		else
+		{	
+			addr->caps = 0;
+			if (host.is_v4 ()) addr->caps |= eV4;
+			if (host.is_v6 ()) addr->caps |= eV6;
+		}
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eSSU2V4;
