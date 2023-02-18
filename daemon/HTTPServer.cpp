@@ -625,7 +625,10 @@ namespace http {
 					if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						ls.reset (new i2p::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 					else
-						ls.reset (new i2p::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+					{	
+						ls.reset (new i2p::data::LeaseSet2 (storeType));
+						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), false);
+					}		
 					if (!ls) return;
 					s << "<div class=\"leaseset listitem";
 					if (ls->IsExpired())

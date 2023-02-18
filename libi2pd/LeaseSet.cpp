@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -315,7 +315,7 @@ namespace data
 	{
 		// standard LS2 header
 		std::shared_ptr<const IdentityEx> identity;
-		if (readIdentity)
+		if (readIdentity || !GetIdentity ())
 		{
 			identity = std::make_shared<IdentityEx>(buf, len);
 			SetIdentity (identity);
