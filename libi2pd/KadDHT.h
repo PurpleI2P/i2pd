@@ -11,6 +11,7 @@
 #define KADDHT_H__
 
 #include <memory>
+#include <vector>
 #include <sstream>
 #include "Identity.h"
 
@@ -42,6 +43,7 @@ namespace data
 			DHTNode * Insert (const IdentHash& h);
 			bool Remove (const IdentHash& h);
 			IdentHash * FindClosest (const IdentHash& h);
+			std::vector<IdentHash *> FindClosest (const IdentHash& h, size_t num);
 			
 			void Print (std::stringstream& s);	
 			size_t GetSize () const { return m_Size; };
@@ -51,6 +53,7 @@ namespace data
 			DHTNode * Insert (IdentHash * h, DHTNode * root, int level); // recursive
 			bool Remove (const IdentHash& h, DHTNode * root, int level);
 			IdentHash * FindClosest (const IdentHash& h, DHTNode * root, int level);
+			void FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<IdentHash *>& hashes);
 			void Print (std::stringstream& s, DHTNode * root, int level);	
 			
 		private:

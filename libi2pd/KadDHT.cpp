@@ -205,6 +205,39 @@ namespace data
 		}
 		return nullptr;
 	}	
+
+	std::vector<IdentHash *> DHTTable::FindClosest (const IdentHash& h, size_t num)
+	{
+		std::vector<IdentHash *> vec;
+		if (num > 0)
+			FindClosest (h, num, m_Root, 0, vec);
+		return vec;
+	}	
+
+	void DHTTable::FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<IdentHash *>& hashes)
+	{
+		if (hashes.size () >= num) return;
+		if (root->hash)
+		{	
+			hashes.push_back (root->hash);
+			return;
+		}	
+		int bit = h.GetBit (level);
+		if (bit)
+		{
+			if (root->one)
+				FindClosest (h, num, root->one, level + 1, hashes);
+			if (hashes.size () < num && root->zero)
+				FindClosest (h, num, root->zero, level + 1, hashes);
+		}
+		else
+		{
+			if (root->zero)
+				FindClosest (h, num, root->zero, level + 1, hashes);
+			if (hashes.size () < num && root->one)
+				FindClosest (h, num, root->one, level + 1, hashes);
+		}	
+	}	
 		
 	void DHTTable::Print (std::stringstream& s)
 	{
