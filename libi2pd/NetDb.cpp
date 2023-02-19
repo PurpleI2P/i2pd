@@ -315,7 +315,7 @@ namespace data
 		else
 		{
 			r = std::make_shared<RouterInfo> (buf, len);
-			if (!r->IsUnreachable () && r->HasValidAddresses () && !r->GetProfile ()->IsUnreachable () &&
+			if (!r->IsUnreachable () && r->HasValidAddresses () && (!r->IsFloodfill () || !r->GetProfile ()->IsUnreachable ()) &&
 			    i2p::util::GetMillisecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ())
 			{
 				bool inserted = false;
@@ -1398,7 +1398,7 @@ namespace data
 			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 			for (const auto& it: m_Floodfills)
 			{
-				if (!it->IsUnreachable ())
+				if (!it->IsUnreachable () && !it->GetProfile ()->IsUnreachable ())
 				{
 					XORMetric m = destKey ^ it->GetIdentHash ();
 					if (closeThanUsOnly && ourMetric < m) continue;
