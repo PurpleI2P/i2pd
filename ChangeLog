@@ -1,6 +1,12 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.46.1] - 2023-02-20
+### Fixed
+- Race condition while getting router's peer profile
+- Creation of new router.info
+- Displaying floodfills in the webconsole
+
 ## [2.46.0] - 2023-02-15
 ### Added
 - Limit number of acked SSU2 packets to 511
