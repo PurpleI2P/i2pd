@@ -5,7 +5,7 @@
 ### Fixed
 - Race condition while getting router's peer profile
 - Creation of new router.info
-- Displaying floodfills in the webconsole
+- Displaying LeaseSets in the webconsole
 
 ## [2.46.0] - 2023-02-15
 ### Added
