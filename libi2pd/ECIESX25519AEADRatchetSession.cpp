@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -335,7 +335,8 @@ namespace garlic
 				case eECIESx25519BlkAckRequest:
 				{
 					LogPrint (eLogDebug, "Garlic: Ack request");
-					m_AckRequests.push_back ({receiveTagset->GetTagSetID (), index});
+					if (receiveTagset)
+						m_AckRequests.push_back ({receiveTagset->GetTagSetID (), index});
 					break;
 				}
 				case eECIESx25519BlkTermination:
