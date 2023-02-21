@@ -6,6 +6,7 @@
 - Race condition while getting router's peer profile
 - Creation of new router.info
 - Displaying LeaseSets in the webconsole
+- Crash when processing ACK request
 
 ## [2.46.0] - 2023-02-15
 ### Added

@@ -1,3 +1,9 @@
+i2pd (2.46.1-2) unstable; urgency=critical
+
+  * re-pushed release due to new critical bug
+
+ -- r4sas <r4sas@i2pmail.org>  Mon, 20 Feb 2023 23:40:00 +0000
+
 i2pd (2.46.1-1) unstable; urgency=high
 
   * updated to version 2.46.1/0.9.57
