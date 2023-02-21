@@ -95,9 +95,8 @@ std::string tr (TValue&& arg, TArgs&&... args)
 	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg));
 
 	size_t size = std::snprintf(NULL, 0, tr_str.c_str(), std::forward<TArgs>(args)...);
-	size = size + 1;
 	std::string str(size, 0);
-	std::snprintf(&str.front(), size, tr_str.c_str(), std::forward<TArgs>(args)...);
+	std::snprintf(&str.front(), size + 1, tr_str.c_str(), std::forward<TArgs>(args)...);
 
 	return str;
 }
@@ -127,9 +126,8 @@ std::string ntr (TValue&& arg, TValue2&& arg2, int& n, TArgs&&... args)
 	std::string tr_str = i2p::i18n::translate(std::forward<TValue>(arg), std::forward<TValue2>(arg2), std::forward<int>(n));
 
 	size_t size = std::snprintf(NULL, 0, tr_str.c_str(), std::forward<TArgs>(args)...);
-	size = size + 1;
 	std::string str(size, 0);
-	std::snprintf(&str.front(), size, tr_str.c_str(), std::forward<TArgs>(args)...);
+	std::snprintf(&str.front(), size + 1, tr_str.c_str(), std::forward<TArgs>(args)...);
 
 	return str;
 }
