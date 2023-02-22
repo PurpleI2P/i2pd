@@ -55,7 +55,7 @@ namespace data
 		Load ();
 
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
-		if (m_RouterInfos.size () < threshold || m_Floodfills.size () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
+		if (m_RouterInfos.size () < threshold || m_Floodfills.GetSize () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
 		{
 			Reseed ();
 		}
@@ -66,13 +66,13 @@ namespace data
 		if (it != m_RouterInfos.end ())
 		{
 			// remove own router
-			m_Floodfills.remove (it->second);
+			m_Floodfills.Remove (it->second->GetIdentHash ());
 			m_RouterInfos.erase (it);
 		}
 		// insert own router
 		m_RouterInfos.emplace (i2p::context.GetIdentHash (), i2p::context.GetSharedRouterInfo ());
 		if (i2p::context.IsFloodfill ())
-			m_Floodfills.push_back (i2p::context.GetSharedRouterInfo ());
+			m_Floodfills.Insert (i2p::context.GetSharedRouterInfo ());
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
@@ -88,7 +88,7 @@ namespace data
 				SaveProfiles ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
-			m_Floodfills.clear ();
+			m_Floodfills.Clear ();
 			if (m_Thread)
 			{
 				m_IsRunning = false;
@@ -289,7 +289,7 @@ namespace data
 						if (wasFloodfill)
 						{	
 							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-							m_Floodfills.remove (r);
+							m_Floodfills.Remove (r->GetIdentHash ());
 						}	
 						m_Requests.RequestComplete (ident, nullptr);
 						return nullptr;	
@@ -301,9 +301,9 @@ namespace data
 					LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
 					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
-						m_Floodfills.remove (r);
+						m_Floodfills.Remove (r->GetIdentHash ());
 					else if (r->IsEligibleFloodfill ())
-						m_Floodfills.push_back (r);
+						m_Floodfills.Insert (r);
 				}
 			}
 			else
@@ -329,7 +329,7 @@ namespace data
 					if (r->IsFloodfill () && r->IsEligibleFloodfill ())
 					{
 						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-						m_Floodfills.push_back (r);
+						m_Floodfills.Insert (r);
 					}
 				}
 				else
@@ -530,7 +530,7 @@ namespace data
 			if (m_RouterInfos.emplace (r->GetIdentHash (), r).second)
 			{
 				if (r->IsFloodfill () && r->IsEligibleFloodfill ())
-					m_Floodfills.push_back (r);
+					m_Floodfills.Insert (r);
 			}
 		}
 		else
@@ -614,7 +614,7 @@ namespace data
 	{
 		// make sure we cleanup netDb from previous attempts
 		m_RouterInfos.clear ();
-		m_Floodfills.clear ();
+		m_Floodfills.Clear ();
 
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		std::vector<std::string> files;
@@ -622,14 +622,14 @@ namespace data
 		for (const auto& path : files)
 			LoadRouterInfo (path, ts);
 
-		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.size (), " floodfils)");
+		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.GetSize (), " floodfils)");
 	}
 
 	void NetDb::SaveUpdated ()
 	{
 		int updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
 		auto total = m_RouterInfos.size ();
-		auto totalFloodfills = m_Floodfills.size ();
+		auto totalFloodfills = m_Floodfills.GetSize ();
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		auto uptime = i2p::context.GetUptime ();
@@ -721,11 +721,10 @@ namespace data
 			// clean up expired floodfills or not floodfills anymore
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-				for (auto it = m_Floodfills.begin (); it != m_Floodfills.end ();)
-					if ((*it)->IsUnreachable () || !(*it)->IsFloodfill ())
-						it = m_Floodfills.erase (it);
-					else
-						it++;
+				m_Floodfills.Cleanup ([](const std::shared_ptr<RouterInfo>& r)->bool
+					{
+						return r && r->IsFloodfill () && !r->IsUnreachable ();
+					});
 			}
 		}
 	}
@@ -1362,75 +1361,38 @@ namespace data
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
 		const std::set<IdentHash>& excluded) const
 	{
-		std::shared_ptr<const RouterInfo> r;
-		XORMetric minMetric;
 		IdentHash destKey = CreateRoutingKey (destination);
-		minMetric.SetMax ();
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-		for (const auto& it: m_Floodfills)
-		{
-			if (!it->IsUnreachable () && !it->GetProfile ()->IsUnreachable ())
+		return m_Floodfills.FindClosest (destKey, [&excluded](const std::shared_ptr<RouterInfo>& r)->bool
 			{
-				XORMetric m = destKey ^ it->GetIdentHash ();
-				if (m < minMetric && !excluded.count (it->GetIdentHash ()))
-				{
-					minMetric = m;
-					r = it;
-				}
-			}
-		}
-		return r;
+				return r && !r->IsUnreachable () && !r->GetProfile ()->IsUnreachable () &&
+					!excluded.count (r->GetIdentHash ());
+			});
 	}
 
 	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num,
 		std::set<IdentHash>& excluded, bool closeThanUsOnly) const
 	{
-		struct Sorted
-		{
-			std::shared_ptr<const RouterInfo> r;
-			XORMetric metric;
-			bool operator< (const Sorted& other) const { return metric < other.metric; };
-		};
-
-		std::set<Sorted> sorted;
+		std::vector<IdentHash> res;
 		IdentHash destKey = CreateRoutingKey (destination);
-		XORMetric ourMetric;
-		if (closeThanUsOnly) ourMetric = destKey ^ i2p::context.GetIdentHash ();
+		std::vector<std::shared_ptr<RouterInfo> > v;
 		{
 			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-			for (const auto& it: m_Floodfills)
-			{
-				if (!it->IsUnreachable () && !it->GetProfile ()->IsUnreachable ())
+			v = m_Floodfills.FindClosest (destKey, num, [&excluded](const std::shared_ptr<RouterInfo>& r)->bool
 				{
-					XORMetric m = destKey ^ it->GetIdentHash ();
-					if (closeThanUsOnly && ourMetric < m) continue;
-					if (sorted.size () < num)
-						sorted.insert ({it, m});
-					else if (m < sorted.rbegin ()->metric)
-					{
-						sorted.insert ({it, m});
-						sorted.erase (std::prev (sorted.end ()));
-					}
-				}
-			}
-		}
-
-		std::vector<IdentHash> res;
-		size_t i = 0;
-		for (const auto& it: sorted)
+					return r && !r->IsUnreachable () && !r->GetProfile ()->IsUnreachable () &&
+						!excluded.count (r->GetIdentHash ());
+				});
+		}	
+		if (v.empty ()) return res;
+		
+		XORMetric ourMetric;
+		if (closeThanUsOnly) ourMetric = destKey ^ i2p::context.GetIdentHash ();
+		for (auto& it: v)
 		{
-			if (i < num)
-			{
-				const auto& ident = it.r->GetIdentHash ();
-				if (!excluded.count (ident))
-				{
-					res.push_back (ident);
-					i++;
-				}
-			}
-			else
-				break;
-		}
+			if (closeThanUsOnly && ourMetric < (destKey ^ it->GetIdentHash ())) break;
+			res.push_back (it->GetIdentHash ());
+		}	
 		return res;
 	}
 

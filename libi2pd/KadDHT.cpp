@@ -186,7 +186,7 @@ namespace data
 		return false;
 	}	
 
-	std::shared_ptr<RouterInfo> DHTTable::FindClosest (const IdentHash& h, const Filter& filter)
+	std::shared_ptr<RouterInfo> DHTTable::FindClosest (const IdentHash& h, const Filter& filter) const
 	{
 		if (filter) m_Filter = filter;
 		auto r = FindClosest (h, m_Root, 0);
@@ -194,7 +194,7 @@ namespace data
 		return r;
 	}	
 
-	std::shared_ptr<RouterInfo> DHTTable::FindClosest (const IdentHash& h, DHTNode * root, int level)
+	std::shared_ptr<RouterInfo> DHTTable::FindClosest (const IdentHash& h, DHTNode * root, int level) const
 	{
 		bool split = false;
 		do 
@@ -241,7 +241,7 @@ namespace data
 		return nullptr;
 	}	
 
-	std::vector<std::shared_ptr<RouterInfo> > DHTTable::FindClosest (const IdentHash& h, size_t num, const Filter& filter)
+	std::vector<std::shared_ptr<RouterInfo> > DHTTable::FindClosest (const IdentHash& h, size_t num, const Filter& filter) const
 	{
 		std::vector<std::shared_ptr<RouterInfo> > vec;
 		if (num > 0)
@@ -253,7 +253,7 @@ namespace data
 		return vec;
 	}	
 
-	void DHTTable::FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<std::shared_ptr<RouterInfo> >& hashes)
+	void DHTTable::FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<std::shared_ptr<RouterInfo> >& hashes) const
 	{
 		if (hashes.size () >= num) return;
 		bool split = false;
@@ -292,7 +292,7 @@ namespace data
 		}	
 	}	
 
-	void DHTTable::Cleanup (Filter filter)
+	void DHTTable::Cleanup (const Filter& filter)
 	{
 		if (filter)
 		{	

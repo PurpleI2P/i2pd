@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include <set>
 #include <unordered_map>
-#include <list>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -31,6 +30,7 @@
 #include "Family.h"
 #include "version.h"
 #include "util.h"
+#include "KadDHT.h"
 
 namespace i2p
 {
@@ -110,7 +110,7 @@ namespace data
 
 			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };
-			int GetNumFloodfills () const { return m_Floodfills.size (); };
+			int GetNumFloodfills () const { return m_Floodfills.GetSize (); };
 			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
 
 			/** visit all lease sets we currently store */
@@ -164,7 +164,7 @@ namespace data
 			mutable std::mutex m_RouterInfosMutex;
 			std::unordered_map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;
-			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
+			DHTTable m_Floodfills;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
