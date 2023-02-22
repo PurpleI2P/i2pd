@@ -664,21 +664,26 @@ namespace data
 			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate ||
 				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				it.second->SetUnreachable (false);
-			// find & mark expired routers
-			if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & RouterInfo::eSSU2V4))
-			// non-reachable router, but reachable by ipv4  SSU2 means introducers
-			{
-				if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
-				// RouterInfo expires after 1 hour if uses introducer
+			if (!it.second->IsUnreachable ())
+			{	
+				// find & mark expired routers
+				if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & RouterInfo::eSSU2V4))
+				// non-reachable router, but reachable by ipv4  SSU2 means introducers
+				{
+					if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
+					// RouterInfo expires after 1 hour if uses introducer
+						it.second->SetUnreachable (true);
+				}
+				else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
 					it.second->SetUnreachable (true);
-			}
-			else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
-				it.second->SetUnreachable (true);
-			else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
-			{
-				LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (it.second->GetTimestamp () - ts)/1000LL, " seconds");
-				it.second->SetUnreachable (true);
-			}
+				else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
+				{
+					LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (it.second->GetTimestamp () - ts)/1000LL, " seconds");
+					it.second->SetUnreachable (true);
+				}
+				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
+					it.second->SetUnreachable (false); // don't expire connected router
+			}	
 
 			if (it.second->IsUnreachable ())
 			{
