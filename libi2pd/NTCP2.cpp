@@ -1457,7 +1457,7 @@ namespace transport
 
 	void NTCP2Server::HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
 	{
-		if (!error)
+		if (!error && conn)
 		{
 			boost::system::error_code ec;
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
@@ -1466,17 +1466,14 @@ namespace transport
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
 				if (!i2p::util::net::IsInReservedRange(ep.address ()))
 				{
-					if (conn)
+					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
 					{
-						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
-						{
-							conn->SetRemoteEndpoint (ep);
-							conn->ServerLogin ();
-							conn = nullptr;
-						}
-						else
-							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
+						conn->SetRemoteEndpoint (ep);
+						conn->ServerLogin ();
+						conn = nullptr;
 					}
+					else
+						LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 				}
 				else
 					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
@@ -1507,7 +1504,7 @@ namespace transport
 
 	void NTCP2Server::HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
 	{
-		if (!error)
+		if (!error && conn)
 		{
 			boost::system::error_code ec;
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
@@ -1517,17 +1514,14 @@ namespace transport
 				if (!i2p::util::net::IsInReservedRange(ep.address ()) ||
 				    i2p::util::net::IsYggdrasilAddress (ep.address ()))
 				{
-					if (conn)
+					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
 					{
-						if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
-						{
-							conn->SetRemoteEndpoint (ep);
-							conn->ServerLogin ();
-							conn = nullptr;
-						}
-						else
-							LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
+						conn->SetRemoteEndpoint (ep);
+						conn->ServerLogin ();
+						conn = nullptr;
 					}
+					else
+						LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 				}
 				else
 					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
