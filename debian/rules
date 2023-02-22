@@ -8,6 +8,6 @@ export DEB_CXXFLAGS_MAINT_APPEND  = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND =
 
 %:
-	dh $@ --parallel
+	dh $@
 
 override_dh_auto_install:

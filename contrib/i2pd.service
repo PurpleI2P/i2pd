@@ -29,7 +29,7 @@ SendSIGKILL=yes
 #TimeoutStopSec=10m
 
 # If you have problems with hanging i2pd, you can try increase this
-LimitNOFILE=4096
+LimitNOFILE=8192
 # To enable write of coredump uncomment this
 #LimitCORE=infinity
 

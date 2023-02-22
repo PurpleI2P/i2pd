@@ -64,10 +64,10 @@ namespace afrikaans // language namespace
 
 	static std::map<std::string, std::vector<std::string>> plurals
 	{
-		{"days", {"dag", "dae"}},
-		{"hours", {"uur", "ure"}},
-		{"minutes", {"minuut", "minute"}},
-		{"seconds", {"seconde", "sekondes"}},
+		{"%d days", {"%d dag", "%d dae"}},
+		{"%d hours", {"%d uur", "%d ure"}},
+		{"%d minutes", {"%d minuut", "%d minute"}},
+		{"%d seconds", {"%d seconde", "%d sekondes"}},
 		{"", {"", ""}},
 	};
 

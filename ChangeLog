@@ -1,6 +1,88 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.46.1] - 2023-02-20
+### Fixed
+- Race condition while getting router's peer profile
+- Creation of new router.info
+- Displaying LeaseSets in the webconsole
+- Crash when processing ACK request
+
+## [2.46.0] - 2023-02-15
+### Added
+- Limit number of acked SSU2 packets to 511
+- Localization to Swedish, Portuguese, Turkish, Polish
+- Periodically send Datetime block in NTCP2 and SSU2
+- Don't select random port from reserved
+- In memory table for peer profiles
+- Store if router was unreachable in it's peer profile
+- Show IPv6 addresses in square brackets in webconsole
+- Check referer when processing Addresshelper
+### Changed
+- Algorithm for tunnel creation success rate calculation
+- Drop incoming NTCP2 and SSU2 connection if published IP doesn't match actual endpoint
+- Exclude actually unreachable router from netdb for 2 hours
+- Select first hop from high bandwidth peers for client tunnels
+- Drop too long or too short LeaseSet
+- Delete router from netdb if became invalid after update
+- Terminate existing session if clock skew detected
+- Close previous UDP socket if open before reopening
+- Minimal version for floodfill is 0.9.51
+- Sort transports by endpoints in webconsole
+### Fixed
+- Deadlock during processing I2NP block with Garlic in ECIES encrypted message to router
+- Race condition with encrypted LeaseSets
+- HTTP query detection
+- Connection attempts to IPs from invalid ranges
+- Publish "0.0.0.0" in RouterInfo
+- Crash upon receiving PeerTest 7
+- Tunnels for closed SAM session socket
+- Missing NTCP2 address in RouterInfo if enabled back
+
+## [2.45.1] - 2023-01-11
+### Added
+- Full Cone NAT status error
+### Changed
+- Drop duplicated I2NP messages in SSU2
+- Set rejection code 30 if tunnel with id already exists
+- Network status is always OK if peer test msg 5 received
+### Fixed
+- UPnP crash if SSU2 or NTCP2 is disabled
+- Crash on termination for some platforms
+
+## [2.45.0] - 2023-01-03
+### Added
+- Test for Symmetric NAT with peer test msgs 6 and 7
+- Webconsole "No Descriptors" router error state
+- 1 and 15 seconds bandwidth calculation for i2pcontrol
+- Show non-zero send queue size for transports in web console
+- Compressible padding for I2P addresses
+- Localization to Czech
+- Don't accept incoming session from invalid/reserved addresses for NTCP2 and SSU2
+- Limit simultaneous tunnel build requests by 4 per pool
+### Changed
+- Removed SSU support
+- Reduced bandwidth calculation interval from 60 to 15 seconds
+- Increased default max transit tunnels number from 2500 to 5000 or 10000 for floodfill
+- Transit tunnels limit is doubled if floodfill mode is enabled
+- NTCP2 and SSU2 timestamps are rounded to seconds
+- Drop RouterInfos and LeaseSets with timestamp from future
+- Don't delete unreachable routers if tunnel creation success rate is too low
+- Refuse duplicated incoming pending NTCP2 session from same IP
+- Don't send SSU2 termination again if termination received block received
+- Handle standard network error for SSU2 without throwing an exception
+- Don't select overloaded peer for next tunnel
+- Remove "X-Requested-With" in HTTP Proxy for non-AJAX requests
+### Fixed
+- File descriptors leak
+- Random crash on AddressBook update
+- Crash if incorrect LeaseSet size
+- Spamming to log if no descriptors
+- ::1 address in RouterInfo
+- SSU2 network error handling (especially for Windows)
+- Race condition with pending outgoing SSU2 sessions
+- RTT self-reduction for long-live streams
+
 ## [2.44.0] - 2022-11-20
 ### Added
 - SSL connection for server I2P tunnels
@@ -11,7 +93,7 @@
 - SSU2 send and verify path challenge
 - Configurable ssu2.mtu4 and ssu2.mtu6
 ### Changed
-- SSU2 is enbaled and SSU is disabled by default
+- SSU2 is enabled and SSU is disabled by default
 - Separate network status and error
 - Random selection between NTCP2 and SSU2 priority
 - Added notbob.i2p to jump services

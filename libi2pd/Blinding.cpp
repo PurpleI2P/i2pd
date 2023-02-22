@@ -135,7 +135,7 @@ namespace data
 //----------------------------------------------------------
 
 	const uint8_t B33_TWO_BYTES_SIGTYPE_FLAG = 0x01;
-	const uint8_t B33_PER_SECRET_FLAG = 0x02; // not used for now
+	// const uint8_t B33_PER_SECRET_FLAG = 0x02; // not used for now
 	const uint8_t B33_PER_CLIENT_AUTH_FLAG = 0x04;
 
 	BlindedPublicKey::BlindedPublicKey (std::shared_ptr<const IdentityEx> identity, bool clientAuth):

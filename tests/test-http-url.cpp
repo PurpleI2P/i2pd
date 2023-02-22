@@ -1,5 +1,5 @@
 #include <cassert>
-#include "../HTTP.h"
+#include "HTTP.h"
 
 using namespace i2p::http;
 
@@ -15,6 +15,7 @@ int main() {
   assert(url->host == "127.0.0.1");
   assert(url->port == 7070);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "12345");
   assert(url->to_string() == "https://127.0.0.1:7070/asdasd?12345");
   delete url;
@@ -27,6 +28,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 8080);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "123456");
   delete url;
 
@@ -38,6 +40,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 0);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "name=value");
   delete url;
 
@@ -49,6 +52,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 0);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "name=value1&name=value2");
   delete url;
 
@@ -60,6 +64,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 0);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "name1=value1&name2&name3=value2");
   assert(url->parse_query(params));
   assert(params.size() == 3);
@@ -79,6 +84,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 800);
   assert(url->path == "/asdasd");
+  assert(url->hasquery == true);
   assert(url->query == "");
   delete url;
 
@@ -90,6 +96,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 17);
   assert(url->path == "");
+  assert(url->hasquery == false);
   assert(url->query == "");
   delete url;
 
@@ -101,6 +108,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 0);
   assert(url->path == "");
+  assert(url->hasquery == false);
   assert(url->query == "");
   delete url;
 
@@ -112,6 +120,7 @@ int main() {
   assert(url->host == "site.com");
   assert(url->port == 84);
   assert(url->path == "/asdasd/@17");
+  assert(url->hasquery == false);
   assert(url->query == "");
   assert(url->frag == "frag");
   delete url;

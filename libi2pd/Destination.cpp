@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -399,12 +399,22 @@ namespace client
 
 	void LeaseSetDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
 	{
+		if (len < DATABASE_STORE_HEADER_SIZE)
+		{
+			LogPrint (eLogError, "Destination: Database store msg is too short ", len);
+			return;
+		}
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
 			LogPrint (eLogInfo, "Destination: Reply token is ignored for DatabaseStore");
 			offset += 36;
+		}
+		if (offset > len || len > i2p::data::MAX_LS_BUFFER_SIZE + offset)
+		{
+			LogPrint (eLogError, "Destination: Database store message is too long ", len);
+			return;
 		}
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
@@ -467,12 +477,15 @@ namespace client
 				{
 					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
 						it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
-					if (ls2->IsValid ())
+					if (ls2->IsValid () && !ls2->IsExpired ())
 					{
+						leaseSet = ls2;
+						std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
 						m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
-						leaseSet = ls2;
 					}
+					else
+						LogPrint (eLogError, "Destination: New remote encrypted LeaseSet2 failed");
 				}
 				else
 					LogPrint (eLogInfo, "Destination: Couldn't find request for encrypted LeaseSet2");
@@ -763,9 +776,17 @@ namespace client
 				request->requestTime = ts;
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
-					// request failed
-					m_LeaseSetRequests.erase (ret.first);
-					if (requestComplete) requestComplete (nullptr);
+					// try another
+					LogPrint (eLogWarning, "Destination: Couldn't send LeaseSet request to ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another");
+					request->excluded.insert (floodfill->GetIdentHash ());
+					floodfill = i2p::data::netdb.GetClosestFloodfill (dest, request->excluded);
+					if (!SendLeaseSetRequest (dest, floodfill, request))
+					{
+						// request failed
+						LogPrint (eLogWarning, "Destination: LeaseSet request for ", dest.ToBase32 (), " was not sent");
+						m_LeaseSetRequests.erase (ret.first);
+						if (requestComplete) requestComplete (nullptr);
+					}
 				}
 			}
 			else // duplicate
@@ -792,11 +813,11 @@ namespace client
 		std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		if (!request->replyTunnel || !request->replyTunnel->IsEstablished ())
-			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true));
-		if (!request->replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
+			request->replyTunnel = m_Pool->GetNextInboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false)); // outbound from floodfill
+		if (!request->replyTunnel) LogPrint (eLogWarning, "Destination: Can't send LeaseSet request, no compatible inbound tunnels found");
 		if (!request->outboundTunnel || !request->outboundTunnel->IsEstablished ())
-			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (false));
-		if (!request->outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
+			request->outboundTunnel = m_Pool->GetNextOutboundTunnel (nullptr, nextFloodfill->GetCompatibleTransports (true)); // inbound from floodfill
+		if (!request->outboundTunnel) LogPrint (eLogWarning, "Destination: Can't send LeaseSet request, no compatible outbound tunnels found");
 
 		if (request->replyTunnel && request->outboundTunnel)
 		{
@@ -1096,13 +1117,13 @@ namespace client
 		}
 		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
-		{	
+		{
 			auto stream = CreateStream (leaseSet, port);
-			GetService ().post ([streamRequestComplete, stream]() 
-				{                
+			GetService ().post ([streamRequestComplete, stream]()
+				{
 					streamRequestComplete(stream);
 				});
-		}	
+		}
 		else
 		{
 			auto s = GetSharedFromThis ();
@@ -1135,35 +1156,41 @@ namespace client
 			});
 	}
 
-	template<typename Dest>	
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, int port) 
+	template<typename Dest>
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, int port)
 	{
+		volatile bool done = false;
 		std::shared_ptr<i2p::stream::Stream> stream;
 		std::condition_variable streamRequestComplete;
 		std::mutex streamRequestCompleteMutex;
-		std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
 		CreateStream (
-			[&streamRequestComplete, &streamRequestCompleteMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
+			[&done, &streamRequestComplete, &streamRequestCompleteMutex, &stream](std::shared_ptr<i2p::stream::Stream> s)
 		    {
 				stream = s;
 				std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
 				streamRequestComplete.notify_all ();
+				done = true;
 			},
 		    dest, port);
-		streamRequestComplete.wait (l);
+		while (!done)
+		{
+			std::unique_lock<std::mutex> l(streamRequestCompleteMutex);
+			if (!done)
+				streamRequestComplete.wait (l);
+		}
 		return stream;
-	}	
+	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, int port) 
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, int port)
 	{
 		return CreateStreamSync (dest, port);
-	}	
+	}
 
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port)
 	{
 		return CreateStreamSync (dest, port);
-	}	
-		
+	}
+
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
 	{
 		if (m_StreamingDestination)

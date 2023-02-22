@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -40,9 +40,16 @@ namespace tunnel
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
 	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
+	const int MAX_TUNNEL_MSGS_BATCH_SIZE = 100; // handle messages without interrupt
+	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
+	const int TUNNEL_POOLS_MANAGE_INTERVAL = 5; // in seconds
+	const int TUNNEL_MEMORY_POOL_MANAGE_INTERVAL = 120; // in seconds
 
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
+
+	const double TCSR_SMOOTHING_CONSTANT = 0.0005; // smoothing constant in exponentially weighted moving average
+	const double TCSR_START_VALUE = 0.1; // start value of tunnel creation success rate
 
 	enum TunnelState
 	{
@@ -206,7 +213,7 @@ namespace tunnel
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
-			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
+			bool AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
 			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			std::shared_ptr<InboundTunnel> CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel);
@@ -234,17 +241,35 @@ namespace tunnel
 			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
 
 			void Run ();
-			void ManageTunnels ();
-			void ManageOutboundTunnels ();
-			void ManageInboundTunnels ();
-			void ManageTransitTunnels ();
-			void ManagePendingTunnels ();
+			void ManageTunnels (uint64_t ts);
+			void ManageOutboundTunnels (uint64_t ts);
+			void ManageInboundTunnels (uint64_t ts);
+			void ManageTransitTunnels (uint64_t ts);
+			void ManagePendingTunnels (uint64_t ts);
 			template<class PendingTunnels>
-			void ManagePendingTunnels (PendingTunnels& pendingTunnels);
+			void ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts);
 			void ManageTunnelPools (uint64_t ts);
 
 			std::shared_ptr<ZeroHopsInboundTunnel> CreateZeroHopsInboundTunnel (std::shared_ptr<TunnelPool> pool);
 			std::shared_ptr<ZeroHopsOutboundTunnel> CreateZeroHopsOutboundTunnel (std::shared_ptr<TunnelPool> pool);
+
+			// Calculating of tunnel creation success rate
+			void SuccesiveTunnelCreation()
+			{
+				// total TCSR
+				m_TotalNumSuccesiveTunnelCreations++;
+				// A modified version of the EWMA algorithm, where alpha is increased at the beginning to accelerate similarity
+				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
+				m_TunnelCreationSuccessRate = alpha * 1 + (1 - alpha) * m_TunnelCreationSuccessRate;
+
+			}
+			void FailedTunnelCreation()
+			{
+				m_TotalNumFailedTunnelCreations++;
+
+				double alpha = TCSR_SMOOTHING_CONSTANT + (1 - TCSR_SMOOTHING_CONSTANT)/++m_TunnelCreationAttemptsNum;
+				m_TunnelCreationSuccessRate = alpha * 0 + (1 - alpha) * m_TunnelCreationSuccessRate;
+			}
 
 		private:
 
@@ -262,9 +287,10 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-
-			// some stats
-			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
+			// count of tunnels for total TCSR algorithm
+			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
+			double m_TunnelCreationSuccessRate;
+			int m_TunnelCreationAttemptsNum;
 
 		public:
 
@@ -278,10 +304,11 @@ namespace tunnel
 			size_t CountOutboundTunnels() const;
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
-			int GetTunnelCreationSuccessRate () const // in percents
+			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
+			int GetTotalTunnelCreationSuccessRate () const // in percents
 			{
-				int totalNum = m_NumSuccesiveTunnelCreations + m_NumFailedTunnelCreations;
-				return totalNum ? m_NumSuccesiveTunnelCreations*100/totalNum : 0;
+				int totalNum = m_TotalNumSuccesiveTunnelCreations + m_TotalNumFailedTunnelCreations;
+				return totalNum ? m_TotalNumSuccesiveTunnelCreations*100/totalNum : 0;
 			}
 	};
 

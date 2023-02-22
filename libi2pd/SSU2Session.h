@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2022-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -39,14 +39,20 @@ namespace transport
 	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
+	const int SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS = 5000; // how many msgID we store for duplicates check
+	const int SSU2_RECEIVED_I2NP_MSGIDS_CLEANUP_TIMEOUT = 10; // in seconds
+	const int SSU2_DECAY_INTERVAL = 20; // in seconds
 	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
 	const size_t SSU2_MAX_WINDOW_SIZE = 256; // in packets
 	const size_t SSU2_MIN_RTO = 100; // in milliseconds
 	const size_t SSU2_MAX_RTO = 2500; // in milliseconds
 	const float SSU2_kAPPA = 1.8;
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
+	const int SSU2_MAX_NUM_ACNT = 255; // acnt, acks or nacks
+	const int SSU2_MAX_NUM_ACK_PACKETS = 510; // 2*255 ack + nack
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
+	const int SSU2_SEND_DATETIME_NUM_PACKETS = 250;
 
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
@@ -168,15 +174,19 @@ namespace transport
 		{
 			uint8_t buf[SSU2_MAX_PACKET_SIZE];
 			size_t len;
+			int fragmentNum;
 			bool isLast;
+			std::shared_ptr<Fragment> next;
 		};
 
 		std::shared_ptr<I2NPMessage> msg;
 		int nextFragmentNum;
 		uint32_t lastFragmentInsertTime; // in seconds
-		std::map<int, std::shared_ptr<Fragment> > outOfSequenceFragments;
+		std::shared_ptr<Fragment> outOfSequenceFragments; // #1 and more
 
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);
+		bool ConcatOutOfSequenceFragments (); // true if message complete
+		void AddOutOfSequenceFragment (std::shared_ptr<Fragment> fragment);
 	};
 
 	struct SSU2SentPacket
@@ -245,7 +255,7 @@ namespace transport
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
 			size_t Resend (uint64_t ts); // return number or resent packets
-			bool IsEstablished () const { return m_State == eSSU2SessionStateEstablished; };
+			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };
 			void SetState (SSU2SessionState state) { m_State = state; };
@@ -303,11 +313,11 @@ namespace transport
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
 			void HandleFirstFragment (const uint8_t * buf, size_t len);
 			void HandleFollowOnFragment (const uint8_t * buf, size_t len);
-			bool ConcatOutOfSequenceFragments (std::shared_ptr<SSU2IncompleteMessage> m); // true if message complete
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
-			void HandleRelayIntro (const uint8_t * buf, size_t len);
+			void HandleRelayIntro (const uint8_t * buf, size_t len, int attempts = 0);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
 			void HandlePeerTest (const uint8_t * buf, size_t len);
+			void HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg);
 
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
@@ -335,10 +345,10 @@ namespace transport
 			uint64_t m_DestConnID, m_SourceConnID;
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64];
-			uint32_t m_SendPacketNum, m_ReceivePacketNum;
+			uint32_t m_SendPacketNum, m_ReceivePacketNum, m_LastDatetimeSentPacketNum;
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > m_SentPackets; // packetNum -> packet
-			std::map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // I2NP
+			std::unordered_map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // msgID -> I2NP
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
 			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_PeerTests; // same as for relay sessions
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
@@ -351,6 +361,7 @@ namespace transport
 			SSU2TerminationReason m_TerminationReason;
 			size_t m_MaxPayloadSize;
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
+			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

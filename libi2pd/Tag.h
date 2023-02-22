@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -80,6 +80,13 @@ namespace data {
 				return i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
 			}
 
+			uint8_t GetBit (int i) const
+			{
+				int pos = i >> 3; // /8
+				if (pos >= (int)sz) return 0;
+				return m_Buf[pos] & (0x80 >> (i & 0x07)); 
+			}		
+		
 		private:
 
 			union // 8 bytes aligned

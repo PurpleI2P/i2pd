@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -139,7 +139,7 @@ namespace transport
 		m3p2[3] = 0; // flag
 		memcpy (m3p2 + 4, i2p::context.GetRouterInfo ().GetBuffer (), bufLen); // TODO: own RI should be protected by mutex
 		// 2 bytes reserved
-		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsA
+		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsA, rounded to seconds
 		// 4 bytes reserved
 		// sign and encrypt options, use m_H as AD
 		uint8_t nonce[12];
@@ -162,7 +162,7 @@ namespace transport
 		uint8_t options[16];
 		memset (options, 0, 16);
 		htobe16buf (options + 2, paddingLen); // padLen
-		htobe32buf (options + 8, i2p::util::GetSecondsSinceEpoch ()); // tsB
+		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsB, rounded to seconds
 		// sign and encrypt options, use m_H as AD
 		uint8_t nonce[12];
 		memset (nonce, 0, 12); // set nonce to zero
@@ -374,8 +374,14 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
 			m_SendQueue.clear ();
+			m_SendQueueSize = 0;
 			LogPrint (eLogDebug, "NTCP2: Session terminated");
 		}
+	}
+
+	void NTCP2Session::Close ()
+	{
+		m_Socket.close ();
 	}
 
 	void NTCP2Session::TerminateByTimeout ()
@@ -687,10 +693,20 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
-					auto addr = ri.GetNTCP2AddressWithStaticKey (m_Establisher->m_RemoteStaticKey);
-					if (!addr)
+					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () :
+						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());
+					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
 					{
-						LogPrint (eLogError, "NTCP2: No NTCP2 address with static key found in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
+						Terminate ();
+						return;
+					}
+					if (addr->IsPublishedNTCP2 () && m_RemoteEndpoint.address () != addr->host &&
+					    (!m_RemoteEndpoint.address ().is_v6 () || (i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ?
+					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
+					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
+					{
+						LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 						Terminate ();
 						return;
 					}
@@ -746,6 +762,8 @@ namespace transport
 
 	void NTCP2Session::ServerLogin ()
 	{
+		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		m_Establisher->CreateEphemeralKey ();
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
@@ -866,8 +884,20 @@ namespace transport
 			switch (blk)
 			{
 				case eNTCP2BlkDateTime:
+				{
 					LogPrint (eLogDebug, "NTCP2: Datetime");
-				break;
+					if (m_IsEstablished)
+					{
+						uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+						uint64_t tsA = bufbe32toh (frame + offset);
+						if (tsA < ts - NTCP2_CLOCK_SKEW || tsA > ts + NTCP2_CLOCK_SKEW)
+						{
+							LogPrint (eLogWarning, "NTCP2: Established session time difference ", (int)(ts - tsA), " exceeds clock skew");
+							SendTerminationAndTerminate (eNTCP2ClockSkew);
+						}
+					}
+					break;
+				}
 				case eNTCP2BlkOptions:
 					LogPrint (eLogDebug, "NTCP2: Options");
 				break;
@@ -1050,7 +1080,10 @@ namespace transport
 				SendRouterInfo ();
 			}
 			else
+			{
 				SendQueue ();
+				m_SendQueueSize = m_SendQueue.size ();
+			}
 		}
 	}
 
@@ -1109,12 +1142,17 @@ namespace transport
 	{
 		if (!IsEstablished ()) return;
 		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
-		size_t payloadLen = riLen + 4; // 3 bytes block header + 1 byte RI flag
+		size_t payloadLen = riLen + 3 + 1 + 7; // 3 bytes block header + 1 byte RI flag + 7 bytes DateTime
 		m_NextSendBuffer = new uint8_t[payloadLen + 16 + 2 + 64]; // up to 64 bytes padding
-		m_NextSendBuffer[2] = eNTCP2BlkRouterInfo;
-		htobe16buf (m_NextSendBuffer + 3, riLen + 1); // size
-		m_NextSendBuffer[5] = 0; // flag
-		memcpy (m_NextSendBuffer + 6, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
+		// DateTime	block
+		m_NextSendBuffer[2] = eNTCP2BlkDateTime;
+		htobe16buf (m_NextSendBuffer + 3, 4);
+		htobe32buf (m_NextSendBuffer + 5, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		// RouterInfo block
+		m_NextSendBuffer[9] = eNTCP2BlkRouterInfo;
+		htobe16buf (m_NextSendBuffer + 10, riLen + 1); // size
+		m_NextSendBuffer[12] = 0; // flag
+		memcpy (m_NextSendBuffer + 13, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
 		// padding block
 		auto paddingSize = CreatePaddingBlock (payloadLen, m_NextSendBuffer + 2 + payloadLen, 64);
 		payloadLen += paddingSize;
@@ -1158,7 +1196,7 @@ namespace transport
 	{
 		if (m_IsTerminated) return;
 		for (auto it: msgs)
-			m_SendQueue.push_back (it);
+			m_SendQueue.push_back (std::move (it));
 		if (!m_IsSending)
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
@@ -1167,6 +1205,7 @@ namespace transport
 				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
+		m_SendQueueSize = m_SendQueue.size ();
 	}
 
 	void NTCP2Session::SendLocalRouterInfo (bool update)
@@ -1289,7 +1328,7 @@ namespace transport
 			for (auto& it: ntcpSessions)
 				it.second->Terminate ();
 			for (auto& it: m_PendingIncomingSessions)
-				it->Terminate ();
+				it.second->Terminate ();
 		}
 		m_NTCP2Sessions.clear ();
 
@@ -1305,20 +1344,32 @@ namespace transport
 	{
 		if (!session) return false;
 		if (incoming)
-			m_PendingIncomingSessions.remove (session);
-		if (!session->GetRemoteIdentity ()) return false;
+			m_PendingIncomingSessions.erase (session->GetRemoteEndpoint ().address ());
+		if (!session->GetRemoteIdentity ())
+		{
+			LogPrint (eLogWarning, "NTCP2: Unknown identity for ", session->GetRemoteEndpoint ());
+			session->Terminate ();
+			return false;
+		}
 		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
 		auto it = m_NTCP2Sessions.find (ident);
 		if (it != m_NTCP2Sessions.end ())
 		{
-			LogPrint (eLogWarning, "NTCP2: Session to ", ident.ToBase64 (), " already exists");
+			LogPrint (eLogWarning, "NTCP2: Session with ", ident.ToBase64 (), " already exists. ", incoming ? "Replaced" : "Dropped");
 			if (incoming)
+			{
 				// replace by new session
-				it->second->Terminate ();
+				auto s = it->second;
+				m_NTCP2Sessions.erase (it);
+				s->Terminate ();
+			}
 			else
+			{
+				session->Terminate ();
 				return false;
+			}
 		}
-		m_NTCP2Sessions.insert (std::make_pair (ident, session));
+		m_NTCP2Sessions.emplace (ident, session);
 		return true;
 	}
 
@@ -1406,36 +1457,42 @@ namespace transport
 
 	void NTCP2Server::HandleAccept (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
 	{
-		if (!error)
+		if (!error && conn)
 		{
 			boost::system::error_code ec;
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (conn)
+				if (!i2p::util::net::IsInReservedRange(ep.address ()))
 				{
-					conn->SetRemoteEndpoint (ep);
-					conn->ServerLogin ();
-					m_PendingIncomingSessions.push_back (conn);
-					conn = nullptr;
+					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
+					{
+						conn->SetRemoteEndpoint (ep);
+						conn->ServerLogin ();
+						conn = nullptr;
+					}
+					else
+						LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 				}
+				else
+					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
-		{	
+		{
 			LogPrint (eLogError, "NTCP2: Accept error ", error.message ());
 			if (error == boost::asio::error::no_descriptors)
 			{
 				i2p::context.SetError (eRouterErrorNoDescriptors);
-				return; 
-			}	
-		}	
-		
+				return;
+			}
+		}
+
 		if (error != boost::asio::error::operation_aborted)
-		{			
+		{
 			if (!conn) // connection is used, create new one
 				conn = std::make_shared<NTCP2Session> (*this);
 			else // reuse failed
@@ -1447,36 +1504,47 @@ namespace transport
 
 	void NTCP2Server::HandleAcceptV6 (std::shared_ptr<NTCP2Session> conn, const boost::system::error_code& error)
 	{
-		if (!error)
+		if (!error && conn)
 		{
 			boost::system::error_code ec;
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (conn)
+				if (!i2p::util::net::IsInReservedRange(ep.address ()) ||
+				    i2p::util::net::IsYggdrasilAddress (ep.address ()))
 				{
-					conn->SetRemoteEndpoint (ep);
-					conn->ServerLogin ();
-					m_PendingIncomingSessions.push_back (conn);
+					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
+					{
+						conn->SetRemoteEndpoint (ep);
+						conn->ServerLogin ();
+						conn = nullptr;
+					}
+					else
+						LogPrint (eLogInfo, "NTCP2: Incoming session from ", ep.address (), " is already pending");
 				}
+				else
+					LogPrint (eLogError, "NTCP2: Incoming connection from invalid IP ", ep.address ());
 			}
 			else
 				LogPrint (eLogError, "NTCP2: Connected from error ", ec.message ());
 		}
 		else
-		{	
+		{
 			LogPrint (eLogError, "NTCP2: Accept ipv6 error ", error.message ());
 			if (error == boost::asio::error::no_descriptors)
 			{
 				i2p::context.SetErrorV6 (eRouterErrorNoDescriptors);
-				return; 
-			}	
-		}	
+				return;
+			}
+		}
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-			conn = std::make_shared<NTCP2Session> (*this);
+			if (!conn) // connection is used, create new one
+				conn = std::make_shared<NTCP2Session> (*this);
+			else // reuse failed
+				conn->Close ();
 			m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
 				conn, std::placeholders::_1));
 		}
@@ -1507,34 +1575,34 @@ namespace transport
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
 			{
-				if ((*it)->IsEstablished () || (*it)->IsTerminationTimeoutExpired (ts))
+				if (it->second->IsEstablished () || it->second->IsTerminationTimeoutExpired (ts))
 				{
-					(*it)->Terminate ();
+					it->second->Terminate ();
 					it = m_PendingIncomingSessions.erase (it); // established of expired
 				}
-				else if ((*it)->IsTerminated ())
+				else if (it->second->IsTerminated ())
 					it = m_PendingIncomingSessions.erase (it); // already terminated
 				else
 					it++;
 			}
 			ScheduleTermination ();
-			
+
 			// try to restart acceptors if no description
-			// we do it after timer to let timer take descriptor first 
+			// we do it after timer to let timer take descriptor first
 			if (i2p::context.GetError () == eRouterErrorNoDescriptors)
 			{
 				i2p::context.SetError (eRouterErrorNone);
 				auto conn = std::make_shared<NTCP2Session> (*this);
 				m_NTCP2Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAccept, this,
 					conn, std::placeholders::_1));
-			}	
+			}
 			if (i2p::context.GetErrorV6 () == eRouterErrorNoDescriptors)
 			{
 				i2p::context.SetErrorV6 (eRouterErrorNone);
 				auto conn = std::make_shared<NTCP2Session> (*this);
 				m_NTCP2V6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCP2Server::HandleAcceptV6, this,
 					conn, std::placeholders::_1));
-			}	
+			}
 		}
 	}
 
@@ -1742,15 +1810,15 @@ namespace transport
 			});
 
 		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), // read min reply size
-		    boost::asio::transfer_all(),                    
-			[timer, conn, sz, readbuff](const boost::system::error_code & e, std::size_t transferred)
+		    boost::asio::transfer_all(),
+			[timer, conn, readbuff](const boost::system::error_code & e, std::size_t transferred)
 			{
 				if (e)
 					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
 				else if (!(*readbuff)[1]) // succeeded
 				{
 					boost::system::error_code ec;
-					size_t moreBytes = conn->GetSocket ().available(ec);	
+					size_t moreBytes = conn->GetSocket ().available(ec);
 					if (moreBytes) // read remaining portion of reply if ipv6 received
 						boost::asio::read (conn->GetSocket (), boost::asio::buffer(readbuff->data (), moreBytes), boost::asio::transfer_all (), ec);
 					timer->cancel();

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -45,7 +45,7 @@ namespace config {
 			("logclftime", bool_switch()->default_value(false),               "Write full CLF-formatted date and time to log (default: disabled, write only time)")
 			("family", value<std::string>()->default_value(""),               "Specify a family, router belongs to")
 			("datadir", value<std::string>()->default_value(""),              "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
-			("host", value<std::string>()->default_value("0.0.0.0"),          "External IP")
+			("host", value<std::string>()->default_value(""),                 "External IP")
 			("ifname", value<std::string>()->default_value(""),               "Network interface to bind to")
 			("ifname4", value<std::string>()->default_value(""),              "Network interface to bind to for ipv4")
 			("ifname6", value<std::string>()->default_value(""),              "Network interface to bind to for ipv6")
@@ -77,7 +77,7 @@ namespace config {
 		limits.add_options()
 			("limits.coresize", value<uint32_t>()->default_value(0),          "Maximum size of corefile in Kb (0 - use system limit)")
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
-			("limits.transittunnels", value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+			("limits.transittunnels", value<uint16_t>()->default_value(5000), "Maximum active transit tunnels (default:5000)")
 			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Ignored")
@@ -95,6 +95,7 @@ namespace config {
 			("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
 			("http.webroot", value<std::string>()->default_value("/"),          "WebUI root path (default: / )")
 			("http.lang", value<std::string>()->default_value("english"),       "WebUI language (default: english )")
+			("http.showTotalTCSR", value<bool>()->default_value(false),         "Show additional value with total TCSR since router's start (default: false)")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
@@ -284,7 +285,7 @@ namespace config {
 
 		options_description nettime("Time sync options");
 		nettime.add_options()
-			("nettime.enabled", value<bool>()->default_value(false),       "Disable time sync (default: disabled)")
+			("nettime.enabled", value<bool>()->default_value(false),       "Enable NTP time sync (default: disabled)")
 			("nettime.ntpservers", value<std::string>()->default_value(
 				"0.pool.ntp.org,"
 				"1.pool.ntp.org,"

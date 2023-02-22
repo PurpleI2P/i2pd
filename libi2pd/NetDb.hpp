@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -44,11 +44,12 @@ namespace data
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
+	const int NETDB_EXPIRATION_TIMEOUT_THRESHOLD = 2*60; // 2 minutes
 	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
 	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
-	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 36); // 0.9.36
-	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 38); // 0.9.38
+	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
+	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 
 	/** function for visiting a leaseset stored in a floodfill */
@@ -92,7 +93,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -123,13 +124,13 @@ namespace data
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
 			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
-			void PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
+			bool PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
-			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses () 
-			{  
-				return boost::shared_ptr<RouterInfo::Addresses>(m_RouterInfoAddressVectorsPool.AcquireMt (), 
+			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses ()
+			{
+				return boost::shared_ptr<RouterInfo::Addresses>(m_RouterInfoAddressVectorsPool.AcquireMt (),
 					std::bind <void (i2p::util::MemoryPoolMt<RouterInfo::Addresses>::*)(RouterInfo::Addresses *)>
-						(&i2p::util::MemoryPoolMt<RouterInfo::Addresses>::ReleaseMt, 
+						(&i2p::util::MemoryPoolMt<RouterInfo::Addresses>::ReleaseMt,
 						&m_RouterInfoAddressVectorsPool, std::placeholders::_1));
 			};
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };

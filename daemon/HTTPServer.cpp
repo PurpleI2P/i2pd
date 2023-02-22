@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -87,8 +87,6 @@ namespace http {
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
-	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
-	const char HTTP_PARAM_ADDRESS[] = "address";
 
 	static std::string ConvertTime (uint64_t time)
 	{
@@ -105,18 +103,18 @@ namespace http {
 		int num;
 
 		if ((num = seconds / 86400) > 0) {
-			s << num << " " << tr("day", "days", num) << ", ";
+			s << ntr("%d day", "%d days", num, num) << ", ";
 			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
-			s << num << " " << tr("hour", "hours", num) << ", ";
+			s << ntr("%d hour", "%d hours", num, num) << ", ";
 			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
-			s << num << " " << tr("minute", "minutes", num) << ", ";
+			s << ntr("%d minute", "%d minutes", num, num) << ", ";
 			seconds -= num * 60;
 		}
-		s << seconds << " " << tr("second", "seconds", seconds);
+		s << ntr("%d second", "%d seconds", seconds, seconds);
 	}
 
 	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
@@ -124,11 +122,11 @@ namespace http {
 		s << std::fixed << std::setprecision(2);
 		auto numKBytes = (double) bytes / 1024;
 		if (numKBytes < 1024)
-			s << numKBytes << " " << tr(/* tr: Kibibit */ "KiB");
+			s << tr(/* tr: Kibibyte */ "%.2f KiB", numKBytes);
 		else if (numKBytes < 1024 * 1024)
-			s << numKBytes / 1024 << " " << tr(/* tr: Mebibit */ "MiB");
+			s << tr(/* tr: Mebibyte */ "%.2f MiB", numKBytes / 1024);
 		else
-			s << numKBytes / 1024 / 1024 << " " << tr(/* tr: Gibibit */ "GiB");
+			s << tr(/* tr: Gibibyte */ "%.2f GiB", numKBytes / 1024 / 1024);
 	}
 
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
@@ -152,7 +150,8 @@ namespace http {
 		else stateText = tr("unknown");
 
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
-		s << " " << (int) (bytes / 1024) << "&nbsp;" << tr(/* tr: Kibibit */ "KiB") << "\r\n";
+		ShowTraffic(s, bytes);
+		s << "\r\n";
 	}
 
 	static void SetLogLevel (const std::string& level)
@@ -200,7 +199,7 @@ namespace http {
 		if (i2p::context.AcceptsTunnels () || i2p::tunnel::tunnels.CountTransitTunnels())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">" << tr("Transit Tunnels") << "</a><br>\r\n";
 		s <<
-			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr ("Transports") << "</a><br>\r\n"
+			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_TRANSPORTS << "\">" << tr("Transports") << "</a><br>\r\n"
 			"  <a href=\"" << webroot << "?page=" << HTTP_PAGE_I2P_TUNNELS << "\">" << tr("I2P tunnels") << "</a><br>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
 			s << "  <a href=\"" << webroot << "?page=" << HTTP_PAGE_SAM_SESSIONS << "\">" << tr("SAM sessions") << "</a><br>\r\n";
@@ -236,7 +235,6 @@ namespace http {
 		}
 		if (error != eRouterErrorNone)
 		{
-			s << "<br>";
 			switch (error)
 			{
 				case eRouterErrorClockSkew:
@@ -247,6 +245,9 @@ namespace http {
 				break;
 				case eRouterErrorSymmetricNAT:
 					s << " - " << tr("Symmetric NAT");
+				break;
+				case eRouterErrorFullConeNAT:
+					s << " - " << tr("Full cone NAT");
 				break;
 				case eRouterErrorNoDescriptors:
 					s << " - " << tr("No Descriptors");
@@ -288,21 +289,26 @@ namespace http {
 		if (family.length () > 0)
 			s << "<b>"<< tr("Family") << ":</b> " << family << "<br>\r\n";
 		s << "<b>" << tr("Tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
+		bool isTotalTCSR;
+		i2p::config::GetOption("http.showTotalTCSR", isTotalTCSR);
+		if (isTotalTCSR) {
+			s << "<b>" << tr("Total tunnel creation success rate") << ":</b> " << i2p::tunnel::tunnels.GetTotalTunnelCreationSuccessRate() << "%<br/>\r\n";
+		}
 		s << "<b>" << tr("Received") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetInBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Sent") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetOutBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Transit") << ":</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024 << " " << tr(/* tr: Kibibit/s */ "KiB/s") << ")<br>\r\n";
+		s << " (" << tr(/* tr: Kibibyte/s */ "%.2f KiB/s", (double) i2p::transport::transports.GetTransitBandwidth15s () / 1024) << ")<br>\r\n";
 		s << "<b>" << tr("Data path") << ":</b> " << i2p::fs::GetUTF8DataDir() << "<br>\r\n";
 		s << "<div class='slide'>";
 		if ((outputFormat == OutputFormatEnum::forWebConsole) || !includeHiddenContent) {
 			s << "<label for=\"slide-info\">" << tr("Hidden content. Press on text to see.") << "</label>\r\n<input type=\"checkbox\" id=\"slide-info\" />\r\n<div class=\"slidecontent\">\r\n";
 		}
-		if (includeHiddenContent) 
+		if (includeHiddenContent)
 		{
 			s << "<b>" << tr("Router Ident") << ":</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			if (!i2p::context.GetRouterInfo().GetProperty("family").empty())
@@ -312,9 +318,10 @@ namespace http {
 			s << "<b>"<< tr("Our external address") << ":</b>" << "<br>\r\n<table class=\"extaddr\"><tbody>\r\n";
 			auto addresses = i2p::context.GetRouterInfo().GetAddresses ();
 			if (addresses)
-			{	
+			{
 				for (const auto& address : *addresses)
 				{
+					if (!address) continue;
 					s << "<tr>\r\n<td>";
 					switch (address->transportStyle)
 					{
@@ -327,24 +334,25 @@ namespace http {
 						default:
 							s << tr("Unknown");
 					}
-					if (address->IsV6 ())
+					bool v6 = address->IsV6 ();
+					if (v6)
 					{
 						if (address->IsV4 ()) s << "v4";
 						s << "v6";
 					}
 					s << "</td>\r\n";
 					if (address->published)
-						s << "<td>" << address->host.to_string() << ":" << address->port << "</td>\r\n";
+						s << "<td>" << (v6 ? "[" : "") << address->host.to_string() << (v6 ? "]:" : ":") << address->port << "</td>\r\n";
 					else
 					{
-						s << "<td>" << tr("supported");
+						s << "<td>" << tr(/* tr: Shown when router doesn't publish itself and have "Firewalled" state */ "supported");
 						if (address->port)
 							s << " :" << address->port;
 						s << "</td>\r\n";
 					}
 					s << "</tr>\r\n";
 				}
-			}	
+			}
 			s << "</tbody></table>\r\n";
 		}
 		s << "</div>\r\n</div>\r\n";
@@ -465,7 +473,7 @@ namespace http {
 				}
 				s << "&#8658; " << it->GetTunnelID () << ":me";
 				if (it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr(/* tr: Milliseconds */ "ms") << " )";
+					s << " ( " << tr(/* tr: Milliseconds */ "%dms", it->GetMeanLatency()) << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 				s << "</div>\r\n";
 			}
@@ -485,22 +493,26 @@ namespace http {
 					);
 				}
 				if (it->LatencyIsKnown())
-					s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+					s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 				s << "</div>\r\n";
 			}
 		}
 		s << "<br>\r\n";
 
-		s << "<b>" << tr("Tags") << "</b><br>\r\n" << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
+		s << "<b>" << tr("Tags") << "</b><br>\r\n"
+		  << tr("Incoming") << ": <i>" << dest->GetNumIncomingTags () << "</i><br>\r\n";
 		if (!dest->GetSessions ().empty ()) {
 			std::stringstream tmp_s; uint32_t out_tags = 0;
 			for (const auto& it: dest->GetSessions ()) {
 				tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.first) << "</td><td>" << it.second->GetNumOutgoingTags () << "</td></tr>\r\n";
 				out_tags += it.second->GetNumOutgoingTags ();
 			}
-			s << "<div class='slide'><label for='slide-tags'>" << tr("Outgoing") << ": <i>" << out_tags << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
-			  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Amount") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+			s << "<div class='slide'><label for='slide-tags'>" << tr("Outgoing") << ": <i>" << out_tags << "</i></label>\r\n"
+			  << "<input type=\"checkbox\" id=\"slide-tags\" />\r\n"
+			  << "<div class=\"slidecontent\">\r\n"
+			  << "<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Amount") << "</th></thead>\r\n"
+			  << "<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 		} else
 			s << tr("Outgoing") << ": <i>0</i><br>\r\n";
 		s << "<br>\r\n";
@@ -515,8 +527,11 @@ namespace http {
 					tmp_s << "<tr><td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetDestination ()) << "</td><td>" << it.second->GetState () << "</td></tr>\r\n";
 					ecies_sessions++;
 				}
-				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
-				  << "<div class=\"slidecontent\">\r\n<table>\r\n<thead><th>" << tr("Destination") << "</th><th>" << tr("Status") << "</th></thead>\r\n<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
+				s << "<div class='slide'><label for='slide-ecies-sessions'>" << tr("Tags sessions") << ": <i>" << ecies_sessions << "</i></label>\r\n"
+				  << "<input type=\"checkbox\" id=\"slide-ecies-sessions\" />\r\n"
+				  << "<div class=\"slidecontent\">\r\n<table>\r\n"
+				  << "<thead><th>" << tr("Destination") << "</th><th>" << tr("Status") << "</th></thead>\r\n"
+				  << "<tbody class=\"tableitem\">\r\n" << tmp_s.str () << "</tbody></table>\r\n</div>\r\n</div>\r\n";
 			} else
 				s << tr("Tags sessions") << ": <i>0</i><br>\r\n";
 			s << "<br>\r\n";
@@ -539,7 +554,7 @@ namespace http {
 			  << tr("Streams")
 			  << "</caption>\r\n<thead>\r\n<tr>"
 			  << "<th style=\"width:25px;\">StreamID</th>"
-			  << "<th style=\"width:5px;\" \\>" // Stream closing button column
+			  << "<th style=\"width:5px;\">&nbsp;</th>" // Stream closing button column
 			  << "<th class=\"streamdest\">Destination</th>"
 			  << "<th>Sent</th>"
 			  << "<th>Received</th>"
@@ -610,7 +625,10 @@ namespace http {
 					if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						ls.reset (new i2p::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 					else
-						ls.reset (new i2p::data::LeaseSet2 (storeType, leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
+					{	
+						ls.reset (new i2p::data::LeaseSet2 (storeType));
+						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), false);
+					}		
 					if (!ls) return;
 					s << "<div class=\"leaseset listitem";
 					if (ls->IsExpired())
@@ -641,7 +659,7 @@ namespace http {
 		}
 		else if (!i2p::context.IsFloodfill ())
 		{
-			s << "<b>" << tr("LeaseSets") << ":</b> " << tr("not floodfill") << ".<br>\r\n";
+			s << "<b>" << tr("LeaseSets") << ":</b> " << tr(/* Message on LeaseSets page */ "floodfill mode is disabled") << ".<br>\r\n";
 		}
 		else
 		{
@@ -670,7 +688,7 @@ namespace http {
 			}
 			s << "&#8658; " << it->GetTunnelID () << ":me";
 			if (it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+			s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 			s << "</div>\r\n";
 		}
@@ -690,7 +708,7 @@ namespace http {
 				);
 			}
 			if (it->LatencyIsKnown())
-			s << " ( " << it->GetMeanLatency() << tr("ms") << " )";
+			s << " ( " << tr("%dms", it->GetMeanLatency()) << " )";
 			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 			s << "</div>\r\n";
 		}
@@ -728,19 +746,20 @@ namespace http {
 
 		s << "<br>\r\n<small>" << tr("<b>Note:</b> any action done here are not persistent and not changes your config files.") << "</small>\r\n<br>\r\n";
 
+		auto loglevel = i2p::log::Logger().GetLogLevel();
 		s << "<b>" << tr("Logging level") << "</b><br>\r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
-		s << "  <a class=\"button\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
+		s << "  <a class=\"button" << (loglevel == eLogNone    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogError   ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogWarning ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogInfo    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogDebug   ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
 
 		uint16_t maxTunnels = GetMaxNumTransitTunnels ();
 		s << "<b>" << tr("Transit tunnels limit") << "</b><br>\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n";
-		s << "  <input type=\"number\" min=\"0\" max=\"65535\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
+		s << "  <input type=\"number\" min=\"0\" max=\"" << TRANSIT_TUNNELS_LIMIT <<"\" name=\"limit\" value=\"" << maxTunnels << "\">\r\n";
 		s << "  <button type=\"submit\">" << tr("Change") << "</button>\r\n";
 		s << "</form>\r\n<br>\r\n";
 
@@ -770,56 +789,70 @@ namespace http {
 	{
 		if (i2p::tunnel::tunnels.CountTransitTunnels())
 		{
-			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			s << "<b>" << tr("Transit Tunnels") << ":</b><br>\r\n";
+			s << "<table><thead><th>&#8658;</th><th>ID</th><th>&#8658;</th><th>" << tr("Amount") << "</th></thead><tbody class=\"tableitem\">";
 			for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 			{
-				s << "<div class=\"listitem\">\r\n";
 				if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
-					s << it->GetTunnelID () << " &#8658; ";
+					s << "<tr><td></td><td>" << it->GetTunnelID () << "</td><td>&#8658;</td><td>";
 				else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
-					s << " &#8658; " << it->GetTunnelID ();
+					s << "<tr><td>&#8658;</td><td>" << it->GetTunnelID () << "</td><td></td><td>";
 				else
-					s << " &#8658; " << it->GetTunnelID () << " &#8658; ";
-				s << " " << it->GetNumTransmittedBytes () << "</div>\r\n";
+					s << "<tr><td>&#8658;</td><td>" << it->GetTunnelID () << "</td><td>&#8658;</td><td>";
+				ShowTraffic(s, it->GetNumTransmittedBytes ());
+				s << "</td></tr>\r\n";
 			}
-			s << "</div>\r\n";
+			s << "</tbody></table>\r\n";
 		}
 		else
 		{
-			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr("no transit tunnels currently built") << ".<br>\r\n";
+			s << "<b>" << tr("Transit Tunnels") << ":</b> " << tr(/* Message on transit tunnels page */ "no transit tunnels currently built") << ".<br>\r\n";
 		}
 	}
 
 	template<typename Sessions>
 	static void ShowTransportSessions (std::stringstream& s, const Sessions& sessions, const std::string name)
 	{
-		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
-		for (const auto& it: sessions )
+		auto comp = [](typename Sessions::mapped_type a, typename Sessions::mapped_type b)
+			{ return a->GetRemoteEndpoint() < b->GetRemoteEndpoint(); };
+		std::set<typename Sessions::mapped_type, decltype(comp)> sortedSessions(comp);
+		for (const auto& it : sessions)
 		{
-			auto endpoint = it.second->GetRemoteEndpoint ();
-			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v4 ())
+			auto ret = sortedSessions.insert(it.second);
+			if (!ret.second)
+				LogPrint(eLogError, "HTTPServer: Duplicate remote endpoint detected: ", (*ret.first)->GetRemoteEndpoint());
+		}
+		std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
+		for (const auto& it: sortedSessions)
+		{
+			auto endpoint = it->GetRemoteEndpoint ();
+			if (it && it->IsEstablished () && endpoint.address ().is_v4 ())
 			{
 				tmp_s << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				if (it->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
-				tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					tmp_s << " [itag:" << it.second->GetRelayTag () << "]";
+				if (!it->IsOutgoing ()) tmp_s << " &#8658; ";
+				tmp_s << " [" << it->GetNumSentBytes () << ":" << it->GetNumReceivedBytes () << "]";
+				if (it->GetRelayTag ())
+					tmp_s << " [itag:" << it->GetRelayTag () << "]";
+				if (it->GetSendQueueSize () > 0)
+					tmp_s << " [queue:" << it->GetSendQueueSize () << "]";
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}
-			if (it.second && it.second->IsEstablished () && endpoint.address ().is_v6 ())
+			if (it && it->IsEstablished () && endpoint.address ().is_v6 ())
 			{
 				tmp_s6 << "<div class=\"listitem\">\r\n";
-				if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+				if (it->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()) << ": "
 					<< "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
-				tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					tmp_s6 << " [itag:" << it.second->GetRelayTag () << "]";
+				if (!it->IsOutgoing ()) tmp_s6 << " &#8658; ";
+				tmp_s6 << " [" << it->GetNumSentBytes () << ":" << it->GetNumReceivedBytes () << "]";
+				if (it->GetRelayTag ())
+					tmp_s6 << " [itag:" << it->GetRelayTag () << "]";
+				if (it->GetSendQueueSize () > 0)
+					tmp_s6 << " [queue:" << it->GetSendQueueSize () << "]";
 				tmp_s6 << "</div>\r\n" << std::endl;
 				cnt6++;
 			}
@@ -879,7 +912,7 @@ namespace http {
 			s << "</div>\r\n";
 		}
 		else
-			s << "<b>" << tr("SAM sessions") << ":</b> " << tr("no sessions currently running") << ".<br>\r\n";
+			s << "<b>" << tr("SAM sessions") << ":</b> " << tr(/* Message on SAM sessions page */ "no sessions currently running") << ".<br>\r\n";
 	}
 
 	void ShowSAMSession (std::stringstream& s, const std::string& id)
@@ -988,7 +1021,7 @@ namespace http {
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</div>\r\n"<< std::endl;
@@ -1198,7 +1231,7 @@ namespace http {
 		url.parse_query(params);
 
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		std::string redirect = "5; url=" + webroot + "?page=commands";
+		std::string redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=commands";
 		std::string token = params["token"];
 
 		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
@@ -1272,20 +1305,20 @@ namespace http {
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
-			s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
-			redirect = "5; url=" + webroot + "?page=local_destination&b32=" + b32;
+			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
+			redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=local_destination&b32=" + b32;
 			res.add_header("Refresh", redirect.c_str());
 			return;
 		}
 		else if (cmd == HTTP_COMMAND_LIMITTRANSIT)
 		{
 			uint32_t limit = std::stoul(params["limit"], nullptr);
-			if (limit > 0 && limit <= 65535)
+			if (limit > 0 && limit <= TRANSIT_TUNNELS_LIMIT)
 				SetMaxNumTransitTunnels (limit);
 			else {
-				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed 65535") << "\r\n<br>\r\n<br>\r\n";
+				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Transit tunnels count must not exceed %d", TRANSIT_TUNNELS_LIMIT) << "\r\n<br>\r\n<br>\r\n";
 				s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a>\r\n<br>\r\n";
-				s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+				s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
 				res.add_header("Refresh", redirect.c_str());
 				return;
 			}
@@ -1360,7 +1393,7 @@ namespace http {
 
 		s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("Command accepted") << "<br><br>\r\n";
 		s << "<a href=\"" << webroot << "?page=commands\">" << tr("Back to commands list") << "</a><br>\r\n";
-		s << "<p>" << tr("You will be redirected in 5 seconds") << "</b>";
+		s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
 		res.add_header("Refresh", redirect.c_str());
 	}
 

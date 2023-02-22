@@ -163,7 +163,7 @@ namespace transport
 		if (!a) return;
 		for (const auto& address : *a)
 		{
-			if (!address->host.is_v6 () && address->port)
+			if (address && !address->host.is_v6 () && address->port)
 				TryPortMapping (address);
 		}
 		m_Timer.expires_from_now (boost::posix_time::minutes(20)); // every 20 minutes
@@ -215,7 +215,7 @@ namespace transport
 		if (!a) return;
 		for (const auto& address : *a)
 		{
-			if (!address->host.is_v6 () && address->port)
+			if (address && !address->host.is_v6 () && address->port)
 			CloseMapping (address);
 		}
 	}

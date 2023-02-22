@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,8 +28,8 @@ namespace tunnel
 		public:
 
 			TransitTunnel (uint32_t receiveTunnelID,
-				const uint8_t * nextIdent, uint32_t nextTunnelID,
-				const uint8_t * layerKey,const uint8_t * ivKey);
+				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey);
 
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
 
@@ -39,7 +39,8 @@ namespace tunnel
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out);
 		private:
 
-			i2p::crypto::TunnelEncryption m_Encryption;
+			i2p::crypto::AESKey m_LayerKey, m_IVKey;
+			std::unique_ptr<i2p::crypto::TunnelEncryption> m_Encryption;
 	};
 
 	class TransitTunnelParticipant: public TransitTunnel
@@ -47,8 +48,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelParticipant (uint32_t receiveTunnelID,
-				const uint8_t * nextIdent, uint32_t nextTunnelID,
-				const uint8_t * layerKey,const uint8_t * ivKey):
+				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
 				layerKey, ivKey), m_NumTransmittedBytes (0) {};
 			~TransitTunnelParticipant ();
@@ -68,8 +69,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelGateway (uint32_t receiveTunnelID,
-				const uint8_t * nextIdent, uint32_t nextTunnelID,
-				const uint8_t * layerKey,const uint8_t * ivKey):
+				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
 				layerKey, ivKey), m_Gateway(this) {};
 
@@ -88,8 +89,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelEndpoint (uint32_t receiveTunnelID,
-				const uint8_t * nextIdent, uint32_t nextTunnelID,
-				const uint8_t * layerKey,const uint8_t * ivKey):
+				const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+				const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
@@ -104,8 +105,8 @@ namespace tunnel
 	};
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
-		const uint8_t * nextIdent, uint32_t nextTunnelID,
-		const uint8_t * layerKey,const uint8_t * ivKey,
+		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
 		bool isGateway, bool isEndpoint);
 }
 }

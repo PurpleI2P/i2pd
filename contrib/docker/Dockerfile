@@ -60,8 +60,8 @@ RUN apk update \
 RUN apk --no-cache add boost-filesystem boost-system boost-program_options boost-date_time boost-thread boost-iostreams openssl miniupnpc musl-utils libstdc++
 
 # 3. Copy preconfigured config file and entrypoint
-COPY i2pd-docker.conf "$I2PD_HOME/i2pd.conf"
-RUN chown i2pd:nobody "$I2PD_HOME/i2pd.conf"
+COPY i2pd-docker.conf "$DATA_DIR/i2pd.conf"
+RUN chown i2pd:nobody "$DATA_DIR/i2pd.conf"
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
 

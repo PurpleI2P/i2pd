@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -74,7 +74,8 @@ namespace transport
 		public:
 
 			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router, int terminationTimeout):
-				m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout),
+				m_NumSentBytes (0), m_NumReceivedBytes (0), m_SendQueueSize (0),
+				m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout),
 				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ())
 			{
 				if (router)
@@ -100,12 +101,16 @@ namespace transport
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			size_t GetSendQueueSize () const { return m_SendQueueSize; };
 			bool IsOutgoing () const { return m_IsOutgoing; };
 
 			int GetTerminationTimeout () const { return m_TerminationTimeout; };
 			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
-			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };
+			{
+				return ts >= m_LastActivityTimestamp + GetTerminationTimeout () ||
+					ts + GetTerminationTimeout () < m_LastActivityTimestamp;
+			};
 
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
@@ -114,12 +119,12 @@ namespace transport
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			virtual bool IsEstablished () const = 0;
-			
+
 		protected:
 
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			mutable std::mutex m_RemoteIdentityMutex;
-			size_t m_NumSentBytes, m_NumReceivedBytes;
+			size_t m_NumSentBytes, m_NumReceivedBytes, m_SendQueueSize;
 			bool m_IsOutgoing;
 			int m_TerminationTimeout;
 			uint64_t m_LastActivityTimestamp;

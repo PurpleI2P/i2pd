@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,11 +18,11 @@ namespace log {
 	/**
 	 * @brief Maps our loglevel to their symbolic name
 	 */
-	static const char * g_LogLevelStr[eNumLogLevels] =
+	static const char *g_LogLevelStr[eNumLogLevels] =
 	{
 		"none",  // eLogNone
 		"error", // eLogError
-		"warn",  // eLogWarn
+		"warn",  // eLogWarning
 		"info",  // eLogInfo
 		"debug"  // eLogDebug
 	};
@@ -35,12 +35,12 @@ namespace log {
 	static const char *LogMsgColors[] = { "", "", "", "", "", "" };
 #else /* UNIX */
 	static const char *LogMsgColors[] = {
-		[eLogNone]      = "\033[0m",    /* reset */
-		[eLogError]     = "\033[1;31m", /* red */
-		[eLogWarning]   = "\033[1;33m", /* yellow */
-		[eLogInfo]      = "\033[1;36m", /* cyan */
-		[eLogDebug]     = "\033[1;34m", /* blue */
-		[eNumLogLevels] = "\033[0m",    /* reset */
+		"\033[1;32m", /* none:    green */
+		"\033[1;31m", /* error:   red */
+		"\033[1;33m", /* warning: yellow */
+		"\033[1;36m", /* info:    cyan */
+		"\033[1;34m", /* debug:   blue */
+		"\033[0m"     /* reset */
 	};
 #endif
 
@@ -126,7 +126,7 @@ namespace log {
 		if      (level == "none")  { m_MinLevel = eLogNone; }
 		else if (level == "error") { m_MinLevel = eLogError; }
 		else if (level == "warn")  { m_MinLevel = eLogWarning; }
-		else if (level == "info")  { m_MinLevel = eLogInfo;  }
+		else if (level == "info")  { m_MinLevel = eLogInfo; }
 		else if (level == "debug") { m_MinLevel = eLogDebug; }
 		else {
 			LogPrint(eLogError, "Log: Unknown loglevel: ", level);

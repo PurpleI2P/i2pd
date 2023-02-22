@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2022-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -22,7 +22,7 @@ namespace transport
 		RunnableServiceWithWork ("SSU2"), m_ReceiveService ("SSU2r"),
 		m_SocketV4 (m_ReceiveService.GetService ()), m_SocketV6 (m_ReceiveService.GetService ()),
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
-		m_TerminationTimer (GetService ()), m_ResendTimer (GetService ()),
+		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_IsThroughProxy (false)
 	{
@@ -109,6 +109,7 @@ namespace transport
 				m_ReceiveService.Start ();
 			}
 			ScheduleTermination ();
+			ScheduleCleanup ();
 			ScheduleResend (false);
 		}
 	}
@@ -118,6 +119,7 @@ namespace transport
 		if (IsRunning ())
 		{
 			m_TerminationTimer.cancel ();
+			m_CleanupTimer.cancel ();
 			m_ResendTimer.cancel ();
 			m_IntroducersUpdateTimer.cancel ();
 			m_IntroducersUpdateTimerV6.cancel ();
@@ -173,7 +175,7 @@ namespace transport
 				mtu = i2p::util::net::GetMTU (localAddress);
 				if (mtu > maxMTU) mtu = maxMTU;
 			}
-			else 
+			else
 				if (mtu > (int)SSU2_MAX_PACKET_SIZE) mtu = SSU2_MAX_PACKET_SIZE;
 			if (mtu < (int)SSU2_MIN_PACKET_SIZE) mtu = SSU2_MIN_PACKET_SIZE;
 			i2p::context.SetMTU (mtu, false);
@@ -210,6 +212,8 @@ namespace transport
 		boost::asio::ip::udp::socket& socket = localEndpoint.address ().is_v6 () ? m_SocketV6 : m_SocketV4;
 		try
 		{
+			if (socket.is_open ())
+				socket.close ();
 			socket.open (localEndpoint.protocol ());
 			if (localEndpoint.address ().is_v6 ())
 				socket.set_option (boost::asio::ip::v6_only (true));
@@ -807,6 +811,22 @@ namespace transport
 					it++;
 			}
 
+			ScheduleTermination ();
+		}
+	}
+
+	void SSU2Server::ScheduleCleanup ()
+	{
+		m_CleanupTimer.expires_from_now (boost::posix_time::seconds(SSU2_CLEANUP_INTERVAL));
+		m_CleanupTimer.async_wait (std::bind (&SSU2Server::HandleCleanupTimer,
+			this, std::placeholders::_1));
+	}
+
+	void SSU2Server::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
 			{
 				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
@@ -833,7 +853,9 @@ namespace transport
 
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
-			ScheduleTermination ();
+			m_IncompleteMessagesPool.CleanUp ();
+			m_FragmentsPool.CleanUp ();
+			ScheduleCleanup ();
 		}
 	}
 
@@ -876,7 +898,7 @@ namespace transport
 			{
 				// token expired
 				m_OutgoingTokens.erase (it);
-				return 0; 
+				return 0;
 			}
 			return it->second.first;
 		}
@@ -1210,9 +1232,9 @@ namespace transport
 	{
 		if (!m_ProxyEndpoint) return;
 		m_UDPAssociateSocket.reset (new boost::asio::ip::tcp::socket (m_ReceiveService.GetService ()));
-		m_UDPAssociateSocket->async_connect (*m_ProxyEndpoint, 
+		m_UDPAssociateSocket->async_connect (*m_ProxyEndpoint,
 		    [this] (const boost::system::error_code& ecode)
-			{                                    
+			{
 				if (ecode)
 				{
 					LogPrint (eLogError, "SSU2: Can't connect to proxy ", *m_ProxyEndpoint, " ", ecode.message ());
@@ -1227,7 +1249,7 @@ namespace transport
 	void SSU2Server::HandshakeWithProxy ()
 	{
 		if (!m_UDPAssociateSocket) return;
-		m_UDPRequestHeader[0] = SOCKS5_VER; 
+		m_UDPRequestHeader[0] = SOCKS5_VER;
 		m_UDPRequestHeader[1] = 1; // 1 method
 		m_UDPRequestHeader[2] = 0; // no authentication
 		boost::asio::async_write (*m_UDPAssociateSocket, boost::asio::buffer (m_UDPRequestHeader, 3), boost::asio::transfer_all(),
@@ -1274,8 +1296,8 @@ namespace transport
 	void SSU2Server::SendUDPAssociateRequest ()
 	{
 		if (!m_UDPAssociateSocket) return;
-		m_UDPRequestHeader[0] = SOCKS5_VER; 
-		m_UDPRequestHeader[1] = SOCKS5_CMD_UDP_ASSOCIATE; 
+		m_UDPRequestHeader[0] = SOCKS5_VER;
+		m_UDPRequestHeader[1] = SOCKS5_CMD_UDP_ASSOCIATE;
 		m_UDPRequestHeader[2] = 0; // RSV
 		m_UDPRequestHeader[3] = SOCKS5_ATYP_IPV4; // TODO: implement ipv6 proxy
 		memset (m_UDPRequestHeader + 4, 0, 6); // address and port all zeros
@@ -1374,7 +1396,7 @@ namespace transport
 					LogPrint(eLogInfo, "SSU2: Reconnecting to proxy");
 					ConnectToProxy ();
 				}
-			});	                                                               
+			});
 	}
 
 	bool SSU2Server::SetProxy (const std::string& address, uint16_t port)

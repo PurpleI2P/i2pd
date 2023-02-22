@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -392,7 +392,8 @@ namespace i2p
 							clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
 							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
 							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
+					if (!i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel))
+						retCode = 30;
 				}
 				else
 					retCode = 30; // always reject with bandwidth reason (30)
@@ -558,7 +559,8 @@ namespace i2p
 					return;
 				}
 				auto& noiseState = i2p::context.GetCurrentNoiseState ();
-				uint8_t replyKey[32], layerKey[32], ivKey[32];
+				uint8_t replyKey[32]; // AEAD/Chacha20/Poly1305
+				i2p::crypto::AESKey layerKey, ivKey; // AES
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelReplyKey", noiseState.m_CK);
 				memcpy (replyKey, noiseState.m_CK + 32, 32);
 				i2p::crypto::HKDF (noiseState.m_CK, nullptr, 0, "SMTunnelLayerKey", noiseState.m_CK);
@@ -589,7 +591,8 @@ namespace i2p
 						layerKey, ivKey,
 						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
 						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
+					if (!i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel))
+						retCode = 30;
 				}
 
 				// encrypt reply

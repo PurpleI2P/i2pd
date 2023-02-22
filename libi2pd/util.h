@@ -224,6 +224,7 @@ namespace util
 		bool IsLocalAddress (const boost::asio::ip::address& addr);
 		bool IsInReservedRange (const boost::asio::ip::address& host);
 		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);
+		bool IsPortInReservedRange (const uint16_t port) noexcept;
 	}
 }
 }

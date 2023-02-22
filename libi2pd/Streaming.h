@@ -186,7 +186,7 @@ namespace stream
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
 			size_t Receive (uint8_t * buf, size_t len, int timeout);
-			
+
 			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
 
 			/** only call close from destination thread, use Stream::AsyncClose for other threads */
@@ -280,7 +280,7 @@ namespace stream
 			void AcceptOnce (const Acceptor& acceptor);
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 			std::shared_ptr<Stream> AcceptStream (int timeout = 0); // sync
-			
+
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };

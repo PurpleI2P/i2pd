@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,6 +30,7 @@ namespace tunnel
 	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
 	const int TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY = 16;
 	const int TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY = 16;
+	const int TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS = 2;
 
 	class Tunnel;
 	class InboundTunnel;
@@ -53,12 +54,9 @@ namespace tunnel
 		virtual bool SelectPeers(Path & peers, int hops, bool isInbound) = 0;
 	};
 
-
-	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
-	bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
-
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
+		typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>, bool)> SelectHopFunc;
 		public:
 
 			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
@@ -115,6 +113,7 @@ namespace tunnel
 
 			// for overriding tunnel peer selection
 			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const;
+			bool StandardSelectPeers(Path & path, int numHops, bool inbound, SelectHopFunc nextHop);
 
 		private:
 

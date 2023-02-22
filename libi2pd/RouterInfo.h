@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -60,13 +60,25 @@ namespace data
 	{
 		public:
 
+			enum SupportedTransportsIdx
+			{
+				eNTCP2V4Idx = 0,
+				eNTCP2V6Idx,
+				eSSU2V4Idx,
+				eSSU2V6Idx,
+				eNTCP2V6MeshIdx,
+				eNumTransports
+			};
+
+#define TransportBit(tr) e##tr = (1 << e##tr##Idx)
+
 			enum SupportedTransports
 			{
-				eNTCP2V4 = 0x01,
-				eNTCP2V6 = 0x02,
-				eSSU2V4 = 0x04,
-				eSSU2V6 = 0x08,
-				eNTCP2V6Mesh = 0x10,
+				TransportBit(NTCP2V4), // 0x01
+				TransportBit(NTCP2V6), // 0x02
+				TransportBit(SSU2V4),  // 0x04
+				TransportBit(SSU2V6),  // 0x08
+				TransportBit(NTCP2V6Mesh), // 0x10
 				eAllTransports = 0xFF
 			};
 			typedef uint8_t CompatibleTransports;
@@ -160,7 +172,7 @@ namespace data
 					Buffer (const uint8_t * buf, size_t len);
 			};
 
-			typedef std::vector<std::shared_ptr<Address> > Addresses;
+			typedef std::array<std::shared_ptr<Address>, eNumTransports> Addresses;
 
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (const RouterInfo& ) = default;
@@ -177,8 +189,8 @@ namespace data
 			virtual void SetProperty (const std::string& key, const std::string& value) {};
 			virtual void ClearProperties () {};
 			boost::shared_ptr<Addresses> GetAddresses () const; // should be called for local RI only, otherwise must return shared_ptr
-			std::shared_ptr<const Address> GetNTCP2AddressWithStaticKey (const uint8_t * key) const;
-			std::shared_ptr<const Address> GetSSU2AddressWithStaticKey (const uint8_t * key, bool isV6) const;
+			std::shared_ptr<const Address> GetNTCP2V4Address () const;
+			std::shared_ptr<const Address> GetNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V4Address () const;
 			std::shared_ptr<const Address> GetPublishedNTCP2V6Address () const;
 			std::shared_ptr<const Address> GetYggdrasilAddress () const;
@@ -186,11 +198,14 @@ namespace data
 			std::shared_ptr<const Address> GetSSU2V6Address () const;
 			std::shared_ptr<const Address> GetSSU2Address (bool v4) const;
 
+			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,int port, uint8_t caps); // non published
 			void AddNTCP2Address (const uint8_t * staticKey, const uint8_t * iv,
-				const boost::asio::ip::address& host = boost::asio::ip::address(), int port = 0, uint8_t caps = 0);
-			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, uint8_t caps = 0); // non published
+				const boost::asio::ip::address& host, int port); // published
+			void RemoveNTCP2Address (bool v4);
+			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey, int port, uint8_t caps); // non published
 			void AddSSU2Address (const uint8_t * staticKey, const uint8_t * introKey,
 				const boost::asio::ip::address& host, int port); // published
+			void RemoveSSU2Address (bool v4);
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
@@ -227,7 +242,7 @@ namespace data
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
-			const uint8_t * GetBuffer () const { return m_Buffer->data (); };
+			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			size_t GetBufferLen () const { return m_BufferLen; };
 
@@ -236,9 +251,9 @@ namespace data
 			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
-			void SaveProfile () { if (m_Profile) m_Profile->Save (GetIdentHash ()); };
+			void DropProfile () { m_Profile = nullptr; };
 
-			void Update (const uint8_t * buf, size_t len);
+			bool Update (const uint8_t * buf, size_t len);
 			void DeleteBuffer () { m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
@@ -273,6 +288,8 @@ namespace data
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
+			virtual std::shared_ptr<Address> NewAddress () const;
+			virtual boost::shared_ptr<Addresses> NewAddresses () const;
 
 		private:
 
@@ -312,6 +329,8 @@ namespace data
 			void UpdateCapsProperty ();
 			void WriteString (const std::string& str, std::ostream& s) const;
 			std::shared_ptr<Buffer> NewBuffer () const override;
+			std::shared_ptr<Address> NewAddress () const override;
+			boost::shared_ptr<Addresses> NewAddresses () const override;
 
 		private:
 

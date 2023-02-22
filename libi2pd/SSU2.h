@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022, The PurpleI2P Project
+* Copyright (c) 2022-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,7 +18,8 @@ namespace i2p
 {
 namespace transport
 {
-	const int SSU2_TERMINATION_CHECK_TIMEOUT = 30; // in seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT = 25; // in seconds
+	const int SSU2_CLEANUP_INTERVAL = 72; // in seconds
 	const int SSU2_RESEND_CHECK_TIMEOUT = 400; // in milliseconds
 	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 100; // in milliseconds
 	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 10; // in milliseconds
@@ -30,7 +31,7 @@ namespace transport
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
-	
+
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
 		struct Packet
@@ -97,6 +98,8 @@ namespace transport
 			void RescheduleIntroducersUpdateTimerV6 ();
 
 			i2p::util::MemoryPool<SSU2SentPacket>& GetSentPacketsPool () { return m_SentPacketsPool; };
+			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
+			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
 
 		private:
 
@@ -110,6 +113,9 @@ namespace transport
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
+
+			void ScheduleCleanup ();
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 
 			void ScheduleResend (bool more);
 			void HandleResendTimer (const boost::system::error_code& ecode);
@@ -132,7 +138,7 @@ namespace transport
 			void SendUDPAssociateRequest ();
 			void ReadUDPAssociateReply ();
 			void ReadUDPAssociateSocket (); // handle if closed by peer
-		
+
 		private:
 
 			ReceiveService m_ReceiveService;
@@ -147,7 +153,9 @@ namespace transport
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
-			boost::asio::deadline_timer m_TerminationTimer, m_ResendTimer,
+			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
+			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
+			boost::asio::deadline_timer m_TerminationTimer, m_CleanupTimer, m_ResendTimer,
 				m_IntroducersUpdateTimer, m_IntroducersUpdateTimerV6;
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
@@ -160,7 +168,7 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
 			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
 			std::unique_ptr<boost::asio::deadline_timer> m_ProxyConnectRetryTimer;
-		
+
 		public:
 
 			// for HTTP/I2PControl

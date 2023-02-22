@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -63,6 +63,7 @@ namespace transport
 
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds
+	const size_t PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE = 25;
 	struct Peer
 	{
 		int numAttempts;
@@ -71,17 +72,28 @@ namespace transport
 		uint64_t creationTime, nextRouterInfoUpdateTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
+		bool isHighBandwidth;
 
 		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
 			numAttempts (0), router (r), creationTime (ts),
-			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL)
+			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
+			isHighBandwidth (false)
 		{
+			if (router)
+				isHighBandwidth = router->IsHighBandwidth ();
 		}
 
 		void Done ()
 		{
 			for (auto& it: sessions)
 				it->Done ();
+		}
+
+		void SetRouter (std::shared_ptr<const i2p::data::RouterInfo> r)
+		{
+			router = r;
+			if (router)
+				isHighBandwidth = router->IsHighBandwidth ();
 		}
 	};
 
@@ -130,7 +142,7 @@ namespace transport
 			bool IsBandwidthExceeded () const;
 			bool IsTransitBandwidthExceeded () const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
-			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
+			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth) const;
 
 			/** get a trusted first hop for restricted routes */
 			std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
@@ -161,6 +173,9 @@ namespace transport
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
 
 			void DetectExternalIP ();
+
+			template<typename Filter>
+				std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (Filter filter) const;
 
 		private:
 
