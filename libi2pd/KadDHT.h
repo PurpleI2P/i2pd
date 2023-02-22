@@ -13,7 +13,8 @@
 #include <memory>
 #include <vector>
 #include <sstream>
-#include "Identity.h"
+#include <functional>
+#include "RouterInfo.h"
 
 // Kademlia DHT (XOR distance)
 
@@ -24,42 +25,48 @@ namespace data
 	struct DHTNode
 	{
 		DHTNode * zero, * one;
-		IdentHash * hash;
+		std::shared_ptr<RouterInfo> router;
 
 		DHTNode ();
 		~DHTNode (); 
 
-		bool IsEmpty () const { return !zero && !one && !hash; };
-		void MoveHashUp (bool fromOne);
+		bool IsEmpty () const { return !zero && !one && !router; };
+		void MoveRouterUp (bool fromOne);
 	};
 
 	class DHTTable 
 	{
+		typedef std::function<bool (const std::shared_ptr<RouterInfo>&)> Filter;
 		public:
 
 			DHTTable ();
 			~DHTTable ();
 
-			DHTNode * Insert (const IdentHash& h);
+			void Insert (const std::shared_ptr<RouterInfo>& r);
 			bool Remove (const IdentHash& h);
-			IdentHash * FindClosest (const IdentHash& h);
-			std::vector<IdentHash *> FindClosest (const IdentHash& h, size_t num);
+			std::shared_ptr<RouterInfo> FindClosest (const IdentHash& h, const Filter& filter = nullptr);
+			std::vector<std::shared_ptr<RouterInfo> > FindClosest (const IdentHash& h, size_t num, const Filter& filter = nullptr);
 			
 			void Print (std::stringstream& s);	
 			size_t GetSize () const { return m_Size; };
+			void Clear ();
+			void Cleanup (Filter filter);
 			
 		private:
 
-			DHTNode * Insert (IdentHash * h, DHTNode * root, int level); // recursive
+			void Insert (const std::shared_ptr<RouterInfo>& r, DHTNode * root, int level); // recursive
 			bool Remove (const IdentHash& h, DHTNode * root, int level);
-			IdentHash * FindClosest (const IdentHash& h, DHTNode * root, int level);
-			void FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<IdentHash *>& hashes);
+			std::shared_ptr<RouterInfo> FindClosest (const IdentHash& h, DHTNode * root, int level);
+			void FindClosest (const IdentHash& h, size_t num, DHTNode * root, int level, std::vector<std::shared_ptr<RouterInfo> >& hashes);
+			void Cleanup (DHTNode * root);
 			void Print (std::stringstream& s, DHTNode * root, int level);	
 			
 		private:
 
 			DHTNode * m_Root;
 			size_t m_Size;
+			// transient
+			Filter m_Filter;
 	};	
 }
 }

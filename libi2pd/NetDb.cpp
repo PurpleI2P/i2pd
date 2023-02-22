@@ -1355,15 +1355,12 @@ namespace data
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
-		const std::set<IdentHash>& excluded, bool closeThanUsOnly) const
+		const std::set<IdentHash>& excluded) const
 	{
 		std::shared_ptr<const RouterInfo> r;
 		XORMetric minMetric;
 		IdentHash destKey = CreateRoutingKey (destination);
-		if (closeThanUsOnly)
-			minMetric = destKey ^ i2p::context.GetIdentHash ();
-		else
-			minMetric.SetMax ();
+		minMetric.SetMax ();
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (const auto& it: m_Floodfills)
 		{
