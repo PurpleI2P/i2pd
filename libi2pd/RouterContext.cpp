@@ -26,7 +26,7 @@ namespace i2p
 {
 	RouterContext context;
 
-	RouterContext::RouterContext ():
+	RouterContext::RouterContext (): RunnableServiceWithWork ("Router"),
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID)
@@ -47,6 +47,16 @@ namespace i2p
 		m_ECIESSession = std::make_shared<i2p::garlic::RouterIncomingRatchetSession>(m_InitialNoiseState);
 	}
 
+	void RouterContext::Start ()
+	{
+		StartIOService ();
+	}
+	
+	void RouterContext::Stop ()
+	{
+		StopIOService ();
+	}	
+	
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
@@ -1087,12 +1097,6 @@ namespace i2p
 
 	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
 	{
-		if (typeID == eI2NPGarlic)
-		{
-			// TODO: implement
-			LogPrint (eLogWarning, "Router: garlic message in garlic clove. Dropped");
-			return false;
-		}
 		auto msg = CreateI2NPMessage (typeID, payload, len, msgID);
 		if (!msg) return false;
 		i2p::HandleI2NPMessage (msg);
@@ -1101,7 +1105,11 @@ namespace i2p
 
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		std::unique_lock<std::mutex> l(m_GarlicMutex);
+		GetIOService ().post (std::bind (&RouterContext::PostGarlicMessage, this, msg));
+	}
+
+	void RouterContext::PostGarlicMessage (std::shared_ptr<I2NPMessage> msg)
+	{
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t len = bufbe32toh (buf);
 		if (len > msg->GetLength ())
@@ -1118,23 +1126,27 @@ namespace i2p
 			else
 				LogPrint (eLogError, "Router: Session is not set for ECIES router");
 		}
-	}
-
+	}	
+	
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (i2p::data::netdb.GetPublishReplyToken () == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
 			i2p::data::netdb.PostI2NPMsg (msg);
 		else
 		{
-			std::unique_lock<std::mutex> l(m_GarlicMutex);
-			i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
+			GetIOService ().post ([msg, this]()
+			{                      
+				this->i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
+			});
 		}
 	}
 
 	void RouterContext::CleanupDestination ()
 	{
-		std::unique_lock<std::mutex> l(m_GarlicMutex);
-		i2p::garlic::GarlicDestination::CleanupExpiredTags ();
+		GetIOService ().post ([this]()
+		{  
+			this->i2p::garlic::GarlicDestination::CleanupExpiredTags ();
+		});	
 	}
 
 	uint32_t RouterContext::GetUptime () const

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -67,11 +67,15 @@ namespace api
 		i2p::transport::transports.Start();
 		LogPrint(eLogInfo, "API: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
+		LogPrint(eLogInfo, "API: Starting Router context");
+		i2p::context.Start();
 	}
 
 	void StopI2P ()
 	{
 		LogPrint(eLogInfo, "API: Shutting down");
+		LogPrint(eLogInfo, "API: Stopping Router context");
+		i2p::context.Stop();
 		LogPrint(eLogInfo, "API: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
 		LogPrint(eLogInfo, "API: Stopping Transports");

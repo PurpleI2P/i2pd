@@ -334,10 +334,12 @@ namespace util
 			}
 		}
 
-
 		LogPrint(eLogInfo, "Daemon: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
 
+		LogPrint(eLogInfo, "Daemon: Starting Router context");
+		i2p::context.Start();			
+		
 		LogPrint(eLogInfo, "Daemon: Starting Client");
 		i2p::client::context.Start ();
 
@@ -366,6 +368,8 @@ namespace util
 		LogPrint(eLogInfo, "Daemon: Shutting down");
 		LogPrint(eLogInfo, "Daemon: Stopping Client");
 		i2p::client::context.Stop();
+		LogPrint(eLogInfo, "Daemon: Stopping Router context");
+		i2p::context.Stop();
 		LogPrint(eLogInfo, "Daemon: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
 

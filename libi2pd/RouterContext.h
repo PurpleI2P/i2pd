@@ -12,12 +12,12 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
-#include <mutex>
 #include <chrono>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -52,7 +52,7 @@ namespace garlic
 		eRouterErrorNoDescriptors = 5
 	};
 
-	class RouterContext: public i2p::garlic::GarlicDestination
+	class RouterContext: public i2p::garlic::GarlicDestination, private i2p::util::RunnableServiceWithWork
 	{
 		private:
 
@@ -74,7 +74,9 @@ namespace garlic
 
 			RouterContext ();
 			void Init ();
-
+			void Start ();
+			void Stop ();
+			
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			i2p::data::LocalRouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
@@ -183,7 +185,8 @@ namespace garlic
 			void PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address, int port, bool publish) const;
 
 			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
-
+			void PostGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			
 		private:
 
 			i2p::data::LocalRouterInfo m_RouterInfo;
@@ -198,7 +201,6 @@ namespace garlic
 			RouterStatus m_Status, m_StatusV6;
 			RouterError m_Error, m_ErrorV6;
 			int m_NetID;
-			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<SSU2PrivateKeys> m_SSU2Keys;
 			std::unique_ptr<i2p::crypto::X25519Keys> m_NTCP2StaticKeys, m_SSU2StaticKeys;
