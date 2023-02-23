@@ -18,8 +18,8 @@ jobs:
       with:
         docker-image: debian:${{ matrix.dist }}-slim
         buildpackage-opts: --build=binary --no-sign
-        before-build-hook: debchange -v "$(git describe --tags)-${{ matrix.dist }}" -b -M --distribution ${{ matrix.dist }} "CI build"
-        extra-build-deps: devscripts
+        before-build-hook: debchange --controlmaint -v "$(git describe --tags)~${{ matrix.dist }}" -b --distribution ${{ matrix.dist }} "CI build"
+        extra-build-deps: devscripts git
     - uses: actions/upload-artifact@v3
       with:
         name: i2pd_${{ matrix.dist }}
