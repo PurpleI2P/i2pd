@@ -20,6 +20,8 @@
 #include "Log.h"
 #include "Family.h"
 #include "ECIESX25519AEADRatchetSession.h"
+#include "Transports.h"
+#include "Tunnel.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -29,7 +31,8 @@ namespace i2p
 	RouterContext::RouterContext (): RunnableServiceWithWork ("Router"),
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
-		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID)
+		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID),
+		m_PublishTimer (GetIOService ()), m_PublishReplyToken (0), m_IsHiddenMode (false)
 	{
 	}
 
@@ -49,11 +52,19 @@ namespace i2p
 
 	void RouterContext::Start ()
 	{
-		StartIOService ();
+		if (!IsRunning ())
+		{
+			StartIOService ();
+			if (!m_IsHiddenMode)
+				ScheduleInitialPublish ();
+		}	
 	}
 	
 	void RouterContext::Stop ()
 	{
+		if (IsRunning ())
+			m_PublishTimer.cancel ();
+			
 		StopIOService ();
 	}	
 	
@@ -1130,17 +1141,22 @@ namespace i2p
 	
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		if (i2p::data::netdb.GetPublishReplyToken () == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
-			i2p::data::netdb.PostI2NPMsg (msg);
-		else
-		{
-			GetIOService ().post ([msg, this]()
-			{                      
-				this->i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
-			});
-		}
+		GetIOService ().post (std::bind (&RouterContext::PostDeliveryStatusMessage, this, msg));
 	}
 
+	void RouterContext::PostDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
+	{
+		if (m_PublishReplyToken == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
+		{
+			LogPrint (eLogInfo, "Router: Publishing confirmed. reply token=", m_PublishReplyToken);
+			m_PublishExcluded.clear ();
+			m_PublishReplyToken = 0;
+			SchedulePublish ();
+		}	
+		else	              
+			i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
+	}
+	
 	void RouterContext::CleanupDestination ()
 	{
 		GetIOService ().post ([this]()
@@ -1221,4 +1237,94 @@ namespace i2p
 		}
 		return *m_SSU2StaticKeys;
 	}
+
+	void RouterContext::ScheduleInitialPublish ()
+	{
+		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_INITIAL_PUBLISH_INTERVAL));
+		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishTimer,
+			this, std::placeholders::_1));
+	}	
+	
+	void RouterContext::SchedulePublish ()
+	{
+		m_PublishTimer.cancel ();
+		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_PUBLISH_INTERVAL + 
+			rand () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
+		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishTimer,
+			this, std::placeholders::_1));
+	}	
+
+	void RouterContext::HandlePublishTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			m_PublishExcluded.clear ();
+			m_PublishReplyToken = 0;
+			if (IsFloodfill ())
+			{	
+				UpdateStats (); // for floodfill
+				m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
+			}	
+			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
+			Publish ();	
+			SchedulePublishResend ();
+		}	
+	}	
+	
+	void RouterContext::Publish ()
+	{		
+		if (!i2p::transport::transports.IsOnline ()) return;
+		if (m_PublishExcluded.size () > ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS)
+		{
+			LogPrint (eLogError, "Router: Couldn't publish our RouterInfo to ", ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS, " closest routers. Try again");
+			m_PublishExcluded.clear ();
+			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
+		}
+
+		auto floodfill = i2p::data::netdb.GetClosestFloodfill (i2p::context.GetIdentHash (), m_PublishExcluded);
+		if (floodfill)
+		{
+			uint32_t replyToken;
+			RAND_bytes ((uint8_t *)&replyToken, 4);
+			LogPrint (eLogInfo, "Router: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
+			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
+				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
+				// send directly
+				i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
+			else
+			{
+				// otherwise through exploratory
+				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
+				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
+				if (inbound && outbound)
+					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0,
+						CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound));
+				else
+					LogPrint (eLogInfo, "Router: Can't publish our RouterInfo. No tunnles. Try again in ", ROUTER_INFO_CONFIRMATION_TIMEOUT, " seconds");
+			}
+			m_PublishExcluded.insert (floodfill->GetIdentHash ());
+			m_PublishReplyToken = replyToken;
+		}
+		else
+			LogPrint (eLogInfo, "Router: Can't find floodfill to publish our RouterInfo");
+	}
+
+	void RouterContext::SchedulePublishResend ()
+	{
+		m_PublishTimer.cancel ();
+		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
+		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishResendTimer,
+			this, std::placeholders::_1));
+	}
+	
+	void RouterContext::HandlePublishResendTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			i2p::context.UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
+			Publish ();	
+			SchedulePublishResend ();
+		}	
+	}	
 }

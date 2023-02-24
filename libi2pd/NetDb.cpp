@@ -36,7 +36,7 @@ namespace data
 {
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true), m_HiddenMode(false)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true)
 	{
 	}
 
@@ -106,7 +106,7 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint64_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint64_t lastSave = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
 		int16_t profilesCleanupVariance = 0;
 
@@ -131,9 +131,6 @@ namespace data
 							break;
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
-							break;
-							case eI2NPDeliveryStatus:
-								HandleDeliveryStatusMsg (msg);
 							break;
 							case eI2NPDummyMsg:
 								// plain RouterInfo from NTCP2 with flags for now
@@ -184,33 +181,6 @@ namespace data
 					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
 				}
 
-				// publish
-				if (!m_HiddenMode && i2p::transport::transports.IsOnline ())
-				{
-					bool publish = false;
-					if (m_PublishReplyToken)
-					{
-						// next publishing attempt
-						if (ts - lastPublish >= NETDB_PUBLISH_CONFIRMATION_TIMEOUT) publish = true;
-					}
-					else if (i2p::context.GetLastUpdateTime () > lastPublish ||
-						ts - lastPublish >= NETDB_PUBLISH_INTERVAL ||
-					    ts + NETDB_PUBLISH_INTERVAL < lastPublish)
-					{
-						// new publish
-						m_PublishExcluded.clear ();
-						if (i2p::context.IsFloodfill ())
-							m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // do publish to ourselves
-						publish = true;
-					}
-					if (publish) // update timestamp and publish
-					{
-						i2p::context.UpdateTimestamp (ts);
-						Publish ();
-						lastPublish = ts;
-					}
-				}
-
 				if (ts - lastExploratory >= 30 || ts + 30 < lastExploratory) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
@@ -224,7 +194,7 @@ namespace data
 						if (numRouters < 1) numRouters = 1;
 						if (numRouters > 9) numRouters = 9;
 						m_Requests.ManageRequests ();
-						if(!m_HiddenMode)
+						if(!i2p::context.IsHidden ())
 							Explore (numRouters);
 						lastExploratory = ts;
 					}
@@ -235,12 +205,6 @@ namespace data
 				LogPrint (eLogError, "NetDb: Runtime exception: ", ex.what ());
 			}
 		}
-	}
-
-	void NetDb::SetHidden(bool hide)
-	{
-		// TODO: remove reachable addresses from router info
-		m_HiddenMode = hide;
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::AddRouterInfo (const uint8_t * buf, int len)
@@ -1125,16 +1089,6 @@ namespace data
 		}
 	}
 
-	void NetDb::HandleDeliveryStatusMsg (std::shared_ptr<const I2NPMessage> msg)
-	{
-		if (m_PublishReplyToken == bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET))
-		{
-			LogPrint (eLogInfo, "NetDb: Publishing confirmed. reply token=", m_PublishReplyToken);
-			m_PublishExcluded.clear ();
-			m_PublishReplyToken = 0;
-		}
-	}
-
 	void NetDb::Explore (int numDestinations)
 	{
 		// new requests
@@ -1183,41 +1137,6 @@ namespace data
 		}
 		if (throughTunnels && msgs.size () > 0)
 			outbound->SendTunnelDataMsg (msgs);
-	}
-
-	void NetDb::Publish ()
-	{
-		i2p::context.UpdateStats (); // for floodfill
-
-		if (m_PublishExcluded.size () > NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS)
-		{
-			LogPrint (eLogError, "NetDb: Couldn't publish our RouterInfo to ", NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS, " closest routers. Try again");
-			m_PublishExcluded.clear ();
-		}
-
-		auto floodfill = GetClosestFloodfill (i2p::context.GetIdentHash (), m_PublishExcluded);
-		if (floodfill)
-		{
-			uint32_t replyToken;
-			RAND_bytes ((uint8_t *)&replyToken, 4);
-			LogPrint (eLogInfo, "NetDb: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
-			m_PublishExcluded.insert (floodfill->GetIdentHash ());
-			m_PublishReplyToken = replyToken;
-			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
-				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
-				// send directly
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
-			else
-			{
-				// otherwise through exploratory
-				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
-				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
-				if (inbound && outbound)
-					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0,
-						CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound));
-			}
-		}
 	}
 
 	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)
