@@ -269,7 +269,7 @@ namespace util
 		if (hidden)
 		{
 			LogPrint(eLogInfo, "Daemon: Hidden mode enabled");
-			i2p::data::netdb.SetHidden(true);
+			i2p::context.SetHidden(true);
 		}
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
