@@ -197,6 +197,7 @@ namespace garlic
 			void PostDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
 			void ScheduleInitialPublish ();
+			void HandleInitialPublishTimer (const boost::system::error_code& ecode);
 			void SchedulePublish ();
 			void HandlePublishTimer (const boost::system::error_code& ecode);
 			void Publish ();

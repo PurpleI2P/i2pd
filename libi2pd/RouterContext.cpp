@@ -1241,8 +1241,21 @@ namespace i2p
 	void RouterContext::ScheduleInitialPublish ()
 	{
 		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_INITIAL_PUBLISH_INTERVAL));
-		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishTimer,
+		m_PublishTimer.async_wait (std::bind (&RouterContext::HandleInitialPublishTimer,
 			this, std::placeholders::_1));
+	}	
+
+	void RouterContext::HandleInitialPublishTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
+				HandlePublishTimer (ecode);
+			else if (!ecode)
+				ScheduleInitialPublish ();
+			else
+				LogPrint (eLogError, "Router: initial publish timer error ", ecode.message ());
+		}	
 	}	
 	
 	void RouterContext::SchedulePublish ()
@@ -1267,7 +1280,10 @@ namespace i2p
 			}	
 			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 			Publish ();	
-			SchedulePublishResend ();
+			if (!ecode)
+				SchedulePublishResend ();
+			else
+				LogPrint (eLogError, "Router: publish timer error ", ecode.message ());
 		}	
 	}	
 	
@@ -1324,7 +1340,10 @@ namespace i2p
 		{
 			i2p::context.UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 			Publish ();	
-			SchedulePublishResend ();
+			if (!ecode)
+				SchedulePublishResend ();
+			else
+				LogPrint (eLogError, "Router: publish resend timer error ", ecode.message ());
 		}	
 	}	
 }
