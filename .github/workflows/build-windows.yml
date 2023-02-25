@@ -10,21 +10,23 @@ jobs:
   build:
     name: Building using ${{ matrix.arch }} toolchain
     runs-on: windows-latest
+
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include: [
           { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt },
           { msystem: MINGW64, arch: x86_64, arch_short: x64 },
           { msystem: MINGW32, arch: i686, arch_short: x86 }
         ]
+
     steps:
     - uses: actions/checkout@v2
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: ${{ matrix.msystem }}
-        install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        install: base-devel git mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
     - name: Build application
       run: |
@@ -35,9 +37,14 @@ jobs:
       with:
         name: i2pd-${{ matrix.arch_short }}.exe
         path: i2pd.exe
+
   build-xp:
     name: Building for Windows XP
     runs-on: windows-latest
+
+    strategy:
+        fail-fast: false
+
     steps:
     - uses: actions/checkout@v2
     - name: Setup MSYS2
