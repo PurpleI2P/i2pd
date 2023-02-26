@@ -2,7 +2,12 @@
 /CMakeFiles/
 /Testing/
 /tests/
+/.ninja_*
+/arch.c
+/build.ninja
 /i2pd
+/i2pd.exe
+/i2pd.exe.debug
 /libi2pd.a
 /libi2pdclient.a
 /libi2pdlang.a
@@ -12,7 +17,7 @@
 /CPackSourceConfig.cmake
 /CTestTestfile.cmake
 /install_manifest.txt
-/arch.c
+/Makefile
 # windows build script
 i2pd*.zip
 build*.log

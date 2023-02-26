@@ -1,6 +1,7 @@
 CXX = clang++
-CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++11 -DMAC_OSX
+CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++11
 INCFLAGS = -I/usr/local/include
+DEFINES := -DMAC_OSX
 LDFLAGS := -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDFLAGS += -Wl,-dead_strip
 LDFLAGS += -Wl,-dead_strip_dylibs
@@ -14,7 +15,7 @@ endif
 
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -ldl
-	CXXFLAGS += -DUSE_UPNP
+	DEFINES += -DUSE_UPNP
 	ifeq ($(USE_STATIC),yes)
 		LDLIBS += /usr/local/lib/libminiupnpc.a
 	else
@@ -23,7 +24,8 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -D__AES__ -maes
+	CXXFLAGS += -maes
+	DEFINES += -D__AES__
 else
 	CXXFLAGS += -msse
 endif

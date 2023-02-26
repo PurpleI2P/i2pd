@@ -71,12 +71,14 @@ else # not supported
 	$(error Not supported platform)
 endif
 
+INCFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR)
+DEFINES += -DOPENSSL_SUPPRESS_DEPRECATED
+NEEDED_CXXFLAGS += -MMD -MP
+
 ifeq ($(USE_GIT_VERSION),yes)
 	GIT_VERSION := $(shell git describe --tags)
-	NEEDED_CXXFLAGS += -DGITVER=\"$(GIT_VERSION)\"
+	DEFINES += -DGITVER=$(GIT_VERSION)
 endif
-
-NEEDED_CXXFLAGS += -MMD -MP -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR) -I$(LANG_SRC_DIR) -DOPENSSL_SUPPRESS_DEPRECATED
 
 LIB_OBJS        += $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 LIB_CLIENT_OBJS += $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
@@ -110,13 +112,13 @@ wrapper: api_client $(SHLIB_WRAP) $(ARLIB_WRAP)
 ## custom FLAGS to work at build-time.
 
 obj/%.o: %.cpp | mk_obj_dir
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(DEFINES) $(INCFLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
-	$(CXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
+	$(CXX) -o $@ $(DEFINES) $(LDFLAGS) $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)

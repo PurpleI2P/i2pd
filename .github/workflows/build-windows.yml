@@ -40,6 +40,41 @@ jobs:
         name: i2pd-${{ matrix.arch_short }}.exe
         path: i2pd.exe
 
+  build-cmake:
+    name: Building using ${{ matrix.arch }} toolchain using CMake
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt },
+          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64 },
+          { msystem: MINGW32, arch: i686, arch_short: x86 }
+        ]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: base-devel git mingw-w64-${{ matrix.arch }}-cmake mingw-w64-${{ matrix.arch }}-ninja mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        update: true
+    - name: Build application
+      run: |
+        cd build
+        cmake -DWITH_GIT_VERSION=ON -DWITH_STATIC=ON -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+        cmake --build .
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: i2pd-cmake-${{ matrix.arch_short }}.exe
+        path: i2pd.exe
+
   build-xp:
     name: Building for Windows XP
     runs-on: windows-latest

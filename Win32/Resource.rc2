@@ -2,7 +2,7 @@
 #error this file is not editable by Microsoft Visual C++
 #endif //APSTUDIO_INVOKED
 
-#include "../libi2pd/version.h"
+#include "version.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION I2PD_VERSION_MAJOR,I2PD_VERSION_MINOR,I2PD_VERSION_MICRO,I2PD_VERSION_PATCH
@@ -25,7 +25,7 @@ BEGIN
             VALUE "FileDescription", "C++ I2P daemon"
             VALUE "FileVersion", I2PD_VERSION
             VALUE "InternalName", CODENAME
-            VALUE "LegalCopyright", "Copyright (C) 2013-2022, The PurpleI2P Project"
+            VALUE "LegalCopyright", "Copyright (C) 2013-2023, The PurpleI2P Project"
             VALUE "OriginalFilename", "i2pd"
             VALUE "ProductName", "Purple I2P"
             VALUE "ProductVersion", I2P_VERSION
