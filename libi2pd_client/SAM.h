@@ -233,7 +233,7 @@ namespace client
 	{
 		public:
 
-			SAMBridge (const std::string& address, int port, bool singleThread);
+			SAMBridge (const std::string& address, int portTCP, int portUDP, bool singleThread);
 			~SAMBridge ();
 
 			void Start ();

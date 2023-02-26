@@ -149,7 +149,8 @@ namespace config {
 		sam.add_options()
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
-			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen TCP port")
+			("sam.portudp", value<uint16_t>()->default_value(0),              "SAM listen UDP port")
 			("sam.singlethread", value<bool>()->default_value(true),          "Sessions run in the SAM bridge's thread")
 		;
 

@@ -1244,10 +1244,10 @@ namespace client
 		// TODO: implement datagrams
 	}
 
-	SAMBridge::SAMBridge (const std::string& address, int port, bool singleThread):
+	SAMBridge::SAMBridge (const std::string& address, int portTCP, int portUDP, bool singleThread):
 		RunnableService ("SAM"), m_IsSingleThread (singleThread),
-		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
-		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), port-1), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
+		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), portTCP)),
+		m_DatagramEndpoint (boost::asio::ip::address::from_string(address), (!portUDP) ? portTCP-1 : portUDP), m_DatagramSocket (GetIOService (), m_DatagramEndpoint),
 		m_SignatureTypes
 		{
 			{"DSA_SHA1", i2p::data::SIGNING_KEY_TYPE_DSA_SHA1},
