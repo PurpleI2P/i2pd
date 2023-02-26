@@ -28,11 +28,11 @@ namespace i2p
 {
 	RouterContext context;
 
-	RouterContext::RouterContext (): RunnableServiceWithWork ("Router"),
+	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
 		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID),
-		m_PublishTimer (GetIOService ()), m_PublishReplyToken (0), m_IsHiddenMode (false)
+		m_PublishReplyToken (0), m_IsHiddenMode (false)
 	{
 	}
 
@@ -52,20 +52,26 @@ namespace i2p
 
 	void RouterContext::Start ()
 	{
-		if (!IsRunning ())
-		{
-			StartIOService ();
+		if (!m_Service)
+		{	
+			m_Service.reset (new RouterService);
+			m_Service->Start ();
 			if (!m_IsHiddenMode)
+			{
+				m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
 				ScheduleInitialPublish ();
+			}	
 		}	
 	}
 	
 	void RouterContext::Stop ()
 	{
-		if (IsRunning ())
-			m_PublishTimer.cancel ();
-			
-		StopIOService ();
+		if (m_Service)
+		{	
+			if (m_PublishTimer)
+				m_PublishTimer->cancel ();	
+			m_Service->Stop ();
+		}	
 	}	
 	
 	void RouterContext::CreateNewRouter ()
@@ -1116,7 +1122,10 @@ namespace i2p
 
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		GetIOService ().post (std::bind (&RouterContext::PostGarlicMessage, this, msg));
+		if (m_Service)
+			m_Service->GetService ().post (std::bind (&RouterContext::PostGarlicMessage, this, msg));
+		else
+			LogPrint (eLogError, "Router: service is NULL");
 	}
 
 	void RouterContext::PostGarlicMessage (std::shared_ptr<I2NPMessage> msg)
@@ -1141,7 +1150,10 @@ namespace i2p
 	
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		GetIOService ().post (std::bind (&RouterContext::PostDeliveryStatusMessage, this, msg));
+		if (m_Service)
+			m_Service->GetService ().post (std::bind (&RouterContext::PostDeliveryStatusMessage, this, msg));
+		else
+			LogPrint (eLogError, "Router: service is NULL");
 	}
 
 	void RouterContext::PostDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
@@ -1159,10 +1171,13 @@ namespace i2p
 	
 	void RouterContext::CleanupDestination ()
 	{
-		GetIOService ().post ([this]()
-		{  
-			this->i2p::garlic::GarlicDestination::CleanupExpiredTags ();
-		});	
+		if (m_Service)
+			m_Service->GetService ().post ([this]()
+			{  
+				this->i2p::garlic::GarlicDestination::CleanupExpiredTags ();
+			});	
+		else
+			LogPrint (eLogError, "Router: service is NULL");
 	}
 
 	uint32_t RouterContext::GetUptime () const
@@ -1240,9 +1255,14 @@ namespace i2p
 
 	void RouterContext::ScheduleInitialPublish ()
 	{
-		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_INITIAL_PUBLISH_INTERVAL));
-		m_PublishTimer.async_wait (std::bind (&RouterContext::HandleInitialPublishTimer,
-			this, std::placeholders::_1));
+		if (m_PublishTimer)
+		{	
+			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_INITIAL_PUBLISH_INTERVAL));
+			m_PublishTimer->async_wait (std::bind (&RouterContext::HandleInitialPublishTimer,
+				this, std::placeholders::_1));
+		}	
+		else
+			LogPrint (eLogError, "Router: Publish timer is NULL");
 	}	
 
 	void RouterContext::HandleInitialPublishTimer (const boost::system::error_code& ecode)
@@ -1251,20 +1271,22 @@ namespace i2p
 		{	
 			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
 				HandlePublishTimer (ecode);
-			else if (!ecode)
-				ScheduleInitialPublish ();
-			else
-				LogPrint (eLogError, "Router: initial publish timer error ", ecode.message ());
+			ScheduleInitialPublish ();
 		}	
 	}	
 	
 	void RouterContext::SchedulePublish ()
 	{
-		m_PublishTimer.cancel ();
-		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_PUBLISH_INTERVAL + 
-			rand () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
-		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishTimer,
-			this, std::placeholders::_1));
+		if (m_PublishTimer)
+		{	
+			m_PublishTimer->cancel ();
+			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_PUBLISH_INTERVAL + 
+				rand () % ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE));
+			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishTimer,
+				this, std::placeholders::_1));
+		}	
+		else
+			LogPrint (eLogError, "Router: Publish timer is NULL");
 	}	
 
 	void RouterContext::HandlePublishTimer (const boost::system::error_code& ecode)
@@ -1280,10 +1302,7 @@ namespace i2p
 			}	
 			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 			Publish ();	
-			if (!ecode)
-				SchedulePublishResend ();
-			else
-				LogPrint (eLogError, "Router: publish timer error ", ecode.message ());
+			SchedulePublishResend ();
 		}	
 	}	
 	
@@ -1328,10 +1347,15 @@ namespace i2p
 
 	void RouterContext::SchedulePublishResend ()
 	{
-		m_PublishTimer.cancel ();
-		m_PublishTimer.expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
-		m_PublishTimer.async_wait (std::bind (&RouterContext::HandlePublishResendTimer,
-			this, std::placeholders::_1));
+		if (m_PublishTimer)
+		{
+			m_PublishTimer->cancel ();
+			m_PublishTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONFIRMATION_TIMEOUT));
+			m_PublishTimer->async_wait (std::bind (&RouterContext::HandlePublishResendTimer,
+				this, std::placeholders::_1));
+		}	
+		else
+			LogPrint (eLogError, "Router: Publish timer is NULL");
 	}
 	
 	void RouterContext::HandlePublishResendTimer (const boost::system::error_code& ecode)
@@ -1340,10 +1364,7 @@ namespace i2p
 		{
 			i2p::context.UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 			Publish ();	
-			if (!ecode)
-				SchedulePublishResend ();
-			else
-				LogPrint (eLogError, "Router: publish resend timer error ", ecode.message ());
+			SchedulePublishResend ();
 		}	
 	}	
 }

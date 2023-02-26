@@ -58,7 +58,7 @@ namespace garlic
 		eRouterErrorNoDescriptors = 5
 	};
 
-	class RouterContext: public i2p::garlic::GarlicDestination, private i2p::util::RunnableServiceWithWork
+	class RouterContext: public i2p::garlic::GarlicDestination
 	{
 		private:
 
@@ -76,6 +76,16 @@ namespace garlic
 				uint8_t intro[32];
 			};
 
+			class RouterService: public i2p::util::RunnableServiceWithWork
+			{
+				public:
+
+					RouterService (): RunnableServiceWithWork ("Router") {};
+					boost::asio::io_service& GetService () { return GetIOService (); };
+					void Start () { StartIOService (); };
+					void Stop () { StopIOService (); };
+			};
+			
 		public:
 
 			RouterContext ();
@@ -224,7 +234,8 @@ namespace garlic
 			// for ECIESx25519
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 			// publish
-			boost::asio::deadline_timer m_PublishTimer;
+			std::unique_ptr<RouterService> m_Service;
+			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer;
 			std::set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
