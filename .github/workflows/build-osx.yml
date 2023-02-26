@@ -6,16 +6,21 @@ jobs:
   build:
     name: With USE_UPNP=${{ matrix.with_upnp }}
     runs-on: macOS-latest
+
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['yes', 'no']
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: install packages
       run: |
         find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
         brew update
         brew install boost miniupnpc openssl@1.1
+
     - name: build application
       run: make HOMEBREW=1 USE_UPNP=${{ matrix.with_upnp }} PREFIX=$GITHUB_WORKSPACE/output -j3

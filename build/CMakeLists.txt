@@ -1,14 +1,32 @@
 cmake_minimum_required(VERSION 3.7)
-cmake_policy(VERSION 3.7)
-project("i2pd")
+
+if(${CMAKE_VERSION} VERSION_LESS 3.22)
+  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+else()
+  cmake_policy(VERSION 3.22)
+endif()
 
 # for debugging
 #set(CMAKE_VERBOSE_MAKEFILE on)
 
-# Win32 build with cmake is not supported
-if(WIN32 OR MSVC OR MSYS OR MINGW)
-  message(SEND_ERROR "cmake build for windows is not supported. Please use MSYS2 with makefiles in project root.")
-endif()
+# paths
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
+set(CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+
+set(LIBI2PD_SRC_DIR ${CMAKE_SOURCE_DIR}/libi2pd)
+set(LIBI2PD_CLIENT_SRC_DIR ${CMAKE_SOURCE_DIR}/libi2pd_client)
+set(LANG_SRC_DIR ${CMAKE_SOURCE_DIR}/i18n)
+set(DAEMON_SRC_DIR ${CMAKE_SOURCE_DIR}/daemon)
+
+include(Version)
+set_version("${LIBI2PD_SRC_DIR}/version.h" PROJECT_VERSION)
+
+project(
+  i2pd
+  VERSION ${PROJECT_VERSION}
+  HOMEPAGE_URL "https://i2pd.website/"
+  LANGUAGES CXX
+)
 
 # configurable options
 option(WITH_AESNI           "Use AES-NI instructions set"             ON)
@@ -26,27 +44,16 @@ IF(BUILD_TESTING)
   enable_testing()
 ENDIF()
 
-# paths
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
-set(CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
-
 # Handle paths nicely
 include(GNUInstallDirs)
 
-# architecture
+# Architecture
 include(TargetArch)
 target_architecture(ARCHITECTURE)
 
-set(LIBI2PD_SRC_DIR ../libi2pd)
-set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
-set(LANG_SRC_DIR ../i18n)
-set(DAEMON_SRC_DIR ../daemon)
+include(CheckAtomic)
 
 include_directories(${LIBI2PD_SRC_DIR})
-include_directories(${LIBI2PD_CLIENT_SRC_DIR})
-include_directories(${LANG_SRC_DIR})
-include_directories(${DAEMON_SRC_DIR})
-
 FILE(GLOB LIBI2PD_SRC ${LIBI2PD_SRC_DIR}/*.cpp)
 add_library(libi2pd ${LIBI2PD_SRC})
 set_target_properties(libi2pd PROPERTIES PREFIX "")
@@ -57,11 +64,9 @@ if(WITH_LIBRARY)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT Libraries)
-# TODO Make libi2pd available to 3rd party projects via CMake as imported target
-# FIXME This pulls stdafx
-# install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
+include_directories(${LIBI2PD_CLIENT_SRC_DIR})
 FILE(GLOB CLIENT_SRC ${LIBI2PD_CLIENT_SRC_DIR}/*.cpp)
 add_library(libi2pdclient ${CLIENT_SRC})
 set_target_properties(libi2pdclient PROPERTIES PREFIX "")
@@ -74,6 +79,7 @@ if(WITH_LIBRARY)
     COMPONENT Libraries)
 endif()
 
+include_directories(${LANG_SRC_DIR})
 FILE(GLOB LANG_SRC ${LANG_SRC_DIR}/*.cpp)
 add_library(libi2pdlang ${LANG_SRC})
 set_target_properties(libi2pdlang PROPERTIES PREFIX "")
@@ -86,6 +92,8 @@ if(WITH_LIBRARY)
     COMPONENT Libraries)
 endif()
 
+include_directories(${DAEMON_SRC_DIR})
+
 set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/Daemon.cpp"
   "${DAEMON_SRC_DIR}/HTTPServer.cpp"
@@ -95,6 +103,22 @@ set(DAEMON_SRC
   "${DAEMON_SRC_DIR}/UPnP.cpp"
 )
 
+if(WIN32)
+  set(WIN32_SRC_DIR ${CMAKE_SOURCE_DIR}/Win32)
+  include_directories(${WIN32_SRC_DIR})
+
+  list(APPEND DAEMON_SRC
+    "${WIN32_SRC_DIR}/DaemonWin32.cpp"
+    "${WIN32_SRC_DIR}/Win32App.cpp"
+    "${WIN32_SRC_DIR}/Win32Service.cpp"
+    "${WIN32_SRC_DIR}/Win32NetState.cpp"
+  )
+
+  file(GLOB WIN32_RC ${WIN32_SRC_DIR}/*.rc)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN32_APP -DWIN32_LEAN_AND_MEAN")
+
+endif()
+
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
 endif()
@@ -102,14 +126,14 @@ endif()
 if(WITH_GIT_VERSION)
   include(GetGitRevisionDescription)
   git_describe(GIT_VERSION)
-  add_definitions(-DGITVER="${GIT_VERSION}")
+  add_definitions(-DGITVER=${GIT_VERSION})
 endif()
 
 if(APPLE)
   add_definitions(-DMAC_OSX)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter -Wno-uninitialized")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
 # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
 # Multiple definitions of __stack_chk_fail(libssp & libc)
@@ -118,8 +142,10 @@ set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from
 
 # check for c++17 & c++11 support
 include(CheckCXXCompilerFlag)
+
 CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
+
 if(CXX17_SUPPORTED)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 elseif(CXX11_SUPPORTED)
@@ -188,10 +214,23 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 if(WITH_STATIC)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
   set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_STATIC_RUNTIME ON)
+  set(Boost_USE_STATIC_RUNTIME OFF)
+
   set(OPENSSL_USE_STATIC_LIBS ON)
+
+  set(ZLIB_USE_STATIC_LIBS ON)
+  set(ZLIB_NAMES libz zlibstatic zlibstat zlib z)
+
+  if(WITH_UPNP)
+    set(MINIUPNPC_USE_STATIC_LIBS ON)
+    add_definitions(-DMINIUPNP_STATICLIB)
+  endif()
+
   set(BUILD_SHARED_LIBS OFF)
+
   if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     # set(CMAKE_THREAD_LIBS_INIT "gcc_eh -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
@@ -236,8 +275,6 @@ endif()
 # load includes
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 
-include(CheckAtomic)
-
 # show summary
 message(STATUS "---------------------------------------")
 message(STATUS "Build type         : ${CMAKE_BUILD_TYPE}")
@@ -259,7 +296,15 @@ message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
 
 if(WITH_BINARY)
-  add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
+  if(WIN32)
+    add_executable("${PROJECT_NAME}" WIN32 ${DAEMON_SRC} ${WIN32_RC})
+  else()
+    add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
+  endif()
+
+  if (WIN32)
+    set(MINGW_EXTRA "wsock32" "ws2_32" "iphlpapi")
+  endif ()
 
   if(WITH_STATIC)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
@@ -275,11 +320,18 @@ if(WITH_BINARY)
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
 
+  # synchronization library is incompatible with Windows 7
+  if(WIN32)
+    get_target_property(BOOSTFSLIBS Boost::filesystem INTERFACE_LINK_LIBRARIES)
+    list(REMOVE_ITEM BOOSTFSLIBS synchronization)
+	set_target_properties(Boost::filesystem PROPERTIES INTERFACE_LINK_LIBRARIES "${BOOSTFSLIBS}")
+  endif()
+
   if(WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
 
-  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries("${PROJECT_NAME}" libi2pd libi2pdclient libi2pdlang ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto ${MINIUPNPC_LIBRARY} ZLIB::ZLIB Threads::Threads ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
