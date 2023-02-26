@@ -6,12 +6,16 @@ jobs:
   build-make:
     name: Make with USE_UPNP=${{ matrix.with_upnp }}
     runs-on: ubuntu-18.04
+
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['yes', 'no']
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: install packages
       run: |
         sudo add-apt-repository ppa:mhier/libboost-latest
@@ -19,20 +23,26 @@ jobs:
         sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
     - name: build application
       run: make USE_UPNP=${{ matrix.with_upnp }} -j3
+
   build-cmake:
     name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
     runs-on: ubuntu-18.04
+
     strategy:
       fail-fast: true
       matrix:
         with_upnp: ['ON', 'OFF']
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: install packages
       run: |
         sudo add-apt-repository ppa:mhier/libboost-latest
         sudo apt-get update
         sudo apt-get install build-essential cmake libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+
     - name: build application
       run: |
         cd build
