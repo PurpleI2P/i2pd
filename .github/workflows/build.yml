@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build-make:
     name: Make with USE_UPNP=${{ matrix.with_upnp }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: true
@@ -27,7 +27,7 @@ jobs:
 
   build-cmake:
     name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: true
