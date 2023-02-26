@@ -18,9 +18,8 @@ jobs:
 
     - name: install packages
       run: |
-        sudo add-apt-repository ppa:mhier/libboost-latest
         sudo apt-get update
-        sudo apt-get install build-essential libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+        sudo apt-get install build-essential libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
 
     - name: build application
       run: make USE_UPNP=${{ matrix.with_upnp }} -j3
@@ -40,9 +39,8 @@ jobs:
 
     - name: install packages
       run: |
-        sudo add-apt-repository ppa:mhier/libboost-latest
         sudo apt-get update
-        sudo apt-get install build-essential cmake libboost1.74-dev libminiupnpc-dev libssl-dev zlib1g-dev
+        sudo apt-get install build-essential cmake libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
 
     - name: build application
       run: |
