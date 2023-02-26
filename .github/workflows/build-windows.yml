@@ -73,7 +73,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: i2pd-cmake-${{ matrix.arch_short }}.exe
-        path: i2pd.exe
+        path: build/i2pd.exe
 
   build-xp:
     name: Building for Windows XP
