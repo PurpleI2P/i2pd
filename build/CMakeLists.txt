@@ -320,6 +320,13 @@ if(WITH_BINARY)
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
 
+  # synchronization library is incompatible with Windows 7
+  if(WIN32)
+    get_target_property(BOOSTFSLIBS Boost::filesystem INTERFACE_LINK_LIBRARIES)
+    list(REMOVE_ITEM BOOSTFSLIBS synchronization)
+	set_target_properties(Boost::filesystem PROPERTIES INTERFACE_LINK_LIBRARIES "${BOOSTFSLIBS}")
+  endif()
+
   if(WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()

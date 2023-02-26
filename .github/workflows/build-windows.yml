@@ -31,6 +31,9 @@ jobs:
         msystem: ${{ matrix.msystem }}
         install: base-devel git mingw-w64-${{ matrix.arch }}-${{ matrix.compiler }} mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
+    - name: Install additional clang packages
+      if: ${{ matrix.msystem == 'CLANG64' }}
+      run: pacman --noconfirm -S mingw-w64-${{ matrix.arch }}-gcc-compat
     - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
