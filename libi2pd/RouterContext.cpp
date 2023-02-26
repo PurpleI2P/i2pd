@@ -1271,7 +1271,8 @@ namespace i2p
 		{	
 			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
 				HandlePublishTimer (ecode);
-			ScheduleInitialPublish ();
+			else
+				ScheduleInitialPublish ();
 		}	
 	}	
 	
