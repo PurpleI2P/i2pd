@@ -200,13 +200,11 @@ namespace net
 		pCurrAddresses = pAddresses;
 		while(pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
-
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if(pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv4 address, this is not supported");
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			while(pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
@@ -264,12 +262,11 @@ namespace net
 		pCurrAddresses = pAddresses;
 		while (pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if (pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv6 address, this is not supported");
 
-			for (int i = 0; pUnicast != nullptr; ++i)
+			while (pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
@@ -533,10 +530,9 @@ namespace net
 		pCurrAddresses = pAddresses;
 		while(pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			while(pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
