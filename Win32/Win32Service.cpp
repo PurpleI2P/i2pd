@@ -21,7 +21,7 @@ BOOL I2PService::isService()
 	HWINSTA hWinStation = GetProcessWindowStation();
 	if (hWinStation != NULL)
 	{
-		USEROBJECTFLAGS uof = { 0 };
+		USEROBJECTFLAGS uof = { FALSE, FALSE, 0 };
 		if (GetUserObjectInformation(hWinStation, UOI_FLAGS, &uof, sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0))
 		{
 			bIsService = TRUE;
