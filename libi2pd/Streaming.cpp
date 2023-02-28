@@ -384,7 +384,7 @@ namespace stream
 			memset (p.buf, 0, 22); // minimal header all zeroes
 			memcpy (p.buf + 4, packet->buf, 4); // but receiveStreamID is the sendStreamID from the ping
 			htobe16buf (p.buf + 18, PACKET_FLAG_ECHO); // and echo flag
-			ssize_t payloadLen = packet->len - (packet->GetPayload () - packet->buf);
+			auto payloadLen = int(packet->len) - (packet->GetPayload () - packet->buf);
 			if (payloadLen > 0)
 				memcpy (p.buf + 22, packet->GetPayload (), payloadLen);
 			else
