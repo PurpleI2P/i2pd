@@ -29,7 +29,11 @@ void SubscribeToEvents()
 		if (SUCCEEDED(Result))
 		{
 			VARIANT_BOOL IsConnect = VARIANT_FALSE;
+#if defined(_MSC_VER)
+			Result = pNetworkListManager->get_IsConnectedToInternet(&IsConnect);
+#else
 			Result = pNetworkListManager->IsConnectedToInternet(&IsConnect);
+#endif
 			if (SUCCEEDED(Result)) {
 				i2p::transport::transports.SetOnline (true);
 				LogPrint(eLogInfo, "NetState: Current state: ", IsConnect == VARIANT_TRUE ? "connected" : "disconnected");

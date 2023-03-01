@@ -53,6 +53,12 @@ target_architecture(ARCHITECTURE)
 
 include(CheckAtomic)
 
+if(WITH_STATIC)
+  if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+endif()
+
 include_directories(${LIBI2PD_SRC_DIR})
 FILE(GLOB LIBI2PD_SRC ${LIBI2PD_SRC_DIR}/*.cpp)
 add_library(libi2pd ${LIBI2PD_SRC})
@@ -133,25 +139,30 @@ if(APPLE)
   add_definitions(-DMAC_OSX)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter -Wno-uninitialized")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
-# TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
-# Multiple definitions of __stack_chk_fail(libssp & libc)
-set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
-set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from above
-
-# check for c++17 & c++11 support
-include(CheckCXXCompilerFlag)
-
-CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
-
-if(CXX17_SUPPORTED)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-elseif(CXX11_SUPPORTED)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+if(MSVC)
+  add_definitions(-DWINVER=0x0600)
+  add_definitions(-D_WIN32_WINNT=0x0600)
 else()
-  message(SEND_ERROR "C++17 nor C++11 standard not seems to be supported by compiler. Too old version?")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter -Wno-uninitialized")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
+  # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
+  # Multiple definitions of __stack_chk_fail(libssp & libc)
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
+  set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from above
+
+  # check for c++17 & c++11 support
+  include(CheckCXXCompilerFlag)
+
+  CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
+  CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
+
+  if(CXX17_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+  elseif(CXX11_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  else()
+    message(SEND_ERROR "C++17 nor C++11 standard not seems to be supported by compiler. Too old version?")
+  endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -217,7 +228,11 @@ if(WITH_STATIC)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 
   set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_STATIC_RUNTIME OFF)
+  if(MSVC)
+    set(Boost_USE_STATIC_RUNTIME ON)
+  else()
+    set(Boost_USE_STATIC_RUNTIME OFF)
+  endif()
 
   set(OPENSSL_USE_STATIC_LIBS ON)
 
@@ -244,7 +259,7 @@ else()
   add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif()
 
-find_package(Boost COMPONENTS system filesystem program_options date_time REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options date_time OPTIONAL_COMPONENTS atomic)
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
 endif()
@@ -307,7 +322,9 @@ if(WITH_BINARY)
   endif ()
 
   if(WITH_STATIC)
-    set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
+    if(NOT MSVC)
+      set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static")
+    endif()
   endif()
 
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -324,7 +341,7 @@ if(WITH_BINARY)
   if(WIN32)
     get_target_property(BOOSTFSLIBS Boost::filesystem INTERFACE_LINK_LIBRARIES)
     list(REMOVE_ITEM BOOSTFSLIBS synchronization)
-	set_target_properties(Boost::filesystem PROPERTIES INTERFACE_LINK_LIBRARIES "${BOOSTFSLIBS}")
+    set_target_properties(Boost::filesystem PROPERTIES INTERFACE_LINK_LIBRARIES "${BOOSTFSLIBS}")
   endif()
 
   if(WITH_STATIC)
