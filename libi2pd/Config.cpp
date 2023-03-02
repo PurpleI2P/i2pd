@@ -215,7 +215,6 @@ namespace config {
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
-				"https://i2p.novg.net/,"
 				"https://banana.incognet.io/,"
 				"https://reseed-pl.i2pd.xyz/,"
 				"https://www2.mk16.de/"
