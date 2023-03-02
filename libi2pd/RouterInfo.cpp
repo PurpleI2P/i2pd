@@ -336,11 +336,7 @@ namespace data
 						address->ssu->introducers.resize (index + 1);
 					}
 					Introducer& introducer = address->ssu->introducers.at (index);
-					if (!strcmp (key, "ihost"))
-						introducer.isH = false; // SSU1
-					else if (!strcmp (key, "iport"))
-						introducer.isH = false; // SSU1
-					else if (!strcmp (key, "itag"))
+					if (!strcmp (key, "itag"))
 					{
 						try
 						{
@@ -352,10 +348,7 @@ namespace data
 						}
 					}
 					else if (!strcmp (key, "ih"))
-					{
 						Base64ToByteStream (value, strlen (value), introducer.iH, 32);
-						introducer.isH = true;
-					}
 					else if (!strcmp (key, "iexp"))
 					{
 						try
@@ -411,7 +404,7 @@ namespace data
 					int numValid = 0;
 					for (auto& it: address->ssu->introducers)
 					{
-						if (it.iTag && ts < it.iExp && it.isH)
+						if (it.iTag && ts < it.iExp)
 							numValid++;
 						else
 							it.iTag = 0;

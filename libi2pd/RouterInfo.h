@@ -110,11 +110,10 @@ namespace data
 
 			struct Introducer
 			{
-				Introducer (): iTag (0), iExp (0), isH (false) {};
+				Introducer (): iTag (0), iExp (0) {};
 				IdentHash iH;
 				uint32_t iTag;
 				uint32_t iExp;
-				bool isH; // TODO: remove later
 			};
 
 			struct SSUExt

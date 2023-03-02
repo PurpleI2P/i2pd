@@ -1017,7 +1017,6 @@ namespace transport
 				i2p::data::RouterInfo::Introducer introducer;
 				introducer.iTag = it->GetRelayTag ();
 				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
-				introducer.isH = true;
 				introducer.iExp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
 				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
 				if (i2p::context.AddSSU2Introducer (introducer, v4))
