@@ -49,10 +49,10 @@ namespace transport
 	const float SSU2_kAPPA = 1.8;
 	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
 	const int SSU2_MAX_NUM_ACNT = 255; // acnt, acks or nacks
-	const int SSU2_MAX_NUM_ACK_PACKETS = 510; // 2*255 ack + nack
+	const int SSU2_MAX_NUM_ACK_PACKETS = 511; // ackthrough + acnt + 1 range
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
-	const int SSU2_SEND_DATETIME_NUM_PACKETS = 250;
+	const int SSU2_SEND_DATETIME_NUM_PACKETS = 256;
 
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
