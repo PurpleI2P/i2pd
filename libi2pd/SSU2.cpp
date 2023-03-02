@@ -918,7 +918,7 @@ namespace transport
 		}
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		m_IncomingTokens.emplace (ep, std::make_pair (token, ts + SSU2_TOKEN_EXPIRATION_TIMEOUT));
+		m_IncomingTokens.emplace (ep, std::make_pair (token, uint32_t(ts + SSU2_TOKEN_EXPIRATION_TIMEOUT)));
 		return token;
 	}
 
@@ -927,7 +927,7 @@ namespace transport
 		m_IncomingTokens.erase (ep); // drop previous
 		uint64_t token;
 		RAND_bytes ((uint8_t *)&token, 8);
-		auto ret = std::make_pair (token, i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT);
+		auto ret = std::make_pair (token, uint32_t(i2p::util::GetSecondsSinceEpoch () + SSU2_NEXT_TOKEN_EXPIRATION_TIMEOUT));
 		m_IncomingTokens.emplace (ep, ret);
 		return ret;
 	}

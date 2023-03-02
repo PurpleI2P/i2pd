@@ -51,8 +51,8 @@ namespace stream
 			{
 				// partially
 				rem = len - offset;
-				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), len - offset);
-				nextBuffer->offset += (len - offset);
+				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
+				nextBuffer->offset += rem;
 				offset = len; // break
 			}
 		}
