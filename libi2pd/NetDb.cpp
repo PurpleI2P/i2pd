@@ -431,8 +431,8 @@ namespace data
 		}
 
 		// try reseeding from floodfill first if specified
-		std::string riPath;
-		if(i2p::config::GetOption("reseed.floodfill", riPath))
+		std::string riPath; i2p::config::GetOption("reseed.floodfill", riPath);
+		if (!riPath.empty())
 		{
 			auto ri = std::make_shared<RouterInfo>(riPath);
 			if (ri->IsFloodfill())
