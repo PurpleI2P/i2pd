@@ -19,21 +19,18 @@ class CNetworkListManagerEvent : public INetworkListManagerEvents
 {
 public:
 	CNetworkListManagerEvent() : m_ref(1) { }
-	~CNetworkListManagerEvent() { }
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
 	{
-		HRESULT Result = S_OK;
 		if (IsEqualIID(riid, IID_IUnknown)) {
 			*ppvObject = (IUnknown *)this;
 		} else if (IsEqualIID(riid ,IID_INetworkListManagerEvents)) {
 			*ppvObject = (INetworkListManagerEvents *)this;
 		} else {
-			Result = E_NOINTERFACE;
+			return E_NOINTERFACE;
 		}
 		AddRef();
-		
-		return Result;
+		return S_OK;
 	}
 
 	ULONG STDMETHODCALLTYPE AddRef()

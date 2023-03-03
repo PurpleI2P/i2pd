@@ -45,6 +45,7 @@ namespace i2p
 namespace win32
 {
 	DWORD g_GracefulShutdownEndtime = 0;
+	bool g_isWinService;
 
 	static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
 	{
@@ -416,8 +417,9 @@ namespace win32
 		return DefWindowProc( hWnd, uMsg, wParam, lParam);
 	}
 
-	bool StartWin32App ()
+	bool StartWin32App (bool isWinService)
 	{
+		g_isWinService = isWinService;
 		if (FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd")))
 		{
 			MessageBox(NULL, TEXT("I2Pd is running already"), TEXT("Warning"), MB_OK);
@@ -446,7 +448,9 @@ namespace win32
 			MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
 			return false;
 		}
-		SubscribeToEvents();
+		// COM requires message loop to work, which is not implemented in service mode
+		if (!g_isWinService)
+			SubscribeToEvents();
 		return true;
 	}
 
@@ -466,7 +470,8 @@ namespace win32
 		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
 		if (hWnd)
 			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_EXIT, 0), 0);
-		// UnSubscribeFromEvents(); // TODO: understand why unsubscribing crashes app
+		else if(!g_isWinService)
+			UnSubscribeFromEvents();
 		UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
 	}
 
