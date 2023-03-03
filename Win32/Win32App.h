@@ -17,7 +17,7 @@ namespace win32
 {
 	extern DWORD g_GracefulShutdownEndtime;
 
-	bool StartWin32App ();
+	bool StartWin32App (bool isWinService);
 	void StopWin32App ();
 	int RunWin32App ();
 	bool GracefulShutdown ();

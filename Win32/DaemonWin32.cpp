@@ -64,7 +64,7 @@ namespace util
 		//setlocale(LC_ALL, "Russian");
 		setlocale(LC_TIME, "C");
 #ifdef WIN32_APP
-		if (!i2p::win32::StartWin32App ()) return false;
+		if (!i2p::win32::StartWin32App (isDaemon)) return false;
 #endif
 		bool ret = Daemon_Singleton::start();
 		if (ret && i2p::log::Logger().GetLogType() == eLogFile)
