@@ -43,7 +43,7 @@ namespace data
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false),
 		m_SupportedTransports (0),m_ReachableTransports (0),
-		m_Caps (0), m_Version (0)
+		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = NewBuffer (); // always RouterInfo's
@@ -53,7 +53,7 @@ namespace data
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false),
 		m_SupportedTransports (0), m_ReachableTransports (0),
-		m_Caps (0), m_Version (0)
+		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
@@ -202,7 +202,7 @@ namespace data
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
 		if (!s) return;
-		m_Caps = 0;
+		m_Caps = 0; m_Congestion = eLowCongestion;
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
@@ -535,6 +535,15 @@ namespace data
 				case CAPS_FLAG_UNREACHABLE:
 					m_Caps |= Caps::eUnreachable;
 				break;
+				case CAPS_FLAG_MEDIUM_COGNESTION:
+					m_Congestion = eMediumCongestion;
+				break;
+				case CAPS_FLAG_HIGH_COGNESTION:
+					m_Congestion = eHighCongestion;
+				break;
+				case CAPS_FLAG_REJECT_ALL_COGNESTION:
+					m_Congestion = eRejectAll;
+				break;	
 				default: ;
 			}
 			cap++;
@@ -1057,6 +1066,15 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
+	bool RouterInfo::IsHighCongestion () const
+	{
+		if (m_Congestion == eLowCongestion || m_Congestion == eMediumCongestion) return false;
+		if (m_Congestion == eRejectAll) return true;
+		if (m_Congestion == eHighCongestion)
+			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_COGNESION_INTERVAL*1000LL) ? true : false;
+		return false;
+	}	
+		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
 	{
 		RefreshTimestamp ();
@@ -1108,6 +1126,20 @@ namespace data
 		if (c & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
 		if (c & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
 
+		switch (GetCongestion ())
+		{
+			case eMediumCongestion:
+				caps += CAPS_FLAG_MEDIUM_COGNESTION;
+			break;	
+			case eHighCongestion:
+				caps += CAPS_FLAG_HIGH_COGNESTION;
+			break;		
+			case eRejectAll:
+				caps += CAPS_FLAG_REJECT_ALL_COGNESTION;
+			break;	
+			default: ;	
+		};	
+		
 		SetProperty ("caps", caps);
 	}
 

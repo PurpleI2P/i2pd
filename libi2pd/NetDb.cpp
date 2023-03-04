@@ -1210,7 +1210,7 @@ namespace data
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
-					router->IsECIES ();
+					router->IsECIES () && !router->IsHighCongestion ();
 			});
 	}
 
