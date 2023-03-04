@@ -535,13 +535,13 @@ namespace data
 				case CAPS_FLAG_UNREACHABLE:
 					m_Caps |= Caps::eUnreachable;
 				break;
-				case CAPS_FLAG_MEDIUM_COGNESTION:
+				case CAPS_FLAG_MEDIUM_CONGESTION:
 					m_Congestion = eMediumCongestion;
 				break;
-				case CAPS_FLAG_HIGH_COGNESTION:
+				case CAPS_FLAG_HIGH_CONGESTION:
 					m_Congestion = eHighCongestion;
 				break;
-				case CAPS_FLAG_REJECT_ALL_COGNESTION:
+				case CAPS_FLAG_REJECT_ALL_CONGESTION:
 					m_Congestion = eRejectAll;
 				break;	
 				default: ;
@@ -1071,7 +1071,7 @@ namespace data
 		if (m_Congestion == eLowCongestion || m_Congestion == eMediumCongestion) return false;
 		if (m_Congestion == eRejectAll) return true;
 		if (m_Congestion == eHighCongestion)
-			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_COGNESION_INTERVAL*1000LL) ? true : false;
+			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESION_INTERVAL*1000LL) ? true : false;
 		return false;
 	}	
 		
@@ -1129,13 +1129,13 @@ namespace data
 		switch (GetCongestion ())
 		{
 			case eMediumCongestion:
-				caps += CAPS_FLAG_MEDIUM_COGNESTION;
+				caps += CAPS_FLAG_MEDIUM_CONGESTION;
 			break;	
 			case eHighCongestion:
-				caps += CAPS_FLAG_HIGH_COGNESTION;
+				caps += CAPS_FLAG_HIGH_CONGESTION;
 			break;		
 			case eRejectAll:
-				caps += CAPS_FLAG_REJECT_ALL_COGNESTION;
+				caps += CAPS_FLAG_REJECT_ALL_CONGESTION;
 			break;	
 			default: ;	
 		};	

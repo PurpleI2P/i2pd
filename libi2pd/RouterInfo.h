@@ -45,9 +45,9 @@ namespace data
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
 	// congesion flags
-	const char CAPS_FLAG_MEDIUM_COGNESTION = 'D';
-	const char CAPS_FLAG_HIGH_COGNESTION = 'E';
-	const char CAPS_FLAG_REJECT_ALL_COGNESTION = 'G';
+	const char CAPS_FLAG_MEDIUM_CONGESTION = 'D';
+	const char CAPS_FLAG_HIGH_CONGESTION = 'E';
+	const char CAPS_FLAG_REJECT_ALL_CONGESTION = 'G';
 	
 	const char CAPS_FLAG_V4 = '4';
 	const char CAPS_FLAG_V6 = '6';
@@ -60,7 +60,7 @@ namespace data
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
 
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
-	const int HIGH_COGNESION_INTERVAL = 15*60; // in seconds, 15 minutes
+	const int HIGH_CONGESION_INTERVAL = 15*60; // in seconds, 15 minutes
 		
 	class RouterInfo: public RoutingDestination
 	{
