@@ -23,9 +23,12 @@ ifeq ($(USE_UPNP),yes)
 	endif
 endif
 
-ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -maes
-	DEFINES += -D__AES__
-else
-	CXXFLAGS += -msse
+OSARCH = $(shell uname -p)
+
+ifneq ($(OSARCH),powerpc)
+	ifeq ($(USE_AESNI),yes)
+		CXXFLAGS += -D__AES__ -maes
+	else
+		CXXFLAGS += -msse
+	endif
 endif
