@@ -331,7 +331,7 @@ namespace tunnel
 
 	Tunnels tunnels;
 
-	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
+	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_MaxNumTransitTunnels (DEFAULT_MAX_NUM_TRANSIT_TUNNELS),
 		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal avarage
 		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
 	{
@@ -970,5 +970,14 @@ namespace tunnel
 		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
+
+	void Tunnels::SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
+	{
+		if (maxNumTransitTunnels > 0 && m_MaxNumTransitTunnels != maxNumTransitTunnels)
+		{
+			LogPrint (eLogDebug, "Tunnel: Max number of transit tunnels set to ", maxNumTransitTunnels);
+			m_MaxNumTransitTunnels = maxNumTransitTunnels;
+		}
+	}	
 }
 }

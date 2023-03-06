@@ -179,7 +179,7 @@ namespace util
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
 			transitTunnels *= 2; // double default number of transit tunnels for floodfill
-		SetMaxNumTransitTunnels (transitTunnels);
+		i2p::tunnel::tunnels.SetMaxNumTransitTunnels (transitTunnels);
 
 		/* this section also honors 'floodfill' flag, if set above */
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
