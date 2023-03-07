@@ -364,10 +364,7 @@ namespace i2p
 				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
 				uint8_t retCode = 0;
 				// replace record to reply
-				if (i2p::context.AcceptsTunnels () &&
-					!i2p::tunnel::tunnels.IsTooManyTransitTunnels () &&
-					!i2p::transport::transports.IsBandwidthExceeded () &&
-					!i2p::transport::transports.IsTransitBandwidthExceeded ())
+				if (i2p::context.AcceptsTunnels () && !i2p::context.IsHighCongestion ())
 				{
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -561,11 +558,8 @@ namespace i2p
 
 				// check if we accept this tunnel
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () ||
-					i2p::tunnel::tunnels.IsTooManyTransitTunnels () ||
-					i2p::transport::transports.IsBandwidthExceeded () ||
-					i2p::transport::transports.IsTransitBandwidthExceeded ())
-						retCode = 30;
+				if (!i2p::context.AcceptsTunnels () || i2p::context.IsHighCongestion ())
+					retCode = 30;
 				if (!retCode)
 				{
 					// create new transit tunnel

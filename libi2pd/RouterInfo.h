@@ -60,7 +60,7 @@ namespace data
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
 
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
-	const int HIGH_CONGESION_INTERVAL = 15*60; // in seconds, 15 minutes
+	const int HIGH_CONGESTION_INTERVAL = 15*60; // in seconds, 15 minutes
 		
 	class RouterInfo: public RoutingDestination
 	{
@@ -291,7 +291,8 @@ namespace data
 			void RefreshTimestamp ();
 			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
 			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
-
+			void SetCongestion (Congestion c) { m_Congestion = c; };
+		
 		private:
 
 			bool LoadFile (const std::string& fullPath);
@@ -328,9 +329,10 @@ namespace data
 		public:
 
 			LocalRouterInfo () = default;
-			LocalRouterInfo (const std::string& fullPath): RouterInfo (fullPath) {};
+			LocalRouterInfo (const std::string& fullPath);
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
+			void SetHighCongestion (bool highCongestion);
 
 			void SetProperty (const std::string& key, const std::string& value) override;
 			void DeleteProperty (const std::string& key);

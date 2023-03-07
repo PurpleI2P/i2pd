@@ -60,6 +60,8 @@ namespace i2p
 			{
 				m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
 				ScheduleInitialPublish ();
+				m_CongestionUpdateTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
+				ScheduleCongestionUpdate ();
 			}	
 		}	
 	}
@@ -70,6 +72,8 @@ namespace i2p
 		{	
 			if (m_PublishTimer)
 				m_PublishTimer->cancel ();	
+			if (m_CongestionUpdateTimer)
+				m_CongestionUpdateTimer->cancel ();
 			m_Service->Stop ();
 		}	
 	}	
@@ -1107,6 +1111,13 @@ namespace i2p
 		return i2p::tunnel::tunnels.GetExploratoryPool ();
 	}
 
+	bool RouterContext::IsHighCongestion () const
+	{
+		return i2p::tunnel::tunnels.IsTooManyTransitTunnels () ||
+			i2p::transport::transports.IsBandwidthExceeded () ||
+			i2p::transport::transports.IsTransitBandwidthExceeded ();
+	}	
+		
 	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len)));
@@ -1366,6 +1377,28 @@ namespace i2p
 			i2p::context.UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
 			Publish ();	
 			SchedulePublishResend ();
+		}	
+	}	
+
+	void RouterContext::ScheduleCongestionUpdate ()
+	{
+		if (m_CongestionUpdateTimer)
+		{	
+			m_CongestionUpdateTimer->cancel ();
+			m_CongestionUpdateTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CONGESTION_UPDATE_INTERVAL));
+			m_CongestionUpdateTimer->async_wait (std::bind (&RouterContext::HandleCongestionUpdateTimer,
+				this, std::placeholders::_1));
+		}	
+		else
+			LogPrint (eLogError, "Router: Congestion update timer is NULL");
+	}
+		
+	void RouterContext::HandleCongestionUpdateTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			m_RouterInfo.SetHighCongestion (IsHighCongestion ());
+			ScheduleCongestionUpdate ();
 		}	
 	}	
 }

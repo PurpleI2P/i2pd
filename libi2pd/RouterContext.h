@@ -37,6 +37,7 @@ namespace garlic
 	const int ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE = 105;// in seconds
 	const int ROUTER_INFO_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
+	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 12*60; // in seconds
 
 	enum RouterStatus
 	{
@@ -152,6 +153,7 @@ namespace garlic
 			void SetShareRatio (int percents); // 0 - 100
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
+			bool IsHighCongestion () const;
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
@@ -213,6 +215,8 @@ namespace garlic
 			void Publish ();
 			void SchedulePublishResend ();
 			void HandlePublishResendTimer (const boost::system::error_code& ecode);
+			void ScheduleCongestionUpdate ();
+			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -235,7 +239,7 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 			// publish
 			std::unique_ptr<RouterService> m_Service;
-			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer;
+			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer;
 			std::set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
