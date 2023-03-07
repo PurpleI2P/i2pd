@@ -339,6 +339,7 @@ namespace tunnel
 
 	Tunnels::~Tunnels ()
 	{
+		DeleteTunnelPool(m_ExploratoryPool);
 	}
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
