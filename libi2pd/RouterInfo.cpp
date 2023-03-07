@@ -1149,14 +1149,16 @@ namespace data
 		SetProperty ("caps", caps);
 	}
 
-	void LocalRouterInfo::SetHighCongestion (bool highCongestion)
+	bool LocalRouterInfo::SetHighCongestion (bool highCongestion)
 	{
 		Congestion c = highCongestion ? eHighCongestion : eLowCongestion;
 		if (c != GetCongestion ())
 		{
 			SetCongestion (c);
 			UpdateCapsProperty ();
+			return true;
 		}	
+		return false;
  	}	
 		
 	void LocalRouterInfo::WriteToStream (std::ostream& s) const

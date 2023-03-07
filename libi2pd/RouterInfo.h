@@ -332,7 +332,7 @@ namespace data
 			LocalRouterInfo (const std::string& fullPath);
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
-			void SetHighCongestion (bool highCongestion);
+			bool SetHighCongestion (bool highCongestion); // returns true if updated
 
 			void SetProperty (const std::string& key, const std::string& value) override;
 			void DeleteProperty (const std::string& key);

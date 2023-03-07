@@ -1397,7 +1397,8 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			m_RouterInfo.SetHighCongestion (IsHighCongestion ());
+			if (m_RouterInfo.SetHighCongestion (IsHighCongestion ()))
+				UpdateRouterInfo ();
 			ScheduleCongestionUpdate ();
 		}	
 	}	
