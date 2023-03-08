@@ -19,11 +19,17 @@ jobs:
     - name: Build and install zlib
       run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
-    - name: Install boost
+    - name: Install Boost
       run: |
         $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.81.0/boost_1_81_0-msvc-14.2-64.exe"
         (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
-        Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\Boost\1.81.0\x86_64"
+        Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\Boost\1.81.0"
+
+    - name: Install OpenSSL
+      run: |
+        $Url = "https://slproweb.com/download/Win64OpenSSL-1_1_1t.exe"
+        (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\openssl.exe")
+        Start-Process -Wait -FilePath "$env:TEMP\openssl.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\OpenSSL\1.1.1t"
 
     - name: Build application
       run: |
@@ -31,7 +37,8 @@ jobs:
         cmake -G "Visual Studio 16 2019" .
         cmake --build . --config Debug -- -m
       env:
-        BOOST_ROOT: C:\hostedtoolcache\windows\Boost\1.81.0\x86_64
+        OPENSSL_ROOT_DIR: C:\hostedtoolcache\windows\OpenSSL\1.1.1t
+        BOOST_ROOT: C:\hostedtoolcache\windows\Boost\1.81.0
         WITH_STATIC: ON
 
     - name: Upload artifacts
