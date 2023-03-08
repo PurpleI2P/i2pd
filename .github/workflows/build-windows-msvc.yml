@@ -1,11 +1,11 @@
-name: Build on Windows
+name: Build on Windows with MSVC
 
 on: [push, pull_request]
 
 jobs:
   build:
-    name: CMake MSVC
-    runs-on: windows-2019
+    name: Build
+    runs-on: windows-latest
 
     strategy:
       fail-fast: false
@@ -19,38 +19,25 @@ jobs:
     - name: Build and install zlib
       run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
-    - name: Cache Boost
-      uses: actions/cache@v2
-      with:
-        path: '${{ runner.workspace }}/boost_*.tar.gz'
-        key: 'boost-1.81.0'
-
-    - name: Build Boost
-      id: boost
-      uses: egor-tensin/build-boost@v1
-      with:
-        version: 1.81.0
-        libraries: date_time filesystem program_options system
-        static: 1
-        platform: x64
-        configuration: Debug
+    - name: Install Boost
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install boost-msvc-14.3
 
     - name: Install OpenSSL
-      run: |
-        $Url = "https://slproweb.com/download/Win64OpenSSL-1_1_1t.exe"
-        (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\openssl.exe")
-        Start-Process -Wait -FilePath "$env:TEMP\openssl.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\OpenSSL\1.1.1t"
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install openssl
 
-    - name: Build application
-      run: |
-        cd build
-        cmake -G "Visual Studio 16 2019" .
-        cmake --build . --config Debug -- -m
+    - name: Configure
+      working-directory: build
+      run: cmake -G "Visual Studio 16 2019" .
       env:
-        OPENSSL_ROOT_DIR: C:\hostedtoolcache\windows\OpenSSL\1.1.1t
-        BOOST_ROOT: ${{ steps.boost.outputs.root }}
-        BOOST_LIBRARYDIR: ${{ steps.boost.outputs.librarydir }}
         WITH_STATIC: ON
+
+    - name: Build
+      working-directory: build
+      run: cmake --build . --config Debug -- -m
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
