@@ -20,22 +20,19 @@ jobs:
       run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
     - name: Install boost
-      uses: MarkusJx/install-boost@v2.4.4
-      id: install-boost
-      with:
-        boost_version: 1.81.0
-        boost_install_dir: C:\boost
-        platform_version: 2019
-        toolset: msvc
-        link: static
+      run: |
+        $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.81.0/boost_1_81_0-msvc-14.2-64.exe"
+        (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
+        Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\Boost\1.81.0\x86_64"
 
     - name: Build application
       run: |
         cd build
-        cmake -DWITH_STATIC=ON .
+        cmake -G "Visual Studio 16 2019" .
         cmake --build . --config Debug -- -m
       env:
-        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+        BOOST_ROOT: C:\hostedtoolcache\windows\Boost\1.81.0\x86_64
+        WITH_STATIC: ON
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
