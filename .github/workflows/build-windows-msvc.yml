@@ -19,7 +19,7 @@ jobs:
     - name: Build and install zlib
       env:
         BUILD_TYPE: Debug
-      run: powershell -Command "(Invoke-WebRequest -Uri https://github.com/r4sas/zlib.install/raw/master/install.bat -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
+      run: powershell -Command "(Invoke-WebRequest -Uri https://raw.githubusercontent.com/r4sas/zlib.install/master/install.bat -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
     - name: Install Boost
       uses: crazy-max/ghaction-chocolatey@v2
