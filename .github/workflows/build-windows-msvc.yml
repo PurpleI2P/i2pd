@@ -1,0 +1,45 @@
+name: Build on Windows
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: CMake MSVC
+    runs-on: windows-2019
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Build and install zlib
+      run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
+
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.4.4
+      id: install-boost
+      with:
+        boost_version: 1.81.0
+        boost_install_dir: C:\boost
+        platform_version: 2019
+        toolset: msvc
+        link: static
+
+    - name: Build application
+      run: |
+        cd build
+        cmake -DWITH_STATIC=ON .
+        cmake --build . --config Debug -- -m
+      env:
+        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-msvc.zip
+        path: build/Debug/i2pd.*
+
