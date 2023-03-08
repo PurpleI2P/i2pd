@@ -20,14 +20,14 @@ jobs:
       run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
     - name: Install Boost
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: install boost-msvc-14.3
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install boost-msvc-14.3
 
     - name: Install OpenSSL
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: install openssl
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install openssl
 
     - name: Configure
       working-directory: build
