@@ -217,7 +217,8 @@ namespace config {
 				"https://reseed.i2pgit.org/,"
 				"https://banana.incognet.io/,"
 				"https://reseed-pl.i2pd.xyz/,"
-				"https://www2.mk16.de/"
+				"https://www2.mk16.de/",
+			    "https://i2p.ghativega.in/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
