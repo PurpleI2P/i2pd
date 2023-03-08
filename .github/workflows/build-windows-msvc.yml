@@ -19,11 +19,21 @@ jobs:
     - name: Build and install zlib
       run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
-    - name: Install Boost
-      run: |
-        $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.81.0/boost_1_81_0-msvc-14.2-64.exe"
-        (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
-        Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\hostedtoolcache\windows\Boost\1.81.0"
+    - name: Cache Boost
+      uses: actions/cache@v2
+      with:
+        path: '${{ runner.workspace }}/boost_*.tar.gz'
+        key: 'boost-1.81.0'
+
+    - name: Build Boost
+      id: boost
+      uses: egor-tensin/build-boost@v1
+      with:
+        version: 1.81.0
+        libraries: date_time filesystem program_options system
+        static: 1
+        platform: x64
+        configuration: Debug
 
     - name: Install OpenSSL
       run: |
@@ -38,7 +48,8 @@ jobs:
         cmake --build . --config Debug -- -m
       env:
         OPENSSL_ROOT_DIR: C:\hostedtoolcache\windows\OpenSSL\1.1.1t
-        BOOST_ROOT: C:\hostedtoolcache\windows\Boost\1.81.0
+        BOOST_ROOT: ${{ steps.boost.outputs.root }}
+        BOOST_LIBRARYDIR: ${{ steps.boost.outputs.librarydir }}
         WITH_STATIC: ON
 
     - name: Upload artifacts
