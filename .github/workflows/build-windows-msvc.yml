@@ -17,7 +17,9 @@ jobs:
         fetch-depth: 0
 
     - name: Build and install zlib
-      run: powershell -Command "(Invoke-WebRequest -Uri https://git.io/JnHTY -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
+      env:
+        BUILD_TYPE: Debug
+      run: powershell -Command "(Invoke-WebRequest -Uri https://github.com/r4sas/zlib.install/raw/master/install.bat -OutFile install_zlib.bat)"; ./install_zlib.bat; del install_zlib.bat
 
     - name: Install Boost
       uses: crazy-max/ghaction-chocolatey@v2
@@ -40,6 +42,6 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: i2pd-msvc.zip
+        name: i2pd-msvc
         path: build/Debug/i2pd.*
 
