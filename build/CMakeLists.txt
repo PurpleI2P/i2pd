@@ -194,6 +194,12 @@ endif()
 
 # Note: AES-NI and AVX is available on x86-based CPU's.
 # Here also ARM64 implementation, but currently we don't support it.
+# MSVC is not supported.
+if(MSVC)
+  message(STATUS "AES-NI is not supported on MSVC, option was disabled")
+  set(WITH_AESNI OFF)
+endif()
+
 if(WITH_AESNI AND (ARCHITECTURE MATCHES "x86_64" OR ARCHITECTURE MATCHES "i386"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
   add_definitions(-D__AES__)
@@ -225,7 +231,9 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 if(WITH_STATIC)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  if(NOT MSVC)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  endif()
 
   set(Boost_USE_STATIC_LIBS ON)
   if(MSVC)
@@ -234,10 +242,17 @@ if(WITH_STATIC)
     set(Boost_USE_STATIC_RUNTIME OFF)
   endif()
 
+  if(MSVC)
+    set(OPENSSL_MSVC_STATIC_RT ON)
+  endif()
   set(OPENSSL_USE_STATIC_LIBS ON)
 
   set(ZLIB_USE_STATIC_LIBS ON)
-  set(ZLIB_NAMES libz zlibstatic zlibstat zlib z)
+  if(MSVC)
+    set(ZLIB_NAMES zlibstatic zlibstat)
+  else()
+    set(ZLIB_NAMES libz zlibstatic zlibstat zlib z)
+  endif()
 
   if(WITH_UPNP)
     set(MINIUPNPC_USE_STATIC_LIBS ON)
@@ -255,8 +270,10 @@ else()
   # TODO: Consider separate compilation for LIBI2PD_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
   # HINT: revert c266cff CMakeLists.txt: compilation speed up
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-  add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
+  if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  endif()
+  add_definitions(-DBOOST_ATOMIC_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif()
 
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options date_time OPTIONAL_COMPONENTS atomic)
@@ -317,9 +334,13 @@ if(WITH_BINARY)
     add_executable("${PROJECT_NAME}" ${DAEMON_SRC})
   endif()
 
-  if (WIN32)
-    set(MINGW_EXTRA "wsock32" "ws2_32" "iphlpapi")
-  endif ()
+  if(WIN32)
+    list(APPEND MINGW_EXTRA "wsock32" "ws2_32" "iphlpapi")
+    # OpenSSL may require Crypt32 library on MSVC build, which is not added by CMake lesser than 3.21
+    if(MSVC AND ${CMAKE_VERSION} VERSION_LESS 3.21)
+      list(APPEND MINGW_EXTRA "crypt32")
+    endif()
+  endif()
 
   if(WITH_STATIC)
     if(NOT MSVC)

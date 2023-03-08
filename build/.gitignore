@@ -21,3 +21,7 @@
 # windows build script
 i2pd*.zip
 build*.log
+# MVS project files
+*.vcxproj
+*.vcxproj.filters
+*.sln
