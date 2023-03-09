@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -687,8 +687,18 @@ namespace data
 				while (it != end)
 				{
 					boost::asio::ip::tcp::endpoint ep = *it;
-					if ((ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
-						(ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
+					if (
+						(
+							!i2p::util::net::IsInReservedRange(ep.address ()) && (
+								(ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
+								(ep.address ().is_v6 () && i2p::context.SupportsV6 ())
+							)
+						) ||
+						(
+							i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
+							i2p::context.SupportsMesh ()
+						)
+					)
 					{
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)
