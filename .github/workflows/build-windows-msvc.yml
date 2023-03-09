@@ -17,11 +17,12 @@ jobs:
         fetch-depth: 0
 
     - name: Build and install zlib
-      env:
-        BUILD_TYPE: Debug
       run: |
         powershell -Command "(Invoke-WebRequest -Uri https://raw.githubusercontent.com/r4sas/zlib.install/master/install.bat -OutFile install_zlib.bat)"
         powershell -Command "(Get-Content install_zlib.bat) | Set-Content install_zlib.bat" # fixing line endings
+        set BUILD_TYPE=Debug
+        ./install_zlib.bat
+        set BUILD_TYPE=Release
         ./install_zlib.bat
         del install_zlib.bat
 
