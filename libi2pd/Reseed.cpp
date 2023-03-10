@@ -703,6 +703,7 @@ namespace data
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)
 						{
+							LogPrint (eLogDebug, "Reseed: Resolved to ", ep.address ());
 							connected = true;
 							break;
 						}
@@ -790,17 +791,45 @@ namespace data
 		boost::asio::io_service service;
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
 
-		if (url.host.length () < 2) return ""; // assume []
-		auto host = url.host.substr (1, url.host.length () - 2);
-		LogPrint (eLogDebug, "Reseed: Connecting to Yggdrasil ", url.host, ":", url.port);
-		s.connect (boost::asio::ip::tcp::endpoint (boost::asio::ip::address_v6::from_string (host), url.port), ecode);
+		auto it = boost::asio::ip::tcp::resolver(service).resolve (
+			boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
+
 		if (!ecode)
 		{
-			LogPrint (eLogDebug, "Reseed: Connected to Yggdrasil ", url.host, ":", url.port);
+			bool connected = false;
+			boost::asio::ip::tcp::resolver::iterator end;
+			while (it != end)
+			{
+				boost::asio::ip::tcp::endpoint ep = *it;
+				if (
+					i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
+					i2p::context.SupportsMesh ()
+				)
+				{
+					LogPrint (eLogDebug, "Reseed: Yggdrasil: Resolved to ", ep.address ());
+					s.connect (ep, ecode);
+					if (!ecode)
+					{
+						connected = true;
+						break;
+					}
+				}
+				it++;
+			}
+			if (!connected)
+			{
+				LogPrint(eLogError, "Reseed: Yggdrasil: Failed to connect to ", url.host);
+				return "";
+			}
+		}
+
+		if (!ecode)
+		{
+			LogPrint (eLogDebug, "Reseed: Yggdrasil: Connected to ", url.host, ":", url.port);
 			return ReseedRequest (s, url.to_string());
 		}
 		else
-			LogPrint (eLogError, "Reseed: Couldn't connect to Yggdrasil ", url.host, ": ", ecode.message ());
+			LogPrint (eLogError, "Reseed: Yggdrasil: Couldn't connect to ", url.host, ": ", ecode.message ());
 
 		return "";
 	}
