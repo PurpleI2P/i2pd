@@ -1,0 +1,52 @@
+name: Build on Windows with MSVC
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Build and install zlib
+      run: |
+        powershell -Command "(Invoke-WebRequest -Uri https://raw.githubusercontent.com/r4sas/zlib.install/master/install.bat -OutFile install_zlib.bat)"
+        powershell -Command "(Get-Content install_zlib.bat) | Set-Content install_zlib.bat" # fixing line endings
+        set BUILD_TYPE=Debug
+        ./install_zlib.bat
+        set BUILD_TYPE=Release
+        ./install_zlib.bat
+        del install_zlib.bat
+
+    - name: Install Boost
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install boost-msvc-14.3
+
+    - name: Install OpenSSL
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install openssl
+
+    - name: Configure
+      working-directory: build
+      run: cmake -DWITH_STATIC=ON .
+
+    - name: Build
+      working-directory: build
+      run: cmake --build . --config Debug -- -m
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-msvc
+        path: build/Debug/i2pd.*
+
