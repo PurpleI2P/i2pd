@@ -63,18 +63,19 @@ namespace client
 		if (sam)
 		{
 			std::string samAddr; i2p::config::GetOption("sam.address", samAddr);
-			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
+			uint16_t samPortTCP; i2p::config::GetOption("sam.port", samPortTCP);
+			uint16_t samPortUDP; i2p::config::GetOption("sam.portudp", samPortUDP);
 			bool singleThread; i2p::config::GetOption("sam.singlethread", singleThread);
-			LogPrint(eLogInfo, "Clients: Starting SAM bridge at ", samAddr, ":", samPort);
+			LogPrint(eLogInfo, "Clients: Starting SAM bridge at ", samAddr, ":[", samPortTCP, "|", samPortUDP, "]");
 			try
 			{
-				m_SamBridge = new SAMBridge (samAddr, samPort, singleThread);
+				m_SamBridge = new SAMBridge (samAddr, samPortTCP, samPortUDP, singleThread);
 				m_SamBridge->Start ();
 			}
 			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
-				ThrowFatal ("Unable to start SAM bridge at ", samAddr, ":", samPort, ": ", e.what ());
+				ThrowFatal ("Unable to start SAM bridge at ", samAddr, ":[", samPortTCP, "|", samPortUDP,"]: ", e.what ());
 			}
 		}
 
