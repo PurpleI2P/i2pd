@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -139,7 +139,16 @@ namespace stream
 	{
 		m_NumReceivedBytes += packet->GetLength ();
 		if (!m_SendStreamID)
+		{	
 			m_SendStreamID = packet->GetReceiveStreamID ();
+			if (!m_RemoteIdentity && packet->GetNACKCount () == 8 && // first incoming packet
+			    memcmp (packet->GetNACKs (), m_LocalDestination.GetOwner ()->GetIdentHash (), 32))
+			{
+				LogPrint (eLogWarning, "Streaming: Destination mismatch for ", m_LocalDestination.GetOwner ()->GetIdentHash ().ToBase32 ());
+				m_LocalDestination.DeletePacket (packet);
+				return;
+			}	
+		}	
 
 		if (!packet->IsNoAck ()) // ack received
 			ProcessAck (packet);
@@ -560,8 +569,19 @@ namespace stream
 				else
 					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
 				size += 4; // ack Through
-				packet[size] = 0;
-				size++; // NACK count
+				if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
+				{
+					// first SYN packet
+					packet[size] = 8;
+					size++; // NACK count
+					memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
+					size += 32;
+				}
+				else
+				{	
+					packet[size] = 0;
+					size++; // NACK count
+				}	
 				packet[size] = m_RTO/1000;
 				size++; // resend delay
 				if (m_Status == eStreamStatusNew)
