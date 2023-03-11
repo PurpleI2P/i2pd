@@ -1,3 +1,9 @@
+i2pd (2.47.0-1) unstable; urgency=high
+
+  * updated to version 2.47.0/0.9.58
+
+ -- orignal <orignal@i2pmail.org>  Sat, 11 Mar 2023 16:00:00 +0000
+
 i2pd (2.46.1-2) unstable; urgency=critical
 
   * re-pushed release due to new critical bug
