@@ -33,6 +33,9 @@
 #include "Timestamp.h"
 #include "I18N.h"
 
+#include "TCPServer.h"
+#include <pthread.h>
+
 namespace i2p
 {
 namespace util
@@ -43,6 +46,7 @@ namespace util
 		Daemon_Singleton_Private() {};
 		~Daemon_Singleton_Private() {};
 
+		std::unique_ptr<i2p::tcp::TCPServer> tcpServer;
 		std::unique_ptr<i2p::http::HTTPServer> httpServer;
 		std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 		std::unique_ptr<i2p::transport::UPnP> UPnP;
@@ -67,7 +71,17 @@ namespace util
 			DaemonDataDir = path;
 	}
 
-	bool Daemon_Singleton::init(int argc, char* argv[]) {
+	bool Daemon_Singleton::init(int argc, char* argv[])
+	{
+		this->onTcpServer = false;
+	
+		if(argv[1])
+		{
+			std::string arg1(argv[1]);
+			if(arg1 == "@:start")
+				this->onTcpServer = true;
+		}
+
 		return init(argc, argv, nullptr);
 	}
 
@@ -321,7 +335,7 @@ namespace util
 		if (http) {
 			std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 			uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-			LogPrint(eLogInfo, "Daemon: Starting Webconsole at ", httpAddr, ":", httpPort);
+			LogPrint(eLogInfo, "Daemon: Starting Webconsole at ", httpAddr, ":", httpPort);	
 			try
 			{
 				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
@@ -360,11 +374,20 @@ namespace util
 				ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 			}
 		}
+
+		// Start Console I2PD.
+		if(this->onTcpServer == true)
+		{
+			LogPrint(eLogInfo, "Daemon: Starting TCP server (Demo.)");
+			d.tcpServer = std::unique_ptr<i2p::tcp::TCPServer>(new i2p::tcp::TCPServer());
+			d.tcpServer->Start();
+		}
+		
 		return true;
 	}
 
 	bool Daemon_Singleton::stop()
-	{
+	{		
 		LogPrint(eLogInfo, "Daemon: Shutting down");
 		LogPrint(eLogInfo, "Daemon: Stopping Client");
 		i2p::client::context.Stop();
@@ -378,7 +401,6 @@ namespace util
 			d.UPnP->Stop ();
 			d.UPnP = nullptr;
 		}
-
 		if (d.m_NTPSync)
 		{
 			d.m_NTPSync->Stop ();
@@ -393,7 +415,7 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: Stopping HTTP Server");
 			d.httpServer->Stop();
 			d.httpServer = nullptr;
-		}
+		}		
 		if (d.m_I2PControlService)
 		{
 			LogPrint(eLogInfo, "Daemon: Stopping I2PControl");
@@ -402,7 +424,12 @@ namespace util
 		}
 		i2p::crypto::TerminateCrypto ();
 		i2p::log::Logger().Stop();
-
+		
+		// Stop Console I2PD.
+		LogPrint(eLogInfo, "Daemon: Starting TCP server (Demo.)");
+		d.tcpServer->Stop();
+		d.tcpServer->Printf();	
+		
 		return true;
 	}
 }

@@ -956,15 +956,7 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto& it: i2p::client::context.GetClientTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << it.second->GetName () << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
-		}
+		s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";		
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
 		if (httpProxy)
 		{
@@ -984,7 +976,18 @@ namespace http {
 			s << "</div>\r\n"<< std::endl;
 		}
 		s << "</div>\r\n";
-
+		auto& clientTunnels = i2p::client::context.GetClientTunnels();
+		if (!clientTunnels.empty ())
+		{
+			for (auto& it: clientTunnels)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+		}
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
 			s << "<br>\r\n<b>" << tr("Server Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";

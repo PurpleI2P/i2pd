@@ -29,10 +29,10 @@ namespace util
 		virtual void run () {};
 
 		virtual void setDataDir (std::string path);
-
+		
+		bool onTcpServer;
 		bool isDaemon;
 		bool running;
-
 	protected:
 
 		Daemon_Singleton ();
@@ -114,12 +114,11 @@ namespace util
 			void run ();
 
 		private:
-
 			std::string pidfile;
 			int pidFH;
 
 		public:
-
+			bool onTcpServer;
 			int gracefulShutdownInterval; // in seconds
 	};
 #endif
