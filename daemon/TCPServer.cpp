@@ -476,7 +476,6 @@ namespace tcp
 						s << "\nHelper server v0.0.2\n";
 						s << "@:info - Output base info about i2pd router.\n";
 						s << "@:tr - Output info transport i2pd.\n";
-						s << "@:exit - close console i2pd client.\n";
 						s << "@:stop - kill i2pd service and exit.\n";
 						s << "[+] - End help.";
 
