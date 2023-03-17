@@ -307,6 +307,7 @@ namespace data
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
 			virtual std::shared_ptr<Address> NewAddress () const;
 			virtual boost::shared_ptr<Addresses> NewAddresses () const;
+			virtual std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) const;
 
 		private:
 
@@ -350,6 +351,7 @@ namespace data
 			std::shared_ptr<Buffer> NewBuffer () const override;
 			std::shared_ptr<Address> NewAddress () const override;
 			boost::shared_ptr<Addresses> NewAddresses () const override;
+			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) const override;
 
 		private:
 

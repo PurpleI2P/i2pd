@@ -161,7 +161,7 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer->data (), m_BufferLen);
+		m_RouterIdentity = NewIdentity (m_Buffer->data (), m_BufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
 		if (identityLen >= m_BufferLen)
 		{
@@ -186,7 +186,6 @@ namespace data
 				m_IsUnreachable = true;
 				return;
 			}
-			m_RouterIdentity->DropVerifier ();
 		}
 		// parse RI
 		std::stringstream str;
@@ -1061,6 +1060,11 @@ namespace data
 		return netdb.NewRouterInfoAddresses ();
 	}
 
+	std::shared_ptr<IdentityEx> RouterInfo::NewIdentity (const uint8_t * buf, size_t len) const
+	{
+		return netdb.NewIdentity (buf, len);
+	}	
+		
 	void RouterInfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -1393,6 +1397,11 @@ namespace data
 		return boost::make_shared<Addresses> ();
 	}
 
+	std::shared_ptr<IdentityEx> LocalRouterInfo::NewIdentity (const uint8_t * buf, size_t len) const
+	{
+		return std::make_shared<IdentityEx> (buf, len);
+	}	
+		
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
 		auto addresses = GetAddresses ();
