@@ -36,6 +36,11 @@ namespace i2p
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> >();
 	}
 
+	std::shared_ptr<I2NPMessage> NewI2NPMediumMessage ()
+	{
+		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_MEDIUM_MESSAGE_SIZE> >();
+	}
+	
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
 		return i2p::tunnel::tunnels.NewI2NPTunnelMessage (endpoint);
@@ -43,7 +48,10 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)
 	{
-		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE - I2NP_HEADER_SIZE - 2) ? NewI2NPShortMessage () : NewI2NPMessage ();
+		len += I2NP_HEADER_SIZE + 2;
+		if (len <= I2NP_MAX_SHORT_MESSAGE_SIZE) return NewI2NPShortMessage ();
+		if (len <= I2NP_MAX_MEDIUM_MESSAGE_SIZE) return NewI2NPMediumMessage ();
+		return NewI2NPMessage ();		
 	}
 
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)

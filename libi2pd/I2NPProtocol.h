@@ -140,6 +140,7 @@ namespace tunnel
 
 	const size_t I2NP_MAX_MESSAGE_SIZE = 62708;
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
+	const size_t I2NP_MAX_MEDIUM_MESSAGE_SIZE = 16384;
 	const unsigned int I2NP_MESSAGE_EXPIRATION_TIMEOUT = 8000; // in milliseconds (as initial RTT)
 	const unsigned int I2NP_MESSAGE_CLOCK_SKEW = 60*1000; // 1 minute in milliseconds
 
@@ -262,6 +263,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPMediumMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 

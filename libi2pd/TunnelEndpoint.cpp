@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -208,7 +208,7 @@ namespace tunnel
 			if (msg.data->len + size > msg.data->maxLen)
 			{
 			//	LogPrint (eLogWarning, "TunnelMessage: I2NP message size ", msg.data->maxLen, " is not enough");
-				auto newMsg = NewI2NPMessage ();
+				auto newMsg = NewI2NPMessage (msg.data->len + size);
 				*newMsg = *(msg.data);
 				msg.data = newMsg;
 			}
@@ -297,11 +297,11 @@ namespace tunnel
 			if (msg.data->len + size > msg.data->maxLen)
 			{
 				LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
-				auto newMsg = NewI2NPMessage ();
+				auto newMsg = NewI2NPMessage (msg.data->len + size);
 				*newMsg = *(msg.data);
 				msg.data = newMsg;
 			}
-			if (msg.data->Concat (it->second->data.data (), size) < size) // concatenate out-of-sync fragment
+			if (msg.data->Concat (it->second->data.data (), size) < size) // concatenate out-of-sync fragment	
 				LogPrint (eLogError, "TunnelMessage: Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
 			if (it->second->isLastFragment)
 				// message complete

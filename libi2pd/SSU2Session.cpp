@@ -23,7 +23,7 @@ namespace transport
 		if (msg->len + fragmentSize > msg->maxLen)
 		{
 			LogPrint (eLogInfo, "SSU2: I2NP message size ", msg->maxLen, " is not enough");
-			auto newMsg = NewI2NPMessage ();
+			auto newMsg = NewI2NPMessage (msg->len + fragmentSize);
 			*newMsg = *msg;
 			msg = newMsg;
 		}
