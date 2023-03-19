@@ -608,7 +608,7 @@ namespace transport
 				* payload = m_SentHandshakePacket->payload;
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2SessionRequest;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
@@ -636,7 +636,7 @@ namespace transport
 		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		const uint8_t nonce[12] = {0}; // always 0
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
@@ -721,7 +721,7 @@ namespace transport
 		uint8_t * headerX = m_SentHandshakePacket->headerX,
 				* payload = m_SentHandshakePacket->payload;
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2SessionCreated;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
@@ -760,7 +760,7 @@ namespace transport
 		m_EphemeralKeys->Agree (X, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		const uint8_t nonce[12] = {0}; // always zero
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted Noise payload from Session Created)
@@ -832,7 +832,7 @@ namespace transport
 		// fill packet
 		Header& header = m_SentHandshakePacket->header;
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		header.h.packetNum = 0; // always zero
 		header.h.type = eSSU2SessionConfirmed;
 		memset (header.h.flags, 0, 3);
 		header.h.flags[0] = 1; // frag, total fragments always 1
@@ -855,7 +855,7 @@ namespace transport
 		// Encrypt part 1
 		uint8_t * part1 = m_SentHandshakePacket->headerX;
 		uint8_t nonce[12];
-		CreateNonce (1, nonce);
+		CreateNonce (1, nonce); // always one
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetSSU2StaticPublicKey (), 32, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, part1, 48, true);
 		m_NoiseState->MixHash (part1, 48); // h = SHA256(h || ciphertext);
 		// KDF for Session Confirmed part 2
@@ -863,7 +863,7 @@ namespace transport
 		i2p::context.GetSSU2StaticKeys ().Agree (Y, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// Encrypt part2
-		memset (nonce, 0, 12);
+		memset (nonce, 0, 12); // always zero
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || ciphertext);
@@ -920,6 +920,12 @@ namespace transport
 			// TODO: queue up
 			return true;
 		}
+		// packet num must be aways zero
+		if (header.h.packetNum)
+		{
+			LogPrint (eLogError, "SSU2: Non zero packet number in SessionConfirmed");
+			return false;
+		}	
 		// check if fragmented
 		uint8_t numFragments = header.h.flags[0] & 0x0F;
 		if (numFragments > 1)
