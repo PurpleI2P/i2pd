@@ -1000,7 +1000,7 @@ namespace client
 					m_StreamingAckDelay = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
-					m_IsStreamingAnswerPings = (it->second == "true");
+					m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
 
 				if (GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2)
 				{
