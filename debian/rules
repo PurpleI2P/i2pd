@@ -8,6 +8,16 @@ export DEB_CXXFLAGS_MAINT_APPEND  = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND =
 
 %:
-	dh $@
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_clean:
+	dh_auto_clean --buildsystem=cmake --sourcedirectory=build/
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=cmake --sourcedirectory=build/ -- \
+		-DWITH_UPNP=ON
+
+override_dh_auto_build:
+	dh_auto_build --buildsystem=cmake
 
 override_dh_auto_install:
