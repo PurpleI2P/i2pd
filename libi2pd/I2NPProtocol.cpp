@@ -134,7 +134,8 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		auto m = excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ();
+		int cnt = excludedPeers ? excludedPeers->size () : 0;
+		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -155,7 +156,6 @@ namespace i2p
 
 		if (excludedPeers)
 		{
-			int cnt = excludedPeers->size ();
 			htobe16buf (buf, cnt);
 			buf += 2;
 			for (auto& it: *excludedPeers)
