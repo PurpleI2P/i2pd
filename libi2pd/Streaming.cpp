@@ -154,8 +154,7 @@ namespace stream
 			ProcessAck (packet);
 
 		int32_t receivedSeqn = packet->GetSeqn ();
-		bool isSyn = packet->IsSYN ();
-		if (!receivedSeqn && !isSyn)
+		if (!receivedSeqn && !packet->GetFlags ())
 		{
 			// plain ack
 			LogPrint (eLogDebug, "Streaming: Plain ACK received");
@@ -197,7 +196,7 @@ namespace stream
 						shared_from_this (), std::placeholders::_1));
 				}
 			}
-			else if (isSyn)
+			else if (packet->IsSYN ())
 				// we have to send SYN back to incoming connection
 				SendBuffer (); // also sets m_IsOpen
 		}
