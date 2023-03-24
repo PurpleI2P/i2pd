@@ -332,7 +332,7 @@ namespace tunnel
 	Tunnels tunnels;
 
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_MaxNumTransitTunnels (DEFAULT_MAX_NUM_TRANSIT_TUNNELS),
-		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal avarage
+		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal average
 		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
 	{
 	}
@@ -544,7 +544,7 @@ namespace tunnel
 						ManageTunnels (ts);
 						lastTs = ts;
 					}
-					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 secondsts
+					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 seconds
 					    ts + TUNNEL_POOLS_MANAGE_INTERVAL < lastPoolsTs)
 					{
 						ManageTunnelPools (ts);
@@ -698,7 +698,7 @@ namespace tunnel
 
 		if (m_OutboundTunnels.size () < 3)
 		{
-			// trying to create one more oubound tunnel
+			// trying to create one more outbound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
