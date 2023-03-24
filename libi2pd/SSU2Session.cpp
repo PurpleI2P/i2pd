@@ -920,7 +920,7 @@ namespace transport
 			// TODO: queue up
 			return true;
 		}
-		// packet num must be aways zero
+		// packet num must be always zero
 		if (header.h.packetNum)
 		{
 			LogPrint (eLogError, "SSU2: Non zero packet number in SessionConfirmed");

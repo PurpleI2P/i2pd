@@ -81,13 +81,13 @@ namespace data
 				{	
 					if (bit1)
 					{
-						if (root->one) return; // someting wrong
+						if (root->one) return; // something wrong
 						root->one = new DHTNode;
 						root = root->one;
 					}	
 					else
 					{
-						if (root->zero) return; // someting wrong
+						if (root->zero) return; // something wrong
 						root->zero = new DHTNode;
 						root = root->zero;
 					}	
