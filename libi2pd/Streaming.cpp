@@ -1447,7 +1447,7 @@ namespace stream
 		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum, bool gzip)
 	{
 		size_t size;
-		auto msg = m_I2NPMsgsPool.AcquireShared ();
+		auto msg = (len <= STREAMING_MTU_RATCHETS) ? m_I2NPMsgsPool.AcquireShared () : NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;
