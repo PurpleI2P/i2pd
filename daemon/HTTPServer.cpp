@@ -838,6 +838,7 @@ namespace http {
 					tmp_s << " [itag:" << it->GetRelayTag () << "]";
 				if (it->GetSendQueueSize () > 0)
 					tmp_s << " [queue:" << it->GetSendQueueSize () << "]";
+				if (it->IsSlow ()) tmp_s << " [slow]";
 				tmp_s << "</div>\r\n" << std::endl;
 				cnt++;
 			}

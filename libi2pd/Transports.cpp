@@ -906,9 +906,10 @@ namespace transport
 		return GetRandomPeer (
 			[isHighBandwidth](const Peer& peer)->bool
 			{
-				// connected and not overloaded
-				return !peer.router && !peer.sessions.empty () &&
+				// connected, not overloaded and not slow
+				return !peer.router && !peer.sessions.empty () && peer.isReachable &&
 					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
+					!peer.sessions.front ()->IsSlow () &&
 					(!isHighBandwidth || peer.isHighBandwidth);
 			});
 	}

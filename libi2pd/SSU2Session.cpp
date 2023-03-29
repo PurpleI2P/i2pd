@@ -648,6 +648,7 @@ namespace transport
 		if (m_State == eSSU2SessionStateTokenReceived || m_Server.AddPendingOutgoingSession (shared_from_this ()))
 		{
 			m_State = eSSU2SessionStateSessionRequestSent;
+			m_HandshakeInterval = ts;
 			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 		}
 		else
@@ -770,6 +771,7 @@ namespace transport
 		m_State = eSSU2SessionStateSessionCreatedSent;
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
+		m_HandshakeInterval = ts;
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}
 
@@ -790,6 +792,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionCreated message too short ", len);
 			return false;
 		}
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
@@ -995,6 +998,7 @@ namespace transport
 			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 			return false;
 		}
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header)
 		// decrypt part1
