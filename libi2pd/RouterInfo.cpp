@@ -1201,44 +1201,37 @@ namespace data
 			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
-			bool isPublished = false;
+			bool isPublished = address.published && !address.host.is_unspecified () && address.port;
 			if (address.transportStyle == eTransportNTCP2)
 			{
-				if (address.IsNTCP2 ())
+				WriteString ("NTCP2", s);
+				// caps
+				if (!isPublished)
 				{
-					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
-						isPublished = true;
-					else
-					{
-						WriteString ("caps", properties);
-						properties << '=';
-						std::string caps;
-						if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-						if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-						if (caps.empty ()) caps += CAPS_FLAG_V4;
-						WriteString (caps, properties);
-						properties << ';';
-					}
+					WriteString ("caps", properties);
+					properties << '=';
+					std::string caps;
+					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+					if (address.IsV6 () || address.host.is_v6 ()) caps += CAPS_FLAG_V6; // we set 6 for unspecified ipv6
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+					WriteString (caps, properties);
+					properties << ';';
 				}
-				else
-					continue; // don't write NTCP address
 			}
 			else if (address.transportStyle == eTransportSSU2)
 			{
 				WriteString ("SSU2", s);
 				// caps
 				std::string caps;
-				if (address.published)
+				if (isPublished)
 				{
-					isPublished = true;
 					if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU2_TESTING;
 					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU2_INTRODUCER;
 				}
 				else
 				{
 					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
+					if (address.IsV6 () || address.host.is_v6 ()) caps += CAPS_FLAG_V6; // we set 6 for unspecified ipv6
 					if (caps.empty ()) caps += CAPS_FLAG_V4;
 				}
 				if (!caps.empty ())
