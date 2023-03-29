@@ -229,6 +229,7 @@ namespace i2p
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+		m_RouterInfo.SetUnreachable (false);
 	}
 
 	uint16_t RouterContext::SelectRandomPort () const
