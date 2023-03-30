@@ -20,11 +20,12 @@ namespace log {
 	 */
 	static const char *g_LogLevelStr[eNumLogLevels] =
 	{
-		"none",  // eLogNone
-		"error", // eLogError
-		"warn",  // eLogWarning
-		"info",  // eLogInfo
-		"debug"  // eLogDebug
+		"none",     // eLogNone
+		"critical", // eLogCritical
+		"error",    // eLogError
+		"warn",     // eLogWarning
+		"info",     // eLogInfo
+		"debug"     // eLogDebug
 	};
 
 	/**
@@ -32,10 +33,11 @@ namespace log {
 	 * @note Using ISO 6429 (ANSI) color sequences
 	 */
 #ifdef _WIN32
-	static const char *LogMsgColors[] = { "", "", "", "", "", "" };
+	static const char *LogMsgColors[] = { "", "", "", "", "", "", "" };
 #else /* UNIX */
 	static const char *LogMsgColors[] = {
 		"\033[1;32m", /* none:    green */
+		"\033[1;41m", /* critical: red background */
 		"\033[1;31m", /* error:   red */
 		"\033[1;33m", /* warning: yellow */
 		"\033[1;36m", /* info:    cyan */
@@ -53,6 +55,7 @@ namespace log {
 		int priority = LOG_DEBUG;
 		switch (l) {
 			case eLogNone    : priority = LOG_CRIT;    break;
+			case eLogCritical: priority = LOG_CRIT;    break;
 			case eLogError   : priority = LOG_ERR;     break;
 			case eLogWarning : priority = LOG_WARNING; break;
 			case eLogInfo    : priority = LOG_INFO;    break;
@@ -123,11 +126,12 @@ namespace log {
 
 	void Log::SetLogLevel (const std::string& level_) {
 		std::string level=str_tolower(level_);
-		if      (level == "none")  { m_MinLevel = eLogNone; }
-		else if (level == "error") { m_MinLevel = eLogError; }
-		else if (level == "warn")  { m_MinLevel = eLogWarning; }
-		else if (level == "info")  { m_MinLevel = eLogInfo; }
-		else if (level == "debug") { m_MinLevel = eLogDebug; }
+		if      (level == "none")     { m_MinLevel = eLogNone; }
+		else if (level == "critical") { m_MinLevel = eLogCritical}
+		else if (level == "error")    { m_MinLevel = eLogError; }
+		else if (level == "warn")     { m_MinLevel = eLogWarning; }
+		else if (level == "info")     { m_MinLevel = eLogInfo; }
+		else if (level == "debug")    { m_MinLevel = eLogDebug; }
 		else {
 			LogPrint(eLogError, "Log: Unknown loglevel: ", level);
 			return;
