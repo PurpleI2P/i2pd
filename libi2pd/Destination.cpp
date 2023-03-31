@@ -108,7 +108,7 @@ namespace client
 						if (authType >= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE && authType <= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
 							m_AuthType = authType;
 						else
-							LogPrint (eLogCritical, "Destination: Unknown auth type: ", authType);
+							LogPrint (eLogError, "Destination: Unknown auth type: ", authType);
 					}
 				}
 				it = params->find (I2CP_PARAM_LEASESET_PRIV_KEY);
@@ -1014,7 +1014,7 @@ namespace client
 						else if (authType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
 							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_PSK, params);
 						else
-							LogPrint (eLogCritical, "Destination: Unexpected auth type: ", authType);
+							LogPrint (eLogError, "Destination: Unexpected auth type: ", authType);
 						if (m_AuthKeys->size ())
 							LogPrint (eLogInfo, "Destination: ", m_AuthKeys->size (), " auth keys read");
 						else
