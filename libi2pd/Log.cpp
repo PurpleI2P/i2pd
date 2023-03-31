@@ -127,13 +127,13 @@ namespace log {
 	void Log::SetLogLevel (const std::string& level_) {
 		std::string level=str_tolower(level_);
 		if      (level == "none")     { m_MinLevel = eLogNone; }
-		else if (level == "critical") { m_MinLevel = eLogCritical}
+		else if (level == "critical") { m_MinLevel = eLogCritical; }
 		else if (level == "error")    { m_MinLevel = eLogError; }
 		else if (level == "warn")     { m_MinLevel = eLogWarning; }
 		else if (level == "info")     { m_MinLevel = eLogInfo; }
 		else if (level == "debug")    { m_MinLevel = eLogDebug; }
 		else {
-			LogPrint(eLogError, "Log: Unknown loglevel: ", level);
+			LogPrint(eLogCritical, "Log: Unknown loglevel: ", level);
 			return;
 		}
 		LogPrint(eLogInfo, "Log: Logging level set to ", level);
@@ -216,7 +216,7 @@ namespace log {
 			m_LogStream = os;
 			return;
 		}
-		LogPrint(eLogError, "Log: Can't open file ", path);
+		LogPrint(eLogCritical, "Log: Can't open file ", path);
 	}
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {

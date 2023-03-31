@@ -200,10 +200,10 @@ namespace transport
 							i2p::context.SetStatusV6 (eRouterStatusProxy);
 					}
 					else
-						LogPrint(eLogError, "Transports: Unsupported NTCP2 proxy URL ", ntcp2proxy);
+						LogPrint(eLogCritical, "Transports: Unsupported NTCP2 proxy URL ", ntcp2proxy);
 				}
 				else
-					LogPrint(eLogError, "Transports: Invalid NTCP2 proxy URL ", ntcp2proxy);
+					LogPrint(eLogCritical, "Transports: Invalid NTCP2 proxy URL ", ntcp2proxy);
 			}
 			else
 				m_NTCP2Server = new NTCP2Server ();
@@ -225,10 +225,10 @@ namespace transport
 							i2p::context.SetStatusV6 (eRouterStatusProxy);
 					}
 					else
-						LogPrint(eLogError, "Transports: Can't set SSU2 proxy ", ssu2proxy);
+						LogPrint(eLogCritical, "Transports: Can't set SSU2 proxy ", ssu2proxy);
 				}
 				else
-					LogPrint(eLogError, "Transports: Invalid SSU2 proxy URL ", ssu2proxy);
+					LogPrint(eLogCritical, "Transports: Invalid SSU2 proxy URL ", ssu2proxy);
 			}
 		}
 

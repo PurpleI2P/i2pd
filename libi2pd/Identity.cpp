@@ -369,7 +369,7 @@ namespace data
 	void IdentityEx::CreateVerifier ()
 	{
 		if (!m_Verifier)
-		{	
+		{
 			auto verifier = CreateVerifier (GetSigningKeyType ());
 			if (verifier)
 			{
@@ -388,7 +388,7 @@ namespace data
 				}
 			}
 			m_Verifier.reset (verifier);
-		}	
+		}
 	}
 
 	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (CryptoKeyType keyType, const uint8_t * key)
@@ -755,7 +755,7 @@ namespace data
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:
-				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
+				LogPrint (eLogCritical, "Identity: Crypto key type ", (int)type, " is not supported");
 		}
 	}
 

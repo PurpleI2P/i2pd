@@ -108,7 +108,7 @@ namespace client
 						if (authType >= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_NONE && authType <= i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
 							m_AuthType = authType;
 						else
-							LogPrint (eLogError, "Destination: Unknown auth type ", authType);
+							LogPrint (eLogCritical, "Destination: Unknown auth type ", authType);
 					}
 				}
 				it = params->find (I2CP_PARAM_LEASESET_PRIV_KEY);
@@ -117,7 +117,7 @@ namespace client
 					m_LeaseSetPrivKey.reset (new i2p::data::Tag<32>());
 					if (m_LeaseSetPrivKey->FromBase64 (it->second) != 32)
 					{
-						LogPrint(eLogError, "Destination: Invalid value i2cp.leaseSetPrivKey ", it->second);
+						LogPrint(eLogCritical, "Destination: Invalid value i2cp.leaseSetPrivKey ", it->second);
 						m_LeaseSetPrivKey.reset (nullptr);
 					}
 				}
@@ -125,7 +125,7 @@ namespace client
 		}
 		catch (std::exception & ex)
 		{
-			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
+			LogPrint(eLogCritical, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 		SetNumTags (numTags);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty, inVar, outVar);
@@ -1014,12 +1014,12 @@ namespace client
 						else if (authType == i2p::data::ENCRYPTED_LEASESET_AUTH_TYPE_PSK)
 							ReadAuthKey (I2CP_PARAM_LEASESET_CLIENT_PSK, params);
 						else
-							LogPrint (eLogError, "Destination: Unexpected auth type ", authType);
+							LogPrint (eLogCritical, "Destination: Unexpected auth type ", authType);
 						if (m_AuthKeys->size ())
 							LogPrint (eLogInfo, "Destination: ", m_AuthKeys->size (), " auth keys read");
 						else
 						{
-							LogPrint (eLogError, "Destination: No auth keys read for auth type ", authType);
+							LogPrint (eLogCritical, "Destination: No auth keys read for auth type ", authType);
 							m_AuthKeys = nullptr;
 						}
 					}
@@ -1028,7 +1028,7 @@ namespace client
 		}
 		catch (std::exception & ex)
 		{
-			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
+			LogPrint(eLogCritical, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 	}
 
@@ -1336,7 +1336,7 @@ namespace client
 			f1.write ((char *)keys->priv, 256);
 			return;
 		}
-		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
+		LogPrint(eLogCritical, "Destinations: Can't save keys to ", path);
 	}
 
 	void ClientDestination::CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels)
@@ -1413,7 +1413,7 @@ namespace client
 				if (pubKey.FromBase64 (it.second.substr (pos+1)))
 					m_AuthKeys->push_back (pubKey);
 				else
-					LogPrint (eLogError, "Destination: Unexpected auth key ", it.second.substr (pos+1));
+					LogPrint (eLogCritical, "Destination: Unexpected auth key ", it.second.substr (pos+1));
 			}
 		}
 	}

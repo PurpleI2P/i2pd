@@ -1242,7 +1242,7 @@ namespace transport
 				boost::system::error_code e;
 				auto itr = m_Resolver.resolve(q, e);
 				if(e)
-					LogPrint(eLogError, "NTCP2: Failed to resolve proxy ", e.message());
+					LogPrint(eLogCritical, "NTCP2: Failed to resolve proxy ", e.message());
 				else
 				{
 					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr));
@@ -1270,7 +1270,7 @@ namespace transport
 						}
 						catch ( std::exception & ex )
 						{
-							LogPrint(eLogError, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
+							LogPrint(eLogCritical, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
 							ThrowFatal ("Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
 							continue;
 						}
@@ -1313,7 +1313,7 @@ namespace transport
 						}
 						catch ( std::exception & ex )
 						{
-							LogPrint(eLogError, "NTCP2: Failed to bind to v6 port ", address->port, ": ", ex.what());
+							LogPrint(eLogCritical, "NTCP2: Failed to bind to v6 port ", address->port, ": ", ex.what());
 							ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
 							continue;
 						}

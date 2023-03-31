@@ -84,7 +84,7 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE), 
+		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE),
 		m_RTT (SSU2_RESEND_INTERVAL), m_RTO (SSU2_RESEND_INTERVAL*SSU2_kAPPA), m_RelayTag (0),
 		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
@@ -928,7 +928,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU2: Non zero packet number in SessionConfirmed");
 			return false;
-		}	
+		}
 		// check if fragmented
 		uint8_t numFragments = header.h.flags[0] & 0x0F;
 		if (numFragments > 1)
@@ -1884,7 +1884,7 @@ namespace transport
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
 		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
-		
+
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
 		if (!payloadSize && r)
@@ -2817,13 +2817,13 @@ namespace transport
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = 0;
 		if (m_SendPacketNum > m_LastDatetimeSentPacketNum + SSU2_SEND_DATETIME_NUM_PACKETS)
-		{	
+		{
 			payload[0] = eSSU2BlkDateTime;
 			htobe16buf (payload + 1, 4);
 			htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 			payloadSize += 7;
 			m_LastDatetimeSentPacketNum = m_SendPacketNum;
-		}	
+		}
 		payloadSize += CreateAckBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		SendData (payload, payloadSize);

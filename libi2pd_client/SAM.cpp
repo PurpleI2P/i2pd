@@ -1283,7 +1283,7 @@ namespace client
 		}
 		catch (const std::exception& ex)
 		{
-			LogPrint (eLogError, "SAM: Runtime exception: ", ex.what ());
+			LogPrint (eLogCritical, "SAM: Runtime exception: ", ex.what ());
 		}
 
 		{

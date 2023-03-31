@@ -115,7 +115,7 @@ namespace client
 			try {
 				m_Service.run ();
 			} catch (std::exception& ex) {
-				LogPrint (eLogError, "I2PControl: Runtime exception: ", ex.what ());
+				LogPrint (eLogCritical, "I2PControl: Runtime exception: ", ex.what ());
 			}
 		}
 	}

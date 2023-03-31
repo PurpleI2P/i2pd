@@ -156,7 +156,7 @@ namespace http {
 
 	static void SetLogLevel (const std::string& level)
 	{
-		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
+		if (level == "none" || level == "critical" || level == "error" || level == "warn" || level == "info" || level == "debug")
 			i2p::log::Logger().SetLogLevel(level);
 		else {
 			LogPrint(eLogError, "HTTPServer: Unknown loglevel set attempted");
@@ -625,10 +625,10 @@ namespace http {
 					if (storeType == i2p::data::NETDB_STORE_TYPE_LEASESET)
 						ls.reset (new i2p::data::LeaseSet (leaseSet->GetBuffer(), leaseSet->GetBufferLen()));
 					else
-					{	
+					{
 						ls.reset (new i2p::data::LeaseSet2 (storeType));
 						ls->Update (leaseSet->GetBuffer(), leaseSet->GetBufferLen(), false);
-					}		
+					}
 					if (!ls) return;
 					s << "<div class=\"leaseset listitem";
 					if (ls->IsExpired())
@@ -748,11 +748,12 @@ namespace http {
 
 		auto loglevel = i2p::log::Logger().GetLogLevel();
 		s << "<b>" << tr("Logging level") << "</b><br>\r\n";
-		s << "  <a class=\"button" << (loglevel == eLogNone    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
-		s << "  <a class=\"button" << (loglevel == eLogError   ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
-		s << "  <a class=\"button" << (loglevel == eLogWarning ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
-		s << "  <a class=\"button" << (loglevel == eLogInfo    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
-		s << "  <a class=\"button" << (loglevel == eLogDebug   ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
+		s << "  <a class=\"button" << (loglevel == eLogNone     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogCritical ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=critical&token=" << token << "\"> none </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogError    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogWarning  ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogInfo     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogDebug    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
 
 		uint16_t maxTunnels = i2p::tunnel::tunnels.GetMaxNumTransitTunnels ();
 		s << "<b>" << tr("Transit tunnels limit") << "</b><br>\r\n";
@@ -1481,7 +1482,7 @@ namespace http {
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "HTTPServer: Runtime exception: ", ex.what ());
+				LogPrint (eLogCritical, "HTTPServer: Runtime exception: ", ex.what ());
 			}
 		}
 	}
