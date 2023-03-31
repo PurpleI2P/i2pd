@@ -77,14 +77,14 @@ namespace data
 									verifier->SetPublicKey (signingKey);
 								}
 								else
-									LogPrint (eLogError, "Family: elliptic curve ", curve, " is not supported");
+									LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
 							}
 							EC_KEY_free (ecKey);
 						}
 						break;
 					}
 					default:
-						LogPrint (eLogError, "Family: Certificate key type ", keyType, " is not supported");
+						LogPrint (eLogWarning, "Family: Certificate key type ", keyType, " is not supported");
 				}
 				EVP_PKEY_free (pkey);
 				if (verifier && cn)
@@ -105,7 +105,7 @@ namespace data
 		int numCertificates = 0;
 
 		if (!i2p::fs::ReadDir(certDir, files)) {
-			LogPrint(eLogError, "Family: Can't load family certificates from ", certDir);
+			LogPrint(eLogWarning, "Family: Can't load family certificates from ", certDir);
 			return;
 		}
 
@@ -185,7 +185,7 @@ namespace data
 						delete[] b64;
 					}
 					else
-						LogPrint (eLogError, "Family: elliptic curve ", curve, " is not supported");
+						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
 				}
 			}
 			SSL_free (ssl);
