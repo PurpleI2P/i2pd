@@ -1482,7 +1482,7 @@ namespace http {
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogCritical, "HTTPServer: Runtime exception: ", ex.what ());
+				LogPrint (eLogError, "HTTPServer: Runtime exception: ", ex.what ());
 			}
 		}
 	}

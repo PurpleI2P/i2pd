@@ -262,7 +262,7 @@ namespace util
 				restricted = idents.size() > 0;
 			}
 			if(!restricted)
-				LogPrint(eLogCritical, "Daemon: No trusted routers of families specified");
+				LogPrint(eLogError, "Daemon: No trusted routers of families specified");
 		}
 
 		bool hidden; i2p::config::GetOption("trust.hidden", hidden);

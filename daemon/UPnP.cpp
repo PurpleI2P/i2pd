@@ -72,7 +72,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogCritical, "UPnP: Runtime exception: ", ex.what ());
+				LogPrint (eLogError, "UPnP: Runtime exception: ", ex.what ());
 				PortMapping ();
 			}
 		}

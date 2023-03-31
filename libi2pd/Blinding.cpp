@@ -259,7 +259,7 @@ namespace data
 				publicKeyLength = i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;
 			break;
 			default:
-				LogPrint (eLogCritical, "Blinding: Can't blind signature type ", (int)m_SigType);
+				LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)m_SigType);
 		}
 		return publicKeyLength;
 	}
@@ -289,7 +289,7 @@ namespace data
 				break;
 			}
 			default:
-				LogPrint (eLogCritical, "Blinding: Can't blind signature type ", (int)m_SigType);
+				LogPrint (eLogError, "Blinding: Can't blind signature type ", (int)m_SigType);
 		}
 		return publicKeyLength;
 	}

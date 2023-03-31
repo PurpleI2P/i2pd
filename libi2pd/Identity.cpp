@@ -755,7 +755,7 @@ namespace data
 				i2p::crypto::CreateECIESX25519AEADRatchetRandomKeys (priv, pub);
 			break;
 			default:
-				LogPrint (eLogCritical, "Identity: Crypto key type ", (int)type, " is not supported");
+				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
 		}
 	}
 

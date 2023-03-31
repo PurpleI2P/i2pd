@@ -77,14 +77,14 @@ namespace data
 									verifier->SetPublicKey (signingKey);
 								}
 								else
-									LogPrint (eLogCritical, "Family: elliptic curve ", curve, " is not supported");
+									LogPrint (eLogError, "Family: elliptic curve ", curve, " is not supported");
 							}
 							EC_KEY_free (ecKey);
 						}
 						break;
 					}
 					default:
-						LogPrint (eLogCritical, "Family: Certificate key type ", keyType, " is not supported");
+						LogPrint (eLogError, "Family: Certificate key type ", keyType, " is not supported");
 				}
 				EVP_PKEY_free (pkey);
 				if (verifier && cn)
@@ -93,7 +93,7 @@ namespace data
 			SSL_free (ssl);
 		}
 		else
-			LogPrint (eLogCritical, "Family: Can't open certificate file ", filename);
+			LogPrint (eLogError, "Family: Can't open certificate file ", filename);
 		SSL_CTX_free (ctx);
 	}
 
@@ -185,13 +185,13 @@ namespace data
 						delete[] b64;
 					}
 					else
-						LogPrint (eLogCritical, "Family: elliptic curve ", curve, " is not supported");
+						LogPrint (eLogError, "Family: elliptic curve ", curve, " is not supported");
 				}
 			}
 			SSL_free (ssl);
 		}
 		else
-			LogPrint (eLogCritical, "Family: Can't open keys file: ", filename);
+			LogPrint (eLogError, "Family: Can't open keys file: ", filename);
 		SSL_CTX_free (ctx);
 		return sig;
 	}

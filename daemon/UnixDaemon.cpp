@@ -81,7 +81,7 @@ namespace i2p
 
 				if (pid < 0) // error
 				{
-					LogPrint(eLogCritical, "Daemon: Could not fork: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not fork: ", strerror(errno));
 					std::cerr << "i2pd: Could not fork: " << strerror(errno) << std::endl;
 					return false;
 				}
@@ -91,7 +91,7 @@ namespace i2p
 				int sid = setsid();
 				if (sid < 0)
 				{
-					LogPrint(eLogCritical, "Daemon: Could not create process group.");
+					LogPrint(eLogError, "Daemon: Could not create process group.");
 					std::cerr << "i2pd: Could not create process group." << std::endl;
 					return false;
 				}
@@ -121,10 +121,10 @@ namespace i2p
 					LogPrint(eLogInfo, "Daemon: Set max number of open files to ",
 						nfiles, " (system limit is ", limit.rlim_max, ")");
 				} else {
-					LogPrint(eLogCritical, "Daemon: Can't set max number of open files: ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Can't set max number of open files: ", strerror(errno));
 				}
 			} else {
-				LogPrint(eLogCritical, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
+				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
 			}
 			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
 			if (cfsize) // core file size set
@@ -134,14 +134,14 @@ namespace i2p
 				if (cfsize <= limit.rlim_max) {
 					limit.rlim_cur = cfsize;
 					if (setrlimit(RLIMIT_CORE, &limit) != 0) {
-						LogPrint(eLogCritical, "Daemon: Can't set max size of coredump: ", strerror(errno));
+						LogPrint(eLogError, "Daemon: Can't set max size of coredump: ", strerror(errno));
 					} else if (cfsize == 0) {
 						LogPrint(eLogInfo, "Daemon: coredumps disabled");
 					} else {
 						LogPrint(eLogInfo, "Daemon: Set max size of core files to ", cfsize / 1024, "Kb");
 					}
 				} else {
-					LogPrint(eLogCritical, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
+					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
 				}
 			}
 
@@ -155,7 +155,7 @@ namespace i2p
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 				if (pidFH < 0)
 				{
-					LogPrint(eLogCritical, "Daemon: Could not create pid file ", pidfile, ": ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not create pid file ", pidfile, ": ", strerror(errno));
 					std::cerr << "i2pd: Could not create pid file " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
@@ -163,7 +163,7 @@ namespace i2p
 #ifndef ANDROID
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
 				{
-					LogPrint(eLogCritical, "Daemon: Could not lock pid file ", pidfile, ": ", strerror(errno));
+					LogPrint(eLogError, "Daemon: Could not lock pid file ", pidfile, ": ", strerror(errno));
 					std::cerr << "i2pd: Could not lock pid file " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
