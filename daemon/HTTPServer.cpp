@@ -749,7 +749,7 @@ namespace http {
 		auto loglevel = i2p::log::Logger().GetLogLevel();
 		s << "<b>" << tr("Logging level") << "</b><br>\r\n";
 		s << "  <a class=\"button" << (loglevel == eLogNone     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\"> none </a> \r\n";
-		s << "  <a class=\"button" << (loglevel == eLogCritical ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=critical&token=" << token << "\"> none </a> \r\n";
+		s << "  <a class=\"button" << (loglevel == eLogCritical ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=critical&token=" << token << "\"> critical </a> \r\n";
 		s << "  <a class=\"button" << (loglevel == eLogError    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\"> error </a> \r\n";
 		s << "  <a class=\"button" << (loglevel == eLogWarning  ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\"> warn </a> \r\n";
 		s << "  <a class=\"button" << (loglevel == eLogInfo     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
