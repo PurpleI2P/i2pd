@@ -74,7 +74,7 @@ namespace client
 			}
 			catch (std::exception& e)
 			{
-				LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
+				LogPrint(eLogCritical, "Clients: Exception in SAM bridge: ", e.what());
 				ThrowFatal ("Unable to start SAM bridge at ", samAddr, ":[", samPortTCP, "|", samPortUDP,"]: ", e.what ());
 			}
 		}
@@ -92,7 +92,7 @@ namespace client
 			}
 			catch (std::exception& e)
 			{
-				LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
+				LogPrint(eLogCritical, "Clients: Exception in BOB bridge: ", e.what());
 				ThrowFatal ("Unable to start BOB bridge at ", bobAddr, ":", bobPort, ": ", e.what ());
 			}
 		}
@@ -112,7 +112,7 @@ namespace client
 			}
 			catch (std::exception& e)
 			{
-				LogPrint(eLogError, "Clients: Exception in I2CP: ", e.what());
+				LogPrint(eLogCritical, "Clients: Exception in I2CP: ", e.what());
 				ThrowFatal ("Unable to start I2CP at ", i2cpAddr, ":", i2cpPort, ": ", e.what ());
 			}
 		}
@@ -279,7 +279,7 @@ namespace client
 			s.read ((char *)buf, len);
 			if(!keys.FromBuffer (buf, len))
 			{
-				LogPrint (eLogError, "Clients: Failed to load keyfile ", filename);
+				LogPrint (eLogCritical, "Clients: Failed to load keyfile ", filename);
 				success = false;
 			}
 			else
@@ -288,7 +288,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
+			LogPrint (eLogCritical, "Clients: Can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType, true);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
@@ -851,7 +851,7 @@ namespace client
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Clients: Can't read tunnel ", name, " params: ", ex.what ());
+				LogPrint (eLogCritical, "Clients: Can't read tunnel ", name, " params: ", ex.what ());
 				ThrowFatal ("Unable to start tunnel ", name, ": ", ex.what ());
 			}
 		}
@@ -883,7 +883,7 @@ namespace client
 					if (localDestination) localDestination->Acquire ();
 				}
 				else
-					LogPrint(eLogError, "Clients: Failed to load HTTP Proxy key");
+					LogPrint(eLogCritical, "Clients: Failed to load HTTP Proxy key");
 			}
 			try
 			{
@@ -892,7 +892,7 @@ namespace client
 			}
 			catch (std::exception& e)
 			{
-				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+				LogPrint(eLogCritical, "Clients: Exception in HTTP Proxy: ", e.what());
 				ThrowFatal ("Unable to start HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort, ": ", e.what ());
 			}
 		}
@@ -930,7 +930,7 @@ namespace client
 					if (localDestination) localDestination->Acquire ();
 				}
 				else
-					LogPrint(eLogError, "Clients: Failed to load SOCKS Proxy key");
+					LogPrint(eLogCritical, "Clients: Failed to load SOCKS Proxy key");
 			}
 			try
 			{
@@ -940,7 +940,7 @@ namespace client
 			}
 			catch (std::exception& e)
 			{
-				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+				LogPrint(eLogCritical, "Clients: Exception in SOCKS Proxy: ", e.what());
 				ThrowFatal ("Unable to start SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort, ": ", e.what ());
 			}
 		}

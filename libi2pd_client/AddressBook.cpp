@@ -661,7 +661,7 @@ namespace client
 				this, std::placeholders::_1));
 		}
 		else
-			LogPrint (eLogError, "Addressbook: Can't start subscriptions: missing shared local destination");
+			LogPrint (eLogCritical, "Addressbook: Can't start subscriptions: missing shared local destination");
 	}
 
 	void AddressBook::StopSubscriptions ()

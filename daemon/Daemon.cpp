@@ -310,7 +310,7 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{
-			LogPrint(eLogError, "Daemon: Failed to start Transports");
+			LogPrint(eLogCritical, "Daemon: Failed to start Transports");
 			/** shut down netdb right away */
 			i2p::transport::transports.Stop();
 			i2p::data::netdb.Stop();
@@ -329,7 +329,7 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: Failed to start Webconsole: ", ex.what ());
+				LogPrint (eLogCritical, "Daemon: Failed to start Webconsole: ", ex.what ());
 				ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
 			}
 		}
@@ -338,8 +338,8 @@ namespace util
 		i2p::tunnel::tunnels.Start();
 
 		LogPrint(eLogInfo, "Daemon: Starting Router context");
-		i2p::context.Start();			
-		
+		i2p::context.Start();
+
 		LogPrint(eLogInfo, "Daemon: Starting Client");
 		i2p::client::context.Start ();
 
@@ -356,7 +356,7 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: Failed to start I2PControl: ", ex.what ());
+				LogPrint (eLogCritical, "Daemon: Failed to start I2PControl: ", ex.what ());
 				ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 			}
 		}

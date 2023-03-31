@@ -47,7 +47,7 @@ namespace util
 			I2PService service((PSTR)SERVICE_NAME);
 			if (!I2PService::Run(service))
 			{
-				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
+				LogPrint(eLogCritical, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
 				return false;
 			}
 			return false;

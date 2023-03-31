@@ -153,7 +153,7 @@ namespace data
 			return ProcessSU3Stream (s);
 		else
 		{
-			LogPrint (eLogError, "Reseed: Can't open file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open file ", filename);
 			return 0;
 		}
 	}
@@ -170,7 +170,7 @@ namespace data
 		}
 		else
 		{
-			LogPrint (eLogError, "Reseed: Can't open file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open file ", filename);
 			return 0;
 		}
 	}
@@ -278,7 +278,7 @@ namespace data
 
 		if (verify) // not verified
 		{
-			LogPrint (eLogError, "Reseed: SU3 verification failed");
+			LogPrint (eLogCritical, "Reseed: SU3 verification failed");
 			return 0;
 		}
 
@@ -492,7 +492,7 @@ namespace data
 			SSL_free (ssl);
 		}
 		else
-			LogPrint (eLogError, "Reseed: Can't open certificate file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open certificate file ", filename);
 		SSL_CTX_free (ctx);
 	}
 
@@ -534,17 +534,17 @@ namespace data
 				}
 				// check for valid proxy url schema
 				if (proxyUrl.schema != "http" && proxyUrl.schema != "socks") {
-					LogPrint(eLogError, "Reseed: Bad proxy url: ", proxy);
+					LogPrint(eLogCritical, "Reseed: Bad proxy url: ", proxy);
 					return "";
 				}
 			} else {
-				LogPrint(eLogError, "Reseed: Bad proxy url: ", proxy);
+				LogPrint(eLogCritical, "Reseed: Bad proxy url: ", proxy);
 				return "";
 			}
 		}
 		i2p::http::URL url;
 		if (!url.parse(address)) {
-			LogPrint(eLogError, "Reseed: Failed to parse url: ", address);
+			LogPrint(eLogCritical, "Reseed: Failed to parse url: ", address);
 			return "";
 		}
 		url.schema = "https";

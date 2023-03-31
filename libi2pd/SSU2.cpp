@@ -99,7 +99,7 @@ namespace transport
 						}
 					}
 					else
-						LogPrint (eLogError, "SSU2: Can't start server because port not specified");
+						LogPrint (eLogCritical, "SSU2: Can't start server because port not specified");
 				}
 			}
 			if (found)
@@ -224,7 +224,7 @@ namespace transport
 		}
 		catch (std::exception& ex )
 		{
-			LogPrint (eLogError, "SSU2: Failed to bind to ", localEndpoint, ": ", ex.what());
+			LogPrint (eLogCritical, "SSU2: Failed to bind to ", localEndpoint, ": ", ex.what());
 			ThrowFatal ("Unable to start SSU2 transport on ", localEndpoint, ": ", ex.what ());
 		}
 		return socket;

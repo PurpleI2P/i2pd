@@ -27,6 +27,7 @@
 enum LogLevel
 {
 	eLogNone = 0,
+	eLogCritical,
 	eLogError,
 	eLogWarning,
 	eLogInfo,

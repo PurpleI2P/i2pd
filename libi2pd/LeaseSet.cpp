@@ -76,7 +76,7 @@ namespace data
 		LogPrint (eLogDebug, "LeaseSet: Read num=", (int)num);
 		if (!num || num > MAX_NUM_LEASES)
 		{
-			LogPrint (eLogError, "LeaseSet: Rncorrect number of leases", (int)num);
+			LogPrint (eLogError, "LeaseSet: Incorrect number of leases", (int)num);
 			m_IsValid = false;
 			return;
 		}
