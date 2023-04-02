@@ -330,10 +330,9 @@ namespace data
 		public:
 
 			LocalRouterInfo () = default;
-			LocalRouterInfo (const std::string& fullPath);
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
-			bool SetHighCongestion (bool highCongestion); // returns true if updated
+			bool UpdateCongestion (Congestion c); // returns true if updated
 
 			void SetProperty (const std::string& key, const std::string& value) override;
 			void DeleteProperty (const std::string& key);

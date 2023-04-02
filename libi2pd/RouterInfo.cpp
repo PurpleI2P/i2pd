@@ -1077,12 +1077,6 @@ namespace data
 		if (m_Congestion == eHighCongestion)
 			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL) ? true : false;
 		return false;
-	}	
-
-	LocalRouterInfo::LocalRouterInfo (const std::string& fullPath): 
-		RouterInfo (fullPath) 
-	{
-		SetHighCongestion (false); // drop congestion
 	}
 		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
@@ -1153,9 +1147,8 @@ namespace data
 		SetProperty ("caps", caps);
 	}
 
-	bool LocalRouterInfo::SetHighCongestion (bool highCongestion)
+	bool LocalRouterInfo::UpdateCongestion (Congestion c)
 	{
-		Congestion c = highCongestion ? eHighCongestion : eLowCongestion;
 		if (c != GetCongestion ())
 		{
 			SetCongestion (c);

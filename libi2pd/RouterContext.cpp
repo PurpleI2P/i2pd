@@ -1090,6 +1090,8 @@ namespace i2p
 			UpdateSSU2Keys ();
 			updated = true;
 		}
+		if (m_RouterInfo.UpdateCongestion (i2p::data::RouterInfo::eLowCongestion))
+			updated = true;
 		if (updated)
 			UpdateRouterInfo ();
 
@@ -1398,7 +1400,12 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			if (m_RouterInfo.SetHighCongestion (IsHighCongestion ()))
+			auto c = i2p::data::RouterInfo::eLowCongestion;
+			if (!AcceptsTunnels ()) 
+				c = i2p::data::RouterInfo::eRejectAll;
+			else if (IsHighCongestion ()) 
+				c = i2p::data::RouterInfo::eHighCongestion;
+			if (m_RouterInfo.UpdateCongestion (c))
 				UpdateRouterInfo ();
 			ScheduleCongestionUpdate ();
 		}	
