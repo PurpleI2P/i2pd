@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -691,7 +691,10 @@ namespace client
 		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
-		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port, gzip);
+		if (!inport) inport = port;	
+		m_PortDestination = localDestination->GetStreamingDestination (inport);	
+		if (!m_PortDestination)	
+			m_PortDestination = localDestination->CreateStreamingDestination (inport, gzip);
 	}
 
 	void I2PServerTunnel::Start ()
