@@ -165,7 +165,7 @@ namespace tunnel
 			bool IsInbound() const override { return true; }
 
 			// override TunnelBase
-			void Cleanup () { m_Endpoint.Cleanup (); };
+			void Cleanup () override { m_Endpoint.Cleanup (); };
 
 		private:
 
