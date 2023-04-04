@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -34,9 +34,9 @@ namespace tunnel
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
 
 			// implements TunnelBase
-			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
-			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out);
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
+			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
 		private:
 
 			i2p::crypto::AESKey m_LayerKey, m_IVKey;
@@ -55,8 +55,8 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
-			void FlushTunnelDataMsgs ();
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
+			void FlushTunnelDataMsgs () override;
 
 		private:
 
@@ -74,8 +74,8 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
 				layerKey, ivKey), m_Gateway(this) {};
 
-			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void FlushTunnelDataMsgs ();
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
+			void FlushTunnelDataMsgs () override;
 			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 		private:
@@ -96,7 +96,7 @@ namespace tunnel
 
 			void Cleanup () { m_Endpoint.Cleanup (); }
 
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 
 		private:

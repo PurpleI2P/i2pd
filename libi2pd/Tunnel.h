@@ -103,8 +103,8 @@ namespace tunnel
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 
 			// implements TunnelBase
-			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out);
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
+			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
 
 			/** @brief add latency sample */
 			void AddLatencySample(const uint64_t ms) { m_Latency = (m_Latency + ms) >> 1; }
@@ -144,9 +144,9 @@ namespace tunnel
 			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 			// implements TunnelBase
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 
-			bool IsInbound() const { return false; }
+			bool IsInbound() const override { return false; }
 
 		private:
 
@@ -160,9 +160,9 @@ namespace tunnel
 		public:
 
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
-			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg);
+			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg) override;
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
-			bool IsInbound() const { return true; }
+			bool IsInbound() const override { return true; }
 
 			// override TunnelBase
 			void Cleanup () { m_Endpoint.Cleanup (); };
@@ -177,8 +177,8 @@ namespace tunnel
 		public:
 
 			ZeroHopsInboundTunnel ();
-			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
+			size_t GetNumReceivedBytes () const override { return m_NumReceivedBytes; };
 
 		private:
 
@@ -190,8 +190,8 @@ namespace tunnel
 		public:
 
 			ZeroHopsOutboundTunnel ();
-			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs);
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs) override;
+			size_t GetNumSentBytes () const override { return m_NumSentBytes; };
 
 		private:
 
