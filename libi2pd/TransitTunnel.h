@@ -97,7 +97,7 @@ namespace tunnel
 			void Cleanup () override { m_Endpoint.Cleanup (); }
 
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
-			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
+			size_t GetNumTransmittedBytes () const override { return m_Endpoint.GetNumReceivedBytes (); }
 
 		private:
 
