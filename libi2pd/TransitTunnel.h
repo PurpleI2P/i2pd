@@ -54,7 +54,7 @@ namespace tunnel
 				layerKey, ivKey), m_NumTransmittedBytes (0) {};
 			~TransitTunnelParticipant ();
 
-			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
+			size_t GetNumTransmittedBytes () const override { return m_NumTransmittedBytes; };
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg) override;
 			void FlushTunnelDataMsgs () override;
 
@@ -76,7 +76,7 @@ namespace tunnel
 
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) override;
 			void FlushTunnelDataMsgs () override;
-			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
+			size_t GetNumTransmittedBytes () const override { return m_Gateway.GetNumSentBytes (); };
 
 		private:
 
