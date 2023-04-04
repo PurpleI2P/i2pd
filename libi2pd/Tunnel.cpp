@@ -103,7 +103,7 @@ namespace tunnel
 					if (msg1) msg = msg1;
 				}
 			}
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
+			outboundTunnel->SendTunnelDataMsgTo (GetNextIdentHash (), 0, msg);
 		}
 		else
 		{
@@ -266,7 +266,7 @@ namespace tunnel
 		}
 	}
 
-	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
+	void OutboundTunnel::SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		if (gwHash)

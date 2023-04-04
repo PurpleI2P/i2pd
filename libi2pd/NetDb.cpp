@@ -717,7 +717,7 @@ namespace data
 				auto outbound = pool ? pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
 				auto inbound = pool ? pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
 				if (outbound &&	inbound)
-					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, dest->CreateRequestMessage (floodfill, inbound));
+					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, dest->CreateRequestMessage (floodfill, inbound));
 				else
 				{
 					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
@@ -792,7 +792,7 @@ namespace data
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
+					outbound->SendTunnelDataMsgTo (buf + offset, tunnelID, deliveryStatus);
 				else
 					LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
 			}
@@ -901,7 +901,7 @@ namespace data
 							{
 								// request destination
 								LogPrint (eLogDebug, "NetDb: Try ", key, " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
-								outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
+								outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 									dest->CreateRequestMessage (nextFloodfill, inbound));
 								deleteDest = false;
 							}
@@ -1081,7 +1081,7 @@ namespace data
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (replyIdent, replyTunnelID, replyMsg);
+					outbound->SendTunnelDataMsgTo (replyIdent, replyTunnelID, replyMsg);
 				else
 					transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}

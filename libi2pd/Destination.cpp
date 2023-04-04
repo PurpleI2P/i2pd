@@ -635,7 +635,7 @@ namespace client
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
-		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);
+		outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, msg);
 		m_LastSubmissionTime = ts;
 	}
 

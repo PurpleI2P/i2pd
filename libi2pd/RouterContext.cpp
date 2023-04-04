@@ -1348,7 +1348,7 @@ namespace i2p
 				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
 				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
 				if (inbound && outbound)
-					outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0,
+					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
 						CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound));
 				else
 					LogPrint (eLogInfo, "Router: Can't publish our RouterInfo. No tunnles. Try again in ", ROUTER_INFO_CONFIRMATION_TIMEOUT, " seconds");

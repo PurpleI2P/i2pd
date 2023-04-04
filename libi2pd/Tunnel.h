@@ -138,7 +138,7 @@ namespace tunnel
 			OutboundTunnel (std::shared_ptr<const TunnelConfig> config):
 				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
-			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
+			void SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			virtual void SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
 			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; };
 			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
