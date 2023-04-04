@@ -835,7 +835,7 @@ namespace client
 				AddSessionKey (replyKey, replyTag);
 			auto msg = WrapMessageForRouter (nextFloodfill, CreateLeaseSetDatabaseLookupMsg (dest,
 				request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
-			request->outboundTunnel->SendTunnelDataMsg (
+			request->outboundTunnel->SendTunnelDataMsgs (
 				{
 					i2p::tunnel::TunnelMessageBlock
 					{

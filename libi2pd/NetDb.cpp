@@ -1137,7 +1137,7 @@ namespace data
 				m_Requests.RequestComplete (randomHash, nullptr);
 		}
 		if (throughTunnels && msgs.size () > 0)
-			outbound->SendTunnelDataMsg (msgs);
+			outbound->SendTunnelDataMsgs (msgs);
 	}
 
 	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)

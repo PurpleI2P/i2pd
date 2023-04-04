@@ -284,10 +284,10 @@ namespace tunnel
 			block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
 
-		SendTunnelDataMsg ({block});
+		SendTunnelDataMsgs ({block});
 	}
 
-	void OutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
+	void OutboundTunnel::SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs)
 	{
 		std::unique_lock<std::mutex> l(m_SendMutex);
 		for (auto& it : msgs)
@@ -306,7 +306,7 @@ namespace tunnel
 	{
 	}
 
-	void ZeroHopsOutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
+	void ZeroHopsOutboundTunnel::SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs)
 	{
 		for (auto& msg : msgs)
 		{

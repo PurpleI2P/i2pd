@@ -925,7 +925,7 @@ namespace stream
 					});
 				m_NumSentBytes += it->GetLength ();
 			}
-			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
+			m_CurrentOutboundTunnel->SendTunnelDataMsgs (msgs);
 		}
 		else
 		{
