@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -153,7 +153,7 @@ namespace data
 			return ProcessSU3Stream (s);
 		else
 		{
-			LogPrint (eLogError, "Reseed: Can't open file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open file ", filename);
 			return 0;
 		}
 	}
@@ -170,7 +170,7 @@ namespace data
 		}
 		else
 		{
-			LogPrint (eLogError, "Reseed: Can't open file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open file ", filename);
 			return 0;
 		}
 	}
@@ -278,7 +278,7 @@ namespace data
 
 		if (verify) // not verified
 		{
-			LogPrint (eLogError, "Reseed: SU3 verification failed");
+			LogPrint (eLogCritical, "Reseed: SU3 verification failed");
 			return 0;
 		}
 
@@ -320,7 +320,7 @@ namespace data
 				uint16_t fileNameLength, extraFieldLength;
 				s.read ((char *)&fileNameLength, 2);
 				fileNameLength = le16toh (fileNameLength);
-				if ( fileNameLength > 255 ) {
+				if ( fileNameLength >= 255 ) {
 					// too big
 					LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", fileNameLength);
 					return numFiles;
@@ -492,7 +492,7 @@ namespace data
 			SSL_free (ssl);
 		}
 		else
-			LogPrint (eLogError, "Reseed: Can't open certificate file ", filename);
+			LogPrint (eLogCritical, "Reseed: Can't open certificate file ", filename);
 		SSL_CTX_free (ctx);
 	}
 
@@ -534,17 +534,17 @@ namespace data
 				}
 				// check for valid proxy url schema
 				if (proxyUrl.schema != "http" && proxyUrl.schema != "socks") {
-					LogPrint(eLogError, "Reseed: Bad proxy url: ", proxy);
+					LogPrint(eLogCritical, "Reseed: Bad proxy url: ", proxy);
 					return "";
 				}
 			} else {
-				LogPrint(eLogError, "Reseed: Bad proxy url: ", proxy);
+				LogPrint(eLogCritical, "Reseed: Bad proxy url: ", proxy);
 				return "";
 			}
 		}
 		i2p::http::URL url;
 		if (!url.parse(address)) {
-			LogPrint(eLogError, "Reseed: Failed to parse url: ", address);
+			LogPrint(eLogCritical, "Reseed: Failed to parse url: ", address);
 			return "";
 		}
 		url.schema = "https";
@@ -687,12 +687,23 @@ namespace data
 				while (it != end)
 				{
 					boost::asio::ip::tcp::endpoint ep = *it;
-					if ((ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
-						(ep.address ().is_v6 () && i2p::context.SupportsV6 ()))
+					if (
+						(
+							!i2p::util::net::IsInReservedRange(ep.address ()) && (
+								(ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
+								(ep.address ().is_v6 () && i2p::context.SupportsV6 ())
+							)
+						) ||
+						(
+							i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
+							i2p::context.SupportsMesh ()
+						)
+					)
 					{
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)
 						{
+							LogPrint (eLogDebug, "Reseed: Resolved to ", ep.address ());
 							connected = true;
 							break;
 						}
@@ -780,17 +791,45 @@ namespace data
 		boost::asio::io_service service;
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
 
-		if (url.host.length () < 2) return ""; // assume []
-		auto host = url.host.substr (1, url.host.length () - 2);
-		LogPrint (eLogDebug, "Reseed: Connecting to Yggdrasil ", url.host, ":", url.port);
-		s.connect (boost::asio::ip::tcp::endpoint (boost::asio::ip::address_v6::from_string (host), url.port), ecode);
+		auto it = boost::asio::ip::tcp::resolver(service).resolve (
+			boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
+
 		if (!ecode)
 		{
-			LogPrint (eLogDebug, "Reseed: Connected to Yggdrasil ", url.host, ":", url.port);
+			bool connected = false;
+			boost::asio::ip::tcp::resolver::iterator end;
+			while (it != end)
+			{
+				boost::asio::ip::tcp::endpoint ep = *it;
+				if (
+					i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
+					i2p::context.SupportsMesh ()
+				)
+				{
+					LogPrint (eLogDebug, "Reseed: Yggdrasil: Resolved to ", ep.address ());
+					s.connect (ep, ecode);
+					if (!ecode)
+					{
+						connected = true;
+						break;
+					}
+				}
+				it++;
+			}
+			if (!connected)
+			{
+				LogPrint(eLogError, "Reseed: Yggdrasil: Failed to connect to ", url.host);
+				return "";
+			}
+		}
+
+		if (!ecode)
+		{
+			LogPrint (eLogDebug, "Reseed: Yggdrasil: Connected to ", url.host, ":", url.port);
 			return ReseedRequest (s, url.to_string());
 		}
 		else
-			LogPrint (eLogError, "Reseed: Couldn't connect to Yggdrasil ", url.host, ": ", ecode.message ());
+			LogPrint (eLogError, "Reseed: Yggdrasil: Couldn't connect to ", url.host, ": ", ecode.message ());
 
 		return "";
 	}

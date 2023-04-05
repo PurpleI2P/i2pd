@@ -15,6 +15,7 @@ IUnknown *pUnknown = nullptr;
 INetworkListManager *pNetworkListManager = nullptr;
 IConnectionPointContainer *pCPContainer = nullptr;
 IConnectionPoint *pConnectPoint = nullptr;
+CNetworkListManagerEvent *pNetEvent = nullptr;
 DWORD Cookie = 0;
 
 void SubscribeToEvents()
@@ -29,7 +30,11 @@ void SubscribeToEvents()
 		if (SUCCEEDED(Result))
 		{
 			VARIANT_BOOL IsConnect = VARIANT_FALSE;
+#if defined(_MSC_VER)
+			Result = pNetworkListManager->get_IsConnectedToInternet(&IsConnect);
+#else
 			Result = pNetworkListManager->IsConnectedToInternet(&IsConnect);
+#endif
 			if (SUCCEEDED(Result)) {
 				i2p::transport::transports.SetOnline (true);
 				LogPrint(eLogInfo, "NetState: Current state: ", IsConnect == VARIANT_TRUE ? "connected" : "disconnected");
@@ -41,8 +46,8 @@ void SubscribeToEvents()
 				Result = pCPContainer->FindConnectionPoint(IID_INetworkListManagerEvents, &pConnectPoint);
 				if(SUCCEEDED(Result))
 				{
-					CNetworkListManagerEvent *NetEvent = new CNetworkListManagerEvent;
-					Result = pConnectPoint->Advise((IUnknown *)NetEvent, &Cookie);
+					pNetEvent = new CNetworkListManagerEvent;
+					Result = pConnectPoint->Advise((IUnknown *)pNetEvent, &Cookie);
 					if (SUCCEEDED(Result))
 						LogPrint(eLogInfo, "NetState: Successfully subscribed to NetworkListManagerEvent messages");
 					else
@@ -59,12 +64,16 @@ void SubscribeToEvents()
 
 void UnSubscribeFromEvents()
 {
+	LogPrint(eLogInfo, "NetState: Unsubscribing from NetworkListManagerEvents");
 	try
 	{
 		if (pConnectPoint) {
 			pConnectPoint->Unadvise(Cookie);
 			pConnectPoint->Release();
 		}
+
+		if (pNetEvent)
+			pNetEvent->Release();
 
 		if (pCPContainer)
 			pCPContainer->Release();

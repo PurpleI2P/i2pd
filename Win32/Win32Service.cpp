@@ -21,7 +21,7 @@ BOOL I2PService::isService()
 	HWINSTA hWinStation = GetProcessWindowStation();
 	if (hWinStation != NULL)
 	{
-		USEROBJECTFLAGS uof = { 0 };
+		USEROBJECTFLAGS uof = { FALSE, FALSE, 0 };
 		if (GetUserObjectInformation(hWinStation, UOI_FLAGS, &uof, sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0))
 		{
 			bIsService = TRUE;
@@ -119,12 +119,12 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint(eLogError, "Win32Service: Start error: ", dwError);
+		LogPrint(eLogCritical, "Win32Service: Start error: ", dwError);
 		SetServiceStatus(SERVICE_STOPPED, dwError);
 	}
 	catch (...)
 	{
-		LogPrint(eLogError, "Win32Service: failed to start: ", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogCritical, "Win32Service: failed to start: ", EVENTLOG_ERROR_TYPE);
 		SetServiceStatus(SERVICE_STOPPED);
 	}
 }
@@ -162,7 +162,7 @@ void I2PService::Stop()
 	}
 	catch (...)
 	{
-		LogPrint(eLogError, "Win32Service: Failed to stop: ", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogCritical, "Win32Service: Failed to stop: ", EVENTLOG_ERROR_TYPE);
 		SetServiceStatus(dwOriginalState);
 	}
 }
@@ -191,12 +191,12 @@ void I2PService::Pause()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint(eLogError, "Win32Service: Pause error: ", dwError);
+		LogPrint(eLogCritical, "Win32Service: Pause error: ", dwError);
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (...)
 	{
-		LogPrint(eLogError, "Win32Service: Failed to pause: ", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogCritical, "Win32Service: Failed to pause: ", EVENTLOG_ERROR_TYPE);
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 }
@@ -215,12 +215,12 @@ void I2PService::Continue()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint(eLogError, "Win32Service: Continue error: ", dwError);
+		LogPrint(eLogCritical, "Win32Service: Continue error: ", dwError);
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 	catch (...)
 	{
-		LogPrint(eLogError, "Win32Service: Failed to resume: ", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogCritical, "Win32Service: Failed to resume: ", EVENTLOG_ERROR_TYPE);
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 }
@@ -238,11 +238,11 @@ void I2PService::Shutdown()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint(eLogError, "Win32Service: Shutdown error: ", dwError);
+		LogPrint(eLogCritical, "Win32Service: Shutdown error: ", dwError);
 	}
 	catch (...)
 	{
-		LogPrint(eLogError, "Win32Service: Failed to shut down: ", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogCritical, "Win32Service: Failed to shut down: ", EVENTLOG_ERROR_TYPE);
 	}
 }
 

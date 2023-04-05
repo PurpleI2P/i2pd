@@ -139,7 +139,7 @@ namespace data
 		if (m_IsDirty) deflateReset (&m_Deflator);
 		m_IsDirty = true;
 		size_t offset = 0;
-		int err;
+		int err = 0;
 		for (const auto& it: bufs)
 		{
 			m_Deflator.next_in = const_cast<uint8_t *>(it.first);

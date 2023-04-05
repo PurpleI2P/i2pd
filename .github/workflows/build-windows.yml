@@ -8,44 +8,106 @@ defaults:
 
 jobs:
   build:
-    name: Building using ${{ matrix.arch }} toolchain
+    name: ${{ matrix.arch }}
     runs-on: windows-latest
+
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include: [
-          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt },
-          { msystem: MINGW64, arch: x86_64, arch_short: x64 },
-          { msystem: MINGW32, arch: i686, arch_short: x86 }
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc },
+          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc },
+          { msystem: MINGW32, arch: i686, arch_short: x86, compiler: gcc }
         ]
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: ${{ matrix.msystem }}
-        install: base-devel mingw-w64-${{ matrix.arch }}-gcc mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        install: base-devel git mingw-w64-${{ matrix.arch }}-${{ matrix.compiler }} mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
         update: true
+
+    - name: Install additional clang packages
+      if: ${{ matrix.msystem == 'CLANG64' }}
+      run: pacman --noconfirm -S mingw-w64-${{ matrix.arch }}-gcc-compat
+
     - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
         make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes -j3
+
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: i2pd-${{ matrix.arch_short }}.exe
         path: i2pd.exe
-  build-xp:
-    name: Building for Windows XP
+
+  build-cmake:
+    name: CMake ${{ matrix.arch }}
     runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: UCRT64, arch: ucrt-x86_64, arch_short: x64-ucrt, compiler: gcc },
+          { msystem: CLANG64, arch: clang-x86_64, arch_short: x64-clang, compiler: clang },
+          { msystem: MINGW64, arch: x86_64, arch_short: x64, compiler: gcc },
+          { msystem: MINGW32, arch: i686, arch_short: x86, compiler: gcc }
+        ]
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: base-devel git mingw-w64-${{ matrix.arch }}-cmake mingw-w64-${{ matrix.arch }}-ninja mingw-w64-${{ matrix.arch }}-${{ matrix.compiler }} mingw-w64-${{ matrix.arch }}-boost mingw-w64-${{ matrix.arch }}-openssl mingw-w64-${{ matrix.arch }}-miniupnpc
+        update: true
+
+    - name: Build application
+      run: |
+        cd build
+        cmake -DWITH_GIT_VERSION=ON -DWITH_STATIC=ON -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+        cmake --build . -- -j3
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-cmake-${{ matrix.arch_short }}.exe
+        path: build/i2pd.exe
+
+  build-xp:
+    name: XP
+    runs-on: windows-latest
+
+    strategy:
+        fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
         install: base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc
         update: true
+
     - name: Build WinXP-capable CRT packages
       run: |
         git clone https://github.com/msys2/MINGW-packages
@@ -64,12 +126,14 @@ jobs:
         pacman --noconfirm -U mingw-w64-i686-libwinpthread-git-*-any.pkg.tar.zst mingw-w64-i686-winpthreads-git-*-any.pkg.tar.zst
         popd
         popd
+
     - name: Build application
       run: |
         mkdir -p obj/Win32 obj/libi2pd obj/libi2pd_client obj/daemon
         make USE_UPNP=yes DEBUG=no USE_GIT_VERSION=yes USE_WINXP_FLAGS=yes -j3
+
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: i2pd-xp.exe
         path: i2pd.exe

@@ -36,8 +36,9 @@ namespace http
 		bool hasquery;
 		std::string query;
 		std::string frag;
+		bool ipv6;
 
-		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag("") {};
+		URL(): schema(""), user(""), pass(""), host(""), port(0), path(""), hasquery(false), query(""), frag(""), ipv6(false) {};
 
 		/**
 		 * @brief Tries to parse url from string

@@ -23,7 +23,7 @@ namespace transport
 		if (msg->len + fragmentSize > msg->maxLen)
 		{
 			LogPrint (eLogInfo, "SSU2: I2NP message size ", msg->maxLen, " is not enough");
-			auto newMsg = NewI2NPMessage ();
+			auto newMsg = NewI2NPMessage (msg->len + fragmentSize);
 			*newMsg = *msg;
 			msg = newMsg;
 		}
@@ -84,7 +84,7 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE), 
+		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE),
 		m_RTT (SSU2_RESEND_INTERVAL), m_RTO (SSU2_RESEND_INTERVAL*SSU2_kAPPA), m_RelayTag (0),
 		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
@@ -608,7 +608,7 @@ namespace transport
 				* payload = m_SentHandshakePacket->payload;
 		// fill packet
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2SessionRequest;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
@@ -636,7 +636,7 @@ namespace transport
 		m_EphemeralKeys->Agree (m_Address->s, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		const uint8_t nonce[12] = {0}; // always 0
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		header.ll[0] ^= CreateHeaderMask (m_Address->i, payload + (payloadSize - 24));
@@ -648,6 +648,7 @@ namespace transport
 		if (m_State == eSSU2SessionStateTokenReceived || m_Server.AddPendingOutgoingSession (shared_from_this ()))
 		{
 			m_State = eSSU2SessionStateSessionRequestSent;
+			m_HandshakeInterval = ts;
 			m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 		}
 		else
@@ -721,7 +722,7 @@ namespace transport
 		uint8_t * headerX = m_SentHandshakePacket->headerX,
 				* payload = m_SentHandshakePacket->payload;
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		RAND_bytes (header.buf + 8, 4); // random packet num
 		header.h.type = eSSU2SessionCreated;
 		header.h.flags[0] = 2; // ver
 		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
@@ -760,7 +761,7 @@ namespace transport
 		m_EphemeralKeys->Agree (X, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// encrypt
-		const uint8_t nonce[12] = {0};
+		const uint8_t nonce[12] = {0}; // always zero
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || encrypted Noise payload from Session Created)
@@ -770,6 +771,7 @@ namespace transport
 		m_State = eSSU2SessionStateSessionCreatedSent;
 		m_SentHandshakePacket->payloadSize = payloadSize;
 		// send
+		m_HandshakeInterval = ts;
 		m_Server.Send (header.buf, 16, headerX, 48, payload, payloadSize, m_RemoteEndpoint);
 	}
 
@@ -790,6 +792,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: SessionCreated message too short ", len);
 			return false;
 		}
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		const uint8_t nonce[12] = {0};
 		uint8_t headerX[48];
 		i2p::crypto::ChaCha20 (buf + 16, 48, kh2, nonce, headerX);
@@ -832,7 +835,7 @@ namespace transport
 		// fill packet
 		Header& header = m_SentHandshakePacket->header;
 		header.h.connID = m_DestConnID; // dest id
-		header.h.packetNum = 0;
+		header.h.packetNum = 0; // always zero
 		header.h.type = eSSU2SessionConfirmed;
 		memset (header.h.flags, 0, 3);
 		header.h.flags[0] = 1; // frag, total fragments always 1
@@ -855,7 +858,7 @@ namespace transport
 		// Encrypt part 1
 		uint8_t * part1 = m_SentHandshakePacket->headerX;
 		uint8_t nonce[12];
-		CreateNonce (1, nonce);
+		CreateNonce (1, nonce); // always one
 		i2p::crypto::AEADChaCha20Poly1305 (i2p::context.GetSSU2StaticPublicKey (), 32, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, part1, 48, true);
 		m_NoiseState->MixHash (part1, 48); // h = SHA256(h || ciphertext);
 		// KDF for Session Confirmed part 2
@@ -863,7 +866,7 @@ namespace transport
 		i2p::context.GetSSU2StaticKeys ().Agree (Y, sharedSecret);
 		m_NoiseState->MixKey (sharedSecret);
 		// Encrypt part2
-		memset (nonce, 0, 12);
+		memset (nonce, 0, 12); // always zero
 		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, m_NoiseState->m_H, 32, m_NoiseState->m_CK + 32, nonce, payload, payloadSize + 16, true);
 		payloadSize += 16;
 		m_NoiseState->MixHash (payload, payloadSize); // h = SHA256(h || ciphertext);
@@ -919,6 +922,12 @@ namespace transport
 			LogPrint (eLogInfo, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2SessionConfirmed);
 			// TODO: queue up
 			return true;
+		}
+		// packet num must be always zero
+		if (header.h.packetNum)
+		{
+			LogPrint (eLogError, "SSU2: Non zero packet number in SessionConfirmed");
+			return false;
 		}
 		// check if fragmented
 		uint8_t numFragments = header.h.flags[0] & 0x0F;
@@ -989,6 +998,7 @@ namespace transport
 			if (m_SessionConfirmedFragment) m_SessionConfirmedFragment.reset (nullptr);
 			return false;
 		}
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 		// KDF for Session Confirmed part 1
 		m_NoiseState->MixHash (header.buf, 16); // h = SHA256(h || header)
 		// decrypt part1
@@ -1661,7 +1671,7 @@ namespace transport
 		// ranges
 		len -= 5;
 		const uint8_t * ranges = buf + 5;
-		while (len > 0 && firstPacketNum)
+		while (len > 0 && firstPacketNum && ackThrough - firstPacketNum < SSU2_MAX_NUM_ACK_PACKETS)
 		{
 			uint32_t lastPacketNum = firstPacketNum - 1;
 			if (*ranges > lastPacketNum) break;
@@ -1766,8 +1776,8 @@ namespace transport
 
 	void SSU2Session::HandleFirstFragment (const uint8_t * buf, size_t len)
 	{
+		auto msg = (buf[0] == eI2NPTunnelData) ? NewI2NPTunnelMessage (true) : NewI2NPShortMessage ();
 		uint32_t msgID; memcpy (&msgID, buf + 1, 4);
-		auto msg = NewI2NPShortMessage ();
 		// same format as I2NP message block
 		msg->len = msg->offset + len + 7;
 		memcpy (msg->GetNTCP2Header (), buf, len);
@@ -1874,7 +1884,7 @@ namespace transport
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
 		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
-		
+
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
 		if (!payloadSize && r)
@@ -2807,13 +2817,13 @@ namespace transport
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		size_t payloadSize = 0;
 		if (m_SendPacketNum > m_LastDatetimeSentPacketNum + SSU2_SEND_DATETIME_NUM_PACKETS)
-		{	
+		{
 			payload[0] = eSSU2BlkDateTime;
 			htobe16buf (payload + 1, 4);
 			htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 			payloadSize += 7;
 			m_LastDatetimeSentPacketNum = m_SendPacketNum;
-		}	
+		}
 		payloadSize += CreateAckBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
 		SendData (payload, payloadSize);

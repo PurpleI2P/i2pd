@@ -452,6 +452,7 @@ namespace transport
 	{
 		m_Establisher->CreateSessionRequestMessage ();
 		// send message
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionRequestBuffer, m_Establisher->m_SessionRequestBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -529,6 +530,7 @@ namespace transport
 	{
 		m_Establisher->CreateSessionCreatedMessage ();
 		// send message
+		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionCreatedBuffer, m_Establisher->m_SessionCreatedBufferLen), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionCreatedSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
@@ -542,6 +544,7 @@ namespace transport
 		}
 		else
 		{
+			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 			LogPrint (eLogDebug, "NTCP2: SessionCreated received ", bytes_transferred);
 			uint16_t paddingLen = 0;
 			if (m_Establisher->ProcessSessionCreatedMessage (paddingLen))
@@ -646,6 +649,7 @@ namespace transport
 		}
 		else
 		{
+			m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch () - m_HandshakeInterval;
 			LogPrint (eLogDebug, "NTCP2: SessionConfirmed received");
 			// part 1
 			uint8_t nonce[12];
@@ -1238,7 +1242,7 @@ namespace transport
 				boost::system::error_code e;
 				auto itr = m_Resolver.resolve(q, e);
 				if(e)
-					LogPrint(eLogError, "NTCP2: Failed to resolve proxy ", e.message());
+					LogPrint(eLogCritical, "NTCP2: Failed to resolve proxy ", e.message());
 				else
 				{
 					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr));
@@ -1266,7 +1270,7 @@ namespace transport
 						}
 						catch ( std::exception & ex )
 						{
-							LogPrint(eLogError, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
+							LogPrint(eLogCritical, "NTCP2: Failed to bind to v4 port ", address->port, ex.what());
 							ThrowFatal ("Unable to start IPv4 NTCP2 transport at port ", address->port, ": ", ex.what ());
 							continue;
 						}
@@ -1309,7 +1313,7 @@ namespace transport
 						}
 						catch ( std::exception & ex )
 						{
-							LogPrint(eLogError, "NTCP2: Failed to bind to v6 port ", address->port, ": ", ex.what());
+							LogPrint(eLogCritical, "NTCP2: Failed to bind to v6 port ", address->port, ": ", ex.what());
 							ThrowFatal ("Unable to start IPv6 NTCP2 transport at port ", address->port, ": ", ex.what ());
 							continue;
 						}

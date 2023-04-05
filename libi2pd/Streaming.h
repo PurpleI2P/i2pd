@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -80,6 +80,7 @@ namespace stream
 		uint32_t GetAckThrough () const { return bufbe32toh (buf + 12); };
 		uint8_t GetNACKCount () const { return buf[16]; };
 		uint32_t GetNACK (int i) const { return bufbe32toh (buf + 17 + 4 * i); };
+		const uint8_t * GetNACKs () const { return buf + 17; };
 		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; }; // 3 = resendDelay + flags
 		uint16_t GetFlags () const { return bufbe16toh (GetOption () - 2); };
 		uint16_t GetOptionSize () const { return bufbe16toh (GetOption ()); };
@@ -312,7 +313,7 @@ namespace stream
 			std::unordered_map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
-			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
+			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
 
 		public:
 

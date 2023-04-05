@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,9 +13,7 @@
 #include <string.h>
 #include <string>
 #include <memory>
-#include <atomic>
 #include <vector>
-#include <mutex>
 #include "Base.h"
 #include "Signature.h"
 #include "CryptoKey.h"
@@ -118,7 +116,6 @@ namespace data
 			SigningKeyType GetSigningKeyType () const;
 			bool IsRSA () const; // signing key type
 			CryptoKeyType GetCryptoKeyType () const;
-			void DropVerifier () const; // to save memory
 
 			bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
 			void RecalculateIdentHash(uint8_t * buff=nullptr);
@@ -128,15 +125,13 @@ namespace data
 
 		private:
 
-			void CreateVerifier () const;
-			void UpdateVerifier (i2p::crypto::Verifier * verifier) const;
-
+			void CreateVerifier ();
+			
 		private:
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable i2p::crypto::Verifier * m_Verifier = nullptr;
-			mutable std::mutex m_VerifierMutex;
+			std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
 			size_t m_ExtendedLen;
 			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
 	};

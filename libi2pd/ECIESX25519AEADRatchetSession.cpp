@@ -1150,7 +1150,7 @@ namespace garlic
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
-		auto m = NewI2NPMessage ();
+		auto m = NewI2NPMessage ((msg ? msg->GetPayloadLength () : 0) + 128);
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
 		size_t offset = 0;
@@ -1176,7 +1176,7 @@ namespace garlic
 		// Noise_N, we are Alice, routerPublicKey is Bob's
 		i2p::crypto::NoiseSymmetricState noiseState;
 		i2p::crypto::InitNoiseNState (noiseState, routerPublicKey);
-		auto m = NewI2NPMessage ();
+		auto m = NewI2NPMessage ((msg ? msg->GetPayloadLength () : 0) + 128);
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
 		size_t offset = 0;

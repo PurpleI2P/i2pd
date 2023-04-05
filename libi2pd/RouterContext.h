@@ -12,12 +12,13 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
-#include <mutex>
 #include <chrono>
+#include <set>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -30,7 +31,13 @@ namespace garlic
 	const char ROUTER_KEYS[] = "router.keys";
 	const char NTCP2_KEYS[] = "ntcp2.keys";
 	const char SSU2_KEYS[] = "ssu2.keys";
-	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
+	const int ROUTER_INFO_UPDATE_INTERVAL = 30*60; // 30 minutes
+	const int ROUTER_INFO_PUBLISH_INTERVAL = 39*60; // in seconds
+	const int ROUTER_INFO_INITIAL_PUBLISH_INTERVAL = 10; // in seconds
+	const int ROUTER_INFO_PUBLISH_INTERVAL_VARIANCE = 105;// in seconds
+	const int ROUTER_INFO_CONFIRMATION_TIMEOUT = 5; // in seconds
+	const int ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
+	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 12*60; // in seconds
 
 	enum RouterStatus
 	{
@@ -70,11 +77,23 @@ namespace garlic
 				uint8_t intro[32];
 			};
 
+			class RouterService: public i2p::util::RunnableServiceWithWork
+			{
+				public:
+
+					RouterService (): RunnableServiceWithWork ("Router") {};
+					boost::asio::io_service& GetService () { return GetIOService (); };
+					void Start () { StartIOService (); };
+					void Stop () { StopIOService (); };
+			};
+			
 		public:
 
 			RouterContext ();
 			void Init ();
-
+			void Start ();
+			void Stop ();
+			
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			i2p::data::LocalRouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			std::shared_ptr<i2p::data::RouterInfo> GetSharedRouterInfo ()
@@ -134,6 +153,7 @@ namespace garlic
 			void SetShareRatio (int percents); // 0 - 100
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
+			bool IsHighCongestion () const;
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
@@ -141,6 +161,8 @@ namespace garlic
 			void SetSupportsV4 (bool supportsV4);
 			void SetSupportsMesh (bool supportsmesh, const boost::asio::ip::address_v6& host);
 			void SetMTU (int mtu, bool v4);
+			void SetHidden(bool hide) { m_IsHiddenMode = hide; };
+			bool IsHidden() const { return m_IsHiddenMode; };
 			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
@@ -183,7 +205,19 @@ namespace garlic
 			void PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address, int port, bool publish) const;
 
 			bool DecryptECIESTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, size_t clearTextSize);
+			void PostGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void PostDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 
+			void ScheduleInitialPublish ();
+			void HandleInitialPublishTimer (const boost::system::error_code& ecode);
+			void SchedulePublish ();
+			void HandlePublishTimer (const boost::system::error_code& ecode);
+			void Publish ();
+			void SchedulePublishResend ();
+			void HandlePublishResendTimer (const boost::system::error_code& ecode);
+			void ScheduleCongestionUpdate ();
+			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
+			
 		private:
 
 			i2p::data::LocalRouterInfo m_RouterInfo;
@@ -198,12 +232,17 @@ namespace garlic
 			RouterStatus m_Status, m_StatusV6;
 			RouterError m_Error, m_ErrorV6;
 			int m_NetID;
-			std::mutex m_GarlicMutex;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<SSU2PrivateKeys> m_SSU2Keys;
 			std::unique_ptr<i2p::crypto::X25519Keys> m_NTCP2StaticKeys, m_SSU2StaticKeys;
 			// for ECIESx25519
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
+			// publish
+			std::unique_ptr<RouterService> m_Service;
+			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer;
+			std::set<i2p::data::IdentHash> m_PublishExcluded;
+			uint32_t m_PublishReplyToken;
+			bool m_IsHiddenMode; // not publish
 	};
 
 	extern RouterContext context;

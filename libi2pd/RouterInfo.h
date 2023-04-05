@@ -44,7 +44,11 @@ namespace data
 	const char CAPS_FLAG_HIGH_BANDWIDTH3  = 'O'; /* 128-256 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
-
+	// congesion flags
+	const char CAPS_FLAG_MEDIUM_CONGESTION = 'D';
+	const char CAPS_FLAG_HIGH_CONGESTION = 'E';
+	const char CAPS_FLAG_REJECT_ALL_CONGESTION = 'G';
+	
 	const char CAPS_FLAG_V4 = '4';
 	const char CAPS_FLAG_V6 = '6';
 	const char CAPS_FLAG_SSU2_TESTING = 'B';
@@ -56,6 +60,8 @@ namespace data
 	const uint8_t COST_SSU2_NON_PUBLISHED = 15;
 
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
+	const int HIGH_CONGESTION_INTERVAL = 15*60; // in seconds, 15 minutes
+		
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -93,6 +99,14 @@ namespace data
 				eUnreachable = 0x20
 			};
 
+			enum Congestion
+			{
+				eLowCongestion = 0,
+				eMediumCongestion,
+				eHighCongestion,
+				eRejectAll
+			};
+		
 			enum AddressCaps
 			{
 				eV4 = 0x01,
@@ -110,11 +124,10 @@ namespace data
 
 			struct Introducer
 			{
-				Introducer (): iTag (0), iExp (0), isH (false) {};
+				Introducer (): iTag (0), iExp (0) {};
 				IdentHash iH;
 				uint32_t iTag;
 				uint32_t iExp;
-				bool isH; // TODO: remove later
 			};
 
 			struct SSUExt
@@ -235,10 +248,13 @@ namespace data
 			bool IsEligibleFloodfill () const;
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsSSU2Introducer (bool v4) const;
+			bool IsHighCongestion () const;
 
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps) { m_Caps = caps; };
 
+			Congestion GetCongestion () const { return m_Congestion; };
+		
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; };
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
@@ -275,7 +291,8 @@ namespace data
 			void RefreshTimestamp ();
 			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
 			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
-
+			void SetCongestion (Congestion c) { m_Congestion = c; };
+		
 		private:
 
 			bool LoadFile (const std::string& fullPath);
@@ -290,6 +307,7 @@ namespace data
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
 			virtual std::shared_ptr<Address> NewAddress () const;
 			virtual boost::shared_ptr<Addresses> NewAddresses () const;
+			virtual std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) const;
 
 		private:
 
@@ -303,6 +321,7 @@ namespace data
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
 			uint8_t m_Caps;
 			int m_Version;
+			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};
 
@@ -311,9 +330,9 @@ namespace data
 		public:
 
 			LocalRouterInfo () = default;
-			LocalRouterInfo (const std::string& fullPath): RouterInfo (fullPath) {};
 			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateCaps (uint8_t caps);
+			bool UpdateCongestion (Congestion c); // returns true if updated
 
 			void SetProperty (const std::string& key, const std::string& value) override;
 			void DeleteProperty (const std::string& key);
@@ -331,6 +350,7 @@ namespace data
 			std::shared_ptr<Buffer> NewBuffer () const override;
 			std::shared_ptr<Address> NewAddress () const override;
 			boost::shared_ptr<Addresses> NewAddresses () const override;
+			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) const override;
 
 		private:
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -425,7 +425,7 @@ namespace datagram
 				if (m)
 					send.push_back(i2p::tunnel::TunnelMessageBlock{i2p::tunnel::eDeliveryTypeTunnel,routingPath->remoteLease->tunnelGateway, routingPath->remoteLease->tunnelID, m});
 			}
-			routingPath->outboundTunnel->SendTunnelDataMsg(send);
+			routingPath->outboundTunnel->SendTunnelDataMsgs(send);
 		}
 		m_SendQueue.clear();
 	}

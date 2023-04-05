@@ -6,27 +6,34 @@ jobs:
   build:
     name: ${{ matrix.dist }}
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
         dist: ['buster', 'bullseye', 'bookworm']
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: change debian changelog
-      run: |
-        sudo apt-get update
-        sudo apt-get install devscripts
-        debchange -v "`git describe --tags`-${{ matrix.dist }}" -b -M --distribution ${{ matrix.dist }} "trunk build"
-    - uses: jtdor/build-deb-action@v1
+
+    - name: Build package
+      uses: jtdor/build-deb-action@v1
       with:
         docker-image: debian:${{ matrix.dist }}-slim
         buildpackage-opts: --build=binary --no-sign
-    - uses: actions/upload-artifact@v3
+        before-build-hook: debchange --controlmaint --local "+${{ github.sha }}~${{ matrix.dist }}" -b --distribution ${{ matrix.dist }} "CI build"
+        extra-build-deps: devscripts git
+
+    - name: Upload package
+      uses: actions/upload-artifact@v3
       with:
         name: i2pd_${{ matrix.dist }}
         path: debian/artifacts/i2pd_*.deb
-    - uses: actions/upload-artifact@v3
+
+    - name: Upload debugging symbols
+      uses: actions/upload-artifact@v3
       with:
         name: i2pd-dbgsym_${{ matrix.dist }}
         path: debian/artifacts/i2pd-dbgsym_*.deb

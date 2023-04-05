@@ -4,17 +4,18 @@ USE_WIN32_APP := yes
 WINDRES = windres
 
 CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
-INCFLAGS = -I$(DAEMON_SRC_DIR) -IWin32
+INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
 LDFLAGS := ${LD_DEBUG} -static
 
-NEEDED_CXXFLAGS += -std=c++17 -DWIN32_LEAN_AND_MEAN
+NEEDED_CXXFLAGS += -std=c++17
+DEFINES += -DWIN32_LEAN_AND_MEAN
 
 # Boost libraries suffix
 BOOST_SUFFIX = -mt
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
+	DEFINES += -DUSE_UPNP -DMINIUPNP_STATICLIB
 	LDLIBS = -lminiupnpc
 endif
 
@@ -35,18 +36,19 @@ LDLIBS += \
 	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)
-	NEEDED_CXXFLAGS += -DWIN32_APP
+	DEFINES += -DWIN32_APP
 	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
 ifeq ($(USE_WINXP_FLAGS), yes)
-	NEEDED_CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
+	DEFINES += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
 ifeq ($(USE_AESNI),yes)
-	NEEDED_CXXFLAGS += -D__AES__ -maes
+	NEEDED_CXXFLAGS += -maes
+	DEFINES += -D__AES__
 endif
 
 ifeq ($(USE_ASLR),yes)
@@ -54,4 +56,4 @@ ifeq ($(USE_ASLR),yes)
 endif
 
 obj/%.o : %.rc | mk_obj_dir
-	$(WINDRES) -i $< -o $@
+	$(WINDRES) $(DEFINES) $(INCFLAGS) --preprocessor-arg=-MMD --preprocessor-arg=-MP --preprocessor-arg=-MF$@.d -i $< -o $@

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -51,8 +51,8 @@ namespace stream
 			{
 				// partially
 				rem = len - offset;
-				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), len - offset);
-				nextBuffer->offset += (len - offset);
+				memcpy (buf + offset, nextBuffer->GetRemaningBuffer (), rem);
+				nextBuffer->offset += rem;
 				offset = len; // break
 			}
 		}
@@ -139,14 +139,22 @@ namespace stream
 	{
 		m_NumReceivedBytes += packet->GetLength ();
 		if (!m_SendStreamID)
+		{	
 			m_SendStreamID = packet->GetReceiveStreamID ();
+			if (!m_RemoteIdentity && packet->GetNACKCount () == 8 && // first incoming packet
+			    memcmp (packet->GetNACKs (), m_LocalDestination.GetOwner ()->GetIdentHash (), 32))
+			{
+				LogPrint (eLogWarning, "Streaming: Destination mismatch for ", m_LocalDestination.GetOwner ()->GetIdentHash ().ToBase32 ());
+				m_LocalDestination.DeletePacket (packet);
+				return;
+			}	
+		}	
 
 		if (!packet->IsNoAck ()) // ack received
 			ProcessAck (packet);
 
 		int32_t receivedSeqn = packet->GetSeqn ();
-		bool isSyn = packet->IsSYN ();
-		if (!receivedSeqn && !isSyn)
+		if (!receivedSeqn && !packet->GetFlags ())
 		{
 			// plain ack
 			LogPrint (eLogDebug, "Streaming: Plain ACK received");
@@ -188,7 +196,7 @@ namespace stream
 						shared_from_this (), std::placeholders::_1));
 				}
 			}
-			else if (isSyn)
+			else if (packet->IsSYN ())
 				// we have to send SYN back to incoming connection
 				SendBuffer (); // also sets m_IsOpen
 		}
@@ -384,7 +392,7 @@ namespace stream
 			memset (p.buf, 0, 22); // minimal header all zeroes
 			memcpy (p.buf + 4, packet->buf, 4); // but receiveStreamID is the sendStreamID from the ping
 			htobe16buf (p.buf + 18, PACKET_FLAG_ECHO); // and echo flag
-			ssize_t payloadLen = packet->len - (packet->GetPayload () - packet->buf);
+			auto payloadLen = int(packet->len) - (packet->GetPayload () - packet->buf);
 			if (payloadLen > 0)
 				memcpy (p.buf + 22, packet->GetPayload (), payloadLen);
 			else
@@ -560,8 +568,19 @@ namespace stream
 				else
 					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
 				size += 4; // ack Through
-				packet[size] = 0;
-				size++; // NACK count
+				if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
+				{
+					// first SYN packet
+					packet[size] = 8;
+					size++; // NACK count
+					memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
+					size += 32;
+				}
+				else
+				{	
+					packet[size] = 0;
+					size++; // NACK count
+				}	
 				packet[size] = m_RTO/1000;
 				size++; // resend delay
 				if (m_Status == eStreamStatusNew)
@@ -906,7 +925,7 @@ namespace stream
 					});
 				m_NumSentBytes += it->GetLength ();
 			}
-			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
+			m_CurrentOutboundTunnel->SendTunnelDataMsgs (msgs);
 		}
 		else
 		{
@@ -1428,7 +1447,7 @@ namespace stream
 		const uint8_t * payload, size_t len, uint16_t toPort, bool checksum, bool gzip)
 	{
 		size_t size;
-		auto msg = m_I2NPMsgsPool.AcquireShared ();
+		auto msg = (len <= STREAMING_MTU_RATCHETS) ? m_I2NPMsgsPool.AcquireShared () : NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for lengthlength
 		msg->len += 4;

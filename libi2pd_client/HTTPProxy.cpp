@@ -113,7 +113,7 @@ namespace proxy {
 			i2p::http::URL m_ProxyURL;
 			i2p::http::URL m_RequestURL;
 			uint8_t m_socks_buf[255+8]; // for socks request/response
-			ssize_t m_req_len;
+			int m_req_len;
 			i2p::http::URL m_ClientRequestURL;
 			i2p::http::HTTPReq m_ClientRequest;
 			i2p::http::HTTPRes m_ClientResponse;

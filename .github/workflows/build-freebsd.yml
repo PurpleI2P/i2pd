@@ -6,8 +6,11 @@ jobs:
   build:
     runs-on: macos-12
     name: with UPnP
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Test in FreeBSD
       id: test
       uses: vmactions/freebsd-vm@v0.3.0
@@ -21,8 +24,9 @@ jobs:
           cd build
           cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
           gmake -j2
+
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: i2pd-freebsd
         path: build/i2pd

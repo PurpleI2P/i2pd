@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -187,7 +187,6 @@ namespace data
 
 	IdentityEx::~IdentityEx ()
 	{
-		delete m_Verifier;
 	}
 
 	IdentityEx& IdentityEx::operator=(const IdentityEx& other)
@@ -201,9 +200,8 @@ namespace data
 			if (m_ExtendedLen > MAX_EXTENDED_BUFFER_SIZE) m_ExtendedLen = MAX_EXTENDED_BUFFER_SIZE;
 			memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
 		}
-
-		delete m_Verifier;
 		m_Verifier = nullptr;
+		CreateVerifier ();
 
 		return *this;
 	}
@@ -212,11 +210,10 @@ namespace data
 	{
 		m_StandardIdentity = standard;
 		m_IdentHash = m_StandardIdentity.Hash ();
-
 		m_ExtendedLen = 0;
 
-		delete m_Verifier;
 		m_Verifier = nullptr;
+		CreateVerifier ();
 
 		return *this;
 	}
@@ -249,8 +246,8 @@ namespace data
 			m_ExtendedLen = 0;
 		SHA256(buf, GetFullLen (), m_IdentHash);
 
-		delete m_Verifier;
 		m_Verifier = nullptr;
+		CreateVerifier ();
 
 		return GetFullLen ();
 	}
@@ -286,7 +283,6 @@ namespace data
 
 	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
-		if (!m_Verifier) CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->GetPublicKeyLen ();
 		return 128;
@@ -301,7 +297,6 @@ namespace data
 
 	size_t IdentityEx::GetSigningPrivateKeyLen () const
 	{
-		if (!m_Verifier) CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->GetPrivateKeyLen ();
 		return GetSignatureLen ()/2;
@@ -309,14 +304,12 @@ namespace data
 
 	size_t IdentityEx::GetSignatureLen () const
 	{
-		if (!m_Verifier) CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->GetSignatureLen ();
 		return i2p::crypto::DSA_SIGNATURE_LENGTH;
 	}
 	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
-		if (!m_Verifier) CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->Verify (buf, len, signature);
 		return false;
@@ -373,52 +366,29 @@ namespace data
 		return nullptr;
 	}
 
-	void IdentityEx::CreateVerifier () const
+	void IdentityEx::CreateVerifier ()
 	{
-		if (m_Verifier) return; // don't create again
-		auto verifier = CreateVerifier (GetSigningKeyType ());
-		if (verifier)
+		if (!m_Verifier)
 		{
-			auto keyLen = verifier->GetPublicKeyLen ();
-			if (keyLen <= 128)
-				verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
-			else
+			auto verifier = CreateVerifier (GetSigningKeyType ());
+			if (verifier)
 			{
-				// for P521
-				uint8_t * signingKey = new uint8_t[keyLen];
-				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
-				size_t excessLen = keyLen - 128;
-				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				verifier->SetPublicKey (signingKey);
-				delete[] signingKey;
+				auto keyLen = verifier->GetPublicKeyLen ();
+				if (keyLen <= 128)
+					verifier->SetPublicKey (m_StandardIdentity.signingKey + 128 - keyLen);
+				else
+				{
+					// for P521
+					uint8_t * signingKey = new uint8_t[keyLen];
+					memcpy (signingKey, m_StandardIdentity.signingKey, 128);
+					size_t excessLen = keyLen - 128;
+					memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+					verifier->SetPublicKey (signingKey);
+					delete[] signingKey;
+				}
 			}
+			m_Verifier.reset (verifier);
 		}
-		UpdateVerifier (verifier);
-	}
-
-	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
-	{
-		bool del = false;
-		{
-			std::lock_guard<std::mutex> l(m_VerifierMutex);
-			if (!m_Verifier)
-				m_Verifier = verifier;
-			else
-				del = true;
-		}
-		if (del)
-			delete verifier;
-	}
-
-	void IdentityEx::DropVerifier () const
-	{
-		i2p::crypto::Verifier * verifier;
-		{
-			std::lock_guard<std::mutex> l(m_VerifierMutex);
-			verifier = m_Verifier;
-			m_Verifier = nullptr;
-		}
-		delete verifier;
 	}
 
 	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (CryptoKeyType keyType, const uint8_t * key)

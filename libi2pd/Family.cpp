@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -88,7 +88,7 @@ namespace data
 				}
 				EVP_PKEY_free (pkey);
 				if (verifier && cn)
-					m_SigningKeys.emplace (cn, std::make_pair(verifier, m_SigningKeys.size () + 1));
+					m_SigningKeys.emplace (cn, std::make_pair(verifier, (int)m_SigningKeys.size () + 1));
 			}
 			SSL_free (ssl);
 		}

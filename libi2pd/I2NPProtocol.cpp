@@ -36,6 +36,11 @@ namespace i2p
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> >();
 	}
 
+	std::shared_ptr<I2NPMessage> NewI2NPMediumMessage ()
+	{
+		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_MEDIUM_MESSAGE_SIZE> >();
+	}
+	
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
 		return i2p::tunnel::tunnels.NewI2NPTunnelMessage (endpoint);
@@ -43,7 +48,10 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)
 	{
-		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE - I2NP_HEADER_SIZE - 2) ? NewI2NPShortMessage () : NewI2NPMessage ();
+		len += I2NP_HEADER_SIZE + 2;
+		if (len <= I2NP_MAX_SHORT_MESSAGE_SIZE) return NewI2NPShortMessage ();
+		if (len <= I2NP_MAX_MEDIUM_MESSAGE_SIZE) return NewI2NPMediumMessage ();
+		return NewI2NPMessage ();		
 	}
 
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)
@@ -126,7 +134,8 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		auto m = excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ();
+		int cnt = excludedPeers ? excludedPeers->size () : 0;
+		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -147,7 +156,6 @@ namespace i2p
 
 		if (excludedPeers)
 		{
-			int cnt = excludedPeers->size ();
 			htobe16buf (buf, cnt);
 			buf += 2;
 			for (auto& it: *excludedPeers)
@@ -353,21 +361,6 @@ namespace i2p
 		return !msg->GetPayload ()[DATABASE_STORE_TYPE_OFFSET]; // 0- RouterInfo
 	}
 
-	static uint16_t g_MaxNumTransitTunnels = DEFAULT_MAX_NUM_TRANSIT_TUNNELS; // TODO:
-	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
-	{
-		if (maxNumTransitTunnels > 0 && g_MaxNumTransitTunnels != maxNumTransitTunnels)
-		{
-			LogPrint (eLogDebug, "I2NP: Max number of transit tunnels set to ", maxNumTransitTunnels);
-			g_MaxNumTransitTunnels = maxNumTransitTunnels;
-		}
-	}
-
-	uint16_t GetMaxNumTransitTunnels ()
-	{
-		return g_MaxNumTransitTunnels;
-	}
-
 	static bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
@@ -379,10 +372,7 @@ namespace i2p
 				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
 				uint8_t retCode = 0;
 				// replace record to reply
-				if (i2p::context.AcceptsTunnels () &&
-					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= g_MaxNumTransitTunnels &&
-					!i2p::transport::transports.IsBandwidthExceeded () &&
-					!i2p::transport::transports.IsTransitBandwidthExceeded ())
+				if (i2p::context.AcceptsTunnels () && !i2p::context.IsHighCongestion ())
 				{
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -576,11 +566,8 @@ namespace i2p
 
 				// check if we accept this tunnel
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () ||
-					i2p::tunnel::tunnels.GetTransitTunnels ().size () > g_MaxNumTransitTunnels ||
-					i2p::transport::transports.IsBandwidthExceeded () ||
-					i2p::transport::transports.IsTransitBandwidthExceeded ())
-						retCode = 30;
+				if (!i2p::context.AcceptsTunnels () || i2p::context.IsHighCongestion ())
+					retCode = 30;
 				if (!retCode)
 				{
 					// create new transit tunnel

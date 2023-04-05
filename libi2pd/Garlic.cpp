@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -709,7 +709,7 @@ namespace garlic
 						else
 							LogPrint (eLogError, "Garlic: Tunnel pool is not set for inbound tunnel");
 						if (tunnel) // we have sent it through an outbound tunnel
-							tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
+							tunnel->SendTunnelDataMsgTo (gwHash, gwTunnel, msg);
 						else
 							LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
 					}
@@ -1075,7 +1075,7 @@ namespace garlic
 				{
 					auto tunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel)
-						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset, msgID));
+						tunnel->SendTunnelDataMsgTo (gwHash, gwTunnel, CreateI2NPMessage (typeID, buf, len - offset, msgID));
 					else
 						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
 				}

@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include <set>
 #include <unordered_map>
-#include <list>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -31,6 +30,7 @@
 #include "Family.h"
 #include "version.h"
 #include "util.h"
+#include "KadDHT.h"
 
 namespace i2p
 {
@@ -45,9 +45,6 @@ namespace data
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
 	const int NETDB_EXPIRATION_TIMEOUT_THRESHOLD = 2*60; // 2 minutes
-	const int NETDB_PUBLISH_INTERVAL = 60 * 40;
-	const int NETDB_PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
-	const int NETDB_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
@@ -86,7 +83,6 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
-			void HandleDeliveryStatusMsg (std::shared_ptr<const I2NPMessage> msg);
 
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
@@ -102,15 +98,12 @@ namespace data
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
-			/** set hidden mode, aka don't publish our RI to netdb and don't explore */
-			void SetHidden(bool hide);
-
 			void Reseed ();
 			Families& GetFamilies () { return m_Families; };
 
 			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };
-			int GetNumFloodfills () const { return m_Floodfills.size (); };
+			int GetNumFloodfills () const { return m_Floodfills.GetSize (); };
 			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
 
 			/** visit all lease sets we currently store */
@@ -134,6 +127,7 @@ namespace data
 						&m_RouterInfoAddressVectorsPool, std::placeholders::_1));
 			};
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
+			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -144,7 +138,6 @@ namespace data
 			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
-			void Publish ();
 			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
 			void ManageLeaseSets ();
 			void ManageRequests ();
@@ -164,7 +157,7 @@ namespace data
 			mutable std::mutex m_RouterInfosMutex;
 			std::unordered_map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;
-			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
+			DHTTable m_Floodfills;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;
@@ -183,9 +176,6 @@ namespace data
 			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
 
-			/** true if in hidden mode */
-			bool m_HiddenMode;
-
 			std::set<IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken = 0;
 
@@ -193,6 +183,7 @@ namespace data
 			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;
 			i2p::util::MemoryPoolMt<RouterInfo::Addresses> m_RouterInfoAddressVectorsPool;
 			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
+			i2p::util::MemoryPoolMt<IdentityEx> m_IdentitiesPool;
 	};
 
 	extern NetDb netdb;

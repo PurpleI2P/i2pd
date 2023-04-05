@@ -149,7 +149,8 @@ namespace config {
 		sam.add_options()
 			("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
 			("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
-			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+			("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen TCP port")
+			("sam.portudp", value<uint16_t>()->default_value(0),              "SAM listen UDP port")
 			("sam.singlethread", value<bool>()->default_value(true),          "Sessions run in the SAM bridge's thread")
 		;
 
@@ -215,10 +216,11 @@ namespace config {
 				"https://reseed.onion.im/,"
 				"https://i2pseed.creativecowpat.net:8443/,"
 				"https://reseed.i2pgit.org/,"
-				"https://i2p.novg.net/,"
 				"https://banana.incognet.io/,"
 				"https://reseed-pl.i2pd.xyz/,"
-				"https://www2.mk16.de/"
+				"https://www2.mk16.de/,"
+			    "https://i2p.ghativega.in/,"
+			    "https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"

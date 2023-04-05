@@ -173,7 +173,7 @@ namespace i2p
 				ftruncate(pidFH, 0);
 				if (write(pidFH, pid, strlen(pid)) < 0)
 				{
-					LogPrint(eLogError, "Daemon: Could not write pidfile ", pidfile, ": ", strerror(errno));
+					LogPrint(eLogCritical, "Daemon: Could not write pidfile ", pidfile, ": ", strerror(errno));
 					std::cerr << "i2pd: Could not write pidfile " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}

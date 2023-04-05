@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -413,7 +413,7 @@ namespace crypto
 		BIGNUM * y = BN_new ();
 		BN_bin2bn (buf1, EDDSA25519_PUBLIC_KEY_LENGTH, y);
 		BIGNUM * x = RecoverX (y, ctx);
-		if (BN_is_bit_set (x, 0) != isHighestBitSet)
+		if ((bool)BN_is_bit_set (x, 0) != isHighestBitSet)
 			BN_sub (x, q, x); // x = q - x
 		BIGNUM * z = BN_new (), * t = BN_new ();
 		BN_one (z); BN_mod_mul (t, x, y, q, ctx); // pre-calculate t

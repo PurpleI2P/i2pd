@@ -179,7 +179,7 @@ namespace util
 		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
 			transitTunnels *= 2; // double default number of transit tunnels for floodfill
-		SetMaxNumTransitTunnels (transitTunnels);
+		i2p::tunnel::tunnels.SetMaxNumTransitTunnels (transitTunnels);
 
 		/* this section also honors 'floodfill' flag, if set above */
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
@@ -269,7 +269,7 @@ namespace util
 		if (hidden)
 		{
 			LogPrint(eLogInfo, "Daemon: Hidden mode enabled");
-			i2p::data::netdb.SetHidden(true);
+			i2p::context.SetHidden(true);
 		}
 
 		std::string httpLang; i2p::config::GetOption("http.lang", httpLang);
@@ -310,7 +310,7 @@ namespace util
 			LogPrint(eLogInfo, "Daemon: Transports started");
 		else
 		{
-			LogPrint(eLogError, "Daemon: Failed to start Transports");
+			LogPrint(eLogCritical, "Daemon: Failed to start Transports");
 			/** shut down netdb right away */
 			i2p::transport::transports.Stop();
 			i2p::data::netdb.Stop();
@@ -329,14 +329,16 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: Failed to start Webconsole: ", ex.what ());
+				LogPrint (eLogCritical, "Daemon: Failed to start Webconsole: ", ex.what ());
 				ThrowFatal ("Unable to start webconsole at ", httpAddr, ":", httpPort, ": ", ex.what ());
 			}
 		}
 
-
 		LogPrint(eLogInfo, "Daemon: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
+
+		LogPrint(eLogInfo, "Daemon: Starting Router context");
+		i2p::context.Start();
 
 		LogPrint(eLogInfo, "Daemon: Starting Client");
 		i2p::client::context.Start ();
@@ -354,7 +356,7 @@ namespace util
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "Daemon: Failed to start I2PControl: ", ex.what ());
+				LogPrint (eLogCritical, "Daemon: Failed to start I2PControl: ", ex.what ());
 				ThrowFatal ("Unable to start I2PControl service at ", i2pcpAddr, ":", i2pcpPort, ": ", ex.what ());
 			}
 		}
@@ -366,6 +368,8 @@ namespace util
 		LogPrint(eLogInfo, "Daemon: Shutting down");
 		LogPrint(eLogInfo, "Daemon: Stopping Client");
 		i2p::client::context.Stop();
+		LogPrint(eLogInfo, "Daemon: Stopping Router context");
+		i2p::context.Stop();
 		LogPrint(eLogInfo, "Daemon: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
 

@@ -47,7 +47,7 @@ namespace util
 			I2PService service((PSTR)SERVICE_NAME);
 			if (!I2PService::Run(service))
 			{
-				LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
+				LogPrint(eLogCritical, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
 				return false;
 			}
 			return false;
@@ -64,7 +64,7 @@ namespace util
 		//setlocale(LC_ALL, "Russian");
 		setlocale(LC_TIME, "C");
 #ifdef WIN32_APP
-		if (!i2p::win32::StartWin32App ()) return false;
+		if (!i2p::win32::StartWin32App (isDaemon)) return false;
 #endif
 		bool ret = Daemon_Singleton::start();
 		if (ret && i2p::log::Logger().GetLogType() == eLogFile)

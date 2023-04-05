@@ -69,6 +69,8 @@ namespace transport
 			std::stringstream m_Stream;
 	};
 
+	const int64_t TRANSPORT_SESSION_SLOWNESS_THRESHOLD = 500; // in milliseconds
+	const int64_t TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL = 10000; // in milliseconds
 	class TransportSession
 	{
 		public:
@@ -76,7 +78,8 @@ namespace transport
 			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router, int terminationTimeout):
 				m_NumSentBytes (0), m_NumReceivedBytes (0), m_SendQueueSize (0),
 				m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout),
-				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ())
+				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ()),
+				m_HandshakeInterval (0)
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
@@ -103,7 +106,9 @@ namespace transport
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			size_t GetSendQueueSize () const { return m_SendQueueSize; };
 			bool IsOutgoing () const { return m_IsOutgoing; };
-
+			bool IsSlow () const { return m_HandshakeInterval > TRANSPORT_SESSION_SLOWNESS_THRESHOLD &&
+				m_HandshakeInterval < TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL; };
+			
 			int GetTerminationTimeout () const { return m_TerminationTimeout; };
 			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };
 			bool IsTerminationTimeoutExpired (uint64_t ts) const
@@ -129,6 +134,7 @@ namespace transport
 			int m_TerminationTimeout;
 			uint64_t m_LastActivityTimestamp;
 			uint32_t m_CreationTime; // seconds since epoch
+			int64_t m_HandshakeInterval; // in milliseconds between SessionRequest->SessionCreated or SessionCreated->SessionConfirmed
 	};
 
 	// SOCKS5 proxy

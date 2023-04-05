@@ -103,7 +103,7 @@ namespace tunnel
 					if (msg1) msg = msg1;
 				}
 			}
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
+			outboundTunnel->SendTunnelDataMsgTo (GetNextIdentHash (), 0, msg);
 		}
 		else
 		{
@@ -266,7 +266,7 @@ namespace tunnel
 		}
 	}
 
-	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
+	void OutboundTunnel::SendTunnelDataMsgTo (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		if (gwHash)
@@ -284,10 +284,10 @@ namespace tunnel
 			block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
 
-		SendTunnelDataMsg ({block});
+		SendTunnelDataMsgs ({block});
 	}
 
-	void OutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
+	void OutboundTunnel::SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs)
 	{
 		std::unique_lock<std::mutex> l(m_SendMutex);
 		for (auto& it : msgs)
@@ -306,7 +306,7 @@ namespace tunnel
 	{
 	}
 
-	void ZeroHopsOutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
+	void ZeroHopsOutboundTunnel::SendTunnelDataMsgs (const std::vector<TunnelMessageBlock>& msgs)
 	{
 		for (auto& msg : msgs)
 		{
@@ -331,14 +331,15 @@ namespace tunnel
 
 	Tunnels tunnels;
 
-	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
-		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal avarage
+	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_MaxNumTransitTunnels (DEFAULT_MAX_NUM_TRANSIT_TUNNELS),
+		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal average
 		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
 	{
 	}
 
 	Tunnels::~Tunnels ()
 	{
+		DeleteTunnelPool(m_ExploratoryPool);
 	}
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
@@ -543,7 +544,7 @@ namespace tunnel
 						ManageTunnels (ts);
 						lastTs = ts;
 					}
-					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 secondsts
+					if (ts - lastPoolsTs >= TUNNEL_POOLS_MANAGE_INTERVAL || // manage pools every 5 seconds
 					    ts + TUNNEL_POOLS_MANAGE_INTERVAL < lastPoolsTs)
 					{
 						ManageTunnelPools (ts);
@@ -697,7 +698,7 @@ namespace tunnel
 
 		if (m_OutboundTunnels.size () < 3)
 		{
-			// trying to create one more oubound tunnel
+			// trying to create one more outbound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
@@ -970,5 +971,14 @@ namespace tunnel
 		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
+
+	void Tunnels::SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
+	{
+		if (maxNumTransitTunnels > 0 && m_MaxNumTransitTunnels != maxNumTransitTunnels)
+		{
+			LogPrint (eLogDebug, "Tunnel: Max number of transit tunnels set to ", maxNumTransitTunnels);
+			m_MaxNumTransitTunnels = maxNumTransitTunnels;
+		}
+	}	
 }
 }

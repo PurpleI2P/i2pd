@@ -50,7 +50,7 @@ namespace data
 	void LeaseSet::ReadFromBuffer (bool readIdentity, bool verifySignature)
 	{
 		if (readIdentity || !m_Identity)
-			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
+			m_Identity = netdb.NewIdentity (m_Buffer, m_BufferLen);
 		size_t size = m_Identity->GetFullLen ();
 		if (size + 256 > m_BufferLen)
 		{
@@ -76,7 +76,7 @@ namespace data
 		LogPrint (eLogDebug, "LeaseSet: Read num=", (int)num);
 		if (!num || num > MAX_NUM_LEASES)
 		{
-			LogPrint (eLogError, "LeaseSet: Rncorrect number of leases", (int)num);
+			LogPrint (eLogError, "LeaseSet: Incorrect number of leases", (int)num);
 			m_IsValid = false;
 			return;
 		}
@@ -317,7 +317,7 @@ namespace data
 		std::shared_ptr<const IdentityEx> identity;
 		if (readIdentity || !GetIdentity ())
 		{
-			identity = std::make_shared<IdentityEx>(buf, len);
+			identity = netdb.NewIdentity (buf, len);
 			SetIdentity (identity);
 		}
 		else

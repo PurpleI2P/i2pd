@@ -58,12 +58,13 @@ endif
 
 # UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-	NEEDED_CXXFLAGS += -DUSE_UPNP
+	DEFINES += -DUSE_UPNP
 endif
 
 ifeq ($(USE_AESNI),yes)
 ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
-	NEEDED_CXXFLAGS += -D__AES__ -maes
+	NEEDED_CXXFLAGS += -maes
+	DEFINES += -D__AES__
 endif
 endif
 

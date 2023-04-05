@@ -43,7 +43,7 @@ namespace data
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false),
 		m_SupportedTransports (0),m_ReachableTransports (0),
-		m_Caps (0), m_Version (0)
+		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = NewBuffer (); // always RouterInfo's
@@ -53,7 +53,7 @@ namespace data
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false),
 		m_SupportedTransports (0), m_ReachableTransports (0),
-		m_Caps (0), m_Version (0)
+		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
@@ -161,7 +161,7 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer->data (), m_BufferLen);
+		m_RouterIdentity = NewIdentity (m_Buffer->data (), m_BufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
 		if (identityLen >= m_BufferLen)
 		{
@@ -186,7 +186,6 @@ namespace data
 				m_IsUnreachable = true;
 				return;
 			}
-			m_RouterIdentity->DropVerifier ();
 		}
 		// parse RI
 		std::stringstream str;
@@ -202,7 +201,7 @@ namespace data
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
 		if (!s) return;
-		m_Caps = 0;
+		m_Caps = 0; m_Congestion = eLowCongestion;
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
@@ -336,11 +335,7 @@ namespace data
 						address->ssu->introducers.resize (index + 1);
 					}
 					Introducer& introducer = address->ssu->introducers.at (index);
-					if (!strcmp (key, "ihost"))
-						introducer.isH = false; // SSU1
-					else if (!strcmp (key, "iport"))
-						introducer.isH = false; // SSU1
-					else if (!strcmp (key, "itag"))
+					if (!strcmp (key, "itag"))
 					{
 						try
 						{
@@ -352,10 +347,7 @@ namespace data
 						}
 					}
 					else if (!strcmp (key, "ih"))
-					{
 						Base64ToByteStream (value, strlen (value), introducer.iH, 32);
-						introducer.isH = true;
-					}
 					else if (!strcmp (key, "iexp"))
 					{
 						try
@@ -411,7 +403,7 @@ namespace data
 					int numValid = 0;
 					for (auto& it: address->ssu->introducers)
 					{
-						if (it.iTag && ts < it.iExp && it.isH)
+						if (it.iTag && ts < it.iExp)
 							numValid++;
 						else
 							it.iTag = 0;
@@ -542,6 +534,15 @@ namespace data
 				case CAPS_FLAG_UNREACHABLE:
 					m_Caps |= Caps::eUnreachable;
 				break;
+				case CAPS_FLAG_MEDIUM_CONGESTION:
+					m_Congestion = eMediumCongestion;
+				break;
+				case CAPS_FLAG_HIGH_CONGESTION:
+					m_Congestion = eHighCongestion;
+				break;
+				case CAPS_FLAG_REJECT_ALL_CONGESTION:
+					m_Congestion = eRejectAll;
+				break;	
 				default: ;
 			}
 			cap++;
@@ -1059,11 +1060,25 @@ namespace data
 		return netdb.NewRouterInfoAddresses ();
 	}
 
+	std::shared_ptr<IdentityEx> RouterInfo::NewIdentity (const uint8_t * buf, size_t len) const
+	{
+		return netdb.NewIdentity (buf, len);
+	}	
+		
 	void RouterInfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
+	bool RouterInfo::IsHighCongestion () const
+	{
+		if (m_Congestion == eLowCongestion || m_Congestion == eMediumCongestion) return false;
+		if (m_Congestion == eRejectAll) return true;
+		if (m_Congestion == eHighCongestion)
+			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL) ? true : false;
+		return false;
+	}
+		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
 	{
 		RefreshTimestamp ();
@@ -1115,9 +1130,34 @@ namespace data
 		if (c & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
 		if (c & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
 
+		switch (GetCongestion ())
+		{
+			case eMediumCongestion:
+				caps += CAPS_FLAG_MEDIUM_CONGESTION;
+			break;	
+			case eHighCongestion:
+				caps += CAPS_FLAG_HIGH_CONGESTION;
+			break;		
+			case eRejectAll:
+				caps += CAPS_FLAG_REJECT_ALL_CONGESTION;
+			break;	
+			default: ;	
+		};	
+		
 		SetProperty ("caps", caps);
 	}
 
+	bool LocalRouterInfo::UpdateCongestion (Congestion c)
+	{
+		if (c != GetCongestion ())
+		{
+			SetCongestion (c);
+			UpdateCapsProperty ();
+			return true;
+		}	
+		return false;
+ 	}	
+		
 	void LocalRouterInfo::WriteToStream (std::ostream& s) const
 	{
 		auto addresses = GetAddresses ();
@@ -1154,44 +1194,37 @@ namespace data
 			s.write ((const char *)&cost, sizeof (cost));
 			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
-			bool isPublished = false;
+			bool isPublished = address.published && !address.host.is_unspecified () && address.port;
 			if (address.transportStyle == eTransportNTCP2)
 			{
-				if (address.IsNTCP2 ())
+				WriteString ("NTCP2", s);
+				// caps
+				if (!isPublished)
 				{
-					WriteString ("NTCP2", s);
-					if (address.IsPublishedNTCP2 () && !address.host.is_unspecified () && address.port)
-						isPublished = true;
-					else
-					{
-						WriteString ("caps", properties);
-						properties << '=';
-						std::string caps;
-						if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-						if (address.IsV6 ()) caps += CAPS_FLAG_V6;
-						if (caps.empty ()) caps += CAPS_FLAG_V4;
-						WriteString (caps, properties);
-						properties << ';';
-					}
+					WriteString ("caps", properties);
+					properties << '=';
+					std::string caps;
+					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
+					if (address.IsV6 () || address.host.is_v6 ()) caps += CAPS_FLAG_V6; // we set 6 for unspecified ipv6
+					if (caps.empty ()) caps += CAPS_FLAG_V4;
+					WriteString (caps, properties);
+					properties << ';';
 				}
-				else
-					continue; // don't write NTCP address
 			}
 			else if (address.transportStyle == eTransportSSU2)
 			{
 				WriteString ("SSU2", s);
 				// caps
 				std::string caps;
-				if (address.published)
+				if (isPublished)
 				{
-					isPublished = true;
 					if (address.IsPeerTesting ()) caps += CAPS_FLAG_SSU2_TESTING;
 					if (address.IsIntroducer ()) caps += CAPS_FLAG_SSU2_INTRODUCER;
 				}
 				else
 				{
 					if (address.IsV4 ()) caps += CAPS_FLAG_V4;
-					if (address.IsV6 ()) caps += CAPS_FLAG_V6;
+					if (address.IsV6 () || address.host.is_v6 ()) caps += CAPS_FLAG_V6; // we set 6 for unspecified ipv6
 					if (caps.empty ()) caps += CAPS_FLAG_V4;
 				}
 				if (!caps.empty ())
@@ -1350,6 +1383,11 @@ namespace data
 		return boost::make_shared<Addresses> ();
 	}
 
+	std::shared_ptr<IdentityEx> LocalRouterInfo::NewIdentity (const uint8_t * buf, size_t len) const
+	{
+		return std::make_shared<IdentityEx> (buf, len);
+	}	
+		
 	bool LocalRouterInfo::AddSSU2Introducer (const Introducer& introducer, bool v4)
 	{
 		auto addresses = GetAddresses ();

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -230,7 +230,7 @@ namespace client
 					remoteLease->tunnelGateway, remoteLease->tunnelID,
 					garlic
 				});
-			outboundTunnel->SendTunnelDataMsg (msgs);
+			outboundTunnel->SendTunnelDataMsgs (msgs);
 			return true;
 		}
 		else

@@ -15,7 +15,7 @@
 #include "Log.h"
 #include "I2PEndian.h"
 
-#if not defined (__FreeBSD__)
+#if !defined (__FreeBSD__) && !defined(_MSC_VER)
 #include <pthread.h>
 #endif
 
@@ -36,6 +36,19 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <shlobj.h>
+
+#if defined(_MSC_VER)
+const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO
+{
+	DWORD dwType;
+	LPCSTR szName;
+	DWORD dwThreadID;
+	DWORD dwFlags;
+} THREADNAME_INFO;
+#pragma pack(pop)
+#endif
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
@@ -75,7 +88,8 @@ const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
 	ZeroMemory(&ss, sizeof(ss));
 	ss.ss_family = af;
 
-	switch(af) {
+	switch (af)
+	{
 		case AF_INET:
 			((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
 			break;
@@ -161,7 +175,23 @@ namespace util
 #elif defined(__NetBSD__)
 		pthread_setname_np(pthread_self(), "%s", (void *)name);
 #elif !defined(__gnu_hurd__)
+	#if defined(_MSC_VER)
+		THREADNAME_INFO info;
+		info.dwType = 0x1000;
+		info.szName = name;
+		info.dwThreadID = -1;
+		info.dwFlags = 0;
+		#pragma warning(push)
+		#pragma warning(disable: 6320 6322)
+		__try {
+			RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+		}
+		#pragma warning(pop)
+	#else
 		pthread_setname_np(pthread_self(), name);
+	#endif
 #endif
 	}
 
@@ -179,7 +209,7 @@ namespace net
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-		if(GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+		if (GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
 			== ERROR_BUFFER_OVERFLOW)
 		{
 			FREE(pAddresses);
@@ -190,7 +220,7 @@ namespace net
 			AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR)
+		if (dwRetVal != NO_ERROR)
 		{
 			LogPrint(eLogError, "NetIface: GetMTU: Enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
@@ -198,19 +228,17 @@ namespace net
 		}
 
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses)
+		while (pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
-
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
-			if(pUnicast == nullptr)
+			if (pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv4 address, this is not supported");
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			while (pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
-				if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
+				if (localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
 				{
 					char addr[INET_ADDRSTRLEN];
 					inetntop(AF_INET, &(((struct sockaddr_in *)localInterfaceAddress)->sin_addr), addr, INET_ADDRSTRLEN);
@@ -264,12 +292,11 @@ namespace net
 		pCurrAddresses = pAddresses;
 		while (pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 			if (pUnicast == nullptr)
 				LogPrint(eLogError, "NetIface: GetMTU: Not a unicast IPv6 address, this is not supported");
 
-			for (int i = 0; pUnicast != nullptr; ++i)
+			while (pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
@@ -317,13 +344,13 @@ namespace net
 		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
 		if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
-		if(localAddress.is_v4())
+		if (localAddress.is_v4())
 		{
 			sockaddr_in inputAddress;
 			inetpton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 			return GetMTUWindowsIpv4(inputAddress, fallback);
 		}
-		else if(localAddress.is_v6())
+		else if (localAddress.is_v6())
 		{
 			sockaddr_in6 inputAddress;
 			inetpton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
@@ -339,7 +366,7 @@ namespace net
 	int GetMTUUnix (const boost::asio::ip::address& localAddress, int fallback)
 	{
 		ifaddrs* ifaddr, *ifa = nullptr;
-		if(getifaddrs(&ifaddr) == -1)
+		if (getifaddrs(&ifaddr) == -1)
 		{
 			LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
 			return fallback;
@@ -347,34 +374,34 @@ namespace net
 
 		int family = 0;
 		// look for interface matching local address
-		for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
+		for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
-			if(!ifa->ifa_addr)
+			if (!ifa->ifa_addr)
 				continue;
 
 			family = ifa->ifa_addr->sa_family;
-			if(family == AF_INET && localAddress.is_v4())
+			if (family == AF_INET && localAddress.is_v4())
 			{
 				sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
-				if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
+				if (!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
 					break; // address matches
 			}
-			else if(family == AF_INET6 && localAddress.is_v6())
+			else if (family == AF_INET6 && localAddress.is_v6())
 			{
 				sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
-				if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
+				if (!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
 					break; // address matches
 			}
 		}
 		int mtu = fallback;
-		if(ifa && family)
+		if (ifa && family)
 		{ // interface found?
 			int fd = socket(family, SOCK_DGRAM, 0);
-			if(fd > 0)
+			if (fd > 0)
 			{
 				ifreq ifr;
 				strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ-1); // set interface for query
-				if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
+				if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
 					mtu = ifr.ifr_mtu; // MTU
 				else
 					LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
@@ -407,7 +434,7 @@ namespace net
 	{
 #ifdef _WIN32
 		LogPrint(eLogError, "NetIface: Cannot get address by interface name, not implemented on WIN32");
-		if(ipv6)
+		if (ipv6)
 			return boost::asio::ip::address::from_string("::1");
 		else
 			return boost::asio::ip::address::from_string("127.0.0.1");
@@ -426,7 +453,7 @@ namespace net
 						// match
 						char addr[INET6_ADDRSTRLEN];
 						memset (addr, 0, INET6_ADDRSTRLEN);
-						if(af == AF_INET)
+						if (af == AF_INET)
 							inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
 						else
 							inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
@@ -442,9 +469,9 @@ namespace net
 			LogPrint(eLogError, "NetIface: Exception while searching address using ifaddr: ", ex.what());
 		}
 
-		if(addrs) freeifaddrs(addrs);
+		if (addrs) freeifaddrs(addrs);
 		std::string fallback;
-		if(ipv6)
+		if (ipv6)
 		{
 			fallback = "::1";
 			LogPrint(eLogWarning, "NetIface: Cannot find IPv6 address for interface ", ifname);
@@ -512,7 +539,7 @@ namespace net
 		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
-		if(GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+		if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
 			== ERROR_BUFFER_OVERFLOW)
 		{
 			FREE(pAddresses);
@@ -523,7 +550,7 @@ namespace net
 			AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen
 		);
 
-		if(dwRetVal != NO_ERROR)
+		if (dwRetVal != NO_ERROR)
 		{
 			LogPrint(eLogError, "NetIface: GetYggdrasilAddress(): enclosed GetAdaptersAddresses() call has failed");
 			FREE(pAddresses);
@@ -531,12 +558,11 @@ namespace net
 		}
 
 		pCurrAddresses = pAddresses;
-		while(pCurrAddresses)
+		while (pCurrAddresses)
 		{
-			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 			pUnicast = pCurrAddresses->FirstUnicastAddress;
 
-			for(int i = 0; pUnicast != nullptr; ++i)
+			while (pUnicast != nullptr)
 			{
 				LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
 				sockaddr_in6 *localInterfaceAddress = (sockaddr_in6*) lpAddr;
@@ -580,7 +606,7 @@ namespace net
 			LogPrint(eLogError, "NetIface: Exception while searching Yggdrasill address using ifaddr: ", ex.what());
 		}
 		LogPrint(eLogWarning, "NetIface: Interface with Yggdrasil network address not found");
-		if(addrs) freeifaddrs(addrs);
+		if (addrs) freeifaddrs(addrs);
 		return boost::asio::ip::address_v6 ();
 #endif
 	}
@@ -600,7 +626,7 @@ namespace net
 	{
 		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 		if (host.is_unspecified ()) return false;
-		if(host.is_v4())
+		if (host.is_v4())
 		{
 			static const std::vector< std::pair<uint32_t, uint32_t> > reservedIPv4Ranges {
 				address_pair_v4("0.0.0.0",      "0.255.255.255"),
@@ -620,12 +646,12 @@ namespace net
 			};
 
 			uint32_t ipv4_address = host.to_v4 ().to_ulong ();
-			for(const auto& it : reservedIPv4Ranges) {
+			for (const auto& it : reservedIPv4Ranges) {
 				if (ipv4_address >= it.first && ipv4_address <= it.second)
 					return true;
 			}
 		}
-		if(host.is_v6())
+		if (host.is_v6())
 		{
 			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
@@ -637,7 +663,7 @@ namespace net
 			};
 
 			boost::asio::ip::address_v6::bytes_type ipv6_address = host.to_v6 ().to_bytes ();
-			for(const auto& it : reservedIPv6Ranges) {
+			for (const auto& it : reservedIPv6Ranges) {
 				if (ipv6_address >= it.first && ipv6_address <= it.second)
 					return true;
 			}

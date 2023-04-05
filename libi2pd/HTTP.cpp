@@ -93,15 +93,18 @@ namespace http
 		std::size_t pos_c = 0; /* < work position */
 		if(url.at(0) != '/' || pos_p > 0) {
 			std::size_t pos_s = 0;
+
 			/* schema */
 			pos_c = url.find("://");
 			if (pos_c != std::string::npos) {
 				schema = url.substr(0, pos_c);
 				pos_p = pos_c + 3;
 			}
+
 			/* user[:pass] */
 			pos_s = url.find('/', pos_p); /* find first slash */
 			pos_c = url.find('@', pos_p); /* find end of 'user' or 'user:pass' part */
+
 			if (pos_c != std::string::npos && (pos_s == std::string::npos || pos_s > pos_c)) {
 				std::size_t delim = url.find(':', pos_p);
 				if (delim && delim != std::string::npos && delim < pos_c) {
@@ -113,21 +116,28 @@ namespace http
 				}
 				pos_p = pos_c + 1;
 			}
+
 			/* hostname[:port][/path] */
-			if (url[pos_p] == '[') // ipv6
+			if (url.at(pos_p) == '[') // ipv6
 			{
 				auto pos_b = url.find(']', pos_p);
 				if (pos_b == std::string::npos) return false;
+				ipv6 = true;
 				pos_c = url.find_first_of(":/", pos_b);
 			}
 			else
 				pos_c = url.find_first_of(":/", pos_p);
+
 			if (pos_c == std::string::npos) {
 				/* only hostname, without post and path */
-				host = url.substr(pos_p, std::string::npos);
+				host = ipv6 ?
+					url.substr(pos_p + 1, url.length() - 1) :
+					url.substr(pos_p, std::string::npos);
 				return true;
 			} else if (url.at(pos_c) == ':') {
-				host = url.substr(pos_p, pos_c - pos_p);
+				host = ipv6 ?
+					url.substr(pos_p + 1, pos_c - pos_p - 2) :
+					url.substr(pos_p, pos_c - pos_p);
 				/* port[/path] */
 				pos_p = pos_c + 1;
 				pos_c = url.find('/', pos_p);
@@ -147,7 +157,9 @@ namespace http
 				pos_p = pos_c;
 			} else {
 				/* start of path part found */
-				host = url.substr(pos_p, pos_c - pos_p);
+				host = ipv6 ?
+					url.substr(pos_p + 1, pos_c - pos_p - 2) :
+					url.substr(pos_p, pos_c - pos_p);
 				pos_p = pos_c;
 			}
 		}
@@ -212,10 +224,18 @@ namespace http
 			} else if (user != "") {
 				out += user + "@";
 			}
-			if (port) {
-				out += host + ":" + std::to_string(port);
+			if (ipv6) {
+				if (port) {
+					out += "[" + host + "]:" + std::to_string(port);
+				} else {
+					out += "[" + host + "]";
+				}
 			} else {
-				out += host;
+				if (port) {
+					out += host + ":" + std::to_string(port);
+				} else {
+					out += host;
+				}
 			}
 		}
 		out += path;
