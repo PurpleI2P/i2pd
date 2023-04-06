@@ -992,11 +992,11 @@ namespace data
 	{
 		auto addr = GetAddresses ();
 		if (v4)	
-			return ((*addr)[eNTCP2V4] && ((*addr)[eNTCP2V4])->published) ||
-				((*addr)[eSSU2V4] && ((*addr)[eSSU2V4])->published);
+			return ((*addr)[eNTCP2V4Idx] && ((*addr)[eNTCP2V4Idx])->published) ||
+				((*addr)[eSSU2V4Idx] && ((*addr)[eSSU2V4Idx])->published);
 		else
-			return ((*addr)[eNTCP2V6] && ((*addr)[eNTCP2V6])->published) ||
-				((*addr)[eSSU2V6] && ((*addr)[eSSU2V6])->published);
+			return ((*addr)[eNTCP2V6Idx] && ((*addr)[eNTCP2V6Idx])->published) ||
+				((*addr)[eSSU2V6Idx] && ((*addr)[eSSU2V6Idx])->published);
 	}	
 		
 	bool RouterInfo::IsSSU2PeerTesting (bool v4) const
