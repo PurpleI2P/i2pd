@@ -40,7 +40,6 @@ namespace data
 	const int NETDB_MIN_FLOODFILLS = 5;
 	const int NETDB_MIN_TUNNEL_CREATION_SUCCESS_RATE = 8; // in percents
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
-	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
@@ -139,6 +138,7 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
+			void ManageRouterInfos ();
 			void ManageLeaseSets ();
 			void ManageRequests ();
 

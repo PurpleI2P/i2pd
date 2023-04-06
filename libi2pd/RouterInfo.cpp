@@ -400,18 +400,9 @@ namespace data
 				{
 					// exclude invalid introducers
 					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					int numValid = 0;
-					for (auto& it: address->ssu->introducers)
-					{
-						if (it.iTag && ts < it.iExp)
-							numValid++;
-						else
-							it.iTag = 0;
-					}
-					if (numValid)
+					UpdateIntroducers (address, ts);
+					if (!address->ssu->introducers.empty ()) // still has something
 						m_ReachableTransports |= supportedTransports;
-					else
-						address->ssu->introducers.resize (0);
 				}
 			}
 			if (supportedTransports)
@@ -576,6 +567,21 @@ namespace data
 		return caps;
 	}
 
+	void RouterInfo::UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts)
+	{
+		if (!address || !address->ssu) return;
+		int numValid = 0;
+		for (auto& it: address->ssu->introducers)
+		{
+			if (it.iTag && ts < it.iExp)
+				numValid++;
+			else
+				it.iTag = 0;
+		}
+		if (!numValid)
+			address->ssu->introducers.resize (0);
+	}	
+		
 	bool RouterInfo::IsNewer (const uint8_t * buf, size_t len) const
 	{
 		if (!m_RouterIdentity) return false;
@@ -1036,6 +1042,31 @@ namespace data
 		}
 	}
 
+	void RouterInfo::UpdateIntroducers (uint64_t ts)
+	{
+		if (ts*1000 < m_Timestamp + INTRODUCER_UPDATE_INTERVAL) return;
+		if (m_ReachableTransports & eSSU2V4)
+		{
+			auto addr = (*GetAddresses ())[eSSU2V4Idx];
+			if (addr && addr->UsesIntroducer ())
+			{
+				UpdateIntroducers (addr, ts);
+				if (!addr->UsesIntroducer ()) // no more valid introducers
+					m_ReachableTransports &= ~eSSU2V4;
+			}	
+		}	
+		if (m_ReachableTransports & eSSU2V6)
+		{
+			auto addr = (*GetAddresses ())[eSSU2V6Idx];
+			if (addr && addr->UsesIntroducer ())
+			{
+				UpdateIntroducers (addr, ts);
+				if (!addr->UsesIntroducer ()) // no more valid introducers
+					m_ReachableTransports &= ~eSSU2V6;
+			}	
+		}	
+	}	
+		
 	void RouterInfo::UpdateBuffer (const uint8_t * buf, size_t len)
 	{
 		if (!m_Buffer)

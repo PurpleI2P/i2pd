@@ -61,6 +61,7 @@ namespace data
 
 	const size_t MAX_RI_BUFFER_SIZE = 3072; // if RouterInfo exceeds 3K we consider it as malformed, might extend later
 	const int HIGH_CONGESTION_INTERVAL = 15*60; // in seconds, 15 minutes
+	const int INTRODUCER_UPDATE_INTERVAL = 20*60*1000; // in milliseconds, 20 minutes
 		
 	class RouterInfo: public RoutingDestination
 	{
@@ -221,8 +222,8 @@ namespace data
 			void RemoveSSU2Address (bool v4);
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
+			void UpdateIntroducers (uint64_t ts); // ts in seconds
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
-			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
@@ -302,6 +303,7 @@ namespace data
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void ExtractCaps (const char * value);
 			uint8_t ExtractAddressCaps (const char * value) const;
+			void UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts); 
 			template<typename Filter>
 			std::shared_ptr<const Address> GetAddress (Filter filter) const;
 			virtual std::shared_ptr<Buffer> NewBuffer () const;
@@ -315,7 +317,7 @@ namespace data
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			std::shared_ptr<Buffer> m_Buffer;
 			size_t m_BufferLen;
-			uint64_t m_Timestamp;
+			uint64_t m_Timestamp; // in milliseconds
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			bool m_IsUpdated, m_IsUnreachable;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;

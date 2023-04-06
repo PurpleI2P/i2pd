@@ -498,7 +498,8 @@ namespace tunnel
 		{
 			auto r = i2p::transport::transports.GetRandomPeer (!IsExploratory ());
 			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () &&
-				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsReachable ())))) // first inbound must be reachable
+				(numHops > 1 || (r->IsV4 () && (!inbound || 
+				 r->IsReachableBy (i2p::data::RouterInfo::eNTCP2V4 | i2p::data::RouterInfo::eSSU2V4))))) // first inbound must be reachable
 			{
 				prevHop = r;
 				path.Add (r);
@@ -520,8 +521,8 @@ namespace tunnel
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}
-			if ((i == numHops - 1) && (!hop->IsV4 () || // doesn't support ipv4
-				(inbound && !hop->IsReachable ()))) // IBGW is not reachable
+			if ((i == numHops - 1) && (!hop->IsV4 () || (inbound &&  // doesn't support ipv4
+				!hop->IsReachableBy (i2p::data::RouterInfo::eNTCP2V4 | i2p::data::RouterInfo::eSSU2V4)))) // IBGW is not reachable
 			{
 				auto hop1 = nextHop (prevHop, true);
 				if (hop1) hop = hop1;

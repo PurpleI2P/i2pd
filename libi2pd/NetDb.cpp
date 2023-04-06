@@ -106,7 +106,7 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint64_t lastSave = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
 		int16_t profilesCleanupVariance = 0;
 
@@ -155,14 +155,14 @@ namespace data
 					lastManageRequest = ts;
 				}
 
-				if (ts - lastSave >= 60 || ts + 60 < lastSave) // save routers, manage leasesets and validate subscriptions every minute
+				if (ts - lastManage >= 60 || ts + 60 < lastManage) // manage routers and leasesets every minute
 				{
-					if (lastSave)
+					if (lastManage)
 					{
-						SaveUpdated ();
+						ManageRouterInfos ();
 						ManageLeaseSets ();
 					}
-					lastSave = ts;
+					lastManage = ts;
 				}
 
 				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT ||
@@ -631,13 +631,8 @@ namespace data
 			if (!it.second->IsUnreachable ())
 			{	
 				// find & mark expired routers
-				if (!it.second->IsReachable () && (it.second->GetCompatibleTransports (true) & RouterInfo::eSSU2V4))
-				// non-reachable router, but reachable by ipv4  SSU2 means introducers
-				{
-					if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)
-					// RouterInfo expires after 1 hour if uses introducer
-						it.second->SetUnreachable (true);
-				}
+				if (it.second->GetCompatibleTransports (true)) // non reachable by any transport
+					it.second->SetUnreachable (true);
 				else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
 					it.second->SetUnreachable (true);
 				else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
@@ -1348,6 +1343,17 @@ namespace data
 		return r;
 	}
 
+	void NetDb::ManageRouterInfos ()
+	{
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		{
+			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+			for (auto& it: m_RouterInfos)
+				it.second->UpdateIntroducers (ts);
+		}	
+		SaveUpdated ();
+	}	
+	
 	void NetDb::ManageLeaseSets ()
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
