@@ -366,7 +366,7 @@ namespace data
 			{
 				if (isStaticKey)
 				{
-					if (isHost)
+					if (isHost && address->port)
 					{
 						if (address->host.is_v6 ())
 							supportedTransports |= (i2p::util::net::IsYggdrasilAddress (address->host) ? eNTCP2V6Mesh : eNTCP2V6);
@@ -374,8 +374,9 @@ namespace data
 							supportedTransports |= eNTCP2V4;
 						m_ReachableTransports |= supportedTransports;
 					}
-					else if (!address->published)
+					else
 					{
+						address->published = false;
 						if (address->caps)
 						{
 							if (address->caps & AddressCaps::eV4) supportedTransports |= eNTCP2V4;
@@ -982,11 +983,22 @@ namespace data
 
 	bool RouterInfo::IsEligibleFloodfill () const
 	{
-		// floodfill must be reachable by ipv4, >= 0.9.38 and not DSA
-		return IsReachableBy (eNTCP2V4 | eSSU2V4) && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+		// floodfill must have published ipv4, >= 0.9.38 and not DSA
+		return m_Version >= NETDB_MIN_FLOODFILL_VERSION && IsPublished (true) && 
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1;
 	}
 
+	bool RouterInfo::IsPublished (bool v4) const
+	{
+		auto addr = GetAddresses ();
+		if (v4)	
+			return ((*addr)[eNTCP2V4] && ((*addr)[eNTCP2V4])->published) ||
+				((*addr)[eSSU2V4] && ((*addr)[eSSU2V4])->published);
+		else
+			return ((*addr)[eNTCP2V6] && ((*addr)[eNTCP2V6])->published) ||
+				((*addr)[eSSU2V6] && ((*addr)[eSSU2V6])->published);
+	}	
+		
 	bool RouterInfo::IsSSU2PeerTesting (bool v4) const
 	{
 		if (!(m_SupportedTransports & (v4 ? eSSU2V4 : eSSU2V6))) return false;
