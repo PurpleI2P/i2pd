@@ -631,7 +631,7 @@ namespace data
 			if (!it.second->IsUnreachable ())
 			{	
 				// find & mark expired routers
-				if (it.second->GetCompatibleTransports (true)) // non reachable by any transport
+				if (!it.second->GetCompatibleTransports (true)) // non reachable by any transport
 					it.second->SetUnreachable (true);
 				else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
 					it.second->SetUnreachable (true);
