@@ -637,8 +637,13 @@ namespace tunnel
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint (eLogDebug, "Tunnels: Re-creating destination inbound tunnel...");
 		std::shared_ptr<TunnelConfig> config;
-		if (m_NumInboundHops > 0 && tunnel->GetPeers().size())
-			config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), tunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
+		if (m_NumInboundHops > 0)
+		{
+			auto peers = tunnel->GetPeers();
+			if (peers.size ()&& ValidatePeers (peers))
+				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), 
+					tunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
+		}	
 		if (!m_NumInboundHops || config)
 		{
 			auto newTunnel = tunnels.CreateInboundTunnel (config, shared_from_this(), outboundTunnel);
@@ -702,10 +707,12 @@ namespace tunnel
 		{
 			LogPrint (eLogDebug, "Tunnels: Re-creating destination outbound tunnel...");
 			std::shared_ptr<TunnelConfig> config;
-			if (m_NumOutboundHops > 0 && tunnel->GetPeers().size())
+			if (m_NumOutboundHops > 0)
 			{
-				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (),
-					inboundTunnel->GetNextIdentHash (), inboundTunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
+				auto peers = tunnel->GetPeers();
+				if (peers.size () && ValidatePeers (peers))
+					config = std::make_shared<TunnelConfig>(peers, inboundTunnel->GetNextTunnelID (),
+						inboundTunnel->GetNextIdentHash (), inboundTunnel->IsShortBuildMessage (), tunnel->GetFarEndTransports ());
 			}
 			if (!m_NumOutboundHops || config)
 			{
@@ -746,6 +753,20 @@ namespace tunnel
 		return m_CustomPeerSelector != nullptr;
 	}
 
+	bool TunnelPool::ValidatePeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
+	{
+		for (auto it: peers)
+		{
+			auto r = i2p::data::netdb.FindRouter (it->GetIdentHash ());
+			if (r)
+			{
+				if (r->IsHighCongestion ()) return false;
+				it = r->GetIdentity (); // use identity from updated RouterInfo
+			}	
+		}	
+		return true;
+	}	
+		
 	std::shared_ptr<InboundTunnel> TunnelPool::GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude) const
 	{
 		std::shared_ptr<InboundTunnel> tun = nullptr;

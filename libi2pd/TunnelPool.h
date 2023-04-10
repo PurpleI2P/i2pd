@@ -126,6 +126,7 @@ namespace tunnel
 				typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible) const;
 			bool SelectPeers (Path& path, bool isInbound);
 			bool SelectExplicitPeers (Path& path, bool isInbound);
+			static bool ValidatePeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers);
 
 		private:
 
