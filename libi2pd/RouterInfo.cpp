@@ -1113,13 +1113,25 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
-	bool RouterInfo::IsHighCongestion () const
+	bool RouterInfo::IsHighCongestion (bool highBandwidth) const
 	{
-		if (m_Congestion == eLowCongestion || m_Congestion == eMediumCongestion) return false;
-		if (m_Congestion == eRejectAll) return true;
-		if (m_Congestion == eHighCongestion)
-			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL) ? true : false;
-		return false;
+		switch (m_Congestion)
+		{
+			case eLowCongestion:
+				return false;
+			break;
+			case eMediumCongestion:
+				return highBandwidth;
+			break;
+			case eHighCongestion:
+				return i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL;
+			break;	
+			case eRejectAll:
+				return true;
+			break;	
+			default:
+				return false;
+		}
 	}
 		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)

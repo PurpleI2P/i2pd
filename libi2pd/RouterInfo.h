@@ -250,7 +250,7 @@ namespace data
 			bool IsPublished (bool v4) const;
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsSSU2Introducer (bool v4) const;
-			bool IsHighCongestion () const;
+			bool IsHighCongestion (bool highBandwidth) const;
 
 			uint8_t GetCaps () const { return m_Caps; };
 			void SetCaps (uint8_t caps) { m_Caps = caps; };

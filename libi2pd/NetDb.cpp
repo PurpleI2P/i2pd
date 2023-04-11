@@ -1172,7 +1172,7 @@ namespace data
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
 						router->IsReachableFrom (*compatibleWith)) &&
-					router->IsECIES ();
+					router->IsECIES () && !router->IsHighCongestion (false);
 			});
 	}
 
@@ -1206,7 +1206,7 @@ namespace data
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
-					router->IsECIES () && !router->IsHighCongestion ();
+					router->IsECIES () && !router->IsHighCongestion (true);
 			});
 	}
 

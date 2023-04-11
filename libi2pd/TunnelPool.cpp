@@ -753,14 +753,15 @@ namespace tunnel
 		return m_CustomPeerSelector != nullptr;
 	}
 
-	bool TunnelPool::ValidatePeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers)
+	bool TunnelPool::ValidatePeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers) const
 	{
+		bool highBandwidth = !IsExploratory ();
 		for (auto it: peers)
 		{
 			auto r = i2p::data::netdb.FindRouter (it->GetIdentHash ());
 			if (r)
 			{
-				if (r->IsHighCongestion ()) return false;
+				if (r->IsHighCongestion (highBandwidth)) return false;
 				it = r->GetIdentity (); // use identity from updated RouterInfo
 			}	
 		}	
