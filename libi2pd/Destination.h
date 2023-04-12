@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -297,6 +297,7 @@ namespace client
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
+			std::shared_ptr<i2p::stream::StreamingDestination> m_LastStreamingDestination; uint16_t m_LastPort; // for server tunnels
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 			int m_RefCounter; // how many clients(tunnels) use this destination
 

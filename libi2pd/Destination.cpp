@@ -930,7 +930,7 @@ namespace client
 		bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (service, isPublic, params),
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
-		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS),
+		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
 		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(service)
 	{
@@ -1058,6 +1058,7 @@ namespace client
 			//it.second->SetOwner (nullptr);
 		}
 		m_StreamingDestinationsByPorts.clear ();
+		m_LastStreamingDestination = nullptr;
 		if (m_DatagramDestination)
 		{
 			delete m_DatagramDestination;
@@ -1082,10 +1083,15 @@ namespace client
 			case PROTOCOL_TYPE_STREAMING:
 			{
 				// streaming protocol
-				auto dest = GetStreamingDestination (toPort);
-				if (!dest) dest = m_StreamingDestination; // if no destination on port use default
-				if (dest)
-					dest->HandleDataMessagePayload (buf, length);
+				if (toPort != m_LastPort || !m_LastStreamingDestination)
+				{
+					m_LastStreamingDestination = GetStreamingDestination (toPort);
+					if (!m_LastStreamingDestination) 
+						m_LastStreamingDestination = m_StreamingDestination; // if no destination on port use default
+					m_LastPort = toPort;
+				}	
+				if (m_LastStreamingDestination)
+					m_LastStreamingDestination->HandleDataMessagePayload (buf, length);
 				else
 					LogPrint (eLogError, "Destination: Missing streaming destination");
 			}
