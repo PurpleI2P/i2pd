@@ -1083,6 +1083,7 @@ namespace client
 			{
 				// streaming protocol
 				auto dest = GetStreamingDestination (toPort);
+				if (!dest) dest = m_StreamingDestination; // if no destination on port use default
 				if (dest)
 					dest->HandleDataMessagePayload (buf, length);
 				else
@@ -1236,8 +1237,9 @@ namespace client
 			if (it != m_StreamingDestinationsByPorts.end ())
 				return it->second;
 		}
-		// if port is zero or not found, use default destination
-		return m_StreamingDestination;
+		else // if port is zero, use default destination
+			return m_StreamingDestination;
+		return nullptr;
 	}
 
 	void ClientDestination::AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor)
