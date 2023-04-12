@@ -693,7 +693,7 @@ namespace client
 	{
 		if (!inport) inport = port;	
 		m_PortDestination = localDestination->GetStreamingDestination (inport);	
-		if (!m_PortDestination)	
+		if (!m_PortDestination || (inport && (m_PortDestination == localDestination->GetStreamingDestination ()))) // default destination	
 			m_PortDestination = localDestination->CreateStreamingDestination (inport, gzip);
 	}
 
