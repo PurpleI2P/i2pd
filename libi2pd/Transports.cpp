@@ -461,7 +461,7 @@ namespace transport
 			auto sz = it->second.delayedMessages.size (); 	
 			if (sz < MAX_NUM_DELAYED_MESSAGES)
 			{
-				if (sz > CHECK_PROFILE_NUM_DELAYED_MESSAGES)
+				if (sz < CHECK_PROFILE_NUM_DELAYED_MESSAGES && sz + msgs.size () >= CHECK_PROFILE_NUM_DELAYED_MESSAGES)
 				{
 					auto profile = i2p::data::GetRouterProfile (ident);
 					if (profile && profile->IsUnreachable ())
