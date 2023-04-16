@@ -458,8 +458,20 @@ namespace transport
 			it->second.sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{
-			if (it->second.delayedMessages.size () < MAX_NUM_DELAYED_MESSAGES)
+			auto sz = it->second.delayedMessages.size (); 	
+			if (sz < MAX_NUM_DELAYED_MESSAGES)
 			{
+				if (sz > CHECK_PROFILE_NUM_DELAYED_MESSAGES)
+				{
+					auto profile = i2p::data::GetRouterProfile (ident);
+					if (profile && profile->IsUnreachable ())
+					{
+						LogPrint (eLogWarning, "Transports: Peer profile for ", ident.ToBase64 (), "reports unreachable. Dropped");
+						std::unique_lock<std::mutex> l(m_PeersMutex);
+						m_Peers.erase (it);
+						return;
+					}	
+				}	
 				for (auto& it1: msgs)
 					it->second.delayedMessages.push_back (it1);
 			}
@@ -775,11 +787,8 @@ namespace transport
  				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
-					auto profile = i2p::data::GetRouterProfile(it->first);
-					if (profile)
-					{
-						profile->TunnelNonReplied();
-					}
+					auto profile = i2p::data::GetRouterProfile (it->first);
+					if (profile) profile->Unreachable ();
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}

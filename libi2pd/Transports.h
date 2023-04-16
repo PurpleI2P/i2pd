@@ -106,6 +106,7 @@ namespace transport
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
 	const int PEER_TEST_INTERVAL = 71; // in minutes
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
+	const int CHECK_PROFILE_NUM_DELAYED_MESSAGES = 15; // check profile after
 	class Transports
 	{
 		public:
