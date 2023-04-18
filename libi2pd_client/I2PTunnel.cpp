@@ -346,7 +346,12 @@ namespace client
 					}
 				}
 				else
+				{
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}	
 			}
 
 			if (endOfHeader)
@@ -409,7 +414,7 @@ namespace client
 								matched = true;
 								break;
 							}
-						if (matched) break;
+						if (matched) continue;
 
 						// replace some headers
 						if (!m_Host.empty () && boost::iequals (line.substr (0, 5), "Host:"))
@@ -428,7 +433,12 @@ namespace client
 					}
 				}
 				else
+				{	
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}	
 			}
 
 			if (endOfHeader)
@@ -496,7 +506,12 @@ namespace client
 					}
 				}
 				else
+				{	
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}	
 			}
 
 			if (endOfHeader)
