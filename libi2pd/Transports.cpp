@@ -700,6 +700,17 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				if (it->second.numAttempts > 1)
+				{
+					// exclude failed transports
+					i2p::data::RouterInfo::CompatibleTransports transports = 0;
+					int numExcluded = it->second.numAttempts - 1;
+					if (numExcluded > (int)it->second.priority.size ()) numExcluded = it->second.priority.size ();
+					for (int i = 0; i < numExcluded; i++)
+						transports |= it->second.priority[i];
+					i2p::data::netdb.ExcludeReachableTransports (ident, transports);
+				}		
+				it->second.numAttempts = 0;
 				it->second.router = nullptr; // we don't need RouterInfo after successive connect
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)

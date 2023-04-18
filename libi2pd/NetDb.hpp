@@ -94,6 +94,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
+			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 

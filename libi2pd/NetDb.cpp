@@ -409,19 +409,29 @@ namespace data
 
 	void NetDb::SetUnreachable (const IdentHash& ident, bool unreachable)
 	{
-		auto it = m_RouterInfos.find (ident);
-		if (it != m_RouterInfos.end ())
+		auto r = FindRouter (ident);
+		if (r)
 		{
-			it->second->SetUnreachable (unreachable);
+			r->SetUnreachable (unreachable);
 			if (unreachable)
 			{
-				auto profile = it->second->GetProfile ();
+				auto profile = r->GetProfile ();
 				if (profile)
 					profile->Unreachable ();
 			}
-		}
+		}	
 	}
 
+	void NetDb::ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports)
+	{
+		auto r = FindRouter (ident);
+		if (r)
+		{
+			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+			r->ExcludeReachableTransports (transports);
+		}	
+	}	
+	
 	void NetDb::Reseed ()
 	{
 		if (!m_Reseeder)
