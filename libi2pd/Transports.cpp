@@ -466,7 +466,7 @@ namespace transport
 					auto profile = i2p::data::GetRouterProfile (ident);
 					if (profile && profile->IsUnreachable ())
 					{
-						LogPrint (eLogWarning, "Transports: Peer profile for ", ident.ToBase64 (), "reports unreachable. Dropped");
+						LogPrint (eLogWarning, "Transports: Peer profile for ", ident.ToBase64 (), " reports unreachable. Dropped");
 						std::unique_lock<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (it);
 						return;
@@ -798,8 +798,12 @@ namespace transport
  				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
-					auto profile = i2p::data::GetRouterProfile (it->first);
-					if (profile) profile->Unreachable ();
+					if (!it->second.router) 
+					{	 
+						// if router for ident not found mark it unreachable
+						auto profile = i2p::data::GetRouterProfile (it->first);
+						if (profile) profile->Unreachable ();
+					}	
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}
