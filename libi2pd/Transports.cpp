@@ -729,7 +729,7 @@ namespace transport
 				session->SendI2NPMessages (it->second.delayedMessages);
 				it->second.delayedMessages.clear ();
 			}
-			else // incoming connection
+			else // incoming connection or peer test
 			{
 				if(RoutesRestricted() && ! IsRestrictedPeer(ident)) {
 					// not trusted
@@ -737,11 +737,14 @@ namespace transport
 					session->Done();
 					return;
 				}
-				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
+				if (!session->IsOutgoing ()) // incoming
+					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
+				auto r = i2p::data::netdb.FindRouter (ident); // router should be in netdb after SessionConfirmed
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				auto it = m_Peers.insert (std::make_pair (ident, Peer{ nullptr, ts })).first;
+				auto it = m_Peers.insert (std::make_pair (ident, Peer{ r, ts })).first;
 				it->second.sessions.push_back (session);
+				it->second.router = nullptr;
 			}
 		});
 	}
