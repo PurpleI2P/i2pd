@@ -7,6 +7,9 @@ include /usr/share/dpkg/architecture.mk
 export DEB_CXXFLAGS_MAINT_APPEND  = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND =
 
+export CC=clang
+export CXX=clang++
+
 %:
 	dh $@ --buildsystem=cmake
 
