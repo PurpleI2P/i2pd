@@ -801,12 +801,12 @@ namespace transport
  				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
-					if (!it->second.router) 
+				/*	if (!it->second.router) 
 					{	 
 						// if router for ident not found mark it unreachable
 						auto profile = i2p::data::GetRouterProfile (it->first);
 						if (profile) profile->Unreachable ();
-					}	
+					}	*/
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}

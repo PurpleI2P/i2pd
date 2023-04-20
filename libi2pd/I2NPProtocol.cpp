@@ -785,10 +785,12 @@ namespace i2p
 			switch (typeID)
 			{
 				case eI2NPTunnelData:
-					i2p::tunnel::tunnels.PostTunnelData (msg);
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPTunnelGateway:
-					i2p::tunnel::tunnels.PostTunnelData (msg);
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPGarlic:
 				{
@@ -799,10 +801,18 @@ namespace i2p
 					break;
 				}
 				case eI2NPDatabaseStore:
+					// forward to netDb if came directly or through exploratory tunnel as response to our request
+					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
+						i2p::data::netdb.PostI2NPMsg (msg);
+				break;
 				case eI2NPDatabaseSearchReply:
-				case eI2NPDatabaseLookup:
 					// forward to netDb
 					i2p::data::netdb.PostI2NPMsg (msg);
+				break;
+				case eI2NPDatabaseLookup:
+					// forward to netDb if floodfill and came directly
+					if (!msg->from && i2p::context.IsFloodfill ())
+						i2p::data::netdb.PostI2NPMsg (msg);
 				break;
 				case eI2NPDeliveryStatus:
 				{
@@ -813,10 +823,14 @@ namespace i2p
 					break;
 				}
 				case eI2NPVariableTunnelBuild:
-				case eI2NPVariableTunnelBuildReply:
 				case eI2NPTunnelBuild:
-				case eI2NPTunnelBuildReply:
 				case eI2NPShortTunnelBuild:
+					// forward to tunnel thread
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
+				break;
+				case eI2NPVariableTunnelBuildReply:
+				case eI2NPTunnelBuildReply:
 				case eI2NPShortTunnelBuildReply:
 					// forward to tunnel thread
 					i2p::tunnel::tunnels.PostTunnelData (msg);
