@@ -14,6 +14,7 @@
 #include <mutex>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <functional>
@@ -184,8 +185,8 @@ namespace client
 
 			boost::asio::io_service& m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
-			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
-			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::mutex m_LeaseSetMutex;

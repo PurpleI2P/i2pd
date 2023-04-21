@@ -262,17 +262,6 @@ namespace client
 				return nullptr;
 			}
 		}
-		else
-		{
-			auto ls = i2p::data::netdb.FindLeaseSet (ident);
-			if (ls && !ls->IsExpired ())
-			{
-				ls->PopulateLeases (); // since we don't store them in netdb
-				std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
-				m_RemoteLeaseSets[ident] = ls;
-				return ls;
-			}
-		}
 		return nullptr;
 	}
 
