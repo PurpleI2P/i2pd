@@ -324,9 +324,17 @@ namespace tunnel
 		uint8_t typeID = msg.data->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelMessage: Handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		// catch RI or reply with new list of routers
-		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
-			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
-			i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg.data));
+		if (!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
+		{	
+			if (typeID == eI2NPDatabaseSearchReply)
+				i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg.data));
+			else if (IsRouterInfoMsg (msg.data))
+			{	
+				auto m = CopyI2NPMessage (msg.data);
+				memset (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0, 4); // no reply
+				i2p::data::netdb.PostI2NPMsg (m);
+			}	
+		}
 
 		switch (msg.deliveryType)
 		{
