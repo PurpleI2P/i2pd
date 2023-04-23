@@ -588,7 +588,7 @@ namespace garlic
 		auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-			if (it->second.tagset->HandleNextMessage (buf, len, it->second.index))
+			if (it->second.tagset && it->second.tagset->HandleNextMessage (buf, len, it->second.index))
 				m_LastTagset = it->second.tagset;
 			else
 				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
