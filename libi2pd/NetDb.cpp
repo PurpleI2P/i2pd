@@ -722,7 +722,11 @@ namespace data
 				auto outbound = pool ? pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
 				auto inbound = pool ? pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
 				if (outbound &&	inbound)
-					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, dest->CreateRequestMessage (floodfill, inbound));
+				{
+					auto msg = dest->CreateRequestMessage (floodfill, inbound);
+					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, 
+						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
+				}	
 				else
 				{
 					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
