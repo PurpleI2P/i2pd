@@ -87,6 +87,7 @@ namespace http {
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
+	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
 	static std::string ConvertTime (uint64_t time)
 	{
@@ -434,12 +435,11 @@ namespace http {
 		if (dest->IsPublic() && token && !dest->IsEncryptedLeaseSet ())
 		{
 			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-			auto base32 = dest->GetIdentHash ().ToBase32 ();
 			s << "<div class='slide'><label for='slide-regaddr'><b>" << tr("Address registration line") << "</b></label>\r\n<input type=\"checkbox\" id=\"slide-regaddr\" />\r\n<div class=\"slidecontent\">\r\n"
 			     "<form method=\"get\" action=\"" << webroot << "\">\r\n"
 			     "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_GET_REG_STRING << "\">\r\n"
 			     "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
-			     "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
+			     "  <input type=\"hidden\" name=\"b32\" value=\"" << dest->GetIdentHash ().ToBase32 () << "\">\r\n"
 			     "  <b>" << tr("Domain") << ":</b>\r\n<input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
 			     "  <button type=\"submit\">" << tr("Generate") << "</button>\r\n"
 			     "</form>\r\n<small>" << tr("<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.") << "</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
@@ -448,9 +448,23 @@ namespace http {
 		if (dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>" << tr("LeaseSets") << ":</b> <i>" << dest->GetNumRemoteLeaseSets ()
-			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>"<< tr("Address") << "</th><th>" << tr("Type") << "</th><th>" << tr("EncType") << "</th></thead><tbody class=\"tableitem\">";
+			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n"
+			  << "<table><thead>"
+			  << "<th>" << tr("Address") << "</th>"
+			  << "<th style=\"width:5px;\">&nbsp;</th>" // LeaseSet expiration button column
+			  << "<th>" << tr("Type") << "</th>"
+			  << "<th>" << tr("EncType") << "</th>"
+			  << "</thead><tbody class=\"tableitem\">";
 			for(auto& it: dest->GetLeaseSets ())
-				s << "<tr><td>" << it.first.ToBase32 () << "</td><td>" << (int)it.second->GetStoreType () << "</td><td>" << (int)it.second->GetEncryptionType () <<"</td></tr>\r\n";
+			{
+				s << "<tr>"
+				  << "<td>" << it.first.ToBase32 () << "</td>"
+				  << "<td><a class=\"button\" href=\"/?cmd=" << HTTP_COMMAND_EXPIRELEASE<< "&b32=" << dest->GetIdentHash ().ToBase32 ()
+				  << "&lease=" << it.first.ToBase32 () << "&token=" << token << "\" title=\"" << tr("Expire LeaseSet") << "\"> &#10008; </a></td>"
+				  << "<td>" << (int)it.second->GetStoreType () << "</td>"
+				  << "<td>" << (int)it.second->GetEncryptionType () <<"</td>"
+				  << "</tr>\r\n";
+			}
 			s << "</tbody></table>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		} else
 			s << "<b>" << tr("LeaseSets") << ":</b> <i>0</i><br>\r\n<br>\r\n";
@@ -1305,6 +1319,36 @@ namespace http {
 			}
 			else
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
+
+			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
+			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
+			redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=local_destination&b32=" + b32;
+			res.add_header("Refresh", redirect.c_str());
+			return;
+		}
+		else if (cmd == HTTP_COMMAND_EXPIRELEASE)
+		{
+			std::string b32 = params["b32"];
+			std::string lease = params["lease"];
+
+			i2p::data::IdentHash ident, leaseident;
+			ident.FromBase32 (b32);
+			leaseident.FromBase32 (lease);
+			auto dest = i2p::client::context.FindLocalDestination (ident);
+
+			if (dest)
+			{
+				auto leaseset = dest->FindLeaseSet (leaseident);
+				if (leaseset)
+				{
+					leaseset->ExpireLease ();
+					s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("LeaseSet expiration time updated") << "<br>\r\n<br>\r\n";
+				}
+				else
+					s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("LeaseSet is not found or already expired") << "<br>\r\n<br>\r\n";
+			}
+			else
+				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Destination not found") << "<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
 			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
