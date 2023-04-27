@@ -397,7 +397,8 @@ namespace client
 			while (!endOfHeader)
 			{
 				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
+				if (m_InHeader.fail ()) break;
+				if (!m_InHeader.eof ())
 				{
 					if (line == "\r") endOfHeader = true;
 					else
@@ -485,7 +486,8 @@ namespace client
 			while (!endOfHeader)
 			{
 				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
+				if (m_InHeader.fail ()) break;
+				if (!m_InHeader.eof ())
 				{
 					if (line == "\r") endOfHeader = true;
 					else
