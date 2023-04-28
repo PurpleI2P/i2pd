@@ -331,7 +331,7 @@ namespace tunnel
 			else if (IsRouterInfoMsg (msg.data))
 			{	
 				auto m = CopyI2NPMessage (msg.data);
-				memset (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0, 4); // no reply
+				memset (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0xFF, 4); // fake replyToken meaning no reply
 				i2p::data::netdb.PostI2NPMsg (m);
 			}	
 		}

@@ -791,20 +791,23 @@ namespace data
 				LogPrint (eLogError, "NetDb: Database store msg with reply token is too short ", len, ". Dropped");
 				return;
 			}
-			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
-			if (!tunnelID) // send response directly
-				transports.SendMessage (buf + offset, deliveryStatus);
-			else
-			{
-				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-				if (outbound)
-					outbound->SendTunnelDataMsgTo (buf + offset, tunnelID, deliveryStatus);
+			if (replyToken != 0xFFFFFFFFU) // if not caught on OBEP or IBGW
+			{	
+				auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
+				if (!tunnelID) // send response directly
+					transports.SendMessage (buf + offset, deliveryStatus);
 				else
-					LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
-			}
+				{
+					auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+					auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+					if (outbound)
+						outbound->SendTunnelDataMsgTo (buf + offset, tunnelID, deliveryStatus);
+					else
+						LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
+				}
+			}	
 			offset += 32;
 		}
 		// we must send reply back before this check
