@@ -186,22 +186,30 @@ namespace client
 		LogPrint(eLogInfo, "Clients: Stopping AddressBook");
 		m_AddressBook.Stop ();
 
+		LogPrint(eLogInfo, "Clients: Stopping UDP Tunnels");
 		{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
 		}
 
+		LogPrint(eLogInfo, "Clients: Stopping UDP Tunnels timers");
 		if (m_CleanupUDPTimer)
 		{
 			m_CleanupUDPTimer->cancel ();
 			m_CleanupUDPTimer = nullptr;
 		}
 
-		for (auto& it: m_Destinations)
-			it.second->Stop ();
-		m_Destinations.clear ();
+		{
+			LogPrint(eLogInfo, "Clients: Stopping Destinations");
+			std::lock_guard<std::mutex> lock(m_DestinationsMutex);
+			for (auto& it: m_Destinations)
+				it.second->Stop ();
+			LogPrint(eLogInfo, "Clients: Stopping Destinations - Clear");
+			m_Destinations.clear ();
+		}
 
+		LogPrint(eLogInfo, "Clients: Stopping SharedLocalDestination");
 		m_SharedLocalDestination->Release ();
 		m_SharedLocalDestination = nullptr;
 	}

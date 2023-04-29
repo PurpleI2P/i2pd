@@ -1036,11 +1036,15 @@ namespace client
 
 	void ClientDestination::Stop ()
 	{
+		LogPrint(eLogDebug, "Destination: Stopping destination ", GetIdentHash().ToBase32(), ".b32.i2p");
 		LeaseSetDestination::Stop ();
 		m_ReadyChecker.cancel();
+		LogPrint(eLogDebug, "Destination: -> Stopping Streaming Destination");
 		m_StreamingDestination->Stop ();
 		//m_StreamingDestination->SetOwner (nullptr);
 		m_StreamingDestination = nullptr;
+
+		LogPrint(eLogDebug, "Destination: -> Stopping Streaming Destination by ports");
 		for (auto& it: m_StreamingDestinationsByPorts)
 		{
 			it.second->Stop ();
@@ -1048,11 +1052,14 @@ namespace client
 		}
 		m_StreamingDestinationsByPorts.clear ();
 		m_LastStreamingDestination = nullptr;
+
 		if (m_DatagramDestination)
 		{
+			LogPrint(eLogDebug, "Destination: -> Stopping Datagram Destination");
 			delete m_DatagramDestination;
 			m_DatagramDestination = nullptr;
 		}
+		LogPrint(eLogDebug, "Destination: -> Stopping done");
 	}
 
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
@@ -1075,10 +1082,10 @@ namespace client
 				if (toPort != m_LastPort || !m_LastStreamingDestination)
 				{
 					m_LastStreamingDestination = GetStreamingDestination (toPort);
-					if (!m_LastStreamingDestination) 
+					if (!m_LastStreamingDestination)
 						m_LastStreamingDestination = m_StreamingDestination; // if no destination on port use default
 					m_LastPort = toPort;
-				}	
+				}
 				if (m_LastStreamingDestination)
 					m_LastStreamingDestination->HandleDataMessagePayload (buf, length);
 				else
