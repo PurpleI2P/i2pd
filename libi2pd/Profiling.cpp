@@ -301,5 +301,33 @@ namespace data
 			}
 		}
 	}
+		
+// 	static keys
+
+	struct StaticKeyProfile
+	{
+		i2p::data::IdentHash ident;
+		boost::posix_time::ptime lastUpdateTime;
+	};		
+	//static i2p::fs::HashedStorage g_StaticKeysProfilesStorage("statickeysProfiles", "s", "statickey-", "txt");
+	static std::unordered_map<i2p::data::Tag<32>, std::shared_ptr<StaticKeyProfile> > g_StaticKeysProfiles;	
+	static std::mutex g_StaticKeysProfilesMutex;	
+
+	bool CheckStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident)
+	{
+		std::unique_lock<std::mutex> l(g_StaticKeysProfilesMutex);
+		auto it = g_StaticKeysProfiles.find (staticKey);
+		if (it != g_StaticKeysProfiles.end ())
+			return it->second->ident == ident;
+		return true;
+	}	
+
+	void UpdateStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident)
+	{
+		std::unique_lock<std::mutex> l(g_StaticKeysProfilesMutex);
+		auto res = g_StaticKeysProfiles.emplace (staticKey, std::make_shared<StaticKeyProfile>(StaticKeyProfile{ident, GetTime ()}));
+		if (!res.second)
+			res.first->second->lastUpdateTime = GetTime ();
+	}	
 }
 }

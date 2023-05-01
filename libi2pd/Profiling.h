@@ -85,6 +85,10 @@ namespace data
 	void DeleteObsoleteProfiles ();
 	void SaveProfiles ();
 	void PersistProfiles ();
+
+	// static keys
+	bool CheckStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident);
+	void UpdateStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident);
 }
 }
 

@@ -507,6 +507,11 @@ namespace transport
 							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
 						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 							address = nullptr;
+						if (address && !i2p::data::CheckStaticKey (address->s, ident))
+						{
+							LogPrint (eLogWarning, "Transports: NTCP2 address static key router mismatch ", ident.ToBase64 ());
+							address = nullptr;
+						}	
 						if (address)
 						{
 							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
@@ -526,6 +531,11 @@ namespace transport
 							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
 						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 							address = nullptr;
+						if (address && !i2p::data::CheckStaticKey (address->s, ident))
+						{
+							LogPrint (eLogWarning, "Transports: SSU2 address static key router mismatch ", ident.ToBase64 ());
+							address = nullptr;
+						}	
 						if (address && address->IsReachableSSU ())
 						{
 							if (m_SSU2Server->CreateSession (peer.router, address))
@@ -537,6 +547,11 @@ namespace transport
 					{
 						if (!m_NTCP2Server) continue;
 						auto address = peer.router->GetYggdrasilAddress ();
+						if (address && !i2p::data::CheckStaticKey (address->s, ident))
+						{
+							LogPrint (eLogWarning, "Transports: Yggdrasil address static key router mismatch ", ident.ToBase64 ());
+							address = nullptr;
+						}	
 						if (address)
 						{
 							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
