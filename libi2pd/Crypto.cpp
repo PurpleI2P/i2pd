@@ -749,7 +749,8 @@ namespace crypto
 #ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
-			__m128 xmm_1 = _mm_loadu_ps((float const*)(uint8_t const*)m_LastBlock);
+			uint8_t *iv = m_LastBlock;
+			__m128 xmm_1 = _mm_loadu_ps((float const*)iv);
 			uint8_t *sched = m_ECBEncryption.GetKeySchedule();
 			__m128 xmm_0;
 			for (int i = 0; i < numBlocks; i++) {
@@ -761,7 +762,7 @@ namespace crypto
 				in = (ChipherBlock const*)((uint8_t const*)in + 16);
 				out = (ChipherBlock *)((uint8_t *)out + 16);
 			}
-			_mm_storeu_ps((float*)(uint8_t *)m_LastBlock, xmm_1);
+			_mm_storeu_ps((float*)iv, xmm_1);
 		}
 		else
 #endif
@@ -788,13 +789,14 @@ namespace crypto
 #ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
-			__m128 xmm_1 = _mm_loadu_ps((float const*)(uint8_t const*)m_LastBlock);
+			uint8_t *iv = m_LastBlock;
+			__m128 xmm_1 = _mm_loadu_ps((float const*)iv);
 			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
 			xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
 			uint8_t *sched = m_ECBEncryption.GetKeySchedule();
 			EncryptAES256(sched)
 			_mm_storeu_ps((float *)out, xmm_0);
-			_mm_storeu_ps((float *)(uint8_t *)m_LastBlock, xmm_0);
+			_mm_storeu_ps((float *)iv, xmm_0);
 		}
 		else
 #endif
@@ -806,7 +808,8 @@ namespace crypto
 #ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
-			__m128 xmm_1 = _mm_loadu_ps((float const*)(uint8_t const*)m_IV);
+			uint8_t *iv = m_IV;
+			__m128 xmm_1 = _mm_loadu_ps((float const*)iv);
 			__m128 xmm_0, xmm_2;
 			uint8_t *sched = m_ECBDecryption.GetKeySchedule();
 			for (int i = 0; i < numBlocks; i++) {
@@ -819,7 +822,7 @@ namespace crypto
 				in = (ChipherBlock const*)((uint8_t const*)in + 16);
 				out = (ChipherBlock *)((uint8_t *)out + 16);
 			}
-			_mm_storeu_ps((float*)(uint8_t*)m_IV, xmm_1);
+			_mm_storeu_ps((float*)iv, xmm_1);
 		}
 		else
 #endif
@@ -846,9 +849,10 @@ namespace crypto
 #ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
-			__m128 xmm_1 = _mm_load_ps((float const*)(uint8_t const*)m_IV);
+			uint8_t *iv = m_IV;
+			__m128 xmm_1 = _mm_load_ps((float const*)iv);
 			__m128 xmm_0 = _mm_load_ps((float const*)in);
-			_mm_store_ps((float*)(uint8_t*)m_IV, xmm_0);
+			_mm_store_ps((float*)iv, xmm_0);
 			uint8_t *sched = m_ECBDecryption.GetKeySchedule();
 			DecryptAES256(sched)
 			xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
