@@ -245,19 +245,19 @@ namespace data
 						updated = false;
 						m_Requests.RequestComplete (ident, r);
 						return r;
-					}	
+					}
 					if (r->IsUnreachable ())
 					{
 						// delete router as invalid after update
 						m_RouterInfos.erase (ident);
 						if (wasFloodfill)
-						{	
+						{
 							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.Remove (r->GetIdentHash ());
-						}	
+						}
 						m_Requests.RequestComplete (ident, nullptr);
-						return nullptr;	
-					}	
+						return nullptr;
+					}
 				}
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
@@ -419,7 +419,7 @@ namespace data
 				if (profile)
 					profile->Unreachable ();
 			}
-		}	
+		}
 	}
 
 	void NetDb::ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports)
@@ -429,9 +429,9 @@ namespace data
 		{
 			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 			r->ExcludeReachableTransports (transports);
-		}	
-	}	
-	
+		}
+	}
+
 	void NetDb::Reseed ()
 	{
 		if (!m_Reseeder)
@@ -607,7 +607,9 @@ namespace data
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		auto uptime = i2p::context.GetUptime ();
-		bool isLowRate = false; // i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () < NETDB_MIN_TUNNEL_CREATION_SUCCESS_RATE;
+		double minTunnelCreationSuccessRate;
+		i2p::config::GetOption("limits.zombies", minTunnelCreationSuccessRate);
+		bool isLowRate = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < minTunnelCreationSuccessRate;
 		// routers don't expire if less than 90 or uptime is less than 1 hour
 		bool checkForExpiration = total > NETDB_MIN_ROUTERS && uptime > 600; // 10 minutes
 		if (checkForExpiration && uptime > 3600) // 1 hour
@@ -622,12 +624,12 @@ namespace data
 			if (it.second->IsUpdated ())
 			{
 				if (it.second->GetBuffer ())
-				{    
+				{
 					// we have something to save
 					it.second->SaveToFile (m_Storage.Path(ident));
 					it.second->SetUnreachable (false);
 					it.second->DeleteBuffer ();
-				}	
+				}
 				it.second->SetUpdated (false);
 				updatedCount++;
 				continue;
@@ -639,7 +641,7 @@ namespace data
 				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				it.second->SetUnreachable (false);
 			if (!it.second->IsUnreachable ())
-			{	
+			{
 				// find & mark expired routers
 				if (!it.second->GetCompatibleTransports (true)) // non reachable by any transport
 					it.second->SetUnreachable (true);
@@ -652,7 +654,7 @@ namespace data
 				}
 				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
 					it.second->SetUnreachable (false); // don't expire connected router
-			}	
+			}
 
 			if (it.second->IsUnreachable ())
 			{
@@ -667,7 +669,7 @@ namespace data
 		m_RouterInfoBuffersPool.CleanUpMt ();
 		m_RouterInfoAddressesPool.CleanUpMt ();
 		m_RouterInfoAddressVectorsPool.CleanUpMt ();
-		m_IdentitiesPool.CleanUpMt ();	
+		m_IdentitiesPool.CleanUpMt ();
 
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: Saved ", updatedCount, " new/updated routers");
@@ -682,10 +684,10 @@ namespace data
 					if (it->second->IsUnreachable ())
 						it = m_RouterInfos.erase (it);
 					else
-					{	
+					{
 						it->second->DropProfile ();
 						it++;
-					}	
+					}
 				}
 			}
 			// clean up expired floodfills or not floodfills anymore
@@ -724,9 +726,9 @@ namespace data
 				if (outbound &&	inbound)
 				{
 					auto msg = dest->CreateRequestMessage (floodfill, inbound);
-					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, 
+					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
-				}	
+				}
 				else
 				{
 					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
@@ -794,7 +796,7 @@ namespace data
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
 			if (replyToken != 0xFFFFFFFFU) // if not caught on OBEP or IBGW
-			{	
+			{
 				auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 				if (!tunnelID) // send response directly
 					transports.SendMessage (buf + offset, deliveryStatus);
@@ -807,7 +809,7 @@ namespace data
 					else
 						LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
 				}
-			}	
+			}
 			offset += 32;
 		}
 		// we must send reply back before this check
@@ -1315,16 +1317,16 @@ namespace data
 					return r && !r->IsUnreachable () && !r->GetProfile ()->IsUnreachable () &&
 						!excluded.count (r->GetIdentHash ());
 				});
-		}	
+		}
 		if (v.empty ()) return res;
-		
+
 		XORMetric ourMetric;
 		if (closeThanUsOnly) ourMetric = destKey ^ i2p::context.GetIdentHash ();
 		for (auto& it: v)
 		{
 			if (closeThanUsOnly && ourMetric < (destKey ^ it->GetIdentHash ())) break;
 			res.push_back (it->GetIdentHash ());
-		}	
+		}
 		return res;
 	}
 
@@ -1367,10 +1369,10 @@ namespace data
 			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 			for (auto& it: m_RouterInfos)
 				it.second->UpdateIntroducers (ts);
-		}	
+		}
 		SaveUpdated ();
-	}	
-	
+	}
+
 	void NetDb::ManageLeaseSets ()
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
