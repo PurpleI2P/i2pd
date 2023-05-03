@@ -6,8 +6,6 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#include <stdio.h>
-
 #include <string.h>
 #include <string>
 #include <vector>
