@@ -607,7 +607,7 @@ namespace data
 		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		auto uptime = i2p::context.GetUptime ();
-		bool isLowRate = i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () < NETDB_MIN_TUNNEL_CREATION_SUCCESS_RATE;
+		bool isLowRate = false; // i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () < NETDB_MIN_TUNNEL_CREATION_SUCCESS_RATE;
 		// routers don't expire if less than 90 or uptime is less than 1 hour
 		bool checkForExpiration = total > NETDB_MIN_ROUTERS && uptime > 600; // 10 minutes
 		if (checkForExpiration && uptime > 3600) // 1 hour

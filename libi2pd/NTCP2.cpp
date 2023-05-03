@@ -566,7 +566,11 @@ namespace transport
 					SendSessionConfirmed ();
 			}
 			else
+			{
+				if (GetRemoteIdentity ())
+					i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);  // assume wrong s key
 				Terminate ();
+			}	
 		}
 	}
 
