@@ -809,10 +809,10 @@ namespace data
 #if defined(__AVX__) // not all X86 targets supports AVX (like old Pentium, see #1600)
 		if(i2p::cpu::avx)
 		{
-			__m256 ymm_0 = _mm256_loadu_ps((float const*)&key1);
-			__m256 ymm_1 = _mm256_loadu_ps((float const*)&key2);
+			__m256 ymm_0 = _mm256_loadu_ps((float const*)*key1);
+			__m256 ymm_1 = _mm256_loadu_ps((float const*)*key2);
 			ymm_1 = _mm256_xor_ps(ymm_1, ymm_0);
-			_mm256_storeu_ps((float*)m.metric, ymm_1);
+			_mm256_storeu_ps((float*)*m.metric, ymm_1);
 		}
 		else
 #endif
