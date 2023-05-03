@@ -574,9 +574,9 @@ namespace crypto
 	xmm_2 = _mm_shuffle_epi32(xmm_4, 0xaa); \
 	xmm_4 = (__m128i)_mm_load_ps((float const*)&xmm_3); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
-	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_4); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
-	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_4); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
 	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_4); \
 	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
