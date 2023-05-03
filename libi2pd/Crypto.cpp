@@ -587,11 +587,11 @@ namespace crypto
 #ifdef __AES__
 	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
-		uint8_t* sched = GetKeySchedule();
-		__m128 xmm_1 = _mm_loadu_ps((float const*)&key);
-		__m128 xmm_3 = _mm_loadu_ps((float const*)(
-		                              (uint8_t*)&key + 0x10));
-		_mm_store_ps((float*)(sched), xmm_1);
+		uint8_t *sched = GetKeySchedule();
+		auto key_ = (uint8_t const*)key;
+		__m128 xmm_1 = _mm_loadu_ps((float const*)key_);
+		__m128 xmm_3 = _mm_loadu_ps((float const*)(key_ + 0x10));
+		_mm_store_ps((float*)sched, xmm_1);
 		_mm_store_ps((float*)(sched + 0x10), xmm_3);
 		__m128i xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 1);
 		__m128i xmm_4;
