@@ -50,7 +50,9 @@ namespace cpu
 			}
 		}
 #endif // defined(__x86_64__) || defined(__i386__)
-#ifdef __e2k__
+#ifdef __e2k__ // The reason this kind of static config is ok for Elbrus is because there are
+	       // much less hardware revisions than x86, and a binary compiled
+	       // on a newer Elbrus CPU will outright not work on a older model anyway.
 #ifdef __AES__
 		aesni = true;
 #endif
