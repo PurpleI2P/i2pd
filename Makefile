@@ -51,6 +51,10 @@ ifneq (, $(DESTDIR))
 	PREFIX = $(DESTDIR)
 endif
 
+ifneq (, $(findstring e2k, $(SYS)))
+	CXX_DEBUG += -Wno-deprecated-declarations
+endif
+
 ifneq (, $(findstring darwin, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)

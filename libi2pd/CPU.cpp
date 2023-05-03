@@ -50,6 +50,14 @@ namespace cpu
 			}
 		}
 #endif // defined(__x86_64__) || defined(__i386__)
+#ifdef __e2k__
+#ifdef __AES__
+		aesni = true;
+#endif
+#ifdef __AVX__
+		avx = true;
+#endif
+#endif
 
 		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
 		LogPrint(eLogInfo, "AVX ", (avx ? "enabled" : "disabled"));

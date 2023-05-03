@@ -6,6 +6,8 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <stdio.h>
+
 #include <string.h>
 #include <string>
 #include <vector>
@@ -16,6 +18,9 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
+#ifdef __AES__
+#include <immintrin.h>
+#endif
 #if OPENSSL_HKDF
 #include <openssl/kdf.h>
 #endif
@@ -555,103 +560,96 @@ namespace crypto
 	}
 
 // AES
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
-	#define KeyExpansion256(round0,round1) \
-		"pshufd $0xff, %%xmm2, %%xmm2 \n" \
-		"movaps %%xmm1, %%xmm4 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm1 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm1 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm1 \n" \
-		"pxor %%xmm2, %%xmm1 \n" \
-		"movaps %%xmm1, "#round0"(%[sched]) \n" \
-		"aeskeygenassist $0, %%xmm1, %%xmm4 \n" \
-		"pshufd $0xaa, %%xmm4, %%xmm2 \n" \
-		"movaps %%xmm3, %%xmm4 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm3 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm3 \n" \
-		"pslldq $4, %%xmm4 \n" \
-		"pxor %%xmm4, %%xmm3 \n" \
-		"pxor %%xmm2, %%xmm3 \n" \
-		"movaps %%xmm3, "#round1"(%[sched]) \n"
+#if defined(__AES__)
+#define KeyExpansion256(round0, round1) \
+	xmm_2 = _mm_shuffle_epi32(xmm_2, 0xff); \
+	xmm_4 = (__m128i)_mm_load_ps((float const*)&xmm_1);   \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); \
+	xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_2); \
+	_mm_store_ps((float*)(sched + round0), xmm_1); \
+	xmm_4 = _mm_aeskeygenassist_si128((__m128i)xmm_1, 0); \
+	xmm_2 = _mm_shuffle_epi32(xmm_4, 0xaa); \
+	xmm_3 = _mm_load_ps((float const*)&xmm_4); \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
+	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
+	_mm_store_ps((float*)(sched + round1), xmm_3);
+
 #endif
 
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
-		__asm__
-		(
-			"movups (%[key]), %%xmm1 \n"
-			"movups 16(%[key]), %%xmm3 \n"
-			"movaps %%xmm1, (%[sched]) \n"
-			"movaps %%xmm3, 16(%[sched]) \n"
-			"aeskeygenassist $1, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(32,48)
-			"aeskeygenassist $2, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(64,80)
-			"aeskeygenassist $4, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(96,112)
-			"aeskeygenassist $8, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(128,144)
-			"aeskeygenassist $16, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(160,176)
-			"aeskeygenassist $32, %%xmm3, %%xmm2 \n"
-			KeyExpansion256(192,208)
-			"aeskeygenassist $64, %%xmm3, %%xmm2 \n"
-			// key expansion final
-			"pshufd $0xff, %%xmm2, %%xmm2 \n"
-			"movaps %%xmm1, %%xmm4 \n"
-			"pslldq $4, %%xmm4 \n"
-			"pxor %%xmm4, %%xmm1 \n"
-			"pslldq $4, %%xmm4 \n"
-			"pxor %%xmm4, %%xmm1 \n"
-			"pslldq $4, %%xmm4 \n"
-			"pxor %%xmm4, %%xmm1 \n"
-			"pxor %%xmm2, %%xmm1 \n"
-			"movups %%xmm1, 224(%[sched]) \n"
-			: // output
-			: [key]"r"((const uint8_t *)key), [sched]"r"(GetKeySchedule ()) // input
-			: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory" // clogged
-		);
+		uint8_t* sched = GetKeySchedule();
+		__m128 xmm_1 = _mm_loadu_ps((float const*)&key);
+		__m128 xmm_3 = _mm_loadu_ps((float const*)(
+		                              (uint8_t*)&key + 0x10));
+		_mm_store_ps((float*)(sched), xmm_1);
+		_mm_store_ps((float*)(sched + 0x10), xmm_3);
+		__m128i xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 1);
+		__m128i xmm_4;
+		KeyExpansion256(32, 48)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 2);
+		KeyExpansion256(64, 80)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 4);
+		KeyExpansion256(96, 112)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 8);
+		KeyExpansion256(128, 144)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 16);
+		KeyExpansion256(160, 176)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 32);
+		KeyExpansion256(192, 208)
+		xmm_2 = _mm_aeskeygenassist_si128((__m128i)xmm_3, 64);
+		xmm_2 = _mm_shuffle_epi32(xmm_2, 0xff);
+		xmm_4 = (__m128i)_mm_load_ps((float const*)&xmm_1);
+		xmm_4 = _mm_slli_si128(xmm_4, 4);
+		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); 
+		xmm_4 = _mm_slli_si128(xmm_4, 4);
+		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); 
+		xmm_4 = _mm_slli_si128(xmm_4, 4);
+		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); 
+		xmm_2 = _mm_xor_si128((__m128i)xmm_1, xmm_2);
+		_mm_storeu_ps((float*)(sched + 224), xmm_1);
 	}
 #endif
 
 
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__) && defined(__x86_64__)
 	#define EncryptAES256(sched) \
-		"pxor (%["#sched"]), %%xmm0 \n" \
-		"aesenc	16(%["#sched"]), %%xmm0 \n" \
-		"aesenc	32(%["#sched"]), %%xmm0 \n" \
-		"aesenc	48(%["#sched"]), %%xmm0 \n" \
-		"aesenc	64(%["#sched"]), %%xmm0 \n" \
-		"aesenc	80(%["#sched"]), %%xmm0 \n" \
-		"aesenc	96(%["#sched"]), %%xmm0 \n" \
-		"aesenc	112(%["#sched"]), %%xmm0 \n" \
-		"aesenc	128(%["#sched"]), %%xmm0 \n" \
-		"aesenc	144(%["#sched"]), %%xmm0 \n" \
-		"aesenc	160(%["#sched"]), %%xmm0 \n" \
-		"aesenc	176(%["#sched"]), %%xmm0 \n" \
-		"aesenc	192(%["#sched"]), %%xmm0 \n" \
-		"aesenc	208(%["#sched"]), %%xmm0 \n" \
-		"aesenclast	224(%["#sched"]), %%xmm0 \n"
+		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)sched); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x10)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x20)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x30)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x40)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x50)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x60)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x70)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x80)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x90)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xa0)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xb0)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xc0)); \
+		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xd0)); \
+		xmm_0 = (__m128)_mm_aesenclast_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xf0));
 #endif
 
 	void ECBEncryption::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[in]), %%xmm0 \n"
-					EncryptAES256(sched)
-					"movups %%xmm0, (%[out]) \n"
-					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
-					);
+			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
+			uint8_t *sched = GetKeySchedule();
+			EncryptAES256(sched)
+			_mm_storeu_ps((float*)out, xmm_0);
 		}
 		else
 #endif
@@ -660,37 +658,34 @@ namespace crypto
 		}
 	}
 
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__) && defined(__x86_64__)
 	#define DecryptAES256(sched) \
-		"pxor 224(%["#sched"]), %%xmm0 \n" \
-		"aesdec	208(%["#sched"]), %%xmm0 \n" \
-		"aesdec	192(%["#sched"]), %%xmm0 \n" \
-		"aesdec	176(%["#sched"]), %%xmm0 \n" \
-		"aesdec	160(%["#sched"]), %%xmm0 \n" \
-		"aesdec	144(%["#sched"]), %%xmm0 \n" \
-		"aesdec	128(%["#sched"]), %%xmm0 \n" \
-		"aesdec	112(%["#sched"]), %%xmm0 \n" \
-		"aesdec	96(%["#sched"]), %%xmm0 \n" \
-		"aesdec	80(%["#sched"]), %%xmm0 \n" \
-		"aesdec	64(%["#sched"]), %%xmm0 \n" \
-		"aesdec	48(%["#sched"]), %%xmm0 \n" \
-		"aesdec	32(%["#sched"]), %%xmm0 \n" \
-		"aesdec	16(%["#sched"]), %%xmm0 \n" \
-		"aesdeclast (%["#sched"]), %%xmm0 \n"
+		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xf0)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xd0)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xc0)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xb0)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xa0)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x90)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x80)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x70)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x60)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x50)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x40)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x30)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x20)); \
+		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x10)); \
+		xmm_0 = (__m128)_mm_aesdeclast_si128((__m128i)xmm_0, *(__m128i*)(sched));
 #endif
 
 	void ECBDecryption::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[in]), %%xmm0 \n"
-					DecryptAES256(sched)
-					"movups %%xmm0, (%[out]) \n"
-					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
-					);
+			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
+			uint8_t *sched = GetKeySchedule();
+			DecryptAES256(sched)
+			_mm_storeu_ps((float*)out, xmm_0);
 		}
 		else
 #endif
@@ -699,16 +694,16 @@ namespace crypto
 		}
 	}
 
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__) && defined(__x86_64__)
 	#define CallAESIMC(offset) \
-		"movaps "#offset"(%[shed]), %%xmm0 \n" \
-		"aesimc %%xmm0, %%xmm0 \n" \
-		"movaps %%xmm0, "#offset"(%[shed]) \n"
+		xmm_0 = _mm_load_ps((float const*)(sched + offset)); \
+		xmm_0 = (__m128)_mm_aesimc_si128((__m128i)xmm_0); \
+		_mm_store_ps((float*)(sched + offset), xmm_0);
 #endif
 
 	void ECBEncryption::SetKey (const AESKey& key)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key);
@@ -722,28 +717,26 @@ namespace crypto
 
 	void ECBDecryption::SetKey (const AESKey& key)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key); // expand encryption key first
 			// then invert it using aesimc
-			__asm__
-				(
-					CallAESIMC(16)
-					CallAESIMC(32)
-					CallAESIMC(48)
-					CallAESIMC(64)
-					CallAESIMC(80)
-					CallAESIMC(96)
-					CallAESIMC(112)
-					CallAESIMC(128)
-					CallAESIMC(144)
-					CallAESIMC(160)
-					CallAESIMC(176)
-					CallAESIMC(192)
-					CallAESIMC(208)
-					: : [shed]"r"(GetKeySchedule ()) : "%xmm0", "memory"
-					);
+			uint8_t *sched = GetKeySchedule();
+			__m128 xmm_0;
+			CallAESIMC(16)
+			CallAESIMC(32)
+			CallAESIMC(48)
+			CallAESIMC(64)
+			CallAESIMC(80)
+			CallAESIMC(96)
+			CallAESIMC(112)
+			CallAESIMC(128)
+			CallAESIMC(144)
+			CallAESIMC(160)
+			CallAESIMC(176)
+			CallAESIMC(192)
+			CallAESIMC(208)
 		}
 		else
 #endif
@@ -754,28 +747,22 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[iv]), %%xmm1 \n"
-					"1: \n"
-					"movups (%[in]), %%xmm0 \n"
-					"pxor %%xmm1, %%xmm0 \n"
-					EncryptAES256(sched)
-					"movaps %%xmm0, %%xmm1 \n"
-					"movups %%xmm0, (%[out]) \n"
-					"add $16, %[in] \n"
-					"add $16, %[out] \n"
-					"dec %[num] \n"
-					"jnz 1b \n"
-					"movups %%xmm1, (%[iv]) \n"
-					:
-					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
-					: "%xmm0", "%xmm1", "cc", "memory"
-					);
+			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_LastBlock);
+			uint8_t *sched = m_ECBEncryption.GetKeySchedule();
+			__m128 xmm_0;
+			for (int i = 0; i < numBlocks; i++) {
+				xmm_0 = _mm_loadu_ps((float const*)in);
+				xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+				EncryptAES256(sched)
+				xmm_1 = _mm_load_ps((float const*)&xmm_0);
+				_mm_storeu_ps((float *)out, xmm_0);
+				in = (ChipherBlock const*)((uint8_t const*)in + 16);
+				out = (ChipherBlock *)((uint8_t *)out + 16);
+			}
+			_mm_storeu_ps((float*)&m_LastBlock, xmm_1);
 		}
 		else
 #endif
@@ -799,22 +786,16 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[iv]), %%xmm1 \n"
-					"movups (%[in]), %%xmm0 \n"
-					"pxor %%xmm1, %%xmm0 \n"
-					EncryptAES256(sched)
-					"movups %%xmm0, (%[out]) \n"
-					"movups %%xmm0, (%[iv]) \n"
-					:
-					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out)
-					: "%xmm0", "%xmm1", "memory"
-					);
+			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_LastBlock);
+			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
+			xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+			uint8_t *sched = m_ECBEncryption.GetKeySchedule();
+			EncryptAES256(sched)
+			_mm_storeu_ps((float *)out, xmm_0);
+			_mm_storeu_ps((float *)&m_LastBlock, xmm_0);
 		}
 		else
 #endif
@@ -823,29 +804,23 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[iv]), %%xmm1 \n"
-					"1: \n"
-					"movups (%[in]), %%xmm0 \n"
-					"movaps %%xmm0, %%xmm2 \n"
-					DecryptAES256(sched)
-					"pxor %%xmm1, %%xmm0 \n"
-					"movups %%xmm0, (%[out]) \n"
-					"movaps %%xmm2, %%xmm1 \n"
-					"add $16, %[in] \n"
-					"add $16, %[out] \n"
-					"dec %[num] \n"
-					"jnz 1b \n"
-					"movups %%xmm1, (%[iv]) \n"
-					:
-					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
-					: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-					);
+			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_IV);
+			__m128 xmm_0, xmm_2;
+			uint8_t *sched = m_ECBDecryption.GetKeySchedule();
+			for (int i = 0; i < numBlocks; i++) {
+				xmm_0 = _mm_loadu_ps((float const*)in);
+				xmm_2 = _mm_load_ps((float const*)&xmm_0);
+				DecryptAES256(sched);
+				xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+				_mm_storeu_ps((float*)out, xmm_0);
+				xmm_1 = _mm_load_ps((float const*)&xmm_2);
+				in = (ChipherBlock const*)((uint8_t const*)in + 16);
+				out = (ChipherBlock *)((uint8_t *)out + 16);
+			}
+			_mm_storeu_ps((float*)&m_IV, xmm_1);
 		}
 		else
 #endif
@@ -869,22 +844,16 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					"movups (%[iv]), %%xmm1 \n"
-					"movups (%[in]), %%xmm0 \n"
-					"movups %%xmm0, (%[iv]) \n"
-					DecryptAES256(sched)
-					"pxor %%xmm1, %%xmm0 \n"
-					"movups %%xmm0, (%[out]) \n"
-					:
-					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out)
-					: "%xmm0", "%xmm1", "memory"
-					);
+			__m128 xmm_1 = _mm_load_ps((float const*)&m_IV);
+			__m128 xmm_0 = _mm_load_ps((float const*)in);
+			_mm_store_ps((float*)&m_IV, xmm_0);
+			uint8_t *sched = m_ECBDecryption.GetKeySchedule();
+			DecryptAES256(sched)
+			xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+			_mm_store_ps((float*)out, xmm_0);
 		}
 		else
 #endif
@@ -893,34 +862,24 @@ namespace crypto
 
 	void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					// encrypt IV
-					"movups (%[in]), %%xmm0 \n"
-					EncryptAES256(sched_iv)
-					"movaps %%xmm0, %%xmm1 \n"
-					// double IV encryption
-					EncryptAES256(sched_iv)
-					"movups %%xmm0, (%[out]) \n"
-					// encrypt data, IV is xmm1
-					"1: \n"
-					"add $16, %[in] \n"
-					"add $16, %[out] \n"
-					"movups (%[in]), %%xmm0 \n"
-					"pxor %%xmm1, %%xmm0 \n"
-					EncryptAES256(sched_l)
-					"movaps %%xmm0, %%xmm1 \n"
-					"movups %%xmm0, (%[out]) \n"
-					"dec %[num] \n"
-					"jnz 1b \n"
-					:
-					: [sched_iv]"r"(m_IVEncryption.GetKeySchedule ()), [sched_l]"r"(m_LayerEncryption.ECB().GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
-					: "%xmm0", "%xmm1", "cc", "memory"
-					);
+			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
+			uint8_t *sched_iv = m_IVEncryption.GetKeySchedule(),
+				*sched_l  = m_LayerEncryption.ECB().GetKeySchedule();
+			EncryptAES256(sched_iv)
+			__m128 xmm_1 = _mm_load_ps((float const*)&xmm_0);
+			EncryptAES256(sched_iv)
+			_mm_storeu_ps((float*)out, xmm_0);
+			for (int i=0;i<63/*blocks=1008bytes*/;i++) {
+				in += 16, out += 16;
+				xmm_0 = _mm_loadu_ps((float const*)in);
+				xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+				EncryptAES256(sched_l)
+				xmm_1 = _mm_load_ps((float const*)&xmm_0);
+				_mm_storeu_ps((float*)out, xmm_0);
+			}
 		}
 		else
 #endif
@@ -934,35 +893,26 @@ namespace crypto
 
 	void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__AES__)
 		if(i2p::cpu::aesni)
 		{
-			__asm__
-				(
-					// decrypt IV
-					"movups	(%[in]), %%xmm0 \n"
-					DecryptAES256(sched_iv)
-					"movaps %%xmm0, %%xmm1 \n"
-					// double IV encryption
-					DecryptAES256(sched_iv)
-					"movups %%xmm0, (%[out]) \n"
-					// decrypt data, IV is xmm1
-					"1: \n"
-					"add $16, %[in] \n"
-					"add $16, %[out] \n"
-					"movups (%[in]), %%xmm0 \n"
-					"movaps %%xmm0, %%xmm2 \n"
-					DecryptAES256(sched_l)
-					"pxor %%xmm1, %%xmm0 \n"
-					"movups %%xmm0, (%[out]) \n"
-					"movaps %%xmm2, %%xmm1 \n"
-					"dec %[num] \n"
-					"jnz 1b \n"
-					:
-					: [sched_iv]"r"(m_IVDecryption.GetKeySchedule ()), [sched_l]"r"(m_LayerDecryption.ECB().GetKeySchedule ()),
-						[in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
-					: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-					);
+			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
+			uint8_t *sched_iv = m_IVDecryption.GetKeySchedule(),
+				*sched_l  = m_LayerDecryption.ECB().GetKeySchedule();
+			DecryptAES256(sched_iv)
+			__m128 xmm_1 = _mm_load_ps((float const*)&xmm_0);
+			DecryptAES256(sched_iv)
+			_mm_storeu_ps((float*)out, xmm_0);
+			__m128 xmm_2;
+			for (int i = 0; i < 63/*blocks = 1008 bytes*/; i++) {
+				in += 16, out += 16;
+				xmm_0 = _mm_loadu_ps((float const*)in);
+				_mm_store_ps((float*)&xmm_2, xmm_0);
+				DecryptAES256(sched_l)
+				xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, (__m128i)xmm_1);
+				_mm_storeu_ps((float*)out, xmm_0);
+				xmm_1 = _mm_load_ps((float const*)&xmm_2);
+			}
 		}
 		else
 #endif

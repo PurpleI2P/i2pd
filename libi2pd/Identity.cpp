@@ -11,6 +11,9 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "Identity.h"
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
 
 namespace i2p
 {
@@ -803,19 +806,13 @@ namespace data
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
 	{
 		XORMetric m;
-#if (defined(__x86_64__) || defined(__i386__)) && defined(__AVX__) // not all X86 targets supports AVX (like old Pentium, see #1600)
+#if defined(__AVX__) // not all X86 targets supports AVX (like old Pentium, see #1600)
 		if(i2p::cpu::avx)
 		{
-			__asm__
-			(
-				"vmovups %1, %%ymm0 \n"
-				"vmovups %2, %%ymm1 \n"
-				"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-				"vmovups %%ymm1, %0 \n"
-				: "=m"(*m.metric)
-				: "m"(*key1), "m"(*key2)
-				: "memory", "%xmm0", "%xmm1" // should be replaced by %ymm0/1 once supported by compiler
-			);
+			__m256 ymm_0 = _mm256_loadu_ps((float const*)&key1);
+			__m256 ymm_1 = _mm256_loadu_ps((float const*)&key2);
+			ymm_1 = _mm256_xor_ps(ymm_1, ymm_0);
+			_mm256_storeu_ps((float*)m.metric, ymm_1);
 		}
 		else
 #endif
