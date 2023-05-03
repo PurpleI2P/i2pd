@@ -560,7 +560,7 @@ namespace crypto
 	}
 
 // AES
-#if defined(__AES__)
+#ifdef __AES__
 #define KeyExpansion256(round0, round1) \
 	xmm_2 = _mm_shuffle_epi32(xmm_2, 0xff); \
 	xmm_4 = (__m128i)_mm_load_ps((float const*)&xmm_1);   \
@@ -585,7 +585,7 @@ namespace crypto
 
 #endif
 
-#if defined(__AES__)
+#ifdef __AES__
 	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
 		uint8_t* sched = GetKeySchedule();
@@ -622,7 +622,7 @@ namespace crypto
 #endif
 
 
-#if defined(__AES__) && defined(__x86_64__)
+#ifdef __AES__
 	#define EncryptAES256(sched) \
 		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)sched); \
 		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0x10)); \
@@ -643,7 +643,7 @@ namespace crypto
 
 	void ECBEncryption::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
@@ -658,7 +658,7 @@ namespace crypto
 		}
 	}
 
-#if defined(__AES__) && defined(__x86_64__)
+#ifdef __AES__
 	#define DecryptAES256(sched) \
 		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xf0)); \
 		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xd0)); \
@@ -679,7 +679,7 @@ namespace crypto
 
 	void ECBDecryption::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
@@ -694,7 +694,7 @@ namespace crypto
 		}
 	}
 
-#if defined(__AES__) && defined(__x86_64__)
+#ifdef __AES__
 	#define CallAESIMC(offset) \
 		xmm_0 = _mm_load_ps((float const*)(sched + offset)); \
 		xmm_0 = (__m128)_mm_aesimc_si128((__m128i)xmm_0); \
@@ -703,7 +703,7 @@ namespace crypto
 
 	void ECBEncryption::SetKey (const AESKey& key)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key);
@@ -717,7 +717,7 @@ namespace crypto
 
 	void ECBDecryption::SetKey (const AESKey& key)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			ExpandKey (key); // expand encryption key first
@@ -747,7 +747,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_LastBlock);
@@ -786,7 +786,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_LastBlock);
@@ -804,7 +804,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_1 = _mm_loadu_ps((float const*)&m_IV);
@@ -844,7 +844,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_1 = _mm_load_ps((float const*)&m_IV);
@@ -862,7 +862,7 @@ namespace crypto
 
 	void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
@@ -893,7 +893,7 @@ namespace crypto
 
 	void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#if defined(__AES__)
+#ifdef __AES__
 		if(i2p::cpu::aesni)
 		{
 			__m128 xmm_0 = _mm_loadu_ps((float const*)in);
