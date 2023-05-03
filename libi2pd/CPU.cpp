@@ -54,10 +54,10 @@ namespace cpu
 	       // much less hardware revisions than x86, and a binary compiled
 	       // on a newer Elbrus CPU will outright not work on a older model anyway.
 #ifdef __AES__
-		aesni = true;
+		if (AesSwitch) aesni = true;
 #endif
 #ifdef __AVX__
-		avx = true;
+		if (AvxSwitch) avx = true;
 #endif
 #endif
 
