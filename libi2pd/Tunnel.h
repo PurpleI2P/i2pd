@@ -45,7 +45,7 @@ namespace tunnel
 	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
 	const int TUNNEL_POOLS_MANAGE_INTERVAL = 5; // in seconds
 	const int TUNNEL_MEMORY_POOL_MANAGE_INTERVAL = 120; // in seconds
-	
+
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
 
@@ -232,8 +232,8 @@ namespace tunnel
 
 			void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
 			uint16_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
-			bool IsTooManyTransitTunnels () const { return m_TransitTunnels.size () >= m_MaxNumTransitTunnels; }; 
-			
+			bool IsTooManyTransitTunnels () const { return m_TransitTunnels.size () >= m_MaxNumTransitTunnels; };
+
 		private:
 
 			template<class TTunnel>
@@ -292,7 +292,7 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-			uint16_t m_MaxNumTransitTunnels; 
+			uint16_t m_MaxNumTransitTunnels;
 			// count of tunnels for total TCSR algorithm
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;
@@ -311,6 +311,7 @@ namespace tunnel
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
+			double GetPreciseTunnelCreationSuccessRate () const { return m_TunnelCreationSuccessRate * 100; } // in percents
 			int GetTotalTunnelCreationSuccessRate () const // in percents
 			{
 				int totalNum = m_TotalNumSuccesiveTunnelCreations + m_TotalNumFailedTunnelCreations;
