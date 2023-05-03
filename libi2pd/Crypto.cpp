@@ -574,12 +574,13 @@ namespace crypto
 	_mm_store_ps((float*)(sched + round0), xmm_1); \
 	xmm_4 = _mm_aeskeygenassist_si128((__m128i)xmm_1, 0); \
 	xmm_2 = _mm_shuffle_epi32(xmm_4, 0xaa); \
-	xmm_3 = _mm_load_ps((float const*)&xmm_4); \
+	xmm_4 = (__m128i)_mm_load_ps((float const*)&xmm_3); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
 	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
 	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
 	xmm_4 = _mm_slli_si128(xmm_4, 4); \
+	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_4); \
 	xmm_3 = (__m128)_mm_xor_si128((__m128i)xmm_3, xmm_2); \
 	_mm_store_ps((float*)(sched + round1), xmm_3);
 
@@ -616,7 +617,7 @@ namespace crypto
 		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); 
 		xmm_4 = _mm_slli_si128(xmm_4, 4);
 		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_4); 
-		xmm_2 = _mm_xor_si128((__m128i)xmm_1, xmm_2);
+		xmm_1 = (__m128)_mm_xor_si128((__m128i)xmm_1, xmm_2);
 		_mm_storeu_ps((float*)(sched + 224), xmm_1);
 	}
 #endif
