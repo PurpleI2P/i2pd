@@ -637,7 +637,7 @@ namespace crypto
 		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xb0)); \
 		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xc0)); \
 		xmm_0 = (__m128)_mm_aesenc_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xd0)); \
-		xmm_0 = (__m128)_mm_aesenclast_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xf0));
+		xmm_0 = (__m128)_mm_aesenclast_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xe0));
 #endif
 
 	void ECBEncryption::Encrypt (const ChipherBlock * in, ChipherBlock * out)
@@ -659,7 +659,7 @@ namespace crypto
 
 #ifdef __AES__
 	#define DecryptAES256(sched) \
-		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xf0)); \
+		xmm_0 = (__m128)_mm_xor_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xe0)); \
 		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xd0)); \
 		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xc0)); \
 		xmm_0 = (__m128)_mm_aesdec_si128((__m128i)xmm_0, *(__m128i*)(sched + 0xb0)); \
