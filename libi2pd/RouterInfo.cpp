@@ -363,7 +363,7 @@ namespace data
 				if (!s) return;
 			}
 			
-            if (!i2p::data::CheckStaticKey(address->s, GetIdentHash()))
+            if ((address->s[31] & 0x80) || !i2p::data::CheckStaticKey(address->s, GetIdentHash()))
                 continue; // skip address
 			
 			if (address->transportStyle == eTransportNTCP2)
