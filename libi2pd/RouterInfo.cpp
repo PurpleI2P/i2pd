@@ -487,7 +487,10 @@ namespace data
 				if (netdb.GetFamilies ().VerifyFamily (family, GetIdentHash (), value))
 					m_FamilyID = netdb.GetFamilies ().GetFamilyID (family);
 				else
+				{	
 					LogPrint (eLogWarning, "RouterInfo: Family ", family, " signature verification failed");
+					SetUnreachable (true);	
+				}		
 			}
 
 			if (!s) return;
