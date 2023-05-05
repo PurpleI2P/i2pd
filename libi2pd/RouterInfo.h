@@ -224,6 +224,7 @@ namespace data
 			void UpdateSupportedTransports ();
 			void UpdateIntroducers (uint64_t ts); // ts in seconds
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
+			void ResetFlooldFill () { m_Caps &= ~Caps::eFloodfill; };
 			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };

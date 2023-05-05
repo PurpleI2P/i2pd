@@ -267,7 +267,12 @@ namespace data
 					if (wasFloodfill)
 						m_Floodfills.Remove (r->GetIdentHash ());
 					else if (r->IsEligibleFloodfill ())
-						m_Floodfills.Insert (r);
+					{	
+						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD || r->GetProfile ()->IsReal ())	
+							m_Floodfills.Insert (r);
+						else
+							r->ResetFlooldFill ();
+					}	
 				}
 			}
 			else
@@ -290,12 +295,16 @@ namespace data
 				if (inserted)
 				{
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
-					if (r->IsFloodfill () && r->IsEligibleFloodfill () &&
-						(m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
-						 r->GetProfile ()->IsReal ())) // don't insert floodfill until it's known real if we have enough 
+					if (r->IsFloodfill () && r->IsEligibleFloodfill ())
 					{	
-						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-						m_Floodfills.Insert (r);
+						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
+						 r->GetProfile ()->IsReal ()) // don't insert floodfill until it's known real if we have enough 
+						{	
+							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+							m_Floodfills.Insert (r);
+						}
+						else
+							r->ResetFlooldFill ();
 					}
 				}
 				else
