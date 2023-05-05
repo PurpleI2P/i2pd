@@ -36,6 +36,7 @@ namespace data
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
 	const int PEER_PROFILE_PERSIST_INTERVAL = 3300; // in seconds (55 minutes)
 	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 2*3600; // on seconds (2 hours)
+	const int PEER_PROFILE_USEFUL_THRESHOLD = 3;
 
 	class RouterProfile
 	{
@@ -59,6 +60,7 @@ namespace data
 
 			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
+			bool IsUseful() const { return m_IsUseful; };
 			
 		private:
 
@@ -82,6 +84,8 @@ namespace data
 			uint32_t m_NumTimesTaken;
 			uint32_t m_NumTimesRejected;
 			bool m_HasConnected; // incoming connection received
+			// is need to be saved
+			bool m_IsUseful;
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);

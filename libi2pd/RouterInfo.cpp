@@ -363,7 +363,11 @@ namespace data
 				if (!s) return;
 			}
 			
+<<<<<<< HEAD
             if ((address->s[31] & 0x80) || !i2p::data::CheckStaticKey(address->s, GetIdentHash()))
+=======
+            if (!i2p::data::CheckStaticKey(address->s, GetIdentHash()))
+>>>>>>> 146e446b (save only non-default peer profile)
                 continue; // skip address
 			
 			if (address->transportStyle == eTransportNTCP2)

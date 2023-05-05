@@ -35,7 +35,7 @@ namespace data
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false)
+		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false), m_IsUseful (0)
 	{
 	}
 
@@ -145,22 +145,25 @@ namespace data
 		UpdateTime ();
 		if (ret > 0)
 		{
-			m_NumTunnelsDeclined++;
+			if (++m_NumTunnelsDeclined > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
 		}
 		else
 		{
-			m_NumTunnelsAgreed++;
+		    if (++m_NumTunnelsAgreed > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
 			m_LastDeclineTime = 0;
 		}
 	}
 
 	void RouterProfile::TunnelNonReplied ()
 	{
-		m_NumTunnelsNonReplied++;
+	    if (++m_NumTunnelsNonReplied > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
 		UpdateTime ();
 		if (m_NumTunnelsNonReplied > 2*m_NumTunnelsAgreed && m_NumTunnelsNonReplied > 3)
+		{
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
+			m_IsUseful = true;
+		}
 	}
 
 	void RouterProfile::Unreachable ()
@@ -206,6 +209,7 @@ namespace data
 			m_NumTunnelsAgreed = 0;
 			m_NumTunnelsDeclined = 0;
 			m_NumTunnelsNonReplied = 0;
+			m_IsUseful = false;
 			isBad = false;
 		}
 		if (isBad) m_NumTimesRejected++; else m_NumTimesTaken++;
@@ -275,7 +279,7 @@ namespace data
 		}
 		auto ts = GetTime ();
 		for (auto& it: tmp)
-			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+			if (it.second->IsUseful() && it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 				it.second->Save (it.first);
 	}	
 		
