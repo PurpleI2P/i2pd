@@ -175,6 +175,7 @@ namespace data
 	void RouterProfile::Connected ()
 	{
 		m_HasConnected = true;
+		m_IsUseful = true;
 		UpdateTime ();
 	}	
 		
@@ -209,7 +210,8 @@ namespace data
 			m_NumTunnelsAgreed = 0;
 			m_NumTunnelsDeclined = 0;
 			m_NumTunnelsNonReplied = 0;
-			m_IsUseful = false;
+			// we do not reset m_HasConnected here
+			// m_IsUseful = false;
 			isBad = false;
 		}
 		if (isBad) m_NumTimesRejected++; else m_NumTimesTaken++;
