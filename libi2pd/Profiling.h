@@ -28,7 +28,8 @@ namespace data
 	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";
 	const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
 	const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
-
+	const char PEER_PROFILE_USAGE_CONNECTED[] = "connected";
+	
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 36; // in hours (1.5 days)
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 6 * 3600; // in seconds (6 hours)
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3600; // in seconds (1 hour)
@@ -48,11 +49,13 @@ namespace data
 
 			bool IsBad ();
 			bool IsUnreachable ();
+			bool IsReal () const { return m_HasConnected || m_NumTunnelsAgreed > 0 || m_NumTunnelsDeclined > 0; } 
 
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
 
 			void Unreachable ();
+			void Connected ();
 
 			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
@@ -78,6 +81,7 @@ namespace data
 			// usage
 			uint32_t m_NumTimesTaken;
 			uint32_t m_NumTimesRejected;
+			bool m_HasConnected; // incoming connection received
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);

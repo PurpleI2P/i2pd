@@ -35,7 +35,7 @@ namespace data
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0)
+		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false)
 	{
 	}
 
@@ -52,6 +52,7 @@ namespace data
 		participation.put (PEER_PROFILE_PARTICIPATION_AGREED, m_NumTunnelsAgreed);
 		participation.put (PEER_PROFILE_PARTICIPATION_DECLINED, m_NumTunnelsDeclined);
 		participation.put (PEER_PROFILE_PARTICIPATION_NON_REPLIED, m_NumTunnelsNonReplied);
+		participation.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		boost::property_tree::ptree usage;
 		usage.put (PEER_PROFILE_USAGE_TAKEN, m_NumTimesTaken);
 		usage.put (PEER_PROFILE_USAGE_REJECTED, m_NumTimesRejected);
@@ -112,6 +113,7 @@ namespace data
 					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
 					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
 					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
+					m_HasConnected = participations.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -167,6 +169,12 @@ namespace data
 		UpdateTime ();
 	}
 
+	void RouterProfile::Connected ()
+	{
+		m_HasConnected = true;
+		UpdateTime ();
+	}	
+		
 	bool RouterProfile::IsLowPartcipationRate () const
 	{
 		return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // < 20% rate

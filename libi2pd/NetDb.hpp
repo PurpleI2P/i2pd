@@ -38,6 +38,7 @@ namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
 	const int NETDB_MIN_FLOODFILLS = 5;
+	const int NETDB_NUM_FLOODFILLS_THRESHOLD = 1000;
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours

@@ -290,8 +290,10 @@ namespace data
 				if (inserted)
 				{
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
-					if (r->IsFloodfill () && r->IsEligibleFloodfill ())
-					{
+					if (r->IsFloodfill () && r->IsEligibleFloodfill () &&
+						(m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
+						 r->GetProfile ()->IsReal ())) // don't insert floodfill until it's known real if we have enough 
+					{	
 						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 						m_Floodfills.Insert (r);
 					}

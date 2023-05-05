@@ -718,6 +718,7 @@ namespace transport
 						Terminate ();
 						return;
 					}
+					ri.GetProfile ()->Connected ();	
 					i2p::data::UpdateStaticKey (addr->s, ri.GetIdentHash ()); // good static key
 					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
 					// TODO: process options
