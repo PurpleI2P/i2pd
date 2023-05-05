@@ -52,10 +52,10 @@ namespace data
 		participation.put (PEER_PROFILE_PARTICIPATION_AGREED, m_NumTunnelsAgreed);
 		participation.put (PEER_PROFILE_PARTICIPATION_DECLINED, m_NumTunnelsDeclined);
 		participation.put (PEER_PROFILE_PARTICIPATION_NON_REPLIED, m_NumTunnelsNonReplied);
-		participation.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		boost::property_tree::ptree usage;
 		usage.put (PEER_PROFILE_USAGE_TAKEN, m_NumTimesTaken);
 		usage.put (PEER_PROFILE_USAGE_REJECTED, m_NumTimesRejected);
+		usage.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
@@ -113,7 +113,6 @@ namespace data
 					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
 					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
 					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
-					m_HasConnected = participations.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -125,6 +124,7 @@ namespace data
 					auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
 					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
 					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
+					m_HasConnected = usage.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
