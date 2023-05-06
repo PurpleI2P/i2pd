@@ -150,17 +150,19 @@ namespace data
 		}
 		else
 		{
-			m_NumTunnelsAgreed++;
+		    m_NumTunnelsAgreed++;
 			m_LastDeclineTime = 0;
 		}
 	}
 
 	void RouterProfile::TunnelNonReplied ()
 	{
-		m_NumTunnelsNonReplied++;
+	    m_NumTunnelsNonReplied++;
 		UpdateTime ();
 		if (m_NumTunnelsNonReplied > 2*m_NumTunnelsAgreed && m_NumTunnelsNonReplied > 3)
+		{
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
+		}
 	}
 
 	void RouterProfile::Unreachable ()
@@ -221,6 +223,15 @@ namespace data
 			m_LastUnreachableTime = 0;
 		return (bool)m_LastUnreachableTime;
 	}
+	
+	bool RouterProfile::IsUseful() const {
+	    return
+	        m_NumTunnelsAgreed >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_NumTunnelsDeclined >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_NumTunnelsNonReplied >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_HasConnected;
+	}
+
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
@@ -275,7 +286,7 @@ namespace data
 		}
 		auto ts = GetTime ();
 		for (auto& it: tmp)
-			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+			if (it.second->IsUseful() && it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 				it.second->Save (it.first);
 	}	
 		
