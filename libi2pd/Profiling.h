@@ -60,7 +60,8 @@ namespace data
 
 			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
-			bool IsUseful() const { return m_IsUseful; };
+			
+			bool IsUseful() const;
 			
 		private:
 
@@ -84,8 +85,6 @@ namespace data
 			uint32_t m_NumTimesTaken;
 			uint32_t m_NumTimesRejected;
 			bool m_HasConnected; // incoming connection received
-			// is need to be saved
-			bool m_IsUseful;
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);

@@ -35,7 +35,7 @@ namespace data
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false), m_IsUseful (0)
+		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false)
 	{
 	}
 
@@ -52,10 +52,10 @@ namespace data
 		participation.put (PEER_PROFILE_PARTICIPATION_AGREED, m_NumTunnelsAgreed);
 		participation.put (PEER_PROFILE_PARTICIPATION_DECLINED, m_NumTunnelsDeclined);
 		participation.put (PEER_PROFILE_PARTICIPATION_NON_REPLIED, m_NumTunnelsNonReplied);
+		participation.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		boost::property_tree::ptree usage;
 		usage.put (PEER_PROFILE_USAGE_TAKEN, m_NumTimesTaken);
 		usage.put (PEER_PROFILE_USAGE_REJECTED, m_NumTimesRejected);
-		usage.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
@@ -113,6 +113,7 @@ namespace data
 					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
 					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
 					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
+					m_HasConnected = participations.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -124,7 +125,6 @@ namespace data
 					auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
 					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
 					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
-					m_HasConnected = usage.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -145,24 +145,23 @@ namespace data
 		UpdateTime ();
 		if (ret > 0)
 		{
-			if (++m_NumTunnelsDeclined > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
+			m_NumTunnelsDeclined++;
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
 		}
 		else
 		{
-		    if (++m_NumTunnelsAgreed > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
+		    m_NumTunnelsAgreed++;
 			m_LastDeclineTime = 0;
 		}
 	}
 
 	void RouterProfile::TunnelNonReplied ()
 	{
-	    if (++m_NumTunnelsNonReplied > PEER_PROFILE_USEFUL_THRESHOLD) m_IsUseful = true;
+	    m_NumTunnelsNonReplied++;
 		UpdateTime ();
 		if (m_NumTunnelsNonReplied > 2*m_NumTunnelsAgreed && m_NumTunnelsNonReplied > 3)
 		{
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
-			m_IsUseful = true;
 		}
 	}
 
@@ -175,7 +174,6 @@ namespace data
 	void RouterProfile::Connected ()
 	{
 		m_HasConnected = true;
-		m_IsUseful = true;
 		UpdateTime ();
 	}	
 		
@@ -210,8 +208,6 @@ namespace data
 			m_NumTunnelsAgreed = 0;
 			m_NumTunnelsDeclined = 0;
 			m_NumTunnelsNonReplied = 0;
-			// we do not reset m_HasConnected here
-			// m_IsUseful = false;
 			isBad = false;
 		}
 		if (isBad) m_NumTimesRejected++; else m_NumTimesTaken++;
@@ -227,6 +223,15 @@ namespace data
 			m_LastUnreachableTime = 0;
 		return (bool)m_LastUnreachableTime;
 	}
+	
+	bool RouterProfile::IsUseful() const {
+	    return
+	        m_NumTunnelsAgreed >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_NumTunnelsDeclined >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_NumTunnelsNonReplied >= PEER_PROFILE_USEFUL_THRESHOLD ||
+	        m_HasConnected;
+	}
+
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
