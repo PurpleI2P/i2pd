@@ -507,11 +507,6 @@ namespace transport
 							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
 						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 							address = nullptr;
-						if (address && !i2p::data::CheckStaticKey (address->s, ident))
-						{
-							LogPrint (eLogWarning, "Transports: NTCP2 address static key router mismatch ", ident.ToBase64 ());
-							address = nullptr;
-						}	
 						if (address)
 						{
 							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
@@ -531,11 +526,6 @@ namespace transport
 							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
 						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
 							address = nullptr;
-						if (address && !i2p::data::CheckStaticKey (address->s, ident))
-						{
-							LogPrint (eLogWarning, "Transports: SSU2 address static key router mismatch ", ident.ToBase64 ());
-							address = nullptr;
-						}	
 						if (address && address->IsReachableSSU ())
 						{
 							if (m_SSU2Server->CreateSession (peer.router, address))
@@ -547,11 +537,6 @@ namespace transport
 					{
 						if (!m_NTCP2Server) continue;
 						auto address = peer.router->GetYggdrasilAddress ();
-						if (address && !i2p::data::CheckStaticKey (address->s, ident))
-						{
-							LogPrint (eLogWarning, "Transports: Yggdrasil address static key router mismatch ", ident.ToBase64 ());
-							address = nullptr;
-						}	
 						if (address)
 						{
 							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
@@ -606,7 +591,7 @@ namespace transport
 			peer.router->GetCompatibleTransports (true);
 		peer.numAttempts = 0;
 		peer.priority.clear ();
-		bool ssu2 = rand () & 1;
+		bool ssu2 = peer.router->GetProfile ()->IsReal () ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
 		for (auto transport: priority)
 			if (transport & compatibleTransports)
@@ -724,6 +709,13 @@ namespace transport
 					for (int i = 0; i < numExcluded; i++)
 						transports |= it->second.priority[i];
 					i2p::data::netdb.ExcludeReachableTransports (ident, transports);
+				}	
+				if (it->second.router)
+				{	
+					auto transport = it->second.priority[it->second.numAttempts];
+					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
+						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
+						it->second.router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
 				}		
 				it->second.numAttempts = 0;
 				it->second.router = nullptr; // we don't need RouterInfo after successive connect
@@ -755,6 +747,7 @@ namespace transport
 				if (!session->IsOutgoing ()) // incoming
 					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				auto r = i2p::data::netdb.FindRouter (ident); // router should be in netdb after SessionConfirmed
+				if (r) r->GetProfile ()->Connected ();
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				std::unique_lock<std::mutex> l(m_PeersMutex);
 				auto it = m_Peers.insert (std::make_pair (ident, Peer{ r, ts })).first;

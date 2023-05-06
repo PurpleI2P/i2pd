@@ -1075,8 +1075,6 @@ namespace transport
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
-		ri->GetProfile ()->Connected ();
-		i2p::data::UpdateStaticKey (m_Address->s, ri->GetIdentHash ()); // good static key
 		AdjustMaxPayloadSize ();
 		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now
 		m_RemoteTransports = ri->GetCompatibleTransports (false);

@@ -84,7 +84,7 @@ namespace data
 			// usage
 			uint32_t m_NumTimesTaken;
 			uint32_t m_NumTimesRejected;
-			bool m_HasConnected; // incoming connection received
+			bool m_HasConnected; // successful trusted(incoming or NTCP2) connection 
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);
@@ -92,10 +92,6 @@ namespace data
 	void DeleteObsoleteProfiles ();
 	void SaveProfiles ();
 	void PersistProfiles ();
-
-	// static keys
-	bool CheckStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident);
-	void UpdateStaticKey (const i2p::data::Tag<32>& staticKey, const i2p::data::IdentHash& ident);
 }
 }
 

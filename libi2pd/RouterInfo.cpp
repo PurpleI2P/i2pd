@@ -293,7 +293,8 @@ namespace data
 				else if (!strcmp (key, "s")) // ntcp2 or ssu2 static key
 				{
 					Base64ToByteStream (value, strlen (value), address->s, 32);
-					isStaticKey = true;
+					if (!(address->s[31] & 0x80)) // check if x25519 public key
+						isStaticKey = true;
 				}
 				else if (!strcmp (key, "i")) // ntcp2 iv or ssu2 intro
 				{
@@ -363,9 +364,6 @@ namespace data
 				if (!s) return;
 			}
 			
-            if ((address->s[31] & 0x80) || !i2p::data::CheckStaticKey(address->s, GetIdentHash()))
-                continue; // skip address
-			
 			if (address->transportStyle == eTransportNTCP2)
 			{
 				if (isStaticKey)
@@ -391,7 +389,7 @@ namespace data
 					}
 				}
 			}
-			else if (address->transportStyle == eTransportSSU2 && isV2)
+			else if (address->transportStyle == eTransportSSU2 && isV2 && isStaticKey)
 			{
 				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
