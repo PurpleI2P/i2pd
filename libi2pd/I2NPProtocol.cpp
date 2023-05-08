@@ -40,7 +40,7 @@ namespace i2p
 	{
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_MEDIUM_MESSAGE_SIZE> >();
 	}
-	
+
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
 		return i2p::tunnel::tunnels.NewI2NPTunnelMessage (endpoint);
@@ -51,7 +51,7 @@ namespace i2p
 		len += I2NP_HEADER_SIZE + 2;
 		if (len <= I2NP_MAX_SHORT_MESSAGE_SIZE) return NewI2NPShortMessage ();
 		if (len <= I2NP_MAX_MEDIUM_MESSAGE_SIZE) return NewI2NPMediumMessage ();
-		return NewI2NPMessage ();		
+		return NewI2NPMessage ();
 	}
 
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)
@@ -748,46 +748,38 @@ namespace i2p
 		return l;
 	}
 
-	void HandleI2NPMessage (uint8_t * msg, size_t len)
+	void HandleTunnlBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		if (len < I2NP_HEADER_SIZE)
+		if (msg)
 		{
-			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
-			return;
-		}
-		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
-		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);
-		LogPrint (eLogDebug, "I2NP: Msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
-		uint8_t * buf = msg + I2NP_HEADER_SIZE;
-		auto size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
-		len -= I2NP_HEADER_SIZE;
-		if (size > len)
-		{
-			LogPrint (eLogError, "I2NP: Payload size ", size, " exceeds buffer length ", len);
-			size = len;
-		}
-		switch (typeID)
-		{
-			case eI2NPVariableTunnelBuild:
-				HandleVariableTunnelBuildMsg (msgID, buf, size);
-			break;
-			case eI2NPShortTunnelBuild:
-				HandleShortTunnelBuildMsg (msgID, buf, size);
-			break;
-			case eI2NPVariableTunnelBuildReply:
-				HandleTunnelBuildReplyMsg (msgID, buf, size, false);
-			break;
-			case eI2NPShortTunnelBuildReply:
-				HandleTunnelBuildReplyMsg (msgID, buf, size, true);
-			break;
-			case eI2NPTunnelBuild:
-				HandleTunnelBuildMsg (buf, size);
-			break;
-			case eI2NPTunnelBuildReply:
-				// TODO:
-			break;
-			default:
-				LogPrint (eLogWarning, "I2NP: Unexpected message ", (int)typeID);
+			uint8_t typeID = msg->GetTypeID();
+			uint32_t msgID = msg->GetMsgID();
+			LogPrint (eLogDebug, "I2NP: Handling tunnel build message with len=", msg->GetLength(),", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
+			uint8_t * payload = msg->GetPayload();
+			auto size = msg->GetPayloadLength();
+			switch (typeID)
+			{
+				case eI2NPVariableTunnelBuild:
+					HandleVariableTunnelBuildMsg (msgID, payload, size);
+					break;
+				case eI2NPShortTunnelBuild:
+					HandleShortTunnelBuildMsg (msgID, payload, size);
+					break;
+				case eI2NPVariableTunnelBuildReply:
+					HandleTunnelBuildReplyMsg (msgID, payload, size, false);
+					break;
+				case eI2NPShortTunnelBuildReply:
+					HandleTunnelBuildReplyMsg (msgID, payload, size, true);
+					break;
+				case eI2NPTunnelBuild:
+					HandleTunnelBuildMsg (payload, size);
+					break;
+				case eI2NPTunnelBuildReply:
+					// TODO:
+					break;
+				default:
+					LogPrint (eLogError, "I2NP: Unexpected message with type", (int)typeID, " during handling TBM; skipping");
+			}
 		}
 	}
 
@@ -851,7 +843,7 @@ namespace i2p
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				default:
-					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+					LogPrint(eLogError, "I2NP: Unexpected I2NP message with type ", int(typeID), " during handling; skipping");
 			}
 		}
 	}
