@@ -516,7 +516,7 @@ namespace tunnel
 							case eI2NPShortTunnelBuildReply:
 							case eI2NPTunnelBuild:
 							case eI2NPTunnelBuildReply:
-								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+								HandleTunnelBuildI2NPMessage (msg);
 							break;
 							default:
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
@@ -590,13 +590,13 @@ namespace tunnel
 			// DatabaseSearchReply with new routers
 			i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg));
 		else if (IsRouterInfoMsg (msg))
-		{	
+		{
 			// transit DatabaseStore might contain new/updated RI
 			auto m = CopyI2NPMessage (msg);
 			if (bufbe32toh (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET))
 				memset (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0xFF, 4); // fake replyToken meaning no reply
 			i2p::data::netdb.PostI2NPMsg (m);
-		}	
+		}
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
@@ -986,6 +986,6 @@ namespace tunnel
 			LogPrint (eLogDebug, "Tunnel: Max number of transit tunnels set to ", maxNumTransitTunnels);
 			m_MaxNumTransitTunnels = maxNumTransitTunnels;
 		}
-	}	
+	}
 }
 }
