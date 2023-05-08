@@ -161,6 +161,8 @@ namespace client
 			void Stop ();
 
 			const char* GetName() { return m_Name.c_str (); }
+			const std::string GetRemoteDestination() { return m_Destination; }
+			int GetRemoteDestinationPort() { return m_DestinationPort; }
 			void SetKeepAliveInterval (uint32_t keepAliveInterval);
 
 		private:

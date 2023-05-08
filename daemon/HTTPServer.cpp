@@ -978,9 +978,11 @@ namespace http {
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << it.second->GetName () << "</a> ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "; ";
 			s << it.first.address() << ":" << it.first.port();
 			s << " &#8658; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			if (it.second->GetRemoteDestination() != "")  // no remote destination for proxy
+				s << it.second->GetRemoteDestination() << ":" << it.second->GetRemoteDestinationPort();
 			s << "</div>\r\n"<< std::endl;
 		}
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
@@ -989,9 +991,9 @@ namespace http {
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "HTTP " << tr("Proxy") << "</a> ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "; ";
 			s << httpProxy->GetLocalEndpoint().address() << ":" << httpProxy->GetLocalEndpoint().port();
 			s << " &#8658; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</div>\r\n"<< std::endl;
 		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
@@ -1000,9 +1002,9 @@ namespace http {
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "SOCKS " << tr("Proxy") << "</a> ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "; ";
 			s << httpProxy->GetLocalEndpoint().address() << ":" << httpProxy->GetLocalEndpoint().port();
 			s << " &#8658; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</div>\r\n"<< std::endl;
 		}
 		s << "</div>\r\n";
@@ -1033,9 +1035,11 @@ namespace http {
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "; ";
 				s << it.first.address() << ":" << it.first.port();
 				s << " &#8658; ";
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				if (it.second->GetRemoteDestination() != "")  // no remote destination for proxy
+					s << it.second->GetRemoteDestination() << ":" << it.second->GetRemoteDestinationPort();
 				s << "</div>\r\n"<< std::endl;
 			}
 			s << "</div>\r\n";
