@@ -428,7 +428,7 @@ namespace i2p
 		{
 			LogPrint (eLogError, "I2NP: Too many records in VaribleTunnelBuild message ", num);
 			return;
-		}	
+		}
 		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "I2NP: VaribleTunnelBuild message of ", num, " records is too short ", len);
@@ -486,7 +486,7 @@ namespace i2p
 		{
 			LogPrint (eLogError, "I2NP: Too many records in TunnelBuildReply message ", num);
 			return;
-		}	
+		}
 		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
 		if (len < num*recordSize + 1)
 		{
@@ -522,7 +522,7 @@ namespace i2p
 		{
 			LogPrint (eLogError, "I2NP: Too many records in ShortTunnelBuild message ", num);
 			return;
-		}	
+		}
 		if (len < num*SHORT_TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "I2NP: ShortTunnelBuild message of ", num, " records is too short ", len);
@@ -748,7 +748,7 @@ namespace i2p
 		return l;
 	}
 
-	void HandleTunnlBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg)
+	void HandleTunnelBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg)
 		{

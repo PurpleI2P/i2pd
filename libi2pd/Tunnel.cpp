@@ -516,7 +516,7 @@ namespace tunnel
 							case eI2NPShortTunnelBuildReply:
 							case eI2NPTunnelBuild:
 							case eI2NPTunnelBuildReply:
-								HandleTunnlBuildI2NPMessage (msg);
+								HandleTunnelBuildI2NPMessage (msg);
 							break;
 							default:
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);

@@ -295,7 +295,7 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg);
 
 	size_t GetI2NPMessageLength (const uint8_t * msg, size_t len);
-	void HandleTunnlBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg);
+	void HandleTunnelBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 
 	class I2NPMessagesHandler
