@@ -977,7 +977,9 @@ namespace http {
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << it.second->GetName () << "</a> &#8656; ";
+			s << it.second->GetName () << "</a> ";
+			s << it.first.address() << ":" << it.first.port();
+			s << " &#8658; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</div>\r\n"<< std::endl;
 		}
@@ -986,7 +988,9 @@ namespace http {
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
+			s << "HTTP " << tr("Proxy") << "</a> ";
+			s << httpProxy->GetLocalEndpoint().address() << ":" << httpProxy->GetLocalEndpoint().port();
+			s << " &#8658; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</div>\r\n"<< std::endl;
 		}
@@ -995,7 +999,9 @@ namespace http {
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
+			s << "SOCKS " << tr("Proxy") << "</a> ";
+			s << httpProxy->GetLocalEndpoint().address() << ":" << httpProxy->GetLocalEndpoint().port();
+			s << " &#8658; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "</div>\r\n"<< std::endl;
 		}
@@ -1008,7 +1014,9 @@ namespace http {
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8658; ";
+				s << it.second->GetName () << "</a> ";
+				s << it.second->GetEndpoint().address() << ":" << it.second->GetEndpoint().port();
+				s << " &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
 				s << "</a></div>\r\n"<< std::endl;
@@ -1024,7 +1032,9 @@ namespace http {
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8656; ";
+				s << it.second->GetName () << "</a> ";
+				s << it.first.address() << ":" << it.first.port();
+				s << " &#8658; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</div>\r\n"<< std::endl;
 			}
@@ -1038,7 +1048,9 @@ namespace http {
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-				s << it.second->GetName () << "</a> &#8656; ";
+				s << it.second->GetName () << "</a> ";
+				s << it.second->GetEndpoint().address() << ":" << it.second->GetEndpoint().port();
+				s << " &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "</div>\r\n"<< std::endl;
 			}
