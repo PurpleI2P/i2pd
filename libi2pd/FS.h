@@ -65,6 +65,8 @@ namespace fs {
 			void Traverse(std::vector<std::string> & files);
 			/** visit every file in this storage with a visitor */
 			void Iterate(FilenameVisitor v);
+			/** remove ALL contents of storage and it's root dir */
+			void Destroy();
 	};
 
 	/** @brief Returns current application name, default 'i2pd' */

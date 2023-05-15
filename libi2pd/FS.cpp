@@ -270,6 +270,15 @@ namespace fs {
 		boost::filesystem::remove(path);
 	}
 
+	void HashedStorage::Destroy() {
+		std::string storage_root = GetRoot ();
+		if (storage_root.empty()) {
+			LogPrint(eLogError, "FS: you're trying to call HashedStorage.Destroy() before .SetPlace(), fix your code!");
+			return;
+		}
+		boost::filesystem::remove_all(storage_root);
+	}
+
 	void HashedStorage::Traverse(std::vector<std::string> & files) {
 		Iterate([&files] (const std::string & fname) {
 			files.push_back(fname);
