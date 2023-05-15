@@ -16,6 +16,8 @@
 #include "HTTP.h"
 #include "util.h"
 
+#include <boost/algorithm/string.hpp>
+
 using namespace i2p::data;
 
 namespace i2p
@@ -955,7 +957,7 @@ namespace transport
 		m_TrustedFamilies.clear();
 		for (auto fam : families)
 		{
-			boost::to_lower (fam);
+			boost::algorithm::to_lower (fam);
 			auto id = i2p::data::netdb.GetFamilies ().GetFamilyID (fam);
 			if (id)
 				m_TrustedFamilies.push_back (id);

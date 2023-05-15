@@ -10,7 +10,6 @@
 #define PROFILING_H__
 
 #include <memory>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Identity.h"
 
 namespace i2p
