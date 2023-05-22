@@ -50,7 +50,6 @@ namespace data
 	{
 		m_Storage.SetPlace(i2p::fs::GetDataDir());
 		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
-		InitProfilesStorage ();
 		m_Families.LoadCertificates ();
 		Load ();
 
@@ -75,6 +74,9 @@ namespace data
 			m_Floodfills.Insert (i2p::context.GetSharedRouterInfo ());
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
+		if (m_PersistProfiles) {
+			LoadProfilesDB ();
+		}
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
@@ -84,9 +86,11 @@ namespace data
 	{
 		if (m_IsRunning)
 		{
-			if (m_PersistProfiles)
-				SaveProfiles ();
-			DeleteObsoleteProfiles ();
+			if (m_PersistProfiles) {
+				PruneExpiredProfiles ();
+				SaveProfilesDB ();
+			}
+			ClearProfilesDB ();
 			m_RouterInfos.clear ();
 			m_Floodfills.Clear ();
 			if (m_Thread)
@@ -175,8 +179,8 @@ namespace data
 				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
 				    ts + i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT < lastProfilesCleanup)
 				{
-					if (m_PersistProfiles) PersistProfiles ();
-					DeleteObsoleteProfiles ();
+					PruneExpiredProfiles ();
+					if (m_PersistProfiles) SaveProfilesDB ();
 					lastProfilesCleanup = ts;
 					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
 				}

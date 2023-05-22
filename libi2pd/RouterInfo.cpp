@@ -10,6 +10,7 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include <fstream>
+#include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/make_shared.hpp>
 #if (BOOST_VERSION >= 105300)
@@ -478,7 +479,7 @@ namespace data
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY))
 			{
 				family = value;
-				boost::to_lower (family);
+				boost::algorithm::to_lower (family);
 			}
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY_SIG))
 			{
