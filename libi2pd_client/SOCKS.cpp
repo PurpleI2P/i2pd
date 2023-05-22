@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -66,6 +66,11 @@ namespace proxy
 				GET5_IPV6,
 				GET5_HOST_SIZE,
 				GET5_HOST,
+				GET5_USERPASSWD,
+				GET5_USER_SIZE,
+				GET5_USER,
+				GET5_PASSWD_SIZE,
+				GET5_PASSWD,
 				READY,
 				UPSTREAM_RESOLVE,
 				UPSTREAM_CONNECT,
@@ -129,6 +134,7 @@ namespace proxy
 			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			boost::asio::const_buffers_1 GenerateUpstreamRequest();
 			bool Socks5ChooseAuth();
+			void Socks5UserPasswdResponse ();
 			void SocksRequestFailed(errTypes error);
 			void SocksRequestSuccess();
 			void SentSocksFailed(const boost::system::error_code & ecode);
@@ -324,6 +330,15 @@ namespace proxy
 		}
 	}
 
+	void SOCKSHandler::Socks5UserPasswdResponse ()
+	{
+		m_response[0] = 5; // Version
+		m_response[1] = 0; // Response code
+		LogPrint(eLogDebug, "SOCKS: v5 user/password response");
+		boost::asio::async_write(*m_sock, boost::asio::const_buffers_1(m_response, 2), 
+			std::bind(&SOCKSHandler::SentSocksResponse, shared_from_this(), std::placeholders::_1));
+	}	
+	
 	/* All hope is lost beyond this point */
 	void SOCKSHandler::SocksRequestFailed(SOCKSHandler::errTypes error)
 	{
@@ -438,10 +453,15 @@ namespace proxy
 					m_parseleft --;
 					if (*sock_buff == AUTH_NONE)
 						m_authchosen = AUTH_NONE;
+					else if (*sock_buff == AUTH_USERPASSWD)
+						m_authchosen = AUTH_USERPASSWD;
 					if ( m_parseleft == 0 )
 					{
 						if (!Socks5ChooseAuth()) return false;
-						EnterState(GET5_REQUESTV);
+						if (m_authchosen == AUTH_USERPASSWD)
+							EnterState(GET5_USERPASSWD);
+						else	
+							EnterState(GET5_REQUESTV);
 					}
 				break;
 				case GET_COMMAND:
@@ -557,6 +577,35 @@ namespace proxy
 					m_parseleft--;
 					if (m_parseleft == 0) EnterState(GET_PORT);
 				break;
+				case GET5_USERPASSWD:
+					if (*sock_buff != 1)
+					{
+						LogPrint(eLogError,"SOCKS: v5 rejected invalid username/password subnegotiation: ", ((int)*sock_buff));
+						SocksRequestFailed(SOCKS5_GEN_FAIL);
+						return false;
+					}
+					EnterState(GET5_USER_SIZE);	
+				break;		
+				case GET5_USER_SIZE:
+					EnterState(GET5_USER, *sock_buff);
+				break;	
+				case GET5_USER:
+					// skip user for now
+					m_parseleft--;
+					if (m_parseleft == 0) EnterState(GET5_PASSWD_SIZE);
+				break;
+				case GET5_PASSWD_SIZE:
+					EnterState(GET5_PASSWD, *sock_buff);
+				break;
+				case GET5_PASSWD:
+					// skip passwd for now
+					m_parseleft--;
+					if (m_parseleft == 0) 
+					{
+						Socks5UserPasswdResponse ();
+						EnterState(GET5_REQUESTV);
+					}	
+				break;	
 				default:
 					LogPrint(eLogError, "SOCKS: Parse state?? ", m_state);
 					Terminate();
