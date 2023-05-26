@@ -78,6 +78,7 @@ namespace transport
 						if (address->IsV4 ())
 						{
 							found = true;
+							LogPrint (eLogDebug, "SSU2: Opening IPv4 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV4, port));
 							m_ReceiveService.GetService ().post(
 								[this]()
@@ -89,6 +90,7 @@ namespace transport
 						if (address->IsV6 ())
 						{
 							found = true;
+							LogPrint (eLogDebug, "SSU2: Opening IPv6 socket at Start");
 							OpenSocket (boost::asio::ip::udp::endpoint (m_AddressV6, port));
 							m_ReceiveService.GetService ().post(
 							[this]()
@@ -243,10 +245,12 @@ namespace transport
 		if (!ecode
 			|| ecode == boost::asio::error::connection_refused
 			|| ecode == boost::asio::error::connection_reset
+			|| ecode == boost::asio::error::network_reset
 			|| ecode == boost::asio::error::network_unreachable
 			|| ecode == boost::asio::error::host_unreachable
 #ifdef _WIN32 // windows can throw WinAPI error, which is not handled by ASIO
 			|| ecode.value() == boost::winapi::ERROR_CONNECTION_REFUSED_
+			|| ecode.value() == boost::winapi::WSAENETRESET_ // 10052
 			|| ecode.value() == boost::winapi::ERROR_NETWORK_UNREACHABLE_
 			|| ecode.value() == boost::winapi::ERROR_HOST_UNREACHABLE_
 #endif
@@ -303,7 +307,7 @@ namespace transport
 				else
 				{
 					auto ep = socket.local_endpoint ();
-					socket.close ();
+					LogPrint (eLogCritical, "SSU2: Reopening socket in HandleReceivedFrom: code ", ecode.value(), ": ", ecode.message ());
 					OpenSocket (ep);
 					Receive (socket);
 				}
@@ -558,16 +562,25 @@ namespace transport
 			SendThroughProxy (header, headerLen, nullptr, 0, payload, payloadLen, to);
 			return;
 		}
+
 		std::vector<boost::asio::const_buffer> bufs
 		{
 			boost::asio::buffer (header, headerLen),
 			boost::asio::buffer (payload, payloadLen)
 		};
+
 		boost::system::error_code ec;
 		if (to.address ().is_v6 ())
+		{
+			if (!m_SocketV6.is_open ()) return;
 			m_SocketV6.send_to (bufs, to, 0, ec);
+		}
 		else
+		{
+			if (!m_SocketV4.is_open ()) return;
 			m_SocketV4.send_to (bufs, to, 0, ec);
+		}
+
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
 		else
@@ -582,17 +595,25 @@ namespace transport
 			SendThroughProxy (header, headerLen, headerX, headerXLen, payload, payloadLen, to);
 			return;
 		}
+
 		std::vector<boost::asio::const_buffer> bufs
 		{
 			boost::asio::buffer (header, headerLen),
 			boost::asio::buffer (headerX, headerXLen),
 			boost::asio::buffer (payload, payloadLen)
 		};
+
 		boost::system::error_code ec;
 		if (to.address ().is_v6 ())
+		{
+			if (!m_SocketV6.is_open ()) return;
 			m_SocketV6.send_to (bufs, to, 0, ec);
+		}
 		else
+		{
+			if (!m_SocketV4.is_open ()) return;
 			m_SocketV4.send_to (bufs, to, 0, ec);
+		}
 
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + headerXLen + payloadLen);

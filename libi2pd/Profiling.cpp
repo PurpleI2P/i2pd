@@ -30,7 +30,7 @@ namespace data
 	{
 		return boost::posix_time::second_clock::local_time();
 	}
-	
+
 	RouterProfile::RouterProfile ():
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
@@ -175,8 +175,8 @@ namespace data
 	{
 		m_HasConnected = true;
 		UpdateTime ();
-	}	
-		
+	}
+
 	bool RouterProfile::IsLowPartcipationRate () const
 	{
 		return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // < 20% rate
@@ -223,7 +223,7 @@ namespace data
 			m_LastUnreachableTime = 0;
 		return (bool)m_LastUnreachableTime;
 	}
-	
+
 	bool RouterProfile::IsUseful() const {
 	    return
 	        m_NumTunnelsAgreed >= PEER_PROFILE_USEFUL_THRESHOLD ||
@@ -240,7 +240,7 @@ namespace data
 			auto it = g_Profiles.find (identHash);
 			if (it != g_Profiles.end ())
 				return it->second;
-		}	
+		}
 		auto profile = std::make_shared<RouterProfile> ();
 		profile->Load (identHash); // if possible
 		std::unique_lock<std::mutex> l(g_ProfilesMutex);
@@ -261,7 +261,7 @@ namespace data
 		{
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-			{	
+			{
 				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
 				{
 					if (it->second->IsUpdated ())
@@ -270,11 +270,11 @@ namespace data
 				}
 				else
 					it++;
-			}     
+			}
 		}
 		for (auto& it: tmp)
 			if (it.second) it.second->Save (it.first);
-	}	
+	}
 
 	void SaveProfiles ()
 	{
@@ -288,22 +288,22 @@ namespace data
 		for (auto& it: tmp)
 			if (it.second->IsUseful() && it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 				it.second->Save (it.first);
-	}	
-		
+	}
+
 	void DeleteObsoleteProfiles ()
 	{
 		{
 			auto ts = GetTime ();
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-			{	
+			{
 				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 					it = g_Profiles.erase (it);
 				else
 					it++;
 			}
 		}
-		
+
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 
