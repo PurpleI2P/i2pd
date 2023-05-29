@@ -224,14 +224,10 @@ namespace data
 		return (bool)m_LastUnreachableTime;
 	}
 
-	bool RouterProfile::IsUseful() const {
-	    return
-	        m_NumTunnelsAgreed >= PEER_PROFILE_USEFUL_THRESHOLD ||
-	        m_NumTunnelsDeclined >= PEER_PROFILE_USEFUL_THRESHOLD ||
-	        m_NumTunnelsNonReplied >= PEER_PROFILE_USEFUL_THRESHOLD ||
-	        m_HasConnected;
+	bool RouterProfile::IsUseful() const 
+	{
+	    return IsReal () || m_NumTunnelsNonReplied >= PEER_PROFILE_USEFUL_THRESHOLD;
 	}
-
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
@@ -286,7 +282,7 @@ namespace data
 		}
 		auto ts = GetTime ();
 		for (auto& it: tmp)
-			if (it.second->IsUseful() && it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+			if (it.second->IsUseful() && (it.second->IsUpdated () || (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600))
 				it.second->Save (it.first);
 	}
 
