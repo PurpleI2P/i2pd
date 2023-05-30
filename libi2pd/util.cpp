@@ -201,7 +201,7 @@ namespace net
 	int GetMTUWindowsIpv4 (sockaddr_in inputAddress, int fallback)
 	{
 		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
-		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		IPN inetntop = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
 		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
 
 		ULONG outBufLen = 0;
@@ -262,7 +262,7 @@ namespace net
 	int GetMTUWindowsIpv6 (sockaddr_in6 inputAddress, int fallback)
 	{
 		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
-		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		IPN inetntop = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
 		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
 
 		ULONG outBufLen = 0;
@@ -341,7 +341,7 @@ namespace net
 #endif
 
 		typedef int (* IPN)(int af, const char *src, void *dst);
-		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
+		IPN inetpton = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
 		if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
 		if (localAddress.is_v4())
