@@ -267,12 +267,12 @@ namespace data
 					if (wasFloodfill)
 						m_Floodfills.Remove (r->GetIdentHash ());
 					else if (r->IsEligibleFloodfill ())
-					{	
-						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD || r->GetProfile ()->IsReal ())	
+					{
+						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD || r->GetProfile ()->IsReal ())
 							m_Floodfills.Insert (r);
 						else
 							r->ResetFlooldFill ();
-					}	
+					}
 				}
 			}
 			else
@@ -296,10 +296,10 @@ namespace data
 				{
 					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
 					if (r->IsFloodfill () && r->IsEligibleFloodfill ())
-					{	
+					{
 						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
-						 r->GetProfile ()->IsReal ()) // don't insert floodfill until it's known real if we have enough 
-						{	
+						 r->GetProfile ()->IsReal ()) // don't insert floodfill until it's known real if we have enough
+						{
 							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.Insert (r);
 						}
@@ -840,7 +840,12 @@ namespace data
 				LogPrint (eLogError, "NetDb: Database store message is too long ", len);
 				return;
 			}
-			if (!m->from) // unsolicited LS must be received directly
+			if (!context.IsFloodfill ())
+			{
+				LogPrint (eLogInfo, "NetDb: Not Floodfill, LeaseSet store request ignored for ", ident.ToBase32());
+				return;
+			}
+			else if (!m->from) // unsolicited LS must be received directly
 			{
 				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
 				{
