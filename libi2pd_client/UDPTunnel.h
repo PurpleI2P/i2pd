@@ -96,6 +96,7 @@ namespace client
 			const char * GetName () const { return m_Name.c_str(); }
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
+			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_RemoteEndpoint; }
 
 			void SetUniqueLocal (bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
 
@@ -134,6 +135,8 @@ namespace client
 			void Start ();
 			void Stop ();
 			const char * GetName () const { return m_Name.c_str(); }
+			const std::string GetRemoteDestination() { return m_RemoteDest; }
+			uint16_t GetRemoteDestinationPort() { return RemotePort; }
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions ();
 
 			bool IsLocalDestination (const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }

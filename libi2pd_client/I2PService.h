@@ -67,6 +67,9 @@ namespace client
 			virtual void Stop () = 0;
 
 			virtual const char* GetName() { return "Generic I2P Service"; }
+			virtual const std::string GetRemoteDestination() { return ""; }
+			virtual int GetRemoteDestinationPort() { return -1; }
+
 
 		private:
 
