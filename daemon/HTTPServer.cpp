@@ -422,8 +422,12 @@ namespace http {
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
+		s << "<b>Base32:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"1\">";
+		s << dest->GetIdentHash ().ToBase32 () << "</textarea><br>\r\n<br>\r\n";
+
 		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+
 		if (dest->IsEncryptedLeaseSet ())
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
@@ -605,6 +609,8 @@ namespace http {
 			}
 			s << "</tbody>\r\n</table>";
 		}
+		else
+			ShowError(s, tr("Such destination is not found"));
 	}
 
 	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
@@ -972,34 +978,42 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto& it: i2p::client::context.GetClientTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << it.second->GetName () << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
-		}
+
+		auto& clientTunnels = i2p::client::context.GetClientTunnels ();
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
-		if (httpProxy)
-		{
-			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
-		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
-		if (socksProxy)
+		if (!clientTunnels.empty () || httpProxy || socksProxy)
 		{
-			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
+			s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			if (!clientTunnels.empty ())
+			{
+				for (auto& it: clientTunnels)
+				{
+					auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+					s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+					s << it.second->GetName () << "</a> &#8656; ";
+					s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+					s << "</div>\r\n"<< std::endl;
+				}
+			}
+			if (httpProxy)
+			{
+				auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+			if (socksProxy)
+			{
+				auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+			s << "</div>\r\n";
 		}
-		s << "</div>\r\n";
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
