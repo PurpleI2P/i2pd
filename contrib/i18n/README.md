@@ -2,7 +2,7 @@
 ---
 
 ```
-xgettext --omit-header -ctr: -ktr -ktr:1,2 daemon/HTTPServer.cpp libi2pd_client/HTTPProxy.cpp
+xgettext --omit-header -ctr: -ktr -kntr:1,2 daemon/HTTPServer.cpp libi2pd_client/HTTPProxy.cpp
 ```
 
 Regex for transforming gettext translations to our format:
