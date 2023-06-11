@@ -710,9 +710,9 @@ namespace transport
 						transports |= it->second.priority[i];
 					i2p::data::netdb.ExcludeReachableTransports (ident, transports);
 				}	
-				if (it->second.router)
+				if (it->second.router && it->second.numAttempts)
 				{	
-					auto transport = it->second.priority[it->second.numAttempts];
+					auto transport = it->second.priority[it->second.numAttempts-1];
 					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
 						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
 						it->second.router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
