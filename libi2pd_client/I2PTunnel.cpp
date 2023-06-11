@@ -351,7 +351,7 @@ namespace client
 					m_InHeader.clear ();
 					m_InHeader << line;
 					break;
-				}	
+				}
 			}
 
 			if (endOfHeader)
@@ -434,12 +434,12 @@ namespace client
 					}
 				}
 				else
-				{	
+				{
 					// insert incomplete line back
 					m_InHeader.clear ();
 					m_InHeader << line;
 					break;
-				}	
+				}
 			}
 
 			if (endOfHeader)
@@ -508,12 +508,12 @@ namespace client
 					}
 				}
 				else
-				{	
+				{
 					// insert incomplete line back
 					m_InHeader.clear ();
 					m_InHeader << line;
 					break;
-				}	
+				}
 			}
 
 			if (endOfHeader)
@@ -708,10 +708,10 @@ namespace client
 		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
-		if (!inport) inport = port;	
-		m_PortDestination = localDestination->GetStreamingDestination (inport);	
-		if (!m_PortDestination) // default destination	
-			m_PortDestination = localDestination->CreateStreamingDestination (inport, gzip);
+		int inPort = (inport ? inport : port);
+		m_PortDestination = localDestination->GetStreamingDestination (inPort);
+		if (!m_PortDestination) // default destination
+			m_PortDestination = localDestination->CreateStreamingDestination (inPort, gzip);
 	}
 
 	void I2PServerTunnel::Start ()

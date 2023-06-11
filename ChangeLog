@@ -5,9 +5,9 @@
 ### Added
 - Allow user/password authentication method for SOCK5 proxy
 - Publish reject all congestion cap 'G' if transit is not accepted
-- 'critical' log level 
+- 'critical' log level
 - Print b32 on webconsole destination page
-- Webconsole button to drop a remote LeaseSet 
+- Webconsole button to drop a remote LeaseSet
 - limits.zombies param - minimum percentage of successfully created tunnels for routers cleanup
 - Recognize real routers if successfully connected or responded to tunnel build request
 ### Changed
@@ -26,7 +26,9 @@
 - i2p.streaming.answerPings param
 - Reload tunnels
 - Address caps for unspecified ipv6 address
-- Incomplete HTTP headers in I2P tunnels 
+- Incomplete HTTP headers in I2P tunnels
+- SSU2 socket network exceptions on Windows
+- Use of 'server' type tunnel port as inport (#1936)
 
 ## [2.47.0] - 2023-03-11
 ### Added
