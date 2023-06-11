@@ -1,6 +1,33 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.48.0] - 2023-06-12
+### Added
+- Allow user/password authentication method for SOCK5 proxy
+- Publish reject all congestion cap 'G' if transit is not accepted
+- 'critical' log level 
+- Print b32 on webconsole destination page
+- Webconsole button to drop a remote LeaseSet 
+- limits.zombies param - minimum percentage of successfully created tunnels for routers cleanup
+- Recognize real routers if successfully connected or responded to tunnel build request
+### Changed
+- Bypass slow transport sessions for first hop selection
+- Limit AESNI inline asm to x86/x64
+- Create smaller I2NP packets if possible
+- Make router unreachable if AEAD tag verification fails in SessionCreated
+- Don't include a router to floodfills list until it's confirmed as real
+- Drop LeaseSet store request if not floodfill
+- Bypass medium congestion('D') routers for client tunnels
+- Publish encrypted RouterInfo through tunnels
+- Check if s is valid x25519 public key
+- Check if socket is open before sending data in SSU2
+### Fixed
+- Webconsole empty page if destination is not found
+- i2p.streaming.answerPings param
+- Reload tunnels
+- Address caps for unspecified ipv6 address
+- Incomplete HTTP headers in I2P tunnels 
+
 ## [2.47.0] - 2023-03-11
 ### Added
 - Congestion caps
