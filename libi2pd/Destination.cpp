@@ -1111,7 +1111,7 @@ namespace client
 		}
 	}
 
-	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port)
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, uint16_t port)
 	{
 		if (!streamRequestComplete)
 		{
@@ -1141,7 +1141,7 @@ namespace client
 		}
 	}
 
-	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port)
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, uint16_t port)
 	{
 		if (!streamRequestComplete)
 		{
@@ -1160,7 +1160,7 @@ namespace client
 	}
 
 	template<typename Dest>
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, int port)
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStreamSync (const Dest& dest, uint16_t port)
 	{
 		volatile bool done = false;
 		std::shared_ptr<i2p::stream::Stream> stream;
@@ -1184,17 +1184,17 @@ namespace client
 		return stream;
 	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, int port)
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, uint16_t port)
 	{
 		return CreateStreamSync (dest, port);
 	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port)
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, uint16_t port)
 	{
 		return CreateStreamSync (dest, port);
 	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, uint16_t port)
 	{
 		if (m_StreamingDestination)
 			return m_StreamingDestination->CreateNewOutgoingStream (remote, port);
@@ -1231,7 +1231,7 @@ namespace client
 			});
 	}
 
-	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (int port) const
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (uint16_t port) const
 	{
 		if (port)
 		{
@@ -1269,7 +1269,7 @@ namespace client
 			m_StreamingDestination->AcceptOnce (acceptor);
 	}
 
-	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port, bool gzip)
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (uint16_t port, bool gzip)
 	{
 		auto dest = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis (), port, gzip);
 		if (port)
@@ -1279,7 +1279,7 @@ namespace client
 		return dest;
 	}
 
-	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::RemoveStreamingDestination (int port)
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::RemoveStreamingDestination (uint16_t port)
 	{
 		if (port)
 		{

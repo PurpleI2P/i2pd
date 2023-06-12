@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -127,7 +127,7 @@ namespace client
 		connection->I2PConnect (receiver->data, receiver->dataLen);
 	}
 
-	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, int port,
+	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, uint16_t port,
 		std::shared_ptr<ClientDestination> localDestination, bool quiet): BOBI2PTunnel (localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (outhost), port), m_IsQuiet (quiet)
 	{
@@ -164,7 +164,7 @@ namespace client
 
 	BOBDestination::BOBDestination (std::shared_ptr<ClientDestination> localDestination,
 			const std::string &nickname, const std::string &inhost, const std::string &outhost,
-			const int inport, const int outport, const bool quiet):
+			const uint16_t inport, const uint16_t outport, const bool quiet):
 		m_LocalDestination (localDestination),
 		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr),
 		m_Nickname(nickname), m_InHost(inhost), m_OutHost(outhost),
@@ -209,7 +209,7 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateInboundTunnel (int port, const std::string& inhost)
+	void BOBDestination::CreateInboundTunnel (uint16_t port, const std::string& inhost)
 	{
 		if (!m_InboundTunnel)
 		{
@@ -230,7 +230,7 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateOutboundTunnel (const std::string& outhost, int port, bool quiet)
+	void BOBDestination::CreateOutboundTunnel (const std::string& outhost, uint16_t port, bool quiet)
 	{
 		if (!m_OutboundTunnel)
 		{
@@ -595,9 +595,12 @@ namespace client
 		LogPrint (eLogDebug, "BOB: outport ", operand);
 		if (*operand)
 		{
-			m_OutPort = std::stoi(operand);
-			if (m_OutPort >= 0)
+			int port = std::stoi(operand);
+			if (port >= 0 && port < 65536)
+			{
+				m_OutPort = port;
 				SendReplyOK ("outbound port set");
+			}
 			else
 				SendReplyError ("port out of range");
 		}
@@ -622,9 +625,12 @@ namespace client
 		LogPrint (eLogDebug, "BOB: inport ", operand);
 		if (*operand)
 		{
-			m_InPort = std::stoi(operand);
-			if (m_InPort >= 0)
+			int port = std::stoi(operand);
+			if (port >= 0 && port < 65536)
+			{
+				m_InPort = port;
 				SendReplyOK ("inbound port set");
+			}
 			else
 				SendReplyError ("port out of range");
 		}
@@ -814,7 +820,7 @@ namespace client
 		}
 	}
 
-	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
+	BOBCommandChannel::BOBCommandChannel (const std::string& address, uint16_t port):
 		RunnableService ("BOB"),
 		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port))
 	{

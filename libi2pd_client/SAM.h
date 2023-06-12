@@ -221,9 +221,9 @@ namespace client
 	struct SAMSubSession: public SAMSession
 	{
 		std::shared_ptr<SAMMasterSession> masterSession;
-		int inPort;
+		uint16_t inPort;
 
-		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port);
+		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, uint16_t port);
 		// implements SAMSession
 		std::shared_ptr<ClientDestination> GetLocalDestination ();
 		void StopLocalDestination ();
@@ -233,7 +233,7 @@ namespace client
 	{
 		public:
 
-			SAMBridge (const std::string& address, int portTCP, int portUDP, bool singleThread);
+			SAMBridge (const std::string& address, uint16_t portTCP, uint16_t portUDP, bool singleThread);
 			~SAMBridge ();
 
 			void Start ();

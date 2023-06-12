@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -59,8 +59,8 @@ namespace client
 				if (dest) dest->Acquire ();
 				m_LocalDestination = dest;
 			}
-			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
-			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, int port);
+			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port = 0);
+			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, uint16_t port);
 			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
 
 			virtual void Start () = 0;
@@ -155,11 +155,11 @@ namespace client
 	{
 		public:
 
-			TCPIPAcceptor (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
+			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				I2PService(localDestination),
 				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
-			TCPIPAcceptor (const std::string& address, int port, i2p::data::SigningKeyType kt) :
+			TCPIPAcceptor (const std::string& address, uint16_t port, i2p::data::SigningKeyType kt) :
 				I2PService(kt),
 				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
