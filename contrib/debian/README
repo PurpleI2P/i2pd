@@ -1,2 +1,5 @@
-This forder contain systemd unit files.
-To use systemd daemon control, place files from this directory to debian folder before building package.
+This forder contain files required for building debian packages.
+
+The trunk repository is contains the packaging files for the latest stable version of Debian (if we not forgot to update them).
+
+Files in subdirectories contains fixes to make possible to build package on specific versions of Debian/Ubuntu. They are used when building the release package.

@@ -1,0 +1,17 @@
+Description: Enable UPnP usage in package
+Author: r4sas <r4sas@i2pmail.org>
+
+Reviewed-By: r4sas <r4sas@i2pmail.org>
+Last-Update: 2022-03-23
+
+--- i2pd.orig/Makefile
++++ i2pd/Makefile
+@@ -31,7 +31,7 @@ include filelist.mk
+ 
+ USE_AESNI       := $(or $(USE_AESNI),yes)
+ USE_STATIC      := $(or $(USE_STATIC),no)
+-USE_UPNP        := $(or $(USE_UPNP),no)
++USE_UPNP        := $(or $(USE_UPNP),yes)
+ DEBUG           := $(or $(DEBUG),yes)
+ 
+ # for debugging purposes only, when commit hash needed in trunk builds in i2pd version string
