@@ -723,7 +723,7 @@ namespace client
 					uint16_t port = section.second.get<uint16_t> (I2P_SERVER_TUNNEL_PORT);
 					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
 					// optional params
-					uint16_t inPort = section.second.get<uint16_t> (I2P_SERVER_TUNNEL_INPORT, 0);
+					uint16_t inPort = section.second.get<uint16_t> (I2P_SERVER_TUNNEL_INPORT, port);
 					std::string accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
 					if(accessList == "")
 						accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_WHITE_LIST, "");

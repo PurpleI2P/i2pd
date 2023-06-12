@@ -708,10 +708,9 @@ namespace client
 		uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
-		uint16_t inPort = (inport ? inport : port);
-		m_PortDestination = localDestination->GetStreamingDestination (inPort);
+		m_PortDestination = localDestination->GetStreamingDestination (inport);
 		if (!m_PortDestination) // default destination
-			m_PortDestination = localDestination->CreateStreamingDestination (inPort, gzip);
+			m_PortDestination = localDestination->CreateStreamingDestination (inport, gzip);
 	}
 
 	void I2PServerTunnel::Start ()
