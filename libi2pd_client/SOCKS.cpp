@@ -332,7 +332,7 @@ namespace proxy
 
 	void SOCKSHandler::Socks5UserPasswdResponse ()
 	{
-		m_response[0] = 5; // Version
+		m_response[0] = 1; // Version of the subnegotiation
 		m_response[1] = 0; // Response code
 		LogPrint(eLogDebug, "SOCKS: v5 user/password response");
 		boost::asio::async_write(*m_sock, boost::asio::const_buffers_1(m_response, 2), 
