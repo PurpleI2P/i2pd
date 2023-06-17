@@ -587,7 +587,10 @@ namespace proxy
 					EnterState(GET5_USER_SIZE);	
 				break;		
 				case GET5_USER_SIZE:
-					EnterState(GET5_USER, *sock_buff);
+					if (*sock_buff)
+						EnterState(GET5_USER, *sock_buff);
+					else // empty user
+						EnterState(GET5_PASSWD_SIZE);
 				break;	
 				case GET5_USER:
 					// skip user for now
@@ -595,7 +598,13 @@ namespace proxy
 					if (m_parseleft == 0) EnterState(GET5_PASSWD_SIZE);
 				break;
 				case GET5_PASSWD_SIZE:
-					EnterState(GET5_PASSWD, *sock_buff);
+					if (*sock_buff)
+						EnterState(GET5_PASSWD, *sock_buff);
+					else // empty password
+					{
+						Socks5UserPasswdResponse ();
+						EnterState(GET5_REQUESTV);
+					}		
 				break;
 				case GET5_PASSWD:
 					// skip passwd for now
