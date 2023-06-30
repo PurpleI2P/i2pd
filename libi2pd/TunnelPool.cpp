@@ -522,7 +522,7 @@ namespace tunnel
 			}
 			if ((i == numHops - 1) && (!hop->IsV4 () || (inbound && !hop->IsPublished (true)))) // IBGW is not published ipv4
 			{
-				auto hop1 = nextHop (prevHop, true);
+				auto hop1 = nextHop (prevHop, inbound);
 				if (hop1) hop = hop1;
 			}
 			prevHop = hop;
