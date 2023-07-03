@@ -922,6 +922,10 @@ namespace data
 		else if(!m_FloodfillBootstrap)
 			LogPrint (eLogWarning, "NetDb: Requested destination for ", key, " not found");
 
+		// All peers hashs in buffer?
+		if(msg->GetPayloadLength() < (size_t) (33 + num * 32))
+			return;
+
 		// try responses
 		for (int i = 0; i < num; i++)
 		{
