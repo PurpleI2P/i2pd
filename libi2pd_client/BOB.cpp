@@ -667,6 +667,11 @@ namespace client
 				return;
 			}
 			auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+			if (!localDestination)
+			{
+				SendReplyError ("No local destination");
+				return;
+			}	
 			if (addr->IsIdentHash ())
 			{
 				// we might have leaseset already
