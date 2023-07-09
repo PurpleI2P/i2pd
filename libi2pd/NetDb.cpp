@@ -1253,7 +1253,9 @@ namespace data
 		uint16_t inds[3];
 		RAND_bytes ((uint8_t *)inds, sizeof (inds));
 		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-		inds[0] %= m_RouterInfos.size ();
+		auto count = m_RouterInfos.size ();
+		if(count == 0) return nullptr;
+		inds[0] %= count;
 		auto it = m_RouterInfos.begin ();
 		std::advance (it, inds[0]);
 		// try random router
