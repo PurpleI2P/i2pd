@@ -301,7 +301,7 @@ namespace data
 	size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
 	{
 		size_t ret = 0, pos = 1;
-		int bits = 8, tmp = inBuf[0];
+		unsigned int bits = 8, tmp = inBuf[0];
 		while (ret < outLen && (bits > 0 || pos < len))
 		{
 			if (bits < 5)
