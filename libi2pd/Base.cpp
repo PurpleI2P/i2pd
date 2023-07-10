@@ -187,6 +187,9 @@ namespace data
 		else
 			return 0;
 
+		if(*InBuffer == P64)
+			return 0;
+
 		ps = (unsigned char *)(InBuffer + InCount - 1);
 		while ( *ps-- == P64 )
 			outCount--;
