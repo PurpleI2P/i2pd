@@ -38,6 +38,8 @@ option(WITH_UPNP            "Include support for UPnP client"         OFF)
 option(WITH_GIT_VERSION     "Use git commit info as version"          OFF)
 option(WITH_ADDRSANITIZER   "Build with address sanitizer unix only"  OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only"   OFF)
+option(WITH_UNDEFSANITIZER  "Build with undefined sanitizer (unix only)" OFF)
+option(BUILD_FUZZING        "Build fuzzers (Clang only)"              OFF)
 option(BUILD_TESTING        "Build tests"                             OFF)
 
 IF(BUILD_TESTING)
@@ -208,19 +210,45 @@ if(WITH_AESNI AND (ARCHITECTURE MATCHES "x86_64" OR ARCHITECTURE MATCHES "i386")
   add_definitions(-D__AES__)
 endif()
 
+
+set(_SANITIZE_FLAGS "")
+
 if(WITH_ADDRSANITIZER)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+  list(APPEND _SANITIZE_FLAGS -fsanitize=address)
 endif()
 
 if(WITH_THREADSANITIZER)
   if(WITH_ADDRSANITIZER)
     message(FATAL_ERROR "thread sanitizer option cannot be combined with address sanitizer")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread")
+    list(APPEND _SANITIZE_FLAGS -fsanitize=thread)
   endif()
 endif()
+
+if(WITH_UNDEFSANITIZER)
+  list(APPEND _SANITIZE_FLAGS -fsanitize=undefined)
+  list(APPEND _SANITIZE_FLAGS -fno-sanitize=vptr)
+  list(APPEND _SANITIZE_FLAGS -fno-sanitize=enum)
+endif()
+
+if(BUILD_FUZZING)
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    list(APPEND _SANITIZE_FLAGS -fsanitize=fuzzer-no-link)
+  else()
+    message(FATAL_ERROR "Fuzzing not supported by your compiler")
+  endif()
+endif()
+
+if(NOT "${_SANITIZE_FLAGS}" STREQUAL "")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
+
+  list(JOIN _SANITIZE_FLAGS " " _X)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_X}")
+
+  # Is this really needed? Compiler (and CXX flags) used to link
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${_X}")
+endif()
+
 
 # Use std::atomic instead of GCC builtins on macOS PowerPC:
 # For more information refer to: https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
@@ -336,6 +364,8 @@ message(STATUS "  GIT VERSION      : ${WITH_GIT_VERSION}")
 endif()
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THREADSANITIZER  : ${WITH_THREADSANITIZER}")
+message(STATUS "  UNDEFSANITIZER   : ${WITH_UNDEFSANITIZER}")
+message(STATUS "  FUZZING          : ${BUILD_FUZZING}")
 message(STATUS "---------------------------------------")
 
 if(WITH_BINARY)
@@ -389,4 +419,8 @@ endif()
 
 if(BUILD_TESTING)
   add_subdirectory(${CMAKE_SOURCE_DIR}/tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
+endif()
+
+if(BUILD_FUZZING)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/fuzzing ${CMAKE_CURRENT_BINARY_DIR}/fuzzing)
 endif()
