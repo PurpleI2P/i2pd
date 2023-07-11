@@ -59,7 +59,7 @@ namespace data
 		{
 			Reseed ();
 		}
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
 		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
@@ -1199,15 +1199,17 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
+		bool reverse, bool endpoint) const
 	{
 		return GetRandomRouter (
-			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
 						router->IsReachableFrom (*compatibleWith)) &&
-					router->IsECIES () && !router->IsHighCongestion (false);
+					router->IsECIES () && !router->IsHighCongestion (false) &&
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
 			});
 	}
 
@@ -1231,17 +1233,20 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
+	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, 
+		bool reverse, bool endpoint) const
 	{
 		return GetRandomRouter (
-			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? compatibleWith->IsReachableFrom (*router) :
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
-					router->IsECIES () && !router->IsHighCongestion (true);
+					router->IsECIES () && !router->IsHighCongestion (true) &&
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
+
 			});
 	}
 

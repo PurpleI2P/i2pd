@@ -470,13 +470,14 @@ namespace tunnel
 		return i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ();
 	}
 
-	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, bool reverse) const
+	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, 
+		bool reverse, bool endpoint) const
 	{
-		auto hop = IsExploratory () ? i2p::data::netdb.GetRandomRouter (prevHop, reverse):
-			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse);
+		auto hop = IsExploratory () ? i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint):
+			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint);
 
 		if (!hop || hop->GetProfile ()->IsBad ())
-			hop = i2p::data::netdb.GetRandomRouter (prevHop, reverse);
+			hop = i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint);
 		return hop;
 	}
 
@@ -508,7 +509,7 @@ namespace tunnel
 
 		for(int i = start; i < numHops; i++ )
 		{
-			auto hop = nextHop (prevHop, inbound);
+			auto hop = nextHop (prevHop, inbound, i == numHops - 1);
 			if (!hop && !i) // if no suitable peer found for first hop, try already connected
 			{
 				LogPrint (eLogInfo, "Tunnels: Can't select first hop for a tunnel. Trying already connected");
@@ -519,11 +520,6 @@ namespace tunnel
 			{
 				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
-			}
-			if ((i == numHops - 1) && (!hop->IsV4 () || (inbound && !hop->IsPublished (true)))) // IBGW is not published ipv4
-			{
-				auto hop1 = nextHop (prevHop, inbound);
-				if (hop1) hop = hop1;
 			}
 			prevHop = hop;
 			path.Add (hop);
@@ -566,7 +562,8 @@ namespace tunnel
 			if (m_CustomPeerSelector)
 				return m_CustomPeerSelector->SelectPeers(path, numHops, isInbound);
 		}
-		return StandardSelectPeers(path, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, std::placeholders::_1, std::placeholders::_2));
+		return StandardSelectPeers(path, numHops, isInbound, std::bind(&TunnelPool::SelectNextHop, this, 
+			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 
 	bool TunnelPool::SelectExplicitPeers (Path& path, bool isInbound)

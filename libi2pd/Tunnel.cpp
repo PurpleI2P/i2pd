@@ -709,7 +709,7 @@ namespace tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false); // reachable by us
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true); // reachable by us
 			if (!inboundTunnel || !router) return;
 			LogPrint (eLogDebug, "Tunnel: Creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
@@ -781,7 +781,7 @@ namespace tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
 				// should be reachable by us because we send build request directly
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false);
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true);
 			if (!router) {
 				LogPrint (eLogWarning, "Tunnel: Can't find any router, skip creating tunnel");
 				return;
