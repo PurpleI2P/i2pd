@@ -1486,7 +1486,7 @@ namespace transport
 			auto size = bufbe16toh (buf + offset);
 			offset += 2;
 			LogPrint (eLogDebug, "SSU2: Block type ", (int)blk, " of size ", size);
-			if (size > len)
+			if (offset + size > len)
 			{
 				LogPrint (eLogError, "SSU2: Unexpected block length ", size);
 				break;
@@ -1532,16 +1532,21 @@ namespace transport
 				break;
 				case eSSU2BlkTermination:
 				{
-					uint8_t rsn = buf[11]; // reason
-					LogPrint (eLogDebug, "SSU2: Termination reason=", (int)rsn);
-					if (IsEstablished () && rsn != eSSU2TerminationReasonTerminationReceived)
-						RequestTermination (eSSU2TerminationReasonTerminationReceived);
-					else if (m_State != eSSU2SessionStateTerminated)
+					if (size >= 9)
 					{
-						if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)
-							m_State = eSSU2SessionStateClosingConfirmed;
-						Done ();
+						uint8_t rsn = buf[offset + 8]; // reason
+						LogPrint (eLogDebug, "SSU2: Termination reason=", (int)rsn);
+						if (IsEstablished () && rsn != eSSU2TerminationReasonTerminationReceived)
+							RequestTermination (eSSU2TerminationReasonTerminationReceived);
+						else if (m_State != eSSU2SessionStateTerminated)
+						{
+							if (m_State == eSSU2SessionStateClosing && rsn == eSSU2TerminationReasonTerminationReceived)
+								m_State = eSSU2SessionStateClosingConfirmed;
+							Done ();
+						}
 					}
+					else
+						LogPrint(eLogWarning, "SSU2: Unexpected termination block size ", size);
 					break;
 				}
 				case eSSU2BlkRelayRequest:
