@@ -884,7 +884,7 @@ namespace transport
 			auto size = bufbe16toh (frame + offset);
 			offset += 2;
 			LogPrint (eLogDebug, "NTCP2: Block type ", (int)blk, " of size ", size);
-			if (size > len)
+			if (offset + size > len)
 			{
 				LogPrint (eLogError, "NTCP2: Unexpected block length ", size);
 				break;
