@@ -1203,7 +1203,7 @@ namespace data
 			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					(reverse ? compatibleWith->IsReachableFrom (*router) :
+					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) &&
 					router->IsECIES () && !router->IsHighCongestion (false) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
@@ -1237,7 +1237,7 @@ namespace data
 			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					(reverse ? compatibleWith->IsReachableFrom (*router) :
+					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)) :
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
