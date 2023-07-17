@@ -424,12 +424,9 @@ namespace data
 		if (r)
 		{
 			r->SetUnreachable (unreachable);
-			if (unreachable)
-			{
-				auto profile = r->GetProfile ();
-				if (profile)
-					profile->Unreachable ();
-			}
+			auto profile = r->GetProfile ();
+			if (profile)
+				profile->Unreachable (unreachable);
 		}
 	}
 

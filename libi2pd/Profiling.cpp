@@ -165,12 +165,12 @@ namespace data
 		}
 	}
 
-	void RouterProfile::Unreachable ()
+	void RouterProfile::Unreachable (bool unreachable)
 	{
-		m_LastUnreachableTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastUnreachableTime = unreachable ? i2p::util::GetSecondsSinceEpoch () : 0;
 		UpdateTime ();
 	}
-
+		
 	void RouterProfile::Connected ()
 	{
 		m_HasConnected = true;

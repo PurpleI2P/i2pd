@@ -716,6 +716,7 @@ namespace transport
 					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
 						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
 						it->second.router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
+					i2p::data::netdb.SetUnreachable (ident, false); // clear unreachable 
 				}		
 				it->second.numAttempts = 0;
 				it->second.router = nullptr; // we don't need RouterInfo after successive connect
