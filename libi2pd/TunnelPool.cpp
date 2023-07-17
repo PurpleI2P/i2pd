@@ -296,10 +296,12 @@ namespace tunnel
 			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0)
+		if (!num && !m_OutboundTunnels.empty () && m_NumOutboundHops > 0 && 
+		    m_NumInboundHops == m_NumOutboundHops)
 		{
 			for (auto it: m_OutboundTunnels)
 			{
+				// try to create inbound tunnel through the same path as succesive outbound
 				CreatePairedInboundTunnel (it);
 				num++;
 				if (num >= m_NumInboundTunnels) break;
