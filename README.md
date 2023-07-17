@@ -99,13 +99,15 @@ Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](http
 Donations
 ---------
 
-**BTC**: ```3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f```  
-**LTC**: ```LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59```  
-**ETH**: ```0x9e5bac70d20d1079ceaa111127f4fb3bccce379d```  
-**DASH**: ```Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF```  
-**ZEC**: ```t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ```  
-**GST**: ```GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG```  
-**XMR**: ```497pJc7X4xqKvcLBLpSUtRgWqMMyo24u4btCos3cak6gbMkpobgSU6492ztUcUBghyeHpYeczB55s38NpuHoH5WGNSPDRMH```  
+ **E-Mail**: ```i2porignal at yandex.ru```
+**BTC**: ```3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f```
+**LTC**: ```LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59```
+**ETH**: ```0x9e5bac70d20d1079ceaa111127f4fb3bccce379d```
+**GST**: ```GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG```
+**DASH**: ```Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF```
+**ZEC**: ```t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ```
+**ANC**: ```AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z```
+**XMR**: ```497pJc7X4xqKvcLBLpSUtRgWqMMyo24u4btCos3cak6gbMkpobgSU6492ztUcUBghyeHpYeczB55s38NpuHoH5WGNSPDRMH```
 
 License
 -------
