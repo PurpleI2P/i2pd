@@ -695,12 +695,19 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
 						return;
 					}
-					if (i2p::util::GetMillisecondsSinceEpoch () > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+					auto ts = i2p::util::GetMillisecondsSinceEpoch (); 
+					if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
 					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
+					if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
+					{
+						LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
+						SendTerminationAndTerminate (eNTCP2Message3Error);
+						return;
+					}	
 					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () :
 						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());
 					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
