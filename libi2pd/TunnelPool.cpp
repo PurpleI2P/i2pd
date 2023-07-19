@@ -570,9 +570,9 @@ namespace tunnel
 
 	bool TunnelPool::SelectExplicitPeers (Path& path, bool isInbound)
 	{
+		if (!m_ExplicitPeers->size ()) return false;
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
 		if (numHops > (int)m_ExplicitPeers->size ()) numHops = m_ExplicitPeers->size ();
-		if (!numHops) return false;
 		for (int i = 0; i < numHops; i++)
 		{
 			auto& ident = (*m_ExplicitPeers)[i];
