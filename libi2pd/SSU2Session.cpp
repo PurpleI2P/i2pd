@@ -2857,7 +2857,7 @@ namespace transport
 
 	void SSU2Session::SendPathResponse (const uint8_t * data, size_t len)
 	{
-		if (len < 8 || len > m_MaxPayloadSize - 3)
+		if (len > m_MaxPayloadSize - 3)
 		{
 			LogPrint (eLogWarning, "SSU2: Incorrect data size for path response ", len);
 			return;
@@ -2866,7 +2866,10 @@ namespace transport
 		payload[0] = eSSU2BlkPathResponse;
 		htobe16buf (payload + 1, len);
 		memcpy (payload + 3, data, len);
-		SendData (payload, len + 3);
+		size_t payloadSize = len + 3;	
+		if (payloadSize < m_MaxPayloadSize)
+			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, payloadSize < 8 ? 8 : 0);
+		SendData (payload, payloadSize);
 	}
 
 	void SSU2Session::SendPathChallenge ()
@@ -2884,7 +2887,7 @@ namespace transport
 		}
 		len += 3;
 		if (len < m_MaxPayloadSize)
-			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len);
+			len += CreatePaddingBlock (payload + len, m_MaxPayloadSize - len, len < 8 ? 8 : 0);
 		SendData (payload, len);
 	}
 
