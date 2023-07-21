@@ -243,7 +243,7 @@ namespace transport
 		if (IsEstablished ())
 		{
 			uint8_t payload[20];
-			size_t payloadSize = CreatePaddingBlock (payload, 20, 5);
+			size_t payloadSize = CreatePaddingBlock (payload, 20, 8);
 			SendData (payload, payloadSize);
 		}
 	}
