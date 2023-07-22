@@ -1078,7 +1078,8 @@ namespace transport
 	{
 		if (m_IsPublished)
 		{
-			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL));
+			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
+				SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
 		}
@@ -1091,7 +1092,8 @@ namespace transport
 			m_IntroducersUpdateTimer.cancel ();
 			i2p::context.ClearSSU2Introducers (true);
 			m_Introducers.clear ();
-			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL/2));
+			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
+				(SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
 		}
@@ -1101,7 +1103,8 @@ namespace transport
 	{
 		if (m_IsPublished)
 		{
-			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL));
+			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
+				SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
 		}
@@ -1114,7 +1117,8 @@ namespace transport
 			m_IntroducersUpdateTimerV6.cancel ();
 			i2p::context.ClearSSU2Introducers (false);
 			m_IntroducersV6.clear ();
-			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(SSU2_KEEP_ALIVE_INTERVAL/2));
+			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
+				(SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
 		}
