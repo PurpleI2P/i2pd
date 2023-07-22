@@ -983,7 +983,7 @@ namespace transport
 	void SSU2Server::UpdateIntroducers (bool v4)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::list<i2p::data::IdentHash> newList;
+		std::list<i2p::data::IdentHash> newList, impliedList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
 		std::set<i2p::data::IdentHash> excluded;
 		for (const auto& it : introducers)
@@ -997,12 +997,17 @@ namespace transport
 			}
 			if (session && session->IsEstablished ())
 			{
-				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
-					session->SendKeepAlive ();
 				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
 					newList.push_back (it);
 				else
+				{	
+					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+					{	
+						impliedList.push_back (it); // keep in introducers list, but not publish
+						session->SendKeepAlive ();
+					}	
 					session = nullptr;
+				}		
 			}
 			if (!session)
 				i2p::context.RemoveSSU2Introducer (it, v4);
@@ -1024,10 +1029,7 @@ namespace transport
 						{
 							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 							if (std::find (newList.begin (), newList.end (), it) == newList.end ())
-							{
-								newList.push_back (it);
 								sessions.push_back (session);
-							}
 						}
 					}
 				}
@@ -1075,6 +1077,7 @@ namespace transport
 				}
 			}
 		}
+		introducers.splice (introducers.end (), impliedList);  // insert non-published, but non-expired introducers back
 	}
 
 	void SSU2Server::ScheduleIntroducersUpdateTimer ()
