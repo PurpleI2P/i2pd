@@ -1019,6 +1019,7 @@ namespace transport
 			{
 				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
+				impliedList.clear ();
 				for (auto& it : introducers)
 				{
 					auto it1 = m_SessionsByRouterHash.find (it);
