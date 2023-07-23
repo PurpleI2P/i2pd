@@ -997,17 +997,16 @@ namespace transport
 			}
 			if (session && session->IsEstablished ())
 			{
-				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)
+				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
 					newList.push_back (it);
 				else
 				{	
 					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
-					{	
 						impliedList.push_back (it); // keep in introducers list, but not publish
-						session->SendKeepAlive ();
-					}	
-					session = nullptr;
-				}		
+					else
+						session = nullptr;
+				}	
+				if (session) session->SendKeepAlive ();
 			}
 			if (!session)
 				i2p::context.RemoveSSU2Introducer (it, v4);
