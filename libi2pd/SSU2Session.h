@@ -308,6 +308,8 @@ namespace transport
 			void AdjustMaxPayloadSize ();
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
+			bool GetTestingState () const;
+			void SetTestingState(bool testing) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate

@@ -222,18 +222,19 @@ namespace http {
 		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, RouterError error)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing, RouterError error)
 	{
 		switch (status)
 		{
 			case eRouterStatusOK: s << tr("OK"); break;
-			case eRouterStatusTesting: s << tr("Testing"); break;
 			case eRouterStatusFirewalled: s << tr("Firewalled"); break;
 			case eRouterStatusUnknown: s << tr("Unknown"); break;
 			case eRouterStatusProxy: s << tr("Proxy"); break;
 			case eRouterStatusMesh: s << tr("Mesh"); break;
 			default: s << tr("Unknown");
 		}
+		if (testing)
+			s << " (" << tr("Testing") << ")";
 		if (error != eRouterErrorNone)
 		{
 			switch (error)
@@ -264,12 +265,12 @@ namespace http {
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
 		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetError ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
 		s << "<br>\r\n";
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetErrorV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6(), i2p::context.GetErrorV6 ());
 			s << "<br>\r\n";
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
