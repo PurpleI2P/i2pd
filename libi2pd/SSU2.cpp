@@ -1140,7 +1140,7 @@ namespace transport
 			// timeout expired
 			if (v4)
 			{
-				if (i2p::context.GetStatus () == eRouterStatusTesting)
+				if (i2p::context.GetTesting ())
 				{
 					// we still don't know if we need introducers
 					ScheduleIntroducersUpdateTimer ();
@@ -1163,7 +1163,7 @@ namespace transport
 			}
 			else
 			{
-				if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+				if (i2p::context.GetTestingV6 ())
 				{
 					// we still don't know if we need introducers
 					ScheduleIntroducersUpdateTimerV6 ();

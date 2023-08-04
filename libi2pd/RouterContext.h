@@ -42,11 +42,10 @@ namespace garlic
 	enum RouterStatus
 	{
 		eRouterStatusOK = 0,
-		eRouterStatusTesting = 1,
-		eRouterStatusFirewalled = 2,
-		eRouterStatusUnknown = 3,
-		eRouterStatusProxy = 4,
-		eRouterStatusMesh = 5
+		eRouterStatusFirewalled = 1,
+		eRouterStatusUnknown = 2,
+		eRouterStatusProxy = 3,
+		eRouterStatusMesh = 4
 	};
 
 	enum RouterError
@@ -121,10 +120,14 @@ namespace garlic
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
 			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
+			bool GetTesting () const { return m_Testing; };
+			void SetTesting (bool testing);
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Error = error; };
+			bool GetTestingV6 () const { return m_TestingV6; };
+			void SetTestingV6 (bool testing);
 			RouterStatus GetStatusV6 () const { return m_StatusV6; };
 			void SetStatusV6 (RouterStatus status);
 			RouterError GetErrorV6 () const { return m_ErrorV6; };
@@ -231,6 +234,7 @@ namespace garlic
 			int m_ShareRatio;
 			RouterStatus m_Status, m_StatusV6;
 			RouterError m_Error, m_ErrorV6;
+			bool m_Testing, m_TestingV6;
 			int m_NetID;
 			std::unique_ptr<NTCP2PrivateKeys> m_NTCP2Keys;
 			std::unique_ptr<SSU2PrivateKeys> m_SSU2Keys;

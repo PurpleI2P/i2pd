@@ -1651,8 +1651,8 @@ namespace transport
 			break;
 			case eSSU2SessionStateSessionCreatedReceived:
 			case eSSU2SessionStateTokenReceived:
-				if ((m_RemoteEndpoint.address ().is_v4 () && i2p::context.GetStatus () == eRouterStatusTesting) ||
-				    (m_RemoteEndpoint.address ().is_v6 () && i2p::context.GetStatusV6 () == eRouterStatusTesting))
+				if ((m_RemoteEndpoint.address ().is_v4 () && i2p::context.GetTesting ()) ||
+				    (m_RemoteEndpoint.address ().is_v6 () && i2p::context.GetTestingV6 ()))
 				{
 					if (m_Server.IsSyncClockFromPeers ())
 					{
@@ -1750,14 +1750,14 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Our port ", ep.port (), " received from ", m_RemoteEndpoint, " is different from ", m_Server.GetPort (isV4));
 					if (isV4)
 					{
-						if (i2p::context.GetStatus () == eRouterStatusTesting)
+						if (i2p::context.GetTesting ())
 							i2p::context.SetError (eRouterErrorSymmetricNAT);
 						else if (m_State == eSSU2SessionStatePeerTest)
 							i2p::context.SetError (eRouterErrorFullConeNAT);
 					}
 					else
 					{
-						if (i2p::context.GetStatusV6 () == eRouterStatusTesting)
+						if (i2p::context.GetTestingV6 ())
 							i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
 						else if (m_State == eSSU2SessionStatePeerTest)
 							i2p::context.SetErrorV6 (eRouterErrorFullConeNAT);
@@ -2230,7 +2230,7 @@ namespace transport
 					if (buf[1] == eSSU2PeerTestCodeAccept)
 					{
 						if (GetRouterStatus () == eRouterStatusUnknown)
-							SetRouterStatus (eRouterStatusTesting);
+							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
 						if (r && it->second.first)
 						{
@@ -2256,13 +2256,17 @@ namespace transport
 									}
 									else
 									{
-										if (GetRouterStatus () == eRouterStatusTesting)
+										if (GetTestingState ())
 										{
-											SetRouterStatus (eRouterStatusFirewalled);
-											if (m_Address->IsV4 ())
-												m_Server.RescheduleIntroducersUpdateTimer ();
-											else
-												m_Server.RescheduleIntroducersUpdateTimerV6 ();
+											SetTestingState (false);
+											if (GetRouterStatus () != eRouterStatusFirewalled)
+											{
+												SetRouterStatus (eRouterStatusFirewalled);
+												if (m_Address->IsV4 ())
+													m_Server.RescheduleIntroducersUpdateTimer ();
+												else
+													m_Server.RescheduleIntroducersUpdateTimerV6 ();
+											}
 										}
 									}
 									LogPrint (eLogDebug, "SSU2: Peer test 4 received from ", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()),
@@ -2291,7 +2295,7 @@ namespace transport
 					{
 						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1], " from ",
 							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
-						if (GetRouterStatus () == eRouterStatusTesting)
+						if (GetTestingState ())
 							SetRouterStatus (eRouterStatusUnknown);
 						it->second.first->Done ();
 					}
@@ -2442,6 +2446,29 @@ namespace transport
 				i2p::context.SetStatus (status);
 			else if (m_Address->IsV6 ())
 				i2p::context.SetStatusV6 (status);
+		}
+	}
+
+	bool SSU2Session::GetTestingState () const
+	{
+		if (m_Address)
+		{
+			if (m_Address->IsV4 ())
+				return i2p::context.GetTesting ();
+			if (m_Address->IsV6 ())
+				return i2p::context.GetTestingV6 ();
+		}
+		return false;
+	}
+
+	void SSU2Session::SetTestingState (bool testing) const
+	{
+		if (m_Address)
+		{
+			if (m_Address->IsV4 ())
+				i2p::context.SetTesting (testing);
+			else if (m_Address->IsV6 ())
+				i2p::context.SetTestingV6 (testing);
 		}
 	}
 

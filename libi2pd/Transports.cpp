@@ -650,8 +650,8 @@ namespace transport
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 				if (router)
 				{
-					if (i2p::context.GetStatus () != eRouterStatusTesting)
-						i2p::context.SetStatus (eRouterStatusTesting);
+					if (!i2p::context.GetTesting ())
+						i2p::context.SetTesting (true);
 					m_SSU2Server->StartPeerTest (router, true);
 					excluded.insert (router->GetIdentHash ());
 				}
@@ -669,8 +669,8 @@ namespace transport
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 				if (router)
 				{
-					if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
-						i2p::context.SetStatusV6 (eRouterStatusTesting);
+					if (!i2p::context.GetTestingV6 ())
+						i2p::context.SetTestingV6 (true);
 					m_SSU2Server->StartPeerTest (router, false);
 					excluded.insert (router->GetIdentHash ());
 				}
@@ -832,8 +832,8 @@ namespace transport
 					++it;
 				}
 			}
-			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
-			bool ipv6Testing = i2p::context.GetStatusV6 () == eRouterStatusTesting;
+			bool ipv4Testing = i2p::context.GetTesting ();
+			bool ipv6Testing = i2p::context.GetTestingV6 ();
 			// if still testing, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
