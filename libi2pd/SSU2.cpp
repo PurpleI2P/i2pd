@@ -1028,7 +1028,7 @@ namespace transport
 					if (it1 != m_SessionsByRouterHash.end ())
 					{
 						auto session = it1->second;
-						if (session->IsEstablished ())
+						if (session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
 						{
 							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 							if (std::find (newList.begin (), newList.end (), it) == newList.end ())
@@ -1040,11 +1040,12 @@ namespace transport
 
 			for (const auto& it : sessions)
 			{
+				uint32_t tag = it->GetRelayTag ();
 				uint32_t exp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
-				if (ts + SSU2_TO_INTRODUCER_SESSION_DURATION/2 > exp)
+				if (!tag || ts + SSU2_TO_INTRODUCER_SESSION_DURATION/2 > exp)
 					continue; // don't pick too old session for introducer	
 				i2p::data::RouterInfo::Introducer introducer;
-				introducer.iTag = it->GetRelayTag ();
+				introducer.iTag = tag;
 				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
 				introducer.iExp = exp;
 				excluded.insert (it->GetRemoteIdentity ()->GetIdentHash ());
