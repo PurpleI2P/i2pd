@@ -995,7 +995,7 @@ namespace transport
 				session = it1->second;
 				excluded.insert (it);
 			}
-			if (session && session->IsEstablished ())
+			if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ()) // still session with introducer?
 			{
 				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
 				{	
