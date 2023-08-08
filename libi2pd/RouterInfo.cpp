@@ -579,7 +579,7 @@ namespace data
 		int numValid = 0;
 		for (auto& it: address->ssu->introducers)
 		{
-			if (it.iTag && ts < it.iExp)
+			if (it.iTag && ts < it.iExp && !it.iH.IsZero ())
 				numValid++;
 			else
 				it.iTag = 0;
