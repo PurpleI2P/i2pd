@@ -1285,9 +1285,9 @@ namespace crypto
 		}
 	}*/
 
-	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force)
+	void InitCrypto (bool precomputation, bool aesni, bool force)
 	{
-		i2p::cpu::Detect (aesni, avx, force);
+		i2p::cpu::Detect (aesni, force);
 #if LEGACY_OPENSSL
 		SSL_library_init ();
 #endif

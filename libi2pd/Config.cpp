@@ -308,7 +308,7 @@ namespace config {
 		options_description cpuext("CPU encryption extensions options");
 		cpuext.add_options()
 			("cpuext.aesni", bool_switch()->default_value(true),                     "Use auto detection for AESNI CPU extensions. If false, AESNI will be not used")
-			("cpuext.avx", bool_switch()->default_value(true),                       "Use auto detection for AVX CPU extensions. If false, AVX will be not used")
+			("cpuext.avx", bool_switch()->default_value(false),                      "Deprecated option")
 			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
 		;
 
