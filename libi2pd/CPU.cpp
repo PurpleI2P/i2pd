@@ -29,7 +29,7 @@ namespace cpu
 #if defined(_MSC_VER)
 		int cpu_info[4];
 		__cpuid(cpu_info, 1);
-		return ((cpu_info[2] & bit_AES) != 0)
+		return ((cpu_info[2] & bit_AES) != 0);
 #elif defined(__clang__)
 #if __clang_major__ >= 6
 		__builtin_cpu_init();
