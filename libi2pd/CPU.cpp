@@ -17,6 +17,7 @@ namespace cpu
 
 	void Detect(bool AesSwitch, bool force)
 	{
+#if defined(__x86_64__) || defined(__i386__)
 		__builtin_cpu_init ();
 #if defined (_WIN32) && (WINVER == 0x0501) // WinXP
 		if (AesSwitch && force) { // only if forced
@@ -25,7 +26,7 @@ namespace cpu
 #endif
 			aesni = true;
 		}
-
+#endif
 		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
 	}
 }
