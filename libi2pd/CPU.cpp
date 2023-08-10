@@ -25,7 +25,7 @@ namespace cpu
 
 	inline bool cpu_support_aes()
 	{
-#if (_M_AMD64 || __x86_64__) || (_M_IX86 || __i386__)
+#if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__))
 #if defined(_MSC_VER)
 		int cpu_info[4];
 		__cpuid(cpu_info, 1);
