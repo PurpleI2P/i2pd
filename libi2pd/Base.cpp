@@ -269,7 +269,7 @@ namespace data
 
 	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen)
 	{
-		int tmp = 0, bits = 0;
+		unsigned int tmp = 0, bits = 0;
 		size_t ret = 0;
 		for (size_t i = 0; i < len; i++)
 		{
