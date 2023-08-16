@@ -650,8 +650,8 @@ namespace transport
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 				if (router)
 				{
-					if (i2p::context.GetStatus () != eRouterStatusTesting)
-						i2p::context.SetStatus (eRouterStatusTesting);
+					if (!i2p::context.GetTesting ())
+						i2p::context.SetTesting (true);
 					m_SSU2Server->StartPeerTest (router, true);
 					excluded.insert (router->GetIdentHash ());
 				}
@@ -669,8 +669,8 @@ namespace transport
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 				if (router)
 				{
-					if (i2p::context.GetStatusV6 () != eRouterStatusTesting)
-						i2p::context.SetStatusV6 (eRouterStatusTesting);
+					if (!i2p::context.GetTestingV6 ())
+						i2p::context.SetTestingV6 (true);
 					m_SSU2Server->StartPeerTest (router, false);
 					excluded.insert (router->GetIdentHash ());
 				}
@@ -716,6 +716,7 @@ namespace transport
 					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
 						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
 						it->second.router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
+					i2p::data::netdb.SetUnreachable (ident, false); // clear unreachable 
 				}		
 				it->second.numAttempts = 0;
 				it->second.router = nullptr; // we don't need RouterInfo after successive connect
@@ -831,8 +832,8 @@ namespace transport
 					++it;
 				}
 			}
-			bool ipv4Testing = i2p::context.GetStatus () == eRouterStatusTesting;
-			bool ipv6Testing = i2p::context.GetStatusV6 () == eRouterStatusTesting;
+			bool ipv4Testing = i2p::context.GetTesting ();
+			bool ipv6Testing = i2p::context.GetTestingV6 ();
 			// if still testing, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
@@ -861,7 +862,9 @@ namespace transport
 			uint16_t inds[3];
 			RAND_bytes ((uint8_t *)inds, sizeof (inds));
 			std::unique_lock<std::mutex> l(m_PeersMutex);
-			inds[0] %= m_Peers.size ();
+			auto count = m_Peers.size ();
+			if(count == 0) return nullptr;
+			inds[0] %= count;
 			auto it = m_Peers.begin ();
 			std::advance (it, inds[0]);
 			// try random peer

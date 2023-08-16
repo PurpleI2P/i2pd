@@ -228,7 +228,7 @@ namespace client
 			void SendReplyError (const char * msg);
 			void SendRaw (const char * data);
 
-			void BuildStatusLine(bool currentTunnel, BOBDestination *destination, std::string &out);
+			void BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination, std::string &out);
 
 		private:
 
@@ -240,7 +240,7 @@ namespace client
 			uint16_t m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options;
-			BOBDestination * m_CurrentDestination;
+			std::shared_ptr<BOBDestination> m_CurrentDestination;
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
@@ -255,9 +255,9 @@ namespace client
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return GetIOService (); };
-			void AddDestination (const std::string& name, BOBDestination * dest);
+			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
-			BOBDestination * FindDestination (const std::string& name);
+			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
 
 		private:
 
@@ -267,7 +267,7 @@ namespace client
 		private:
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-			std::map<std::string, BOBDestination *> m_Destinations;
+			std::map<std::string, std::shared_ptr<BOBDestination> > m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
 			std::map<std::string, std::string> m_HelpStrings;
 

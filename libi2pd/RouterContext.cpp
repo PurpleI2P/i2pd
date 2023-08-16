@@ -31,7 +31,8 @@ namespace i2p
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
 		m_ShareRatio (100), m_Status (eRouterStatusUnknown), m_StatusV6 (eRouterStatusUnknown),
-		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone), m_NetID (I2PD_NET_ID),
+		m_Error (eRouterErrorNone), m_ErrorV6 (eRouterErrorNone),
+		m_Testing (false), m_TestingV6 (false), m_NetID (I2PD_NET_ID),
 		m_PublishReplyToken (0), m_IsHiddenMode (false)
 	{
 	}
@@ -277,8 +278,29 @@ namespace i2p
 		fk.write ((char *)m_SSU2Keys.get (), sizeof (SSU2PrivateKeys));
 	}
 
+	void RouterContext::SetTesting (bool testing)
+	{
+		if (testing != m_Testing)
+		{
+			m_Testing = testing;
+			if (m_Testing)
+				m_Error = eRouterErrorNone;
+		}
+	}
+
+	void RouterContext::SetTestingV6 (bool testing)
+	{
+		if (testing != m_TestingV6)
+		{
+			m_TestingV6 = testing;
+			if (m_TestingV6)
+				m_ErrorV6 = eRouterErrorNone;
+		}
+	}
+
 	void RouterContext::SetStatus (RouterStatus status)
 	{
+		SetTesting (false);
 		if (status != m_Status)
 		{
 			m_Status = status;
@@ -290,9 +312,6 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
-				case eRouterStatusTesting:
-					m_Error = eRouterErrorNone;
-				break;
 				default:
 					;
 			}
@@ -301,6 +320,7 @@ namespace i2p
 
 	void RouterContext::SetStatusV6 (RouterStatus status)
 	{
+		SetTestingV6 (false);
 		if (status != m_StatusV6)
 		{
 			m_StatusV6 = status;
@@ -311,9 +331,6 @@ namespace i2p
 				break;
 				case eRouterStatusFirewalled:
 					SetUnreachable (false, true); // ipv6
-				break;
-				case eRouterStatusTesting:
-					m_ErrorV6 = eRouterErrorNone;
 				break;
 				default:
 					;

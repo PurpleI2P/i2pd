@@ -59,7 +59,7 @@ namespace data
 		{
 			Reseed ();
 		}
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
 		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
@@ -424,12 +424,9 @@ namespace data
 		if (r)
 		{
 			r->SetUnreachable (unreachable);
-			if (unreachable)
-			{
-				auto profile = r->GetProfile ();
-				if (profile)
-					profile->Unreachable ();
-			}
+			auto profile = r->GetProfile ();
+			if (profile)
+				profile->Unreachable (unreachable);
 		}
 	}
 
@@ -1203,15 +1200,17 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
+		bool reverse, bool endpoint) const
 	{
 		return GetRandomRouter (
-			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					(reverse ? compatibleWith->IsReachableFrom (*router) :
+					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) &&
-					router->IsECIES () && !router->IsHighCongestion (false);
+					router->IsECIES () && !router->IsHighCongestion (false) &&
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
 			});
 	}
 
@@ -1235,17 +1234,20 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const
+	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, 
+		bool reverse, bool endpoint) const
 	{
 		return GetRandomRouter (
-			[compatibleWith, reverse](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
-					(reverse ? compatibleWith->IsReachableFrom (*router) :
+					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)) :
 						router->IsReachableFrom (*compatibleWith)) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
-					router->IsECIES () && !router->IsHighCongestion (true);
+					router->IsECIES () && !router->IsHighCongestion (true) &&
+					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
+
 			});
 	}
 
@@ -1257,7 +1259,9 @@ namespace data
 		uint16_t inds[3];
 		RAND_bytes ((uint8_t *)inds, sizeof (inds));
 		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-		inds[0] %= m_RouterInfos.size ();
+		auto count = m_RouterInfos.size ();
+		if(count == 0) return nullptr;
+		inds[0] %= count;
 		auto it = m_RouterInfos.begin ();
 		std::advance (it, inds[0]);
 		// try random router

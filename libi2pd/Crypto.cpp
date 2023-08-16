@@ -991,7 +991,7 @@ namespace crypto
 			EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce);
 			EVP_EncryptUpdate(ctx, NULL, &outlen, ad, adLen);
 			EVP_EncryptUpdate(ctx, buf, &outlen, msg, msgLen);
-			EVP_EncryptFinal_ex(ctx, buf, &outlen);
+			EVP_EncryptFinal_ex(ctx, buf + outlen, &outlen);
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, buf + msgLen);
 		}
 		else
