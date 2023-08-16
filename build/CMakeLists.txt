@@ -249,6 +249,27 @@ if(NOT "${_SANITIZE_FLAGS}" STREQUAL "")
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${_X}")
 endif()
 
+# Check for incompatible VERIFY_ALWAYS_SUCCEEDS combinations
+if(VERIFY_ALWAYS_SUCCEEDS)
+  if(NOT BUILD_FUZZING)
+    message(FATAL_ERROR "VERIFY_ALWAYS_SUCCEEDS enabled without BUILD_FUZZING")
+  endif()
+
+  if(BUILD_TESTING)
+    # Tests may be invalidated
+    message(FATAL_ERROR "VERIFY_ALWAYS_SUCCEEDS enabled with BUILD_TESTING")
+  endif()
+
+  if(WITH_LIBRARY)
+    # Such libraries are unsafe, except for fuzzing
+    message(FATAL_ERROR "VERIFY_ALWAYS_SUCCEEDS enabled with WITH_LIBRARY")
+  endif()
+
+  if(WITH_BINARY)
+    # Such binaries are unsafe
+    message(FATAL_ERROR "VERIFY_ALWAYS_SUCCEEDS enabled with WITH_BINARY")
+  endif()
+endif()
 
 # Use std::atomic instead of GCC builtins on macOS PowerPC:
 # For more information refer to: https://github.com/PurpleI2P/i2pd/issues/1726#issuecomment-1306335111
