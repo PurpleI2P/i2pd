@@ -55,7 +55,7 @@ namespace data
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
 
-			void Unreachable ();
+			void Unreachable (bool unreachable);
 			void Connected ();
 
 			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };

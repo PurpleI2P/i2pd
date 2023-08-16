@@ -29,7 +29,8 @@ namespace transport
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
-	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // in seconds
+	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
+	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork

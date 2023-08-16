@@ -125,7 +125,7 @@ namespace data
 
 			struct Introducer
 			{
-				Introducer (): iTag (0), iExp (0) {};
+				Introducer (): iTag (0), iExp (0) { iH.Fill(0); };
 				IdentHash iH;
 				uint32_t iTag;
 				uint32_t iExp;

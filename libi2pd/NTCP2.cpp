@@ -375,7 +375,16 @@ namespace transport
 			m_Server.RemoveNTCP2Session (shared_from_this ());
 			m_SendQueue.clear ();
 			m_SendQueueSize = 0;
-			LogPrint (eLogDebug, "NTCP2: Session terminated");
+			auto remoteIdentity = GetRemoteIdentity ();
+			if (remoteIdentity)
+			{
+				LogPrint (eLogDebug, "NTCP2: Session with ", GetRemoteEndpoint (),
+					" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") terminated");
+			}
+			else
+			{
+				LogPrint (eLogDebug, "NTCP2: Session with ", GetRemoteEndpoint (), " terminated");
+			}
 		}
 	}
 
@@ -691,16 +700,25 @@ namespace transport
 					i2p::data::RouterInfo ri (buf.data () + 4, size - 1); // 1 byte block type + 2 bytes size + 1 byte flag
 					if (ri.IsUnreachable ())
 					{
-						LogPrint (eLogError, "NTCP2: Signature verification failed in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: RouterInfo verification failed in SessionConfirmed from ", GetRemoteEndpoint ());
 						SendTerminationAndTerminate (eNTCP2RouterInfoSignatureVerificationFail);
 						return;
 					}
-					if (i2p::util::GetMillisecondsSinceEpoch () > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
+					LogPrint(eLogDebug, "NTCP2: SessionConfirmed from ", GetRemoteEndpoint (),
+						" (", i2p::data::GetIdentHashAbbreviation (ri.GetIdentHash ()), ")");
+					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+					if (ts > ri.GetTimestamp () + i2p::data::NETDB_MIN_EXPIRATION_TIMEOUT*1000LL) // 90 minutes
 					{
-						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed");
+						LogPrint (eLogError, "NTCP2: RouterInfo is too old in SessionConfirmed for ", (ts - ri.GetTimestamp ())/1000LL, " seconds");
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}
+					if (ts + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri.GetTimestamp ()) // 2 minutes
+					{
+						LogPrint (eLogError, "NTCP2: RouterInfo is from future for ", (ri.GetTimestamp () - ts)/1000LL, " seconds");
+						SendTerminationAndTerminate (eNTCP2Message3Error);
+						return;
+					}	
 					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () :
 						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());
 					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
@@ -884,7 +902,7 @@ namespace transport
 			auto size = bufbe16toh (frame + offset);
 			offset += 2;
 			LogPrint (eLogDebug, "NTCP2: Block type ", (int)blk, " of size ", size);
-			if (size > len)
+			if (offset + size > len)
 			{
 				LogPrint (eLogError, "NTCP2: Unexpected block length ", size);
 				break;
@@ -1402,7 +1420,8 @@ namespace transport
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
 			return;
 		}
-		LogPrint (eLogDebug, "NTCP2: Connecting to ", conn->GetRemoteEndpoint ());
+		LogPrint (eLogDebug, "NTCP2: Connecting to ", conn->GetRemoteEndpoint (),
+			" (", i2p::data::GetIdentHashAbbreviation (conn->GetRemoteIdentity ()->GetIdentHash ()), ")");
 		GetService ().post([this, conn]()
 			{
 				if (this->AddNTCP2Session (conn))
@@ -1458,7 +1477,8 @@ namespace transport
 		}
 		else
 		{
-			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetRemoteEndpoint ());
+			LogPrint (eLogDebug, "NTCP2: Connected to ", conn->GetRemoteEndpoint (),
+				" (", i2p::data::GetIdentHashAbbreviation (conn->GetRemoteIdentity ()->GetIdentHash ()), ")");
 			conn->ClientLogin ();
 		}
 	}
