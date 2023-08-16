@@ -42,6 +42,7 @@ set(FUZZERS
 	RouterContext-DecryptTunnelBuildRecord
 	RouterContext-ProcessDeliveryStatusMessage
 	RouterContext-ProcessGarlicMessage
+	ToBase64Standard
 )
 
 string(REPLACE "fuzzer-no-link" "fuzzer" _LINK_FLAGS "${_SANITIZE_FLAGS}")
