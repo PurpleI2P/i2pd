@@ -307,7 +307,7 @@ namespace crypto
 	void InitNoiseIKState (NoiseSymmetricState& state, const uint8_t * pub); // Noise_IK (ratchets)
 
 // init and terminate
-	void InitCrypto (bool precomputation, bool aesni, bool avx, bool force);
+	void InitCrypto (bool precomputation, bool aesni, bool force);
 	void TerminateCrypto ();
 }
 }
