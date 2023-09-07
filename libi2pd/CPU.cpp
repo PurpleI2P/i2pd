@@ -30,21 +30,26 @@ namespace cpu
 	inline bool cpu_support_aes()
 	{
 #if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__))
-#if (defined(__GNUC__) && __GNUC__ > 4)
+#	if (defined(__GNUC__) && __GNUC__ > 4)
+#		warning("CPU: IN GCC!!!")
 		__builtin_cpu_init();
 		return __builtin_cpu_supports("aes");
-#elif defined(__clang__)
-#if __clang_major__ >= 6
+#	elif (defined(__clang__) && !defined(__GNUC__))
+#		warning("CPU: IN CLANG!!!")
+#		warning(__clang__)
+#		if (__clang_major__ >= 6)
 		__builtin_cpu_init();
-#endif
+#		endif
 		return __builtin_cpu_supports("aes");
-#elif (defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ < 5))
+#	elif (defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ < 5))
+#		warning("CPU: IN MSVC!!!")
 		int cpu_info[4];
 		__cpuid(cpu_info, 1);
 		return ((cpu_info[2] & bit_AES) != 0);
-#else
+#	else
+#		warning("CPU: FALSE")
 		return false;
-#endif
+#	endif
 #else
 		return false;
 #endif
