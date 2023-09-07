@@ -30,29 +30,30 @@ namespace cpu
 	inline bool cpu_support_aes()
 	{
 #if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__))
-#	if (defined(__GNUC__) && __GNUC__ > 4)
-#		warning("CPU: IN GCC!!!")
+#if defined(__clang__)
+#	if (__clang_major__ >= 6)
+		__builtin_cpu_init();
+#	endif
+		return __builtin_cpu_supports("aes");
+#elif (defined(__GNUC__) && __GNUC__ >= 5)
 		__builtin_cpu_init();
 		return __builtin_cpu_supports("aes");
-#	elif (defined(__clang__) && !defined(__GNUC__))
-#		warning("CPU: IN CLANG!!!")
-#		warning(__clang__)
-#		if (__clang_major__ >= 6)
-		__builtin_cpu_init();
-#		endif
-		return __builtin_cpu_supports("aes");
-#	elif (defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ < 5))
-#		warning("CPU: IN MSVC!!!")
+#elif (defined(__GNUC__) && __GNUC__ < 5)
+		int cpu_info[4];
+		bool flag = false;
+		__cpuid(0, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+		if (cpu_info[0] >= 0x00000001) {
+			__cpuid(0x00000001, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+			flag = ((cpu_info[2] & bit_AES) != 0);
+		}
+		return flag;
+#elif defined(_MSC_VER)
 		int cpu_info[4];
 		__cpuid(cpu_info, 1);
 		return ((cpu_info[2] & bit_AES) != 0);
-#	else
-#		warning("CPU: FALSE")
-		return false;
-#	endif
-#else
-		return false;
 #endif
+#endif
+		return false;
 	}
 
 	void Detect(bool AesSwitch, bool force)
