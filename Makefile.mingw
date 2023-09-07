@@ -1,26 +1,21 @@
-USE_WIN32_APP=yes
-CXX = g++
-WINDRES = windres
-CXXFLAGS := ${CXX_DEBUG} -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
-INCFLAGS = -Idaemon -I.
-LDFLAGS := ${LD_DEBUG} -Wl,-Bstatic -static-libgcc -static-libstdc++
+# Build application with GUI (tray, main window)
+USE_WIN32_APP := yes
 
-# detect proper flag for c++11 support by compilers
-CXXVER := $(shell $(CXX) -dumpversion)
-ifeq ($(shell expr match ${CXXVER} "[4]\.[7-9]\|4\.1[0-9]\|[5-6]"),4) # gcc 4.7 - 6
-	NEEDED_CXXFLAGS += -std=c++11
-else ifeq ($(shell expr match ${CXXVER} "[1,7-9]"),1) # gcc >= 7
-	NEEDED_CXXFLAGS += -std=c++17
-else # not supported
-$(error Compiler too old)
-endif
+WINDRES = windres
+
+CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
+INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
+LDFLAGS := ${LD_DEBUG} -static
+
+NEEDED_CXXFLAGS += -std=c++17
+DEFINES += -DWIN32_LEAN_AND_MEAN
 
 # Boost libraries suffix
 BOOST_SUFFIX = -mt
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
+	DEFINES += -DUSE_UPNP -DMINIUPNP_STATICLIB
 	LDLIBS = -lminiupnpc
 endif
 
@@ -38,34 +33,27 @@ LDLIBS += \
 	-liphlpapi \
 	-lole32 \
 	-luuid \
-	-lstdc++ \
 	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)
-	CXXFLAGS += -DWIN32_APP
+	DEFINES += -DWIN32_APP
 	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
 ifeq ($(USE_WINXP_FLAGS), yes)
-	CXXFLAGS += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
+	DEFINES += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
-# don't change following line to ifeq ($(USE_AESNI),yes) !!!
-ifeq ($(USE_AESNI),1)
-	CPU_FLAGS += -maes
-else
-	CPU_FLAGS += -msse
-endif
-
-ifeq ($(USE_AVX),1)
-	CPU_FLAGS += -mavx
+ifeq ($(USE_AESNI),yes)
+	NEEDED_CXXFLAGS += -maes
+	DEFINES += -D__AES__
 endif
 
 ifeq ($(USE_ASLR),yes)
 	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va -Wl,--dynamicbase,--export-all-symbols
 endif
 
-obj/%.o : %.rc
-	$(WINDRES) -i $< -o $@
+obj/%.o : %.rc | mk_obj_dir
+	$(WINDRES) $(DEFINES) $(INCFLAGS) --preprocessor-arg=-MMD --preprocessor-arg=-MP --preprocessor-arg=-MF$@.d -i $< -o $@

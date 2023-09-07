@@ -75,10 +75,16 @@ namespace fs {
 	/** @brief Returns datadir path */
 	const std::string & GetDataDir();
 
+	/** @brief Returns certsdir path */
+	const std::string & GetCertsDir();
+
+	/** @brief Returns datadir path in UTF-8 encoding */
+	const std::string GetUTF8DataDir();
+
 	/**
 	 * @brief Set datadir either from cmdline option or using autodetection
-	 * @param cmdline_param  Value of cmdline parameter --datadir=<something>
-	 * @param isService      Value of cmdline parameter --service
+	 * @param cmdline_param Value of cmdline parameter --datadir=<something>
+	 * @param isService Value of cmdline parameter --service
 	 *
 	 * Examples of autodetected paths:
 	 *
@@ -90,13 +96,26 @@ namespace fs {
 	void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
 
 	/**
+	 * @brief Set certsdir either from cmdline option or using autodetection
+	 * @param cmdline_param Value of cmdline parameter --certsdir=<something>
+	 *
+	 * Examples of autodetected paths:
+	 *
+	 *   Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd\certificates
+	 *   Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd\certificates
+	 *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/certificates
+	 *   Unix: /var/lib/i2pd/certificates (system=1) >> ~/.i2pd/ or /tmp/i2pd/certificates
+	 */
+	void SetCertsDir(const std::string & cmdline_certsdir);
+
+	/**
 	 * @brief Create subdirectories inside datadir
 	 */
 	bool Init();
 
 	/**
 	 * @brief Get list of files in directory
-	 * @param path  Path to directory
+	 * @param path Path to directory
 	 * @param files Vector to store found files
 	 * @return true on success and false if directory not exists
 	 */

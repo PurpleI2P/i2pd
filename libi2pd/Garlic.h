@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -114,6 +114,8 @@ namespace garlic
 			virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
+			virtual bool IsReadyToSend () const { return true; };
+			virtual bool IsTerminated () const { return !GetOwner (); };
 			virtual uint64_t GetLastActivityTimestamp () const { return 0; }; // non-zero for rathets only
 
 			void SetLeaseSetUpdated ()
@@ -214,12 +216,12 @@ namespace garlic
 
 	class ECIESX25519AEADRatchetSession;
 	typedef std::shared_ptr<ECIESX25519AEADRatchetSession> ECIESX25519AEADRatchetSessionPtr;
-	class RatchetTagSet;
-	typedef std::shared_ptr<RatchetTagSet> RatchetTagSetPtr;
+	class ReceiveRatchetTagSet;
+	typedef std::shared_ptr<ReceiveRatchetTagSet> ReceiveRatchetTagSetPtr;
 	struct ECIESX25519AEADRatchetIndexTagset
 	{
 		int index;
-		RatchetTagSetPtr tagset;
+		ReceiveRatchetTagSetPtr tagset;
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination
@@ -237,17 +239,19 @@ namespace garlic
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
-			std::shared_ptr<I2NPMessage> WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination,
-				std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
+			std::shared_ptr<I2NPMessage> WrapMessageForRouter (std::shared_ptr<const i2p::data::RouterInfo> router,
+				std::shared_ptr<I2NPMessage> msg);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
-			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
+			void AddECIESx25519Key (const uint8_t * key, uint64_t tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
+			virtual void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
-			void AddECIESx25519SessionNextTag (RatchetTagSetPtr tagset);
+			uint64_t AddECIESx25519SessionNextTag (ReceiveRatchetTagSetPtr tagset);
 			void AddECIESx25519Session (const uint8_t * staticKey, ECIESX25519AEADRatchetSessionPtr session);
 			void RemoveECIESx25519Session (const uint8_t * staticKey);
 			void HandleECIESx25519GarlicClove (const uint8_t * buf, size_t len);
+			uint8_t * GetPayloadBuffer ();
 
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
@@ -258,8 +262,10 @@ namespace garlic
 
 		protected:
 
+			void AddECIESx25519Key (const uint8_t * key, const uint8_t * tag); // one tag
+			bool HandleECIESx25519TagMessage (uint8_t * buf, size_t len); // return true if found
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0; // called from clove only
-			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len) = 0;
+			virtual bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) = 0;
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void HandleDeliveryStatusMessage (uint32_t msgID);
 
@@ -274,16 +280,17 @@ namespace garlic
 
 		private:
 
-			BN_CTX * m_Ctx; // incoming
 			// outgoing sessions
 			int m_NumTags;
 			std::mutex m_SessionsMutex;
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
+			uint8_t * m_PayloadBuffer; // for ECIESX25519AEADRatchet
 			// incoming
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
+			ReceiveRatchetTagSetPtr m_LastTagset; // tagset last message came for
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session

@@ -1,0 +1,49 @@
+name: Build on Ubuntu
+
+on: [push, pull_request]
+
+jobs:
+  build-make:
+    name: Make with USE_UPNP=${{ matrix.with_upnp }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['yes', 'no']
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
+
+    - name: build application
+      run: make USE_UPNP=${{ matrix.with_upnp }} -j3
+
+  build-cmake:
+    name: CMake with -DWITH_UPNP=${{ matrix.with_upnp }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        with_upnp: ['ON', 'OFF']
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential cmake libboost-all-dev libminiupnpc-dev libssl-dev zlib1g-dev
+
+    - name: build application
+      run: |
+        cd build
+        cmake -DWITH_UPNP=${{ matrix.with_upnp }} .
+        make -j3

@@ -1,0 +1,8 @@
+type = bgprocess
+run-as = i2pd
+command = /usr/bin/i2pd --conf=/var/lib/i2pd/i2pd.conf --pidfile=/var/lib/i2pd/i2pd.pid --daemon --service
+smooth-recovery = true
+depends-on = ntpd
+# uncomment if you want to use i2pd with yggdrasil
+# depends-on = yggdrasil
+pid-file = /var/lib/i2pd/i2pd.pid

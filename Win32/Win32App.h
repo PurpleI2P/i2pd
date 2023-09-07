@@ -15,7 +15,9 @@ namespace i2p
 {
 namespace win32
 {
-	bool StartWin32App ();
+	extern DWORD g_GracefulShutdownEndtime;
+
+	bool StartWin32App (bool isWinService);
 	void StopWin32App ();
 	int RunWin32App ();
 	bool GracefulShutdown ();

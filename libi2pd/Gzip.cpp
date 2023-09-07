@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -57,7 +57,8 @@ namespace data
 			if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END)
 				return outLen - m_Inflator.avail_out;
 			// else
-			LogPrint (eLogError, "Gzip: Inflate error ", err);
+			if (err)
+				LogPrint (eLogError, "Gzip: Inflate error ", err);
 			return 0;
 		}
 	}
@@ -128,7 +129,8 @@ namespace data
 			return outLen - m_Deflator.avail_out;
 		}
 		// else
-		LogPrint (eLogError, "Gzip: Deflate error ", err);
+		if (err)
+			LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
 	}
 
@@ -137,7 +139,7 @@ namespace data
 		if (m_IsDirty) deflateReset (&m_Deflator);
 		m_IsDirty = true;
 		size_t offset = 0;
-		int err;
+		int err = 0;
 		for (const auto& it: bufs)
 		{
 			m_Deflator.next_in = const_cast<uint8_t *>(it.first);
@@ -158,7 +160,8 @@ namespace data
 			offset = outLen - m_Deflator.avail_out;
 		}
 		// else
-		LogPrint (eLogError, "Gzip: Deflate error ", err);
+		if (err)
+			LogPrint (eLogError, "Gzip: Deflate error ", err);
 		return 0;
 	}
 

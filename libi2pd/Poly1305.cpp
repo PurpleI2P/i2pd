@@ -1,11 +1,12 @@
-#include "Poly1305.h"
 /**
-   This code is licensed under the MCGSI Public License
-   Copyright 2018 Jeff Becker
-
-   Kovri go write your own code
-
+ * This code is licensed under the MCGSI Public License
+ * Copyright 2018 Jeff Becker
+ *
+ *Kovri go write your own code
+ *
  */
+
+#include "Poly1305.h"
 
 #if !OPENSSL_AEAD_CHACHA20_POLY1305
 namespace i2p

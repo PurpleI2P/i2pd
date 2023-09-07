@@ -1,0 +1,32 @@
+name: Build on FreeBSD
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macos-12
+    name: with UPnP
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Test in FreeBSD
+      id: test
+      uses: vmactions/freebsd-vm@v0.3.0
+      with:
+        usesh: true
+        mem: 2048
+        sync: rsync
+        copyback: true
+        prepare: pkg install -y devel/cmake devel/gmake devel/boost-libs security/openssl net/miniupnpc
+        run: |
+          cd build
+          cmake -DWITH_UPNP=ON -DCMAKE_BUILD_TYPE=Release .
+          gmake -j2
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-freebsd
+        path: build/i2pd

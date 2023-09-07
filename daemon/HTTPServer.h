@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -24,6 +24,8 @@ namespace http
 {
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
 	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
+	const int COMMAND_REDIRECT_TIMEOUT = 5; // in seconds
+	const int TRANSIT_TUNNELS_LIMIT = 65535;
 
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
@@ -98,6 +100,8 @@ namespace http
 	void ShowSAMSessions (std::stringstream& s);
 	void ShowI2PTunnels (std::stringstream& s);
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32, uint32_t token);
+	void ShowSAMSession (std::stringstream& s, const std::string& id);
+	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id);
 } // http
 } // i2p
 

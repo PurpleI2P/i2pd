@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,10 +16,12 @@
 #include <boost/algorithm/string.hpp>
 #include "Config.h"
 #include "Log.h"
+#include "RouterContext.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
+#include "util.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 	#ifndef _WIN64
 		#define _USE_32BIT_TIME_T
 	#endif
@@ -35,15 +37,21 @@ namespace util
 			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
-	static uint32_t GetLocalHoursSinceEpoch ()
-	{
-		return std::chrono::duration_cast<std::chrono::hours>(
-			std::chrono::system_clock::now().time_since_epoch()).count ();
-	}
-
 	static uint64_t GetLocalSecondsSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::seconds>(
+			std::chrono::system_clock::now().time_since_epoch()).count ();
+	}
+
+	static uint32_t GetLocalMinutesSinceEpoch ()
+	{
+		return std::chrono::duration_cast<std::chrono::minutes>(
+			std::chrono::system_clock::now().time_since_epoch()).count ();
+	}
+
+	static uint32_t GetLocalHoursSinceEpoch ()
+	{
+		return std::chrono::duration_cast<std::chrono::hours>(
 			std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
@@ -53,14 +61,43 @@ namespace util
 	{
 		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
 		boost::asio::io_service service;
-		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
-		auto it = boost::asio::ip::udp::resolver (service).resolve (query, ec);
-		if (!ec && it != boost::asio::ip::udp::resolver::iterator())
+		auto it = boost::asio::ip::udp::resolver (service).resolve (
+			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);
+		if (!ec)
 		{
-			auto ep = (*it).endpoint (); // take first one
+			bool found = false;
+			boost::asio::ip::udp::resolver::iterator end;
+			boost::asio::ip::udp::endpoint ep;
+			while (it != end)
+			{
+				ep = *it;
+				if (!ep.address ().is_unspecified ())
+				{
+					if (ep.address ().is_v4 ())
+					{
+						if (i2p::context.SupportsV4 ()) found = true;
+					}
+					else if (ep.address ().is_v6 ())
+					{
+						if (i2p::util::net::IsYggdrasilAddress (ep.address ()))
+						{
+							if (i2p::context.SupportsMesh ()) found = true;
+						}
+						else if (i2p::context.SupportsV6 ()) found = true;
+					}
+				}
+				if (found) break;
+				it++;
+			}
+			if (!found)
+			{
+				LogPrint (eLogError, "Timestamp: can't find compatible address for ", address);
+				return;
+			}
+
 			boost::asio::ip::udp::socket socket (service);
-			socket.open (boost::asio::ip::udp::v4 (), ec);
+			socket.open (ep.protocol (), ec);
 			if (!ec)
 			{
 				uint8_t buf[48];// 48 bytes NTP request/response
@@ -96,7 +133,7 @@ namespace util
 				LogPrint (eLogError, "Timestamp: Couldn't open UDP socket");
 		}
 		else
-			LogPrint (eLogError, "Timestamp: Couldn't resove address ", address);
+			LogPrint (eLogError, "Timestamp: Couldn't resolve address ", address);
 	}
 
 	NTPTimeSync::NTPTimeSync (): m_IsRunning (false), m_Timer (m_Service)
@@ -142,6 +179,8 @@ namespace util
 
 	void NTPTimeSync::Run ()
 	{
+		i2p::util::SetThreadName("Timesync");
+
 		while (m_IsRunning)
 		{
 			try
@@ -178,14 +217,19 @@ namespace util
 		return GetLocalMillisecondsSinceEpoch () + g_TimeOffset*1000;
 	}
 
-	uint32_t GetHoursSinceEpoch ()
-	{
-		return GetLocalHoursSinceEpoch () + g_TimeOffset/3600;
-	}
-
 	uint64_t GetSecondsSinceEpoch ()
 	{
 		return GetLocalSecondsSinceEpoch () + g_TimeOffset;
+	}
+
+	uint32_t GetMinutesSinceEpoch ()
+	{
+		return GetLocalMinutesSinceEpoch () + g_TimeOffset/60;
+	}
+
+	uint32_t GetHoursSinceEpoch ()
+	{
+		return GetLocalHoursSinceEpoch () + g_TimeOffset/3600;
 	}
 
 	void GetCurrentDate (char * date)
@@ -205,6 +249,11 @@ namespace util
 		gmtime_r(&t, &tm);
 		sprintf(date, "%04i%02i%02i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #endif
+	}
+
+	void AdjustTimeOffset (int64_t offset)
+	{
+		g_TimeOffset += offset;
 	}
 }
 }

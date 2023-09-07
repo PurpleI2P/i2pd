@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -7,57 +7,52 @@
 */
 
 #include "CPU.h"
-#if defined(__x86_64__) || defined(__i386__)
-#include <cpuid.h>
-#endif
 #include "Log.h"
 
-#ifndef bit_AES
-#define bit_AES (1 << 25)
-#endif
-#ifndef bit_AVX
-#define bit_AVX (1 << 28)
-#endif
+#if defined(_MSC_VER)
+#include <intrin.h>
 
+#ifndef bit_AES
+	#define bit_AES (1 << 25)
+#endif
+#endif
 
 namespace i2p
 {
 namespace cpu
 {
 	bool aesni = false;
-	bool avx = false;
 
-	void Detect()
+	inline bool cpu_support_aes()
 	{
-#if defined(__AES__) || defined(__AVX__)
+#if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__))
+#if defined(_MSC_VER)
+		int cpu_info[4];
+		__cpuid(cpu_info, 1);
+		return ((cpu_info[2] & bit_AES) != 0);
+#elif defined(__clang__)
+#if __clang_major__ >= 6
+		__builtin_cpu_init();
+#endif
+		return __builtin_cpu_supports("aes");
+#elif defined(__GNUC__)
+		__builtin_cpu_init();
+		return __builtin_cpu_supports("aes");
+#else
+		return false;
+#endif
+#else
+		return false;
+#endif
+	}
 
-#if defined(__x86_64__) || defined(__i386__)
-		int info[4];
-		__cpuid(0, info[0], info[1], info[2], info[3]);
-		if (info[0] >= 0x00000001) {
-			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
-#ifdef __AES__
-			aesni = info[2] & bit_AES;  // AESNI
-#endif  // __AES__
-#ifdef __AVX__
-			avx = info[2] & bit_AVX;  // AVX
-#endif  // __AVX__
+	void Detect(bool AesSwitch, bool force)
+	{
+		if ((cpu_support_aes() && AesSwitch) || (AesSwitch && force)) {
+			aesni = true;
 		}
-#endif  // defined(__x86_64__) || defined(__i386__)
 
-#ifdef __AES__
-		if(aesni)
-		{
-			LogPrint(eLogInfo, "AESNI enabled");
-		}
-#endif  // __AES__
-#ifdef __AVX__
-		if(avx)
-		{
-			LogPrint(eLogInfo, "AVX enabled");
-		}
-#endif  // __AVX__
-#endif  // defined(__AES__) || defined(__AVX__)
+		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
 	}
 }
 }

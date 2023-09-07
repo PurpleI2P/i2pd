@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -93,8 +93,11 @@ namespace data
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 			bool IsDestination () const { return true; };
+
+			// used in webconsole
+			void ExpireLease () { m_ExpirationTime = i2p::util::GetSecondsSinceEpoch (); };
 
 		protected:
 
@@ -128,8 +131,8 @@ namespace data
 	};
 
 	/**
-			validate lease set buffer signature and extract expiration timestamp
-			@returns true if the leaseset is well formed and signature is valid
+	 * validate lease set buffer signature and extract expiration timestamp
+	 * @returns true if the leaseset is well formed and signature is valid
 	 */
 	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires);
 
@@ -145,6 +148,7 @@ namespace data
 	{
 		public:
 
+			LeaseSet2 (uint8_t storeType): LeaseSet (true), m_StoreType (storeType) {}; // for update
 			LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases = true, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL);
 			LeaseSet2 (const uint8_t * buf, size_t len, std::shared_ptr<const BlindedPublicKey> key, const uint8_t * secret = nullptr, CryptoKeyType preferredCrypto = CRYPTO_KEY_TYPE_ELGAMAL); // store type 5, called from local netdb only
 			uint8_t GetStoreType () const { return m_StoreType; };
@@ -156,7 +160,7 @@ namespace data
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			// implements RoutingDestination
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 			CryptoKeyType GetEncryptionType () const { return m_EncryptionType; };
 
 		private:
@@ -251,7 +255,7 @@ namespace data
 
 			LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
 				const KeySections& encryptionKeys,
-				std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels,
+				const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 				bool isPublic, bool isPublishedEncrypted = false);
 
 			LocalLeaseSet2 (uint8_t storeType, std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len); // from I2CP

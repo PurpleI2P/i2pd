@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -18,10 +18,12 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
+#include "UDPTunnel.h"
 #include "SAM.h"
 #include "BOB.h"
 #include "I2CP.h"
 #include "AddressBook.h"
+#include "I18N_langs.h"
 
 namespace i2p
 {
@@ -47,6 +49,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
 	const char I2P_CLIENT_TUNNEL_MATCH_TUNNELS[] = "matchtunnels";
 	const char I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT[] = "connecttimeout";
+	const char I2P_CLIENT_TUNNEL_KEEP_ALIVE_INTERVAL[] = "keepaliveinterval";
 	const char I2P_SERVER_TUNNEL_HOST[] = "host";
 	const char I2P_SERVER_TUNNEL_HOST_OVERRIDE[] = "hostoverride";
 	const char I2P_SERVER_TUNNEL_PORT[] = "port";
@@ -59,7 +62,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
 	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
-
+	const char I2P_SERVER_TUNNEL_SSL[] = "ssl";
 
 	class ClientContext
 	{
@@ -102,6 +105,10 @@ namespace client
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
+			// i18n
+			std::shared_ptr<const i2p::i18n::Locale> GetLanguage () { return m_Language; };
+			void SetLanguage (const std::shared_ptr<const i2p::i18n::Locale> language) { m_Language = language; };
+
 		private:
 
 			void ReadTunnels ();
@@ -121,8 +128,7 @@ namespace client
 			void CleanupUDP(const boost::system::error_code & ecode);
 			void ScheduleCleanupUDP();
 
-			template<typename Visitor>
-			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
+			void VisitTunnels (bool clean);
 
 			void CreateNewSharedLocalDestination ();
 			void AddLocalDestination (std::shared_ptr<ClientDestination> localDestination);
@@ -137,8 +143,8 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint->tunnel
-			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
+			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
+			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
 
 			std::mutex m_ForwardsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
@@ -149,6 +155,9 @@ namespace client
 			I2CPServer * m_I2CPServer;
 
 			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
+
+			// i18n
+			std::shared_ptr<const i2p::i18n::Locale> m_Language;
 
 		public:
 

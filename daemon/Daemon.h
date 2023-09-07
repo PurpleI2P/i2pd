@@ -20,27 +20,33 @@ namespace util
 	class Daemon_Singleton_Private;
 	class Daemon_Singleton
 	{
-		public:
+	public:
 
-			virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
-			virtual bool stop();
-			virtual void run () {};
+		virtual bool init (int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
+		virtual bool init (int argc, char* argv[]);
+		virtual bool start ();
+		virtual bool stop ();
+		virtual void run () {};
 
-			bool isDaemon;
-			bool running;
+		virtual void setDataDir (std::string path);
 
-		protected:
+		bool isDaemon;
+		bool running;
 
-			Daemon_Singleton();
-			virtual ~Daemon_Singleton();
+	protected:
 
-			bool IsService () const;
+		Daemon_Singleton ();
+		virtual ~Daemon_Singleton ();
 
-			// d-pointer for httpServer, httpProxy, etc.
-			class Daemon_Singleton_Private;
-			Daemon_Singleton_Private &d;
+		bool IsService () const;
+
+		// d-pointer for httpServer, httpProxy, etc.
+		class Daemon_Singleton_Private;
+		Daemon_Singleton_Private &d;
+
+	private:
+
+		std::string DaemonDataDir;
 	};
 
 #if defined(QT_GUI_LIB) // check if QT

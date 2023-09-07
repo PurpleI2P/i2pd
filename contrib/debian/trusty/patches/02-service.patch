@@ -1,0 +1,19 @@
+Description: Disable LogsDirectory and LogsDirectoryMode options in service
+Author: r4sas <r4sas@i2pmail.org>
+
+Reviewed-By: r4sas <r4sas@i2pmail.org>
+Last-Update: 2023-05-17
+
+--- a/contrib/i2pd.service
++++ b/contrib/i2pd.service
+@@ -8,8 +8,8 @@ User=i2pd
+ Group=i2pd
+ RuntimeDirectory=i2pd
+ RuntimeDirectoryMode=0700
+-LogsDirectory=i2pd
+-LogsDirectoryMode=0700
++#LogsDirectory=i2pd
++#LogsDirectoryMode=0700
+ Type=forking
+ ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --tunnelsdir=/etc/i2pd/tunnels.conf.d --pidfile=/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
+ ExecReload=/bin/sh -c "kill -HUP $MAINPID"

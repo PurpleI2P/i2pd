@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,7 +11,7 @@
 
 #include <inttypes.h>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <queue>
 #include <functional>
@@ -58,10 +58,11 @@ namespace stream
 	const int MAX_WINDOW_SIZE = 128;
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
+	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
-	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds
+	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 
 	struct Packet
 	{
@@ -79,6 +80,7 @@ namespace stream
 		uint32_t GetAckThrough () const { return bufbe32toh (buf + 12); };
 		uint8_t GetNACKCount () const { return buf[16]; };
 		uint32_t GetNACK (int i) const { return bufbe32toh (buf + 17 + 4 * i); };
+		const uint8_t * GetNACKs () const { return buf + 17; };
 		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; }; // 3 = resendDelay + flags
 		uint16_t GetFlags () const { return bufbe16toh (GetOption () - 2); };
 		uint16_t GetOptionSize () const { return bufbe16toh (GetOption ()); };
@@ -111,6 +113,11 @@ namespace stream
 			buf = new uint8_t[len];
 			memcpy (buf, b, len);
 		}
+		SendBuffer (size_t l): // create empty buffer
+			len(l), offset (0)
+		{
+			buf = new uint8_t[len];
+		}
 		~SendBuffer ()
 		{
 			delete[] buf;
@@ -129,6 +136,7 @@ namespace stream
 			~SendBufferQueue () { CleanUp (); };
 
 			void Add (const uint8_t * buf, size_t len, SendHandler handler);
+			void Add (std::shared_ptr<SendBuffer> buf);
 			size_t Get (uint8_t * buf, size_t len);
 			size_t GetSize () const { return m_Size; };
 			bool IsEmpty () const { return m_Buffers.empty (); };
@@ -146,7 +154,8 @@ namespace stream
 		eStreamStatusOpen,
 		eStreamStatusReset,
 		eStreamStatusClosing,
-		eStreamStatusClosed
+		eStreamStatusClosed,
+		eStreamStatusTerminated
 	};
 
 	class StreamingDestination;
@@ -172,10 +181,12 @@ namespace stream
 			void HandlePing (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
+			void SendPing ();
 
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
+			size_t Receive (uint8_t * buf, size_t len, int timeout);
 
 			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
 
@@ -254,13 +265,14 @@ namespace stream
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
-			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = true);
+			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = false);
 			~StreamingDestination ();
 
 			void Start ();
 			void Stop ();
 
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
+			void SendPing (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void DeleteStream (std::shared_ptr<Stream> stream);
 			bool DeleteStream (uint32_t recvStreamID);
 			void SetAcceptor (const Acceptor& acceptor);
@@ -268,13 +280,14 @@ namespace stream
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
 			void AcceptOnce (const Acceptor& acceptor);
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
+			std::shared_ptr<Stream> AcceptStream (int timeout = 0); // sync
 
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort, bool checksum = true, bool gzip = false);
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
@@ -291,15 +304,16 @@ namespace stream
 			uint16_t m_LocalPort;
 			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_StreamsMutex;
-			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
-			std::map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
+			std::unordered_map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
+			std::unordered_map<uint32_t, std::shared_ptr<Stream> > m_IncomingStreams; // receiveStreamID->stream
+			std::shared_ptr<Stream> m_LastStream;
 			Acceptor m_Acceptor;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
-			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
+			std::unordered_map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
-			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
+			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
 
 		public:
 
@@ -325,11 +339,10 @@ namespace stream
 				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
 				int left = timeout - t;
-				auto self = s->shared_from_this();
-				self->m_ReceiveTimer.async_wait (
-					[self, buffer, handler, left](const boost::system::error_code & ec)
+				s->m_ReceiveTimer.async_wait (
+					[s, buffer, handler, left](const boost::system::error_code & ec)
 					{
-						self->HandleReceiveTimer(ec, buffer, handler, left);
+						s->HandleReceiveTimer(ec, buffer, handler, left);
 					});
 			}
 		});
@@ -356,7 +369,7 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
 			{
-				// itermediate iterrupt
+				// itermediate interrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
 				AsyncReceive (buffer, handler, remainingTimeout);
 			}

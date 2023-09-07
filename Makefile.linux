@@ -1,5 +1,5 @@
 # set defaults instead redefine
-CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation -Wno-psabi
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-psabi
 LDFLAGS ?= ${LD_DEBUG}
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -20,7 +20,11 @@ else ifeq ($(shell expr match ${CXXVER} "4\.[8-9]"),3) # gcc 4.8 - 4.9
 else ifeq ($(shell expr match ${CXXVER} "[5-6]"),1) # gcc 5 - 6
 	NEEDED_CXXFLAGS += -std=c++11
 	LDLIBS = -latomic
-else ifeq ($(shell expr match ${CXXVER} "[1,7-9]"),1) # gcc >= 7
+else ifeq ($(shell expr match ${CXXVER} "[7-9]"),1) # gcc 7 - 9
+	NEEDED_CXXFLAGS += -std=c++17
+	LDLIBS = -latomic
+else ifeq ($(shell expr match ${CXXVER} "1[0-9]"),2) # gcc 10+
+#	NEEDED_CXXFLAGS += -std=c++20
 	NEEDED_CXXFLAGS += -std=c++17
 	LDLIBS = -latomic
 else # not supported
@@ -33,7 +37,7 @@ ifeq ($(USE_STATIC),yes)
 # NOTE: on glibc you will get this warning:
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
-	LIBDIR := /usr/lib
+	LIBDIR := /usr/lib/$(SYS)
 	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
@@ -41,37 +45,43 @@ ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
 	LDLIBS += $(LIBDIR)/libz.a
-	LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt -ldl
-	USE_AESNI := no
+ifeq ($(USE_UPNP),yes)
+	LDLIBS += $(LIBDIR)/libminiupnpc.a
+endif
+	LDLIBS += -lpthread -ldl
 else
 	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
-endif
-
-# UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-	CXXFLAGS += -DUSE_UPNP
-ifeq ($(USE_STATIC),yes)
-	LDLIBS += $(LIBDIR)/libminiupnpc.a
-else
 	LDLIBS += -lminiupnpc
 endif
 endif
 
+# UPNP Support (miniupnpc 1.5 and higher)
+ifeq ($(USE_UPNP),yes)
+	DEFINES += -DUSE_UPNP
+endif
+
 ifeq ($(USE_AESNI),yes)
-#check if AES-NI is supported by CPU
-ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	machine := $(shell uname -m)
-	ifeq ($(machine), aarch64)
-		CXXFLAGS += -DARM64AES
-	else
-		CPU_FLAGS += -maes
-	endif
+ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
+	NEEDED_CXXFLAGS += -maes
+	DEFINES += -D__AES__
 endif
 endif
 
-ifeq ($(USE_AVX),yes)
-#check if AVX supported by CPU
-ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
-	CPU_FLAGS += -mavx
-endif
-endif
+install: all
+	install -d ${PREFIX}/bin
+	install -m 755 ${I2PD} ${PREFIX}/bin
+	install -d ${PREFIX}/etc ${PREFIX}/etc/i2pd ${PREFIX}/etc/i2pd/tunnels.conf.d
+	install -m 644 contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/etc/i2pd
+	install -d ${PREFIX}/share ${PREFIX}/share/doc ${PREFIX}/share/doc/i2pd
+	install -m 644 ChangeLog LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf ${PREFIX}/share/doc/i2pd
+	install -d ${PREFIX}/share/i2pd
+	@cp -R contrib/certificates ${PREFIX}/share/i2pd/
+	install -d ${PREFIX}/share/man ${PREFIX}/share/man/man1
+	@gzip -kf debian/i2pd.1 && install debian/i2pd.1.gz ${PREFIX}/share/man/man1
+	install -d ${PREFIX}/var ${PREFIX}/var/lib ${PREFIX}/var/lib/i2pd
+	@ln -sf ${PREFIX}/share/i2pd/certificates ${PREFIX}/var/lib/i2pd/certificates
+	@ln -sf ${PREFIX}/etc/i2pd/tunnels.conf.d ${PREFIX}/var/lib/i2pd/tunnels.d
+	@ln -sf ${PREFIX}/etc/i2pd/i2pd.conf ${PREFIX}/var/lib/i2pd/i2pd.conf
+	@ln -sf ${PREFIX}/etc/i2pd/subscriptions.txt ${PREFIX}/var/lib/i2pd/subscriptions.txt
+	@ln -sf ${PREFIX}/etc/i2pd/tunnels.conf ${PREFIX}/var/lib/i2pd/tunnels.conf

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,7 @@
 #include <mutex>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <functional>
@@ -53,6 +54,10 @@ namespace client
 	const int DEFAULT_INBOUND_TUNNELS_QUANTITY = 5;
 	const char I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY[] = "outbound.quantity";
 	const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
+	const char I2CP_PARAM_INBOUND_TUNNELS_LENGTH_VARIANCE[] = "inbound.lengthVariance";
+	const int DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE = 0;
+	const char I2CP_PARAM_OUTBOUND_TUNNELS_LENGTH_VARIANCE[] = "outbound.lengthVariance";
+	const int DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE = 0;
 	const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
@@ -61,8 +66,9 @@ namespace client
 	const char I2CP_PARAM_RATCHET_OUTBOUND_TAGS[] = "crypto.ratchet.outboundTags"; // not used yet
 	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
 	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
+	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";
 	const char I2CP_PARAM_LEASESET_TYPE[] = "i2cp.leaseSetType";
-	const int DEFAULT_LEASESET_TYPE = 1;
+	const int DEFAULT_LEASESET_TYPE = 3;
 	const char I2CP_PARAM_LEASESET_ENCRYPTION_TYPE[] = "i2cp.leaseSetEncType";
 	const char I2CP_PARAM_LEASESET_PRIV_KEY[] = "i2cp.leaseSetPrivKey"; // PSK decryption key, base64
 	const char I2CP_PARAM_LEASESET_AUTH_TYPE[] = "i2cp.leaseSetAuthType";
@@ -79,7 +85,7 @@ namespace client
 	const char I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY[] = "i2p.streaming.initialAckDelay";
 	const int DEFAULT_INITIAL_ACK_DELAY = 200; // milliseconds
 	const char I2CP_PARAM_STREAMING_ANSWER_PINGS[] = "i2p.streaming.answerPings";
-	const int DEFAULT_ANSWER_PINGS = true; 
+	const int DEFAULT_ANSWER_PINGS = true;
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
@@ -133,25 +139,28 @@ namespace client
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
+			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			void SetLeaseSetUpdated ();
+
+			bool IsPublic () const { return m_IsPublic; };
+			void SetPublic (bool pub) { m_IsPublic = pub; };
 
 		protected:
 
 			// implements GarlicDestination
 			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len);
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID);
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
 			void SetLeaseSetType (int leaseSetType) { m_LeaseSetType = leaseSetType; };
 			int GetAuthType () const { return m_AuthType; };
-			bool IsPublic () const { return m_IsPublic; };
 			virtual void CleanupDestination () {}; // additional clean up in derived classes
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
-			virtual void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) = 0;
+			virtual void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels) = 0;
 
 		private:
 
@@ -176,8 +185,8 @@ namespace client
 
 			boost::asio::io_service& m_Service;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
-			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
-			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::mutex m_LeaseSetMutex;
@@ -233,25 +242,30 @@ namespace client
 			int GetRefCounter () const { return m_RefCounter; };
 
 			// streaming
-			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
-			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
+			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (uint16_t port, bool gzip = true); // additional
+			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (uint16_t port = 0) const;
+			std::shared_ptr<i2p::stream::StreamingDestination> RemoveStreamingDestination (uint16_t port);
 			// following methods operate with default streaming destination
-			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
-			void CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, int port = 0);
-			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
+			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, uint16_t port = 0);
+			void CreateStream (StreamRequestComplete streamRequestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> dest, uint16_t port = 0);
+			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::IdentHash& dest, uint16_t port = 0); // sync
+			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, uint16_t port = 0); // sync
+			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, uint16_t port = 0);
+			void SendPing (const i2p::data::IdentHash& to);
+			void SendPing (std::shared_ptr<const i2p::data::BlindedPublicKey> to);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
 			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
-			
+
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
 			i2p::datagram::DatagramDestination * CreateDatagramDestination (bool gzip = true);
 
 			// implements LocalDestination
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, i2p::data::CryptoKeyType preferredCrypto) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
 			const uint8_t * GetEncryptionPublicKey (i2p::data::CryptoKeyType keyType) const;
@@ -261,7 +275,7 @@ namespace client
 			void CleanupDestination ();
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
 
 		private:
 
@@ -270,6 +284,9 @@ namespace client
 			}
 			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
+
+			template<typename Dest>
+			std::shared_ptr<i2p::stream::Stream> CreateStreamSync (const Dest& dest, uint16_t port);
 
 		private:
 
@@ -281,6 +298,7 @@ namespace client
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
+			std::shared_ptr<i2p::stream::StreamingDestination> m_LastStreamingDestination; uint16_t m_LastPort; // for server tunnels
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 			int m_RefCounter; // how many clients(tunnels) use this destination
 

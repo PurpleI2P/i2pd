@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -90,6 +90,8 @@ namespace client
 			void InsertAddress (const std::string& address, const std::string& jump); // for jump links
 			void InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
+			bool RecordExists (const std::string& address, const std::string& jump);
+
 			bool LoadHostsFromStream (std::istream& f, bool is_update);
 			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
 			//This method returns the ".b32.i2p" address
@@ -116,7 +118,7 @@ namespace client
 		private:
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, std::shared_ptr<Address> >  m_Addresses;
+			std::map<std::string, std::shared_ptr<Address> > m_Addresses;
 			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
 			std::mutex m_LookupsMutex;
 			std::map<uint32_t, std::string> m_Lookups; // nonce -> address
@@ -126,6 +128,7 @@ namespace client
 			std::vector<std::shared_ptr<AddressBookSubscription> > m_Subscriptions;
 			std::shared_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
 			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
+			bool m_IsEnabled;
 	};
 
 	class AddressBookSubscription
@@ -162,7 +165,7 @@ namespace client
 		private:
 
 			std::shared_ptr<ClientDestination> m_LocalDestination;
-			std::map<std::string, i2p::data::IdentHash>  m_LocalAddresses;
+			std::map<std::string, i2p::data::IdentHash> m_LocalAddresses;
 	};
 }
 }

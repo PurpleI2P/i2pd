@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,6 +12,7 @@
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
+#include <codecvt>
 #endif
 
 #include "Base.h"
@@ -23,6 +24,7 @@ namespace i2p {
 namespace fs {
 	std::string appName = "i2pd";
 	std::string dataDir = "";
+	std::string certsDir = "";
 #ifdef _WIN32
 	std::string dirSep = "\\";
 #else
@@ -41,18 +43,62 @@ namespace fs {
 		return dataDir;
 	}
 
+	const std::string & GetCertsDir () {
+		return certsDir;
+	}
+
+	const std::string GetUTF8DataDir () {
+#ifdef _WIN32
+		boost::filesystem::wpath path (dataDir);
+		auto loc = boost::filesystem::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) ); // convert path to UTF-8
+		auto dataDirUTF8 = path.string();
+		boost::filesystem::path::imbue(loc); // Return locale settings back
+		return dataDirUTF8;
+#else
+		return dataDir; // linux, osx, android uses UTF-8 by default
+#endif
+	}
+
 	void DetectDataDir(const std::string & cmdline_param, bool isService) {
+		// with 'datadir' option
 		if (cmdline_param != "") {
 			dataDir = cmdline_param;
 			return;
 		}
-#if defined(WIN32) || defined(_WIN32)
-		char localAppData[MAX_PATH];
+
+#if !defined(MAC_OSX) && !defined(ANDROID)
+		// with 'service' option
+		if (isService) {
+#ifdef _WIN32
+			wchar_t commonAppData[MAX_PATH];
+			if(SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, commonAppData) != S_OK)
+			{
+#ifdef WIN32_APP
+				MessageBox(NULL, TEXT("Unable to get common AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
+#else
+				fprintf(stderr, "Error: Unable to get common AppData path!");
+#endif
+				exit(1);
+			}
+			else
+			{
+				dataDir = boost::filesystem::wpath(commonAppData).string() + "\\" + appName;
+			}
+#else
+			dataDir = "/var/lib/" + appName;
+#endif
+			return;
+		}
+#endif
+
+		// detect directory as usual
+#ifdef _WIN32
+		wchar_t localAppData[MAX_PATH];
 
 		// check executable directory first
-		if(!GetModuleFileName(NULL, localAppData, MAX_PATH))
+		if(!GetModuleFileNameW(NULL, localAppData, MAX_PATH))
 		{
-#if defined(WIN32_APP)
+#ifdef WIN32_APP
 			MessageBox(NULL, TEXT("Unable to get application path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
 #else
 			fprintf(stderr, "Error: Unable to get application path!");
@@ -61,16 +107,17 @@ namespace fs {
 		}
 		else
 		{
-			auto execPath = boost::filesystem::path(localAppData).parent_path();
+			auto execPath = boost::filesystem::wpath(localAppData).parent_path();
 
 			// if config file exists in .exe's folder use it
 			if(boost::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
-				dataDir = execPath.string ();
-			else // otherwise %appdata%
 			{
-				if(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
+				dataDir = execPath.string ();
+			} else // otherwise %appdata%
+			{
+				if(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, localAppData) != S_OK)
 				{
-#if defined(WIN32_APP)
+#ifdef WIN32_APP
 					MessageBox(NULL, TEXT("Unable to get AppData path!"), TEXT("I2Pd: error"), MB_ICONERROR | MB_OK);
 #else
 					fprintf(stderr, "Error: Unable to get AppData path!");
@@ -78,7 +125,9 @@ namespace fs {
 					exit(1);
 				}
 				else
-					dataDir = std::string(localAppData) + "\\" + appName;
+				{
+					dataDir = boost::filesystem::wpath(localAppData).string() + "\\" + appName;
+				}
 			}
 		}
 		return;
@@ -96,18 +145,31 @@ namespace fs {
 			dataDir = std::string (ext) + "/" + appName;
 			return;
 		}
-#endif
-		// otherwise use /data/files
+#endif // ANDROID
+		// use /home/user/.i2pd or /tmp/i2pd
 		char *home = getenv("HOME");
-		if (isService) {
-			dataDir = "/var/lib/" + appName;
-		} else if (home != NULL && strlen(home) > 0) {
+		if (home != NULL && strlen(home) > 0) {
 			dataDir = std::string(home) + "/." + appName;
 		} else {
 			dataDir = "/tmp/" + appName;
 		}
 		return;
 #endif
+	}
+
+	void SetCertsDir(const std::string & cmdline_certsdir) {
+		if (cmdline_certsdir != "")
+		{
+			if (cmdline_certsdir[cmdline_certsdir.length()-1] == '/')
+				certsDir = cmdline_certsdir.substr(0, cmdline_certsdir.size()-1); // strip trailing slash
+			else
+				certsDir = cmdline_certsdir;
+		}
+		else
+		{
+			certsDir = i2p::fs::DataDirPath("certificates");
+		}
+		return;
 	}
 
 	bool Init() {

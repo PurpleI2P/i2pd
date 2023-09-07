@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -8,14 +8,6 @@
 
 #ifndef TAG_H__
 #define TAG_H__
-
-/*
-* Copyright (c) 2013-2017, The PurpleI2P Project
-*
-* This file is part of Purple i2pd project and licensed under BSD3
-*
-* See full license text in LICENSE file at top of project tree
-*/
 
 #include <boost/static_assert.hpp>
 #include <string.h>
@@ -64,17 +56,17 @@ namespace data {
 				RAND_bytes(m_Buf, sz);
 			}
 
-			std::string ToBase64 () const
+			std::string ToBase64 (size_t len = sz) const
 			{
 				char str[sz*2];
-				size_t l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
+				size_t l = i2p::data::ByteStreamToBase64 (m_Buf, len, str, sz*2);
 				return std::string (str, str + l);
 			}
 
-			std::string ToBase32 () const
+			std::string ToBase32 (size_t len = sz) const
 			{
 				char str[sz*2];
-				size_t l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
+				size_t l = i2p::data::ByteStreamToBase32 (m_Buf, len, str, sz*2);
 				return std::string (str, str + l);
 			}
 
@@ -88,6 +80,13 @@ namespace data {
 				return i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
 			}
 
+			uint8_t GetBit (int i) const
+			{
+				int pos = i >> 3; // /8
+				if (pos >= (int)sz) return 0;
+				return m_Buf[pos] & (0x80 >> (i & 0x07)); 
+			}		
+		
 		private:
 
 			union // 8 bytes aligned

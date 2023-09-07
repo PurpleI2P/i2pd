@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -20,16 +20,21 @@ namespace i2p
 namespace tunnel
 {
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID,
-		const uint8_t * nextIdent, uint32_t nextTunnelID,
-		const uint8_t * layerKey,const uint8_t * ivKey):
-			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent)
+		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey):
+			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent),
+			m_LayerKey (layerKey), m_IVKey (ivKey)
 	{
-		m_Encryption.SetKeys (layerKey, ivKey);
 	}
 
 	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{
-		m_Encryption.Encrypt (in->GetPayload () + 4, out->GetPayload () + 4);
+		if (!m_Encryption)
+		{
+			m_Encryption.reset (new i2p::crypto::TunnelEncryption);
+			m_Encryption->SetKeys (m_LayerKey, m_IVKey);
+		}
+		m_Encryption->Encrypt (in->GetPayload () + 4, out->GetPayload () + 4);
 		i2p::transport::transports.UpdateTotalTransitTransmittedBytes (TUNNEL_DATA_MSG_SIZE);
 	}
 
@@ -37,15 +42,14 @@ namespace tunnel
 	{
 	}
 
-	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
-		auto newMsg = CreateEmptyTunnelDataMsg ();
-		EncryptTunnelMsg (tunnelMsg, newMsg);
+		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
 
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
-		htobe32buf (newMsg->GetPayload (), GetNextTunnelID ());
-		newMsg->FillI2NPMessageHeader (eI2NPTunnelData);
-		m_TunnelDataMsgs.push_back (newMsg);
+		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
+		tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData);
+		m_TunnelDataMsgs.push_back (tunnelMsg);
 	}
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
@@ -65,7 +69,7 @@ namespace tunnel
 		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
 	}
 
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
 		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
 	}
@@ -85,9 +89,9 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}
 
-	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>&& tunnelMsg)
 	{
-		auto newMsg = CreateEmptyTunnelDataMsg ();
+		auto newMsg = CreateEmptyTunnelDataMsg (true);
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 
 		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
@@ -95,8 +99,8 @@ namespace tunnel
 	}
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
-		const uint8_t * nextIdent, uint32_t nextTunnelID,
-		const uint8_t * layerKey,const uint8_t * ivKey,
+		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
+		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
 		bool isGateway, bool isEndpoint)
 	{
 		if (isEndpoint)

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -137,7 +137,7 @@ namespace data
 						auto inbound = pool->GetNextInboundTunnel ();
 						auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 						if (nextFloodfill && outbound && inbound)
-							outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
+							outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 								dest->CreateRequestMessage (nextFloodfill, inbound));
 						else
 						{

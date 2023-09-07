@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -37,14 +37,7 @@ namespace data
 
 	void LeaseSet::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{
-		if (len > m_BufferLen)
-		{
-			auto oldBuffer = m_Buffer;
-			m_Buffer = new uint8_t[len];
-			delete[] oldBuffer;
-		}
-		memcpy (m_Buffer, buf, len);
-		m_BufferLen = len;
+		SetBuffer (buf, len);
 		ReadFromBuffer (false, verifySignature);
 	}
 
@@ -57,11 +50,11 @@ namespace data
 	void LeaseSet::ReadFromBuffer (bool readIdentity, bool verifySignature)
 	{
 		if (readIdentity || !m_Identity)
-			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
+			m_Identity = netdb.NewIdentity (m_Buffer, m_BufferLen);
 		size_t size = m_Identity->GetFullLen ();
-		if (size > m_BufferLen)
+		if (size + 256 > m_BufferLen)
 		{
-			LogPrint (eLogError, "LeaseSet: identity length ", size, " exceeds buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet: Identity length ", int(size), " exceeds buffer size ", int(m_BufferLen));
 			m_IsValid = false;
 			return;
 		}
@@ -72,18 +65,29 @@ namespace data
 		}
 		size += 256; // encryption key
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
+		if (size + 1 > m_BufferLen)
+		{
+			LogPrint (eLogError, "LeaseSet: ", int(size), " exceeds buffer size ", int(m_BufferLen));
+			m_IsValid = false;
+			return;
+		}
 		uint8_t num = m_Buffer[size];
 		size++; // num
-		LogPrint (eLogDebug, "LeaseSet: read num=", (int)num);
+		LogPrint (eLogDebug, "LeaseSet: Read num=", (int)num);
 		if (!num || num > MAX_NUM_LEASES)
 		{
-			LogPrint (eLogError, "LeaseSet: incorrect number of leases", (int)num);
+			LogPrint (eLogError, "LeaseSet: Incorrect number of leases", (int)num);
+			m_IsValid = false;
+			return;
+		}
+		if (size + num*LEASE_SIZE > m_BufferLen)
+		{
+			LogPrint (eLogError, "LeaseSet: ", int(size), " exceeds buffer size ", int(m_BufferLen));
 			m_IsValid = false;
 			return;
 		}
 
 		UpdateLeasesBegin ();
-
 		// process leases
 		m_ExpirationTime = 0;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -101,19 +105,27 @@ namespace data
 		}
 		if (!m_ExpirationTime)
 		{
-			LogPrint (eLogWarning, "LeaseSet: all leases are expired. Dropped");
+			LogPrint (eLogWarning, "LeaseSet: All leases are expired. Dropped");
 			m_IsValid = false;
 			return;
 		}
 		m_ExpirationTime += LEASE_ENDDATE_THRESHOLD;
-
 		UpdateLeasesEnd ();
 
 		// verify
-		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
+		if (verifySignature)
 		{
-			LogPrint (eLogWarning, "LeaseSet: verification failed");
-			m_IsValid = false;
+			auto signedSize = leases - m_Buffer;
+			if (signedSize + m_Identity->GetSignatureLen () > m_BufferLen)
+			{
+				LogPrint (eLogError, "LeaseSet: Signature exceeds buffer size ", int(m_BufferLen));
+				m_IsValid = false;
+			}
+			else if (!m_Identity->Verify (m_Buffer, signedSize, leases))
+			{
+				LogPrint (eLogWarning, "LeaseSet: Verification failed");
+				m_IsValid = false;
+			}
 		}
 	}
 
@@ -153,7 +165,7 @@ namespace data
 				m_ExpirationTime = lease.endDate;
 			if (m_StoreLeases)
 			{
-				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
+				auto ret = m_Leases.insert (i2p::data::netdb.NewLease (lease));
 				if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
 				(*ret.first)->isUpdated = true;
 			}
@@ -235,18 +247,28 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
-	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		if (!m_EncryptionKey) return;
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	void LeaseSet::SetBuffer (const uint8_t * buf, size_t len)
 	{
-		if (m_Buffer) delete[] m_Buffer;
-		m_Buffer = new uint8_t[len];
+		if (len > MAX_LS_BUFFER_SIZE)
+		{
+			LogPrint (eLogError, "LeaseSet: Buffer is too long ", len);
+			len = MAX_LS_BUFFER_SIZE;
+		}
+		if (m_Buffer && len > m_BufferLen)
+		{
+			delete[] m_Buffer;
+			m_Buffer = nullptr;
+		}
+		if (!m_Buffer)
+			m_Buffer = new uint8_t[len];
 		m_BufferLen = len;
 		memcpy (m_Buffer, buf, len);
 	}
@@ -255,7 +277,7 @@ namespace data
 	{
 		if (len <= m_BufferLen) m_BufferLen = len;
 		else
-			LogPrint (eLogError, "LeaseSet2: actual buffer size ", len , " exceeds full buffer size ", m_BufferLen);
+			LogPrint (eLogError, "LeaseSet2: Actual buffer size ", int(len) , " exceeds full buffer size ", int(m_BufferLen));
 	}
 
 	LeaseSet2::LeaseSet2 (uint8_t storeType, const uint8_t * buf, size_t len, bool storeLeases, CryptoKeyType preferredCrypto):
@@ -293,15 +315,15 @@ namespace data
 	{
 		// standard LS2 header
 		std::shared_ptr<const IdentityEx> identity;
-		if (readIdentity)
+		if (readIdentity || !GetIdentity ())
 		{
-			identity = std::make_shared<IdentityEx>(buf, len);
+			identity = netdb.NewIdentity (buf, len);
 			SetIdentity (identity);
 		}
 		else
 			identity = GetIdentity ();
 		size_t offset = identity->GetFullLen ();
-		if (offset + 8 >= len) return;
+		if (offset + 8 > len) return;
 		m_PublishedTimestamp = bufbe32toh (buf + offset); offset += 4; // published timestamp (seconds)
 		uint16_t expires = bufbe16toh (buf + offset); offset += 2; // expires (seconds)
 		SetExpirationTime ((m_PublishedTimestamp + expires)*1000LL); // in milliseconds
@@ -312,7 +334,7 @@ namespace data
 			m_TransientVerifier = ProcessOfflineSignature (identity, buf, len, offset);
 			if (!m_TransientVerifier)
 			{
-				LogPrint (eLogError, "LeaseSet2: offline signature failed");
+				LogPrint (eLogError, "LeaseSet2: Offline signature failed");
 				return;
 			}
 		}
@@ -344,7 +366,13 @@ namespace data
 				VerifySignature (identity, buf, len, offset);
 			SetIsValid (verified);
 		}
+		else
+			SetIsValid (true);
 		offset += m_TransientVerifier ? m_TransientVerifier->GetSignatureLen () : identity->GetSignatureLen ();
+		if (offset > len) {
+			LogPrint (eLogWarning, "LeaseSet2: short buffer: wanted ", int(offset), "bytes, have ", int(len));
+			return;
+		}
 		SetBufferLen (offset);
 	}
 
@@ -359,7 +387,7 @@ namespace data
 		bool verified = verifier->Verify (buf - 1, signatureOffset + 1, buf + signatureOffset);
 		const_cast<uint8_t *>(buf)[-1] = c;
 		if (!verified)
-			LogPrint (eLogWarning, "LeaseSet2: verification failed");
+			LogPrint (eLogWarning, "LeaseSet2: Verification failed");
 		return verified;
 	}
 
@@ -369,17 +397,17 @@ namespace data
 		// properties
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
 		offset += propertiesLen; // skip for now. TODO: implement properties
-		if (offset + 1 >= len) return 0;
 		// key sections
 		CryptoKeyType preferredKeyType = m_EncryptionType;
 		bool preferredKeyFound = false;
+		if (offset + 1 > len) return 0;
 		int numKeySections = buf[offset]; offset++;
 		for (int i = 0; i < numKeySections; i++)
 		{
+			if (offset + 4 > len) return 0;
 			uint16_t keyType = bufbe16toh (buf + offset); offset += 2; // encryption key type
-			if (offset + 2 >= len) return 0;
 			uint16_t encryptionKeyLen = bufbe16toh (buf + offset); offset += 2;
-			if (offset + encryptionKeyLen >= len) return 0;
+			if (offset + encryptionKeyLen > len) return 0;
 			if (IsStoreLeases () && !preferredKeyFound) // create encryptor with leases only
 			{
 				// we pick first valid key if preferred not found
@@ -394,7 +422,7 @@ namespace data
 			offset += encryptionKeyLen;
 		}
 		// leases
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numLeases = buf[offset]; offset++;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (IsStoreLeases ())
@@ -413,7 +441,8 @@ namespace data
 		}
 		else
 			offset += numLeases*LEASE2_SIZE; // 40 bytes per lease
-		return offset;
+
+		return (offset > len ? 0 : offset);
 	}
 
 	size_t LeaseSet2::ReadMetaLS2TypeSpecificPart (const uint8_t * buf, size_t len)
@@ -423,18 +452,18 @@ namespace data
 		uint16_t propertiesLen = bufbe16toh (buf + offset); offset += 2;
 		offset += propertiesLen; // skip for now. TODO: implement properties
 		// entries
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numEntries = buf[offset]; offset++;
 		for (int i = 0; i < numEntries; i++)
 		{
-			if (offset + 40 >= len) return 0;
+			if (offset + LEASE2_SIZE > len) return 0;
 			offset += 32; // hash
 			offset += 3; // flags
 			offset += 1; // cost
 			offset += 4; // expires
 		}
 		// revocations
-		if (offset + 1 >= len) return 0;
+		if (offset + 1 > len) return 0;
 		int numRevocations = buf[offset]; offset++;
 		for (int i = 0; i < numRevocations; i++)
 		{
@@ -470,7 +499,7 @@ namespace data
 			m_TransientVerifier = ProcessOfflineSignature (blindedVerifier, buf, len, offset);
 			if (!m_TransientVerifier)
 			{
-				LogPrint (eLogError, "LeaseSet2: offline signature failed");
+				LogPrint (eLogError, "LeaseSet2: Offline signature failed");
 				return;
 			}
 		}
@@ -496,7 +525,7 @@ namespace data
 				key->GetBlindedKey (date, blinded.data ());
 				if (memcmp (blindedPublicKey, blinded.data (), blindedKeyLen))
 				{
-					LogPrint (eLogError, "LeaseSet2: blinded public key doesn't match");
+					LogPrint (eLogError, "LeaseSet2: Blinded public key doesn't match");
 					return;
 				}
 			}
@@ -550,7 +579,7 @@ namespace data
 				ReadFromBuffer (innerPlainText.data () + 1, lenInnerPlaintext - 1);
 			}
 			else
-				LogPrint (eLogError, "LeaseSet2: unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
+				LogPrint (eLogError, "LeaseSet2: Unexpected LeaseSet type ", (int)innerPlainText[0], " inside encrypted LeaseSet");
 		}
 		else
 		{
@@ -563,7 +592,7 @@ namespace data
 	// helper for ExtractClientAuthData
 	static inline bool GetAuthCookie (const uint8_t * authClients, int numClients, const uint8_t * okm, uint8_t * authCookie)
 	{
-		// try to find clientCookie_i  for clientID_i = okm[44:51]
+		// try to find clientCookie_i for clientID_i = okm[44:51]
 		for (int i = 0; i < numClients; i++)
 		{
 			if (!memcmp (okm + 44, authClients + i*40, 8)) // clientID_i
@@ -587,7 +616,7 @@ namespace data
 			{
 				const uint8_t * ephemeralPublicKey = buf + offset; offset += 32; // ephemeralPublicKey
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
-				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
 				if (offset > len)
 				{
 					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in DH auth data");
@@ -613,7 +642,7 @@ namespace data
 			{
 				const uint8_t * authSalt = buf + offset; offset += 32; // authSalt
 				uint16_t numClients = bufbe16toh (buf + offset); offset += 2; // clients
-				const uint8_t * authClients = buf + offset; offset +=  numClients*40; // authClients
+				const uint8_t * authClients = buf + offset; offset += numClients*40; // authClients
 				if (offset > len)
 				{
 					LogPrint (eLogError, "LeaseSet2: Too many clients ", numClients, " in PSK auth data");
@@ -634,16 +663,16 @@ namespace data
 					LogPrint (eLogError, "LeaseSet2: Can't calculate authCookie: psk_i is not provided");
 			}
 			else
-				LogPrint (eLogError, "LeaseSet2: unknown client auth type ", (int)flag);
+				LogPrint (eLogError, "LeaseSet2: Unknown client auth type ", (int)flag);
 		}
 		return offset - 1;
 	}
 
-	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	void LeaseSet2::Encrypt (const uint8_t * data, uint8_t * encrypted) const
 	{
 		auto encryptor = m_Encryptor; // TODO: atomic
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx, true);
+			encryptor->Encrypt (data, encrypted);
 	}
 
 	uint64_t LeaseSet2::ExtractExpirationTimestamp (const uint8_t * buf, size_t len) const
@@ -718,7 +747,7 @@ namespace data
 			htobe64buf (m_Buffer + offset, ts);
 			offset += 8; // end date
 		}
-		//  we don't sign it yet. must be signed later on
+		// we don't sign it yet. must be signed later on
 	}
 
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
@@ -749,7 +778,7 @@ namespace data
 		size_t size = ident.GetFullLen ();
 		if (size > sz)
 		{
-			LogPrint (eLogError, "LeaseSet: identity length ", size, " exceeds buffer size ", sz);
+			LogPrint (eLogError, "LeaseSet: Identity length ", size, " exceeds buffer size ", sz);
 			return false;
 		}
 		// encryption key
@@ -760,7 +789,7 @@ namespace data
 		++size;
 		if (!numLeases || numLeases > MAX_NUM_LEASES)
 		{
-			LogPrint (eLogError, "LeaseSet: incorrect number of leases", (int)numLeases);
+			LogPrint (eLogError, "LeaseSet: Incorrect number of leases", (int)numLeases);
 			return false;
 		}
 		const uint8_t * leases = ptr + size;
@@ -778,7 +807,7 @@ namespace data
 	}
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
-		const KeySections& encryptionKeys, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels,
+		const KeySections& encryptionKeys, const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
 		bool isPublic, bool isPublishedEncrypted):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{
@@ -843,9 +872,18 @@ namespace data
 			offset += 4; // end date
 		}
 		// update expiration
-		SetExpirationTime (expirationTime*1000LL);
-		auto expires = expirationTime - timestamp;
-		htobe16buf (expiresBuf, expires > 0 ? expires : 0);
+		if (expirationTime)
+		{
+			SetExpirationTime (expirationTime*1000LL);
+			auto expires = (int)expirationTime - timestamp;
+			htobe16buf (expiresBuf, expires > 0 ? expires : 0);
+		}
+		else
+		{
+			// no tunnels or withdraw
+			SetExpirationTime (timestamp*1000LL);
+			memset (expiresBuf, 0, 2); // expires immeditely
+		}
 		// sign
 		keys.Sign (m_Buffer, offset, m_Buffer + offset); // LS + leading store type
 	}
@@ -884,6 +922,11 @@ namespace data
 		uint8_t blindedPriv[64], blindedPub[128]; // 64 and 128 max
 		size_t publicKeyLen = blindedKey.BlindPrivateKey (keys.GetSigningPrivateKey (), date, blindedPriv, blindedPub);
 		std::unique_ptr<i2p::crypto::Signer> blindedSigner (i2p::data::PrivateKeys::CreateSigner (blindedKey.GetBlindedSigType (), blindedPriv));
+		if (!blindedSigner)
+		{
+			LogPrint (eLogError, "LeaseSet2: Can't create blinded signer for signature type ", blindedKey.GetSigType ());
+			return;
+		}
 		auto offset = 1;
 		htobe16buf (m_Buffer + offset, blindedKey.GetBlindedSigType ()); offset += 2; // Blinded Public Key Sig Type
 		memcpy (m_Buffer + offset, blindedPub, publicKeyLen); offset += publicKeyLen; // Blinded Public Key
@@ -951,7 +994,7 @@ namespace data
 			m_StoreHash = blindedKey->GetStoreHash ();
 		}
 		else
-			LogPrint (eLogError, "LeaseSet2: couldn't extract inner layer");
+			LogPrint (eLogError, "LeaseSet2: Couldn't extract inner layer");
 	}
 
 	void LocalEncryptedLeaseSet2::CreateClientAuthData (const uint8_t * subcredential, int authType, std::shared_ptr<std::vector<AuthPublicKey> > authKeys, const uint8_t * authCookie, uint8_t * authData) const
@@ -962,7 +1005,7 @@ namespace data
 			ek.GenerateKeys (); // esk and epk
 			memcpy (authData, ek.GetPublicKey (), 32); authData += 32; // epk
 			htobe16buf (authData, authKeys->size ()); authData += 2; // num clients
-			uint8_t authInput[100]; //  sharedSecret || cpk_i || subcredential || publishedTimestamp
+			uint8_t authInput[100]; // sharedSecret || cpk_i || subcredential || publishedTimestamp
 			memcpy (authInput + 64, subcredential, 36);
 			for (auto& it: *authKeys)
 			{

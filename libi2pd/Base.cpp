@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -185,10 +185,10 @@ namespace data
 		if (InCount && !m)
 			outCount = 3 * n;
 		else
-		{
-			outCount = 0;
 			return 0;
-		}
+
+		if(*InBuffer == P64)
+			return 0;
 
 		ps = (unsigned char *)(InBuffer + InCount - 1);
 		while ( *ps-- == P64 )
@@ -196,7 +196,7 @@ namespace data
 		ps = (unsigned char *)InBuffer;
 
 		if (outCount > len)
-			return -1;
+			return 0;
 
 		pd = OutBuffer;
 		auto endOfOutBuffer = OutBuffer + outCount;
@@ -272,7 +272,7 @@ namespace data
 
 	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen)
 	{
-		int tmp = 0, bits = 0;
+		unsigned int tmp = 0, bits = 0;
 		size_t ret = 0;
 		for (size_t i = 0; i < len; i++)
 		{
@@ -301,7 +301,7 @@ namespace data
 	size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
 	{
 		size_t ret = 0, pos = 1;
-		int bits = 8, tmp = inBuf[0];
+		unsigned int bits = 8, tmp = inBuf[0];
 		while (ret < outLen && (bits > 0 || pos < len))
 		{
 			if (bits < 5)

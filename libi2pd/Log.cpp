@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -7,6 +7,7 @@
 */
 
 #include "Log.h"
+#include "util.h"
 
 //for std::transform
 #include <algorithm>
@@ -17,13 +18,14 @@ namespace log {
 	/**
 	 * @brief Maps our loglevel to their symbolic name
 	 */
-	static const char * g_LogLevelStr[eNumLogLevels] =
+	static const char *g_LogLevelStr[eNumLogLevels] =
 	{
-		"none",  // eLogNone
-		"error", // eLogError
-		"warn",  // eLogWarn
-		"info",  // eLogInfo
-		"debug"  // eLogDebug
+		"none",     // eLogNone
+		"critical", // eLogCritical
+		"error",    // eLogError
+		"warn",     // eLogWarning
+		"info",     // eLogInfo
+		"debug"     // eLogDebug
 	};
 
 	/**
@@ -31,27 +33,29 @@ namespace log {
 	 * @note Using ISO 6429 (ANSI) color sequences
 	 */
 #ifdef _WIN32
-	static const char *LogMsgColors[] = { "", "", "", "", "", "" };
+	static const char *LogMsgColors[] = { "", "", "", "", "", "", "" };
 #else /* UNIX */
 	static const char *LogMsgColors[] = {
-		[eLogNone]      = "\033[0m",    /* reset */
-		[eLogError]     = "\033[1;31m", /* red */
-		[eLogWarning]   = "\033[1;33m", /* yellow */
-		[eLogInfo]      = "\033[1;36m", /* cyan */
-		[eLogDebug]     = "\033[1;34m", /* blue */
-		[eNumLogLevels] = "\033[0m",    /* reset */
+		"\033[1;32m", /* none:    green */
+		"\033[1;41m", /* critical: red background */
+		"\033[1;31m", /* error:   red */
+		"\033[1;33m", /* warning: yellow */
+		"\033[1;36m", /* info:    cyan */
+		"\033[1;34m", /* debug:   blue */
+		"\033[0m"     /* reset */
 	};
 #endif
 
 #ifndef _WIN32
 	/**
-	 * @brief  Maps our log levels to syslog one
+	 * @brief Maps our log levels to syslog one
 	 * @return syslog priority LOG_*, as defined in syslog.h
 	 */
 	static inline int GetSyslogPrio (enum LogLevel l) {
 		int priority = LOG_DEBUG;
 		switch (l) {
 			case eLogNone    : priority = LOG_CRIT;    break;
+			case eLogCritical: priority = LOG_CRIT;    break;
 			case eLogError   : priority = LOG_ERR;     break;
 			case eLogWarning : priority = LOG_WARNING; break;
 			case eLogInfo    : priority = LOG_INFO;    break;
@@ -112,26 +116,27 @@ namespace log {
 
 	std::string str_tolower(std::string s) {
 		std::transform(s.begin(), s.end(), s.begin(),
-					// static_cast<int(*)(int)>(std::tolower)         // wrong
-					// [](int c){ return std::tolower(c); }           // wrong
-					// [](char c){ return std::tolower(c); }          // wrong
-					   [](unsigned char c){ return std::tolower(c); } // correct
-					);
+			// static_cast<int(*)(int)>(std::tolower)      // wrong
+			// [](int c){ return std::tolower(c); }        // wrong
+			// [](char c){ return std::tolower(c); }       // wrong
+			[](unsigned char c){ return std::tolower(c); } // correct
+		);
 		return s;
 	}
 
 	void Log::SetLogLevel (const std::string& level_) {
 		std::string level=str_tolower(level_);
-		if      (level == "none")  { m_MinLevel = eLogNone; }
-		else if (level == "error") { m_MinLevel = eLogError; }
-		else if (level == "warn")  { m_MinLevel = eLogWarning; }
-		else if (level == "info")  { m_MinLevel = eLogInfo;  }
-		else if (level == "debug") { m_MinLevel = eLogDebug; }
+		if      (level == "none")     { m_MinLevel = eLogNone; }
+		else if (level == "critical") { m_MinLevel = eLogCritical; }
+		else if (level == "error")    { m_MinLevel = eLogError; }
+		else if (level == "warn")     { m_MinLevel = eLogWarning; }
+		else if (level == "info")     { m_MinLevel = eLogInfo; }
+		else if (level == "debug")    { m_MinLevel = eLogDebug; }
 		else {
-			LogPrint(eLogError, "Log: unknown loglevel: ", level);
+			LogPrint(eLogCritical, "Log: Unknown loglevel: ", level);
 			return;
 		}
-		LogPrint(eLogInfo, "Log: min messages level set to ", level);
+		LogPrint(eLogInfo, "Log: Logging level set to ", level);
 	}
 
 	const char * Log::TimeAsString(std::time_t t) {
@@ -169,7 +174,7 @@ namespace log {
 				break;
 			case eLogStdout:
 			default:
-				std::cout    << TimeAsString(msg->timestamp)
+				std::cout << TimeAsString(msg->timestamp)
 					<< "@" << short_tid
 					<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
 					<< " - " << msg->text << std::endl;
@@ -179,6 +184,8 @@ namespace log {
 
 	void Log::Run ()
 	{
+		i2p::util::SetThreadName("Logging");
+
 		Reopen ();
 		while (m_IsRunning)
 		{
@@ -209,7 +216,7 @@ namespace log {
 			m_LogStream = os;
 			return;
 		}
-		LogPrint(eLogError, "Log: can't open file ", path);
+		LogPrint(eLogCritical, "Log: Can't open file ", path);
 	}
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {

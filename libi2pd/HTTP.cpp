@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -9,15 +9,18 @@
 #include <algorithm>
 #include <utility>
 #include <stdio.h>
-#include "util.h"
-#include "HTTP.h"
 #include <ctime>
+#include "util.h"
+#include "Base.h"
+#include "HTTP.h"
 
-namespace i2p {
-namespace http {
+namespace i2p
+{
+namespace http
+{
 	const std::vector<std::string> HTTP_METHODS = {
-		"GET", "HEAD", "POST", "PUT", "PATCH",
-		"DELETE", "OPTIONS", "CONNECT", "PROPFIND"
+		"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", // HTTP basic methods
+		"COPY", "LOCK", "MKCOL", "MOVE", "PROPFIND", "PROPPATCH", "UNLOCK", "SEARCH" // WebDAV methods, for SEARCH see rfc5323
 	};
 	const std::vector<std::string> HTTP_VERSIONS = {
 		"HTTP/1.0", "HTTP/1.1"
@@ -90,15 +93,18 @@ namespace http {
 		std::size_t pos_c = 0; /* < work position */
 		if(url.at(0) != '/' || pos_p > 0) {
 			std::size_t pos_s = 0;
+
 			/* schema */
 			pos_c = url.find("://");
 			if (pos_c != std::string::npos) {
 				schema = url.substr(0, pos_c);
 				pos_p = pos_c + 3;
 			}
+
 			/* user[:pass] */
 			pos_s = url.find('/', pos_p); /* find first slash */
 			pos_c = url.find('@', pos_p); /* find end of 'user' or 'user:pass' part */
+
 			if (pos_c != std::string::npos && (pos_s == std::string::npos || pos_s > pos_c)) {
 				std::size_t delim = url.find(':', pos_p);
 				if (delim && delim != std::string::npos && delim < pos_c) {
@@ -110,14 +116,28 @@ namespace http {
 				}
 				pos_p = pos_c + 1;
 			}
+
 			/* hostname[:port][/path] */
-			pos_c = url.find_first_of(":/", pos_p);
+			if (url.at(pos_p) == '[') // ipv6
+			{
+				auto pos_b = url.find(']', pos_p);
+				if (pos_b == std::string::npos) return false;
+				ipv6 = true;
+				pos_c = url.find_first_of(":/", pos_b);
+			}
+			else
+				pos_c = url.find_first_of(":/", pos_p);
+
 			if (pos_c == std::string::npos) {
 				/* only hostname, without post and path */
-				host = url.substr(pos_p, std::string::npos);
+				host = ipv6 ?
+					url.substr(pos_p + 1, url.length() - 1) :
+					url.substr(pos_p, std::string::npos);
 				return true;
 			} else if (url.at(pos_c) == ':') {
-				host = url.substr(pos_p, pos_c - pos_p);
+				host = ipv6 ?
+					url.substr(pos_p + 1, pos_c - pos_p - 2) :
+					url.substr(pos_p, pos_c - pos_p);
 				/* port[/path] */
 				pos_p = pos_c + 1;
 				pos_c = url.find('/', pos_p);
@@ -125,6 +145,7 @@ namespace http {
 					? url.substr(pos_p, std::string::npos)
 					: url.substr(pos_p, pos_c - pos_p);
 				/* stoi throws exception on failure, we don't need it */
+				port = 0;
 				for (char c : port_str) {
 					if (c < '0' || c > '9')
 						return false;
@@ -136,7 +157,9 @@ namespace http {
 				pos_p = pos_c;
 			} else {
 				/* start of path part found */
-				host = url.substr(pos_p, pos_c - pos_p);
+				host = ipv6 ?
+					url.substr(pos_p + 1, pos_c - pos_p - 2) :
+					url.substr(pos_p, pos_c - pos_p);
 				pos_p = pos_c;
 			}
 		}
@@ -149,6 +172,7 @@ namespace http {
 			return true;
 		} else if (url.at(pos_c) == '?') {
 			/* found query part */
+			hasquery = true;
 			path = url.substr(pos_p, pos_c - pos_p);
 			pos_p = pos_c + 1;
 			pos_c = url.find('#', pos_p);
@@ -177,6 +201,8 @@ namespace http {
 
 		params.clear();
 		for (const auto& it : tokens) {
+			if (!it.length()) // empty
+				continue;
 			std::size_t eq = it.find ('=');
 			if (eq != std::string::npos) {
 				auto e = std::pair<std::string, std::string>(it.substr(0, eq), it.substr(eq + 1));
@@ -198,15 +224,25 @@ namespace http {
 			} else if (user != "") {
 				out += user + "@";
 			}
-			if (port) {
-				out += host + ":" + std::to_string(port);
+			if (ipv6) {
+				if (port) {
+					out += "[" + host + "]:" + std::to_string(port);
+				} else {
+					out += "[" + host + "]";
+				}
 			} else {
-				out += host;
+				if (port) {
+					out += host + ":" + std::to_string(port);
+				} else {
+					out += host;
+				}
 			}
 		}
 		out += path;
+		if (hasquery) // add query even if it was empty
+			out += "?";
 		if (query != "")
-			out += "?" + query;
+			out += query;
 		if (frag != "")
 			out += "#" + frag;
 		return out;
@@ -267,7 +303,7 @@ namespace http {
 				method  = tokens[0];
 				uri     = tokens[1];
 				version = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			}
 			else
 			{
@@ -334,12 +370,20 @@ namespace http {
 		return "";
 	}
 
+	size_t HTTPReq::GetNumHeaders (const std::string& name) const
+	{
+		size_t num = 0;
+		for (auto& it : headers)
+			if (it.first == name) num++;
+		return num;
+	}
+
 	bool HTTPRes::is_chunked() const
 	{
 		auto it = headers.find("Transfer-Encoding");
 		if (it == headers.end())
 			return false;
-		if (it->second.find("chunked") == std::string::npos)
+		if (it->second.find("chunked") != std::string::npos)
 			return true;
 		return false;
 	}
@@ -351,7 +395,7 @@ namespace http {
 			return false; /* no header */
 		if (it->second.find("gzip") != std::string::npos)
 			return true; /* gotcha! */
-		if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
+		if (includingI2PGzip && it->second.find("x-i2p-gzip") != std::string::npos)
 			return true;
 		return false;
 	}
@@ -397,7 +441,7 @@ namespace http {
 				/* all ok */
 				version = tokens[0];
 				status  = tokens[2];
-				expect = HEADER_LINE;
+				expect  = HEADER_LINE;
 			} else {
 				std::string line = str.substr(pos, eol - pos);
 				auto p = parse_header_line(line);
@@ -448,7 +492,7 @@ namespace http {
 			case 304: ptr = "Not Modified"; break;
 			case 307: ptr = "Temporary Redirect"; break;
 			/* client error */
-			case 400: ptr = "Bad Request";  break;
+			case 400: ptr = "Bad Request"; break;
 			case 401: ptr = "Unauthorized"; break;
 			case 403: ptr = "Forbidden"; break;
 			case 404: ptr = "Not Found"; break;
@@ -459,17 +503,20 @@ namespace http {
 			case 502: ptr = "Bad Gateway"; break;
 			case 503: ptr = "Not Implemented"; break;
 			case 504: ptr = "Gateway Timeout"; break;
-			default:  ptr = "Unknown Status";  break;
+			default:  ptr = "Unknown Status"; break;
 		}
 		return ptr;
 	}
 
-	std::string UrlDecode(const std::string& data, bool allow_null) {
+	std::string UrlDecode(const std::string& data, bool allow_null)
+	{
 		std::string decoded(data);
 		size_t pos = 0;
-		while ((pos = decoded.find('%', pos)) != std::string::npos) {
+		while ((pos = decoded.find('%', pos)) != std::string::npos)
+		{
 			char c = strtol(decoded.substr(pos + 1, 2).c_str(), NULL, 16);
-			if (c == '\0' && !allow_null) {
+			if (c == '\0' && !allow_null)
+			{
 				pos += 3;
 				continue;
 			}
@@ -479,9 +526,11 @@ namespace http {
 		return decoded;
 	}
 
-	bool MergeChunkedResponse (std::istream& in, std::ostream& out) {
+	bool MergeChunkedResponse (std::istream& in, std::ostream& out)
+	{
 		std::string hexLen;
-		while (!in.eof ()) {
+		while (!in.eof ())
+		{
 			std::getline (in, hexLen);
 			errno = 0;
 			long int len = strtoul(hexLen.c_str(), (char **) NULL, 16);
@@ -499,5 +548,12 @@ namespace http {
 		}
 		return true;
 	}
+
+	std::string CreateBasicAuthorizationString (const std::string& user, const std::string& pass)
+	{
+		if (user.empty () && pass.empty ()) return "";
+		return "Basic " + i2p::data::ToBase64Standard (user + ":" + pass);
+	}
+
 } // http
 } // i2p

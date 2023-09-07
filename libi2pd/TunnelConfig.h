@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2021, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -9,13 +9,10 @@
 #ifndef TUNNEL_CONFIG_H__
 #define TUNNEL_CONFIG_H__
 
-#include <inttypes.h>
-#include <sstream>
 #include <vector>
-#include <memory>
 #include "Identity.h"
 #include "RouterContext.h"
-#include "Timestamp.h"
+#include "Crypto.h"
 
 namespace i2p
 {
@@ -35,107 +32,74 @@ namespace tunnel
 		TunnelHopConfig * next, * prev;
 		int recordIndex; // record # in tunnel build message
 
-		TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r)
-		{
-			RAND_bytes (layerKey, 32);
-			RAND_bytes (ivKey, 32);
-			RAND_bytes (replyKey, 32);
-			RAND_bytes (replyIV, 16);
-			RAND_bytes ((uint8_t *)&tunnelID, 4);
-			if (!tunnelID) tunnelID = 1; // tunnelID can't be zero
-			isGateway = true;
-			isEndpoint = true;
-			ident = r;
-			//nextRouter = nullptr;
-			nextTunnelID = 0;
+		TunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r);
+		virtual ~TunnelHopConfig () {};
 
-			next = nullptr;
-			prev = nullptr;
-		}
+		void SetNextIdent (const i2p::data::IdentHash& ident);
+		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent);
+		void SetNext (TunnelHopConfig * n);
+		void SetPrev (TunnelHopConfig * p);
 
-		void SetNextIdent (const i2p::data::IdentHash& ident)
-		{
-			nextIdent = ident;
-			isEndpoint = false;
-			RAND_bytes ((uint8_t *)&nextTunnelID, 4);
-			if (!nextTunnelID) nextTunnelID = 1; // tunnelID can't be zero
-		}
+		virtual uint8_t GetRetCode (const uint8_t * records) const = 0;
+		virtual void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) = 0;
+		virtual bool DecryptBuildResponseRecord (uint8_t * records) const = 0;
+		virtual void DecryptRecord (uint8_t * records, int index) const; // AES
+		virtual uint64_t GetGarlicKey (uint8_t * key) const { return 0; }; // return tag
+	};
 
-		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent)
-		{
-			nextIdent = replyIdent;
-			nextTunnelID = replyTunnelID;
-			isEndpoint = true;
-		}
+	struct ECIESTunnelHopConfig: public TunnelHopConfig, public i2p::crypto::NoiseSymmetricState
+	{
+		ECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			TunnelHopConfig (r) {};
+		void EncryptECIES (const uint8_t * clearText, size_t len, uint8_t * encrypted);
+		bool DecryptECIES (const uint8_t * key, const uint8_t * nonce, const uint8_t * encrypted, size_t len, uint8_t * clearText) const;
+	};
 
-		void SetNext (TunnelHopConfig * n)
-		{
-			next = n;
-			if (next)
-			{
-				next->prev = this;
-				next->isGateway = false;
-				isEndpoint = false;
-				nextIdent = next->ident->GetIdentHash ();
-				nextTunnelID = next->tunnelID;
-			}
-		}
+	struct LongECIESTunnelHopConfig: public ECIESTunnelHopConfig
+	{
+		LongECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			ECIESTunnelHopConfig (r) {};
+		uint8_t GetRetCode (const uint8_t * records) const override
+		{ return (records + recordIndex*TUNNEL_BUILD_RECORD_SIZE)[ECIES_BUILD_RESPONSE_RECORD_RET_OFFSET]; };
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
+		bool DecryptBuildResponseRecord (uint8_t * records) const override;
+	};
 
-		void SetPrev (TunnelHopConfig * p)
-		{
-			prev = p;
-			if (prev)
-			{
-				prev->next = this;
-				prev->isEndpoint = false;
-				isGateway = false;
-			}
-		}
-
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID, BN_CTX * ctx) const
-		{
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID);
-			memcpy (clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET, ident->GetIdentHash (), 32);
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET, nextTunnelID);
-			memcpy (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, nextIdent, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, layerKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, ivKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET, replyKey, 32);
-			memcpy (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET, replyIV, 16);
-			uint8_t flag = 0;
-			if (isGateway) flag |= 0x80;
-			if (isEndpoint) flag |= 0x40;
-			clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ());
-			htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID);
-			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
-			auto encryptor = ident->CreateEncryptor (nullptr);
-			if (encryptor)
-				encryptor->Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, ctx, false);
-			memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
-		}
+	struct ShortECIESTunnelHopConfig: public ECIESTunnelHopConfig
+	{
+		ShortECIESTunnelHopConfig (std::shared_ptr<const i2p::data::IdentityEx> r):
+			ECIESTunnelHopConfig (r) {};
+		uint8_t GetRetCode (const uint8_t * records) const override
+		{ return (records + recordIndex*SHORT_TUNNEL_BUILD_RECORD_SIZE)[SHORT_RESPONSE_RECORD_RET_OFFSET]; };
+		void CreateBuildRequestRecord (uint8_t * records, uint32_t replyMsgID) override;
+		bool DecryptBuildResponseRecord (uint8_t * records) const override;
+		void DecryptRecord (uint8_t * records, int index) const override; // Chacha20
+		uint64_t GetGarlicKey (uint8_t * key) const override;
 	};
 
 	class TunnelConfig
 	{
 		public:
 
-			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers) // inbound
+			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
+				bool isShort, i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // inbound
+				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
 			{
 				CreatePeers (peers);
 				m_LastHop->SetNextIdent (i2p::context.GetIdentHash ());
 			}
 
-			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers,
-				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent) // outbound
+			TunnelConfig (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers,
+				uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent, bool isShort,
+				i2p::data::RouterInfo::CompatibleTransports farEndTransports = i2p::data::RouterInfo::eAllTransports): // outbound
+				m_IsShort (isShort), m_FarEndTransports (farEndTransports)
 			{
 				CreatePeers (peers);
 				m_FirstHop->isGateway = false;
 				m_LastHop->SetReplyHop (replyTunnelID, replyIdent);
 			}
 
-			~TunnelConfig ()
+			virtual ~TunnelConfig ()
 			{
 				TunnelHopConfig * hop = m_FirstHop;
 
@@ -145,6 +109,13 @@ namespace tunnel
 					hop = hop->next;
 					delete tmp;
 				}
+			}
+
+			bool IsShort () const { return m_IsShort; }
+
+			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const
+			{
+				return m_FarEndTransports;
 			}
 
 			TunnelHopConfig * GetFirstHop () const
@@ -213,31 +184,20 @@ namespace tunnel
 		protected:
 
 			// this constructor can't be called from outside
-			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr)
+			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr), m_IsShort (false),
+				m_FarEndTransports (i2p::data::RouterInfo::eAllTransports)
 			{
 			}
 
 		private:
 
-			template<class Peers>
-			void CreatePeers (const Peers& peers)
-			{
-				TunnelHopConfig * prev = nullptr;
-				for (const auto& it: peers)
-				{
-					auto hop = new TunnelHopConfig (it);
-					if (prev)
-						prev->SetNext (hop);
-					else
-						m_FirstHop = hop;
-					prev = hop;
-				}
-				m_LastHop = prev;
-			}
+			void CreatePeers (const std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers);
 
 		private:
 
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
+			bool m_IsShort;
+			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 	};
 
 	class ZeroHopsTunnelConfig: public TunnelConfig

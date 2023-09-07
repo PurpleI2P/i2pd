@@ -3,6 +3,9 @@
 [![License](https://img.shields.io/github/license/PurpleI2P/i2pd.svg)](https://github.com/PurpleI2P/i2pd/blob/openssl/LICENSE)
 [![Packaging status](https://repology.org/badge/tiny-repos/i2pd.svg)](https://repology.org/project/i2pd/versions)
 [![Docker Pulls](https://img.shields.io/docker/pulls/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd)
+[![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
+
+*note: i2pd for Android can be found in [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository and with Qt GUI in [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository*
 
 i2pd
 ====
@@ -53,6 +56,8 @@ Building
 See [documentation](https://i2pd.readthedocs.io/en/latest/) for how to build
 i2pd from source on your OS.  
 
+note: i2pd with Qt GUI can be found in [i2pd-qt](https://github.com/PurpleI2P/i2pd-qt) repository and for android in [i2pd-android](https://github.com/PurpleI2P/i2pd-android) repository.
+
 
 Build instructions:
 
@@ -64,15 +69,15 @@ Build instructions:
 
 **Supported systems:**
 
-* GNU/Linux - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-  * CentOS / Fedora / Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
-  * Alpine, ArchLinux, openSUSE, Gentoo, Debian, Ubuntu, etc.
-* Windows - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
-* Mac OS X - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
-* Docker image - [![Build Status](https://img.shields.io/docker/cloud/build/purplei2p/i2pd)](https://hub.docker.com/r/purplei2p/i2pd/builds/)
-* Snap - [![Snap Status](https://build.snapcraft.io/badge/PurpleI2P/i2pd-snap.svg)](https://build.snapcraft.io/user/PurpleI2P/i2pd-snap)
-* FreeBSD
-* Android
+* GNU/Linux (Debian, Ubuntu, etc) - [![Build on Ubuntu](https://github.com/PurpleI2P/i2pd/actions/workflows/build.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build.yml)
+* CentOS, Fedora, Mageia - [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
+* Alpine, ArchLinux, openSUSE, Gentoo, etc.
+* Windows - [![Build on Windows](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-windows.yml)
+* Mac OS - [![Build on OSX](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-osx.yml)
+* Docker image - [![Build containers](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/docker.yml)
+* Snap - [![i2pd](https://snapcraft.io/i2pd/badge.svg)](https://snapcraft.io/i2pd) [![i2pd](https://snapcraft.io/i2pd/trending.svg?name=0)](https://snapcraft.io/i2pd)
+* FreeBSD - [![Build on FreeBSD](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml/badge.svg)](https://github.com/PurpleI2P/i2pd/actions/workflows/build-freebsd.yml)
+* Android - [![Android CI](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml/badge.svg)](https://github.com/PurpleI2P/i2pd-android/actions/workflows/android.yml)
 * iOS
 
 Using i2pd
@@ -81,15 +86,36 @@ Using i2pd
 See [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/run/) and
 [example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/contrib/i2pd.conf).
 
+Localization
+------------
+
+You can help us with translation i2pd to your language using Crowdin platform!
+Translation project can be found [here](https://crowdin.com/project/i2pd).
+
+New languages can be requested on project's [discussion page](https://crowdin.com/project/i2pd/discussions).
+
+Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](https://crowdin.com/project/i2pd)
+
 Donations
 ---------
 
-BTC: 3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f  
-LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59  
-ETH: 0x9e5bac70d20d1079ceaa111127f4fb3bccce379d  
-DASH: Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF  
-ZEC: t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ  
-GST: GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG  
+**E-Mail**: ```i2porignal at yandex.ru```
+
+**BTC**: ```3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f```
+
+**LTC**: ```LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59```
+
+**ETH**: ```0x9e5bac70d20d1079ceaa111127f4fb3bccce379d```
+
+**GST**: ```GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG```
+
+**DASH**: ```Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF```
+
+**ZEC**: ```t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ```
+
+**ANC**: ```AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z```
+
+**XMR**: ```497pJc7X4xqKvcLBLpSUtRgWqMMyo24u4btCos3cak6gbMkpobgSU6492ztUcUBghyeHpYeczB55s38NpuHoH5WGNSPDRMH```
 
 License
 -------

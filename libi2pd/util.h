@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -51,12 +51,13 @@ namespace util
 			MemoryPool (): m_Head (nullptr) {}
 			~MemoryPool ()
 			{
-				while (m_Head)
-				{
-					auto tmp = m_Head;
-					m_Head = static_cast<T*>(*(void * *)m_Head); // next
-					::operator delete ((void *)tmp);
-				}
+				CleanUp ();
+			}
+
+			void CleanUp ()
+			{
+				CleanUp (m_Head);
+				m_Head = nullptr;
 			}
 
 			template<typename... TArgs>
@@ -95,11 +96,23 @@ namespace util
 
 		protected:
 
+			void CleanUp (T * head)
+			{
+				while (head)
+				{
+					auto tmp = head;
+					head = static_cast<T*>(*(void * *)head); // next
+					::operator delete ((void *)tmp);
+				}
+			}
+
+		protected:
+
 			T * m_Head;
 	};
 
 	template<class T>
-	class MemoryPoolMt: public MemoryPool<T>
+	class MemoryPoolMt: private MemoryPool<T>
 	{
 		public:
 
@@ -124,6 +137,24 @@ namespace util
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (auto& it: c)
 					this->Release (it);
+			}
+
+			template<typename... TArgs>
+			std::shared_ptr<T> AcquireSharedMt (TArgs&&... args)
+			{
+				return std::shared_ptr<T>(AcquireMt (std::forward<TArgs>(args)...),
+					std::bind<void (MemoryPoolMt<T>::*)(T *)> (&MemoryPoolMt<T>::ReleaseMt, this, std::placeholders::_1));
+			}
+
+			void CleanUpMt ()
+			{
+				T * head;
+				{
+					std::lock_guard<std::mutex> l(m_Mutex);
+					head = this->m_Head;
+					this->m_Head = nullptr;
+				}
+				if (head) this->CleanUp (head);
 			}
 
 		private:
@@ -168,10 +199,32 @@ namespace util
 			boost::asio::io_service::work m_Work;
 	};
 
+	void SetThreadName (const char *name);
+
+	template<typename T>
+	class SaveStateHelper
+	{
+		public:
+
+			SaveStateHelper (T& orig): m_Original (orig), m_Copy (orig) {};
+			~SaveStateHelper () { m_Original = m_Copy; };
+
+		private:
+
+			T& m_Original;
+			T m_Copy;
+	};
+
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);
-		const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6=false);
+		int GetMaxMTU (const boost::asio::ip::address_v6& localAddress); // check tunnel broker for ipv6 address
+		const boost::asio::ip::address GetInterfaceAddress (const std::string & ifname, bool ipv6=false);
+		boost::asio::ip::address_v6 GetYggdrasilAddress ();
+		bool IsLocalAddress (const boost::asio::ip::address& addr);
+		bool IsInReservedRange (const boost::asio::ip::address& host);
+		bool IsYggdrasilAddress (const boost::asio::ip::address& addr);
+		bool IsPortInReservedRange (const uint16_t port) noexcept;
 	}
 }
 }

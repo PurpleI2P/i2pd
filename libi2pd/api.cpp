@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -37,7 +37,9 @@ namespace api
 		i2p::fs::Init();
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
-		i2p::crypto::InitCrypto (precomputation);
+		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
+		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
+		i2p::crypto::InitCrypto (precomputation, aesni, forceCpuExt);
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
@@ -57,22 +59,27 @@ namespace api
 		else
 			i2p::log::Logger().SendTo (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
 		i2p::log::Logger().Start ();
-		LogPrint(eLogInfo, "API: starting NetDB");
+		i2p::transport::InitTransports ();
+		LogPrint(eLogInfo, "API: Starting NetDB");
 		i2p::data::netdb.Start();
-		LogPrint(eLogInfo, "API: starting Transports");
+		LogPrint(eLogInfo, "API: Starting Transports");
 		i2p::transport::transports.Start();
-		LogPrint(eLogInfo, "API: starting Tunnels");
+		LogPrint(eLogInfo, "API: Starting Tunnels");
 		i2p::tunnel::tunnels.Start();
+		LogPrint(eLogInfo, "API: Starting Router context");
+		i2p::context.Start();
 	}
 
 	void StopI2P ()
 	{
-		LogPrint(eLogInfo, "API: shutting down");
-		LogPrint(eLogInfo, "API: stopping Tunnels");
+		LogPrint(eLogInfo, "API: Shutting down");
+		LogPrint(eLogInfo, "API: Stopping Router context");
+		i2p::context.Stop();
+		LogPrint(eLogInfo, "API: Stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
-		LogPrint(eLogInfo, "API: stopping Transports");
+		LogPrint(eLogInfo, "API: Stopping Transports");
 		i2p::transport::transports.Stop();
-		LogPrint(eLogInfo, "API: stopping NetDB");
+		LogPrint(eLogInfo, "API: Stopping NetDB");
 		i2p::data::netdb.Stop();
 		i2p::log::Logger().Stop ();
 	}

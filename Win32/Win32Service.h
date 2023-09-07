@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2022, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,25 +12,7 @@
 #include <thread>
 #include <windows.h>
 
-#ifdef _WIN32
-// Internal name of the service
-#define SERVICE_NAME             "i2pdService"
-
-// Displayed name of the service
-#define SERVICE_DISPLAY_NAME     "i2pd router service"
-
-// Service start options.
-#define SERVICE_START_TYPE       SERVICE_DEMAND_START
-
-// List of service dependencies - "dep1\0dep2\0\0"
-#define SERVICE_DEPENDENCIES     ""
-
-// The name of the account under which the service should run
-#define SERVICE_ACCOUNT          "NT AUTHORITY\\LocalService"
-
-// The password to the service account name
-#define SERVICE_PASSWORD         NULL
-#endif
+#define SERVICE_NAME "i2pdService"
 
 class I2PService
 {
@@ -77,16 +59,5 @@ class I2PService
 
 		std::thread* _worker;
 };
-
-void InstallService(
-	PCSTR pszServiceName,
-	PCSTR pszDisplayName,
-	DWORD dwStartType,
-	PCSTR pszDependencies,
-	PCSTR pszAccount,
-	PCSTR pszPassword
-);
-
-void UninstallService(PCSTR pszServiceName);
 
 #endif // WIN_32_SERVICE_H__

@@ -1,0 +1,39 @@
+# editorconfig.org
+
+root = true
+
+[*]
+# Unix style files
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[Makefile,Makefile.*]
+indent_style = tab
+indent_size = 4
+
+[*.cmd]
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+[*.{h,cpp}]
+indent_style = tab
+indent_size = 4
+
+[*.rc]
+indent_style = space
+indent_size = 4
+
+[*.{md,markdown}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.yml]
+indent_style = space
+indent_size = 2
+
+[*.patch]
+trim_trailing_whitespace = false

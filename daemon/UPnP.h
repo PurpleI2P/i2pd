@@ -51,7 +51,7 @@ namespace transport
 		private:
 
 			void Discover ();
-			int  CheckMapping (const char* port, const char* type);
+			int CheckMapping (const char* port, const char* type);
 			void PortMapping ();
 			void TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
 			void CloseMapping ();
@@ -80,7 +80,7 @@ namespace transport
 }
 }
 
-#else  // USE_UPNP
+#else // USE_UPNP
 namespace i2p {
 namespace transport {
 	/* class stub */
