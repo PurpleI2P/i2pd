@@ -121,6 +121,9 @@ namespace config {
 	 * @return true if value set to default, false otherwise
 	 */
 	bool IsDefault(const char *name);
+	bool IsTrueOrYes(std::string & val, std::function<bool()> fun = []() {return false;} ); 
+	bool IsIPv4Works(void);
+	bool IsIPv6Works(void);
 }
 }
 

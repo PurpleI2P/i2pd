@@ -11,10 +11,15 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <vector>
+#include <random>
+
 #include <boost/program_options/cmdline.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/asio.hpp>
+
 
 #include "Identity.h"
 #include "Config.h"
@@ -25,6 +30,7 @@ using namespace boost::program_options;
 
 namespace i2p {
 namespace config {
+        
 	options_description m_OptionsDesc;
 	variables_map m_Options;
 
@@ -51,9 +57,9 @@ namespace config {
 			("ifname6", value<std::string>()->default_value(""),              "Network interface to bind to for ipv6")
 			("nat", bool_switch()->default_value(true),                       "Should we assume we are behind NAT? (default: enabled)")
 			("port", value<uint16_t>()->default_value(0),                     "Port to listen for incoming connections (default: auto)")
-			("ipv4", bool_switch()->default_value(true),                      "Enable communication through ipv4 (default: enabled)")
 			("address4", value<std::string>()->default_value(""),             "Local address to bind ipv4 transport sockets to")
-			("ipv6", bool_switch()->default_value(false),                     "Enable communication through ipv6 (default: disabled)")
+			("ipv4", value<std::string>()->default_value("true"),              "Enable communication through ipv4 (default: 'true')")
+			("ipv6", value<std::string>()->default_value("false"),               "Enable communication through ipv6 (default: 'false')")
 			("address6", value<std::string>()->default_value(""),             "Local address to bind ipv6 transport sockets to")
 			("reservedrange", bool_switch()->default_value(true),             "Check remote RI for being in blacklist of reserved IP ranges (default: enabled)")
 			("netid", value<int>()->default_value(I2PD_NET_ID),               "Specify NetID. Main I2P is 2")
@@ -451,5 +457,77 @@ namespace config {
 		return GetOptionAsAny (name.c_str (), value);
 	}
 
+	//
+	bool IsTrueOrYes(std::string & val, std::function<bool()> fun )
+	{
+	        if (val.find("true") != std::string::npos || val.find("yes") != std::string::npos) {
+	            return true;
+	        } else if (val.find("false") != std::string::npos || val.find("no") != std::string::npos) {
+	            return false;
+	        } else if (val.find("auto") != std::string::npos) {
+	            return fun();
+	        }
+	        throw "Invalid value";  // Added a throw statement for invalid values
+	}
+
+	// To utils maybe
+	static bool IsIPResolveAndConnect(std::string w = "::1")
+	{
+    		boost::asio::io_service io_service;
+    		boost::asio::ip::tcp::resolver resolver(io_service);
+    		boost::asio::ip::tcp::resolver::query query(w.c_str(), "");
+    		boost::asio::ip::tcp::socket socket(io_service);
+
+    		std::atomic_bool success(false);
+    		auto handler = [&success](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator it) {
+        		success = !ec;
+        		if (!ec) {
+            			success = !ec;
+        		}
+    		};
+
+    		boost::asio::deadline_timer timer(io_service, boost::posix_time::milliseconds(500));
+    		timer.async_wait([&io_service](const boost::system::error_code&) { io_service.stop(); });
+
+    		resolver.async_resolve(query, handler);
+    		io_service.run(); // Run the resolve.
+
+    		if (!success) {
+    		    return false;
+    		}
+    		try {
+    			boost::asio::connect(socket, resolver.resolve(query));
+		    } catch( const std::exception&) {
+			return false;
+    		}
+    		// Done, assuming that the response from the server was successful, otherwise you could parse the HTTP
+    		// response to verify it was a 200 OK.
+    		return true;
+	}
+
+	bool IsIPv4Works(void)
+	{
+		// TODO: 
+		return true; // if we connect to localhost even then is give a false
+	}
+	static bool IsIPv6HadTest = false;
+	static bool IPv6Works = false; 
+	bool IsIPv6Works(void)
+	{
+		if (IsIPv6HadTest) return IPv6Works;// TODO:
+		// TODO: if we try to get from netdb then get nullptr because this not runs. If we runs then get a recursion loop. So need a better way.
+		const std::vector<std::string> addresses={
+        		"2001:4860:4860::8888",                 // Google Public DNS сервер1
+        		"2001:4860:4860::8844"                  // Google Public DNS сервер2
+		}; 
+    		std::random_device rd;
+    		std::mt19937 mt(rd());
+    		std::uniform_int_distribution<std::size_t> dist(0, addresses.size() - 1);
+    		std::size_t random_index = dist(mt);
+	        std::string random_address = addresses[random_index];
+		IsIPv6HadTest = true;
+		IPv6Works = IsIPResolveAndConnect(random_address);
+		return IPv6Works;
+	}
 } // namespace config
 } // namespace i2p

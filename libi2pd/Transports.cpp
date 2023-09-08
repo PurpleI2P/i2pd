@@ -171,8 +171,16 @@ namespace transport
 			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
-		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
-		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		// IPv4 / IPv6 auto experemental option
+
+		std::string ipv4_str;i2p::config::GetOption("ipv4", ipv4_str); 
+		std::string ipv6_str;i2p::config::GetOption("ipv6", ipv6_str);
+		bool ipv4 = i2p::config::IsTrueOrYes(ipv4_str, i2p::config::IsIPv4Works);
+		bool ipv6 = i2p::config::IsTrueOrYes(ipv6_str, i2p::config::IsIPv6Works);
+		LogPrint (eLogDebug, "Transports: IPv6 supports is ", ipv6);
+		LogPrint (eLogDebug, "Transports: IPv4 supports is ", ipv4);
+
+		//
 		i2p::config::GetOption("nat", m_IsNAT);
 		m_X25519KeysPairSupplier.Start ();
 		m_IsRunning = true;
@@ -1044,8 +1052,11 @@ namespace transport
 
 	void InitAddressFromIface ()
 	{
-		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
-		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		std::string ipv4_str;i2p::config::GetOption("ipv4", ipv4_str); 
+		std::string ipv6_str;i2p::config::GetOption("ipv6", ipv6_str);
+		bool ipv4 = i2p::config::IsTrueOrYes(ipv4_str, i2p::config::IsIPv4Works);
+		bool ipv6 = i2p::config::IsTrueOrYes(ipv6_str, i2p::config::IsIPv6Works);
+
 
 		// ifname -> address
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
@@ -1069,8 +1080,10 @@ namespace transport
 
 	void InitTransports ()
 	{
-		bool ipv6;     i2p::config::GetOption("ipv6", ipv6);
-		bool ipv4;     i2p::config::GetOption("ipv4", ipv4);
+		std::string ipv4_str;i2p::config::GetOption("ipv4", ipv4_str); 
+		std::string ipv6_str;i2p::config::GetOption("ipv6", ipv6_str);
+		bool ipv4 = i2p::config::IsTrueOrYes(ipv4_str, i2p::config::IsIPv4Works);
+		bool ipv6 = i2p::config::IsTrueOrYes(ipv6_str, i2p::config::IsIPv6Works);
 		bool ygg;      i2p::config::GetOption("meshnets.yggdrasil", ygg);
 		uint16_t port; i2p::config::GetOption("port", port);
 

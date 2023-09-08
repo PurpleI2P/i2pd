@@ -93,8 +93,11 @@ namespace i2p
 		routerInfo.SetRouterIdentity (GetIdentity ());
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port) port = SelectRandomPort ();
-		bool ipv4;  i2p::config::GetOption("ipv4", ipv4);
-		bool ipv6;  i2p::config::GetOption("ipv6", ipv6);
+		std::string ipv4_str;i2p::config::GetOption("ipv4", ipv4_str); 
+		std::string ipv6_str;i2p::config::GetOption("ipv6", ipv6_str);
+		bool ipv4 = i2p::config::IsTrueOrYes(ipv4_str, i2p::config::IsIPv4Works);
+		bool ipv6 = i2p::config::IsTrueOrYes(ipv6_str, i2p::config::IsIPv6Works);
+		//
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ssu2;  i2p::config::GetOption("ssu2.enabled", ssu2);
 		bool ygg;   i2p::config::GetOption("meshnets.yggdrasil", ygg);
