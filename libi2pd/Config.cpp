@@ -193,7 +193,7 @@ namespace config {
 		options_description precomputation("Precomputation options");
 		precomputation.add_options()
 			("precomputation.elgamal",
-#if defined(__x86_64__)
+#if (defined(_M_AMD64) || defined(__x86_64__))
 				value<bool>()->default_value(false),
 #else
 				value<bool>()->default_value(true),
@@ -308,7 +308,7 @@ namespace config {
 		options_description cpuext("CPU encryption extensions options");
 		cpuext.add_options()
 			("cpuext.aesni", bool_switch()->default_value(true),                     "Use auto detection for AESNI CPU extensions. If false, AESNI will be not used")
-			("cpuext.avx", bool_switch()->default_value(true),                       "Use auto detection for AVX CPU extensions. If false, AVX will be not used")
+			("cpuext.avx", bool_switch()->default_value(false),                      "Deprecated option")
 			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
 		;
 

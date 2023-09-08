@@ -199,14 +199,11 @@ endif()
 
 # Note: AES-NI and AVX is available on x86-based CPU's.
 # Here also ARM64 implementation, but currently we don't support it.
-# MSVC is not supported.
-if(MSVC)
-  message(STATUS "AES-NI is not supported on MSVC, option was disabled")
-  set(WITH_AESNI OFF)
-endif()
-
+# MSVC is not supported due to different ASM processing, so we hope OpenSSL has its own checks to run optimized code.
 if(WITH_AESNI AND (ARCHITECTURE MATCHES "x86_64" OR ARCHITECTURE MATCHES "i386"))
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+  if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+  endif()
   add_definitions(-D__AES__)
 endif()
 

@@ -16,6 +16,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "NetDb.hpp"
 #include "Profiling.h"
 
 namespace i2p
@@ -237,7 +238,7 @@ namespace data
 			if (it != g_Profiles.end ())
 				return it->second;
 		}
-		auto profile = std::make_shared<RouterProfile> ();
+		auto profile = netdb.NewRouterProfile ();
 		profile->Load (identHash); // if possible
 		std::unique_lock<std::mutex> l(g_ProfilesMutex);
 		g_Profiles.emplace (identHash, profile);
