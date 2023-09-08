@@ -175,6 +175,7 @@ namespace data
 				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
 				    ts + i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT < lastProfilesCleanup)
 				{
+					m_RouterProfilesPool.CleanUpMt ();
 					if (m_PersistProfiles) PersistProfiles ();
 					DeleteObsoleteProfiles ();
 					lastProfilesCleanup = ts;

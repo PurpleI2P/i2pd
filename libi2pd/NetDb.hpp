@@ -128,6 +128,7 @@ namespace data
 			};
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
+			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -185,6 +186,7 @@ namespace data
 			i2p::util::MemoryPoolMt<RouterInfo::Addresses> m_RouterInfoAddressVectorsPool;
 			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
 			i2p::util::MemoryPoolMt<IdentityEx> m_IdentitiesPool;
+			i2p::util::MemoryPoolMt<RouterProfile> m_RouterProfilesPool;
 	};
 
 	extern NetDb netdb;
