@@ -11,9 +11,9 @@ URL:           https://github.com/PurpleI2P/i2pd
 Source0:       https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
 %if 0%{?rhel} == 7
-BuildRequires: cmake3
+  BuildRequires: cmake3
 %else
-BuildRequires: cmake
+  BuildRequires: cmake
 %endif
 
 BuildRequires: chrpath
@@ -28,8 +28,10 @@ Requires:      logrotate
 Requires:      systemd
 Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
 
+
 %description
 C++ implementation of I2P.
+
 
 %prep
 %setup -q -n i2pd-openssl
@@ -38,72 +40,56 @@ C++ implementation of I2P.
 %build
 cd build
 %if 0%{?rhel} == 7
-%cmake3 \
+  %cmake3 \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
     -DBUILD_SHARED_LIBS:BOOL=OFF
 %else
-%cmake \
+  %cmake \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
-%if 0%{?fedora} > 29
+  %if 0%{?fedora} > 29
     -DBUILD_SHARED_LIBS:BOOL=OFF \
     .
-%else
+  %else
     -DBUILD_SHARED_LIBS:BOOL=OFF
-%endif
-%endif
-
-
-%if 0%{?rhel} == 9
-pushd redhat-linux-build
+  %endif
 %endif
 
-%if 0%{?fedora} >= 35
-pushd redhat-linux-build
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 35 || 0%{?eln}
+  pushd redhat-linux-build
 %else
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
-%endif
-%endif
+  %if 0%{?fedora} >= 33
+    pushd %{_target_platform}
+  %endif
 
-%if 0%{?mageia} > 7
-pushd build
+  %if 0%{?mageia} > 7
+    pushd build
+  %endif
 %endif
 
 make %{?_smp_mflags}
 
-%if 0%{?rhel} == 9
-popd
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 33 || 0%{?mageia} > 7
+  popd
 %endif
 
-%if 0%{?fedora} >= 33
-popd
-%endif
-
-%if 0%{?mageia} > 7
-popd
-%endif
 
 %install
 pushd build
 
-%if 0%{?rhel} == 9
-pushd redhat-linux-build
-%endif
-
-%if 0%{?fedora} >= 35
-pushd redhat-linux-build
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 35 || 0%{?eln}
+  pushd redhat-linux-build
 %else
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
-%endif
-%endif
+  %if 0%{?fedora} >= 33
+    pushd %{_target_platform}
+  %endif
 
-%if 0%{?mageia}
-pushd build
+  %if 0%{?mageia}
+    pushd build
+  %endif
 %endif
 
 chrpath -d i2pd
