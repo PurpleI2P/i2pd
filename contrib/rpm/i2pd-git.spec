@@ -11,9 +11,9 @@ URL:           https://github.com/PurpleI2P/i2pd
 Source0:       https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
 %if 0%{?rhel} == 7
-  BuildRequires: cmake3
+BuildRequires: cmake3
 %else
-  BuildRequires: cmake
+BuildRequires: cmake
 %endif
 
 BuildRequires: chrpath
