@@ -13,7 +13,7 @@
 	#define bit_AES (1 << 25)
 #endif
 
-#if (defined(__GNUC__) && __GNUC__ < 5)
+#if (defined(__GNUC__) && __GNUC__ < 5 && (defined(__x86_64__) || defined(__i386__)))
 	#include <cpuid.h>
 #endif
 
