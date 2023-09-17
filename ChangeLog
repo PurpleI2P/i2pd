@@ -3,7 +3,7 @@
 
 ## [2.49.0] - 2023-09-18
 ### Added
-- Handle SOCK5 authrozation with empty user/password
+- Handle SOCK5 authorization with empty user/password
 - Drop incoming transport sessions from too old or from future routers 
 - Memory pool for router profiles 
 - Allow 0 hops in explicitPeers
@@ -17,7 +17,7 @@
 - Exclude SSU1 introducers from SSU2 addresses 
 - Don't create paired inbound tunnel if length is different
 - Remove introducer from RouterInfo after 60 minutes 
-- Reduce SSU2 keep alive interval and add peer test interval variance 
+- Reduce SSU2 keep alive interval and add keep alive interval variance 
 - Don't pick too old sessions for introducer
 ### Fixed
 - Version of the subnegotiation in user/password SOCKS5 response
