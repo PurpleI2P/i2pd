@@ -1,6 +1,33 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.49.0] - 2023-09-18
+### Added
+- Handle SOCK5 authrozation with empty user/password
+- Drop incoming transport sessions from too old or from future routers 
+- Memory pool for router profiles 
+- Allow 0 hops in explicitPeers
+### Changed
+- Separate network and testing status
+- Remove AVX code
+- Improve NTCP2 transport session logging 
+- Select router with ipv4 for tunnel endpoint 
+- Consider all addresses non-published for U and H routers even if they have host/port
+- Don't pick completely unreachable routers for tunnels
+- Exclude SSU1 introducers from SSU2 addresses 
+- Don't create paired inbound tunnel if length is different
+- Remove introducer from RouterInfo after 60 minutes 
+- Reduce SSU2 keep alive interval and add peer test interval variance 
+- Don't pick too old sessions for introducer
+### Fixed
+- Version of the subnegotiation in user/password SOCKS5 response
+- Send keepalive for existing session with introducer
+- Buffer offset for EVP_EncryptFinal_ex() to include outlen
+- Termination block size processing for transport sessions
+- Crash if deleted BOB destination was shared between few BOB sessions
+- Introducers with zero tag
+- Padding for SSU2 path response 
+
 ## [2.48.0] - 2023-06-12
 ### Added
 - Allow user/password authentication method for SOCK5 proxy
