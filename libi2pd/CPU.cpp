@@ -13,7 +13,7 @@
 	#define bit_AES (1 << 25)
 #endif
 
-#if (defined(__GNUC__) && __GNUC__ < 5 && (defined(__x86_64__) || defined(__i386__)))
+#if defined(__GNUC__) && __GNUC__ < 5 && IS_X86
 	#include <cpuid.h>
 #endif
 
@@ -29,7 +29,7 @@ namespace cpu
 
 	inline bool cpu_support_aes()
 	{
-#if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__))
+#if IS_X86
 #if defined(__clang__)
 #	if (__clang_major__ >= 6)
 		__builtin_cpu_init();
