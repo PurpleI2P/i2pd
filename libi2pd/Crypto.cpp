@@ -28,11 +28,6 @@
 #include "I2PEndian.h"
 #include "Log.h"
 
-#if defined(__AES__) && !defined(_MSC_VER) && ((defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__)))
-	#define SUPPORTS_AES 1
-#else
-	#define SUPPORTS_AES 0
-#endif
 
 namespace i2p
 {
@@ -165,7 +160,7 @@ namespace crypto
 
 // DH/ElGamal
 
-#if !defined(__x86_64__)
+#if !IS_X86_64
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BITS = 226;
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BYTES = ELGAMAL_SHORT_EXPONENT_NUM_BITS/8+1;
 #endif
@@ -367,7 +362,7 @@ namespace crypto
 		BIGNUM * b1 = BN_CTX_get (ctx);
 		BIGNUM * b = BN_CTX_get (ctx);
 		// select random k
-#if (defined(_M_AMD64) || defined(__x86_64__))
+#if IS_X86_64
 		BN_rand (k, ELGAMAL_FULL_EXPONENT_NUM_BITS, -1, 1); // full exponent for x64
 #else
 		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
@@ -434,7 +429,7 @@ namespace crypto
 
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub)
 	{
-#if (defined(_M_AMD64) || defined(__x86_64__)) || (defined(_M_IX86) || defined(__i386__)) || defined(_MSC_VER)
+#if IS_X86 || defined(_MSC_VER)
 		RAND_bytes (priv, 256);
 #else
 		// lower 226 bits (28 bytes and 2 bits) only. short exponent
@@ -1309,7 +1304,7 @@ namespace crypto
 		CRYPTO_set_locking_callback (OpensslLockingCallback);*/
 		if (precomputation)
 		{
-#if (defined(_M_AMD64) || defined(__x86_64__))
+#if IS_X86_64
 			g_ElggTable = new BIGNUM * [ELGAMAL_FULL_EXPONENT_NUM_BYTES][255];
 			PrecalculateElggTable (g_ElggTable, ELGAMAL_FULL_EXPONENT_NUM_BYTES);
 #else
@@ -1324,7 +1319,7 @@ namespace crypto
 		if (g_ElggTable)
 		{
 			DestroyElggTable (g_ElggTable,
-#if (defined(_M_AMD64) || defined(__x86_64__))
+#if IS_X86_64
 				ELGAMAL_FULL_EXPONENT_NUM_BYTES
 #else
 				ELGAMAL_SHORT_EXPONENT_NUM_BYTES
