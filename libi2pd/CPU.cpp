@@ -35,10 +35,10 @@ namespace cpu
 		__builtin_cpu_init();
 #	endif
 		return __builtin_cpu_supports("aes");
-#elif (defined(__GNUC__) && __GNUC__ >= 5)
+#elif (defined(__GNUC__) && __GNUC__ >= 6)
 		__builtin_cpu_init();
 		return __builtin_cpu_supports("aes");
-#elif (defined(__GNUC__) && __GNUC__ < 5)
+#elif (defined(__GNUC__) && __GNUC__ < 6)
 		int cpu_info[4];
 		bool flag = false;
 		__cpuid(0, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
