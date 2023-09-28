@@ -49,7 +49,7 @@ namespace client
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
 	const char SAM_STREAM_STATUS_INVALID_KEY[] = "STREAM STATUS RESULT=INVALID_KEY\n";
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
-	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
+	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR MESSAGE=\"%s\"\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
 	const char SAM_STREAM_FORWARD[] = "STREAM FORWARD";
 	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
@@ -141,7 +141,8 @@ namespace client
 			void ProcessNamingLookup (char * buf, size_t len);
 			void ProcessSessionAdd (char * buf, size_t len);
 			void ProcessSessionRemove (char * buf, size_t len);
-			void SendI2PError(const std::string & msg);
+			void SendSessionI2PError(const std::string & msg);
+			void SendStreamI2PError(const std::string & msg);	
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
