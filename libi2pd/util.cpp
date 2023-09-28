@@ -27,6 +27,17 @@
 # include <AvailabilityMacros.h>
 #endif
 
+#if defined(__HAIKU__)
+#include <gnu/pthread.h>
+#include <posix/pthread.h>
+#include <posix/sys/sockio.h>
+#include <posix/sys/ioctl.h>
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#include <bsd/ifaddrs.h>
+#endif
+#endif
+
 #ifdef _WIN32
 #include <stdlib.h>
 #include <string.h>
