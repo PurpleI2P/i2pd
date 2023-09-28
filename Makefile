@@ -67,6 +67,9 @@ else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
+else ifneq (, $(findstring haiku, $(SYS)))
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
+	include Makefile.haiku
 else # not supported
 	$(error Not supported platform)
 endif

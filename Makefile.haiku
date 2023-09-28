@@ -1,0 +1,10 @@
+CXX = g++
+CXXFLAGS := -Wall -std=c++11
+INCFLAGS = -I/system/develop/headers
+DEFINES = -D_DEFAULT_SOURCE -D_GNU_SOURCE
+LDLIBS = -lbe -lbsd -lnetwork -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+
+ifeq ($(USE_UPNP),yes)
+	DEFINES += -DUSE_UPNP
+	LDLIBS += -lminiupnpc
+endif
