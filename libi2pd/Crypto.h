@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -150,7 +150,7 @@ namespace crypto
 	};
 
 
-#ifdef __AES__
+#if SUPPORTS_AES
 	class ECBCryptoAESNI
 	{
 		public:
@@ -167,7 +167,7 @@ namespace crypto
 	};
 #endif
 
-#ifdef __AES__
+#if SUPPORTS_AES
 	class ECBEncryption: public ECBCryptoAESNI
 #else
 	class ECBEncryption
@@ -183,7 +183,7 @@ namespace crypto
 		AES_KEY m_Key;
 	};
 
-#ifdef __AES__
+#if SUPPORTS_AES
 	class ECBDecryption: public ECBCryptoAESNI
 #else
 	class ECBDecryption

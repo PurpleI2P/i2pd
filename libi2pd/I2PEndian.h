@@ -14,7 +14,7 @@
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/endian.h>
 
-#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__) || defined(__GLIBC__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__) || defined(__GLIBC__) || defined(__HAIKU__)
 #include <endian.h>
 
 #elif defined(__APPLE__) && defined(__MACH__)

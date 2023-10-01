@@ -99,7 +99,7 @@ Current status: [![Crowdin](https://badges.crowdin.net/i2pd/localized.svg)](http
 Donations
 ---------
 
-**E-Mail**: ```i2porignal at yandex.ru```
+**E-Mail**: ```i2porignal at yandex.com```
 
 **BTC**: ```3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f```
 

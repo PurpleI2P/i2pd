@@ -1,3 +1,9 @@
+i2pd (2.49.0-1) unstable; urgency=medium
+
+  * updated to version 2.49.0/0.9.60
+
+ -- orignal <orignal@i2pmail.org>  Mon, 18 Sep 2023 16:00:00 +0000
+
 i2pd (2.48.0-1) unstable; urgency=high
 
   * updated to version 2.48.0/0.9.59
