@@ -136,6 +136,14 @@ namespace fs {
 		dataDir = (home != NULL && strlen(home) > 0) ? home : "";
 		dataDir += "/Library/Application Support/" + appName;
 		return;
+#elif defined(__HAIKU__)
+		char *home = getenv("HOME");
+		if (home != NULL && strlen(home) > 0) {
+			dataDir = std::string(home) + "/config/settings/" + appName;
+		} else {
+			dataDir = "/tmp/" + appName;
+		}
+		return;
 #else /* other unix */
 #if defined(ANDROID)
 		const char * ext = getenv("EXTERNAL_STORAGE");

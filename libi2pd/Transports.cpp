@@ -833,8 +833,12 @@ namespace transport
 				}
 			}
 			bool ipv4Testing = i2p::context.GetTesting ();
+			if (!ipv4Testing)
+				ipv4Testing = i2p::context.GetRouterInfo ().IsSSU2V4 () && (i2p::context.GetStatus() == eRouterStatusUnknown);
 			bool ipv6Testing = i2p::context.GetTestingV6 ();
-			// if still testing, repeat peer test
+			if (!ipv6Testing)
+				ipv6Testing = i2p::context.GetRouterInfo ().IsSSU2V6 () && (i2p::context.GetStatusV6() == eRouterStatusUnknown);
+			// if still testing or unknown, repeat peer test
 			if (ipv4Testing || ipv6Testing)
 				PeerTest (ipv4Testing, ipv6Testing);
 			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(3 * SESSION_CREATION_TIMEOUT));

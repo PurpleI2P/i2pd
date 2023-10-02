@@ -141,6 +141,10 @@ if(APPLE)
   add_definitions(-DMAC_OSX)
 endif()
 
+if(HAIKU)
+  add_definitions(-D_DEFAULT_SOURCE -D_GNU_SOURCE)
+endif()
+
 if(MSVC)
   add_definitions(-DWINVER=0x0600)
   add_definitions(-D_WIN32_WINNT=0x0600)
