@@ -263,7 +263,7 @@ namespace transport
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
 			m_SendQueue.clear ();
-			m_SendQueueSize = 0;
+			SetSendQueueSize (0);
 			m_SentPackets.clear ();
 			m_IncompleteMessages.clear ();
 			m_RelaySessions.clear ();
@@ -364,7 +364,7 @@ namespace transport
 				RequestTermination (eSSU2TerminationReasonTimeout);
 			}
 		}
-		m_SendQueueSize = m_SendQueue.size ();
+		SetSendQueueSize (m_SendQueue.size ());
 	}
 
 	bool SSU2Session::SendQueue ()
@@ -524,7 +524,7 @@ namespace transport
 					LogPrint (eLogInfo, "SSU2: Packet was not Acked after ", it->second->numResends, " attempts. Terminate session");
 					m_SentPackets.clear ();
 					m_SendQueue.clear ();
-					m_SendQueueSize = 0;
+					SetSendQueueSize (0);
 					RequestTermination (eSSU2TerminationReasonTimeout);
 					return resentPackets.size ();
 				}
@@ -1452,8 +1452,7 @@ namespace transport
 		header.ll[1] ^= CreateHeaderMask (m_KeyDataSend + 32, payload + (len + 4));
 		m_Server.Send (header.buf, 16, payload, len + 16, m_RemoteEndpoint);
 		m_SendPacketNum++;
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-		m_NumSentBytes += len + 32;
+		UpdateNumSentBytes (len + 32);
 		return m_SendPacketNum - 1;
 	}
 
@@ -1494,8 +1493,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU2: Data AEAD verification failed ");
 			return;
 		}
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-		m_NumReceivedBytes += len;
+		UpdateNumReceivedBytes (len);
 		if (!packetNum || UpdateReceivePacketNum (packetNum))
 			HandlePayload (payload, payloadSize);
 	}
@@ -2357,7 +2355,7 @@ namespace transport
 		if (!msg->IsExpired ())
 		{
 			// m_LastActivityTimestamp is updated in ProcessData before
-			if (m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)m_LastActivityTimestamp).second)
+			if (m_ReceivedI2NPMsgIDs.emplace (msgID, (uint32_t)GetLastActivityTimestamp ()).second)
 				m_Handler.PutNextMessage (std::move (msg));
 			else
 				LogPrint (eLogDebug, "SSU2: Message ", msgID, " already received");
@@ -2943,7 +2941,7 @@ namespace transport
 			else
 				++it;
 		}
-		if (m_ReceivedI2NPMsgIDs.size () > SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS || ts > m_LastActivityTimestamp + SSU2_DECAY_INTERVAL)
+		if (m_ReceivedI2NPMsgIDs.size () > SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS || ts > GetLastActivityTimestamp () + SSU2_DECAY_INTERVAL)
 			// decay
 			m_ReceivedI2NPMsgIDs.clear ();
 		else
@@ -3015,7 +3013,7 @@ namespace transport
 	{
 		bool sent = SendQueue (); // if we have something to send
 		if (sent)
-			m_SendQueueSize = m_SendQueue.size ();
+			SetSendQueueSize (m_SendQueue.size ());
 		if (m_IsDataReceived)
 		{
 			if (!sent) SendQuickAck ();

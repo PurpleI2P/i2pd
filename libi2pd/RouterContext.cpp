@@ -594,15 +594,15 @@ namespace i2p
 		/* detect parameters */
 		switch (L)
 		{
-			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit =   12; type = low;   break;
-			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit =   48; type = low;   break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit =   64; type = high;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit =  128; type = high;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit =  256; type = high;  break;
-			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = 2048; type = extra; break;
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit = 12; type = low;   break;
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit = i2p::data::LOW_BANDWIDTH_LIMIT; type = low;   break; // 48
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit = 64; type = high;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit = 128; type = high;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit = i2p::data::HIGH_BANDWIDTH_LIMIT; type = high;  break; // 256
+			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = i2p::data::EXTRA_BANDWIDTH_LIMIT; type = extra; break; // 2048
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 1000000; type = unlim; break; // 1Gbyte/s
 			default:
-				limit = 48; type = low;
+				limit = i2p::data::LOW_BANDWIDTH_LIMIT; type = low; // 48
 		}
 		/* update caps & flags in RI */
 		auto caps = m_RouterInfo.GetCaps ();

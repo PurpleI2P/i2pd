@@ -71,15 +71,17 @@ namespace transport
 
 	const int64_t TRANSPORT_SESSION_SLOWNESS_THRESHOLD = 500; // in milliseconds
 	const int64_t TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL = 10000; // in milliseconds
+	const uint64_t TRANSPORT_SESSION_BANDWIDTH_UPDATE_MIN_INTERVAL = 5; // in seconds
 	class TransportSession
 	{
 		public:
 
 			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router, int terminationTimeout):
-				m_NumSentBytes (0), m_NumReceivedBytes (0), m_SendQueueSize (0),
-				m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout),
-				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ()),
-				m_HandshakeInterval (0)
+				m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout), m_HandshakeInterval (0), 
+				m_SendQueueSize (0), m_NumSentBytes (0), m_NumReceivedBytes (0),
+				m_LastBandWidthUpdateNumSentBytes (0), m_LastBandWidthUpdateNumReceivedBytes (0),
+				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ()), 
+				m_LastBandwidthUpdateTimestamp (m_LastActivityTimestamp), m_InBandwidth (0), m_OutBandwidth (0)
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
@@ -103,11 +105,29 @@ namespace transport
 			}
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			void UpdateNumSentBytes (size_t len)
+			{
+				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+				m_NumSentBytes += len;
+				UpdateBandwidth ();
+			}	
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			void UpdateNumReceivedBytes (size_t len)
+			{
+				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+				m_NumReceivedBytes += len;
+				UpdateBandwidth ();
+			}		
 			size_t GetSendQueueSize () const { return m_SendQueueSize; };
+			void SetSendQueueSize (size_t s) { m_SendQueueSize = s; };
 			bool IsOutgoing () const { return m_IsOutgoing; };
 			bool IsSlow () const { return m_HandshakeInterval > TRANSPORT_SESSION_SLOWNESS_THRESHOLD &&
 				m_HandshakeInterval < TRANSPORT_SESSION_MAX_HANDSHAKE_INTERVAL; };
+			bool IsBandwidthExceeded (bool isHighBandwidth) const
+			{
+				auto limit = isHighBandwidth ? i2p::data::HIGH_BANDWIDTH_LIMIT*1024 : i2p::data::LOW_BANDWIDTH_LIMIT*1024; // convert to bytes
+				return std::max (m_InBandwidth, m_OutBandwidth) > limit;
+			}	
 			
 			int GetTerminationTimeout () const { return m_TerminationTimeout; };
 			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };
@@ -120,21 +140,44 @@ namespace transport
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t ts) { m_CreationTime = ts; }; // for introducers
 
+			uint64_t GetLastActivityTimestamp () const { return m_LastActivityTimestamp; };
+			void SetLastActivityTimestamp (uint64_t ts) { m_LastActivityTimestamp = ts; };
+			
 			virtual uint32_t GetRelayTag () const { return 0; };
 			virtual void SendLocalRouterInfo (bool update = false) { SendI2NPMessages ({ CreateDatabaseStoreMsg () }); };
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			virtual bool IsEstablished () const = 0;
 
+		private:
+
+			void UpdateBandwidth ()
+			{
+				uint64_t interval = m_LastActivityTimestamp - m_LastBandwidthUpdateTimestamp;
+				if (interval > TRANSPORT_SESSION_BANDWIDTH_UPDATE_MIN_INTERVAL)
+				{	
+					m_OutBandwidth = (m_NumSentBytes - m_LastBandWidthUpdateNumSentBytes)/interval;
+					m_LastBandWidthUpdateNumSentBytes = m_NumSentBytes;
+					m_InBandwidth = (m_NumReceivedBytes - m_LastBandWidthUpdateNumReceivedBytes)/interval;
+					m_LastBandWidthUpdateNumReceivedBytes = m_NumReceivedBytes;
+					m_LastBandwidthUpdateTimestamp = m_LastActivityTimestamp;
+				}	
+			}	
+			
 		protected:
 
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			mutable std::mutex m_RemoteIdentityMutex;
-			size_t m_NumSentBytes, m_NumReceivedBytes, m_SendQueueSize;
 			bool m_IsOutgoing;
 			int m_TerminationTimeout;
-			uint64_t m_LastActivityTimestamp;
 			uint32_t m_CreationTime; // seconds since epoch
 			int64_t m_HandshakeInterval; // in milliseconds between SessionRequest->SessionCreated or SessionCreated->SessionConfirmed
+
+		private:
+
+			size_t m_SendQueueSize, m_NumSentBytes, m_NumReceivedBytes, 
+				m_LastBandWidthUpdateNumSentBytes, m_LastBandWidthUpdateNumReceivedBytes;
+			uint64_t m_LastActivityTimestamp, m_LastBandwidthUpdateTimestamp;	
+			uint32_t m_InBandwidth, m_OutBandwidth;
 	};
 
 	// SOCKS5 proxy

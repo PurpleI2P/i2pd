@@ -42,8 +42,12 @@ namespace data
 	const char CAPS_FLAG_HIGH_BANDWIDTH1  = 'M'; /*  48-64 KBps */
 	const char CAPS_FLAG_HIGH_BANDWIDTH2  = 'N'; /*  64-128 KBps */
 	const char CAPS_FLAG_HIGH_BANDWIDTH3  = 'O'; /* 128-256 KBps */
-	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
-	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
+	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2048 KBps */
+	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2048 KBps */
+	// bandwidth limits in kBps
+	const uint32_t LOW_BANDWIDTH_LIMIT = 48;
+	const uint32_t HIGH_BANDWIDTH_LIMIT = 256;
+	const uint32_t EXTRA_BANDWIDTH_LIMIT = 2048;	
 	// congesion flags
 	const char CAPS_FLAG_MEDIUM_CONGESTION = 'D';
 	const char CAPS_FLAG_HIGH_CONGESTION = 'E';

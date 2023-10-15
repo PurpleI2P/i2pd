@@ -951,7 +951,7 @@ namespace transport
 				// connected, not overloaded and not slow
 				return !peer.router && !peer.sessions.empty () && peer.isReachable &&
 					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
-					!peer.sessions.front ()->IsSlow () &&
+					!peer.sessions.front ()->IsSlow () && !peer.sessions.front ()->IsBandwidthExceeded (peer.isHighBandwidth) &&
 					(!isHighBandwidth || peer.isHighBandwidth);
 			});
 	}

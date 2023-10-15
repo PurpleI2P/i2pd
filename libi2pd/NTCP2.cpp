@@ -374,7 +374,7 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
 			m_SendQueue.clear ();
-			m_SendQueueSize = 0;
+			SetSendQueueSize (0);
 			auto remoteIdentity = GetRemoteIdentity ();
 			if (remoteIdentity)
 			{
@@ -433,7 +433,7 @@ namespace transport
 	void NTCP2Session::DeleteNextReceiveBuffer (uint64_t ts)
 	{
 		if (m_NextReceivedBuffer && !m_IsReceiving &&
-			ts > m_LastActivityTimestamp + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
+			ts > GetLastActivityTimestamp () + NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT)
 		{
 			delete[] m_NextReceivedBuffer;
 			m_NextReceivedBuffer = nullptr;
@@ -789,7 +789,7 @@ namespace transport
 	void NTCP2Session::ServerLogin ()
 	{
 		SetTerminationTimeout (NTCP2_ESTABLISH_TIMEOUT);
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		SetLastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ());
 		m_Establisher->CreateEphemeralKey ();
 		boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->m_SessionRequestBuffer, 64), boost::asio::transfer_all (),
 			std::bind(&NTCP2Session::HandleSessionRequestReceived, shared_from_this (),
@@ -872,9 +872,8 @@ namespace transport
 		}
 		else
 		{
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-			m_NumReceivedBytes += bytes_transferred + 2; // + length
-			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
+			UpdateNumReceivedBytes (bytes_transferred + 2);
+			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred + 2);
 			uint8_t nonce[12];
 			CreateNonce (m_ReceiveSequenceNumber, nonce); m_ReceiveSequenceNumber++;
 			if (i2p::crypto::AEADChaCha20Poly1305 (m_NextReceivedBuffer, m_NextReceivedLen-16, nullptr, 0, m_ReceiveKey, nonce, m_NextReceivedBuffer, m_NextReceivedLen, false))
@@ -1095,11 +1094,10 @@ namespace transport
 		}
 		else
 		{
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
-			m_NumSentBytes += bytes_transferred;
+			UpdateNumSentBytes (bytes_transferred);
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			LogPrint (eLogDebug, "NTCP2: Next frame sent ", bytes_transferred);
-			if (m_LastActivityTimestamp > m_NextRouterInfoResendTime)
+			if (GetLastActivityTimestamp () > m_NextRouterInfoResendTime)
 			{
 				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL +
 					rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
@@ -1108,7 +1106,7 @@ namespace transport
 			else
 			{
 				SendQueue ();
-				m_SendQueueSize = m_SendQueue.size ();
+				SetSendQueueSize (m_SendQueue.size ());
 			}
 		}
 	}
@@ -1231,7 +1229,7 @@ namespace transport
 				GetIdentHashBase64(), " exceeds ", NTCP2_MAX_OUTGOING_QUEUE_SIZE);
 			Terminate ();
 		}
-		m_SendQueueSize = m_SendQueue.size ();
+		SetSendQueueSize (m_SendQueue.size ());
 	}
 
 	void NTCP2Session::SendLocalRouterInfo (bool update)
