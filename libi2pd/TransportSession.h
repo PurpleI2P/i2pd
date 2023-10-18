@@ -152,8 +152,16 @@ namespace transport
 
 			void UpdateBandwidth ()
 			{
-				uint64_t interval = m_LastActivityTimestamp - m_LastBandwidthUpdateTimestamp;
-				if (interval > TRANSPORT_SESSION_BANDWIDTH_UPDATE_MIN_INTERVAL)
+				int64_t interval = m_LastActivityTimestamp - m_LastBandwidthUpdateTimestamp;
+				if (interval < 0 || interval > 60*10) // 10 minutes 
+				{
+					// clock was adjusted, copy new values
+					m_LastBandWidthUpdateNumSentBytes = m_NumSentBytes;
+					m_LastBandWidthUpdateNumReceivedBytes = m_NumReceivedBytes;
+					m_LastBandwidthUpdateTimestamp = m_LastActivityTimestamp;
+					return;
+				}	
+				if ((uint64_t)interval > TRANSPORT_SESSION_BANDWIDTH_UPDATE_MIN_INTERVAL)
 				{	
 					m_OutBandwidth = (m_NumSentBytes - m_LastBandWidthUpdateNumSentBytes)/interval;
 					m_LastBandWidthUpdateNumSentBytes = m_NumSentBytes;
