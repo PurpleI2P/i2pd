@@ -109,7 +109,7 @@ namespace proxy {
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_proxysock;
 			boost::asio::ip::tcp::resolver m_proxy_resolver;
-			std::string m_OutproxyUrl;
+			std::string m_OutproxyUrl, m_Response;
 			bool m_Addresshelper;
 			i2p::http::URL m_ProxyURL;
 			i2p::http::URL m_RequestURL;
@@ -206,8 +206,8 @@ namespace proxy {
 		   << "<body>" << content << "</body>\r\n"
 		   << "</html>\r\n";
 		res.body = ss.str();
-		std::string response = res.to_string();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
+		m_Response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response), boost::asio::transfer_all(),
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -217,8 +217,8 @@ namespace proxy {
 		res.code = 302;
 		res.add_header("Location", address);
 		res.add_header("Connection", "close");
-		std::string response = res.to_string();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(),
+		m_Response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response), boost::asio::transfer_all(),
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
