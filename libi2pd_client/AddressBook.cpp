@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -403,10 +403,20 @@ namespace client
 		if (!addr)
 			return false;
 
-		i2p::data::IdentityEx ident;
-		if (ident.FromBase64 (jump) && ident.GetIdentHash () == addr->identHash)
-			return true;
-
+		auto pos = jump.find(".b32.i2p");
+		if (pos != std::string::npos)
+		{
+			i2p::data::IdentHash identHash;
+			if (identHash.FromBase32(jump.substr (0, pos)) && identHash == addr->identHash)
+				return true;
+		}	
+		else
+		{	
+			i2p::data::IdentityEx ident;
+			if (ident.FromBase64 (jump) && ident.GetIdentHash () == addr->identHash)
+				return true;
+		}
+			
 		return false;
 	}
 

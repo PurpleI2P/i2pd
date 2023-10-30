@@ -75,8 +75,9 @@ namespace proxy {
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64, bool & confirm);
-			void SanitizeHTTPRequest(i2p::http::HTTPReq & req);
+			static bool ExtractAddressHelper(i2p::http::URL& url, std::string& jump, bool& confirm);
+			static bool VerifyAddressHelper (const std::string& jump);
+			static void SanitizeHTTPRequest(i2p::http::HTTPReq& req);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
@@ -221,7 +222,7 @@ namespace proxy {
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL & url, std::string & b64, bool & confirm)
+	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL& url, std::string& jump, bool& confirm)
 	{
 		confirm = false;
 		const char *param = "i2paddresshelper=";
@@ -237,8 +238,13 @@ namespace proxy {
 
 		std::string value = params["i2paddresshelper"];
 		len += value.length();
-		b64 = i2p::http::UrlDecode(value);
-
+		jump = i2p::http::UrlDecode(value);
+		if (!VerifyAddressHelper (jump))
+		{
+			LogPrint (eLogError, "HTTPProxy: Malformed jump link ", jump);
+			return false;
+		}	
+		
 		// if we need update exists, request formed with update param
 		if (params["update"] == "true")
 		{
@@ -269,7 +275,26 @@ namespace proxy {
 		return true;
 	}
 
-	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
+	bool HTTPReqHandler::VerifyAddressHelper (const std::string& jump)
+	{
+		auto pos = jump.find(".b32.i2p");
+		if (pos != std::string::npos)
+		{
+			auto b32 = jump.substr (0, pos);
+			for (auto& ch: b32)
+				if (!i2p::data::IsBase32(ch)) return false;
+			return true;
+		}
+		else
+		{
+			for (auto& ch: jump)
+				if (!i2p::data::IsBase64(ch)) return false;
+			return true;
+		}	
+		return false;
+	}	
+	
+	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq& req)
 	{
 		/* drop common headers */
 		req.RemoveHeader("Via");
