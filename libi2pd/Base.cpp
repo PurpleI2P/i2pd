@@ -62,7 +62,7 @@ namespace data
 
 	bool IsBase64 (char ch)
 	{
-		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '-' || ch == '~';
+		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '~';
 	}	
 	
 	/*
