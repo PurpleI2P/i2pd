@@ -654,13 +654,20 @@ namespace data
 				// find & mark expired routers
 				if (!it.second->GetCompatibleTransports (true)) // non reachable by any transport
 					it.second->SetUnreachable (true);
-				else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout)
-					it.second->SetUnreachable (true);
 				else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
 				{
 					LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (it.second->GetTimestamp () - ts)/1000LL, " seconds");
 					it.second->SetUnreachable (true);
 				}
+				else if (checkForExpiration) 
+				{	
+					uint64_t t = expirationTimeout;
+					if (total > NETDB_NUM_ROUTERS_THRESHOLD && !it.second->IsHighBandwidth () && // low bandwidth router
+					    ((it.second->GetIdentHash()[0] & 0xFE) != (i2p::context.GetIdentHash ()[0] & 0xFE))) // different first 7 bits 
+						t >>= 1; // reduce expiration time by 2 times
+					if (ts > it.second->GetTimestamp () + t)
+						it.second->SetUnreachable (true);
+				}	
 				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
 					it.second->SetUnreachable (false); // don't expire connected router
 			}
