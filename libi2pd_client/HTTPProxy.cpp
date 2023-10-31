@@ -287,8 +287,17 @@ namespace proxy {
 		}
 		else
 		{
+			bool padding = false;
 			for (auto& ch: jump)
-				if (!i2p::data::IsBase64(ch)) return false;
+			{
+				if (ch == '=')
+					padding = true;
+				else
+				{
+					if (padding) return false; // other chars after padding
+					if (!i2p::data::IsBase64(ch)) return false;
+				}	
+			}	
 			return true;
 		}	
 		return false;
