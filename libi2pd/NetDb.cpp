@@ -661,12 +661,13 @@ namespace data
 				}
 				else if (checkForExpiration) 
 				{	
-					uint64_t t = expirationTimeout;
-					if (total > NETDB_NUM_ROUTERS_THRESHOLD && !it.second->IsHighBandwidth () && // low bandwidth router
-					    ((it.second->GetIdentHash()[0] & 0xFE) != (i2p::context.GetIdentHash ()[0] & 0xFE))) // different first 7 bits 
-						t >>= 1; // reduce expiration time by 2 times
-					if (ts > it.second->GetTimestamp () + t)
+					if (ts > it.second->GetTimestamp () + expirationTimeout)
 						it.second->SetUnreachable (true);
+					else if ((ts > it.second->GetTimestamp () + expirationTimeout/2) && // more than half of expiration
+						total > NETDB_NUM_ROUTERS_THRESHOLD && !it.second->IsHighBandwidth() &&  // low bandwidth
+						!it.second->IsFloodfill() && (!i2p::context.IsFloodfill () || // non floodfill 
+					    (CreateRoutingKey (it.second->GetIdentHash ()) ^ i2p::context.GetIdentHash ()).metric[0] >= 0x02)) // different first 7 bits 
+							it.second->SetUnreachable (true);
 				}	
 				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
 					it.second->SetUnreachable (false); // don't expire connected router
