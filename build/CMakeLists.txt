@@ -25,7 +25,7 @@ project(
   i2pd
   VERSION ${PROJECT_VERSION}
   HOMEPAGE_URL "https://i2pd.website/"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 # configurable options
