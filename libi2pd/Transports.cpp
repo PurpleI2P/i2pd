@@ -645,14 +645,33 @@ namespace transport
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
+			int testDelay = 0;
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (true, excluded); // v4
 				if (router)
 				{
 					if (!i2p::context.GetTesting ())
+					{	
 						i2p::context.SetTesting (true);
-					m_SSU2Server->StartPeerTest (router, true);
+						// send first peer test immediately 
+						m_SSU2Server->StartPeerTest (router, true);
+					}	
+					else
+					{
+						testDelay += PEER_TEST_DELAY_INTERVAL + rand() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
+						if (m_Service)
+						{	
+							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
+							delayTimer->expires_from_now (boost::posix_time::milliseconds (testDelay));
+							delayTimer->async_wait (
+								[this, router, delayTimer](const boost::system::error_code& ecode)
+								{
+									if (ecode != boost::asio::error::operation_aborted)
+										m_SSU2Server->StartPeerTest (router, true);
+								});		
+						}	
+					}	
 					excluded.insert (router->GetIdentHash ());
 				}
 			}
@@ -664,14 +683,33 @@ namespace transport
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
 			std::set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
+			int testDelay = 0;
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomSSU2PeerTestRouter (false, excluded); // v6
 				if (router)
 				{
 					if (!i2p::context.GetTestingV6 ())
-						i2p::context.SetTestingV6 (true);
-					m_SSU2Server->StartPeerTest (router, false);
+					{	
+						i2p::context.SetTestingV6 (true);	
+						// send first peer test immediately 
+						m_SSU2Server->StartPeerTest (router, false);
+					}	
+					else
+					{
+						testDelay += PEER_TEST_DELAY_INTERVAL + rand() % PEER_TEST_DELAY_INTERVAL_VARIANCE;
+						if (m_Service)
+						{	
+							auto delayTimer = std::make_shared<boost::asio::deadline_timer>(*m_Service);
+							delayTimer->expires_from_now (boost::posix_time::milliseconds (testDelay));
+							delayTimer->async_wait (
+								[this, router, delayTimer](const boost::system::error_code& ecode)
+								{
+									if (ecode != boost::asio::error::operation_aborted)
+										m_SSU2Server->StartPeerTest (router, false);
+								});		
+						}	
+					}
 					excluded.insert (router->GetIdentHash ());
 				}
 			}
