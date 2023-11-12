@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -665,6 +665,7 @@ namespace net
 		if (host.is_v6())
 		{
 			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
+				address_pair_v6("64:ff9b::",  "64:ff9b:ffff:ffff:ffff:ffff:ffff:ffff"),  // NAT64
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
