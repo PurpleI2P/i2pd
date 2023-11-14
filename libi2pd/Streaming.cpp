@@ -532,14 +532,18 @@ namespace stream
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
 	{
+		std::shared_ptr<i2p::stream::SendBuffer> buffer;
 		if (len > 0 && buf)
-		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			m_SendBuffer.Add (buf, len, handler);
-		}
+			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, handler);
 		else if (handler)
 			handler(boost::system::error_code ());
-		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
+		auto s = shared_from_this ();
+		m_Service.post ([s, buffer]()
+			{
+				if (buffer)
+					s->m_SendBuffer.Add (buffer);
+				s->SendBuffer ();
+			});	
 	}
 
 	void Stream::SendBuffer ()
