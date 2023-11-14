@@ -135,7 +135,6 @@ namespace stream
 			SendBufferQueue (): m_Size (0) {};
 			~SendBufferQueue () { CleanUp (); };
 
-			void Add (const uint8_t * buf, size_t len, SendHandler handler);
 			void Add (std::shared_ptr<SendBuffer> buf);
 			size_t Get (uint8_t * buf, size_t len);
 			size_t GetSize () const { return m_Size; };
@@ -251,7 +250,6 @@ namespace stream
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;
 
-			std::mutex m_SendBufferMutex;
 			SendBufferQueue m_SendBuffer;
 			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;

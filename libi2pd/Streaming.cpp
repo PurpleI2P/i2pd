@@ -19,11 +19,6 @@ namespace i2p
 {
 namespace stream
 {
-	void SendBufferQueue::Add (const uint8_t * buf, size_t len, SendHandler handler)
-	{
-		Add (std::make_shared<SendBuffer>(buf, len, handler));
-	}
-
 	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
 	{
 		if (buf)
@@ -115,10 +110,7 @@ namespace stream
 
 	void Stream::CleanUp ()
 	{
-		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			m_SendBuffer.CleanUp ();
-		}
+		m_SendBuffer.CleanUp ();
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
@@ -553,91 +545,88 @@ namespace stream
 
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
+		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
 		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
+			Packet * p = m_LocalDestination.NewPacket ();
+			uint8_t * packet = p->GetBuffer ();
+			// TODO: implement setters
+			size_t size = 0;
+			htobe32buf (packet + size, m_SendStreamID);
+			size += 4; // sendStreamID
+			htobe32buf (packet + size, m_RecvStreamID);
+			size += 4; // receiveStreamID
+			htobe32buf (packet + size, m_SequenceNumber++);
+			size += 4; // sequenceNum
+			if (isNoAck)
+				htobuf32 (packet + size, 0);
+			else
+				htobe32buf (packet + size, m_LastReceivedSequenceNumber);
+			size += 4; // ack Through
+			if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
 			{
-				Packet * p = m_LocalDestination.NewPacket ();
-				uint8_t * packet = p->GetBuffer ();
-				// TODO: implement setters
-				size_t size = 0;
-				htobe32buf (packet + size, m_SendStreamID);
-				size += 4; // sendStreamID
-				htobe32buf (packet + size, m_RecvStreamID);
-				size += 4; // receiveStreamID
-				htobe32buf (packet + size, m_SequenceNumber++);
-				size += 4; // sequenceNum
-				if (isNoAck)
-					htobuf32 (packet + size, 0);
-				else
-					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
-				size += 4; // ack Through
-				if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
-				{
-					// first SYN packet
-					packet[size] = 8;
-					size++; // NACK count
-					memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
-					size += 32;
-				}
-				else
-				{	
-					packet[size] = 0;
-					size++; // NACK count
-				}	
-				packet[size] = m_RTO/1000;
-				size++; // resend delay
-				if (m_Status == eStreamStatusNew)
-				{
-					// initial packet
-					m_Status = eStreamStatusOpen;
-					if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
-					if (m_RemoteLeaseSet)
-					{
-						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
-						m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
-					}
-					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
-						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
-					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
-					bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
-					if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
-					htobe16buf (packet + size, flags);
-					size += 2; // flags
-					size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
-					size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
-					uint8_t * optionsSize = packet + size; // set options size later
-					size += 2; // options size
-					m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
-					size += identityLen; // from
-					htobe16buf (packet + size, m_MTU);
-					size += 2; // max packet size
-					if (isOfflineSignature)
-					{
-						const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
-						memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
-						size += offlineSignature.size (); // offline signature
-					}
-					uint8_t * signature = packet + size; // set it later
-					memset (signature, 0, signatureLen); // zeroes for now
-					size += signatureLen; // signature
-					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
-					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
-				}
-				else
-				{
-					// follow on packet
-					htobuf16 (packet + size, 0);
-					size += 2; // flags
-					htobuf16 (packet + size, 0); // no options
-					size += 2; // options size
-					size += m_SendBuffer.Get(packet + size, m_MTU); // payload
-				}
-				p->len = size;
-				packets.push_back (p);
-				numMsgs--;
+				// first SYN packet
+				packet[size] = 8;
+				size++; // NACK count
+				memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
+				size += 32;
 			}
+			else
+			{	
+				packet[size] = 0;
+				size++; // NACK count
+			}	
+			packet[size] = m_RTO/1000;
+			size++; // resend delay
+			if (m_Status == eStreamStatusNew)
+			{
+				// initial packet
+				m_Status = eStreamStatusOpen;
+				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
+				if (m_RemoteLeaseSet)
+				{
+					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+					m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+				}
+				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
+					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
+				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
+				bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
+				if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+				htobe16buf (packet + size, flags);
+				size += 2; // flags
+				size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
+				size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
+				uint8_t * optionsSize = packet + size; // set options size later
+				size += 2; // options size
+				m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
+				size += identityLen; // from
+				htobe16buf (packet + size, m_MTU);
+				size += 2; // max packet size
+				if (isOfflineSignature)
+				{
+					const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
+					memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
+					size += offlineSignature.size (); // offline signature
+				}
+				uint8_t * signature = packet + size; // set it later
+				memset (signature, 0, signatureLen); // zeroes for now
+				size += signatureLen; // signature
+				htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+				size += m_SendBuffer.Get (packet + size, m_MTU); // payload
+				m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+			}
+			else
+			{
+				// follow on packet
+				htobuf16 (packet + size, 0);
+				size += 2; // flags
+				htobuf16 (packet + size, 0); // no options
+				size += 2; // options size
+				size += m_SendBuffer.Get(packet + size, m_MTU); // payload
+			}
+			p->len = size;
+			packets.push_back (p);
+			numMsgs--;
 		}
 		if (packets.size () > 0)
 		{
