@@ -31,7 +31,8 @@ namespace client
 	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
-	const size_t SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE = 64;
+	const size_t SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE = 50;
+	const size_t SAM_SESSION_MAX_ACCEPT_INTERVAL = 3; // in seconds	
 	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
@@ -191,7 +192,7 @@ namespace client
 		std::string Name;
 		SAMSessionType Type;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
-		std::list<std::shared_ptr<SAMSocket> > acceptQueue;
+		std::list<std::pair<std::shared_ptr<SAMSocket>, uint64_t> > acceptQueue; // socket, receive time in seconds
 		
 		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
 		virtual ~SAMSession () {};
