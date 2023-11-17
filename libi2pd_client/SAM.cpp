@@ -601,10 +601,15 @@ namespace client
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 				session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 			}
-			else // already accepting
+			else if (session->acceptQueue.size () < SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE)
+			{
+				// already accepting, queue up
+				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+				session->acceptQueue.push_back (shared_from_this());
+			}	
+			else 
 			{	
-				// TODO: implement queue
-				LogPrint (eLogInfo, "SAM: Session ", m_ID, " is already accepting");
+				LogPrint (eLogInfo, "SAM: Session ", m_ID, " accept queue is full ", session->acceptQueue.size ());
 				SendStreamI2PError ("Already accepting");
 			}	
 		}
@@ -1057,16 +1062,16 @@ namespace client
 			m_Stream = stream;
 			context.GetAddressBook ().InsertFullAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
-			if (session)
+			if (session && !session->acceptQueue.empty ())
 			{
-				// find more pending acceptors
-				for (auto & it: m_Owner.ListSockets (m_ID))
-					if (it->m_SocketType == eSAMSocketTypeAcceptor)
-					{
-						it->m_IsAccepting = true;
-						session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, it, std::placeholders::_1));
-						break;
-					}
+				// pending acceptors
+				auto socket = session->acceptQueue.front ();
+				session->acceptQueue.pop_front ();
+				if (socket && socket->GetSocketType () == eSAMSocketTypeAcceptor)
+				{
+					socket->m_IsAccepting = true;
+					session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, socket, std::placeholders::_1));
+				}	
 			}
 			if (!m_IsSilent)
 			{
