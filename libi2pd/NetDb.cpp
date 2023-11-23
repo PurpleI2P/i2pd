@@ -628,7 +628,7 @@ namespace data
 		auto own = i2p::context.GetSharedRouterInfo ();
 		for (auto& it: m_RouterInfos)
 		{
-			if (it.second == own) continue; // skip own
+			if (!it.second || it.second == own) continue; // skip own
 			std::string ident = it.second->GetIdentHashBase64();
 			if (it.second->IsUpdated ())
 			{
@@ -698,7 +698,7 @@ namespace data
 				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 				for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 				{
-					if (it->second->IsUnreachable ())
+					if (!it->second || it->second->IsUnreachable ())
 						it = m_RouterInfos.erase (it);
 					else
 					{
