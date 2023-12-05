@@ -231,7 +231,7 @@ namespace config {
 				"http://[320:8936:ec1a:31f1::216]/,"
 				"http://[306:3834:97b9:a00a::1]/,"
 				"http://[316:f9e0:f22e:a74f::216]/,"
-			    "http://[300:e097:2621:79e3::add1]:7170"
+			    "http://[300:eaff:7fab:181b::e621]:7170"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
