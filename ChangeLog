@@ -1,6 +1,21 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.50.0] - 2023-12-18
+### Added
+- Support of concurrent ACCEPTs on SAM 3.1
+- Haiku OS support
+- Low bandwidth and far routers can expire before 1 hour
+### Changed
+- Don't pick too active peer for first hop
+- Try peer test again if status is Unknown
+- Send peer tests with random delay 
+- Reseeds list
+### Fixed
+- XSS vulnerability in addresshelper
+- Publishing NAT64 ipv6 addresses
+- Deadlock in AsyncSend callback
+
 ## [2.49.0] - 2023-09-18
 ### Added
 - Handle SOCK5 authorization with empty user/password
