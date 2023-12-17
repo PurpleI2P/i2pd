@@ -121,7 +121,7 @@ obj/%.o: %.cpp | mk_obj_dir
 -include $(DEPS)
 
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT) $(ARLIB_LANG)
-	$(CXX) -o $@ $(DEFINES) $(LDFLAGS) $^ $(LDLIBS)
+	$(CXX) $(DEFINES) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(SHLIB): $(LIB_OBJS)
 ifneq ($(USE_STATIC),yes)
