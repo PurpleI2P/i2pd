@@ -9,7 +9,7 @@
 ### Changed
 - Don't pick too active peer for first hop
 - Try peer test again if status is Unknown
-- Send peer tests with random delay 
+- Send peer tests with random delay
 - Reseeds list
 ### Fixed
 - XSS vulnerability in addresshelper
