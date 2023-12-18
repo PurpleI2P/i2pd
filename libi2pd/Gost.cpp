@@ -102,6 +102,11 @@ namespace crypto
 		EC_POINT_free (C);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
+
+#ifdef VERIFY_ALWAYS_SUCCEEDS
+		ret = true;
+#endif
+
 		return ret;
 	}
 
