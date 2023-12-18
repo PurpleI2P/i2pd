@@ -1,0 +1,42 @@
+# _________________________________________
+# /  Copy this file to the right location   \
+# | then load with:                         |
+# |                                         |
+# | apparmor_parser -r -W                   |
+# | /etc/apparmor.d/docker-i2pd             |
+# |                                         |
+# | docker run --security-opt               |
+# | "apparmor=docker-i2pd" ...              |
+# | purplei2p/i2pd                          |
+# |                                         |
+# \ And "aa-status" to verify it's loaded.  /
+#  -----------------------------------------
+#         \   ^__^
+#          \  (oo)\_______
+#             (__)\       )\/\
+#                 ||----w |
+#                 ||     ||
+
+#include <tunables/global>
+
+profile docker-i2pd flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/openssl>
+  #include <abstractions/nameservice>
+
+  /bin/busybox ix,
+  /usr/local/bin/i2pd ix,
+  /entrypoint.sh ixr,
+
+  /i2pd_certificates/** r,
+
+  /home/i2pd/data/** rw,
+
+  /home/i2pd/data/i2pd.pid k,
+
+  deny /home/i2pd/data/i2pd.conf w,
+  deny /home/i2pd/data/tunnels.conf w,
+  deny /home/i2pd/data/tunnels.d/** w,
+  deny /home/i2pd/data/certificates/** w,
+  deny /home/i2pd/data/i2pd.log r,
+}
