@@ -39,9 +39,7 @@
 #	define LEGACY_OPENSSL 0
 #	if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
 #		define OPENSSL_HKDF 1
-#		if (OPENSSL_VERSION_NUMBER < 0x030200000) // 3.2.0, regression in EVP_DigestSign
-#			define OPENSSL_EDDSA 1
-#		endif
+#		define OPENSSL_EDDSA 1
 #		define OPENSSL_X25519 1
 #		if (OPENSSL_VERSION_NUMBER != 0x030000000) // 3.0.0, regression in SipHash
 #			define OPENSSL_SIPHASH 1
