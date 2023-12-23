@@ -1,3 +1,9 @@
+i2pd (2.50.1-1) unstable; urgency=medium
+
+  * updated to version 2.50.1/0.9.61
+
+ -- r4sas <r4sas@i2pmail.org>  Sat, 23 Dec 2023 18:30:00 +0000
+
 i2pd (2.50.0-1) unstable; urgency=medium
 
   * updated to version 2.50.0/0.9.61
