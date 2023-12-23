@@ -1,7 +1,7 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.50.0] - 2023-12-23
+## [2.50.1] - 2023-12-23
 ###Fixed
 - Support for new EdDSA usage behavior in OpenSSL 3.2.0
 
