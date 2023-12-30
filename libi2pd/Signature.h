@@ -304,7 +304,6 @@ namespace crypto
 		private:
 
 #if OPENSSL_EDDSA
-			EVP_MD_CTX * m_MDCtx;
 			EVP_PKEY * m_Pkey;
 #else
 			EDDSAPoint m_PublicKey;
@@ -342,7 +341,6 @@ namespace crypto
 
 		private:
 
-			EVP_MD_CTX * m_MDCtx;
 			EVP_PKEY * m_Pkey;
 			EDDSA25519SignerCompat * m_Fallback;
 	};
