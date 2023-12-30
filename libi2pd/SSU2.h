@@ -66,6 +66,7 @@ namespace transport
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
+			void AdjustTimeOffset (int64_t offset);
 
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
@@ -161,6 +162,7 @@ namespace transport
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
 			bool m_IsSyncClockFromPeers;
+			int64_t m_PendingTimeOffset; // during peer test
 
 			// proxy
 			bool m_IsThroughProxy;

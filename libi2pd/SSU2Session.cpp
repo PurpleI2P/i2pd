@@ -1668,10 +1668,7 @@ namespace transport
 					if (m_Server.IsSyncClockFromPeers ())
 					{
 						if (std::abs (offset) > SSU2_CLOCK_THRESHOLD)
-						{
-							LogPrint (eLogWarning, "SSU2: Clock adjusted by ", -offset, " seconds");
-							i2p::util::AdjustTimeOffset (-offset);
-						}
+							m_Server.AdjustTimeOffset (-offset);
 					}
 					else if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					{
@@ -2481,6 +2478,8 @@ namespace transport
 			else if (m_Address->IsV6 ())
 				i2p::context.SetTestingV6 (testing);
 		}
+		if (!testing)
+			m_Server.AdjustTimeOffset (0); // reset time offset when testing is over
 	}
 
 	size_t SSU2Session::CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep)

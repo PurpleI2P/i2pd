@@ -24,7 +24,8 @@ namespace transport
 		m_AddressV4 (boost::asio::ip::address_v4()), m_AddressV6 (boost::asio::ip::address_v6()),
 		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
-		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_IsThroughProxy (false)
+		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_PendingTimeOffset (0),
+		m_IsThroughProxy (false)
 	{
 	}
 
@@ -209,6 +210,24 @@ namespace transport
 		return ep.port ();
 	}
 
+	void SSU2Server::AdjustTimeOffset (int64_t offset)
+	{
+		if (offset)
+		{	
+			if (m_PendingTimeOffset) // one more
+			{	
+				offset = (m_PendingTimeOffset + offset)/2; // average
+				LogPrint (eLogWarning, "SSU2: Clock adjusted by ", -offset, " seconds");
+				i2p::util::AdjustTimeOffset (-offset);
+				m_PendingTimeOffset = 0;
+			}
+			else
+				m_PendingTimeOffset = offset; // first 
+		}	
+		else
+			m_PendingTimeOffset = 0; // reset
+	}	
+		
 	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)
 	{
 		boost::asio::ip::udp::socket& socket = localEndpoint.address ().is_v6 () ? m_SocketV6 : m_SocketV4;
