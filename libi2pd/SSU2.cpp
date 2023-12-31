@@ -217,8 +217,8 @@ namespace transport
 			if (m_PendingTimeOffset) // one more
 			{	
 				offset = (m_PendingTimeOffset + offset)/2; // average
-				LogPrint (eLogWarning, "SSU2: Clock adjusted by ", -offset, " seconds");
-				i2p::util::AdjustTimeOffset (-offset);
+				LogPrint (eLogWarning, "SSU2: Clock adjusted by ", offset, " seconds");
+				i2p::util::AdjustTimeOffset (offset);
 				m_PendingTimeOffset = 0;
 			}
 			else
