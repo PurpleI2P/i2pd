@@ -1019,6 +1019,11 @@ namespace data
 		std::shared_ptr<I2NPMessage> replyMsg;
 		if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
 		{
+			if (!context.IsFloodfill ())
+			{
+				LogPrint (eLogWarning, "NetDb: Exploratory lookup to non-floodfill dropped");
+				return;
+			}	
 			LogPrint (eLogInfo, "NetDb: Exploratory close to ", key, " ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
 			const uint8_t * excluded_ident = excluded;
@@ -1044,6 +1049,7 @@ namespace data
 			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP ||
 				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
 			{
+				// try to find router
 				auto router = FindRouter (ident);
 				if (router && !router->IsUnreachable ())
 				{
@@ -1056,17 +1062,26 @@ namespace data
 			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP ||
 				lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
-				auto leaseSet = FindLeaseSet (ident);
-				if (!leaseSet)
+				// try to find leaseset
+				if (context.IsFloodfill ())
+				{	
+					auto leaseSet = FindLeaseSet (ident);
+					if (!leaseSet)
+					{
+						// no leaseset found
+						LogPrint(eLogDebug, "NetDb: Requested LeaseSet not found for ", ident.ToBase32());
+					}
+					else if (!leaseSet->IsExpired ()) // we don't send back expired leasesets
+					{
+						LogPrint (eLogDebug, "NetDb: Requested LeaseSet ", key, " found");
+						replyMsg = CreateDatabaseStoreMsg (ident, leaseSet);
+					}
+				}	
+				else if (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP)
 				{
-					// no lease set found
-					LogPrint(eLogDebug, "NetDb: Requested LeaseSet not found for ", ident.ToBase32());
-				}
-				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
-				{
-					LogPrint (eLogDebug, "NetDb: Requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (ident, leaseSet);
-				}
+					LogPrint (eLogWarning, "NetDb: Explicit LeaseSet lookup to non-floodfill dropped");
+					return;
+				}	
 			}
 
 			if (!replyMsg)
