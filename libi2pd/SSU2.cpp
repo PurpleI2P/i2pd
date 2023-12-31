@@ -216,9 +216,14 @@ namespace transport
 		{	
 			if (m_PendingTimeOffset) // one more
 			{	
-				offset = (m_PendingTimeOffset + offset)/2; // average
-				LogPrint (eLogWarning, "SSU2: Clock adjusted by ", offset, " seconds");
-				i2p::util::AdjustTimeOffset (offset);
+				if (std::abs (m_PendingTimeOffset - offset) < SSU2_CLOCK_SKEW)
+				{	
+					offset = (m_PendingTimeOffset + offset)/2; // average
+					LogPrint (eLogWarning, "SSU2: Clock adjusted by ", offset, " seconds");
+					i2p::util::AdjustTimeOffset (offset);
+				}	
+				else
+					LogPrint (eLogWarning, "SSU2: Time offsets are too different. Clock not adjusted");
 				m_PendingTimeOffset = 0;
 			}
 			else
