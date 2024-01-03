@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1668,7 +1668,12 @@ namespace transport
 					if (m_Server.IsSyncClockFromPeers ())
 					{
 						if (std::abs (offset) > SSU2_CLOCK_THRESHOLD)
+						{	
+							LogPrint (eLogWarning, "SSU2: Time offset ", offset, " from ", m_RemoteEndpoint);
 							m_Server.AdjustTimeOffset (-offset);
+						}	
+						else
+							m_Server.AdjustTimeOffset (0);
 					}
 					else if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					{
