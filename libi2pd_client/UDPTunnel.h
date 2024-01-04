@@ -72,7 +72,7 @@ namespace client
 		boost::asio::ip::udp::endpoint LocalEndpoint;
 		/** client's udp endpoint */
 		boost::asio::ip::udp::endpoint RemoteEndpoint;
-		/** how long has this converstation been idle in ms */
+		/** how long has this conversation been idle in ms */
 		uint64_t idle;
 	};
 

@@ -150,7 +150,7 @@ namespace datagram
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
-			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
+			/** find a receiver by port, if none by port is found try default receiver, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
 
 		private:

@@ -995,7 +995,7 @@ namespace data
 
 	bool RouterInfo::IsPublished (bool v4) const
 	{
-		if (m_Caps & (eUnreachable | eHidden)) return false; // if router sets U or H we assume that all addreses are not published
+		if (m_Caps & (eUnreachable | eHidden)) return false; // if router sets U or H we assume that all addresses are not published
 		auto addr = GetAddresses ();
 		if (v4)	
 			return ((*addr)[eNTCP2V4Idx] && ((*addr)[eNTCP2V4Idx])->published) ||
