@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,7 +19,7 @@
 
 #define I2PD_VERSION_MAJOR 2
 #define I2PD_VERSION_MINOR 50
-#define I2PD_VERSION_MICRO 1
+#define I2PD_VERSION_MICRO 2
 #define I2PD_VERSION_PATCH 0
 #ifdef GITVER
 	#define I2PD_VERSION XSTRINGIZE(GITVER)
