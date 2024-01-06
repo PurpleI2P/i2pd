@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -247,9 +247,10 @@ namespace data
 						m_Requests.RequestComplete (ident, r);
 						return r;
 					}
-					if (r->IsUnreachable ())
+					if (r->IsUnreachable () ||
+					    i2p::util::GetMillisecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < r->GetTimestamp ())
 					{
-						// delete router as invalid after update
+						// delete router as invalid or from future after update
 						m_RouterInfos.erase (ident);
 						if (wasFloodfill)
 						{
