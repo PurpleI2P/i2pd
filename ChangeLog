@@ -1,6 +1,11 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.50.2] - 2024-01-06
+###Fixed
+- Crash with OpenSSL 3.2.0
+- False positive clock skew detection
+
 ## [2.50.1] - 2023-12-23
 ###Fixed
 - Support for new EdDSA usage behavior in OpenSSL 3.2.0

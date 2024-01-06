@@ -1,5 +1,5 @@
 Name:          i2pd
-Version:       2.50.1
+Version:       2.50.2
 Release:       1%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd-git
@@ -142,6 +142,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Sat Jan 06 2024 orignal <orignal@i2pmail.org> - 2.50.2
+- update to 2.50.2
+
 * Sat Dec 23 2023 r4sas <r4sas@i2pmail.org> - 2.50.1
 - update to 2.50.1
 
