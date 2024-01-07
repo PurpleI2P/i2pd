@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -550,17 +550,22 @@ namespace client
 		if (!session) session = m_Owner.FindSession(m_ID);
 		if (session)
 		{
-			m_SocketType = eSAMSocketTypeStream;
-			m_Stream = session->GetLocalDestination ()->CreateStream (remote);
-			if (m_Stream)
-			{
-				m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
-				m_BufferOffset = 0;
-				I2PReceive ();
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+			if (session->GetLocalDestination ()->SupportsEncryptionType (remote->GetEncryptionType ()))
+			{	
+				m_SocketType = eSAMSocketTypeStream;
+				m_Stream = session->GetLocalDestination ()->CreateStream (remote);
+				if (m_Stream)
+				{
+					m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
+					m_BufferOffset = 0;
+					I2PReceive ();
+					SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+				}
+				else
+					SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 			}
 			else
-				SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+				SendStreamCantReachPeer ("Incompatible crypto");	
 		}
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
@@ -573,7 +578,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "SAM: Destination to connect not found");
-			SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
+			SendStreamCantReachPeer ("LeaseSet not found");	
 		}
 	}
 
@@ -857,27 +862,32 @@ namespace client
 			SendSessionI2PError ("Wrong session type");
 	}
 
+	void SAMSocket::SendReplyWithMessage (const char * reply, const std::string & msg)
+	{
+#ifdef _MSC_VER
+		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
+#else
+		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
+#endif
+		SendMessageReply (m_Buffer, len, true);
+	}	
+		
 	void SAMSocket::SendSessionI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Session I2P error: ", msg);
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
-#else
-		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
-#endif
-		SendMessageReply (m_Buffer, len, true);
+		SendReplyWithMessage (SAM_SESSION_STATUS_I2P_ERROR, msg);
 	}
 
 	void SAMSocket::SendStreamI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Stream I2P error: ", msg);
-#ifdef _MSC_VER
-		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_STREAM_STATUS_I2P_ERROR, msg.c_str());
-#else
-		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_STREAM_STATUS_I2P_ERROR, msg.c_str());
-#endif
-		SendMessageReply (m_Buffer, len, true);
+		SendReplyWithMessage (SAM_STREAM_STATUS_I2P_ERROR, msg);	
 	}
+
+	void SAMSocket::SendStreamCantReachPeer(const std::string & msg)
+	{
+		SendReplyWithMessage (SAM_STREAM_STATUS_CANT_REACH_PEER, msg);	
+	}	
 		
 	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name)
 	{
