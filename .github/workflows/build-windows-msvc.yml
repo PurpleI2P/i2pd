@@ -26,15 +26,27 @@ jobs:
         ./install_zlib.bat
         del install_zlib.bat
 
+    #- name: Install Boost
+    #  uses: crazy-max/ghaction-chocolatey@v2
+    #  with:
+    #    args: install boost-msvc-14.3 --version=1.81.0
+
+    #- name: Install OpenSSL
+    #  uses: crazy-max/ghaction-chocolatey@v2
+    #  with:
+    #    args: install openssl
+
     - name: Install Boost
-      uses: crazy-max/ghaction-chocolatey@v2
-      with:
-        args: install boost-msvc-14.3 --version=1.81.0
+      run: |
+        powershell -Command "(Invoke-WebRequest -UserAgent "Wget" -Uri https://sourceforge.net/projects/boost/files/boost-binaries/1.84.0/boost_1_84_0-msvc-14.3-64.exe/download -OutFile boost_1_84_0-msvc-14.3-64.exe)"
+        ./boost_1_84_0-msvc-14.3-64.exe /VERYSILENT
+        del boost_1_84_0-msvc-14.3-64.exe
 
     - name: Install OpenSSL
-      uses: crazy-max/ghaction-chocolatey@v2
-      with:
-        args: install openssl
+      run: |
+        powershell -Command "(Invoke-WebRequest -UserAgent "Wget" -Uri https://slproweb.com/download/Win64OpenSSL-3_2_0.exe -OutFile Win64OpenSSL-3_2_0.exe)"
+        ./Win64OpenSSL-3_2_0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+        del Win64OpenSSL-3_2_0.exe
 
     - name: Configure
       working-directory: build
