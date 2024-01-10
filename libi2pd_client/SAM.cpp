@@ -523,15 +523,20 @@ namespace client
 			{
 				if (addr->IsIdentHash ())
 				{
-					auto leaseSet = session->GetLocalDestination ()->FindLeaseSet(addr->identHash);
-					if (leaseSet)
-						Connect(leaseSet, session);
-					else
-					{
-						session->GetLocalDestination ()->RequestDestination(addr->identHash,
-							std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
-							shared_from_this(), std::placeholders::_1));
+					if (session->GetLocalDestination ()->GetIdentHash () != addr->identHash)
+					{	
+						auto leaseSet = session->GetLocalDestination ()->FindLeaseSet(addr->identHash);
+						if (leaseSet)
+							Connect(leaseSet, session);
+						else
+						{
+							session->GetLocalDestination ()->RequestDestination(addr->identHash,
+								std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
+								shared_from_this(), std::placeholders::_1));
+						}
 					}
+					else
+						SendStreamCantReachPeer ("Can't connect to myself");
 				}
 				else // B33
 					session->GetLocalDestination ()->RequestDestinationWithEncryptedLeaseSet (addr->blindedPublicKey,
