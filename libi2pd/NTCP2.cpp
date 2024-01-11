@@ -1234,7 +1234,7 @@ namespace transport
 
 	void NTCP2Session::SendLocalRouterInfo (bool update)
 	{
-		if (update || !IsOutgoing ()) // we send it in SessionConfirmed for ougoing session
+		if (update || !IsOutgoing ()) // we send it in SessionConfirmed for outgoing session
 			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 

@@ -301,7 +301,7 @@ namespace tunnel
 		{
 			for (auto it: m_OutboundTunnels)
 			{
-				// try to create inbound tunnel through the same path as succesive outbound
+				// try to create inbound tunnel through the same path as successive outbound
 				CreatePairedInboundTunnel (it);
 				num++;
 				if (num >= m_NumInboundTunnels) break;
