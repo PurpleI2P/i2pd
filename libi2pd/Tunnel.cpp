@@ -116,7 +116,7 @@ namespace tunnel
 				if (m_Pool && m_Pool->GetLocalDestination ())
 					m_Pool->GetLocalDestination ()->SubmitECIESx25519Key (key, tag);
 				else
-					i2p::context.AddECIESx25519Key (key, tag);
+					i2p::context.SubmitECIESx25519Key (key, tag);
 			}
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
 		}

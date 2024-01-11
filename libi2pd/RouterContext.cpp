@@ -1199,7 +1199,27 @@ namespace i2p
 		else	              
 			i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
 	}
-	
+
+	void RouterContext::SubmitECIESx25519Key (const uint8_t * key, uint64_t tag)
+	{
+		if (m_Service)
+		{
+			struct
+			{
+				uint8_t k[32];
+				uint64_t t;
+			} data;
+			memcpy (data.k, key, 32);
+			data.t = tag;
+			m_Service->GetService ().post ([this,data](void)
+				{
+					AddECIESx25519Key (data.k, data.t);
+				});
+		}	
+		else
+			LogPrint (eLogError, "Router: service is NULL");
+	}	
+		
 	void RouterContext::CleanupDestination ()
 	{
 		if (m_Service)
