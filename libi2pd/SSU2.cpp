@@ -25,7 +25,8 @@ namespace transport
 		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_PendingTimeOffset (0),
-		m_IsThroughProxy (false)
+		m_IsThroughProxy (false),
+		m_CheckReserved (true)
 	{
 	}
 
@@ -36,6 +37,7 @@ namespace transport
 			StartIOService ();
 			i2p::config::GetOption ("ssu2.published", m_IsPublished);
 			i2p::config::GetOption("nettime.frompeers", m_IsSyncClockFromPeers);
+			i2p::config::GetOption("reservedrange", m_CheckReserved);
 			bool found = false;
 			auto addresses = i2p::context.GetRouterInfo ().GetAddresses ();
 			if (!addresses) return;
@@ -566,7 +568,7 @@ namespace transport
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
-			else if (!i2p::util::net::IsInReservedRange(senderEndpoint.address ()) && senderEndpoint.port ())
+			else if (!(m_CheckReserved && i2p::util::net::IsInReservedRange(senderEndpoint.address ())) && senderEndpoint.port ())
 			{
 				// assume new incoming session
 				auto session = std::make_shared<SSU2Session> (*this);
@@ -666,7 +668,7 @@ namespace transport
 			bool isValidEndpoint = !address->host.is_unspecified () && address->port;
 			if (isValidEndpoint)
 			{
-				if (i2p::util::net::IsInReservedRange(address->host)) return false;
+				if (m_CheckReserved && i2p::util::net::IsInReservedRange(address->host)) return false;
 				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 				if (s)
 				{

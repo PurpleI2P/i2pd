@@ -286,6 +286,8 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
 
+			bool m_CheckReserved;
+
 		public:
 
 			// for HTTP/I2PControl

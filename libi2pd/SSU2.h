@@ -103,6 +103,8 @@ namespace transport
 			i2p::util::MemoryPool<SSU2IncompleteMessage>& GetIncompleteMessagesPool () { return m_IncompleteMessagesPool; };
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment>& GetFragmentsPool () { return m_FragmentsPool; };
 
+			bool GetCheckInReserved() { return m_CheckReserved; };
+
 		private:
 
 			boost::asio::ip::udp::socket& OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint);
@@ -171,6 +173,8 @@ namespace transport
 			std::unique_ptr<boost::asio::ip::tcp::socket> m_UDPAssociateSocket;
 			std::unique_ptr<boost::asio::ip::udp::endpoint> m_ProxyRelayEndpoint;
 			std::unique_ptr<boost::asio::deadline_timer> m_ProxyConnectRetryTimer;
+
+			bool m_CheckReserved;
 
 		public:
 

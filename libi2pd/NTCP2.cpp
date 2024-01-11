@@ -22,6 +22,7 @@
 #include "NTCP2.h"
 #include "HTTP.h"
 #include "util.h"
+#include "Config.h"
 
 #if defined(__linux__) && !defined(_NETINET_IN_H)
 	#include <linux/in6.h>
@@ -1240,7 +1241,8 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-			m_ProxyType(eNoProxy), m_Resolver(GetService ())
+			m_ProxyType(eNoProxy), m_Resolver(GetService ()),
+			m_CheckReserved (true)
 	{
 	}
 
@@ -1254,6 +1256,7 @@ namespace transport
 		if (!IsRunning ())
 		{
 			StartIOService ();
+			i2p::config::GetOption("reservedrange", m_CheckReserved);
 			if(UsingProxy())
 			{
 				LogPrint(eLogInfo, "NTCP2: Using proxy to connect to peers");
@@ -1490,7 +1493,7 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (!i2p::util::net::IsInReservedRange(ep.address ()))
+				if (!(m_CheckReserved && i2p::util::net::IsInReservedRange(ep.address ())))
 				{
 					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
 					{
@@ -1537,7 +1540,7 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (!i2p::util::net::IsInReservedRange(ep.address ()) ||
+				if (!(m_CheckReserved && i2p::util::net::IsInReservedRange(ep.address ())) ||
 				    i2p::util::net::IsYggdrasilAddress (ep.address ()))
 				{
 					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)

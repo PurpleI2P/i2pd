@@ -523,6 +523,7 @@ namespace data
 	{
 		i2p::http::URL proxyUrl;
 		std::string proxy; i2p::config::GetOption("reseed.proxy", proxy);
+		bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
 		// check for proxy url
 		if(proxy.size()) {
 			// parse
@@ -689,7 +690,7 @@ namespace data
 					boost::asio::ip::tcp::endpoint ep = *it;
 					if (
 						(
-							!i2p::util::net::IsInReservedRange(ep.address ()) && (
+							!( checkInReserved && i2p::util::net::IsInReservedRange(ep.address ())) && (
 								(ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
 								(ep.address ().is_v6 () && i2p::context.SupportsV6 ())
 							)

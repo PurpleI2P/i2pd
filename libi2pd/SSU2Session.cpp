@@ -1471,7 +1471,7 @@ namespace transport
 				ResendHandshakePacket (); // assume we receive
 			return;
 		}
-		if (from != m_RemoteEndpoint && !i2p::util::net::IsInReservedRange (from.address ()))
+		if (from != m_RemoteEndpoint && !(m_Server.GetCheckInReserved() && i2p::util::net::IsInReservedRange (from.address ())))
 		{
 			LogPrint (eLogInfo, "SSU2: Remote endpoint update ", m_RemoteEndpoint, "->", from);
 			m_RemoteEndpoint = from;
@@ -1753,7 +1753,7 @@ namespace transport
 		if (ExtractEndpoint (buf, len, ep))
 		{
 			LogPrint (eLogInfo, "SSU2: Our external address is ", ep);
-			if (!i2p::util::net::IsInReservedRange (ep.address ()))
+			if (!(m_Server.GetCheckInReserved() && i2p::util::net::IsInReservedRange (ep.address ())))
 			{
 				i2p::context.UpdateAddress (ep.address ());
 				// check our port

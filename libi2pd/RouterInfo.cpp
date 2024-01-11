@@ -24,6 +24,7 @@
 #include "NetDb.hpp"
 #include "RouterContext.h"
 #include "RouterInfo.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -204,6 +205,7 @@ namespace data
 		m_Caps = 0; m_Congestion = eLowCongestion;
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
+		bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
 		// read addresses
 		auto addresses = NewAddresses ();
 		uint8_t numAddresses;
@@ -253,7 +255,7 @@ namespace data
 					address->host = boost::asio::ip::address::from_string (value, ecode);
 					if (!ecode && !address->host.is_unspecified ())
 					{
-						if (!i2p::util::net::IsInReservedRange (address->host) ||
+						if (!(checkInReserved && i2p::util::net::IsInReservedRange (address->host)) ||
 						    i2p::util::net::IsYggdrasilAddress (address->host))
 							isHost = true;
 						else
