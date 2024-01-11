@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -566,7 +566,7 @@ namespace transport
 				else
 					it1->second->ProcessRetry (buf, len);
 			}
-			else if (!i2p::util::net::IsInReservedRange(senderEndpoint.address ()) && senderEndpoint.port ())
+			else if (!i2p::transport::transports.IsInReservedRange(senderEndpoint.address ()) && senderEndpoint.port ())
 			{
 				// assume new incoming session
 				auto session = std::make_shared<SSU2Session> (*this);
@@ -666,7 +666,7 @@ namespace transport
 			bool isValidEndpoint = !address->host.is_unspecified () && address->port;
 			if (isValidEndpoint)
 			{
-				if (i2p::util::net::IsInReservedRange(address->host)) return false;
+				if (i2p::transport::transports.IsInReservedRange(address->host)) return false;
 				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 				if (s)
 				{
@@ -753,7 +753,7 @@ namespace transport
 				if (addr)
 				{
 					bool isValidEndpoint = !addr->host.is_unspecified () && addr->port &&
-						!i2p::util::net::IsInReservedRange(addr->host);
+						!i2p::transport::transports.IsInReservedRange(addr->host);
 					if (isValidEndpoint)
 					{
 						auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (addr->host, addr->port));

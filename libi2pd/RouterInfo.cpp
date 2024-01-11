@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -21,6 +21,7 @@
 #include "Base.h"
 #include "Timestamp.h"
 #include "Log.h"
+#include "Transports.h"
 #include "NetDb.hpp"
 #include "RouterContext.h"
 #include "RouterInfo.h"
@@ -253,7 +254,7 @@ namespace data
 					address->host = boost::asio::ip::address::from_string (value, ecode);
 					if (!ecode && !address->host.is_unspecified ())
 					{
-						if (!i2p::util::net::IsInReservedRange (address->host) ||
+						if (!i2p::transport::transports.IsInReservedRange (address->host) ||
 						    i2p::util::net::IsYggdrasilAddress (address->host))
 							isHost = true;
 						else

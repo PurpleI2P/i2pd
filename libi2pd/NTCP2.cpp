@@ -1490,7 +1490,7 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (!i2p::util::net::IsInReservedRange(ep.address ()))
+				if (!i2p::transport::transports.IsInReservedRange(ep.address ()))
 				{
 					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)
 					{
@@ -1537,7 +1537,7 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP2: Connected from ", ep);
-				if (!i2p::util::net::IsInReservedRange(ep.address ()) ||
+				if (!i2p::transport::transports.IsInReservedRange(ep.address ()) ||
 				    i2p::util::net::IsYggdrasilAddress (ep.address ()))
 				{
 					if (m_PendingIncomingSessions.emplace (ep.address (), conn).second)

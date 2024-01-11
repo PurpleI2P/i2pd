@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -505,7 +505,7 @@ namespace transport
 						if (!m_NTCP2Server) continue;
 						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eNTCP2V6) ?
 							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
-						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+						if (address && IsInReservedRange(address->host))
 							address = nullptr;
 						if (address)
 						{
@@ -524,7 +524,7 @@ namespace transport
 						if (!m_SSU2Server) continue;
 						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSU2V6) ?
 							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
-						if (address && m_CheckReserved && i2p::util::net::IsInReservedRange(address->host))
+						if (address && IsInReservedRange(address->host))
 							address = nullptr;
 						if (address && address->IsReachableSSU ())
 						{
@@ -1084,6 +1084,11 @@ namespace transport
 		}
 	}
 
+	bool Transports::IsInReservedRange (const boost::asio::ip::address& host) const 
+	{
+		return IsCheckReserved () && i2p::util::net::IsInReservedRange (host);
+	}	
+		
 	void InitAddressFromIface ()
 	{
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
@@ -1196,6 +1201,8 @@ namespace transport
 				i2p::context.PublishSSU2Address (ssu2port, false, ipv4, ipv6); // unpublish
 		}
 
+		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
+		transports.SetCheckReserved (checkReserved);
 	}
 }
 }

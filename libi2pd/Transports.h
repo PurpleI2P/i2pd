@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -167,7 +167,8 @@ namespace transport
 			void PeerTest (bool ipv4 = true, bool ipv6 = true);
 
 			void SetCheckReserved (bool check) { m_CheckReserved = check; };
-			bool IsCheckReserved () { return m_CheckReserved; };
+			bool IsCheckReserved () const { return m_CheckReserved; };
+			bool IsInReservedRange (const boost::asio::ip::address& host) const;
 
 		private:
 
