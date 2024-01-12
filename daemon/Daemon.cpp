@@ -160,6 +160,10 @@ namespace util
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
+
+		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
+		i2p::transport::transports.SetCheckReserved(checkReserved);
+
 		i2p::context.Init ();
 
 		i2p::transport::InitTransports ();

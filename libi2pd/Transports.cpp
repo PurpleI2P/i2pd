@@ -1200,9 +1200,6 @@ namespace transport
 			else
 				i2p::context.PublishSSU2Address (ssu2port, false, ipv4, ipv6); // unpublish
 		}
-
-		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
-		transports.SetCheckReserved (checkReserved);
 	}
 }
 }
