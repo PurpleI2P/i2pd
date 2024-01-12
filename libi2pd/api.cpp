@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -43,6 +43,9 @@ namespace api
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
+
+		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
+		i2p::transport::transports.SetCheckReserved(checkReserved);
 
 		i2p::context.Init ();
 	}
