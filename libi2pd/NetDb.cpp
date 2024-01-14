@@ -721,7 +721,7 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
-		auto dest = m_Requests.CreateRequest (destination, false, requestComplete); // non-exploratory
+		auto dest = m_Requests.CreateRequest (destination, false, direct, requestComplete); // non-exploratory
 		if (!dest)
 		{
 			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
@@ -761,10 +761,10 @@ namespace data
 		}
 	}
 
-	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete)
+	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploratory, RequestedDestination::RequestComplete requestComplete)
 	{
 
-		auto dest = m_Requests.CreateRequest (destination, exploritory, requestComplete); // non-exploratory
+		auto dest = m_Requests.CreateRequest (destination, exploratory, true, requestComplete); // non-exploratory
 		if (!dest)
 		{
 			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
@@ -919,39 +919,9 @@ namespace data
 		auto dest = m_Requests.FindRequest (ident);
 		if (dest)
 		{
-			bool deleteDest = true;
 			if (num > 0)
-			{
-				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-				auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;
-				if (!dest->IsExploratory ())
-				{
-					// reply to our destination. Try other floodfills
-					if (outbound && inbound)
-					{
-						auto count = dest->GetExcludedPeers ().size ();
-						if (count < 7)
-						{
-							auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
-							if (nextFloodfill)
-							{
-								// request destination
-								LogPrint (eLogDebug, "NetDb: Try ", key, " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
-								outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
-									dest->CreateRequestMessage (nextFloodfill, inbound));
-								deleteDest = false;
-							}
-						}
-						else
-							LogPrint (eLogWarning, "NetDb: ", key, " was not found on ", count, " floodfills");
-					}
-				}
-
-				if (deleteDest)
-					// no more requests for the destinationation. delete it
-					m_Requests.RequestComplete (ident, nullptr);
-			}
+				// try to send next requests
+				m_Requests.SendNextRequest (dest);
 			else
 				// no more requests for destination possible. delete it
 				m_Requests.RequestComplete (ident, nullptr);
@@ -1156,7 +1126,7 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{
 			RAND_bytes (randomHash, 32);
-			auto dest = m_Requests.CreateRequest (randomHash, true); // exploratory
+			auto dest = m_Requests.CreateRequest (randomHash, true, !throughTunnels); // exploratory
 			if (!dest)
 			{
 				LogPrint (eLogWarning, "NetDb: Exploratory destination is requested already");

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -11,6 +11,7 @@
 #include "Transports.h"
 #include "NetDb.hpp"
 #include "NetDbRequests.h"
+#include "ECIESX25519AEADRatchetSession.h"
 
 namespace i2p
 {
@@ -74,14 +75,15 @@ namespace data
 	}
 
 
-	std::shared_ptr<RequestedDestination> NetDbRequests::CreateRequest (const IdentHash& destination, bool isExploratory, RequestedDestination::RequestComplete requestComplete)
+	std::shared_ptr<RequestedDestination> NetDbRequests::CreateRequest (const IdentHash& destination, 
+		bool isExploratory, bool direct, RequestedDestination::RequestComplete requestComplete)
 	{
 		// request RouterInfo directly
-		auto dest = std::make_shared<RequestedDestination> (destination, isExploratory);
+		auto dest = std::make_shared<RequestedDestination> (destination, isExploratory, direct);
 		dest->SetRequestComplete (requestComplete);
 		{
-			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			if (!m_RequestedDestinations.insert (std::make_pair (destination, dest)).second) // not inserted
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex); 
+			if (!m_RequestedDestinations.emplace (destination, dest).second) // not inserted
 				return nullptr;
 		}
 		return dest;
@@ -125,35 +127,10 @@ namespace data
 		{
 			auto& dest = it->second;
 			bool done = false;
-			if (ts < dest->GetCreationTime () + 60) // request is worthless after 1 minute
+			if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME) // request becomes worthless
 			{
-				if (ts > dest->GetCreationTime () + 5) // no response for 5 seconds
-				{
-					auto count = dest->GetExcludedPeers ().size ();
-					if (!dest->IsExploratory () && count < 7)
-					{
-						auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-						auto outbound = pool->GetNextOutboundTunnel ();
-						auto inbound = pool->GetNextInboundTunnel ();
-						auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
-						if (nextFloodfill && outbound && inbound)
-							outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
-								dest->CreateRequestMessage (nextFloodfill, inbound));
-						else
-						{
-							done = true;
-							if (!inbound) LogPrint (eLogWarning, "NetDbReq: No inbound tunnels");
-							if (!outbound) LogPrint (eLogWarning, "NetDbReq: No outbound tunnels");
-							if (!nextFloodfill) LogPrint (eLogWarning, "NetDbReq: No more floodfills");
-						}
-					}
-					else
-					{
-						if (!dest->IsExploratory ())
-							LogPrint (eLogWarning, "NetDbReq: ", dest->GetDestination ().ToBase64 (), " not found after 7 attempts");
-						done = true;
-					}
-				}
+				if (ts > dest->GetCreationTime () + MIN_REQUEST_TIME) // retry in no response after min interval
+					done = !SendNextRequest (dest);
 			}
 			else // delete obsolete request
 				done = true;
@@ -164,5 +141,56 @@ namespace data
 				++it;
 		}
 	}
+
+	bool NetDbRequests::SendNextRequest (std::shared_ptr<RequestedDestination> dest)
+	{
+		if (!dest) return false;
+		bool ret = true;
+		auto count = dest->GetExcludedPeers ().size ();
+		if (!dest->IsExploratory () && count < MAX_NUM_REQUEST_ATTEMPTS)
+		{
+			auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
+			if (nextFloodfill)
+			{	
+				bool direct = dest->IsDirect ();
+				if (direct && !nextFloodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) &&
+					!i2p::transport::transports.IsConnected (nextFloodfill->GetIdentHash ()))
+					direct = false; // floodfill can't be reached directly
+				if (direct)
+					i2p::transport::transports.SendMessage (nextFloodfill->GetIdentHash (), dest->CreateRequestMessage (nextFloodfill->GetIdentHash ()));
+				else
+				{	
+					auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+					auto outbound = pool->GetNextOutboundTunnel ();
+					auto inbound = pool->GetNextInboundTunnel ();
+					if (nextFloodfill && outbound && inbound)
+					{
+						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
+						auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
+						outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
+							i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
+					}	
+					else
+					{
+						ret = false;
+						if (!inbound) LogPrint (eLogWarning, "NetDbReq: No inbound tunnels");
+						if (!outbound) LogPrint (eLogWarning, "NetDbReq: No outbound tunnels");
+					}
+				}		
+			}
+			else
+			{
+				ret = false;
+				if (!nextFloodfill) LogPrint (eLogWarning, "NetDbReq: No more floodfills");
+			}	
+		}
+		else
+		{
+			if (!dest->IsExploratory ())
+				LogPrint (eLogWarning, "NetDbReq: ", dest->GetDestination ().ToBase64 (), " not found after 7 attempts");
+			ret = false;
+		}
+		return ret;
+	}	
 }
 }
