@@ -83,8 +83,26 @@ namespace data
 		dest->SetRequestComplete (requestComplete);
 		{
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex); 
-			if (!m_RequestedDestinations.emplace (destination, dest).second) // not inserted
+			auto ret = m_RequestedDestinations.emplace (destination, dest);
+			if (!ret.second) // not inserted
+			{	
+				dest->SetRequestComplete (nullptr); // don't call requestComplete in destructor	
+				if (requestComplete)
+				{	
+					auto prev = ret.first->second->GetRequestComplete ();  
+					if (prev) // if already set 	
+						ret.first->second->SetRequestComplete (
+							[requestComplete, prev](std::shared_ptr<RouterInfo> r)
+							{
+								prev (r); // call previous
+								requestComplete (r); // then new
+							});
+					else
+						ret.first->second->SetRequestComplete (requestComplete);
+				}
+				
 				return nullptr;
+			}	
 		}
 		return dest;
 	}

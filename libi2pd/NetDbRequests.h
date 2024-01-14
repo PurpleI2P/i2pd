@@ -46,6 +46,7 @@ namespace data
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (const IdentHash& floodfill);
 
 			void SetRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete = requestComplete; };
+			RequestComplete GetRequestComplete () const { return m_RequestComplete; };
 			bool IsRequestComplete () const { return m_RequestComplete != nullptr; };
 			void Success (std::shared_ptr<RouterInfo> r);
 			void Fail ();
