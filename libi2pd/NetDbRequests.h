@@ -30,9 +30,8 @@ namespace data
 
 			typedef std::function<void (std::shared_ptr<RouterInfo>)> RequestComplete;
 
-			RequestedDestination (const IdentHash& destination, bool isExploratory = false, bool direct = true):
-				m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), m_CreationTime (0) {};
-			~RequestedDestination () { if (m_RequestComplete) m_RequestComplete (nullptr); };
+			RequestedDestination (const IdentHash& destination, bool isExploratory = false, bool direct = true);
+			~RequestedDestination ();
 
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
@@ -42,6 +41,7 @@ namespace data
 			bool IsDirect () const { return m_IsDirect; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			uint64_t GetCreationTime () const { return m_CreationTime; };
+			uint64_t GetLastRequestTime () const { return m_LastRequestTime; };
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (const IdentHash& floodfill);
 
@@ -56,7 +56,7 @@ namespace data
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect;
 			std::set<IdentHash> m_ExcludedPeers;
-			uint64_t m_CreationTime;
+			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;
 	};
 

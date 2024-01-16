@@ -17,6 +17,17 @@ namespace i2p
 {
 namespace data
 {
+	RequestedDestination::RequestedDestination (const IdentHash& destination, bool isExploratory, bool direct):
+		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), 
+		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_LastRequestTime (0) 
+	{
+	}
+		
+	RequestedDestination::~RequestedDestination () 
+	{ 
+		if (m_RequestComplete) m_RequestComplete (nullptr); 
+	}
+		
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
@@ -29,7 +40,7 @@ namespace data
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg(m_Destination, i2p::context.GetIdentHash(), 0, m_IsExploratory, &m_ExcludedPeers);
 		if(router)
 			m_ExcludedPeers.insert (router->GetIdentHash ());
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}
 
@@ -38,7 +49,7 @@ namespace data
 		auto msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}
 
@@ -100,7 +111,9 @@ namespace data
 					else
 						ret.first->second->SetRequestComplete (requestComplete);
 				}
-				
+				if (i2p::util::GetSecondsSinceEpoch () > ret.first->second->GetLastRequestTime () + MIN_REQUEST_TIME)
+					if (!SendNextRequest (ret.first->second)) // try next floodfill
+						m_RequestedDestinations.erase (ret.first); // delete request if failed
 				return nullptr;
 			}	
 		}
@@ -147,7 +160,7 @@ namespace data
 			bool done = false;
 			if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME) // request becomes worthless
 			{
-				if (ts > dest->GetCreationTime () + MIN_REQUEST_TIME) // retry in no response after min interval
+				if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
 					done = !SendNextRequest (dest);
 			}
 			else // delete obsolete request
