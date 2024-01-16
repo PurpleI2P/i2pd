@@ -436,6 +436,10 @@ namespace transport
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
+			// check if not known as unreachable
+			auto profile = i2p::data::GetRouterProfile (ident);
+			if (profile && profile->IsUnreachable ()) return; // don't create peer to unreachable router
+			// try to connect
 			bool connected = false;
 			try
 			{
