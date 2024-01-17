@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -809,10 +809,15 @@ namespace transport
 
 	void NTCP2Session::HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode)
+		if (ecode || bytes_transferred != 2)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogWarning, "NTCP2: Receive length read error: ", ecode.message ());
+			{
+				if (ecode)
+					LogPrint (eLogWarning, "NTCP2: Receive length read error: ", ecode.message ());
+				else if (bytes_transferred != 2)
+					LogPrint (eLogError, "NTCP2: Receive length of ", bytes_transferred, " bytes");
+			}	
 			Terminate ();
 		}
 		else
@@ -833,14 +838,19 @@ namespace transport
 				CreateNextReceivedBuffer (m_NextReceivedLen);
 				boost::system::error_code ec;
 				size_t moreBytes = m_Socket.available(ec);
-				if (!ec && moreBytes >= m_NextReceivedLen)
-				{
-					// read and process message immediately if available
-					moreBytes = boost::asio::read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (), ec);
-					HandleReceived (ec, moreBytes);
-				}
+				if (!ec)
+				{	
+					if (moreBytes >= m_NextReceivedLen)
+					{
+						// read and process message immediately if available
+						moreBytes = boost::asio::read (m_Socket, boost::asio::buffer(m_NextReceivedBuffer, m_NextReceivedLen), boost::asio::transfer_all (), ec);
+						HandleReceived (ec, moreBytes);
+					}
+					else
+						Receive ();
+				}	
 				else
-					Receive ();
+					LogPrint (eLogWarning, "NTCP2: Socket error: ", ec.message ());
 			}
 			else
 			{
@@ -864,10 +874,15 @@ namespace transport
 
 	void NTCP2Session::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode)
+		if (ecode || bytes_transferred != m_NextReceivedLen)
 		{
-			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogWarning, "NTCP2: Receive read error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)	
+			{		
+				if (ecode)	
+					LogPrint (eLogWarning, "NTCP2: Receive read error: ", ecode.message ());
+				else if (bytes_transferred != m_NextReceivedLen)
+					LogPrint (eLogError, "NTCP2: Received ", bytes_transferred, " bytes. Instead ", m_NextReceivedLen);
+			}			
 			Terminate ();
 		}
 		else
