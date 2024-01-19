@@ -101,6 +101,8 @@ namespace transport
 				isReachable = (bool)router->GetCompatibleTransports (true);
 			}	
 		}
+
+		bool IsConnected () const { return !sessions.empty (); }	
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds

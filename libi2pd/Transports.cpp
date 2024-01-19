@@ -458,7 +458,7 @@ namespace transport
 			}
 			if (!connected) return;
 		}
-		if (!it->second.sessions.empty ())
+		if (it->second.IsConnected ())
 			it->second.sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{
@@ -616,7 +616,8 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
 				it->second.SetRouter (r);
-				ConnectToPeer (ident, it->second);
+				if (!it->second.IsConnected ())
+					ConnectToPeer (ident, it->second);
 			}
 			else
 			{
@@ -810,13 +811,13 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-				auto before = it->second.sessions.size ();
+				bool wasConnected = it->second.IsConnected ();
 				it->second.sessions.remove (session);
-				if (it->second.sessions.empty ())
+				if (!it->second.IsConnected ())
 				{
 					if (it->second.delayedMessages.size () > 0)
 					{
-						if (before > 0) // we had an active session before
+						if (wasConnected) // we had an active session before
 							it->second.numAttempts = 0; // start over
 						ConnectToPeer (ident, it->second);
 					}
@@ -849,7 +850,7 @@ namespace transport
 					{
 						return !session || !session->IsEstablished ();
 					});
- 				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+ 				if (!it->second.IsConnected () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
 				/*	if (!it->second.router) 
@@ -991,7 +992,7 @@ namespace transport
 			[isHighBandwidth](const Peer& peer)->bool
 			{
 				// connected, not overloaded and not slow
-				return !peer.router && !peer.sessions.empty () && peer.isReachable &&
+				return !peer.router && peer.IsConnected () && peer.isReachable &&
 					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
 					!peer.sessions.front ()->IsSlow () && !peer.sessions.front ()->IsBandwidthExceeded (peer.isHighBandwidth) &&
 					(!isHighBandwidth || peer.isHighBandwidth);
