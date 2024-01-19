@@ -1415,7 +1415,11 @@ namespace transport
 	void NTCP2Server::RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session)
 	{
 		if (session && session->GetRemoteIdentity ())
-			m_NTCP2Sessions.erase (session->GetRemoteIdentity ()->GetIdentHash ());
+		{
+			auto it = m_NTCP2Sessions.find (session->GetRemoteIdentity ()->GetIdentHash ());
+			if (it != m_NTCP2Sessions.end () && it->second == session)
+				m_NTCP2Sessions.erase (it);
+		}	
 	}
 
 	std::shared_ptr<NTCP2Session> NTCP2Server::FindNTCP2Session (const i2p::data::IdentHash& ident)
