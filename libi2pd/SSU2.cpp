@@ -283,8 +283,15 @@ namespace transport
 		// but better to find out which host were sent it and mark that router as unreachable
 		{
 			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
+			if (bytes_transferred < SSU2_MIN_RECEIVED_PACKET_SIZE)
+			{
+				// drop too short packets
+				m_PacketsPool.ReleaseMt (packet);
+				Receive (socket);
+				return;
+			}	
 			packet->len = bytes_transferred;
-
+			
 			boost::system::error_code ec;
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)

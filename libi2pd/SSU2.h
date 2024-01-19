@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -27,6 +27,7 @@ namespace transport
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
+	const size_t SSU2_MIN_RECEIVED_PACKET_SIZE = 40; // 16 byte short header + 8 byte minimum payload + 16 byte MAC
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
 	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
