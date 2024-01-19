@@ -38,7 +38,7 @@ jobs:
 
     - name: Install Boost
       run: |
-        powershell -Command "(Invoke-WebRequest -UserAgent "Wget" -Uri https://sourceforge.net/projects/boost/files/boost-binaries/1.84.0/boost_1_84_0-msvc-14.3-64.exe/download -OutFile boost_1_84_0-msvc-14.3-64.exe)"
+        powershell -Command "(Invoke-WebRequest -UserAgent "Wget" -Uri https://sourceforge.net/projects/boost/files/boost-binaries/1.81.0/boost_1_81_0-msvc-14.3-64.exe/download -OutFile boost_1_84_0-msvc-14.3-64.exe)"
         ./boost_1_84_0-msvc-14.3-64.exe /VERYSILENT
 
     - name: Install OpenSSL
