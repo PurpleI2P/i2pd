@@ -809,15 +809,10 @@ namespace transport
 
 	void NTCP2Session::HandleReceivedLength (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode || bytes_transferred != 2)
+		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-			{
-				if (ecode)
-					LogPrint (eLogWarning, "NTCP2: Receive length read error: ", ecode.message ());
-				else if (bytes_transferred != 2)
-					LogPrint (eLogError, "NTCP2: Receive length of ", bytes_transferred, " bytes");
-			}	
+				LogPrint (eLogWarning, "NTCP2: Receive length read error: ", ecode.message ());
 			Terminate ();
 		}
 		else
@@ -874,15 +869,10 @@ namespace transport
 
 	void NTCP2Session::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode || bytes_transferred != m_NextReceivedLen)
+		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)	
-			{		
-				if (ecode)	
-					LogPrint (eLogWarning, "NTCP2: Receive read error: ", ecode.message ());
-				else if (bytes_transferred != m_NextReceivedLen)
-					LogPrint (eLogError, "NTCP2: Received ", bytes_transferred, " bytes. Instead ", m_NextReceivedLen);
-			}			
+				LogPrint (eLogWarning, "NTCP2: Receive read error: ", ecode.message ());	
 			Terminate ();
 		}
 		else
@@ -1061,6 +1051,11 @@ namespace transport
 			macBuf = m_NextSendBuffer + paddingLen;
 			totalLen += paddingLen;
 		}
+		if (totalLen > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
+		{
+			LogPrint (eLogError, "NTCP2: Frame to send is too long ", totalLen);
+			return;
+		}	
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
 		i2p::crypto::AEADChaCha20Poly1305Encrypt (encryptBufs, m_SendKey, nonce, macBuf); // encrypt buffers
@@ -1085,6 +1080,12 @@ namespace transport
 			delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
 			return;
 		}
+		if (payloadLen > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
+		{
+			LogPrint (eLogError, "NTCP2: Buffer to send is too long ", payloadLen);
+			delete[] m_NextSendBuffer; m_NextSendBuffer = nullptr;
+			return;
+		}	
 		// encrypt
 		uint8_t nonce[12];
 		CreateNonce (m_SendSequenceNumber, nonce); m_SendSequenceNumber++;
@@ -1160,7 +1161,12 @@ namespace transport
 		len -= 3;
 		if (msgLen < 256) msgLen = 256; // for short message padding should not be always zero
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
-		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) paddingSize = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
+		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) 
+		{	
+			ssize_t l = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
+			if (l <= 0) return 0;
+			paddingSize = l;
+		}	
 		if (paddingSize > len) paddingSize = len;
 		if (paddingSize)
 		{
@@ -1169,7 +1175,7 @@ namespace transport
 				RAND_bytes ((uint8_t *)m_PaddingSizes, sizeof (m_PaddingSizes));
 				m_NextPaddingSize = 0;
 			}
-			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % paddingSize;
+			paddingSize = m_PaddingSizes[m_NextPaddingSize++] % (paddingSize + 1);
 		}
 		buf[0] = eNTCP2BlkPadding; // blk
 		htobe16buf (buf + 1, paddingSize); // size
