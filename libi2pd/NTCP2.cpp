@@ -1132,10 +1132,17 @@ namespace transport
 		if (!m_SendQueue.empty ())
 		{
 			std::vector<std::shared_ptr<I2NPMessage> > msgs;
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			size_t s = 0;
 			while (!m_SendQueue.empty ())
 			{
 				auto msg = m_SendQueue.front ();
+				if (!msg || msg->IsExpired (ts))
+				{
+					// drop null or expired message
+					m_SendQueue.pop_front ();
+					continue;
+				}	
 				size_t len = msg->GetNTCP2Length ();
 				if (s + len + 3 <= NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) // 3 bytes block header
 				{

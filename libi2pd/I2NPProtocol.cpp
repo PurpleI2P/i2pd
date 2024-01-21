@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -72,11 +72,15 @@ namespace i2p
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 	}
 
-	bool I2NPMessage::IsExpired () const
+	bool I2NPMessage::IsExpired (uint64_t ts) const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		auto exp = GetExpiration ();
 		return (ts > exp + I2NP_MESSAGE_CLOCK_SKEW) || (ts < exp - 3*I2NP_MESSAGE_CLOCK_SKEW); // check if expired or too far in future
+	}	
+	
+	bool I2NPMessage::IsExpired () const
+	{
+		return IsExpired (i2p::util::GetMillisecondsSinceEpoch ());
 	}
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)

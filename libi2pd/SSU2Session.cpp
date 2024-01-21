@@ -379,8 +379,9 @@ namespace transport
 			while (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 			{
 				auto msg = m_SendQueue.front ();
-				if (!msg)
+				if (!msg || msg->IsExpired (ts))
 				{
+					// drop null or expired message
 					m_SendQueue.pop_front ();
 					continue;
 				}

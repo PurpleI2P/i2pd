@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -252,6 +252,7 @@ namespace tunnel
 		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0, bool checksum = true);
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
+		bool IsExpired (uint64_t ts) const; // in milliseconds
 	};
 
 	template<int sz>
