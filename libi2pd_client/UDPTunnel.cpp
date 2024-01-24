@@ -19,10 +19,7 @@ namespace client
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || fromPort != m_LastSession->RemotePort)
-		{
-			std::lock_guard<std::mutex> lock(m_SessionsMutex);
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
-		}
 		m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
 		m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
 	}
