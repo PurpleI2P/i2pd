@@ -240,7 +240,7 @@ namespace data
 			{
 				bool wasFloodfill = r->IsFloodfill ();
 				{
-					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 					if (!r->Update (buf, len))
 					{
 						updated = false;
@@ -254,7 +254,7 @@ namespace data
 						m_RouterInfos.erase (ident);
 						if (wasFloodfill)
 						{
-							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+							std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.Remove (r->GetIdentHash ());
 						}
 						m_Requests.RequestComplete (ident, nullptr);
@@ -265,7 +265,7 @@ namespace data
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
 				{
 					LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
-					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+					std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
 						m_Floodfills.Remove (r->GetIdentHash ());
 					else if (r->IsEligibleFloodfill ())
@@ -291,7 +291,7 @@ namespace data
 			{
 				bool inserted = false;
 				{
-					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 					inserted = m_RouterInfos.insert ({r->GetIdentHash (), r}).second;
 				}
 				if (inserted)
@@ -302,7 +302,7 @@ namespace data
 						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
 						 r->GetProfile ()->IsReal ()) // don't insert floodfill until it's known real if we have enough
 						{
-							std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+							std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.Insert (r);
 						}
 						else
@@ -325,7 +325,7 @@ namespace data
 
 	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len)
 	{
-		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		std::lock_guard<std::mutex> lock(m_LeaseSetsMutex);
 		bool updated = false;
 		auto it = m_LeaseSets.find(ident);
 		if (it != m_LeaseSets.end () && it->second->GetStoreType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
@@ -366,7 +366,7 @@ namespace data
 		auto leaseSet = std::make_shared<LeaseSet2> (storeType, buf, len, false); // we don't need leases in netdb
 		if (leaseSet->IsValid ())
 		{
-			std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+			std::lock_guard<std::mutex> lock(m_LeaseSetsMutex);
 			auto it = m_LeaseSets.find(ident);
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
@@ -393,7 +393,7 @@ namespace data
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
 	{
-		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+		std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
 			return it->second;
@@ -403,7 +403,7 @@ namespace data
 
 	std::shared_ptr<LeaseSet> NetDb::FindLeaseSet (const IdentHash& destination) const
 	{
-		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		std::lock_guard<std::mutex> lock(m_LeaseSetsMutex);
 		auto it = m_LeaseSets.find (destination);
 		if (it != m_LeaseSets.end ())
 			return it->second;
@@ -437,7 +437,7 @@ namespace data
 		auto r = FindRouter (ident);
 		if (r)
 		{
-			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 			r->ExcludeReachableTransports (transports);
 		}
 	}
@@ -527,7 +527,7 @@ namespace data
 
 	void NetDb::VisitLeaseSets(LeaseSetVisitor v)
 	{
-		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		std::lock_guard<std::mutex> lock(m_LeaseSetsMutex);
 		for ( auto & entry : m_LeaseSets)
 			v(entry.first, entry.second);
 	}
@@ -543,7 +543,7 @@ namespace data
 
 	void NetDb::VisitRouterInfos(RouterInfoVisitor v)
 	{
-		std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+		std::lock_guard<std::mutex> lock(m_RouterInfosMutex);
 		for ( const auto & item : m_RouterInfos )
 			v(item.second);
 	}
@@ -555,7 +555,7 @@ namespace data
 		size_t iters = max_iters_per_cyle;
 		while(n > 0)
 		{
-			std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+			std::lock_guard<std::mutex> lock(m_RouterInfosMutex);
 			uint32_t idx = rand () % m_RouterInfos.size ();
 			uint32_t i = 0;
 			for (const auto & it : m_RouterInfos) {
@@ -638,6 +638,7 @@ namespace data
 					// we have something to save
 					it.second->SaveToFile (m_Storage.Path(ident));
 					it.second->SetUnreachable (false);
+					std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
 					it.second->DeleteBuffer ();
 				}
 				it.second->SetUpdated (false);
@@ -696,7 +697,7 @@ namespace data
 			LogPrint (eLogInfo, "NetDb: Deleting ", deletedCount, " unreachable routers");
 			// clean up RouterInfos table
 			{
-				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+				std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 				for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 				{
 					if (!it->second || it->second->IsUnreachable ())
@@ -710,7 +711,7 @@ namespace data
 			}
 			// clean up expired floodfills or not floodfills anymore
 			{
-				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+				std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 				m_Floodfills.Cleanup ([](const std::shared_ptr<RouterInfo>& r)->bool
 					{
 						return r && r->IsFloodfill () && !r->IsUnreachable ();
@@ -1249,7 +1250,7 @@ namespace data
 			return 0;
 		uint16_t inds[3];
 		RAND_bytes ((uint8_t *)inds, sizeof (inds));
-		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+		std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 		auto count = m_RouterInfos.size ();
 		if(count == 0) return nullptr;
 		inds[0] %= count;
@@ -1311,7 +1312,7 @@ namespace data
 		const std::set<IdentHash>& excluded) const
 	{
 		IdentHash destKey = CreateRoutingKey (destination);
-		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+		std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 		return m_Floodfills.FindClosest (destKey, [&excluded](const std::shared_ptr<RouterInfo>& r)->bool
 			{
 				return r && !r->IsUnreachable () && !r->GetProfile ()->IsUnreachable () &&
@@ -1326,7 +1327,7 @@ namespace data
 		IdentHash destKey = CreateRoutingKey (destination);
 		std::vector<std::shared_ptr<RouterInfo> > v;
 		{
-			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+			std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 			v = m_Floodfills.FindClosest (destKey, num, [&excluded](const std::shared_ptr<RouterInfo>& r)->bool
 				{
 					return r && !r->IsUnreachable () && !r->GetProfile ()->IsUnreachable () &&
@@ -1381,7 +1382,7 @@ namespace data
 	{
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		{
-			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 			for (auto& it: m_RouterInfos)
 				it.second->UpdateIntroducers (ts);
 		}
