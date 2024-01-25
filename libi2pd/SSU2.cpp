@@ -210,27 +210,40 @@ namespace transport
 		return ep.port ();
 	}
 
-	void SSU2Server::AdjustTimeOffset (int64_t offset)
+	void SSU2Server::AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from)
 	{
 		if (offset)
 		{	
 			if (m_PendingTimeOffset) // one more
 			{	
-				if (std::abs (m_PendingTimeOffset - offset) < SSU2_CLOCK_SKEW)
+				if (m_PendingTimeOffsetFrom && from && 
+					m_PendingTimeOffsetFrom->GetIdentHash ().GetLL()[0] != from->GetIdentHash ().GetLL()[0]) // from different routers
 				{	
-					offset = (m_PendingTimeOffset + offset)/2; // average
-					LogPrint (eLogWarning, "SSU2: Clock adjusted by ", offset, " seconds");
-					i2p::util::AdjustTimeOffset (offset);
-				}	
+					if (std::abs (m_PendingTimeOffset - offset) < SSU2_CLOCK_SKEW)
+					{	
+						offset = (m_PendingTimeOffset + offset)/2; // average
+						LogPrint (eLogWarning, "SSU2: Clock adjusted by ", offset, " seconds");
+						i2p::util::AdjustTimeOffset (offset);
+					}	
+					else
+						LogPrint (eLogWarning, "SSU2: Time offsets are too different. Clock not adjusted");
+					m_PendingTimeOffset = 0;
+					m_PendingTimeOffsetFrom = nullptr;
+				}
 				else
-					LogPrint (eLogWarning, "SSU2: Time offsets are too different. Clock not adjusted");
-				m_PendingTimeOffset = 0;
+					LogPrint (eLogWarning, "SSU2: Time offsets from same router. Clock not adjusted");
 			}
 			else
+			{	
 				m_PendingTimeOffset = offset; // first 
+				m_PendingTimeOffsetFrom = from;
+			}	
 		}	
 		else
+		{	
 			m_PendingTimeOffset = 0; // reset
+			m_PendingTimeOffsetFrom = nullptr;
+		}	
 	}	
 		
 	boost::asio::ip::udp::socket& SSU2Server::OpenSocket (const boost::asio::ip::udp::endpoint& localEndpoint)

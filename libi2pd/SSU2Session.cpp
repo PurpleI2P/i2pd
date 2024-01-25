@@ -1671,10 +1671,10 @@ namespace transport
 						if (std::abs (offset) > SSU2_CLOCK_THRESHOLD)
 						{	
 							LogPrint (eLogWarning, "SSU2: Time offset ", offset, " from ", m_RemoteEndpoint);
-							m_Server.AdjustTimeOffset (-offset);
+							m_Server.AdjustTimeOffset (-offset, GetRemoteIdentity ());
 						}	
 						else
-							m_Server.AdjustTimeOffset (0);
+							m_Server.AdjustTimeOffset (0, nullptr);
 					}
 					else if (std::abs (offset) > SSU2_CLOCK_SKEW)
 					{
@@ -2485,7 +2485,7 @@ namespace transport
 				i2p::context.SetTestingV6 (testing);
 		}
 		if (!testing)
-			m_Server.AdjustTimeOffset (0); // reset time offset when testing is over
+			m_Server.AdjustTimeOffset (0, nullptr); // reset time offset when testing is over
 	}
 
 	size_t SSU2Session::CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep)
