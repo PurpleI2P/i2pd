@@ -105,7 +105,7 @@ namespace client
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession (const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 			uint32_t GetSessionIndex (uint16_t fromPort, uint16_t toPort) const { return ((uint32_t)fromPort << 16) + toPort; }
-			
+
 		private:
 
 			bool m_IsUniqueLocal;
@@ -116,6 +116,7 @@ namespace client
 			std::unordered_map<uint32_t, UDPSessionPtr> m_Sessions; // (from port, to port)->session
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			UDPSessionPtr m_LastSession;
+			uint16_t m_inPort;
 			bool m_Gzip;
 
 		public:

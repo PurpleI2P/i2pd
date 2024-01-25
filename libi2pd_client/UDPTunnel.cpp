@@ -32,7 +32,7 @@ namespace client
 			auto it = m_Sessions.find (GetSessionIndex (fromPort, toPort));
 			if (it != m_Sessions.end ())
 				m_LastSession = it->second;
-			else	
+			else
 				m_LastSession = nullptr;
 		}
 		if (m_LastSession)
@@ -47,7 +47,7 @@ namespace client
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
 		auto itr = m_Sessions.begin();
-		while(itr != m_Sessions.end()) 
+		while(itr != m_Sessions.end())
 		{
 			if(now - itr->second->LastActivity >= delta )
 				itr = m_Sessions.erase(itr);
@@ -88,10 +88,10 @@ namespace client
 				{
 					LogPrint(eLogWarning, "UDPServer: Session with from ", remotePort, " and to ", localPort, " ports already exists. But from differend address. Removed");
 					m_Sessions.erase (it);
-				}	
-			}	
-		}	
-		
+				}
+			}
+		}
+
 		boost::asio::ip::address addr;
 		/** create new udp session */
 		if(m_IsUniqueLocal && m_LocalAddress.is_loopback())
@@ -102,7 +102,7 @@ namespace client
 		else
 			addr = m_LocalAddress;
 
-		auto s = std::make_shared<UDPSession>(boost::asio::ip::udp::endpoint(addr, 0), 
+		auto s = std::make_shared<UDPSession>(boost::asio::ip::udp::endpoint(addr, 0),
 			m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort);
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		m_Sessions.emplace (idx, s);
@@ -163,9 +163,9 @@ namespace client
 	}
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel (const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		const boost::asio::ip::address& localAddress, const boost::asio::ip::udp::endpoint& forwardTo, uint16_t port, bool gzip) :
+		const boost::asio::ip::address& localAddress, const boost::asio::ip::udp::endpoint& forwardTo, uint16_t inPort, bool gzip) :
 		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress),
-		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_Gzip (gzip)
+		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_inPort(inPort), m_Gzip (gzip)
 	{
 	}
 
@@ -179,14 +179,23 @@ namespace client
 		m_LocalDest->Start ();
 
 		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip);
-		dgram->SetReceiver (std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-		dgram->SetRawReceiver (std::bind (&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+		dgram->SetReceiver (
+			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+			m_inPort
+		);
+		dgram->SetRawReceiver (
+			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+			m_inPort
+		);
 	}
 
 	void I2PUDPServerTunnel::Stop ()
 	{
 		auto dgram = m_LocalDest->GetDatagramDestination ();
-		if (dgram) dgram->ResetReceiver ();
+		if (dgram) {
+			dgram->ResetReceiver (m_inPort);
+			dgram->ResetRawReceiver (m_inPort);
+		}
 	}
 
 	std::vector<std::shared_ptr<DatagramSessionInfo> > I2PUDPServerTunnel::GetSessions ()
@@ -240,9 +249,13 @@ namespace client
 		dgram->SetReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,
-			std::placeholders::_5));
+			std::placeholders::_5),
+			RemotePort
+		);
 		dgram->SetRawReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2PRaw, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+			RemotePort
+		);
 
 		m_LocalDest->Start ();
 		if (m_ResolveThread == nullptr)
@@ -253,7 +266,10 @@ namespace client
 	void I2PUDPClientTunnel::Stop ()
 	{
 		auto dgram = m_LocalDest->GetDatagramDestination ();
-		if (dgram) dgram->ResetReceiver ();
+		if (dgram) {
+			dgram->ResetReceiver (RemotePort);
+			dgram->ResetRawReceiver (RemotePort);
+		}
 		m_cancel_resolve = true;
 
 		m_Sessions.clear();

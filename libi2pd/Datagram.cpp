@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,7 +19,7 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner, bool gzip):
-		m_Owner (owner), m_Receiver (nullptr), m_RawReceiver (nullptr), m_Gzip (gzip)
+		m_Owner (owner), m_DefaultReceiver (nullptr), m_DefaultRawReceiver (nullptr), m_Gzip (gzip)
 	{
 		if (m_Gzip)
 			m_Deflator.reset (new i2p::data::GzipDeflator);
@@ -119,19 +119,79 @@ namespace datagram
 
 	void DatagramDestination::HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
-		if (m_RawReceiver)
-			m_RawReceiver (fromPort, toPort, buf, len);
+		auto r = FindRawReceiver(toPort);
+
+		if (r)
+			r (fromPort, toPort, buf, len);
 		else
 			LogPrint (eLogWarning, "DatagramDestination: no receiver for raw datagram");
 	}
 
+	void DatagramDestination::SetReceiver (const Receiver& receiver, uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
+		m_ReceiversByPorts[port] = receiver;
+		if (!m_DefaultReceiver) {
+			m_DefaultReceiver = receiver;
+			m_DefaultReceiverPort = port;
+		}
+	}
+
+	void DatagramDestination::ResetReceiver (uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
+		m_ReceiversByPorts.erase (port);
+		if (m_DefaultReceiverPort == port) {
+			m_DefaultReceiver = nullptr;
+			m_DefaultReceiverPort = 0;
+		}
+	}
+
+
+	void DatagramDestination::SetRawReceiver (const RawReceiver& receiver, uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_RawReceiversMutex);
+		m_RawReceiversByPorts[port] = receiver;
+		if (!m_DefaultRawReceiver) {
+			m_DefaultRawReceiver = receiver;
+			m_DefaultRawReceiverPort = port;
+		}
+	};
+
+	void DatagramDestination::ResetRawReceiver (uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_RawReceiversMutex);
+		m_RawReceiversByPorts.erase (port);
+		if (m_DefaultRawReceiverPort == port) {
+			m_DefaultRawReceiver = nullptr;
+			m_DefaultRawReceiverPort = 0;
+		}
+	}
+
+
 	DatagramDestination::Receiver DatagramDestination::FindReceiver(uint16_t port)
 	{
 		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
-		Receiver r = m_Receiver;
+		Receiver r = nullptr;
 		auto itr = m_ReceiversByPorts.find(port);
 		if (itr != m_ReceiversByPorts.end())
 			r = itr->second;
+		else {
+			r = m_DefaultReceiver;
+		}
+		return r;
+	}
+
+	DatagramDestination::RawReceiver DatagramDestination::FindRawReceiver(uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_RawReceiversMutex);
+		RawReceiver r = nullptr;
+		auto itr = m_RawReceiversByPorts.find(port);
+		if (itr != m_RawReceiversByPorts.end())
+			r = itr->second;
+		else {
+			r = m_DefaultRawReceiver;
+		}
 		return r;
 	}
 
