@@ -415,12 +415,17 @@ namespace client
 			{
 				session->UDPEndpoint = forward;
 				auto dest = session->GetLocalDestination ()->CreateDatagramDestination ();
+				auto port = std::stoi(params[SAM_PARAM_PORT]);
 				if (type == eSAMSessionTypeDatagram)
 					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+						port
+					);
 				else // raw
 					dest->SetRawReceiver (std::bind (&SAMSocket::HandleI2PRawDatagramReceive, shared_from_this (),
-						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+						port
+					);
 			}
 
 			if (session->GetLocalDestination ()->IsReady ())
@@ -524,7 +529,7 @@ namespace client
 				if (addr->IsIdentHash ())
 				{
 					if (session->GetLocalDestination ()->GetIdentHash () != addr->identHash)
-					{	
+					{
 						auto leaseSet = session->GetLocalDestination ()->FindLeaseSet(addr->identHash);
 						if (leaseSet)
 							Connect(leaseSet, session);
@@ -556,7 +561,7 @@ namespace client
 		if (session)
 		{
 			if (session->GetLocalDestination ()->SupportsEncryptionType (remote->GetEncryptionType ()))
-			{	
+			{
 				m_SocketType = eSAMSocketTypeStream;
 				m_Stream = session->GetLocalDestination ()->CreateStream (remote);
 				if (m_Stream)
@@ -570,7 +575,7 @@ namespace client
 					SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 			}
 			else
-				SendStreamCantReachPeer ("Incompatible crypto");	
+				SendStreamCantReachPeer ("Incompatible crypto");
 		}
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
@@ -583,7 +588,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "SAM: Destination to connect not found");
-			SendStreamCantReachPeer ("LeaseSet not found");	
+			SendStreamCantReachPeer ("LeaseSet not found");
 		}
 	}
 
@@ -612,27 +617,27 @@ namespace client
 				session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 			}
 			else
-			{	
+			{
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				while (!session->acceptQueue.empty () && session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL > ts)
-				{	
+				{
 					auto socket = session->acceptQueue.front ().first;
 					session->acceptQueue.pop_front ();
 					if (socket)
 						m_Owner.GetService ().post (std::bind(&SAMSocket::TerminateClose, socket));
-				}	
+				}
 				if (session->acceptQueue.size () < SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE)
 				{
 					// already accepting, queue up
 					SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 					session->acceptQueue.push_back (std::make_pair(shared_from_this(), ts));
-				}	
-				else 
-				{	
+				}
+				else
+				{
 					LogPrint (eLogInfo, "SAM: Session ", m_ID, " accept queue is full ", session->acceptQueue.size ());
 					SendStreamI2PError ("Already accepting");
-				}	
-			}	
+				}
+			}
 		}
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
@@ -875,8 +880,8 @@ namespace client
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, reply, msg.c_str());
 #endif
 		SendMessageReply (m_Buffer, len, true);
-	}	
-		
+	}
+
 	void SAMSocket::SendSessionI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Session I2P error: ", msg);
@@ -886,14 +891,14 @@ namespace client
 	void SAMSocket::SendStreamI2PError(const std::string & msg)
 	{
 		LogPrint (eLogError, "SAM: Stream I2P error: ", msg);
-		SendReplyWithMessage (SAM_STREAM_STATUS_I2P_ERROR, msg);	
+		SendReplyWithMessage (SAM_STREAM_STATUS_I2P_ERROR, msg);
 	}
 
 	void SAMSocket::SendStreamCantReachPeer(const std::string & msg)
 	{
-		SendReplyWithMessage (SAM_STREAM_STATUS_CANT_REACH_PEER, msg);	
-	}	
-		
+		SendReplyWithMessage (SAM_STREAM_STATUS_CANT_REACH_PEER, msg);
+	}
+
 	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::string name)
 	{
 		if (leaseSet)
@@ -1093,14 +1098,14 @@ namespace client
 				// pending acceptors
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
 				while (!session->acceptQueue.empty () && session->acceptQueue.front ().second + SAM_SESSION_MAX_ACCEPT_INTERVAL > ts)
-				{	
+				{
 					auto socket = session->acceptQueue.front ().first;
 					session->acceptQueue.pop_front ();
 					if (socket)
 						m_Owner.GetService ().post (std::bind(&SAMSocket::TerminateClose, socket));
-				}	
+				}
 				if (!session->acceptQueue.empty ())
-				{	
+				{
 					auto socket = session->acceptQueue.front ().first;
 					session->acceptQueue.pop_front ();
 					if (socket && socket->GetSocketType () == eSAMSocketTypeAcceptor)
@@ -1108,7 +1113,7 @@ namespace client
 						socket->m_IsAccepting = true;
 						session->GetLocalDestination ()->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, socket, std::placeholders::_1));
 					}
-				}	
+				}
 			}
 			if (!m_IsSilent)
 			{

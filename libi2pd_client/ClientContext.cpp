@@ -775,7 +775,7 @@ namespace client
 								address = "127.0.0.1";
 						}
 						auto localAddress = boost::asio::ip::address::from_string(address);
-						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port, gzip);
+						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, inPort, gzip);
 						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");
