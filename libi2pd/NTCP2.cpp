@@ -1170,7 +1170,7 @@ namespace transport
 		size_t paddingSize = (msgLen*NTCP2_MAX_PADDING_RATIO)/100;
 		if (msgLen + paddingSize + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE) 
 		{	
-			ssize_t l = NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
+			int l = (int)NTCP2_UNENCRYPTED_FRAME_MAX_SIZE - msgLen -3;
 			if (l <= 0) return 0;
 			paddingSize = l;
 		}	
