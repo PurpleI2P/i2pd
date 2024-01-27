@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -179,13 +179,9 @@ namespace stream
 			{
 				if (!m_IsAckSendScheduled)
 				{
-					m_IsAckSendScheduled = true;
 					auto ackTimeout = m_RTT/10;
 					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
-					else if (ackTimeout < MIN_SEND_ACK_TIMEOUT) ackTimeout = MIN_SEND_ACK_TIMEOUT;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ackTimeout));
-					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
-						shared_from_this (), std::placeholders::_1));
+					ScheduleAck (ackTimeout);
 				}
 			}
 			else if (packet->IsSYN ())
@@ -207,23 +203,11 @@ namespace stream
 				// save message and wait for missing message again
 				SavePacket (packet);
 				if (m_LastReceivedSequenceNumber >= 0)
-				{
-					// send NACKs for missing messages ASAP
-					if (m_IsAckSendScheduled)
-					{
-						m_IsAckSendScheduled = false;
-						m_AckSendTimer.cancel ();
-					}
-					SendQuickAck ();
-				}
+					// send NACKs for missing messages with minimal timeout
+					ScheduleAck (MIN_SEND_ACK_TIMEOUT);
 				else
-				{
 					// wait for SYN
-					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(SYN_TIMEOUT));
-					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
-						shared_from_this (), std::placeholders::_1));
-				}
+					ScheduleAck (SYN_TIMEOUT);
 			}
 		}
 	}
@@ -1029,6 +1013,17 @@ namespace stream
 		}
 	}
 
+	void Stream::ScheduleAck (int timeout)
+	{
+		if (m_IsAckSendScheduled)
+			m_AckSendTimer.cancel ();
+		m_IsAckSendScheduled = true;
+		if (timeout < MIN_SEND_ACK_TIMEOUT) timeout = MIN_SEND_ACK_TIMEOUT;
+		m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(timeout));
+		m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+			shared_from_this (), std::placeholders::_1));
+	}	
+		
 	void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
 	{
 		if (m_IsAckSendScheduled)
