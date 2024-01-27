@@ -203,8 +203,11 @@ namespace stream
 				// save message and wait for missing message again
 				SavePacket (packet);
 				if (m_LastReceivedSequenceNumber >= 0)
-					// send NACKs for missing messages with minimal timeout
-					ScheduleAck (MIN_SEND_ACK_TIMEOUT);
+				{
+					if (!m_IsAckSendScheduled)
+						// send NACKs for missing messages 
+						ScheduleAck (MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ());
+				}	
 				else
 					// wait for SYN
 					ScheduleAck (SYN_TIMEOUT);
