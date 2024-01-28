@@ -303,6 +303,8 @@ namespace i2p
 		SetTesting (false);
 		if (status != m_Status)
 		{
+			LogPrint(eLogInfo, "Router: network status v4 changed ",
+				ROUTER_STATUS_NAMES[m_Status], " -> ", ROUTER_STATUS_NAMES[status]);
 			m_Status = status;
 			switch (m_Status)
 			{
@@ -323,6 +325,8 @@ namespace i2p
 		SetTestingV6 (false);
 		if (status != m_StatusV6)
 		{
+			LogPrint(eLogInfo, "Router: network status v6 changed ",
+				ROUTER_STATUS_NAMES[m_StatusV6], " -> ", ROUTER_STATUS_NAMES[status]);
 			m_StatusV6 = status;
 			switch (m_StatusV6)
 			{
