@@ -48,6 +48,15 @@ namespace garlic
 		eRouterStatusMesh = 4
 	};
 
+	const char* const ROUTER_STATUS_NAMES[] =
+	{
+		"OK", // 0
+		"Firewalled", // 1
+		"Unknown", // 2
+		"Proxy", // 3
+		"Mesh" // 4
+	};
+
 	enum RouterError
 	{
 		eRouterErrorNone = 0,
