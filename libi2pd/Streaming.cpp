@@ -205,8 +205,12 @@ namespace stream
 				if (m_LastReceivedSequenceNumber >= 0)
 				{
 					if (!m_IsAckSendScheduled)
+					{	
 						// send NACKs for missing messages 
-						ScheduleAck (MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ());
+						int ackTimeout = MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ();
+						if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+						ScheduleAck (ackTimeout);
+					}	
 				}	
 				else
 					// wait for SYN
