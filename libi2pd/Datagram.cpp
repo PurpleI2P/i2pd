@@ -156,7 +156,7 @@ namespace datagram
 			m_DefaultRawReceiver = receiver;
 			m_DefaultRawReceiverPort = port;
 		}
-	};
+	}
 
 	void DatagramDestination::ResetRawReceiver (uint16_t port)
 	{
