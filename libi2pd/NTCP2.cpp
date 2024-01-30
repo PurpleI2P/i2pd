@@ -1140,6 +1140,7 @@ namespace transport
 				if (!msg || msg->IsExpired (ts))
 				{
 					// drop null or expired message
+					if (msg) msg->Drop ();
 					m_SendQueue.pop_front ();
 					continue;
 				}	

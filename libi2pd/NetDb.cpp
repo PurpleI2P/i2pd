@@ -736,7 +736,11 @@ namespace data
 				!i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
 				direct = false; // floodfill can't be reached directly
 			if (direct)
-				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			{
+				auto msg = dest->CreateRequestMessage (floodfill->GetIdentHash ());
+				msg->onDrop = [this, dest]() { this->m_Requests.SendNextRequest (dest); }; 
+				transports.SendMessage (floodfill->GetIdentHash (), msg);
+			}	
 			else
 			{
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();

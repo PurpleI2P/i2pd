@@ -13,6 +13,7 @@
 #include <string.h>
 #include <set>
 #include <memory>
+#include <functional>
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Identity.h"
@@ -149,7 +150,8 @@ namespace tunnel
 		uint8_t * buf;
 		size_t len, offset, maxLen;
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
-
+		std::function<void ()> onDrop;
+		
 		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
 			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
 
@@ -241,7 +243,6 @@ namespace tunnel
 			SetSize (len - offset - I2NP_HEADER_SIZE);
 			SetChks (0);
 		}
-
 		void ToNTCP2 ()
 		{
 			uint8_t * ntcp2 = GetNTCP2Header ();
@@ -253,6 +254,8 @@ namespace tunnel
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
 		bool IsExpired (uint64_t ts) const; // in milliseconds
+
+		void Drop () { if (onDrop) { onDrop (); onDrop = nullptr; }; }
 	};
 
 	template<int sz>

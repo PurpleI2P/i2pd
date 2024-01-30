@@ -86,6 +86,13 @@ namespace transport
 			}	
 		}
 
+		~Peer ()
+		{
+			// drop not sent delayed messages
+			for (auto& it: delayedMessages)
+				it->Drop ();
+		}	
+			
 		void Done ()
 		{
 			for (auto& it: sessions)
