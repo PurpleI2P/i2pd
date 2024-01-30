@@ -85,18 +85,14 @@ namespace transport
 				isReachable = (bool)router->GetCompatibleTransports (true);
 			}	
 		}
-
-		~Peer ()
-		{
-			// drop not sent delayed messages
-			for (auto& it: delayedMessages)
-				it->Drop ();
-		}	
 			
 		void Done ()
 		{
 			for (auto& it: sessions)
 				it->Done ();
+			// drop not sent delayed messages
+			for (auto& it: delayedMessages)
+				it->Drop ();
 		}
 
 		void SetRouter (std::shared_ptr<const i2p::data::RouterInfo> r)
