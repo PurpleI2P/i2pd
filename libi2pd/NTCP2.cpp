@@ -373,6 +373,8 @@ namespace transport
 			m_Socket.close ();
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
+			for (auto& it: m_SendQueue)
+				it->Drop ();
 			m_SendQueue.clear ();
 			SetSendQueueSize (0);
 			auto remoteIdentity = GetRemoteIdentity ();

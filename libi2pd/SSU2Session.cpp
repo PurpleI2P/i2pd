@@ -262,6 +262,8 @@ namespace transport
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
+			for (auto& it: m_SendQueue)
+				it->Drop ();
 			m_SendQueue.clear ();
 			SetSendQueueSize (0);
 			m_SentPackets.clear ();
