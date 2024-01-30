@@ -202,6 +202,7 @@ namespace data
 					{
 						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
 						auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
+						msg->onDrop = [this, dest]() { this->SendNextRequest (dest); };
 						outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 							i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 					}	

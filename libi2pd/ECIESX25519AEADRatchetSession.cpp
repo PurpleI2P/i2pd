@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1171,7 +1171,7 @@ namespace garlic
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<I2NPMessage> msg, const uint8_t * routerPublicKey)
 	{
 		// Noise_N, we are Alice, routerPublicKey is Bob's
 		i2p::crypto::NoiseSymmetricState noiseState;
@@ -1205,6 +1205,12 @@ namespace garlic
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
+		if (msg->onDrop)
+		{
+			// move onDrop to the wrapping I2NP messages
+			m->onDrop = msg->onDrop;
+			msg->onDrop = nullptr;
+		}	
 		return m;
 	}
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -246,7 +246,7 @@ namespace garlic
 	};
 
 	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
-	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<I2NPMessage> msg, const uint8_t * routerPublicKey);
 }
 }
 
