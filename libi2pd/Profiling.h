@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -35,7 +35,7 @@ namespace data
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3600; // in seconds (1 hour)
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
 	const int PEER_PROFILE_PERSIST_INTERVAL = 3300; // in seconds (55 minutes)
-	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 2*3600; // on seconds (2 hours)
+	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 480; // in seconds (8 minutes)
 	const int PEER_PROFILE_USEFUL_THRESHOLD = 3;
 
 	class RouterProfile
