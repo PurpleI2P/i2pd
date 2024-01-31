@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -1378,10 +1378,19 @@ namespace i2p
 			uint32_t replyToken;
 			RAND_bytes ((uint8_t *)&replyToken, 4);
 			LogPrint (eLogInfo, "Router: Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
+			auto onDrop = [this]()
+				{
+					if (m_Service)
+						m_Service->GetService ().post ([this]() { HandlePublishResendTimer (boost::system::error_code ()); });
+				};
 			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
 				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
+			{	
 				// send directly
-				i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));
+				auto msg = CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken);
+				msg->onDrop = onDrop;
+				i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), msg);
+			}	
 			else
 			{
 				// otherwise through exploratory
@@ -1392,6 +1401,7 @@ namespace i2p
 				{		
 					// encrypt for floodfill
 					auto msg = CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken, inbound);
+					msg->onDrop = onDrop;
 					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0, 
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 				}	
