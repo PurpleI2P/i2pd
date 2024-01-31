@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -502,38 +502,43 @@ namespace client
 		if (it != m_LeaseSetRequests.end ())
 		{
 			auto request = it->second;
-			bool found = false;
-			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
+			for (int i = 0; i < num; i++)
 			{
-				for (int i = 0; i < num; i++)
+				i2p::data::IdentHash peerHash (buf + 33 + i*32);
+				if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 				{
-					i2p::data::IdentHash peerHash (buf + 33 + i*32);
-					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
-					{
-						LogPrint (eLogInfo, "Destination: Found new floodfill, request it");
-						i2p::data::netdb.RequestDestination (peerHash, nullptr, false); // through exploratory
-					}
-				}
-
-				auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
-				if (floodfill)
-				{
-					LogPrint (eLogInfo, "Destination: Requesting ", key.ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 ());
-					if (SendLeaseSetRequest (key, floodfill, request))
-						found = true;
+					LogPrint (eLogInfo, "Destination: Found new floodfill, request it");
+					i2p::data::netdb.RequestDestination (peerHash, nullptr, false); // through exploratory
 				}
 			}
-			if (!found)
-			{
-				LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
-				request->Complete (nullptr);
-				m_LeaseSetRequests.erase (key);
-			}
+			SendNextLeaseSetRequest (key, request);
 		}
 		else
 			LogPrint (eLogWarning, "Destination: Request for ", key.ToBase64 (), " not found");
 	}
 
+	void LeaseSetDestination::SendNextLeaseSetRequest (const i2p::data::IdentHash& key, 
+		std::shared_ptr<LeaseSetRequest> request)
+	{
+		bool found = false;
+		if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
+		{
+			auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
+			if (floodfill)
+			{
+				LogPrint (eLogInfo, "Destination: Requesting ", key.ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 ());
+				if (SendLeaseSetRequest (key, floodfill, request))
+					found = true;
+			}
+		}
+		if (!found)
+		{
+			LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
+			request->Complete (nullptr);
+			m_LeaseSetRequests.erase (key);
+		}
+	}	
+		
 	void LeaseSetDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
 		if (msgID == m_PublishReplyToken)
@@ -822,14 +827,22 @@ namespace client
 				AddECIESx25519Key (replyKey, replyTag);
 			else
 				AddSessionKey (replyKey, replyTag);
-			auto msg = WrapMessageForRouter (nextFloodfill, CreateLeaseSetDatabaseLookupMsg (dest,
-				request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
+			auto msg = CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES);
+			auto s = shared_from_this ();
+			msg->onDrop = [s, dest, request]()
+				{
+					s->GetService ().post([s, dest, request]()
+						{
+							s->SendNextLeaseSetRequest (dest, request);
+						});
+				};	
+			auto encryptedMsg = WrapMessageForRouter (nextFloodfill, msg);
 			request->outboundTunnel->SendTunnelDataMsgs (
 				{
 					i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeRouter,
-						nextFloodfill->GetIdentHash (), 0, msg
+						nextFloodfill->GetIdentHash (), 0, encryptedMsg
 					}
 				});
 			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));
