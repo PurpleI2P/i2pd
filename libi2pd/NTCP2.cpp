@@ -1250,8 +1250,13 @@ namespace transport
 	void NTCP2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		if (m_IsTerminated) return;
+		bool isSemiFull = m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE/2;
 		for (auto it: msgs)
-			m_SendQueue.push_back (std::move (it));
+			if (isSemiFull && it->onDrop)
+				it->Drop (); // drop earlier because we can handle it
+			else
+				m_SendQueue.push_back (std::move (it));
+		
 		if (!m_IsSending)
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
