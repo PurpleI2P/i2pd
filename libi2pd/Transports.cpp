@@ -477,7 +477,10 @@ namespace transport
 					}	
 				}	
 				for (auto& it1: msgs)
-					it->second.delayedMessages.push_back (it1);
+					if (sz > MAX_NUM_DELAYED_MESSAGES/2 && it1->onDrop)
+						it1->Drop (); // drop earlier because we can handle it
+					else
+						it->second.delayedMessages.push_back (it1);
 			}
 			else
 			{
