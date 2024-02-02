@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -30,7 +30,7 @@ namespace tunnel
 	const int TUNNEL_POOL_MANAGE_INTERVAL = 10; // in seconds
 	const int TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY = 16;
 	const int TUNNEL_POOL_MAX_OUTBOUND_TUNNELS_QUANTITY = 16;
-	const int TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS = 2;
+	const int TUNNEL_POOL_MAX_NUM_BUILD_REQUESTS = 3;
 
 	class Tunnel;
 	class InboundTunnel;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -360,36 +360,58 @@ namespace tunnel
 		}
 
 		// new tests
-		std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
-		auto it1 = m_OutboundTunnels.begin ();
-		std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
-		auto it2 = m_InboundTunnels.begin ();
-		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
+		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
 		{
-			bool failed = false;
-			if ((*it1)->IsFailed ())
+			std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
+			auto it1 = m_OutboundTunnels.begin ();
+			std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
+			auto it2 = m_InboundTunnels.begin ();
+			while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
 			{
-				failed = true;
-				++it1;
-			}
-			if ((*it2)->IsFailed ())
-			{
-				failed = true;
-				++it2;
-			}
-			if (!failed)
-			{
-				uint32_t msgID;
-				RAND_bytes ((uint8_t *)&msgID, 4);
+				bool failed = false;
+				if ((*it1)->IsFailed ())
 				{
-					std::unique_lock<std::mutex> l(m_TestsMutex);
-					m_Tests[msgID] = std::make_pair (*it1, *it2);
+					failed = true;
+					++it1;
 				}
-				(*it1)->SendTunnelDataMsgTo ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
-					CreateDeliveryStatusMsg (msgID));
-				++it1; ++it2;
+				if ((*it2)->IsFailed ())
+				{
+					failed = true;
+					++it2;
+				}
+				if (!failed)
+				{
+					newTests.push_back(std::make_pair (*it1, *it2));
+					++it1; ++it2;
+				}
 			}
-		}
+		}	
+		for (auto& it: newTests)
+		{
+			uint32_t msgID;
+			RAND_bytes ((uint8_t *)&msgID, 4);
+			{
+				std::unique_lock<std::mutex> l(m_TestsMutex);
+				m_Tests[msgID] = it;
+			}
+			auto msg = CreateDeliveryStatusMsg (msgID);
+			auto outbound = it.first;
+			auto s = shared_from_this ();
+			msg->onDrop = [msgID, outbound, s]()
+				{
+					// if test msg dropped locally it's outbound tunnel to blame
+					outbound->SetState (eTunnelStateFailed);
+					{
+						std::unique_lock<std::mutex> l(s->m_TestsMutex);
+						s->m_Tests.erase (msgID);
+					}
+					{
+						std::unique_lock<std::mutex> l(s->m_OutboundTunnelsMutex);
+						s->m_OutboundTunnels.erase (outbound);
+					}
+				};	
+			outbound->SendTunnelDataMsgTo (it.second->GetNextIdentHash (), it.second->GetNextTunnelID (), msg);
+		}	
 	}
 
 	void TunnelPool::ManageTunnels (uint64_t ts)
