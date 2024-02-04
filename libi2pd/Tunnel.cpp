@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -90,7 +90,13 @@ namespace tunnel
 			hop = hop->prev;
 		}
 		msg->FillI2NPMessageHeader (m_Config->IsShort () ? eI2NPShortTunnelBuild : eI2NPVariableTunnelBuild);
-
+		auto s = shared_from_this ();
+		msg->onDrop = [s]()
+			{
+				LogPrint (eLogInfo, "I2NP: Tunnel ", s->GetTunnelID (), " request was not sent");
+				s->SetState (i2p::tunnel::eTunnelStateBuildFailed);		
+			};
+		
 		// send message
 		if (outboundTunnel)
 		{
@@ -246,7 +252,7 @@ namespace tunnel
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive
 		EncryptTunnelMsg (msg, msg);
-		msg->from = shared_from_this ();
+		msg->from = GetSharedFromThis ();
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
 	}
 
@@ -261,7 +267,7 @@ namespace tunnel
 		if (msg)
 		{
 			m_NumReceivedBytes += msg->GetLength ();
-			msg->from = shared_from_this ();
+			msg->from = GetSharedFromThis ();
 			HandleI2NPMessage (msg);
 		}
 	}

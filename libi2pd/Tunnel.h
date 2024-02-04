@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -65,7 +65,8 @@ namespace tunnel
 
 	class OutboundTunnel;
 	class InboundTunnel;
-	class Tunnel: public TunnelBase
+	class Tunnel: public TunnelBase,
+		 public std::enable_shared_from_this<Tunnel>
 	{
 		struct TunnelHop
 		{
@@ -155,7 +156,7 @@ namespace tunnel
 			i2p::data::IdentHash m_EndpointIdentHash;
 	};
 
-	class InboundTunnel: public Tunnel, public std::enable_shared_from_this<InboundTunnel>
+	class InboundTunnel: public Tunnel
 	{
 		public:
 
@@ -167,6 +168,13 @@ namespace tunnel
 			// override TunnelBase
 			void Cleanup () override { m_Endpoint.Cleanup (); };
 
+		protected:
+
+			std::shared_ptr<InboundTunnel> GetSharedFromThis () 
+			{
+				return std::static_pointer_cast<InboundTunnel>(shared_from_this ());
+			}
+			
 		private:
 
 			TunnelEndpoint m_Endpoint;
