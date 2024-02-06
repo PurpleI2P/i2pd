@@ -223,7 +223,8 @@ namespace config {
 			    "https://i2p.ghativega.in/,"
 			    "https://i2p.novg.net/,"
 			    "https://reseed.is.prestium.org/,"
-				"https://reseed.us.prestium.org/"
+				"https://reseed.us.prestium.org/",
+            	"https://reseed.stormycloud.org/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
