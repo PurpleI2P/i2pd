@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -222,8 +222,6 @@ namespace config {
 				"https://www2.mk16.de/,"
 			    "https://i2p.ghativega.in/,"
 			    "https://i2p.novg.net/,"
-			    "https://reseed.is.prestium.org/,"
-				"https://reseed.us.prestium.org/",
             	"https://reseed.stormycloud.org/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
