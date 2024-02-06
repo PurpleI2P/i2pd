@@ -626,6 +626,15 @@ namespace client
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
 		auto msg = WrapMessageForRouter (floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, m_PublishReplyToken, inbound));
+		auto s = shared_from_this ();
+		msg->onDrop = [s]()
+			{
+				s->GetService ().post([s]()
+					{
+						s->m_PublishConfirmationTimer.cancel ();
+						s->HandlePublishConfirmationTimer (boost::system::error_code());
+					});
+			};
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -642,7 +651,7 @@ namespace client
 				m_PublishReplyToken = 0;
 				if (GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
 				{
-					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds, will try again");
+					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds or failed. will try again");
 					Publish ();
 				}
 				else
@@ -827,7 +836,9 @@ namespace client
 				AddECIESx25519Key (replyKey, replyTag);
 			else
 				AddSessionKey (replyKey, replyTag);
-			auto msg = CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES);
+			
+			auto msg = WrapMessageForRouter (nextFloodfill, 
+				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
 			auto s = shared_from_this ();
 			msg->onDrop = [s, dest, request]()
 				{
@@ -836,13 +847,12 @@ namespace client
 							s->SendNextLeaseSetRequest (dest, request);
 						});
 				};	
-			auto encryptedMsg = WrapMessageForRouter (nextFloodfill, msg);
 			request->outboundTunnel->SendTunnelDataMsgs (
 				{
 					i2p::tunnel::TunnelMessageBlock
 					{
 						i2p::tunnel::eDeliveryTypeRouter,
-						nextFloodfill->GetIdentHash (), 0, encryptedMsg
+						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});
 			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));
