@@ -1152,10 +1152,13 @@ namespace transport
 					msgs.push_back (msg);
 					s += (len + 3);
 					m_SendQueue.pop_front ();
+					if (s >= NTCP2_SEND_AFTER_FRAME_SIZE)
+						break; // send frame right a way
 				}
 				else if (len + 3 > NTCP2_UNENCRYPTED_FRAME_MAX_SIZE)
 				{
 					LogPrint (eLogError, "NTCP2: I2NP message of size ", len, " can't be sent. Dropped");
+					msg->Drop ();
 					m_SendQueue.pop_front ();
 				}
 				else
