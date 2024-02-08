@@ -189,6 +189,7 @@ namespace data
 					direct = false; // floodfill can't be reached directly
 				if (direct)
 				{
+					LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " directly");
 					auto msg = dest->CreateRequestMessage (nextFloodfill->GetIdentHash ());
 					msg->onDrop = [this, dest]() { this->SendNextRequest (dest); }; 
 					i2p::transport::transports.SendMessage (nextFloodfill->GetIdentHash (), msg);
@@ -200,7 +201,7 @@ namespace data
 					auto inbound = pool->GetNextInboundTunnel ();
 					if (nextFloodfill && outbound && inbound)
 					{
-						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ());
+						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 						auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
 						msg->onDrop = [this, dest]() { this->SendNextRequest (dest); };
 						outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
