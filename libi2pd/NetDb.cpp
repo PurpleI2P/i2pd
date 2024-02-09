@@ -262,10 +262,12 @@ namespace data
 						return nullptr;
 					}
 				}
-				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
+				if (CheckLogLevel (eLogInfo))
+					LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 				if (wasFloodfill != r->IsFloodfill ()) // if floodfill status updated
 				{
-					LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
+					if (CheckLogLevel (eLogDebug))
+						LogPrint (eLogDebug, "NetDb: RouterInfo floodfill status updated: ", ident.ToBase64());
 					std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 					if (wasFloodfill)
 						m_Floodfills.Remove (r->GetIdentHash ());
@@ -280,7 +282,8 @@ namespace data
 			}
 			else
 			{
-				LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
+				if (CheckLogLevel (eLogDebug))
+					LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
 				updated = false;
 			}
 		}
@@ -297,7 +300,8 @@ namespace data
 				}
 				if (inserted)
 				{
-					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
+					if (CheckLogLevel (eLogInfo))
+						LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
 					if (r->IsFloodfill () && r->IsEligibleFloodfill ())
 					{
 						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD ||
@@ -338,10 +342,11 @@ namespace data
 				if(it->second->GetExpirationTime() < expires)
 				{
 					it->second->Update (buf, len, false); // signature is verified already
-					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
+					if (CheckLogLevel (eLogInfo))
+						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 					updated = true;
 				}
-				else
+				else if (CheckLogLevel (eLogDebug))
 					LogPrint(eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
 			}
 			else
@@ -352,7 +357,8 @@ namespace data
 			auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb
 			if (leaseSet->IsValid ())
 			{
-				LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
+				if (CheckLogLevel (eLogInfo))
+					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
 				m_LeaseSets[ident] = leaseSet;
 				updated = true;
 			}
@@ -376,7 +382,8 @@ namespace data
 				     i2p::util::GetSecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD > leaseSet->GetPublishedTimestamp ())
 				{
 					// TODO: implement actual update
-					LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
+					if (CheckLogLevel (eLogInfo))
+						LogPrint (eLogInfo, "NetDb: LeaseSet2 updated: ", ident.ToBase32());
 					m_LeaseSets[ident] = leaseSet;
 					return true;
 				}
@@ -863,19 +870,22 @@ namespace data
 			{
 				if (storeType == NETDB_STORE_TYPE_LEASESET) // 1
 				{
-					LogPrint (eLogDebug, "NetDb: Store request: LeaseSet for ", ident.ToBase32());
+					if (CheckLogLevel (eLogDebug))
+						LogPrint (eLogDebug, "NetDb: Store request: LeaseSet for ", ident.ToBase32());
 					updated = AddLeaseSet (ident, buf + offset, len - offset);
 				}
 				else // all others are considered as LeaseSet2
 				{
-					LogPrint (eLogDebug, "NetDb: Store request: LeaseSet2 of type ", int(storeType), " for ", ident.ToBase32());
+					if (CheckLogLevel (eLogDebug))
+						LogPrint (eLogDebug, "NetDb: Store request: LeaseSet2 of type ", int(storeType), " for ", ident.ToBase32());
 					updated = AddLeaseSet2 (ident, buf + offset, len - offset, storeType);
 				}
 			}
 		}
 		else // RouterInfo
 		{
-			LogPrint (eLogDebug, "NetDb: Store request: RouterInfo ", ident.ToBase64());
+			if (CheckLogLevel (eLogDebug))
+				LogPrint (eLogDebug, "NetDb: Store request: RouterInfo ", ident.ToBase64());
 			size_t size = bufbe16toh (buf + offset);
 			offset += 2;
 			if (size > MAX_RI_BUFFER_SIZE || size > len - offset)
