@@ -226,7 +226,8 @@ namespace data
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{
 		bool updated;
-		AddRouterInfo (ident, buf, len, updated);
+		if (!AddRouterInfo (ident, buf, len, updated)) 
+			updated = false;
 		return updated;
 	}
 
@@ -874,7 +875,7 @@ namespace data
 		}
 		else // RouterInfo
 		{
-			LogPrint (eLogDebug, "NetDb: Store request: RouterInfo");
+			LogPrint (eLogDebug, "NetDb: Store request: RouterInfo ", ident.ToBase64());
 			size_t size = bufbe16toh (buf + offset);
 			offset += 2;
 			if (size > MAX_RI_BUFFER_SIZE || size > len - offset)
