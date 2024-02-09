@@ -165,7 +165,7 @@ namespace transport
 			/** restrict routes to use only these router families for first hops */
 			void RestrictRoutesToFamilies(const std::set<std::string>& families);
 			/** restrict routes to use only these routers for first hops */
-			void RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers);
+			void RestrictRoutesToRouters(const std::set<i2p::data::IdentHash>& routers);
 
 			bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
 

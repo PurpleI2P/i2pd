@@ -1015,18 +1015,25 @@ namespace transport
 		}
 	}
 
-	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)
+	void Transports::RestrictRoutesToRouters(const std::set<i2p::data::IdentHash>& routers)
 	{
-		std::unique_lock<std::mutex> lock(m_TrustedRoutersMutex);
+		std::lock_guard<std::mutex> lock(m_TrustedRoutersMutex);
 		m_TrustedRouters.clear();
 		for (const auto & ri : routers )
 			m_TrustedRouters.push_back(ri);
 	}
 
-	bool Transports::RoutesRestricted() const {
-		std::unique_lock<std::mutex> famlock(m_FamilyMutex);
-		std::unique_lock<std::mutex> routerslock(m_TrustedRoutersMutex);
-		return m_TrustedFamilies.size() > 0 || m_TrustedRouters.size() > 0;
+	bool Transports::RoutesRestricted() const 
+	{
+		{
+			std::lock_guard<std::mutex> routerslock(m_TrustedRoutersMutex);
+			if (!m_TrustedRouters.empty ()) return true;
+		}
+		{
+			std::lock_guard<std::mutex> famlock(m_FamilyMutex);
+			if (!m_TrustedFamilies.empty ()) return true;
+		}
+		return false;
 	}
 
 	/** XXX: if routes are not restricted this dies */
@@ -1050,7 +1057,7 @@ namespace transport
 				return i2p::data::netdb.GetRandomRouterInFamily(fam);
 		}
 		{
-			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			std::lock_guard<std::mutex> l(m_TrustedRoutersMutex);
 			auto sz = m_TrustedRouters.size();
 			if (sz)
 			{
@@ -1067,12 +1074,12 @@ namespace transport
 	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash & ih) const
 	{
 		{
-			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			std::lock_guard<std::mutex> l(m_TrustedRoutersMutex);
 			for (const auto & r : m_TrustedRouters )
 				if ( r == ih ) return true;
 		}
 		{
-			std::unique_lock<std::mutex> l(m_FamilyMutex);
+			std::lock_guard<std::mutex> l(m_FamilyMutex);
 			auto ri = i2p::data::netdb.FindRouter(ih);
 			for (const auto & fam : m_TrustedFamilies)
 				if(ri->IsFamily(fam)) return true;

@@ -730,6 +730,7 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
+		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
 		auto dest = m_Requests.CreateRequest (destination, false, direct, requestComplete); // non-exploratory
 		if (!dest)
 		{
