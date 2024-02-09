@@ -258,13 +258,22 @@ namespace transport
 				socket.set_option (boost::asio::ip::v6_only (true));
 			socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
 			socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
+		}
+		catch (std::exception& ex )
+		{
+			LogPrint (eLogCritical, "SSU2: Failed to open socket on ", localEndpoint.address (), ": ", ex.what());
+			ThrowFatal ("Unable to start SSU2 transport on ", localEndpoint.address (), ": ", ex.what ());
+			return socket;
+		}
+		try
+		{
 			socket.bind (localEndpoint);
 			LogPrint (eLogInfo, "SSU2: Start listening on ", localEndpoint);
 		}
 		catch (std::exception& ex )
 		{
-			LogPrint (eLogCritical, "SSU2: Failed to bind to ", localEndpoint, ": ", ex.what());
-			ThrowFatal ("Unable to start SSU2 transport on ", localEndpoint, ": ", ex.what ());
+			LogPrint (eLogWarning, "SSU2: Failed to bind to ", localEndpoint, ": ", ex.what(), ". Actual endpoint is ", socket.local_endpoint ());
+			// we can continue without binding being firewalled
 		}
 		return socket;
 	}
