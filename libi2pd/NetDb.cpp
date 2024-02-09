@@ -149,7 +149,7 @@ namespace data
 				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastManageRequest >= 15 || ts + 15 < lastManageRequest) // manage requests every 15 seconds
+				if (ts - lastManageRequest >= MANAGE_REQUESTS_INTERVAL || ts + MANAGE_REQUESTS_INTERVAL < lastManageRequest) // manage requests every 15 seconds
 				{
 					m_Requests.ManageRequests ();
 					lastManageRequest = ts;

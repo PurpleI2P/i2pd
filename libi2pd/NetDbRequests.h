@@ -21,8 +21,9 @@ namespace i2p
 namespace data
 {
 	const size_t MAX_NUM_REQUEST_ATTEMPTS = 7;
+	const uint64_t MANAGE_REQUESTS_INTERVAL = 15; // in seconds
 	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
-	const uint64_t MAX_REQUEST_TIME = 60; // in seconds
+	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS*MANAGE_REQUESTS_INTERVAL;
 	
 	class RequestedDestination
 	{
