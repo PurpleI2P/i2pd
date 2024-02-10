@@ -131,7 +131,7 @@ namespace data
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
 			{
-				LogPrint(eLogError, "RouterInfo: File", fullPath, " is malformed");
+				LogPrint(eLogError, "RouterInfo: File ", fullPath, " is malformed");
 				return false;
 			}
 			s.seekg(0, std::ios::beg);

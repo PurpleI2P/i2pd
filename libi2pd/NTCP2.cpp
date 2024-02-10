@@ -381,7 +381,7 @@ namespace transport
 			if (remoteIdentity)
 			{
 				LogPrint (eLogDebug, "NTCP2: Session with ", GetRemoteEndpoint (),
-					" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") terminated");
+					" (", i2p::data::GetIdentHashAbbreviation (remoteIdentity->GetIdentHash ()), ") terminated");
 			}
 			else
 			{
