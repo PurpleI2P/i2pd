@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -187,15 +187,6 @@ namespace transport
 			uint64_t m_LastActivityTimestamp, m_LastBandwidthUpdateTimestamp;	
 			uint32_t m_InBandwidth, m_OutBandwidth;
 	};
-
-	// SOCKS5 proxy
-	const uint8_t SOCKS5_VER = 0x05;
-	const uint8_t SOCKS5_CMD_CONNECT = 0x01;
-	const uint8_t SOCKS5_CMD_UDP_ASSOCIATE = 0x03;
-	const uint8_t SOCKS5_ATYP_IPV4 = 0x01;
-	const uint8_t SOCKS5_ATYP_IPV6 = 0x04;
-	const size_t SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE = 10;
-	const size_t SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE = 22;
 }
 }
 

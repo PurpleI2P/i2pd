@@ -19,9 +19,10 @@
 #include "RouterContext.h"
 #include "Transports.h"
 #include "NetDb.hpp"
-#include "NTCP2.h"
 #include "HTTP.h"
 #include "util.h"
+#include "Socks5.h"
+#include "NTCP2.h"
 
 #if defined(__linux__) && !defined(_NETINET_IN_H)
 	#include <linux/in6.h>
@@ -1728,47 +1729,18 @@ namespace transport
 			case eSocksProxy:
 			{
 				// TODO: support username/password auth etc
-				static const uint8_t buff[3] = {SOCKS5_VER, 0x01, 0x00};
-				boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, 3), boost::asio::transfer_all(),
-					[] (const boost::system::error_code & ec, std::size_t transferred)
-					{
-						(void) transferred;
-						if(ec)
-						{
-							LogPrint(eLogWarning, "NTCP2: SOCKS5 write error ", ec.message());
-						}
-					});
-				auto readbuff = std::make_shared<std::vector<uint8_t> >(2);
-				boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), 2),
-					[this, readbuff, timer, conn](const boost::system::error_code & ec, std::size_t transferred)
-					{
-						if(ec)
-						{
-							LogPrint(eLogError, "NTCP2: SOCKS5 read error ", ec.message());
-							timer->cancel();
-							conn->Terminate();
-							return;
-						}
-						else if(transferred == 2)
-						{
-							if((*readbuff)[1] == 0x00)
-							{
-								AfterSocksHandshake(conn, timer);
-								return;
-							}
-							else if ((*readbuff)[1] == 0xff)
-							{
-								LogPrint(eLogError, "NTCP2: SOCKS5 proxy rejected authentication");
-								timer->cancel();
-								conn->Terminate();
-								return;
-							}
-							LogPrint(eLogError, "NTCP2:", (int)(*readbuff)[1]);
-						}
-						LogPrint(eLogError, "NTCP2: SOCKS5 server gave invalid response");
+				Socks5Handshake (conn->GetSocket(), conn->GetRemoteEndpoint (),
+					[conn, timer](const boost::system::error_code& ec)
+				    {
 						timer->cancel();
-						conn->Terminate();
-					});
+						if (!ec)
+							conn->ClientLogin();
+						else
+						{
+							LogPrint(eLogError, "NTCP2: SOCKS proxy handshake error ", ec.message());
+							conn->Terminate();	
+						}		
+					});	
 				break;
 			}
 			case eHTTPProxy:
@@ -1834,71 +1806,6 @@ namespace transport
 			default:
 				LogPrint(eLogError, "NTCP2: Unknown proxy type, invalid state");
 		}
-	}
-
-	void NTCP2Server::AfterSocksHandshake(std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer)
-	{
-		// build request
-		size_t sz = 6; // header + port
-		auto buff = std::make_shared<std::vector<int8_t> >(256);
-		auto readbuff = std::make_shared<std::vector<int8_t> >(256);
-		(*buff)[0] = SOCKS5_VER;
-		(*buff)[1] = SOCKS5_CMD_CONNECT;
-		(*buff)[2] = 0x00;
-
-		auto& ep = conn->GetRemoteEndpoint ();
-		if(ep.address ().is_v4 ())
-		{
-			(*buff)[3] = SOCKS5_ATYP_IPV4;
-			auto addrbytes = ep.address ().to_v4().to_bytes();
-			sz += 4;
-			memcpy(buff->data () + 4, addrbytes.data(), 4);
-		}
-		else if (ep.address ().is_v6 ())
-		{
-			(*buff)[3] = SOCKS5_ATYP_IPV6;
-			auto addrbytes = ep.address ().to_v6().to_bytes();
-			sz += 16;
-			memcpy(buff->data () + 4, addrbytes.data(), 16);
-		}
-		else
-		{
-			// We mustn't really fall here because all connections are made to IP addresses
-			LogPrint(eLogError, "NTCP2: Tried to connect to unexpected address via proxy");
-			return;
-		}
-		htobe16buf(buff->data () + sz - 2, ep.port ());
-		boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff->data (), sz), boost::asio::transfer_all(),
-			[buff](const boost::system::error_code & ec, std::size_t written)
-			{
-				if(ec)
-				{
-					LogPrint(eLogError, "NTCP2: Failed to write handshake to socks proxy ", ec.message());
-					return;
-				}
-			});
-
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff->data (), SOCKS5_UDP_IPV4_REQUEST_HEADER_SIZE), // read min reply size
-		    boost::asio::transfer_all(),
-			[timer, conn, readbuff](const boost::system::error_code & e, std::size_t transferred)
-			{
-				if (e)
-					LogPrint(eLogError, "NTCP2: SOCKS proxy read error ", e.message());
-				else if (!(*readbuff)[1]) // succeeded
-				{
-					boost::system::error_code ec;
-					size_t moreBytes = conn->GetSocket ().available(ec);
-					if (moreBytes) // read remaining portion of reply if ipv6 received
-						boost::asio::read (conn->GetSocket (), boost::asio::buffer(readbuff->data (), moreBytes), boost::asio::transfer_all (), ec);
-					timer->cancel();
-					conn->ClientLogin();
-					return;
-				}
-				else
-					LogPrint(eLogError, "NTCP2: Proxy reply error ", (int)(*readbuff)[1]);
-				timer->cancel();
-				conn->Terminate();
-			});
 	}
 
 	void NTCP2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)

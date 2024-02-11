@@ -13,6 +13,7 @@
 #include <mutex>
 #include "util.h"
 #include "SSU2Session.h"
+#include "Socks5.h"
 
 namespace i2p
 {

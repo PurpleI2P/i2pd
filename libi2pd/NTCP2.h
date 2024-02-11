@@ -267,8 +267,7 @@ namespace transport
 
 			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
 			void HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
-			void AfterSocksHandshake(std::shared_ptr<NTCP2Session> conn, std::shared_ptr<boost::asio::deadline_timer> timer);
-
+			
 			// timer
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
