@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,6 +19,7 @@
 #include "I2PTunnel.h"
 #include "I2PService.h"
 #include "util.h"
+#include "Socks5.h"
 
 namespace i2p
 {
@@ -26,10 +27,6 @@ namespace proxy
 {
 	static const size_t socks_buffer_size = 8192;
 	static const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
-
-	//static const size_t SOCKS_FORWARDER_BUFFER_SIZE = 8192;
-
-	static const size_t SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE = 8;
 
 	struct SOCKSDnsAddress
 	{
@@ -132,7 +129,6 @@ namespace proxy
 			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
 			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
-			boost::asio::const_buffers_1 GenerateUpstreamRequest();
 			bool Socks5ChooseAuth();
 			void Socks5UserPasswdResponse ();
 			void SocksRequestFailed(errTypes error);
@@ -146,9 +142,6 @@ namespace proxy
 			void SocksUpstreamSuccess();
 			void AsyncUpstreamSockRead();
 			void SendUpstreamRequest();
-			void HandleUpstreamData(uint8_t * buff, std::size_t len);
-			void HandleUpstreamSockSend(const boost::system::error_code & ecode, std::size_t bytes_transfered);
-			void HandleUpstreamSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void HandleUpstreamConnected(const boost::system::error_code & ecode,
 			boost::asio::ip::tcp::resolver::iterator itr);
 			void HandleUpstreamResolved(const boost::system::error_code & ecode,
@@ -161,9 +154,6 @@ namespace proxy
 			uint8_t *m_remaining_data; //Data left to be sent
 			uint8_t *m_remaining_upstream_data; //upstream data left to be forwarded
 			uint8_t m_response[7+max_socks_hostname_size];
-			uint8_t m_upstream_response[SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE];
-			uint8_t m_upstream_request[14+max_socks_hostname_size];
-			std::size_t m_upstream_response_len;
 			address m_address; //Address
 			std::size_t m_remaining_data_len; //Size of the data left to be sent
 			uint32_t m_4aip; //Used in 4a requests
@@ -278,37 +268,6 @@ namespace proxy
 				break;
 		}
 		return boost::asio::const_buffers_1(m_response, size);
-	}
-
-	boost::asio::const_buffers_1 SOCKSHandler::GenerateUpstreamRequest()
-	{
-		size_t upstreamRequestSize = 0;
-		// TODO: negotiate with upstream
-		// SOCKS 4a
-		m_upstream_request[0] = '\x04'; //version
-		m_upstream_request[1] = m_cmd;
-		htobe16buf(m_upstream_request + 2, m_port);
-		m_upstream_request[4] = 0;
-		m_upstream_request[5] = 0;
-		m_upstream_request[6] = 0;
-		m_upstream_request[7] = 1;
-		// user id
-		m_upstream_request[8] = 'i';
-		m_upstream_request[9] = '2';
-		m_upstream_request[10] = 'p';
-		m_upstream_request[11] = 'd';
-		m_upstream_request[12] = 0;
-		upstreamRequestSize += 13;
-		if (m_address.dns.size <= max_socks_hostname_size - ( upstreamRequestSize + 1) ) {
-			// bounds check okay
-			memcpy(m_upstream_request + upstreamRequestSize, m_address.dns.value, m_address.dns.size);
-			upstreamRequestSize += m_address.dns.size;
-			// null terminate
-			m_upstream_request[++upstreamRequestSize] = 0;
-		} else {
-			LogPrint(eLogError, "SOCKS: BUG!!! m_addr.dns.sizs > max_socks_hostname - ( upstreamRequestSize + 1 ) )");
-		}
-		return boost::asio::const_buffers_1(m_upstream_request, upstreamRequestSize);
 	}
 
 	bool SOCKSHandler::Socks5ChooseAuth()
@@ -724,32 +683,6 @@ namespace proxy
 			std::placeholders::_1, std::placeholders::_2));
 	}
 
-	void SOCKSHandler::AsyncUpstreamSockRead()
-	{
-		LogPrint(eLogDebug, "SOCKS: Async upstream sock read");
-		if (m_upstreamSock) {
-			m_upstreamSock->async_read_some(boost::asio::buffer(m_upstream_response, SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE),
-				std::bind(&SOCKSHandler::HandleUpstreamSockRecv, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-		} else {
-			LogPrint(eLogError, "SOCKS: No upstream socket for read");
-			SocksRequestFailed(SOCKS5_GEN_FAIL);
-		}
-	}
-
-	void SOCKSHandler::HandleUpstreamSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered)
-	{
-		if (ecode) {
-			if (m_state == UPSTREAM_HANDSHAKE ) {
-				// we are trying to handshake but it failed
-				SocksRequestFailed(SOCKS5_NET_UNREACH);
-			} else {
-				LogPrint(eLogError, "SOCKS: Bad state when reading from upstream: ", (int) m_state);
-			}
-			return;
-		}
-		HandleUpstreamData(m_upstream_response, bytes_transfered);
-	}
-
 	void SOCKSHandler::SocksUpstreamSuccess()
 	{
 		LogPrint(eLogInfo, "SOCKS: Upstream success");
@@ -776,46 +709,28 @@ namespace proxy
 
 	}
 
-	void SOCKSHandler::HandleUpstreamData(uint8_t * dataptr, std::size_t len)
-	{
-		if (m_state == UPSTREAM_HANDSHAKE) {
-			m_upstream_response_len += len;
-			// handle handshake data
-			if (m_upstream_response_len < SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE) {
-				// too small, continue reading
-				AsyncUpstreamSockRead();
-			} else if (len == SOCKS_UPSTREAM_SOCKS4A_REPLY_SIZE) {
-				// just right
-				uint8_t resp = m_upstream_response[1];
-				if (resp == SOCKS4_OK) {
-					// we have connected !
-					SocksUpstreamSuccess();
-				} else {
-					// upstream failure
-					LogPrint(eLogError, "SOCKS: Upstream proxy failure: ", (int) resp);
-					// TODO: runtime error?
-					SocksRequestFailed(SOCKS5_GEN_FAIL);
-				}
-			} else {
-				// too big
-				SocksRequestFailed(SOCKS5_GEN_FAIL);
-			}
-		} else {
-			// invalid state
-			LogPrint(eLogError, "SOCKS: Invalid state reading from upstream: ", (int) m_state);
-		}
-	}
 
 	void SOCKSHandler::SendUpstreamRequest()
 	{
 		LogPrint(eLogInfo, "SOCKS: Negotiating with upstream proxy");
 		EnterState(UPSTREAM_HANDSHAKE);
-		if (m_upstreamSock) {
-			boost::asio::write(*m_upstreamSock, GenerateUpstreamRequest());
-			AsyncUpstreamSockRead();
-		} else {
+		if (m_upstreamSock) 
+		{
+			auto s = shared_from_this ();
+			i2p::transport::Socks5Handshake (*m_upstreamSock, std::make_pair(m_address.dns.ToString (), m_port),
+			    [s](const boost::system::error_code& ec)
+			    {
+					if (!ec) 
+						s->SocksUpstreamSuccess();
+					else
+					{	
+						s->SocksRequestFailed(SOCKS5_NET_UNREACH);
+						LogPrint(eLogError, "SOCKS: Upstream proxy failure: ", ec.message ());
+					}
+				});	
+		} 
+		else 
 			LogPrint(eLogError, "SOCKS: No upstream socket to send handshake to");
-		}
 	}
 
 	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator itr)
