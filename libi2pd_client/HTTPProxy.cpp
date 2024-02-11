@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -29,6 +29,7 @@
 #include "Config.h"
 #include "HTTP.h"
 #include "I18N.h"
+#include "Socks5.h"
 
 namespace i2p {
 namespace proxy {
@@ -92,9 +93,6 @@ namespace proxy {
 			void HandleUpstreamSocksProxyConnect(const boost::system::error_code & ec);
 			void HTTPConnect(const std::string & host, uint16_t port);
 			void HandleHTTPConnectStreamRequestComplete(std::shared_ptr<i2p::stream::Stream> stream);
-
-			void HandleSocksProxySendHandshake(const boost::system::error_code & ec, std::size_t bytes_transfered);
-			void HandleSocksProxyReply(const boost::system::error_code & ec, std::size_t bytes_transfered);
 
 			typedef std::function<void(boost::asio::ip::tcp::endpoint)> ProxyResolvedHandler;
 
@@ -612,43 +610,30 @@ namespace proxy {
 
 	void HTTPReqHandler::HandleUpstreamSocksProxyConnect(const boost::system::error_code & ec)
 	{
-		if(!ec) {
-			if(m_RequestURL.host.size() > 255) {
+		if(!ec) 
+		{
+			if(m_RequestURL.host.size() > 255) 
+			{
 				GenericProxyError(tr("Hostname is too long"), m_RequestURL.host);
 				return;
 			}
 			uint16_t port = m_RequestURL.port;
 			if(!port) port = 80;
 			LogPrint(eLogDebug, "HTTPProxy: Connected to SOCKS upstream");
-
 			std::string host = m_RequestURL.host;
-			std::size_t reqsize = 0;
-			m_socks_buf[0] = '\x04';
-			m_socks_buf[1] = 1;
-			htobe16buf(m_socks_buf+2, port);
-			m_socks_buf[4] = 0;
-			m_socks_buf[5] = 0;
-			m_socks_buf[6] = 0;
-			m_socks_buf[7] = 1;
-			// user id
-			m_socks_buf[8] = 'i';
-			m_socks_buf[9] = '2';
-			m_socks_buf[10] = 'p';
-			m_socks_buf[11] = 'd';
-			m_socks_buf[12] = 0;
-			reqsize += 13;
-			memcpy(m_socks_buf+ reqsize, host.c_str(), host.size());
-			reqsize += host.size();
-			m_socks_buf[++reqsize] = 0;
-			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_socks_buf, reqsize), boost::asio::transfer_all(), std::bind(&HTTPReqHandler::HandleSocksProxySendHandshake, this, std::placeholders::_1, std::placeholders::_2));
-		} else GenericProxyError(tr("Cannot connect to upstream SOCKS proxy"), ec.message());
-	}
-
-	void HTTPReqHandler::HandleSocksProxySendHandshake(const boost::system::error_code & ec, std::size_t bytes_transferred)
-	{
-		LogPrint(eLogDebug, "HTTPProxy: Upstream SOCKS handshake sent");
-		if(ec) GenericProxyError(tr("Cannot negotiate with SOCKS proxy"), ec.message());
-		else m_proxysock->async_read_some(boost::asio::buffer(m_socks_buf, 8), std::bind(&HTTPReqHandler::HandleSocksProxyReply, this, std::placeholders::_1, std::placeholders::_2));
+			auto s = shared_from_this ();
+			i2p::transport::Socks5Handshake (*m_proxysock, std::make_pair(host, port),
+				[s](const boost::system::error_code& ec)
+			    {
+					if (!ec)
+						s->SocksProxySuccess();
+					else
+						s->GenericProxyError(tr("SOCKS proxy error"), ec.message ());	
+				});
+			
+		} 
+		else 
+			GenericProxyError(tr("Cannot connect to upstream SOCKS proxy"), ec.message());
 	}
 
 	void HTTPReqHandler::HandoverToUpstreamProxy()
@@ -712,24 +697,6 @@ namespace proxy {
 					else HandoverToUpstreamProxy();
 				});
 		}
-	}
-
-	void HTTPReqHandler::HandleSocksProxyReply(const boost::system::error_code & ec, std::size_t bytes_transferred)
-	{
-		if(!ec)
-		{
-			if(m_socks_buf[1] == 90) {
-				// success
-				SocksProxySuccess();
-			} else {
-				std::stringstream ss;
-				ss << "error code: ";
-				ss << (int) m_socks_buf[1];
-				std::string msg = ss.str();
-				GenericProxyError(tr("SOCKS proxy error"), msg);
-			}
-		}
-		else GenericProxyError(tr("No reply from SOCKS proxy"), ec.message());
 	}
 
 	void HTTPReqHandler::HandleUpstreamHTTPProxyConnect(const boost::system::error_code & ec)
