@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -240,54 +240,68 @@ namespace client
 
 	void TCPIPPipe::HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
-		LogPrint(eLogDebug, "TCPIPPipe: Downstream: ", (int) bytes_transfered, " bytes received");
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Downstream read error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			LogPrint(eLogDebug, "TCPIPPipe: Downstream: ", (int) bytes_transfered, " bytes received");
+			if (ecode)
+			{
+				LogPrint(eLogWarning, "TCPIPPipe: Downstream read error:" , ecode.message());
 				Terminate();
-		} else {
-			if (bytes_transfered > 0 )
-				memcpy(m_upstream_buf, m_downstream_to_up_buf, bytes_transfered);
-			UpstreamWrite(bytes_transfered);
-		}
+			} 
+			else 
+			{
+				if (bytes_transfered > 0 )
+					memcpy(m_upstream_buf, m_downstream_to_up_buf, bytes_transfered);
+				UpstreamWrite(bytes_transfered);
+			}
+		}	
 	}
 
-	void TCPIPPipe::HandleDownstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Downstream write error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
+	void TCPIPPipe::HandleDownstreamWrite(const boost::system::error_code & ecode) 
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			if (ecode)
+			{
+				LogPrint(eLogWarning, "TCPIPPipe: Downstream write error:" , ecode.message());
 				Terminate();
-		}
-		else
-			AsyncReceiveUpstream();
+			}
+			else
+				AsyncReceiveUpstream();
+		}	
 	}
 
-	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Upstream write error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
+	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) 
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			if (ecode)
+			{
+				LogPrint(eLogWarning, "TCPIPPipe: Upstream write error:" , ecode.message());
 				Terminate();
-		}
-		else
-			AsyncReceiveDownstream();
+			}
+			else
+				AsyncReceiveDownstream();
+		}	
 	}
 
 	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
-		LogPrint(eLogDebug, "TCPIPPipe: Upstream ", (int)bytes_transfered, " bytes received");
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Upstream read error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			LogPrint(eLogDebug, "TCPIPPipe: Upstream ", (int)bytes_transfered, " bytes received");
+			if (ecode)
+			{
+				LogPrint(eLogWarning, "TCPIPPipe: Upstream read error:" , ecode.message());
 				Terminate();
-		} else {
-			if (bytes_transfered > 0 )
-				memcpy(m_downstream_buf, m_upstream_to_down_buf, bytes_transfered);
-			DownstreamWrite(bytes_transfered);
-		}
+			} 
+			else 
+			{
+				if (bytes_transfered > 0 )
+					memcpy(m_downstream_buf, m_upstream_to_down_buf, bytes_transfered);
+				DownstreamWrite(bytes_transfered);
+			}
+		}	
 	}
 
 	void TCPIPAcceptor::Start ()
