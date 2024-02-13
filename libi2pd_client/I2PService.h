@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -99,6 +99,7 @@ namespace client
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
 			virtual void Handle() {}; //Start handling the socket
+			virtual void Start () {}; 
 
 			void Terminate () { Kill (); };
 
@@ -119,16 +120,16 @@ namespace client
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
-	const size_t TCP_IP_PIPE_BUFFER_SIZE = 8192 * 8;
+	const size_t SOCKETS_PIPE_BUFFER_SIZE = 8192 * 8;
 
-	// bidirectional pipe for 2 tcp/ip sockets
-	class TCPIPPipe: public I2PServiceHandler, public std::enable_shared_from_this<TCPIPPipe>
+	// bidirectional pipe for 2 stream sockets
+	class SocketsPipe: public I2PServiceHandler, public std::enable_shared_from_this<SocketsPipe>
 	{
 		public:
 
-			TCPIPPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream);
-			~TCPIPPipe();
-			void Start();
+			SocketsPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream);
+			~SocketsPipe();
+			void Start() override;
 
 		protected:
 
@@ -144,11 +145,18 @@ namespace client
 
 		private:
 
-			uint8_t m_upstream_to_down_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[TCP_IP_PIPE_BUFFER_SIZE];
-			uint8_t m_upstream_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_buf[TCP_IP_PIPE_BUFFER_SIZE];
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_up, m_down;
+			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];
+			uint8_t m_upstream_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_buf[SOCKETS_PIPE_BUFFER_SIZE];
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_up;
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_down;
 	};
 
+	template<typename Socket1, typename Socket2>
+	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<Socket1> upstream, std::shared_ptr<Socket2> downstream)
+	{
+		return std::make_shared<SocketsPipe>(owner, upstream, downstream);
+	}	
+	
 	/* TODO: support IPv6 too */
 	//This is a service that listens for connections on the IP network and interacts with I2P
 	class TCPIPAcceptor: public I2PService

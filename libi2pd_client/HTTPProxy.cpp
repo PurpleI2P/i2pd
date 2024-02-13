@@ -638,7 +638,7 @@ namespace proxy {
 	void HTTPReqHandler::HandoverToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: Handover to SOCKS proxy");
-		auto connection = std::make_shared<i2p::client::TCPIPPipe>(GetOwner(), m_proxysock, m_sock);
+		auto connection = CreateSocketsPipe (GetOwner(), m_proxysock, m_sock);
 		m_sock = nullptr;
 		m_proxysock = nullptr;
 		GetOwner()->AddHandler(connection);

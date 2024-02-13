@@ -700,13 +700,12 @@ namespace proxy
 			break;
 		}
 		m_sock->send(response);
-		auto forwarder = std::make_shared<i2p::client::TCPIPPipe>(GetOwner(), m_sock, m_upstreamSock);
+		auto forwarder = CreateSocketsPipe (GetOwner(), m_sock, m_upstreamSock);
 		m_upstreamSock = nullptr;
 		m_sock = nullptr;
 		GetOwner()->AddHandler(forwarder);
 		forwarder->Start();
 		Terminate();
-
 	}
 
 
