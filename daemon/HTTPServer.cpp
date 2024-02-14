@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -133,23 +133,19 @@ namespace http {
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
 	{
 		std::string state, stateText;
-		switch (eState) {
+		switch (eState) 
+		{
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
 			case i2p::tunnel::eTunnelStatePending     : state = "building";    break;
-			case i2p::tunnel::eTunnelStateBuildFailed :
-			case i2p::tunnel::eTunnelStateTestFailed  :
+			case i2p::tunnel::eTunnelStateBuildFailed : state = "failed"; stateText = "declined"; break;
+			case i2p::tunnel::eTunnelStateTestFailed  : state = "failed"; stateText = "test failed";  break;
 			case i2p::tunnel::eTunnelStateFailed      : state = "failed";      break;
 			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring";    break;
 			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
-
-		if      (state == "building")    stateText = tr("building");
-		else if (state == "failed")      stateText = tr("failed");
-		else if (state == "expiring")    stateText = tr("expiring");
-		else if (state == "established") stateText = tr("established");
-		else stateText = tr("unknown");
-
+		if (stateText.empty ()) stateText = tr(state);
+		
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
 		ShowTraffic(s, bytes);
 		s << "\r\n";

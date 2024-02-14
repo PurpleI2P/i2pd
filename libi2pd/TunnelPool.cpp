@@ -461,7 +461,7 @@ namespace tunnel
 			// restore from test failed state if any
 			if (test.first)
 			{
-				if (test.first->GetState () == eTunnelStateTestFailed)
+				if (test.first->GetState () != eTunnelStateExpiring)
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
 				uint64_t latency = 0;
@@ -471,7 +471,7 @@ namespace tunnel
 			}
 			if (test.second)
 			{
-				if (test.second->GetState () == eTunnelStateTestFailed)
+				if (test.second->GetState () != eTunnelStateExpiring)
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
 				uint64_t latency = 0;
