@@ -123,38 +123,91 @@ namespace client
 	const size_t SOCKETS_PIPE_BUFFER_SIZE = 8192 * 8;
 
 	// bidirectional pipe for 2 stream sockets
-	class SocketsPipe: public I2PServiceHandler, public std::enable_shared_from_this<SocketsPipe>
+	template<typename SocketUpstream, typename SocketDownstream>
+	class SocketsPipe: public I2PServiceHandler, 
+		public std::enable_shared_from_this<SocketsPipe<SocketUpstream, SocketDownstream> >
 	{
 		public:
 
-			SocketsPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream);
-			~SocketsPipe();
-			void Start() override;
-
-		protected:
-
-			void Terminate();
-			void AsyncReceiveUpstream();
-			void AsyncReceiveDownstream();
-			void HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
-			void HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
-			void HandleUpstreamWrite(const boost::system::error_code & ecode);
-			void HandleDownstreamWrite(const boost::system::error_code & ecode);
-			void UpstreamWrite(size_t len);
-			void DownstreamWrite(size_t len);
+			SocketsPipe(I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream):
+				I2PServiceHandler(owner), m_up(upstream), m_down(downstream)
+			{
+				boost::asio::socket_base::receive_buffer_size option(SOCKETS_PIPE_BUFFER_SIZE);
+				upstream->set_option(option);
+				downstream->set_option(option);
+			}	
+			~SocketsPipe() { Terminate(); }
+			
+			void Start() override
+			{
+				Transfer (m_up, m_down, m_upstream_to_down_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
+				Transfer (m_down, m_up, m_downstream_to_up_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
+			}	
 
 		private:
 
-			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];
-			uint8_t m_upstream_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_buf[SOCKETS_PIPE_BUFFER_SIZE];
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_up;
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_down;
+			void Terminate()
+			{
+				if(Kill()) return;
+				if (m_up)
+				{
+					if (m_up->is_open())
+						m_up->close();
+					m_up = nullptr;
+				}
+				if (m_down)
+				{
+					if (m_down->is_open())
+						m_down->close();
+					m_down = nullptr;
+				}
+				Done(SocketsPipe<SocketUpstream, SocketDownstream>::shared_from_this());
+			}
+			
+			template<typename From, typename To>
+			void Transfer (std::shared_ptr<From> from, std::shared_ptr<To> to, uint8_t * buf, size_t len)
+			{
+				if (!from || !to || !buf) return;
+				auto s = SocketsPipe<SocketUpstream, SocketDownstream>::shared_from_this ();
+				from->async_read_some(boost::asio::buffer(buf, len),
+					[from, to, s, buf, len](const boost::system::error_code& ecode, std::size_t transferred)
+				    {
+						if (ecode == boost::asio::error::operation_aborted) return;
+						if (!ecode)
+						{
+							boost::asio::async_write(*to, boost::asio::buffer(buf, transferred), boost::asio::transfer_all(),
+								[from, to, s, buf, len](const boost::system::error_code& ecode, std::size_t transferred)
+				    			{
+									(void) transferred;
+									if (ecode == boost::asio::error::operation_aborted) return;
+									if (!ecode)
+										s->Transfer (from, to, buf, len);
+									else
+									{
+										LogPrint(eLogWarning, "SocketsPipe: Write error:" , ecode.message());
+										s->Terminate();
+									}	
+								});	
+						}	
+						else
+						{
+							LogPrint(eLogWarning, "SocketsPipe: Read error:" , ecode.message());
+							s->Terminate();
+						}	
+					});	
+			}
+			
+		private:
+
+			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];			
+			std::shared_ptr<SocketUpstream> m_up;
+			std::shared_ptr<SocketDownstream> m_down;
 	};
 
-	template<typename Socket1, typename Socket2>
-	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<Socket1> upstream, std::shared_ptr<Socket2> downstream)
+	template<typename SocketUpstream, typename SocketDownstream>
+	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream)
 	{
-		return std::make_shared<SocketsPipe>(owner, upstream, downstream);
+		return std::make_shared<SocketsPipe<SocketUpstream, SocketDownstream> >(owner, upstream, downstream);
 	}	
 	
 	/* TODO: support IPv6 too */
