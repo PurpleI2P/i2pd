@@ -63,7 +63,7 @@ namespace transport
 						{
 							len += 2; // port
 							boost::asio::async_read(s, boost::asio::buffer(readbuff->data (), len), boost::asio::transfer_all(),
-								[readbuff, &s, handler](const boost::system::error_code& ec, std::size_t transferred)
+								[readbuff, handler](const boost::system::error_code& ec, std::size_t transferred)
 								{
 									if (!ec)
 										handler (boost::system::error_code ()); // success
