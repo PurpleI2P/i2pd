@@ -361,31 +361,43 @@ namespace tunnel
 
 		// new tests
 		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
+		std::random_device rd;
+		std::mt19937 rnd(rd());
+		std::vector<std::shared_ptr<OutboundTunnel> > outboundTunnels;
 		{
-			std::unique_lock<std::mutex> l1(m_OutboundTunnelsMutex);
-			auto it1 = m_OutboundTunnels.begin ();
-			std::unique_lock<std::mutex> l2(m_InboundTunnelsMutex);
-			auto it2 = m_InboundTunnels.begin ();
-			while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			for (auto& it: m_OutboundTunnels)
+				outboundTunnels.push_back (it);
+		}
+		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), rnd);
+		std::vector<std::shared_ptr<InboundTunnel> > inboundTunnels;
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			for (auto& it: m_InboundTunnels)
+				inboundTunnels.push_back (it);
+		}
+		std::shuffle (inboundTunnels.begin(), inboundTunnels.end(), rnd);
+		auto it1 = outboundTunnels.begin ();
+		auto it2 = inboundTunnels.begin ();
+		while (it1 != outboundTunnels.end () && it2 != inboundTunnels.end ())
+		{
+			bool failed = false;
+			if ((*it1)->IsFailed ())
 			{
-				bool failed = false;
-				if ((*it1)->IsFailed ())
-				{
-					failed = true;
-					++it1;
-				}
-				if ((*it2)->IsFailed ())
-				{
-					failed = true;
-					++it2;
-				}
-				if (!failed)
-				{
-					newTests.push_back(std::make_pair (*it1, *it2));
-					++it1; ++it2;
-				}
+				failed = true;
+				++it1;
 			}
-		}	
+			if ((*it2)->IsFailed ())
+			{
+				failed = true;
+				++it2;
+			}
+			if (!failed)
+			{
+				newTests.push_back(std::make_pair (*it1, *it2));
+				++it1; ++it2;
+			}
+		}
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
