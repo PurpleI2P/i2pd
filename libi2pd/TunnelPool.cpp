@@ -7,7 +7,6 @@
 */
 
 #include <algorithm>
-#include <random>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Tunnel.h"
@@ -45,7 +44,7 @@ namespace tunnel
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
 		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance),
-		m_IsActive (true), m_CustomPeerSelector(nullptr)
+		m_IsActive (true), m_CustomPeerSelector(nullptr), m_Rng(m_Rd())
 	{
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
 			m_NumInboundTunnels = TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY;
@@ -361,22 +360,20 @@ namespace tunnel
 
 		// new tests
 		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
-		std::random_device rd;
-		std::mt19937 rnd(rd());
 		std::vector<std::shared_ptr<OutboundTunnel> > outboundTunnels;
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto& it: m_OutboundTunnels)
 				outboundTunnels.push_back (it);
 		}
-		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), rnd);
+		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), m_Rng);
 		std::vector<std::shared_ptr<InboundTunnel> > inboundTunnels;
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto& it: m_InboundTunnels)
 				inboundTunnels.push_back (it);
 		}
-		std::shuffle (inboundTunnels.begin(), inboundTunnels.end(), rnd);
+		std::shuffle (inboundTunnels.begin(), inboundTunnels.end(), m_Rng);
 		auto it1 = outboundTunnels.begin ();
 		auto it2 = inboundTunnels.begin ();
 		while (it1 != outboundTunnels.end () && it2 != inboundTunnels.end ())

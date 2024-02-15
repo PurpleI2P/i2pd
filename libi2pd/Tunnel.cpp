@@ -52,7 +52,7 @@ namespace tunnel
 		// shuffle records
 		std::vector<int> recordIndicies;
 		for (int i = 0; i < numRecords; i++) recordIndicies.push_back(i);
-		std::shuffle (recordIndicies.begin(), recordIndicies.end(), std::mt19937(std::random_device()()));
+		std::shuffle (recordIndicies.begin(), recordIndicies.end(), m_Pool ? m_Pool->GetRng () : std::mt19937(std::random_device()()));
 
 		// create real records
 		uint8_t * records = msg->GetPayload () + 1;
