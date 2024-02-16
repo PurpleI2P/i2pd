@@ -61,9 +61,11 @@ namespace i2p
 			{
 				m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
 				ScheduleInitialPublish ();
-				m_CongestionUpdateTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
-				ScheduleCongestionUpdate ();
 			}	
+			m_CongestionUpdateTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
+			ScheduleCongestionUpdate ();
+			m_CleanupTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
+			ScheduleCleanupTimer ();
 		}	
 	}
 	
@@ -1223,17 +1225,6 @@ namespace i2p
 		else
 			LogPrint (eLogError, "Router: service is NULL");
 	}	
-		
-	void RouterContext::CleanupDestination ()
-	{
-		if (m_Service)
-			m_Service->GetService ().post ([this]()
-			{  
-				this->i2p::garlic::GarlicDestination::CleanupExpiredTags ();
-			});	
-		else
-			LogPrint (eLogError, "Router: service is NULL");
-	}
 
 	uint32_t RouterContext::GetUptime () const
 	{
@@ -1463,6 +1454,28 @@ namespace i2p
 			if (m_RouterInfo.UpdateCongestion (c))
 				UpdateRouterInfo ();
 			ScheduleCongestionUpdate ();
+		}	
+	}	
+
+	void RouterContext::ScheduleCleanupTimer ()
+	{
+		if (m_CleanupTimer)
+		{	
+			m_CleanupTimer->cancel ();
+			m_CleanupTimer->expires_from_now (boost::posix_time::minutes(ROUTER_INFO_CLEANUP_INTERVAL));
+			m_CleanupTimer->async_wait (std::bind (&RouterContext::HandleCleanupTimer,
+				this, std::placeholders::_1));
+		}	
+		else
+			LogPrint (eLogError, "Router: Cleanup timer is NULL");
+	}	
+
+	void RouterContext::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			CleanupExpiredTags ();
+			ScheduleCleanupTimer ();
 		}	
 	}	
 }

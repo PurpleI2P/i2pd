@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,6 +38,7 @@ namespace garlic
 	const int ROUTER_INFO_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
 	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 12*60; // in seconds
+	const int ROUTER_INFO_CLEANUP_INTERVAL = 5; // in minutes
 
 	enum RouterStatus
 	{
@@ -181,7 +182,6 @@ namespace garlic
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove
 			void UpdateStats ();
 			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
-			void CleanupDestination (); // garlic destination
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
@@ -230,6 +230,8 @@ namespace garlic
 			void HandlePublishResendTimer (const boost::system::error_code& ecode);
 			void ScheduleCongestionUpdate ();
 			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
+			void ScheduleCleanupTimer ();
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -253,7 +255,7 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_InitialNoiseState, m_CurrentNoiseState;
 			// publish
 			std::unique_ptr<RouterService> m_Service;
-			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer;
+			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer, m_CleanupTimer;
 			std::set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish

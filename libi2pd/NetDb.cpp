@@ -106,7 +106,7 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
 		int16_t profilesCleanupVariance = 0;
 
@@ -163,13 +163,6 @@ namespace data
 						ManageLeaseSets ();
 					}
 					lastManage = ts;
-				}
-
-				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT ||
-				    ts + i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT < lastDestinationCleanup)
-				{
-					i2p::context.CleanupDestination ();
-					lastDestinationCleanup = ts;
 				}
 
 				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
