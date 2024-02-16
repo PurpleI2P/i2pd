@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -221,7 +221,7 @@ namespace garlic
 	struct ECIESX25519AEADRatchetIndexTagset
 	{
 		int index;
-		ReceiveRatchetTagSetPtr tagset;
+		ReceiveRatchetTagSetPtr tagset; // null if used
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination

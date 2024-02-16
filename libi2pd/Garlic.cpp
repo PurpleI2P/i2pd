@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -588,11 +588,17 @@ namespace garlic
 		auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-			if (it->second.tagset && it->second.tagset->HandleNextMessage (buf, len, it->second.index))
+			if (!it->second.tagset) return true; // duplicate
+			if (it->second.tagset->HandleNextMessage (buf, len, it->second.index))
+			{	
 				m_LastTagset = it->second.tagset;
+				it->second.tagset = nullptr; // mark as used
+			}	
 			else
+			{	
 				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
-			m_ECIESx25519Tags.erase (it);
+				m_ECIESx25519Tags.erase (it);
+			}	
 			return true;
 		}
 		return false;
@@ -879,6 +885,12 @@ namespace garlic
 		numExpiredTags = 0;
 		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
 		{
+			if (!it->second.tagset)
+			{
+				// delete used tag
+				it = m_ECIESx25519Tags.erase (it);
+				continue;
+			}	
 			if (it->second.tagset->IsExpired (ts) || it->second.tagset->IsIndexExpired (it->second.index))
 			{
 				it->second.tagset->DeleteSymmKey (it->second.index);
