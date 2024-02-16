@@ -679,9 +679,10 @@ namespace tunnel
 		for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 		{
 			auto tunnel = *it;
-			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			if (tunnel->IsFailed () || ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
+			    ts + TUNNEL_EXPIRATION_TIMEOUT < tunnel->GetCreationTime ())
 			{
-				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
+				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired or failed");
 				auto pool = tunnel->GetTunnelPool ();
 				if (pool)
 					pool->TunnelExpired (tunnel);
@@ -730,10 +731,10 @@ namespace tunnel
 		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 		{
 			auto tunnel = *it;
-			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
+			if (tunnel->IsFailed () || ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
 			    ts + TUNNEL_EXPIRATION_TIMEOUT < tunnel->GetCreationTime ())
 			{
-				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired");
+				LogPrint (eLogDebug, "Tunnel: Tunnel with id ", tunnel->GetTunnelID (), " expired or failed");
 				auto pool = tunnel->GetTunnelPool ();
 				if (pool)
 					pool->TunnelExpired (tunnel);

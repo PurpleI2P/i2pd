@@ -91,7 +91,7 @@ namespace tunnel
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state);
-			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
+			bool IsEstablished () const { return m_State == eTunnelStateEstablished || m_State == eTunnelStateTestFailed; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
