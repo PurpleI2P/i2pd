@@ -86,7 +86,8 @@ namespace garlic
 
 			virtual bool IsIndexExpired (int index) const;
 			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
-
+			virtual bool IsSessionTerminated () const;
+			
 		private:
 
 			int m_TrimBehindIndex = 0;
@@ -101,9 +102,10 @@ namespace garlic
 
 			SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key);
 
-			bool IsIndexExpired (int index) const { return false; };
-			bool HandleNextMessage (uint8_t * buf, size_t len, int index);
-
+			bool IsIndexExpired (int index) const override { return false; };
+			bool HandleNextMessage (uint8_t * buf, size_t len, int index) override;
+			bool IsSessionTerminated () const override { return false; }
+			
 		private:
 
 			GarlicDestination * m_Destination;

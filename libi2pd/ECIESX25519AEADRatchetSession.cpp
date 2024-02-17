@@ -117,6 +117,12 @@ namespace garlic
 		return session->HandleNextMessage (buf, len, shared_from_this (), index);
 	}
 
+	bool ReceiveRatchetTagSet::IsSessionTerminated () const 
+	{ 
+		return !m_Session || m_Session->IsTerminated (); 
+	}
+
+	
 	SymmetricKeyTagSet::SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key):
 		ReceiveRatchetTagSet (nullptr), m_Destination (destination)
 	{
