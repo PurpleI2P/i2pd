@@ -167,7 +167,7 @@ namespace garlic
 			void SetShareRatio (int percents); // 0 - 100
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
-			bool IsHighCongestion () const;
+			int GetCongestionLevel (bool longTerm) const;
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
 			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			bool SupportsMesh () const { return m_RouterInfo.IsMesh (); };
