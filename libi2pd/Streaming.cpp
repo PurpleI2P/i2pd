@@ -129,6 +129,11 @@ namespace stream
 
 	void Stream::HandleNextPacket (Packet * packet)
 	{
+		if (m_Status == eStreamStatusTerminated)
+		{
+			m_LocalDestination.DeletePacket (packet);
+			return;
+		}	
 		m_NumReceivedBytes += packet->GetLength ();
 		if (!m_SendStreamID)
 		{	
@@ -159,7 +164,8 @@ namespace stream
 		{
 			// we have received next in sequence message
 			ProcessPacket (packet);
-
+			if (m_Status == eStreamStatusTerminated) return;
+			
 			// we should also try stored messages if any
 			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
 			{
@@ -169,6 +175,7 @@ namespace stream
 					m_SavedPackets.erase (it++);
 
 					ProcessPacket (savedPacket);
+					if (m_Status == eStreamStatusTerminated) return;
 				}
 				else
 					break;
