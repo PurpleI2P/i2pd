@@ -376,7 +376,7 @@ namespace i2p
 				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
 				uint8_t retCode = 0;
 				// replace record to reply
-				if (i2p::context.AcceptsTunnels () && i2p::context.GetCongestionLevel (false) < 100)
+				if (i2p::context.AcceptsTunnels () && i2p::context.GetCongestionLevel (false) < CONGESTION_LEVEL_FULL)
 				{
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -586,7 +586,7 @@ namespace i2p
 				// check if we accept this tunnel
 				std::shared_ptr<i2p::tunnel::TransitTunnel> transitTunnel;
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () || i2p::context.GetCongestionLevel (false) >= 100)
+				if (!i2p::context.AcceptsTunnels () || i2p::context.GetCongestionLevel (false) >= CONGESTION_LEVEL_FULL)
 					retCode = 30;
 				if (!retCode)
 				{

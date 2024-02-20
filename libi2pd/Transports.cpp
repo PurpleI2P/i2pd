@@ -411,7 +411,7 @@ namespace transport
 		auto tbwLimit = i2p::context.GetTransitBandwidthLimit () * 1024; // convert to bytes
 
 		if (tbwLimit == 0 || bwLimit == 0)
-			return 100;
+			return CONGESTION_LEVEL_FULL;
 
 		uint32_t bw;
 		uint32_t tbw;
@@ -425,8 +425,8 @@ namespace transport
 			bw = std::max (m_InBandwidth15s, m_OutBandwidth15s);
 			tbw = m_TransitBandwidth;
 		}
-		auto bwCongestionLevel = 100 * bw / bwLimit;
-		auto tbwCongestionLevel = 100 * tbw / tbwLimit;
+		auto bwCongestionLevel = CONGESTION_LEVEL_FULL * bw / bwLimit;
+		auto tbwCongestionLevel = CONGESTION_LEVEL_FULL * tbw / tbwLimit;
 		return std::max (bwCongestionLevel, tbwCongestionLevel);
 	}
 

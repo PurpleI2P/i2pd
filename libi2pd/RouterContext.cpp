@@ -1448,14 +1448,14 @@ namespace i2p
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto c = i2p::data::RouterInfo::eLowCongestion;
-			if (!AcceptsTunnels () || m_ShareRatio == 0)
+			if (!AcceptsTunnels () || !m_ShareRatio)
 				c = i2p::data::RouterInfo::eRejectAll;
 			else
 			{
 				int congestionLevel = GetCongestionLevel (true);
-				if (congestionLevel > 90)
+				if (congestionLevel > CONGESTION_LEVEL_HIGH)
 					c = i2p::data::RouterInfo::eHighCongestion;
-				else if (congestionLevel > 70)
+				else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
 					c = i2p::data::RouterInfo::eMediumCongestion;
 			}
 			if (m_RouterInfo.UpdateCongestion (c))
