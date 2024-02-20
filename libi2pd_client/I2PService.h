@@ -210,42 +210,81 @@ namespace client
 		return std::make_shared<SocketsPipe<SocketUpstream, SocketDownstream> >(owner, upstream, downstream);
 	}	
 	
-	/* TODO: support IPv6 too */
-	//This is a service that listens for connections on the IP network and interacts with I2P
-	class TCPIPAcceptor: public I2PService
+	//This is a service that listens for connections on the IP network or local socket and interacts with I2P
+	template<typename Protocol>
+	class ServiceAcceptor: public I2PService
+	{
+		public:
+
+			ServiceAcceptor (const typename Protocol::endpoint& localEndpoint, std::shared_ptr<ClientDestination> localDestination = nullptr) :
+				I2PService(localDestination), m_LocalEndpoint (localEndpoint) {}
+			
+			virtual ~ServiceAcceptor () { Stop(); }
+			void Start () override
+			{
+				m_Acceptor.reset (new typename Protocol::acceptor (GetService (), m_LocalEndpoint));
+				// update the local end point in case port has been set zero and got updated now
+				m_LocalEndpoint = m_Acceptor->local_endpoint();
+				m_Acceptor->listen ();
+				Accept ();
+			}	
+			void Stop () override
+			{	
+				if (m_Acceptor)
+				{
+					m_Acceptor->close();
+					m_Acceptor.reset (nullptr);
+				}
+				ClearHandlers();
+			}
+			const typename Protocol::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
+
+			const char* GetName() override { return "Generic TCP/IP accepting daemon"; }
+
+		protected:
+
+			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<typename Protocol::socket> socket) = 0;
+
+		private:
+
+			void Accept()
+			{
+				auto newSocket = std::make_shared<typename Protocol::socket> (GetService ());
+				m_Acceptor->async_accept (*newSocket,
+					[newSocket, this](const boost::system::error_code& ecode)
+				    {
+						if (ecode == boost::asio::error::operation_aborted) return;
+						if (!ecode)
+						{
+							LogPrint(eLogDebug, "ServiceAcceptor: ", GetName(), " accepted");
+							auto handler = CreateHandler(newSocket);
+							if (handler)
+							{
+								AddHandler(handler);
+								handler->Handle();
+							}
+							else
+								newSocket->close();
+							Accept();
+						}	
+						else
+							LogPrint (eLogError, "ServiceAcceptor: ", GetName(), " closing socket on accept because: ", ecode.message ());
+					});	
+			}	
+			
+		private:
+			
+			typename Protocol::endpoint m_LocalEndpoint;
+			std::unique_ptr<typename Protocol::acceptor> m_Acceptor;
+	};
+
+	class TCPIPAcceptor: public ServiceAcceptor<boost::asio::ip::tcp>
 	{
 		public:
 
 			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
-				I2PService(localDestination),
-				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
-				m_Timer (GetService ()) {}
-			TCPIPAcceptor (const std::string& address, uint16_t port, i2p::data::SigningKeyType kt) :
-				I2PService(kt),
-				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
-				m_Timer (GetService ()) {}
-			virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
-			//If you override this make sure you call it from the children
-			void Start ();
-			//If you override this make sure you call it from the children
-			void Stop ();
-
-			const boost::asio::ip::tcp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
-
-			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
-
-		protected:
-
-			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
-
-		private:
-
-			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			boost::asio::ip::tcp::endpoint m_LocalEndpoint;
-			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
-	};
+				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port), localDestination) {}
+	};	
 }
 }
 

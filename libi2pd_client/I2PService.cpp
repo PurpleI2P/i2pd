@@ -147,54 +147,5 @@ namespace client
 				m_LocalDestination->CreateStream (streamRequestComplete, address->blindedPublicKey, port);
 		}
 	}
-
-	void TCPIPAcceptor::Start ()
-	{
-		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
-		// update the local end point in case port has been set zero and got updated now
-		m_LocalEndpoint = m_Acceptor->local_endpoint();
-		m_Acceptor->listen ();
-		Accept ();
-	}
-
-	void TCPIPAcceptor::Stop ()
-	{
-		if (m_Acceptor)
-		{
-			m_Acceptor->close();
-			m_Acceptor.reset (nullptr);
-		}
-		m_Timer.cancel ();
-		ClearHandlers();
-	}
-
-	void TCPIPAcceptor::Accept ()
-	{
-		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
-		m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
-			std::placeholders::_1, newSocket));
-	}
-
-	void TCPIPAcceptor::HandleAccept (const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
-	{
-		if (!ecode)
-		{
-			LogPrint(eLogDebug, "I2PService: ", GetName(), " accepted");
-			auto handler = CreateHandler(socket);
-			if (handler)
-			{
-				AddHandler(handler);
-				handler->Handle();
-			}
-			else
-				socket->close();
-			Accept();
-		}
-		else
-		{
-			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogError, "I2PService: ", GetName(), " closing socket on accept because: ", ecode.message ());
-		}
-	}
 }
 }
