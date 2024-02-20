@@ -494,11 +494,23 @@ namespace tunnel
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, 
 		bool reverse, bool endpoint) const
 	{
-		auto hop = IsExploratory () ? i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint):
-			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint);
-
-		if (!hop || hop->GetProfile ()->IsBad ())
-			hop = i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint);
+		bool tryHighBandwidth = !IsExploratory ();
+		std::shared_ptr<const i2p::data::RouterInfo> hop;
+		for (int i = 0; i < TUNNEL_POOL_MAX_HOP_SELECTION_ATTEMPTS; i++)
+		{
+			hop = tryHighBandwidth ?
+				i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint) :
+				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint);
+			if (hop)
+			{
+				if (!hop->GetProfile ()->IsBad ())
+					break;
+			}
+			else if (tryHighBandwidth)
+				tryHighBandwidth = false;
+			else
+				return nullptr;
+		}
 		return hop;
 	}
 
