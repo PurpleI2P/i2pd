@@ -16,6 +16,7 @@
 #include "Identity.h"
 #include "util.h"
 #include "ClientContext.h"
+#include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "MatchedDestination.h"
 
