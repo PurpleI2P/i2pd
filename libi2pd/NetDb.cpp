@@ -1257,7 +1257,7 @@ namespace data
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (Filter filter) const
 	{
 		if (m_RouterInfos.empty())
-			return 0;
+			return nullptr;
 		uint16_t inds[3];
 		RAND_bytes ((uint8_t *)inds, sizeof (inds));
 		std::lock_guard<std::mutex> l(m_RouterInfosMutex);
