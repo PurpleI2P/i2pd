@@ -240,7 +240,7 @@ namespace tunnel
 
 			void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
 			uint16_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
-			int GetCongestionLevel() const { return 100 * m_TransitTunnels.size() / m_MaxNumTransitTunnels; }
+			int GetCongestionLevel() const { return CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels; }
 
 		private:
 

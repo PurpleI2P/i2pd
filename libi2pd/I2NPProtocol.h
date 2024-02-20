@@ -139,6 +139,10 @@ namespace tunnel
 	class TunnelPool;
 }
 
+	const int CONGESTION_LEVEL_MEDIUM = 70;
+	const int CONGESTION_LEVEL_HIGH = 90;
+	const int CONGESTION_LEVEL_FULL = 100;
+
 	const size_t I2NP_MAX_MESSAGE_SIZE = 62708;
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
 	const size_t I2NP_MAX_MEDIUM_MESSAGE_SIZE = 16384;
