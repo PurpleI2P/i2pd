@@ -376,7 +376,12 @@ namespace transport
 	{
 		TrafficSample& sample1 = m_TrafficSamples[m_TrafficSamplePtr];
 		TrafficSample& sample2 = m_TrafficSamples[(TRAFFIC_SAMPLE_COUNT + m_TrafficSamplePtr - interval) % TRAFFIC_SAMPLE_COUNT];
-		auto delta = sample1.Timestamp - sample2.Timestamp;
+		auto delta = (int64_t)sample1.Timestamp - (int64_t)sample2.Timestamp;
+		if (delta <= 0)
+		{
+			LogPrint (eLogError, "Transports: Backward clock jump detected, got ", delta, " instead of ", interval * 1000);
+			return;
+		}
 		in = (sample1.TotalReceivedBytes - sample2.TotalReceivedBytes) * 1000 / delta;
 		out = (sample1.TotalSentBytes - sample2.TotalSentBytes) * 1000 / delta;
 		transit = (sample1.TotalTransitTransmittedBytes - sample2.TotalTransitTransmittedBytes) * 1000 / delta;
