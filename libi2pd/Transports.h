@@ -114,6 +114,17 @@ namespace transport
 	const int PEER_TEST_DELAY_INTERVAL_VARIANCE = 30; // in milliseconds
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
 	const int CHECK_PROFILE_NUM_DELAYED_MESSAGES = 15; // check profile after
+
+	const int TRAFFIC_SAMPLE_COUNT = 301; // seconds
+
+	struct TrafficSample
+	{
+		uint64_t Timestamp;
+		uint64_t TotalReceivedBytes;
+		uint64_t TotalSentBytes;
+		uint64_t TotalTransitTransmittedBytes;
+	};
+
 	class Transports
 	{
 		public:
@@ -153,8 +164,7 @@ namespace transport
 			uint32_t GetInBandwidth15s () const { return m_InBandwidth15s; };
 			uint32_t GetOutBandwidth15s () const { return m_OutBandwidth15s; };
 			uint32_t GetTransitBandwidth15s () const { return m_TransitBandwidth15s; };
-			bool IsBandwidthExceeded () const;
-			bool IsTransitBandwidthExceeded () const;
+			int GetCongestionLevel (bool longTerm) const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer (bool isHighBandwidth) const;
 
@@ -186,6 +196,7 @@ namespace transport
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
+			void UpdateBandwidthValues (int interval, uint32_t& in, uint32_t& out, uint32_t& transit);
 
 			void DetectExternalIP ();
 
@@ -210,14 +221,15 @@ namespace transport
 
 			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes, m_TotalTransitTransmittedBytes;
 
+			TrafficSample m_TrafficSamples[TRAFFIC_SAMPLE_COUNT];
+			int m_TrafficSamplePtr;
+
 			// Bandwidth per second
 			uint32_t m_InBandwidth, m_OutBandwidth, m_TransitBandwidth;
-			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes, m_LastTransitBandwidthUpdateBytes;
-
-			// Bandwidth every 15 seconds
+			// Bandwidth during last 15 seconds
 			uint32_t m_InBandwidth15s, m_OutBandwidth15s, m_TransitBandwidth15s;
-			uint64_t m_LastInBandwidth15sUpdateBytes, m_LastOutBandwidth15sUpdateBytes, m_LastTransitBandwidth15sUpdateBytes;
-			uint64_t m_LastBandwidth15sUpdateTime;
+			// Bandwidth during last 5 minutes
+			uint32_t m_InBandwidth5m, m_OutBandwidth5m, m_TransitBandwidth5m;
 
 			/** which router families to trust for first hops */
 			std::vector<i2p::data::FamilyID> m_TrustedFamilies;

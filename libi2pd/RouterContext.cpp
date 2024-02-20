@@ -1137,13 +1137,14 @@ namespace i2p
 		return i2p::tunnel::tunnels.GetExploratoryPool ();
 	}
 
-	bool RouterContext::IsHighCongestion () const
+	int RouterContext::GetCongestionLevel (bool longTerm) const
 	{
-		return i2p::tunnel::tunnels.IsTooManyTransitTunnels () ||
-			i2p::transport::transports.IsBandwidthExceeded () ||
-			i2p::transport::transports.IsTransitBandwidthExceeded ();
-	}	
-		
+		return std::max (
+			i2p::tunnel::tunnels.GetCongestionLevel (),
+			i2p::transport::transports.GetCongestionLevel (longTerm)
+		);
+	}
+	
 	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len)
 	{
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len)));
@@ -1447,10 +1448,16 @@ namespace i2p
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto c = i2p::data::RouterInfo::eLowCongestion;
-			if (!AcceptsTunnels ()) 
+			if (!AcceptsTunnels () || m_ShareRatio == 0)
 				c = i2p::data::RouterInfo::eRejectAll;
-			else if (IsHighCongestion ()) 
-				c = i2p::data::RouterInfo::eHighCongestion;
+			else
+			{
+				int congestionLevel = GetCongestionLevel (true);
+				if (congestionLevel > 90)
+					c = i2p::data::RouterInfo::eHighCongestion;
+				else if (congestionLevel > 70)
+					c = i2p::data::RouterInfo::eMediumCongestion;
+			}
 			if (m_RouterInfo.UpdateCongestion (c))
 				UpdateRouterInfo ();
 			ScheduleCongestionUpdate ();

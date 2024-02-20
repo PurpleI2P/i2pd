@@ -140,10 +140,8 @@ namespace transport
 		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
 		m_TotalSentBytes (0), m_TotalReceivedBytes (0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth (0),
-		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0), m_LastTransitBandwidthUpdateBytes (0),
 		m_InBandwidth15s (0), m_OutBandwidth15s (0), m_TransitBandwidth15s (0),
-		m_LastInBandwidth15sUpdateBytes (0), m_LastOutBandwidth15sUpdateBytes (0), m_LastTransitBandwidth15sUpdateBytes (0),
-		m_LastBandwidth15sUpdateTime (0)
+		m_InBandwidth5m (0), m_OutBandwidth5m (0), m_TransitBandwidth5m (0)
 	{
 	}
 
@@ -306,6 +304,16 @@ namespace transport
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5 * SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+		for (int i = 0; i < TRAFFIC_SAMPLE_COUNT; i++)
+		{
+			m_TrafficSamples[i].Timestamp = ts - (TRAFFIC_SAMPLE_COUNT - i - 1) * 1000;
+			m_TrafficSamples[i].TotalReceivedBytes = 0;
+			m_TrafficSamples[i].TotalSentBytes = 0;
+			m_TrafficSamples[i].TotalTransitTransmittedBytes = 0;
+		}
+		m_TrafficSamplePtr = TRAFFIC_SAMPLE_COUNT - 1;
+
 		m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
 		m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 
@@ -364,51 +372,62 @@ namespace transport
 		}
 	}
 
+	void Transports::UpdateBandwidthValues(int interval, uint32_t& in, uint32_t& out, uint32_t& transit)
+	{
+		TrafficSample& sample1 = m_TrafficSamples[m_TrafficSamplePtr];
+		TrafficSample& sample2 = m_TrafficSamples[(TRAFFIC_SAMPLE_COUNT + m_TrafficSamplePtr - interval) % TRAFFIC_SAMPLE_COUNT];
+		auto delta = sample1.Timestamp - sample2.Timestamp;
+		in = (sample1.TotalReceivedBytes - sample2.TotalReceivedBytes) * 1000 / delta;
+		out = (sample1.TotalSentBytes - sample2.TotalSentBytes) * 1000 / delta;
+		transit = (sample1.TotalTransitTransmittedBytes - sample2.TotalTransitTransmittedBytes) * 1000 / delta;
+	}
+
 	void Transports::HandleUpdateBandwidthTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
+			m_TrafficSamplePtr++;
+			if (m_TrafficSamplePtr == TRAFFIC_SAMPLE_COUNT)
+				m_TrafficSamplePtr = 0;
 
-			// updated every second
-			m_InBandwidth = m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes;
-			m_OutBandwidth = m_TotalSentBytes - m_LastOutBandwidthUpdateBytes;
-			m_TransitBandwidth = m_TotalTransitTransmittedBytes - m_LastTransitBandwidthUpdateBytes;
+			TrafficSample& sample = m_TrafficSamples[m_TrafficSamplePtr];
+			sample.Timestamp = i2p::util::GetMillisecondsSinceEpoch();
+			sample.TotalReceivedBytes = m_TotalReceivedBytes;
+			sample.TotalSentBytes = m_TotalSentBytes;
+			sample.TotalTransitTransmittedBytes = m_TotalTransitTransmittedBytes;
 
-			m_LastInBandwidthUpdateBytes = m_TotalReceivedBytes;
-			m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;
-			m_LastTransitBandwidthUpdateBytes = m_TotalTransitTransmittedBytes;
-
-			// updated every 15 seconds
-			auto delta = ts - m_LastBandwidth15sUpdateTime;
-			if (delta > 15 * 1000)
-			{
-				m_InBandwidth15s = (m_TotalReceivedBytes - m_LastInBandwidth15sUpdateBytes) * 1000 / delta;
-				m_OutBandwidth15s = (m_TotalSentBytes - m_LastOutBandwidth15sUpdateBytes) * 1000 / delta;
-				m_TransitBandwidth15s = (m_TotalTransitTransmittedBytes - m_LastTransitBandwidth15sUpdateBytes) * 1000 / delta;
-
-				m_LastBandwidth15sUpdateTime = ts;
-				m_LastInBandwidth15sUpdateBytes = m_TotalReceivedBytes;
-				m_LastOutBandwidth15sUpdateBytes = m_TotalSentBytes;
-				m_LastTransitBandwidth15sUpdateBytes = m_TotalTransitTransmittedBytes;
-			}
+			UpdateBandwidthValues (1, m_InBandwidth, m_OutBandwidth, m_TransitBandwidth);
+			UpdateBandwidthValues (15, m_InBandwidth15s, m_OutBandwidth15s, m_TransitBandwidth15s);
+			UpdateBandwidthValues (300, m_InBandwidth5m, m_OutBandwidth5m, m_TransitBandwidth5m);
 
 			m_UpdateBandwidthTimer->expires_from_now (boost::posix_time::seconds(1));
 			m_UpdateBandwidthTimer->async_wait (std::bind (&Transports::HandleUpdateBandwidthTimer, this, std::placeholders::_1));
 		}
 	}
 
-	bool Transports::IsBandwidthExceeded () const
+	int Transports::GetCongestionLevel (bool longTerm) const
 	{
-		auto limit = i2p::context.GetBandwidthLimit() * 1024; // convert to bytes
-		auto bw = std::max (m_InBandwidth15s, m_OutBandwidth15s);
-		return bw > limit;
-	}
+		auto bwLimit = i2p::context.GetBandwidthLimit () * 1024; // convert to bytes
+		auto tbwLimit = i2p::context.GetTransitBandwidthLimit () * 1024; // convert to bytes
 
-	bool Transports::IsTransitBandwidthExceeded () const
-	{
-		auto limit = i2p::context.GetTransitBandwidthLimit() * 1024; // convert to bytes
-		return m_TransitBandwidth > limit;
+		if (tbwLimit == 0 || bwLimit == 0)
+			return 100;
+
+		uint32_t bw;
+		uint32_t tbw;
+		if (longTerm)
+		{
+			bw = std::max (m_InBandwidth5m, m_OutBandwidth5m);
+			tbw = m_TransitBandwidth5m;
+		}
+		else
+		{
+			bw = std::max (m_InBandwidth15s, m_OutBandwidth15s);
+			tbw = m_TransitBandwidth;
+		}
+		auto bwCongestionLevel = 100 * bw / bwLimit;
+		auto tbwCongestionLevel = 100 * tbw / tbwLimit;
+		return std::max (bwCongestionLevel, tbwCongestionLevel);
 	}
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
