@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -39,9 +39,9 @@ namespace data
 	/* bandwidth flags */
 	const char CAPS_FLAG_LOW_BANDWIDTH1   = 'K'; /*   < 12 KBps */
 	const char CAPS_FLAG_LOW_BANDWIDTH2   = 'L'; /*  12-48 KBps */
-	const char CAPS_FLAG_HIGH_BANDWIDTH1  = 'M'; /*  48-64 KBps */
-	const char CAPS_FLAG_HIGH_BANDWIDTH2  = 'N'; /*  64-128 KBps */
-	const char CAPS_FLAG_HIGH_BANDWIDTH3  = 'O'; /* 128-256 KBps */
+	const char CAPS_FLAG_LOW_BANDWIDTH3  = 'M'; /*  48-64 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH1  = 'N'; /*  64-128 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH2  = 'O'; /* 128-256 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2048 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2048 KBps */
 	// bandwidth limits in kBps
