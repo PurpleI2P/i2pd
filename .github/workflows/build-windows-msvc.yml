@@ -45,6 +45,7 @@ jobs:
       run: |
         powershell -Command "(Invoke-WebRequest -UserAgent "Wget" -Uri https://slproweb.com/download/Win64OpenSSL-3_2_1.exe -OutFile Win64OpenSSL-3_2_1.exe)"
         ./Win64OpenSSL-3_2_1.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+        xcopy "c:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\*" "c:\Program Files\OpenSSL-Win64\lib\"
 
     - name: Configure
       working-directory: build
