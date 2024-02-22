@@ -1154,7 +1154,7 @@ namespace garlic
 		return len;
 	}
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
 		auto m = NewI2NPMessage ((msg ? msg->GetPayloadLength () : 0) + 128);
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -1174,6 +1174,12 @@ namespace garlic
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
+		if (msg->onDrop)
+		{
+			// move onDrop to the wrapping I2NP messages
+			m->onDrop = msg->onDrop;
+			msg->onDrop = nullptr;
+		}
 		return m;
 	}
 

@@ -13,6 +13,7 @@
 #include "NetDb.hpp"
 #include "Timestamp.h"
 #include "Garlic.h"
+#include "ECIESX25519AEADRatchetSession.h"
 #include "Transports.h"
 #include "Log.h"
 #include "Tunnel.h"
@@ -383,6 +384,7 @@ namespace tunnel
 			newTests.push_back(std::make_pair (*it1, *it2));
 			++it1; ++it2;
 		}
+		bool encrypt = m_LocalDestination ? m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) : false;
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
@@ -407,6 +409,14 @@ namespace tunnel
 						s->m_OutboundTunnels.erase (outbound);
 					}
 				};	
+			if (encrypt)
+			{
+				// encrypt
+				uint8_t key[32]; RAND_bytes (key, 32);
+				uint64_t tag; RAND_bytes ((uint8_t *)&tag, 8); 
+				m_LocalDestination->SubmitECIESx25519Key (key, tag);
+				msg = i2p::garlic::WrapECIESX25519Message (msg, key, tag);
+			}	
 			outbound->SendTunnelDataMsgTo (it.second->GetNextIdentHash (), it.second->GetNextTunnelID (), msg);
 		}	
 	}
@@ -436,6 +446,17 @@ namespace tunnel
 		buf += 4;
 		uint64_t timestamp = bufbe64toh (buf);
 
+		if (!ProcessDeliveryStatus (msgID, timestamp))
+		{
+			if (m_LocalDestination)
+				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+			else
+				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
+		}
+	}
+
+	bool TunnelPool::ProcessDeliveryStatus (uint32_t msgID, uint64_t timestamp)
+	{
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
 		{
@@ -477,15 +498,9 @@ namespace tunnel
 				test.second->AddLatencySample(latency);
 			}
 		}
-		else
-		{
-			if (m_LocalDestination)
-				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
-			else
-				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
-		}
-	}
-
+		return found;
+	}	
+		
 	bool TunnelPool::IsExploratory () const
 	{
 		return i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ();

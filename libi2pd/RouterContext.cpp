@@ -1152,6 +1152,13 @@ namespace i2p
 
 	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
 	{
+		if (typeID == eI2NPDeliveryStatus)
+		{
+			// try tunnel test
+			auto pool = GetTunnelPool ();
+			if (pool && pool->ProcessDeliveryStatus (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET), bufbe64toh (payload + DELIVERY_STATUS_TIMESTAMP_OFFSET)))
+				return true;
+		}	
 		auto msg = CreateI2NPMessage (typeID, payload, len, msgID);
 		if (!msg) return false;
 		i2p::HandleI2NPMessage (msg);

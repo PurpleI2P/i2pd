@@ -367,8 +367,9 @@ namespace client
 				HandleDataMessage (payload, len);
 			break;
 			case eI2NPDeliveryStatus:
-				// we assume tunnel tests non-encrypted
-				HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
+				// try tunnel test first
+				if (!m_Pool || !m_Pool->ProcessDeliveryStatus (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET), bufbe64toh (payload + DELIVERY_STATUS_TIMESTAMP_OFFSET)))
+					HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (payload, len);

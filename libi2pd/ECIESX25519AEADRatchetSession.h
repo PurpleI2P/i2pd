@@ -247,7 +247,7 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_CurrentNoiseState;
 	};
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<I2NPMessage> msg, const uint8_t * key, uint64_t tag);
 	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<I2NPMessage> msg, const uint8_t * routerPublicKey);
 }
 }
