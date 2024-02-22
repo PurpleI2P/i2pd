@@ -258,6 +258,7 @@ namespace data
 			bool IsHighCongestion (bool highBandwidth) const;
 
 			uint8_t GetCaps () const { return m_Caps; };
+			char GetBandwidthCap() const { return m_BandwidthCap; };
 			void SetCaps (uint8_t caps) { m_Caps = caps; };
 
 			Congestion GetCongestion () const { return m_Congestion; };
@@ -329,6 +330,7 @@ namespace data
 			bool m_IsUpdated, m_IsUnreachable;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
 			uint8_t m_Caps;
+			char m_BandwidthCap;
 			int m_Version;
 			Congestion m_Congestion;
 			mutable std::shared_ptr<RouterProfile> m_Profile;

@@ -514,13 +514,20 @@ namespace data
 				case CAPS_FLAG_FLOODFILL:
 					m_Caps |= Caps::eFloodfill;
 				break;
+				case CAPS_FLAG_LOW_BANDWIDTH1:
+				case CAPS_FLAG_LOW_BANDWIDTH2:
+				case CAPS_FLAG_LOW_BANDWIDTH3:
+					m_BandwidthCap = *cap;
+				break;
 				case CAPS_FLAG_HIGH_BANDWIDTH1:
 				case CAPS_FLAG_HIGH_BANDWIDTH2:
 					m_Caps |= Caps::eHighBandwidth;
+					m_BandwidthCap = *cap;
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
 				case CAPS_FLAG_EXTRA_BANDWIDTH2:
 					m_Caps |= Caps::eExtraBandwidth | Caps::eHighBandwidth;
+					m_BandwidthCap = *cap;
 				break;
 				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
