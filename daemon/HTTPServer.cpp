@@ -772,7 +772,7 @@ namespace http {
 		s << "  <a class=\"button" << (loglevel == eLogInfo     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
 		s << "  <a class=\"button" << (loglevel == eLogDebug    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
 
-		uint16_t maxTunnels = i2p::tunnel::tunnels.GetMaxNumTransitTunnels ();
+		uint32_t maxTunnels = i2p::tunnel::tunnels.GetMaxNumTransitTunnels ();
 		s << "<b>" << tr("Transit tunnels limit") << "</b><br>\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";

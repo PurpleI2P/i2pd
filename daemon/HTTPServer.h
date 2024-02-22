@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -25,7 +25,7 @@ namespace http
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
 	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
 	const int COMMAND_REDIRECT_TIMEOUT = 5; // in seconds
-	const int TRANSIT_TUNNELS_LIMIT = 65535;
+	const int TRANSIT_TUNNELS_LIMIT = 1000000;
 
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{

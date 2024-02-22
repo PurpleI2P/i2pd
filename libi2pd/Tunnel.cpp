@@ -986,7 +986,7 @@ namespace tunnel
 		return m_OutboundTunnels.size();
 	}
 
-	void Tunnels::SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
+	void Tunnels::SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels)
 	{
 		if (maxNumTransitTunnels > 0 && m_MaxNumTransitTunnels != maxNumTransitTunnels)
 		{

@@ -238,8 +238,8 @@ namespace tunnel
 
 			std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 
-			void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
-			uint16_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
+			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
+			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels; }
 
 		private:
@@ -300,7 +300,7 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-			uint16_t m_MaxNumTransitTunnels;
+			uint32_t m_MaxNumTransitTunnels;
 			// count of tunnels for total TCSR algorithm
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;

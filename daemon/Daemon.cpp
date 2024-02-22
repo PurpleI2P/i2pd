@@ -179,7 +179,7 @@ namespace util
 
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
-		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+		uint32_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
 			transitTunnels *= 2; // double default number of transit tunnels for floodfill
 		i2p::tunnel::tunnels.SetMaxNumTransitTunnels (transitTunnels);
