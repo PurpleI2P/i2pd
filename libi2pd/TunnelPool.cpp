@@ -337,7 +337,7 @@ namespace tunnel
 				{
 					it.second.first->SetState (eTunnelStateFailed);
 					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-					if (m_OutboundTunnels.size () > 1) // don't fail last tunnel
+					if (m_OutboundTunnels.size () > 1 || m_NumOutboundTunnels <= 1) // don't fail last tunnel
 						m_OutboundTunnels.erase (it.second.first);
 					else
 						it.second.first->SetState (eTunnelStateTestFailed);
@@ -352,7 +352,7 @@ namespace tunnel
 					it.second.second->SetState (eTunnelStateFailed);
 					{
 						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-						if (m_InboundTunnels.size () > 1) // don't fail last tunnel
+						if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
 							m_InboundTunnels.erase (it.second.second);
 						else
 							it.second.first->SetState (eTunnelStateTestFailed);
