@@ -378,7 +378,7 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Failed to decrypt tunnel build record");
 					return false;
 				}	
-				if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
 				{
 					LogPrint (eLogWarning, "I2NP: Next ident is ours in tunnel build record");
 					return false;
@@ -571,7 +571,7 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
-				if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
 				{
 					LogPrint (eLogWarning, "I2NP: Next ident is ours in short request record");
 					return;
