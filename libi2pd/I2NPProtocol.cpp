@@ -373,7 +373,16 @@ namespace i2p
 			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
-				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
+				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
+				{
+					LogPrint (eLogWarning, "I2NP: Failed to decrypt tunnel build record");
+					return false;
+				}	
+				if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+				{
+					LogPrint (eLogWarning, "I2NP: Next ident is ours in tunnel build record");
+					return false;
+				}	
 				uint8_t retCode = 0;
 				// replace record to reply
 				if (i2p::context.AcceptsTunnels () && i2p::context.GetCongestionLevel (false) < CONGESTION_LEVEL_FULL)
@@ -562,6 +571,11 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
+				if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+				{
+					LogPrint (eLogWarning, "I2NP: Next ident is ours in short request record");
+					return;
+				}	
 				if (clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE]) // not AES
 				{
 					LogPrint (eLogWarning, "I2NP: Unknown layer encryption type ", clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE], " in short request record");
