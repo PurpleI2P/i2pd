@@ -355,7 +355,7 @@ namespace tunnel
 						if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
 							m_InboundTunnels.erase (it.second.second);
 						else
-							it.second.first->SetState (eTunnelStateTestFailed);
+							it.second.second->SetState (eTunnelStateTestFailed);
 					}
 					if (m_LocalDestination)
 						m_LocalDestination->SetLeaseSetUpdated ();
