@@ -1,6 +1,24 @@
 name: Build on FreeBSD
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-freebsd.yml
+    - build/CMakeLists.txt
+    - build/cmake_modules/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.homebrew
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build:

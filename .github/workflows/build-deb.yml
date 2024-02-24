@@ -1,6 +1,24 @@
 name: Build Debian packages
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-deb.yml
+    - contrib/**
+    - daemon/**
+    - debian/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.linux
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build:

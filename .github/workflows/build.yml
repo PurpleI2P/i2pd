@@ -1,6 +1,24 @@
 name: Build on Ubuntu
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build.yml
+    - build/CMakeLists.txt
+    - build/cmake_modules/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.linux
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build-make:

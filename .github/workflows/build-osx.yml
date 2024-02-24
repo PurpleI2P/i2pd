@@ -1,6 +1,22 @@
 name: Build on OSX
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-osx.yml
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.homebrew
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build:
