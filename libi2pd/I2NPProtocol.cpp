@@ -378,7 +378,8 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Failed to decrypt tunnel build record");
 					return false;
 				}	
-				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32) && // if next ident is now ours
+				    !(clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG)) // and not endpoint
 				{
 					LogPrint (eLogWarning, "I2NP: Next ident is ours in tunnel build record");
 					return false;
@@ -571,11 +572,6 @@ namespace i2p
 					LogPrint (eLogWarning, "I2NP: Can't decrypt short request record ", i);
 					return;
 				}
-				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
-				{
-					LogPrint (eLogWarning, "I2NP: Next ident is ours in short request record");
-					return;
-				}	
 				if (clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE]) // not AES
 				{
 					LogPrint (eLogWarning, "I2NP: Unknown layer encryption type ", clearText[SHORT_REQUEST_RECORD_LAYER_ENCRYPTION_TYPE], " in short request record");
@@ -595,7 +591,14 @@ namespace i2p
 					memcpy (ivKey, noiseState.m_CK + 32, 32);
 				}
 				else
+				{	
+					if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+					{
+						LogPrint (eLogWarning, "I2NP: Next ident is ours in short request record");
+						return;
+					}	
 					memcpy (ivKey, noiseState.m_CK , 32);
+				}	
 
 				// check if we accept this tunnel
 				std::shared_ptr<i2p::tunnel::TransitTunnel> transitTunnel;
