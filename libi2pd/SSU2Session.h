@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -25,7 +25,7 @@ namespace i2p
 namespace transport
 {
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
-	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
+	const int SSU2_TERMINATION_TIMEOUT = 165; // in seconds
 	const int SSU2_CLOCK_SKEW = 60; // in seconds
 	const int SSU2_CLOCK_THRESHOLD = 15; // in seconds, if more we should adjust
 	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // for Retry message, in seconds
