@@ -675,7 +675,10 @@ namespace i2p
 						uint32_t tunnelID = bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET);
 						auto tunnel = i2p::tunnel::tunnels.GetTunnel (tunnelID);
 						if (tunnel)
+						{	
 							tunnel->SendTunnelDataMsg (replyMsg);
+							tunnel->FlushTunnelDataMsgs ();
+						}	
 						else
 							LogPrint (eLogWarning, "I2NP: Tunnel ", tunnelID, " not found for short tunnel build reply");
 					}
