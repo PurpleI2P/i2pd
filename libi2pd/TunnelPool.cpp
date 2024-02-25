@@ -477,8 +477,10 @@ namespace tunnel
 		}
 		if (found)
 		{
-			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
+			int dlt = (int)((int64_t)i2p::util::GetMillisecondsSinceEpoch () - (int64_t)timestamp);
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
+			if (dlt < 0)
+				dlt = 0;
 			int numHops = 0;
 			if (test.first) numHops += test.first->GetNumHops ();
 			if (test.second) numHops += test.second->GetNumHops ();
@@ -488,7 +490,7 @@ namespace tunnel
 				if (test.first->GetState () != eTunnelStateExpiring)
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
 				test.first->AddLatencySample(latency);
@@ -498,7 +500,7 @@ namespace tunnel
 				if (test.second->GetState () != eTunnelStateExpiring)
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
 				test.second->AddLatencySample(latency);

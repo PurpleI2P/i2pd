@@ -105,7 +105,7 @@ namespace tunnel
 			bool HasCustomPeerSelector();
 
 			/** @brief make this tunnel pool yield tunnels that fit latency range [min, max] */
-			void RequireLatency(uint64_t min, uint64_t max) { m_MinLatency = min; m_MaxLatency = max; }
+			void RequireLatency(int min, int max) { m_MinLatency = min; m_MaxLatency = max; }
 
 			/** @brief return true if this tunnel pool has a latency requirement */
 			bool HasLatencyRequirement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
@@ -150,8 +150,8 @@ namespace tunnel
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;
 
-			uint64_t m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
-			uint64_t m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
+			int m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
+			int m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
 
 			std::random_device m_Rd;
 			std::mt19937 m_Rng;
