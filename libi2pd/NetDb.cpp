@@ -672,10 +672,11 @@ namespace data
 					    (CreateRoutingKey (it.second->GetIdentHash ()) ^ i2p::context.GetIdentHash ()).metric[0] >= 0x02)) // different first 7 bits 
 							it.second->SetUnreachable (true);
 				}	
-				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
-					it.second->SetUnreachable (false); // don't expire connected router
 			}
-
+			// make router reachable back if connected now
+			if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
+				it.second->SetUnreachable (false);
+			
 			if (it.second->IsUnreachable ())
 			{
 				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
