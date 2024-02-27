@@ -399,7 +399,7 @@ namespace tunnel
 				std::unique_lock<std::mutex> l(m_TestsMutex);
 				m_Tests[msgID] = it;
 			}
-			auto msg = CreateTunnelTestMsg (msgID);
+			auto msg = encrypt ? CreateTunnelTestMsg (msgID) : CreateDeliveryStatusMsg (msgID);
 			auto outbound = it.first;
 			auto s = shared_from_this ();
 			msg->onDrop = [msgID, outbound, s]()
@@ -452,10 +452,13 @@ namespace tunnel
 		buf += 4;
 		uint64_t timestamp = bufbe64toh (buf);
 
-		if (m_LocalDestination)
-			m_LocalDestination->ProcessDeliveryStatusMessage (msg);
-		else
-			LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
+		if (!ProcessTunnelTest (msgID, timestamp)) // if non encrypted
+		{
+			if (m_LocalDestination)
+				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+			else
+				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
+		}	
 	}
 
 	void TunnelPool::ProcessTunnelTest (std::shared_ptr<I2NPMessage> msg)
@@ -832,7 +835,7 @@ namespace tunnel
 	{
 		std::shared_ptr<InboundTunnel> tun = nullptr;
 		std::unique_lock<std::mutex> lock(m_InboundTunnelsMutex);
-		uint64_t min = 1000000;
+		int min = 1000000;
 		for (const auto & itr : m_InboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
 			auto l = itr->GetMeanLatency();
@@ -848,7 +851,7 @@ namespace tunnel
 	{
 		std::shared_ptr<OutboundTunnel> tun = nullptr;
 		std::unique_lock<std::mutex> lock(m_OutboundTunnelsMutex);
-		uint64_t min = 1000000;
+		int min = 1000000;
 		for (const auto & itr : m_OutboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
 			auto l = itr->GetMeanLatency();
