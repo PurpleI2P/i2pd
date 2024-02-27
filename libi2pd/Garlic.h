@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -221,7 +221,7 @@ namespace garlic
 	struct ECIESX25519AEADRatchetIndexTagset
 	{
 		int index;
-		ReceiveRatchetTagSetPtr tagset;
+		ReceiveRatchetTagSetPtr tagset; // null if used
 	};
 
 	class GarlicDestination: public i2p::data::LocalDestination
@@ -291,6 +291,7 @@ namespace garlic
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
 			ReceiveRatchetTagSetPtr m_LastTagset; // tagset last message came for
+			int m_NumUsedECIESx25519Tags;
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
@@ -299,7 +300,7 @@ namespace garlic
 
 			// for HTTP only
 			size_t GetNumIncomingTags () const { return m_Tags.size (); }
-			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size (); }
+			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size () - m_NumUsedECIESx25519Tags; }
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 			const decltype(m_ECIESx25519Sessions)& GetECIESx25519Sessions () const { return m_ECIESx25519Sessions; }
 	};

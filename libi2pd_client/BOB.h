@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -124,7 +124,7 @@ namespace client
 	{
 		public:
 
-			BOBI2POutboundTunnel (const std::string& outhost, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
+			BOBI2POutboundTunnel (const std::string& outhost, uint16_t port, std::shared_ptr<ClientDestination> localDestination, bool quiet);
 
 			void Start ();
 			void Stop ();
@@ -149,19 +149,19 @@ namespace client
 
 			BOBDestination (std::shared_ptr<ClientDestination> localDestination,
 					const std::string &nickname, const std::string &inhost, const std::string &outhost,
-					const int inport, const int outport, const bool quiet);
+					const uint16_t inport, const uint16_t outport, const bool quiet);
 			~BOBDestination ();
 
 			void Start ();
 			void Stop ();
 			void StopTunnels ();
-			void CreateInboundTunnel (int port, const std::string& inhost);
-			void CreateOutboundTunnel (const std::string& outhost, int port, bool quiet);
+			void CreateInboundTunnel (uint16_t port, const std::string& inhost);
+			void CreateOutboundTunnel (const std::string& outhost, uint16_t port, bool quiet);
 			const std::string& GetNickname() const { return m_Nickname; }
 			const std::string& GetInHost() const { return m_InHost; }
 			const std::string& GetOutHost() const { return m_OutHost; }
-			int GetInPort() const { return m_InPort; }
-			int GetOutPort() const { return m_OutPort; }
+			uint16_t GetInPort() const { return m_InPort; }
+			uint16_t GetOutPort() const { return m_OutPort; }
 			bool GetQuiet() const { return m_Quiet; }
 			bool IsRunning() const { return m_IsRunning; }
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
@@ -175,7 +175,7 @@ namespace client
 
 			std::string m_Nickname;
 			std::string m_InHost, m_OutHost;
-			int m_InPort, m_OutPort;
+			uint16_t m_InPort, m_OutPort;
 			bool m_Quiet;
 			bool m_IsRunning;
 	};
@@ -228,7 +228,7 @@ namespace client
 			void SendReplyError (const char * msg);
 			void SendRaw (const char * data);
 
-			void BuildStatusLine(bool currentTunnel, BOBDestination *destination, std::string &out);
+			void BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> destination, std::string &out);
 
 		private:
 
@@ -237,10 +237,10 @@ namespace client
 			boost::asio::streambuf m_ReceiveBuffer, m_SendBuffer;
 			bool m_IsOpen, m_IsQuiet, m_IsActive;
 			std::string m_Nickname, m_InHost, m_OutHost;
-			int m_InPort, m_OutPort;
+			uint16_t m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options;
-			BOBDestination * m_CurrentDestination;
+			std::shared_ptr<BOBDestination> m_CurrentDestination;
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
@@ -248,16 +248,16 @@ namespace client
 	{
 		public:
 
-			BOBCommandChannel (const std::string& address, int port);
+			BOBCommandChannel (const std::string& address, uint16_t port);
 			~BOBCommandChannel ();
 
 			void Start ();
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return GetIOService (); };
-			void AddDestination (const std::string& name, BOBDestination * dest);
+			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
-			BOBDestination * FindDestination (const std::string& name);
+			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);
 
 		private:
 
@@ -267,7 +267,7 @@ namespace client
 		private:
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-			std::map<std::string, BOBDestination *> m_Destinations;
+			std::map<std::string, std::shared_ptr<BOBDestination> > m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
 			std::map<std::string, std::string> m_HelpStrings;
 

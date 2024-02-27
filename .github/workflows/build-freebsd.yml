@@ -1,10 +1,28 @@
 name: Build on FreeBSD
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-freebsd.yml
+    - build/CMakeLists.txt
+    - build/cmake_modules/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.homebrew
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     name: with UPnP
 
     steps:
@@ -13,7 +31,7 @@ jobs:
 
     - name: Test in FreeBSD
       id: test
-      uses: vmactions/freebsd-vm@v0.3.0
+      uses: vmactions/freebsd-vm@v1
       with:
         usesh: true
         mem: 2048

@@ -1,7 +1,7 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:          i2pd-git
-Version:       2.47.0
+Version:       2.50.2
 Release:       git%{git_hash}%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd
@@ -28,8 +28,10 @@ Requires:      logrotate
 Requires:      systemd
 Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
 
+
 %description
 C++ implementation of I2P.
+
 
 %prep
 %setup -q -n i2pd-openssl
@@ -38,72 +40,56 @@ C++ implementation of I2P.
 %build
 cd build
 %if 0%{?rhel} == 7
-%cmake3 \
+  %cmake3 \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
     -DBUILD_SHARED_LIBS:BOOL=OFF
 %else
-%cmake \
+  %cmake \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
     -DWITH_HARDENING=ON \
-%if 0%{?fedora} > 29
+  %if 0%{?fedora} > 29
     -DBUILD_SHARED_LIBS:BOOL=OFF \
     .
-%else
+  %else
     -DBUILD_SHARED_LIBS:BOOL=OFF
-%endif
-%endif
-
-
-%if 0%{?rhel} == 9
-pushd redhat-linux-build
+  %endif
 %endif
 
-%if 0%{?fedora} >= 35
-pushd redhat-linux-build
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 35 || 0%{?eln}
+  pushd redhat-linux-build
 %else
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
-%endif
-%endif
+  %if 0%{?fedora} >= 33
+    pushd %{_target_platform}
+  %endif
 
-%if 0%{?mageia} > 7
-pushd build
+  %if 0%{?mageia} > 7
+    pushd build
+  %endif
 %endif
 
 make %{?_smp_mflags}
 
-%if 0%{?rhel} == 9
-popd
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 33 || 0%{?mageia} > 7
+  popd
 %endif
 
-%if 0%{?fedora} >= 33
-popd
-%endif
-
-%if 0%{?mageia} > 7
-popd
-%endif
 
 %install
 pushd build
 
-%if 0%{?rhel} == 9
-pushd redhat-linux-build
-%endif
-
-%if 0%{?fedora} >= 35
-pushd redhat-linux-build
+%if 0%{?rhel} == 9 || 0%{?fedora} >= 35 || 0%{?eln}
+  pushd redhat-linux-build
 %else
-%if 0%{?fedora} >= 33
-pushd %{_target_platform}
-%endif
-%endif
+  %if 0%{?fedora} >= 33
+    pushd %{_target_platform}
+  %endif
 
-%if 0%{?mageia}
-pushd build
+  %if 0%{?mageia}
+    pushd build
+  %endif
 %endif
 
 chrpath -d i2pd
@@ -158,6 +144,21 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Sat Jan 06 2024 orignal <orignal@i2pmail.org> - 2.50.2
+- update to 2.50.2
+
+* Sat Dec 23 2023 r4sas <r4sas@i2pmail.org> - 2.50.1
+- update to 2.50.1
+
+* Mon Dec 18 2023 orignal <orignal@i2pmail.org> - 2.50.0
+- update to 2.50.0
+
+* Mon Sep 18 2023 orignal <orignal@i2pmail.org> - 2.49.0
+- update to 2.49.0
+
+* Mon Jun 12 2023 orignal <orignal@i2pmail.org> - 2.48.0
+- update to 2.48.0
+
 * Sat Mar 11 2023 orignal <orignal@i2pmail.org> - 2.47.0
 - update to 2.47.0
 

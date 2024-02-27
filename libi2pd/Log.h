@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -87,8 +87,8 @@ namespace log {
 			Log ();
 			~Log ();
 
-			LogType GetLogType () { return m_Destination; };
-			LogLevel GetLogLevel () { return m_MinLevel; };
+			LogType GetLogType () const { return m_Destination; };
+			LogLevel GetLogLevel () const { return m_MinLevel; };
 
 			void Start ();
 			void Stop ();
@@ -160,6 +160,11 @@ namespace log {
 } // log
 } // i2p
 
+inline bool CheckLogLevel (LogLevel level) noexcept
+{
+	return level <= i2p::log::Logger().GetLogLevel ();
+}	
+
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue&& arg) noexcept
@@ -185,9 +190,7 @@ void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
 template<typename... TArgs>
 void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
-	i2p::log::Log &log = i2p::log::Logger();
-	if (level > log.GetLogLevel ())
-		return;
+	if (!CheckLogLevel (level)) return; 
 
 	// fold message to single string
 	std::stringstream ss;
@@ -200,7 +203,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), std::move(ss).str());
 	msg->tid = std::this_thread::get_id();
-	log.Append(msg);
+	i2p::log::Logger().Append(msg);
 }
 
 /**

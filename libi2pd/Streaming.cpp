@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,11 +19,6 @@ namespace i2p
 {
 namespace stream
 {
-	void SendBufferQueue::Add (const uint8_t * buf, size_t len, SendHandler handler)
-	{
-		Add (std::make_shared<SendBuffer>(buf, len, handler));
-	}
-
 	void SendBufferQueue::Add (std::shared_ptr<SendBuffer> buf)
 	{
 		if (buf)
@@ -115,10 +110,7 @@ namespace stream
 
 	void Stream::CleanUp ()
 	{
-		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			m_SendBuffer.CleanUp ();
-		}
+		m_SendBuffer.CleanUp ();
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
@@ -137,6 +129,11 @@ namespace stream
 
 	void Stream::HandleNextPacket (Packet * packet)
 	{
+		if (m_Status == eStreamStatusTerminated)
+		{
+			m_LocalDestination.DeletePacket (packet);
+			return;
+		}	
 		m_NumReceivedBytes += packet->GetLength ();
 		if (!m_SendStreamID)
 		{	
@@ -167,7 +164,8 @@ namespace stream
 		{
 			// we have received next in sequence message
 			ProcessPacket (packet);
-
+			if (m_Status == eStreamStatusTerminated) return;
+			
 			// we should also try stored messages if any
 			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
 			{
@@ -177,6 +175,7 @@ namespace stream
 					m_SavedPackets.erase (it++);
 
 					ProcessPacket (savedPacket);
+					if (m_Status == eStreamStatusTerminated) return;
 				}
 				else
 					break;
@@ -187,13 +186,9 @@ namespace stream
 			{
 				if (!m_IsAckSendScheduled)
 				{
-					m_IsAckSendScheduled = true;
 					auto ackTimeout = m_RTT/10;
 					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
-					else if (ackTimeout < MIN_SEND_ACK_TIMEOUT) ackTimeout = MIN_SEND_ACK_TIMEOUT;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ackTimeout));
-					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
-						shared_from_this (), std::placeholders::_1));
+					ScheduleAck (ackTimeout);
 				}
 			}
 			else if (packet->IsSYN ())
@@ -216,22 +211,17 @@ namespace stream
 				SavePacket (packet);
 				if (m_LastReceivedSequenceNumber >= 0)
 				{
-					// send NACKs for missing messages ASAP
-					if (m_IsAckSendScheduled)
-					{
-						m_IsAckSendScheduled = false;
-						m_AckSendTimer.cancel ();
-					}
-					SendQuickAck ();
-				}
+					if (!m_IsAckSendScheduled)
+					{	
+						// send NACKs for missing messages 
+						int ackTimeout = MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ();
+						if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+						ScheduleAck (ackTimeout);
+					}	
+				}	
 				else
-				{
 					// wait for SYN
-					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(SYN_TIMEOUT));
-					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
-						shared_from_this (), std::placeholders::_1));
-				}
+					ScheduleAck (SYN_TIMEOUT);
 			}
 		}
 	}
@@ -532,14 +522,18 @@ namespace stream
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
 	{
+		std::shared_ptr<i2p::stream::SendBuffer> buffer;
 		if (len > 0 && buf)
-		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			m_SendBuffer.Add (buf, len, handler);
-		}
+			buffer = std::make_shared<i2p::stream::SendBuffer>(buf, len, handler);
 		else if (handler)
 			handler(boost::system::error_code ());
-		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
+		auto s = shared_from_this ();
+		m_Service.post ([s, buffer]()
+			{
+				if (buffer)
+					s->m_SendBuffer.Add (buffer);
+				s->SendBuffer ();
+			});	
 	}
 
 	void Stream::SendBuffer ()
@@ -549,91 +543,88 @@ namespace stream
 
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
+		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
 		{
-			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
+			Packet * p = m_LocalDestination.NewPacket ();
+			uint8_t * packet = p->GetBuffer ();
+			// TODO: implement setters
+			size_t size = 0;
+			htobe32buf (packet + size, m_SendStreamID);
+			size += 4; // sendStreamID
+			htobe32buf (packet + size, m_RecvStreamID);
+			size += 4; // receiveStreamID
+			htobe32buf (packet + size, m_SequenceNumber++);
+			size += 4; // sequenceNum
+			if (isNoAck)
+				htobuf32 (packet + size, 0);
+			else
+				htobe32buf (packet + size, m_LastReceivedSequenceNumber);
+			size += 4; // ack Through
+			if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
 			{
-				Packet * p = m_LocalDestination.NewPacket ();
-				uint8_t * packet = p->GetBuffer ();
-				// TODO: implement setters
-				size_t size = 0;
-				htobe32buf (packet + size, m_SendStreamID);
-				size += 4; // sendStreamID
-				htobe32buf (packet + size, m_RecvStreamID);
-				size += 4; // receiveStreamID
-				htobe32buf (packet + size, m_SequenceNumber++);
-				size += 4; // sequenceNum
-				if (isNoAck)
-					htobuf32 (packet + size, 0);
-				else
-					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
-				size += 4; // ack Through
-				if (m_Status == eStreamStatusNew && !m_SendStreamID && m_RemoteIdentity)
-				{
-					// first SYN packet
-					packet[size] = 8;
-					size++; // NACK count
-					memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
-					size += 32;
-				}
-				else
-				{	
-					packet[size] = 0;
-					size++; // NACK count
-				}	
-				packet[size] = m_RTO/1000;
-				size++; // resend delay
-				if (m_Status == eStreamStatusNew)
-				{
-					// initial packet
-					m_Status = eStreamStatusOpen;
-					if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
-					if (m_RemoteLeaseSet)
-					{
-						m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
-						m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
-					}
-					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
-						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
-					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
-					bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
-					if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
-					htobe16buf (packet + size, flags);
-					size += 2; // flags
-					size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
-					size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
-					uint8_t * optionsSize = packet + size; // set options size later
-					size += 2; // options size
-					m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
-					size += identityLen; // from
-					htobe16buf (packet + size, m_MTU);
-					size += 2; // max packet size
-					if (isOfflineSignature)
-					{
-						const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
-						memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
-						size += offlineSignature.size (); // offline signature
-					}
-					uint8_t * signature = packet + size; // set it later
-					memset (signature, 0, signatureLen); // zeroes for now
-					size += signatureLen; // signature
-					htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
-					size += m_SendBuffer.Get (packet + size, m_MTU); // payload
-					m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
-				}
-				else
-				{
-					// follow on packet
-					htobuf16 (packet + size, 0);
-					size += 2; // flags
-					htobuf16 (packet + size, 0); // no options
-					size += 2; // options size
-					size += m_SendBuffer.Get(packet + size, m_MTU); // payload
-				}
-				p->len = size;
-				packets.push_back (p);
-				numMsgs--;
+				// first SYN packet
+				packet[size] = 8;
+				size++; // NACK count
+				memcpy (packet + size, m_RemoteIdentity->GetIdentHash (), 32);
+				size += 32;
 			}
+			else
+			{	
+				packet[size] = 0;
+				size++; // NACK count
+			}	
+			packet[size] = m_RTO/1000;
+			size++; // resend delay
+			if (m_Status == eStreamStatusNew)
+			{
+				// initial packet
+				m_Status = eStreamStatusOpen;
+				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
+				if (m_RemoteLeaseSet)
+				{
+					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+					m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+				}
+				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
+					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
+				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
+				bool isOfflineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().IsOfflineSignature ();
+				if (isOfflineSignature) flags |= PACKET_FLAG_OFFLINE_SIGNATURE;
+				htobe16buf (packet + size, flags);
+				size += 2; // flags
+				size_t identityLen = m_LocalDestination.GetOwner ()->GetIdentity ()->GetFullLen ();
+				size_t signatureLen = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetSignatureLen ();
+				uint8_t * optionsSize = packet + size; // set options size later
+				size += 2; // options size
+				m_LocalDestination.GetOwner ()->GetIdentity ()->ToBuffer (packet + size, identityLen);
+				size += identityLen; // from
+				htobe16buf (packet + size, m_MTU);
+				size += 2; // max packet size
+				if (isOfflineSignature)
+				{
+					const auto& offlineSignature = m_LocalDestination.GetOwner ()->GetPrivateKeys ().GetOfflineSignature ();
+					memcpy (packet + size, offlineSignature.data (), offlineSignature.size ());
+					size += offlineSignature.size (); // offline signature
+				}
+				uint8_t * signature = packet + size; // set it later
+				memset (signature, 0, signatureLen); // zeroes for now
+				size += signatureLen; // signature
+				htobe16buf (optionsSize, packet + size - 2 - optionsSize); // actual options size
+				size += m_SendBuffer.Get (packet + size, m_MTU); // payload
+				m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
+			}
+			else
+			{
+				// follow on packet
+				htobuf16 (packet + size, 0);
+				size += 2; // flags
+				htobuf16 (packet + size, 0); // no options
+				size += 2; // options size
+				size += m_SendBuffer.Get(packet + size, m_MTU); // payload
+			}
+			p->len = size;
+			packets.push_back (p);
+			numMsgs--;
 		}
 		if (packets.size () > 0)
 		{
@@ -1036,6 +1027,17 @@ namespace stream
 		}
 	}
 
+	void Stream::ScheduleAck (int timeout)
+	{
+		if (m_IsAckSendScheduled)
+			m_AckSendTimer.cancel ();
+		m_IsAckSendScheduled = true;
+		if (timeout < MIN_SEND_ACK_TIMEOUT) timeout = MIN_SEND_ACK_TIMEOUT;
+		m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(timeout));
+		m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+			shared_from_this (), std::placeholders::_1));
+	}	
+		
 	void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
 	{
 		if (m_IsAckSendScheduled)

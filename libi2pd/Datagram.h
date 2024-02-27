@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -126,14 +126,12 @@ namespace datagram
 
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len, bool isRaw = false);
 
-			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
-			void ResetReceiver () { m_Receiver = nullptr; };
 
-			void SetReceiver (const Receiver& receiver, uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts[port] = receiver; };
-			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
+			void SetReceiver (const Receiver& receiver, uint16_t port);
+			void ResetReceiver (uint16_t port);
 
-			void SetRawReceiver (const RawReceiver& receiver) { m_RawReceiver = receiver; };
-			void ResetRawReceiver () { m_RawReceiver = nullptr; };
+			void SetRawReceiver (const RawReceiver& receiver, uint16_t port);
+			void ResetRawReceiver (uint16_t port);
 
 			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
 
@@ -150,20 +148,26 @@ namespace datagram
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 			void HandleRawDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
-			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
+			RawReceiver FindRawReceiver(uint16_t port);
 
 		private:
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
-			Receiver m_Receiver; // default
-			RawReceiver m_RawReceiver; // default
-			bool m_Gzip; // gzip compression of data messages
+
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, DatagramSession_ptr > m_Sessions;
-			std::mutex m_ReceiversMutex;
-			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 
+			Receiver m_DefaultReceiver;
+			RawReceiver m_DefaultRawReceiver;
+			uint16_t m_DefaultReceiverPort;
+			uint16_t m_DefaultRawReceiverPort;
+			std::mutex m_ReceiversMutex;
+			std::mutex m_RawReceiversMutex;
+			std::unordered_map<uint16_t, Receiver> m_ReceiversByPorts;
+			std::unordered_map<uint16_t, RawReceiver> m_RawReceiversByPorts;
+
+			bool m_Gzip; // gzip compression of data messages
 			i2p::data::GzipInflator m_Inflator;
 			std::unique_ptr<i2p::data::GzipDeflator> m_Deflator;
 			std::vector<uint8_t> m_From, m_Signature;

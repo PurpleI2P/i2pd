@@ -145,18 +145,19 @@ namespace win32
 		s << bytes << " Bytes\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing)
 	{
 		switch (status)
 		{
 			case eRouterStatusOK: s << "OK"; break;
-			case eRouterStatusTesting: s << "Test"; break;
 			case eRouterStatusFirewalled: s << "FW"; break;
 			case eRouterStatusUnknown: s << "Unk"; break;
 			case eRouterStatusProxy: s << "Proxy"; break;
 			case eRouterStatusMesh: s << "Mesh"; break;
 			default: s << "Unk";
 		};
+		if (testing)
+			s << " (Test)";
 		if (i2p::context.GetError () != eRouterErrorNone)
 		{
 			switch (i2p::context.GetError ())
@@ -179,11 +180,11 @@ namespace win32
 	{
 		s << "\n";
 		s << "Status: ";
-		ShowNetworkStatus (s, i2p::context.GetStatus ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting ());
 		if (i2p::context.SupportsV6 ())
 		{
 			s << " / ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6 ());
 		}
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
@@ -348,6 +349,9 @@ namespace win32
 						}
 					}
 				}
+#if (__cplusplus >= 201703L) // C++ 17 or higher
+				[[fallthrough]];
+#endif
 			}
 			case WM_TRAYICON:
 			{

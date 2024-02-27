@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -86,7 +86,8 @@ namespace garlic
 
 			virtual bool IsIndexExpired (int index) const;
 			virtual bool HandleNextMessage (uint8_t * buf, size_t len, int index);
-
+			virtual bool IsSessionTerminated () const;
+			
 		private:
 
 			int m_TrimBehindIndex = 0;
@@ -101,9 +102,10 @@ namespace garlic
 
 			SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key);
 
-			bool IsIndexExpired (int index) const { return false; };
-			bool HandleNextMessage (uint8_t * buf, size_t len, int index);
-
+			bool IsIndexExpired (int index) const override { return false; };
+			bool HandleNextMessage (uint8_t * buf, size_t len, int index) override;
+			bool IsSessionTerminated () const override { return false; }
+			
 		private:
 
 			GarlicDestination * m_Destination;
@@ -245,8 +247,8 @@ namespace garlic
 			i2p::crypto::NoiseSymmetricState m_CurrentNoiseState;
 	};
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag);
-	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<I2NPMessage> msg, const uint8_t * key, uint64_t tag);
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<I2NPMessage> msg, const uint8_t * routerPublicKey);
 }
 }
 

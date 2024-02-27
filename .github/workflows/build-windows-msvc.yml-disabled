@@ -1,0 +1,80 @@
+name: Build on Windows with MSVC
+
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-windows-msvc.yml
+    - build/CMakeLists.txt
+    - build/cmake_modules/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Win32/**
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    env:
+      boost_path: ${{ github.workspace }}\boost_1_83_0
+      openssl_path: ${{ github.workspace }}\openssl_3_2_1
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Build and install zlib
+      run: |
+        powershell -Command "(Invoke-WebRequest -Uri https://raw.githubusercontent.com/r4sas/zlib.install/master/install.bat -OutFile install_zlib.bat)"
+        powershell -Command "(Get-Content install_zlib.bat) | Set-Content install_zlib.bat" # fixing line endings
+        set BUILD_TYPE=Debug
+        ./install_zlib.bat
+        set BUILD_TYPE=Release
+        ./install_zlib.bat
+        del install_zlib.bat
+
+    - name: Install Boost
+      run: |
+        powershell -Command "(Start-BitsTransfer -Source https://sourceforge.net/projects/boost/files/boost-binaries/1.83.0/boost_1_83_0-msvc-14.3-64.exe/download -Destination boost_1_83_0-msvc-14.3-64.exe)"
+        ./boost_1_83_0-msvc-14.3-64.exe /DIR="${{env.boost_path}}" /VERYSILENT /SUPPRESSMSGBOXES /SP-
+
+    - name: Install OpenSSL
+      run: |
+        powershell -Command "(Start-BitsTransfer -Source https://slproweb.com/download/Win64OpenSSL-3_2_1.exe -Destination Win64OpenSSL-3_2_1.exe)"
+        ./Win64OpenSSL-3_2_1.exe /DIR="${{env.openssl_path}}" /TASKS="copytobin" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+
+    - name: Make copy of the OpenSSL libraries for CMake
+      run: |
+        dir ${{ github.workspace }}
+        dir ${{env.openssl_path}}\lib\VC
+        dir ${{env.openssl_path}}\lib\VC\x64\
+        dir ${{env.openssl_path}}\lib\VC\x64\MTd\
+        xcopy /s /y "${{env.openssl_path}}\lib\VC\x64\MTd" "${{env.openssl_path}}\lib"
+
+    - name: Configure
+      working-directory: build
+      run: cmake -DBoost_ROOT="${{env.boost_path}}" -DOPENSSL_ROOT_DIR="${{env.openssl_path}}" -DWITH_STATIC=ON .
+
+    - name: Build
+      working-directory: build
+      run: cmake --build . --config Debug -- -m
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: i2pd-msvc
+        path: build/Debug/i2pd.*
+

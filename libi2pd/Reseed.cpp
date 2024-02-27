@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -26,6 +26,7 @@
 #include "HTTP.h"
 #include "util.h"
 #include "Config.h"
+#include "Socks5.h"
 
 namespace i2p
 {
@@ -615,62 +616,21 @@ namespace data
 					{
 						// assume socks if not http, is checked before this for other types
 						// TODO: support username/password auth etc
-						uint8_t hs_writebuf[3] = {0x05, 0x01, 0x00};
-						uint8_t hs_readbuf[2];
-						boost::asio::write(sock, boost::asio::buffer(hs_writebuf, 3), boost::asio::transfer_all(), ecode);
-						if(ecode)
+						bool success = false;
+						i2p::transport::Socks5Handshake (sock, std::make_pair(url.host, url.port),
+							[&success](const boost::system::error_code& ec) 
+						    { 
+								if (!ec)
+									success = true;
+								else
+									LogPrint (eLogError, "Reseed: SOCKS handshake failed: ", ec.message());
+							});	
+						service.run (); // execute all async operations
+						if (!success)
 						{
 							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake write failed: ", ecode.message());
 							return "";
-						}
-						boost::asio::read(sock, boost::asio::buffer(hs_readbuf, 2), ecode);
-						if(ecode)
-						{
-							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake read failed: ", ecode.message());
-							return "";
-						}
-						size_t sz = 0;
-						uint8_t buf[256];
-
-						buf[0] = 0x05;
-						buf[1] = 0x01;
-						buf[2] = 0x00;
-						buf[3] = 0x03;
-						sz += 4;
-						size_t hostsz = url.host.size();
-						if(1 + 2 + hostsz + sz > sizeof(buf))
-						{
-							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake failed, hostname too big: ", url.host);
-							return "";
-						}
-						buf[4] = (uint8_t) hostsz;
-						memcpy(buf+5, url.host.c_str(), hostsz);
-						sz += hostsz + 1;
-						htobe16buf(buf+sz, url.port);
-						sz += 2;
-						boost::asio::write(sock, boost::asio::buffer(buf, sz), boost::asio::transfer_all(), ecode);
-						if(ecode)
-						{
-							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake failed writing: ", ecode.message());
-							return "";
-						}
-						boost::asio::read(sock, boost::asio::buffer(buf, 10), ecode);
-						if(ecode)
-						{
-							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake failed reading: ", ecode.message());
-							return "";
-						}
-						if(buf[1] != 0x00)
-						{
-							sock.close();
-							LogPrint(eLogError, "Reseed: SOCKS handshake bad reply code: ", std::to_string(buf[1]));
-							return "";
-						}
+						}	
 					}
 				}
 			}
@@ -687,18 +647,16 @@ namespace data
 				while (it != end)
 				{
 					boost::asio::ip::tcp::endpoint ep = *it;
-					if (
-						(
-							!i2p::util::net::IsInReservedRange(ep.address ()) && (
-								(ep.address ().is_v4 () && i2p::context.SupportsV4 ()) ||
-								(ep.address ().is_v6 () && i2p::context.SupportsV6 ())
-							)
-						) ||
-						(
-							i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
-							i2p::context.SupportsMesh ()
-						)
-					)
+					bool supported = false;
+					if (!ep.address ().is_unspecified ())
+					{
+						if (ep.address ().is_v4 ())
+							supported = i2p::context.SupportsV4 ();
+						else if (ep.address ().is_v6 ())
+							supported = i2p::util::net::IsYggdrasilAddress (ep.address ()) ? 
+								i2p::context.SupportsMesh () : i2p::context.SupportsV6 ();
+					}	
+					if (supported)
 					{
 						s.lowest_layer().connect (ep, ecode);
 						if (!ecode)

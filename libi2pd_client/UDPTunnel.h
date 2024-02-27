@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -72,7 +72,7 @@ namespace client
 		boost::asio::ip::udp::endpoint LocalEndpoint;
 		/** client's udp endpoint */
 		boost::asio::ip::udp::endpoint RemoteEndpoint;
-		/** how long has this converstation been idle in ms */
+		/** how long has this conversation been idle in ms */
 		uint64_t idle;
 	};
 
@@ -104,6 +104,7 @@ namespace client
 			void HandleRecvFromI2P (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession (const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+			uint32_t GetSessionIndex (uint16_t fromPort, uint16_t toPort) const { return ((uint32_t)fromPort << 16) + toPort; }
 
 		private:
 
@@ -112,9 +113,10 @@ namespace client
 			boost::asio::ip::address m_LocalAddress;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			std::mutex m_SessionsMutex;
-			std::vector<UDPSessionPtr> m_Sessions;
+			std::unordered_map<uint32_t, UDPSessionPtr> m_Sessions; // (from port, to port)->session
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			UDPSessionPtr m_LastSession;
+			uint16_t m_inPort;
 			bool m_Gzip;
 
 		public:

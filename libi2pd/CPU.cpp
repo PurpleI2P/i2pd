@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -7,52 +7,62 @@
 */
 
 #include "CPU.h"
-#if defined(__x86_64__) || defined(__i386__)
-#include <cpuid.h>
-#endif
 #include "Log.h"
 
 #ifndef bit_AES
-#define bit_AES (1 << 25)
-#endif
-#ifndef bit_AVX
-#define bit_AVX (1 << 28)
+	#define bit_AES (1 << 25)
 #endif
 
+#if defined(__GNUC__) && __GNUC__ < 6 && IS_X86
+	#include <cpuid.h>
+#endif
+
+#ifdef _MSC_VER
+	#include <intrin.h>
+#endif
 
 namespace i2p
 {
 namespace cpu
 {
 	bool aesni = false;
-	bool avx = false;
 
-	void Detect(bool AesSwitch, bool AvxSwitch, bool force)
+	inline bool cpu_support_aes()
 	{
-#if defined(__x86_64__) || defined(__i386__)
-		int info[4];
-		__cpuid(0, info[0], info[1], info[2], info[3]);
-		if (info[0] >= 0x00000001) {
-			__cpuid(0x00000001, info[0], info[1], info[2], info[3]);
-#if defined (_WIN32) && (WINVER == 0x0501) // WinXP
-			if (AesSwitch && force) { // only if forced
-#else
-			if ((info[2] & bit_AES && AesSwitch) || (AesSwitch && force)) {
-#endif
-				aesni = true;
-			}
-#if defined (_WIN32) && (WINVER == 0x0501) // WinXP
-			if (AvxSwitch && force) { // only if forced
-#else
-			if ((info[2] & bit_AVX && AvxSwitch) || (AvxSwitch && force)) {
-#endif
-				avx = true;
-			}
+#if IS_X86
+#if defined(__clang__)
+#	if (__clang_major__ >= 6)
+		__builtin_cpu_init();
+#	endif
+		return __builtin_cpu_supports("aes");
+#elif (defined(__GNUC__) && __GNUC__ >= 6)
+		__builtin_cpu_init();
+		return __builtin_cpu_supports("aes");
+#elif (defined(__GNUC__) && __GNUC__ < 6)
+		int cpu_info[4];
+		bool flag = false;
+		__cpuid(0, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+		if (cpu_info[0] >= 0x00000001) {
+			__cpuid(0x00000001, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+			flag = ((cpu_info[2] & bit_AES) != 0);
 		}
-#endif // defined(__x86_64__) || defined(__i386__)
+		return flag;
+#elif defined(_MSC_VER)
+		int cpu_info[4];
+		__cpuid(cpu_info, 1);
+		return ((cpu_info[2] & bit_AES) != 0);
+#endif
+#endif
+		return false;
+	}
+
+	void Detect(bool AesSwitch, bool force)
+	{
+		if ((cpu_support_aes() && AesSwitch) || (AesSwitch && force)) {
+			aesni = true;
+		}
 
 		LogPrint(eLogInfo, "AESNI ", (aesni ? "enabled" : "disabled"));
-		LogPrint(eLogInfo, "AVX ", (avx ? "enabled" : "disabled"));
 	}
 }
 }

@@ -96,6 +96,9 @@ namespace data
 			void Encrypt (const uint8_t * data, uint8_t * encrypted) const;
 			bool IsDestination () const { return true; };
 
+			// used in webconsole
+			void ExpireLease () { m_ExpirationTime = i2p::util::GetSecondsSinceEpoch (); };
+
 		protected:
 
 			void UpdateLeasesBegin ();

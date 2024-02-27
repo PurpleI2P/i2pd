@@ -1,0 +1,18 @@
+Source: i2pd
+Section: net
+Priority: optional
+Maintainer: r4sas <r4sas@i2pmail.org>
+Build-Depends: debhelper (>= 11~), libboost-system-dev (>= 1.46), libboost-date-time-dev (>= 1.46), libboost-filesystem-dev (>= 1.46), libboost-program-options-dev (>= 1.46), libminiupnpc-dev, libssl-dev, zlib1g-dev
+Standards-Version: 4.2.0
+Homepage: http://i2pd.website/
+Vcs-Git: git://github.com/PurpleI2P/i2pd.git
+Vcs-Browser: https://github.com/PurpleI2P/i2pd
+
+Package: i2pd
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}, adduser
+Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base,
+Description: Full-featured C++ implementation of I2P client.
+ I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
+ communications over I2P are anonymous and end-to-end encrypted, participants
+ don't reveal their real IP addresses.

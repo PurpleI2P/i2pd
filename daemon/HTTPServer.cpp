@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -87,6 +87,7 @@ namespace http {
 	const char HTTP_COMMAND_GET_REG_STRING[] = "get_reg_string";
 	const char HTTP_COMMAND_SETLANGUAGE[] = "setlanguage";
 	const char HTTP_COMMAND_RELOAD_CSS[] = "reload_css";
+	const char HTTP_COMMAND_EXPIRELEASE[] = "expirelease";
 
 	static std::string ConvertTime (uint64_t time)
 	{
@@ -132,23 +133,19 @@ namespace http {
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
 	{
 		std::string state, stateText;
-		switch (eState) {
+		switch (eState) 
+		{
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
 			case i2p::tunnel::eTunnelStatePending     : state = "building";    break;
-			case i2p::tunnel::eTunnelStateBuildFailed :
-			case i2p::tunnel::eTunnelStateTestFailed  :
+			case i2p::tunnel::eTunnelStateBuildFailed : state = "failed"; stateText = "declined"; break;
+			case i2p::tunnel::eTunnelStateTestFailed  : state = "failed"; stateText = "test failed";  break;
 			case i2p::tunnel::eTunnelStateFailed      : state = "failed";      break;
 			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring";    break;
 			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
-
-		if      (state == "building")    stateText = tr("building");
-		else if (state == "failed")      stateText = tr("failed");
-		else if (state == "expiring")    stateText = tr("expiring");
-		else if (state == "established") stateText = tr("established");
-		else stateText = tr("unknown");
-
+		if (stateText.empty ()) stateText = tr(state);
+		
 		s << "<span class=\"tunnel " << state << "\"> " << stateText << ((explr) ? " (" + tr("exploratory") + ")" : "") << "</span>, ";
 		ShowTraffic(s, bytes);
 		s << "\r\n";
@@ -221,18 +218,19 @@ namespace http {
 		s << "<b>" << tr("ERROR") << ":</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, RouterError error)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing, RouterError error)
 	{
 		switch (status)
 		{
 			case eRouterStatusOK: s << tr("OK"); break;
-			case eRouterStatusTesting: s << tr("Testing"); break;
 			case eRouterStatusFirewalled: s << tr("Firewalled"); break;
 			case eRouterStatusUnknown: s << tr("Unknown"); break;
 			case eRouterStatusProxy: s << tr("Proxy"); break;
 			case eRouterStatusMesh: s << tr("Mesh"); break;
 			default: s << tr("Unknown");
 		}
+		if (testing)
+			s << " (" << tr("Testing") << ")";
 		if (error != eRouterErrorNone)
 		{
 			switch (error)
@@ -263,12 +261,12 @@ namespace http {
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
 		s << "<b>" << tr("Network status") << ":</b> ";
-		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetError ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
 		s << "<br>\r\n";
 		if (i2p::context.SupportsV6 ())
 		{
 			s << "<b>" << tr("Network status v6") << ":</b> ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetErrorV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6(), i2p::context.GetErrorV6 ());
 			s << "<br>\r\n";
 		}
 #if ((!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID)) || defined(ANDROID_BINARY))
@@ -421,8 +419,12 @@ namespace http {
 
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
+		s << "<b>Base32:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"1\">";
+		s << dest->GetIdentHash ().ToBase32 () << "</textarea><br>\r\n<br>\r\n";
+
 		s << "<b>Base64:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"8\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+
 		if (dest->IsEncryptedLeaseSet ())
 		{
 			i2p::data::BlindedPublicKey blinded (dest->GetIdentity (), dest->IsPerClientAuth ());
@@ -434,12 +436,11 @@ namespace http {
 		if (dest->IsPublic() && token && !dest->IsEncryptedLeaseSet ())
 		{
 			std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-			auto base32 = dest->GetIdentHash ().ToBase32 ();
 			s << "<div class='slide'><label for='slide-regaddr'><b>" << tr("Address registration line") << "</b></label>\r\n<input type=\"checkbox\" id=\"slide-regaddr\" />\r\n<div class=\"slidecontent\">\r\n"
 			     "<form method=\"get\" action=\"" << webroot << "\">\r\n"
 			     "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_GET_REG_STRING << "\">\r\n"
 			     "  <input type=\"hidden\" name=\"token\" value=\"" << token << "\">\r\n"
-			     "  <input type=\"hidden\" name=\"b32\" value=\"" << base32 << "\">\r\n"
+			     "  <input type=\"hidden\" name=\"b32\" value=\"" << dest->GetIdentHash ().ToBase32 () << "\">\r\n"
 			     "  <b>" << tr("Domain") << ":</b>\r\n<input type=\"text\" maxlength=\"67\" name=\"name\" placeholder=\"domain.i2p\" required>\r\n"
 			     "  <button type=\"submit\">" << tr("Generate") << "</button>\r\n"
 			     "</form>\r\n<small>" << tr("<b>Note:</b> result string can be used only for registering 2LD domains (example.i2p). For registering subdomains please use i2pd-tools.") << "</small>\r\n</div>\r\n</div>\r\n<br>\r\n";
@@ -448,9 +449,23 @@ namespace http {
 		if (dest->GetNumRemoteLeaseSets())
 		{
 			s << "<div class='slide'><label for='slide-lease'><b>" << tr("LeaseSets") << ":</b> <i>" << dest->GetNumRemoteLeaseSets ()
-			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n<table><thead><th>"<< tr("Address") << "</th><th>" << tr("Type") << "</th><th>" << tr("EncType") << "</th></thead><tbody class=\"tableitem\">";
+			  << "</i></label>\r\n<input type=\"checkbox\" id=\"slide-lease\" />\r\n<div class=\"slidecontent\">\r\n"
+			  << "<table><thead>"
+			  << "<th>" << tr("Address") << "</th>"
+			  << "<th style=\"width:5px;\">&nbsp;</th>" // LeaseSet expiration button column
+			  << "<th>" << tr("Type") << "</th>"
+			  << "<th>" << tr("EncType") << "</th>"
+			  << "</thead><tbody class=\"tableitem\">";
 			for(auto& it: dest->GetLeaseSets ())
-				s << "<tr><td>" << it.first.ToBase32 () << "</td><td>" << (int)it.second->GetStoreType () << "</td><td>" << (int)it.second->GetEncryptionType () <<"</td></tr>\r\n";
+			{
+				s << "<tr>"
+				  << "<td>" << it.first.ToBase32 () << "</td>"
+				  << "<td><a class=\"button\" href=\"/?cmd=" << HTTP_COMMAND_EXPIRELEASE<< "&b32=" << dest->GetIdentHash ().ToBase32 ()
+				  << "&lease=" << it.first.ToBase32 () << "&token=" << token << "\" title=\"" << tr("Expire LeaseSet") << "\"> &#10008; </a></td>"
+				  << "<td>" << (int)it.second->GetStoreType () << "</td>"
+				  << "<td>" << (int)it.second->GetEncryptionType () <<"</td>"
+				  << "</tr>\r\n";
+			}
 			s << "</tbody></table>\r\n</div>\r\n</div>\r\n<br>\r\n";
 		} else
 			s << "<b>" << tr("LeaseSets") << ":</b> <i>0</i><br>\r\n<br>\r\n";
@@ -591,6 +606,8 @@ namespace http {
 			}
 			s << "</tbody>\r\n</table>";
 		}
+		else
+			ShowError(s, tr("Such destination is not found"));
 	}
 
 	void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
@@ -755,7 +772,7 @@ namespace http {
 		s << "  <a class=\"button" << (loglevel == eLogInfo     ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\"> info </a> \r\n";
 		s << "  <a class=\"button" << (loglevel == eLogDebug    ? " selected" : "") << "\" href=\"" << webroot << "?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\"> debug </a><br>\r\n<br>\r\n";
 
-		uint16_t maxTunnels = i2p::tunnel::tunnels.GetMaxNumTransitTunnels ();
+		uint32_t maxTunnels = i2p::tunnel::tunnels.GetMaxNumTransitTunnels ();
 		s << "<b>" << tr("Transit tunnels limit") << "</b><br>\r\n";
 		s << "<form method=\"get\" action=\"" << webroot << "\">\r\n";
 		s << "  <input type=\"hidden\" name=\"cmd\" value=\"" << HTTP_COMMAND_LIMITTRANSIT << "\">\r\n";
@@ -958,34 +975,42 @@ namespace http {
 	void ShowI2PTunnels (std::stringstream& s)
 	{
 		std::string webroot; i2p::config::GetOption("http.webroot", webroot);
-		s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
-		for (auto& it: i2p::client::context.GetClientTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << it.second->GetName () << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
-		}
+
+		auto& clientTunnels = i2p::client::context.GetClientTunnels ();
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
-		if (httpProxy)
-		{
-			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
-		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
-		if (socksProxy)
+		if (!clientTunnels.empty () || httpProxy || socksProxy)
 		{
-			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
-			s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</div>\r\n"<< std::endl;
+			s << "<b>" << tr("Client Tunnels") << ":</b><br>\r\n<div class=\"list\">\r\n";
+			if (!clientTunnels.empty ())
+			{
+				for (auto& it: clientTunnels)
+				{
+					auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+					s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+					s << it.second->GetName () << "</a> &#8656; ";
+					s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+					s << "</div>\r\n"<< std::endl;
+				}
+			}
+			if (httpProxy)
+			{
+				auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "HTTP " << tr("Proxy") << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+			if (socksProxy)
+			{
+				auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
+				s << "<div class=\"listitem\"><a href=\"" << webroot << "?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+				s << "SOCKS " << tr("Proxy") << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "</div>\r\n"<< std::endl;
+			}
+			s << "</div>\r\n";
 		}
-		s << "</div>\r\n";
 
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
@@ -1305,6 +1330,36 @@ namespace http {
 			}
 			else
 				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("StreamID can't be null") << "<br>\r\n<br>\r\n";
+
+			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
+			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";
+			redirect = std::to_string(COMMAND_REDIRECT_TIMEOUT) + "; url=" + webroot + "?page=local_destination&b32=" + b32;
+			res.add_header("Refresh", redirect.c_str());
+			return;
+		}
+		else if (cmd == HTTP_COMMAND_EXPIRELEASE)
+		{
+			std::string b32 = params["b32"];
+			std::string lease = params["lease"];
+
+			i2p::data::IdentHash ident, leaseident;
+			ident.FromBase32 (b32);
+			leaseident.FromBase32 (lease);
+			auto dest = i2p::client::context.FindLocalDestination (ident);
+
+			if (dest)
+			{
+				auto leaseset = dest->FindLeaseSet (leaseident);
+				if (leaseset)
+				{
+					leaseset->ExpireLease ();
+					s << "<b>" << tr("SUCCESS") << "</b>:&nbsp;" << tr("LeaseSet expiration time updated") << "<br>\r\n<br>\r\n";
+				}
+				else
+					s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("LeaseSet is not found or already expired") << "<br>\r\n<br>\r\n";
+			}
+			else
+				s << "<b>" << tr("ERROR") << "</b>:&nbsp;" << tr("Destination not found") << "<br>\r\n<br>\r\n";
 
 			s << "<a href=\"" << webroot << "?page=local_destination&b32=" << b32 << "\">" << tr("Return to destination page") << "</a><br>\r\n";
 			s << "<p>" << tr("You will be redirected in %d seconds", COMMAND_REDIRECT_TIMEOUT) << "</b>";

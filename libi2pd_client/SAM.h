@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -31,6 +31,9 @@ namespace client
 	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
+	const size_t SAM_SESSION_MAX_ACCEPT_QUEUE_SIZE = 50;
+	const size_t SAM_SESSION_MAX_ACCEPT_INTERVAL = 3; // in seconds	
+	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
 	const char SAM_HANDSHAKE_NOVERSION[] = "HELLO REPLY RESULT=NOVERSION\n";
@@ -48,8 +51,8 @@ namespace client
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
 	const char SAM_STREAM_STATUS_INVALID_KEY[] = "STREAM STATUS RESULT=INVALID_KEY\n";
-	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
-	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
+	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER MESSAGE=\"%s\"\n";
+	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR MESSAGE=\"%s\"\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";
 	const char SAM_STREAM_FORWARD[] = "STREAM FORWARD";
 	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
@@ -141,7 +144,10 @@ namespace client
 			void ProcessNamingLookup (char * buf, size_t len);
 			void ProcessSessionAdd (char * buf, size_t len);
 			void ProcessSessionRemove (char * buf, size_t len);
-			void SendI2PError(const std::string & msg);
+			void SendReplyWithMessage (const char * reply, const std::string & msg);
+			void SendSessionI2PError(const std::string & msg);
+			void SendStreamI2PError(const std::string & msg);	
+			void SendStreamCantReachPeer(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
@@ -188,7 +194,8 @@ namespace client
 		std::string Name;
 		SAMSessionType Type;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint; // TODO: move
-
+		std::list<std::pair<std::shared_ptr<SAMSocket>, uint64_t> > acceptQueue; // socket, receive time in seconds
+		
 		SAMSession (SAMBridge & parent, const std::string & name, SAMSessionType type);
 		virtual ~SAMSession () {};
 
@@ -221,9 +228,9 @@ namespace client
 	struct SAMSubSession: public SAMSession
 	{
 		std::shared_ptr<SAMMasterSession> masterSession;
-		int inPort;
+		uint16_t inPort;
 
-		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, int port);
+		SAMSubSession (std::shared_ptr<SAMMasterSession> master, const std::string& name, SAMSessionType type, uint16_t port);
 		// implements SAMSession
 		std::shared_ptr<ClientDestination> GetLocalDestination ();
 		void StopLocalDestination ();
@@ -233,7 +240,7 @@ namespace client
 	{
 		public:
 
-			SAMBridge (const std::string& address, int portTCP, int portUDP, bool singleThread);
+			SAMBridge (const std::string& address, uint16_t portTCP, uint16_t portUDP, bool singleThread);
 			~SAMBridge ();
 
 			void Start ();

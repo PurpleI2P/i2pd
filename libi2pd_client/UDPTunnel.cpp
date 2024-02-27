@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,16 +19,22 @@ namespace client
 	void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		if (!m_LastSession || m_LastSession->Identity.GetLL()[0] != from.GetIdentHash ().GetLL()[0] || fromPort != m_LastSession->RemotePort)
-		{
-			std::lock_guard<std::mutex> lock(m_SessionsMutex);
 			m_LastSession = ObtainUDPSession(from, toPort, fromPort);
-		}
 		m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
 		m_LastSession->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
 	}
 
-	void I2PUDPServerTunnel::HandleRecvFromI2PRaw (uint16_t, uint16_t, const uint8_t * buf, size_t len)
+	void I2PUDPServerTunnel::HandleRecvFromI2PRaw (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
+		if (m_LastSession && (fromPort != m_LastSession->RemotePort || toPort != m_LastSession->LocalPort))
+		{
+			std::lock_guard<std::mutex> lock(m_SessionsMutex);
+			auto it = m_Sessions.find (GetSessionIndex (fromPort, toPort));
+			if (it != m_Sessions.end ())
+				m_LastSession = it->second;
+			else
+				m_LastSession = nullptr;
+		}
 		if (m_LastSession)
 		{
 			m_LastSession->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
@@ -41,11 +47,12 @@ namespace client
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
 		auto itr = m_Sessions.begin();
-		while(itr != m_Sessions.end()) {
-			if(now - (*itr)->LastActivity >= delta )
+		while(itr != m_Sessions.end())
+		{
+			if(now - itr->second->LastActivity >= delta )
 				itr = m_Sessions.erase(itr);
 			else
-				++itr;
+				itr++;
 		}
 	}
 
@@ -66,15 +73,25 @@ namespace client
 	UDPSessionPtr I2PUDPServerTunnel::ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort)
 	{
 		auto ih = from.GetIdentHash();
-		for (auto & s : m_Sessions )
+		auto idx = GetSessionIndex (remotePort, localPort);
 		{
-			if (s->Identity.GetLL()[0] == ih.GetLL()[0] && remotePort == s->RemotePort)
+			std::lock_guard<std::mutex> lock(m_SessionsMutex);
+			auto it = m_Sessions.find (idx);
+			if (it != m_Sessions.end ())
 			{
-				/** found existing session */
-				LogPrint(eLogDebug, "UDPServer: Found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
-				return s;
+				if (it->second->Identity.GetLL()[0] == ih.GetLL()[0])
+				{
+					LogPrint(eLogDebug, "UDPServer: Found session ", it->second->IPSocket.local_endpoint(), " ", ih.ToBase32());
+					return it->second;
+				}
+				else
+				{
+					LogPrint(eLogWarning, "UDPServer: Session with from ", remotePort, " and to ", localPort, " ports already exists. But from differend address. Removed");
+					m_Sessions.erase (it);
+				}
 			}
 		}
+
 		boost::asio::ip::address addr;
 		/** create new udp session */
 		if(m_IsUniqueLocal && m_LocalAddress.is_loopback())
@@ -84,10 +101,12 @@ namespace client
 		}
 		else
 			addr = m_LocalAddress;
-		boost::asio::ip::udp::endpoint ep(addr, 0);
-		m_Sessions.push_back(std::make_shared<UDPSession>(ep, m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort));
-		auto & back = m_Sessions.back();
-		return back;
+
+		auto s = std::make_shared<UDPSession>(boost::asio::ip::udp::endpoint(addr, 0),
+			m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort);
+		std::lock_guard<std::mutex> lock(m_SessionsMutex);
+		m_Sessions.emplace (idx, s);
+		return s;
 	}
 
 	UDPSession::UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
@@ -144,9 +163,9 @@ namespace client
 	}
 
 	I2PUDPServerTunnel::I2PUDPServerTunnel (const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
-		const boost::asio::ip::address& localAddress, const boost::asio::ip::udp::endpoint& forwardTo, uint16_t port, bool gzip) :
+		const boost::asio::ip::address& localAddress, const boost::asio::ip::udp::endpoint& forwardTo, uint16_t inPort, bool gzip) :
 		m_IsUniqueLocal (true), m_Name (name), m_LocalAddress (localAddress),
-		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_Gzip (gzip)
+		m_RemoteEndpoint (forwardTo), m_LocalDest (localDestination), m_inPort(inPort), m_Gzip (gzip)
 	{
 	}
 
@@ -160,14 +179,23 @@ namespace client
 		m_LocalDest->Start ();
 
 		auto dgram = m_LocalDest->CreateDatagramDestination (m_Gzip);
-		dgram->SetReceiver (std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-		dgram->SetRawReceiver (std::bind (&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+		dgram->SetReceiver (
+			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+			m_inPort
+		);
+		dgram->SetRawReceiver (
+			std::bind (&I2PUDPServerTunnel::HandleRecvFromI2PRaw, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+			m_inPort
+		);
 	}
 
 	void I2PUDPServerTunnel::Stop ()
 	{
 		auto dgram = m_LocalDest->GetDatagramDestination ();
-		if (dgram) dgram->ResetReceiver ();
+		if (dgram) {
+			dgram->ResetReceiver (m_inPort);
+			dgram->ResetRawReceiver (m_inPort);
+		}
 	}
 
 	std::vector<std::shared_ptr<DatagramSessionInfo> > I2PUDPServerTunnel::GetSessions ()
@@ -175,8 +203,9 @@ namespace client
 		std::vector<std::shared_ptr<DatagramSessionInfo> > sessions;
 		std::lock_guard<std::mutex> lock (m_SessionsMutex);
 
-		for (UDPSessionPtr s: m_Sessions)
+		for (auto it: m_Sessions)
 		{
+			auto s = it.second;
 			if (!s->m_Destination) continue;
 			auto info = s->m_Destination->GetInfoForRemote (s->Identity);
 			if (!info) continue;
@@ -220,9 +249,13 @@ namespace client
 		dgram->SetReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2P, this,
 			std::placeholders::_1, std::placeholders::_2,
 			std::placeholders::_3, std::placeholders::_4,
-			std::placeholders::_5));
+			std::placeholders::_5),
+			RemotePort
+		);
 		dgram->SetRawReceiver (std::bind (&I2PUDPClientTunnel::HandleRecvFromI2PRaw, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+			RemotePort
+		);
 
 		m_LocalDest->Start ();
 		if (m_ResolveThread == nullptr)
@@ -233,7 +266,10 @@ namespace client
 	void I2PUDPClientTunnel::Stop ()
 	{
 		auto dgram = m_LocalDest->GetDatagramDestination ();
-		if (dgram) dgram->ResetReceiver ();
+		if (dgram) {
+			dgram->ResetReceiver (RemotePort);
+			dgram->ResetRawReceiver (RemotePort);
+		}
 		m_cancel_resolve = true;
 
 		m_Sessions.clear();

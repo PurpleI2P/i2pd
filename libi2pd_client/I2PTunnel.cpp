@@ -31,7 +31,7 @@ namespace client
 	}
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port):
+		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint16_t port):
 		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
 		m_IsQuiet (true)
 	{
@@ -346,7 +346,12 @@ namespace client
 					}
 				}
 				else
+				{
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}
 			}
 
 			if (endOfHeader)
@@ -392,7 +397,8 @@ namespace client
 			while (!endOfHeader)
 			{
 				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
+				if (m_InHeader.fail ()) break;
+				if (!m_InHeader.eof ())
 				{
 					if (line == "\r") endOfHeader = true;
 					else
@@ -409,7 +415,7 @@ namespace client
 								matched = true;
 								break;
 							}
-						if (matched) break;
+						if (matched) continue;
 
 						// replace some headers
 						if (!m_Host.empty () && boost::iequals (line.substr (0, 5), "Host:"))
@@ -428,7 +434,12 @@ namespace client
 					}
 				}
 				else
+				{
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}
 			}
 
 			if (endOfHeader)
@@ -475,7 +486,8 @@ namespace client
 			while (!endOfHeader)
 			{
 				std::getline(m_InHeader, line);
-				if (!m_InHeader.fail ())
+				if (m_InHeader.fail ()) break;
+				if (!m_InHeader.eof ())
 				{
 					if (line == "\r") endOfHeader = true;
 					else
@@ -496,7 +508,12 @@ namespace client
 					}
 				}
 				else
+				{
+					// insert incomplete line back
+					m_InHeader.clear ();
+					m_InHeader << line;
 					break;
+				}
 			}
 
 			if (endOfHeader)
@@ -564,7 +581,7 @@ namespace client
 	{
 		public:
 			I2PClientTunnelHandler (I2PClientTunnel * parent, std::shared_ptr<const Address> address,
-				int destinationPort, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
+				uint16_t destinationPort, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 				I2PServiceHandler(parent), m_Address(address),
 				m_DestinationPort (destinationPort), m_Socket(socket) {};
 			void Handle();
@@ -572,7 +589,7 @@ namespace client
 		private:
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			std::shared_ptr<const Address> m_Address;
-			int m_DestinationPort;
+			uint16_t m_DestinationPort;
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 	};
 
@@ -613,7 +630,7 @@ namespace client
 	}
 
 	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination,
-		const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort):
+		const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t destinationPort):
 		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination),
 		m_DestinationPort (destinationPort), m_KeepAliveInterval (0)
 	{
@@ -688,12 +705,11 @@ namespace client
 	}
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address,
-		int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
+		uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t inport, bool gzip):
 		I2PService (localDestination), m_IsUniqueLocal(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
-		if (!inport) inport = port;	
-		m_PortDestination = localDestination->GetStreamingDestination (inport);	
-		if (!m_PortDestination)	
+		m_PortDestination = localDestination->GetStreamingDestination (inport);
+		if (!m_PortDestination) // default destination
 			m_PortDestination = localDestination->CreateStreamingDestination (inport, gzip);
 	}
 
@@ -853,8 +869,8 @@ namespace client
 	}
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address,
-		int port, std::shared_ptr<ClientDestination> localDestination,
-		const std::string& host, int inport, bool gzip):
+		uint16_t port, std::shared_ptr<ClientDestination> localDestination,
+		const std::string& host, uint16_t inport, bool gzip):
 		I2PServerTunnel (name, address, port, localDestination, inport, gzip),
 		m_Host (host)
 	{
@@ -866,8 +882,8 @@ namespace client
 	}
 
 	I2PServerTunnelIRC::I2PServerTunnelIRC (const std::string& name, const std::string& address,
-		int port, std::shared_ptr<ClientDestination> localDestination,
-		const std::string& webircpass, int inport, bool gzip):
+		uint16_t port, std::shared_ptr<ClientDestination> localDestination,
+		const std::string& webircpass, uint16_t inport, bool gzip):
 		I2PServerTunnel (name, address, port, localDestination, inport, gzip),
 		m_WebircPass (webircpass)
 	{

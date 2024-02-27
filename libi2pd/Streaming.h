@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -135,7 +135,6 @@ namespace stream
 			SendBufferQueue (): m_Size (0) {};
 			~SendBufferQueue () { CleanUp (); };
 
-			void Add (const uint8_t * buf, size_t len, SendHandler handler);
 			void Add (std::shared_ptr<SendBuffer> buf);
 			size_t Get (uint8_t * buf, size_t len);
 			size_t GetSize () const { return m_Size; };
@@ -228,6 +227,7 @@ namespace stream
 
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
+			void ScheduleAck (int timeout);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
 		private:
@@ -251,7 +251,6 @@ namespace stream
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;
 
-			std::mutex m_SendBufferMutex;
 			SendBufferQueue m_SendBuffer;
 			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;

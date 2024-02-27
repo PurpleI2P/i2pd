@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -117,6 +117,12 @@ namespace garlic
 		return session->HandleNextMessage (buf, len, shared_from_this (), index);
 	}
 
+	bool ReceiveRatchetTagSet::IsSessionTerminated () const 
+	{ 
+		return !m_Session || m_Session->IsTerminated (); 
+	}
+
+	
 	SymmetricKeyTagSet::SymmetricKeyTagSet (GarlicDestination * destination, const uint8_t * key):
 		ReceiveRatchetTagSet (nullptr), m_Destination (destination)
 	{
@@ -1148,7 +1154,7 @@ namespace garlic
 		return len;
 	}
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<const I2NPMessage> msg, const uint8_t * key, uint64_t tag)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519Message (std::shared_ptr<I2NPMessage> msg, const uint8_t * key, uint64_t tag)
 	{
 		auto m = NewI2NPMessage ((msg ? msg->GetPayloadLength () : 0) + 128);
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -1168,10 +1174,16 @@ namespace garlic
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
+		if (msg->onDrop)
+		{
+			// move onDrop to the wrapping I2NP messages
+			m->onDrop = msg->onDrop;
+			msg->onDrop = nullptr;
+		}
 		return m;
 	}
 
-	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<const I2NPMessage> msg, const uint8_t * routerPublicKey)
+	std::shared_ptr<I2NPMessage> WrapECIESX25519MessageForRouter (std::shared_ptr<I2NPMessage> msg, const uint8_t * routerPublicKey)
 	{
 		// Noise_N, we are Alice, routerPublicKey is Bob's
 		i2p::crypto::NoiseSymmetricState noiseState;
@@ -1205,6 +1217,12 @@ namespace garlic
 		htobe32buf (m->GetPayload (), offset);
 		m->len += offset + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
+		if (msg->onDrop)
+		{
+			// move onDrop to the wrapping I2NP messages
+			m->onDrop = msg->onDrop;
+			msg->onDrop = nullptr;
+		}	
 		return m;
 	}
 }

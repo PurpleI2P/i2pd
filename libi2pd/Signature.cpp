@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,26 +15,35 @@ namespace i2p
 namespace crypto
 {
 #if OPENSSL_EDDSA
-	EDDSA25519Verifier::EDDSA25519Verifier ()
+	EDDSA25519Verifier::EDDSA25519Verifier ():
+		m_Pkey (nullptr)
 	{
-		m_MDCtx = EVP_MD_CTX_create ();
 	}
 
 	EDDSA25519Verifier::~EDDSA25519Verifier ()
 	{
-		EVP_MD_CTX_destroy (m_MDCtx);
+		EVP_PKEY_free (m_Pkey);
 	}
 
 	void EDDSA25519Verifier::SetPublicKey (const uint8_t * signingKey)
 	{
-		EVP_PKEY * pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ED25519, NULL, signingKey, 32);
-		EVP_DigestVerifyInit (m_MDCtx, NULL, NULL, NULL, pkey);
-		EVP_PKEY_free (pkey);
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
+		m_Pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_ED25519, NULL, signingKey, 32);
 	}
 
 	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
-		return EVP_DigestVerify (m_MDCtx, signature, 64, buf, len);
+		if (m_Pkey)
+		{	
+			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+			EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, m_Pkey);
+			auto ret = EVP_DigestVerify (ctx, signature, 64, buf, len);
+			EVP_MD_CTX_destroy (ctx);	
+			return ret;	
+		}	
+		else
+			LogPrint (eLogError, "EdDSA verification key is not set");
+		return false;
 	}
 
 #else
@@ -99,41 +108,45 @@ namespace crypto
 
 #if OPENSSL_EDDSA
 	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey):
-		m_MDCtx (nullptr), m_Fallback (nullptr)
+		m_Pkey (nullptr), m_Fallback (nullptr)
 	{
-		EVP_PKEY * pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_ED25519, NULL, signingPrivateKey, 32);
+		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_ED25519, NULL, signingPrivateKey, 32);
 		uint8_t publicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 		size_t len = EDDSA25519_PUBLIC_KEY_LENGTH;
-		EVP_PKEY_get_raw_public_key (pkey, publicKey, &len);
+		EVP_PKEY_get_raw_public_key (m_Pkey, publicKey, &len);
 		if (signingPublicKey && memcmp (publicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
 		{
 			LogPrint (eLogWarning, "EdDSA public key mismatch. Fallback");
 			m_Fallback = new EDDSA25519SignerCompat (signingPrivateKey, signingPublicKey);
+			EVP_PKEY_free (m_Pkey);
+			m_Pkey = nullptr;
 		}
-		else
-		{
-			m_MDCtx = EVP_MD_CTX_create ();
-			EVP_DigestSignInit (m_MDCtx, NULL, NULL, NULL, pkey);
-		}
-		EVP_PKEY_free (pkey);
 	}
 
 	EDDSA25519Signer::~EDDSA25519Signer ()
 	{
 		if (m_Fallback) delete m_Fallback;
-		EVP_MD_CTX_destroy (m_MDCtx);
+		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 	}
 
 	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		if (m_Fallback) return m_Fallback->Sign (buf, len, signature);
-		else
+		if (m_Fallback) 
+			return m_Fallback->Sign (buf, len, signature);
+		else if (m_Pkey)
 		{
+				
+			EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
 			size_t l = 64;
 			uint8_t sig[64]; // temporary buffer for signature. openssl issue #7232
-			EVP_DigestSign (m_MDCtx, sig, &l, buf, len);
+			EVP_DigestSignInit (ctx, NULL, NULL, NULL, m_Pkey);
+			if (!EVP_DigestSign (ctx, sig, &l, buf, len))
+				LogPrint (eLogError, "EdDSA signing failed");
 			memcpy (signature, sig, 64);
+			EVP_MD_CTX_destroy (ctx);
 		}
+		else
+			LogPrint (eLogError, "EdDSA signing key is not set");
 	}
 #endif
 }

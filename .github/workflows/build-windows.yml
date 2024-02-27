@@ -1,6 +1,25 @@
 name: Build on Windows
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - '*'
+    paths:
+    - .github/workflows/build-windows.yml
+    - build/CMakeLists.txt
+    - build/cmake_modules/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Win32/**
+    - Makefile
+    - Makefile.mingw
+    tags:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
 
 defaults:
   run:

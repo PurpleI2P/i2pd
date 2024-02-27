@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -45,7 +45,7 @@ namespace tunnel
 	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
 	const int TUNNEL_POOLS_MANAGE_INTERVAL = 5; // in seconds
 	const int TUNNEL_MEMORY_POOL_MANAGE_INTERVAL = 120; // in seconds
-	
+
 	const size_t I2NP_TUNNEL_MESSAGE_SIZE = TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34; // reserved for alignment and NTCP 16 + 6 + 12
 	const size_t I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE = 2*TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE + 28; // reserved for alignment and NTCP 16 + 6 + 6
 
@@ -65,7 +65,8 @@ namespace tunnel
 
 	class OutboundTunnel;
 	class InboundTunnel;
-	class Tunnel: public TunnelBase
+	class Tunnel: public TunnelBase,
+		 public std::enable_shared_from_this<Tunnel>
 	{
 		struct TunnelHop
 		{
@@ -90,7 +91,7 @@ namespace tunnel
 			i2p::data::RouterInfo::CompatibleTransports GetFarEndTransports () const { return m_FarEndTransports; };
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state);
-			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
+			bool IsEstablished () const { return m_State == eTunnelStateEstablished || m_State == eTunnelStateTestFailed; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetRecreated (bool recreated) { m_IsRecreated = recreated; };
@@ -155,7 +156,7 @@ namespace tunnel
 			i2p::data::IdentHash m_EndpointIdentHash;
 	};
 
-	class InboundTunnel: public Tunnel, public std::enable_shared_from_this<InboundTunnel>
+	class InboundTunnel: public Tunnel
 	{
 		public:
 
@@ -167,6 +168,13 @@ namespace tunnel
 			// override TunnelBase
 			void Cleanup () override { m_Endpoint.Cleanup (); };
 
+		protected:
+
+			std::shared_ptr<InboundTunnel> GetSharedFromThis () 
+			{
+				return std::static_pointer_cast<InboundTunnel>(shared_from_this ());
+			}
+			
 		private:
 
 			TunnelEndpoint m_Endpoint;
@@ -230,10 +238,10 @@ namespace tunnel
 
 			std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint);
 
-			void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
-			uint16_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
-			bool IsTooManyTransitTunnels () const { return m_TransitTunnels.size () >= m_MaxNumTransitTunnels; }; 
-			
+			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
+			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
+			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
+
 		private:
 
 			template<class TTunnel>
@@ -292,7 +300,7 @@ namespace tunnel
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_ENPOINT_MESSAGE_SIZE> > m_I2NPTunnelEndpointMessagesMemoryPool;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_TUNNEL_MESSAGE_SIZE> > m_I2NPTunnelMessagesMemoryPool;
-			uint16_t m_MaxNumTransitTunnels; 
+			uint32_t m_MaxNumTransitTunnels;
 			// count of tunnels for total TCSR algorithm
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;
@@ -311,6 +319,7 @@ namespace tunnel
 
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
+			double GetPreciseTunnelCreationSuccessRate () const { return m_TunnelCreationSuccessRate * 100; } // in percents
 			int GetTotalTunnelCreationSuccessRate () const // in percents
 			{
 				int totalNum = m_TotalNumSuccesiveTunnelCreations + m_TotalNumFailedTunnelCreations;

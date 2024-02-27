@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -23,7 +23,7 @@ namespace proxy
 	{
 		public:
 
-			SOCKSServer(const std::string& name, const std::string& address, int port, bool outEnable, const std::string& outAddress, uint16_t outPort,
+			SOCKSServer(const std::string& name, const std::string& address, uint16_t port, bool outEnable, const std::string& outAddress, uint16_t outPort,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
 			~SOCKSServer() {};
 

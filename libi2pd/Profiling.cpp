@@ -16,6 +16,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "NetDb.hpp"
 #include "Profiling.h"
 
 namespace i2p
@@ -30,12 +31,12 @@ namespace data
 	{
 		return boost::posix_time::second_clock::local_time();
 	}
-	
+
 	RouterProfile::RouterProfile ():
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0)
+		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false)
 	{
 	}
 
@@ -55,6 +56,7 @@ namespace data
 		boost::property_tree::ptree usage;
 		usage.put (PEER_PROFILE_USAGE_TAKEN, m_NumTimesTaken);
 		usage.put (PEER_PROFILE_USAGE_REJECTED, m_NumTimesRejected);
+		usage.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
@@ -123,6 +125,7 @@ namespace data
 					auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
 					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
 					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
+					m_HasConnected = usage.get (PEER_PROFILE_USAGE_CONNECTED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -148,22 +151,30 @@ namespace data
 		}
 		else
 		{
-			m_NumTunnelsAgreed++;
+		    m_NumTunnelsAgreed++;
 			m_LastDeclineTime = 0;
 		}
 	}
 
 	void RouterProfile::TunnelNonReplied ()
 	{
-		m_NumTunnelsNonReplied++;
+	    m_NumTunnelsNonReplied++;
 		UpdateTime ();
 		if (m_NumTunnelsNonReplied > 2*m_NumTunnelsAgreed && m_NumTunnelsNonReplied > 3)
+		{
 			m_LastDeclineTime = i2p::util::GetSecondsSinceEpoch ();
+		}
 	}
 
-	void RouterProfile::Unreachable ()
+	void RouterProfile::Unreachable (bool unreachable)
 	{
-		m_LastUnreachableTime = i2p::util::GetSecondsSinceEpoch ();
+		m_LastUnreachableTime = unreachable ? i2p::util::GetSecondsSinceEpoch () : 0;
+		UpdateTime ();
+	}
+		
+	void RouterProfile::Connected ()
+	{
+		m_HasConnected = true;
 		UpdateTime ();
 	}
 
@@ -214,6 +225,11 @@ namespace data
 		return (bool)m_LastUnreachableTime;
 	}
 
+	bool RouterProfile::IsUseful() const 
+	{
+	    return IsReal () || m_NumTunnelsNonReplied >= PEER_PROFILE_USEFUL_THRESHOLD;
+	}
+
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
 		{
@@ -221,8 +237,8 @@ namespace data
 			auto it = g_Profiles.find (identHash);
 			if (it != g_Profiles.end ())
 				return it->second;
-		}	
-		auto profile = std::make_shared<RouterProfile> ();
+		}
+		auto profile = netdb.NewRouterProfile ();
 		profile->Load (identHash); // if possible
 		std::unique_lock<std::mutex> l(g_ProfilesMutex);
 		g_Profiles.emplace (identHash, profile);
@@ -242,7 +258,7 @@ namespace data
 		{
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-			{	
+			{
 				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
 				{
 					if (it->second->IsUpdated ())
@@ -251,11 +267,11 @@ namespace data
 				}
 				else
 					it++;
-			}     
+			}
 		}
 		for (auto& it: tmp)
 			if (it.second) it.second->Save (it.first);
-	}	
+	}
 
 	void SaveProfiles ()
 	{
@@ -267,24 +283,24 @@ namespace data
 		}
 		auto ts = GetTime ();
 		for (auto& it: tmp)
-			if (it.second->IsUpdated () && (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+			if (it.second->IsUseful() && (it.second->IsUpdated () || (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600))
 				it.second->Save (it.first);
-	}	
-		
+	}
+
 	void DeleteObsoleteProfiles ()
 	{
 		{
 			auto ts = GetTime ();
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
-			{	
+			{
 				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
 					it = g_Profiles.erase (it);
 				else
 					it++;
 			}
 		}
-		
+
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 

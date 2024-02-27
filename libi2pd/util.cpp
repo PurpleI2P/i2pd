@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -25,6 +25,17 @@
 
 #if defined(__APPLE__)
 # include <AvailabilityMacros.h>
+#endif
+
+#if defined(__HAIKU__)
+#include <gnu/pthread.h>
+#include <posix/pthread.h>
+#include <posix/sys/sockio.h>
+#include <posix/sys/ioctl.h>
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#include <bsd/ifaddrs.h>
+#endif
 #endif
 
 #ifdef _WIN32
@@ -201,7 +212,7 @@ namespace net
 	int GetMTUWindowsIpv4 (sockaddr_in inputAddress, int fallback)
 	{
 		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
-		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		IPN inetntop = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
 		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
 
 		ULONG outBufLen = 0;
@@ -262,7 +273,7 @@ namespace net
 	int GetMTUWindowsIpv6 (sockaddr_in6 inputAddress, int fallback)
 	{
 		typedef const char *(* IPN)(int af, const void *src, char *dst, socklen_t size);
-		IPN inetntop = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
+		IPN inetntop = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetNtop");
 		if (!inetntop) inetntop = inet_ntop_xp; // use own implementation if not found
 
 		ULONG outBufLen = 0;
@@ -341,7 +352,7 @@ namespace net
 #endif
 
 		typedef int (* IPN)(int af, const char *src, void *dst);
-		IPN inetpton = (IPN)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
+		IPN inetpton = (IPN)(void*)GetProcAddress (GetModuleHandle ("ws2_32.dll"), "InetPton");
 		if (!inetpton) inetpton = inet_pton_xp; // use own implementation if not found
 
 		if (localAddress.is_v4())
@@ -654,6 +665,7 @@ namespace net
 		if (host.is_v6())
 		{
 			static const std::vector< std::pair<boost::asio::ip::address_v6::bytes_type, boost::asio::ip::address_v6::bytes_type> > reservedIPv6Ranges {
+				address_pair_v6("64:ff9b::",  "64:ff9b:ffff:ffff:ffff:ffff:ffff:ffff"),  // NAT64
 				address_pair_v6("2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fc00::",     "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
 				address_pair_v6("fe80::",     "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),

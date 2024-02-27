@@ -2,11 +2,16 @@
 ---
 
 ```
-xgettext --omit-header -ctr: -ktr -ktr:1,2 daemon/HTTPServer.cpp libi2pd_client/HTTPProxy.cpp
+xgettext --omit-header -ctr: -ktr -kntr:1,2 daemon/HTTPServer.cpp libi2pd_client/HTTPProxy.cpp
 ```
 
 Regex for transforming gettext translations to our format:
 ---
+
+```
+in:  ^(\"|#[:.,]|msgctxt)(.*)$\n
+out: <to empty line>
+```
 
 ```
 in:  msgid\ \"(.*)\"\nmsgid_plural\ \"(.*)\"\nmsgstr\[0\]\ \"(.*)\"\n(msgstr\[1\]\ \"(.*)\"\n)?(msgstr\[2\]\ \"(.*)\"\n)?(msgstr\[3\]\ \"(.*)\"\n)?(msgstr\[4\]\ \"(.*)\"\n)?(msgstr\[5\]\ \"(.*)\"\n)?
@@ -18,10 +23,6 @@ in:  msgid\ \"(.*)\"\nmsgstr\ \"(.*)\"\n
 out: {"$1", "$2"},\n
 ```
 
-```
-in:  ^#[:.,](.*)$\n
-out: <to empty line>
-```
 
 ```
 in:  \n\n

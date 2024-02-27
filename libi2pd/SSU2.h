@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,6 +13,7 @@
 #include <mutex>
 #include "util.h"
 #include "SSU2Session.h"
+#include "Socks5.h"
 
 namespace i2p
 {
@@ -27,9 +28,11 @@ namespace transport
 	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
+	const size_t SSU2_MIN_RECEIVED_PACKET_SIZE = 40; // 16 byte short header + 8 byte minimum payload + 16 byte MAC
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
-	const int SSU2_KEEP_ALIVE_INTERVAL = 30; // in seconds
+	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
+	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
@@ -65,6 +68,7 @@ namespace transport
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
+			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
 
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
@@ -160,6 +164,8 @@ namespace transport
 			std::shared_ptr<SSU2Session> m_LastSession;
 			bool m_IsPublished; // if we maintain introducers
 			bool m_IsSyncClockFromPeers;
+			int64_t m_PendingTimeOffset; // during peer test
+			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
 
 			// proxy
 			bool m_IsThroughProxy;

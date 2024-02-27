@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -107,7 +107,7 @@ namespace client
 			m_ReadyTimerTriggered = false;
 	}
 
-	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
+	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port) {
 		assert(streamRequestComplete);
 		auto address = i2p::client::context.GetAddressBook ().GetAddress (dest);
 		if (address)
@@ -119,7 +119,7 @@ namespace client
 		}
 	}
 
-	void I2PService::CreateStream(StreamRequestComplete streamRequestComplete, std::shared_ptr<const Address> address, int port)
+	void I2PService::CreateStream(StreamRequestComplete streamRequestComplete, std::shared_ptr<const Address> address, uint16_t port)
 	{
 		if(m_ConnectTimeout && !m_LocalDestination->IsReady())
 		{
@@ -145,197 +145,6 @@ namespace client
 				m_LocalDestination->CreateStream (streamRequestComplete, address->identHash, port);
 			else
 				m_LocalDestination->CreateStream (streamRequestComplete, address->blindedPublicKey, port);
-		}
-	}
-
-	TCPIPPipe::TCPIPPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream) : I2PServiceHandler(owner), m_up(upstream), m_down(downstream)
-	{
-		boost::asio::socket_base::receive_buffer_size option(TCP_IP_PIPE_BUFFER_SIZE);
-		upstream->set_option(option);
-		downstream->set_option(option);
-	}
-
-	TCPIPPipe::~TCPIPPipe()
-	{
-		Terminate();
-	}
-
-	void TCPIPPipe::Start()
-	{
-		AsyncReceiveUpstream();
-		AsyncReceiveDownstream();
-	}
-
-	void TCPIPPipe::Terminate()
-	{
-		if(Kill()) return;
-		if (m_up)
-		{
-			if (m_up->is_open())
-				m_up->close();
-			m_up = nullptr;
-		}
-		if (m_down)
-		{
-			if (m_down->is_open())
-				m_down->close();
-			m_down = nullptr;
-		}
-		Done(shared_from_this());
-	}
-
-	void TCPIPPipe::AsyncReceiveUpstream()
-	{
-		if (m_up)
-		{
-			m_up->async_read_some(boost::asio::buffer(m_upstream_to_down_buf, TCP_IP_PIPE_BUFFER_SIZE),
-				std::bind(&TCPIPPipe::HandleUpstreamReceived, shared_from_this(),
-					std::placeholders::_1, std::placeholders::_2));
-		}
-		else
-			LogPrint(eLogError, "TCPIPPipe: Upstream receive: No socket");
-	}
-
-	void TCPIPPipe::AsyncReceiveDownstream()
-	{
-		if (m_down) {
-			m_down->async_read_some(boost::asio::buffer(m_downstream_to_up_buf, TCP_IP_PIPE_BUFFER_SIZE),
-				std::bind(&TCPIPPipe::HandleDownstreamReceived, shared_from_this(),
-					std::placeholders::_1, std::placeholders::_2));
-		}
-		else
-			LogPrint(eLogError, "TCPIPPipe: Downstream receive: No socket");
-	}
-
-	void TCPIPPipe::UpstreamWrite(size_t len)
-	{
-		if (m_up)
-		{
-			LogPrint(eLogDebug, "TCPIPPipe: Upstream: ", (int) len, " bytes written");
-			boost::asio::async_write(*m_up, boost::asio::buffer(m_upstream_buf, len),
-				boost::asio::transfer_all(),
-				std::bind(&TCPIPPipe::HandleUpstreamWrite,
-					shared_from_this(),
-					std::placeholders::_1));
-		}
-		else
-			LogPrint(eLogError, "TCPIPPipe: Upstream write: no socket");
-	}
-
-	void TCPIPPipe::DownstreamWrite(size_t len)
-	{
-		if (m_down)
-		{
-			LogPrint(eLogDebug, "TCPIPPipe: Downstream: ", (int) len, " bytes written");
-			boost::asio::async_write(*m_down, boost::asio::buffer(m_downstream_buf, len),
-				boost::asio::transfer_all(),
-				std::bind(&TCPIPPipe::HandleDownstreamWrite,
-					shared_from_this(),
-					std::placeholders::_1));
-		}
-		else
-			LogPrint(eLogError, "TCPIPPipe: Downstream write: No socket");
-	}
-
-
-	void TCPIPPipe::HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
-	{
-		LogPrint(eLogDebug, "TCPIPPipe: Downstream: ", (int) bytes_transfered, " bytes received");
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Downstream read error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate();
-		} else {
-			if (bytes_transfered > 0 )
-				memcpy(m_upstream_buf, m_downstream_to_up_buf, bytes_transfered);
-			UpstreamWrite(bytes_transfered);
-		}
-	}
-
-	void TCPIPPipe::HandleDownstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Downstream write error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate();
-		}
-		else
-			AsyncReceiveUpstream();
-	}
-
-	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Upstream write error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate();
-		}
-		else
-			AsyncReceiveDownstream();
-	}
-
-	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
-	{
-		LogPrint(eLogDebug, "TCPIPPipe: Upstream ", (int)bytes_transfered, " bytes received");
-		if (ecode)
-		{
-			LogPrint(eLogError, "TCPIPPipe: Upstream read error:" , ecode.message());
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate();
-		} else {
-			if (bytes_transfered > 0 )
-				memcpy(m_downstream_buf, m_upstream_to_down_buf, bytes_transfered);
-			DownstreamWrite(bytes_transfered);
-		}
-	}
-
-	void TCPIPAcceptor::Start ()
-	{
-		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
-		// update the local end point in case port has been set zero and got updated now
-		m_LocalEndpoint = m_Acceptor->local_endpoint();
-		m_Acceptor->listen ();
-		Accept ();
-	}
-
-	void TCPIPAcceptor::Stop ()
-	{
-		if (m_Acceptor)
-		{
-			m_Acceptor->close();
-			m_Acceptor.reset (nullptr);
-		}
-		m_Timer.cancel ();
-		ClearHandlers();
-	}
-
-	void TCPIPAcceptor::Accept ()
-	{
-		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
-		m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
-			std::placeholders::_1, newSocket));
-	}
-
-	void TCPIPAcceptor::HandleAccept (const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
-	{
-		if (!ecode)
-		{
-			LogPrint(eLogDebug, "I2PService: ", GetName(), " accepted");
-			auto handler = CreateHandler(socket);
-			if (handler)
-			{
-				AddHandler(handler);
-				handler->Handle();
-			}
-			else
-				socket->close();
-			Accept();
-		}
-		else
-		{
-			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogError, "I2PService: ", GetName(), " closing socket on accept because: ", ecode.message ());
 		}
 	}
 }

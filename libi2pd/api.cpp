@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,12 +38,14 @@ namespace api
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
-		bool avx; i2p::config::GetOption("cpuext.avx", avx);
 		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
-		i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
+		i2p::crypto::InitCrypto (precomputation, aesni, forceCpuExt);
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
+
+		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
+		i2p::transport::transports.SetCheckReserved(checkReserved);
 
 		i2p::context.Init ();
 	}

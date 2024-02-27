@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -40,7 +40,7 @@ namespace i2p
 	{
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_MEDIUM_MESSAGE_SIZE> >();
 	}
-	
+
 	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage (bool endpoint)
 	{
 		return i2p::tunnel::tunnels.NewI2NPTunnelMessage (endpoint);
@@ -51,7 +51,7 @@ namespace i2p
 		len += I2NP_HEADER_SIZE + 2;
 		if (len <= I2NP_MAX_SHORT_MESSAGE_SIZE) return NewI2NPShortMessage ();
 		if (len <= I2NP_MAX_MEDIUM_MESSAGE_SIZE) return NewI2NPMediumMessage ();
-		return NewI2NPMessage ();		
+		return NewI2NPMessage ();
 	}
 
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID, bool checksum)
@@ -72,11 +72,15 @@ namespace i2p
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 	}
 
-	bool I2NPMessage::IsExpired () const
+	bool I2NPMessage::IsExpired (uint64_t ts) const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		auto exp = GetExpiration ();
 		return (ts > exp + I2NP_MESSAGE_CLOCK_SKEW) || (ts < exp - 3*I2NP_MESSAGE_CLOCK_SKEW); // check if expired or too far in future
+	}	
+	
+	bool I2NPMessage::IsExpired () const
+	{
+		return IsExpired (i2p::util::GetMillisecondsSinceEpoch ());
 	}
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)
@@ -369,10 +373,20 @@ namespace i2p
 			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
-				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) return false;
+				if (!i2p::context.DecryptTunnelBuildRecord (record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText)) 
+				{
+					LogPrint (eLogWarning, "I2NP: Failed to decrypt tunnel build record");
+					return false;
+				}	
+				if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + ECIES_BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32) && // if next ident is now ours
+				    !(clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG)) // and not endpoint
+				{
+					LogPrint (eLogWarning, "I2NP: Next ident is ours in tunnel build record");
+					return false;
+				}	
 				uint8_t retCode = 0;
 				// replace record to reply
-				if (i2p::context.AcceptsTunnels () && !i2p::context.IsHighCongestion ())
+				if (i2p::context.AcceptsTunnels () && i2p::context.GetCongestionLevel (false) < CONGESTION_LEVEL_FULL)
 				{
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -424,6 +438,11 @@ namespace i2p
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
+		if (num > i2p::tunnel::MAX_NUM_RECORDS)
+		{
+			LogPrint (eLogError, "I2NP: Too many records in VaribleTunnelBuild message ", num);
+			return;
+		}
 		if (len < num*TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "I2NP: VaribleTunnelBuild message of ", num, " records is too short ", len);
@@ -477,6 +496,11 @@ namespace i2p
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: TunnelBuildReplyMsg of ", num, " records replyMsgID=", replyMsgID);
+		if (num > i2p::tunnel::MAX_NUM_RECORDS)
+		{
+			LogPrint (eLogError, "I2NP: Too many records in TunnelBuildReply message ", num);
+			return;
+		}
 		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
 		if (len < num*recordSize + 1)
 		{
@@ -508,6 +532,11 @@ namespace i2p
 	{
 		int num = buf[0];
 		LogPrint (eLogDebug, "I2NP: ShortTunnelBuild ", num, " records");
+		if (num > i2p::tunnel::MAX_NUM_RECORDS)
+		{
+			LogPrint (eLogError, "I2NP: Too many records in ShortTunnelBuild message ", num);
+			return;
+		}
 		if (len < num*SHORT_TUNNEL_BUILD_RECORD_SIZE + 1)
 		{
 			LogPrint (eLogError, "I2NP: ShortTunnelBuild message of ", num, " records is too short ", len);
@@ -562,16 +591,24 @@ namespace i2p
 					memcpy (ivKey, noiseState.m_CK + 32, 32);
 				}
 				else
+				{	
+					if (!memcmp ((const uint8_t *)i2p::context.GetIdentHash (), clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // if next ident is now ours
+					{
+						LogPrint (eLogWarning, "I2NP: Next ident is ours in short request record");
+						return;
+					}	
 					memcpy (ivKey, noiseState.m_CK , 32);
+				}	
 
 				// check if we accept this tunnel
+				std::shared_ptr<i2p::tunnel::TransitTunnel> transitTunnel;
 				uint8_t retCode = 0;
-				if (!i2p::context.AcceptsTunnels () || i2p::context.IsHighCongestion ())
+				if (!i2p::context.AcceptsTunnels () || i2p::context.GetCongestionLevel (false) >= CONGESTION_LEVEL_FULL)
 					retCode = 30;
 				if (!retCode)
 				{
 					// create new transit tunnel
-					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
+					transitTunnel = i2p::tunnel::CreateTransitTunnel (
 						bufbe32toh (clearText + SHORT_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
 						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
 						bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
@@ -605,11 +642,22 @@ namespace i2p
 					reply += SHORT_TUNNEL_BUILD_RECORD_SIZE;
 				}
 				// send reply
+				auto onDrop = [transitTunnel]()
+					{
+						if (transitTunnel)
+						{
+							auto t = transitTunnel->GetCreationTime ();
+							if (t > i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT)
+								// make transit tunnel expired 
+								transitTunnel->SetCreationTime (t - i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT);
+						}	
+					};
 				if (isEndpoint)
 				{
 					auto replyMsg = NewI2NPShortMessage ();
 					replyMsg->Concat (buf, len);
 					replyMsg->FillI2NPMessageHeader (eI2NPShortTunnelBuildReply, bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
+					if (transitTunnel) replyMsg->onDrop = onDrop;
 					if (memcmp ((const uint8_t *)i2p::context.GetIdentHash (),
 						clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, 32)) // reply IBGW is not local?
 					{
@@ -627,15 +675,21 @@ namespace i2p
 						uint32_t tunnelID = bufbe32toh (clearText + SHORT_REQUEST_RECORD_NEXT_TUNNEL_OFFSET);
 						auto tunnel = i2p::tunnel::tunnels.GetTunnel (tunnelID);
 						if (tunnel)
+						{	
 							tunnel->SendTunnelDataMsg (replyMsg);
+							tunnel->FlushTunnelDataMsgs ();
+						}	
 						else
 							LogPrint (eLogWarning, "I2NP: Tunnel ", tunnelID, " not found for short tunnel build reply");
 					}
 				}
 				else
-					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-						CreateI2NPMessage (eI2NPShortTunnelBuild, buf, len,
-							bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
+				{
+					auto msg = CreateI2NPMessage (eI2NPShortTunnelBuild, buf, len,
+							bufbe32toh (clearText + SHORT_REQUEST_RECORD_SEND_MSG_ID_OFFSET));
+					if (transitTunnel) msg->onDrop = onDrop;
+					transports.SendMessage (clearText + SHORT_REQUEST_RECORD_NEXT_IDENT_OFFSET, msg);
+				}	
 				return;
 			}
 			record += SHORT_TUNNEL_BUILD_RECORD_SIZE;
@@ -695,7 +749,11 @@ namespace i2p
 			return msg;
 		}
 		else
-			return CreateTunnelGatewayMsg (tunnelID, msg->GetBuffer (), msg->GetLength ());
+		{	
+			auto newMsg = CreateTunnelGatewayMsg (tunnelID, msg->GetBuffer (), msg->GetLength ());
+			if (msg->onDrop) newMsg->onDrop = msg->onDrop; 
+			return newMsg;
+		}	
 	}
 
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType,
@@ -733,46 +791,38 @@ namespace i2p
 		return l;
 	}
 
-	void HandleI2NPMessage (uint8_t * msg, size_t len)
+	void HandleTunnelBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		if (len < I2NP_HEADER_SIZE)
+		if (msg)
 		{
-			LogPrint (eLogError, "I2NP: Message length ", len, " is smaller than header");
-			return;
-		}
-		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
-		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);
-		LogPrint (eLogDebug, "I2NP: Msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
-		uint8_t * buf = msg + I2NP_HEADER_SIZE;
-		auto size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
-		len -= I2NP_HEADER_SIZE;
-		if (size > len)
-		{
-			LogPrint (eLogError, "I2NP: Payload size ", size, " exceeds buffer length ", len);
-			size = len;
-		}
-		switch (typeID)
-		{
-			case eI2NPVariableTunnelBuild:
-				HandleVariableTunnelBuildMsg (msgID, buf, size);
-			break;
-			case eI2NPShortTunnelBuild:
-				HandleShortTunnelBuildMsg (msgID, buf, size);
-			break;
-			case eI2NPVariableTunnelBuildReply:
-				HandleTunnelBuildReplyMsg (msgID, buf, size, false);
-			break;
-			case eI2NPShortTunnelBuildReply:
-				HandleTunnelBuildReplyMsg (msgID, buf, size, true);
-			break;
-			case eI2NPTunnelBuild:
-				HandleTunnelBuildMsg (buf, size);
-			break;
-			case eI2NPTunnelBuildReply:
-				// TODO:
-			break;
-			default:
-				LogPrint (eLogWarning, "I2NP: Unexpected message ", (int)typeID);
+			uint8_t typeID = msg->GetTypeID();
+			uint32_t msgID = msg->GetMsgID();
+			LogPrint (eLogDebug, "I2NP: Handling tunnel build message with len=", msg->GetLength(),", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
+			uint8_t * payload = msg->GetPayload();
+			auto size = msg->GetPayloadLength();
+			switch (typeID)
+			{
+				case eI2NPVariableTunnelBuild:
+					HandleVariableTunnelBuildMsg (msgID, payload, size);
+					break;
+				case eI2NPShortTunnelBuild:
+					HandleShortTunnelBuildMsg (msgID, payload, size);
+					break;
+				case eI2NPVariableTunnelBuildReply:
+					HandleTunnelBuildReplyMsg (msgID, payload, size, false);
+					break;
+				case eI2NPShortTunnelBuildReply:
+					HandleTunnelBuildReplyMsg (msgID, payload, size, true);
+					break;
+				case eI2NPTunnelBuild:
+					HandleTunnelBuildMsg (payload, size);
+					break;
+				case eI2NPTunnelBuildReply:
+					// TODO:
+					break;
+				default:
+					LogPrint (eLogError, "I2NP: Unexpected message with type", (int)typeID, " during handling TBM; skipping");
+			}
 		}
 	}
 
@@ -785,10 +835,12 @@ namespace i2p
 			switch (typeID)
 			{
 				case eI2NPTunnelData:
-					i2p::tunnel::tunnels.PostTunnelData (msg);
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPTunnelGateway:
-					i2p::tunnel::tunnels.PostTunnelData (msg);
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPGarlic:
 				{
@@ -799,10 +851,16 @@ namespace i2p
 					break;
 				}
 				case eI2NPDatabaseStore:
-				case eI2NPDatabaseSearchReply:
+				case eI2NPDatabaseSearchReply:	
+					// forward to netDb if came directly or through exploratory tunnel as response to our request
+					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
+						i2p::data::netdb.PostI2NPMsg (msg);
+				break;
+				
 				case eI2NPDatabaseLookup:
-					// forward to netDb
-					i2p::data::netdb.PostI2NPMsg (msg);
+					// forward to netDb if floodfill and came directly
+					if (!msg->from && i2p::context.IsFloodfill ())
+						i2p::data::netdb.PostI2NPMsg (msg);
 				break;
 				case eI2NPDeliveryStatus:
 				{
@@ -813,16 +871,20 @@ namespace i2p
 					break;
 				}
 				case eI2NPVariableTunnelBuild:
-				case eI2NPVariableTunnelBuildReply:
 				case eI2NPTunnelBuild:
-				case eI2NPTunnelBuildReply:
 				case eI2NPShortTunnelBuild:
+					// forward to tunnel thread
+					if (!msg->from)
+						i2p::tunnel::tunnels.PostTunnelData (msg);
+				break;
+				case eI2NPVariableTunnelBuildReply:
+				case eI2NPTunnelBuildReply:
 				case eI2NPShortTunnelBuildReply:
 					// forward to tunnel thread
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				default:
-					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+					LogPrint(eLogError, "I2NP: Unexpected I2NP message with type ", int(typeID), " during handling; skipping");
 			}
 		}
 	}

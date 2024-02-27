@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -77,7 +77,8 @@ namespace config {
 		limits.add_options()
 			("limits.coresize", value<uint32_t>()->default_value(0),          "Maximum size of corefile in Kb (0 - use system limit)")
 			("limits.openfiles", value<uint16_t>()->default_value(0),         "Maximum number of open files (0 - use system default)")
-			("limits.transittunnels", value<uint16_t>()->default_value(5000), "Maximum active transit tunnels (default:5000)")
+			("limits.transittunnels", value<uint32_t>()->default_value(10000), "Maximum active transit tunnels (default:10000)")
+			("limits.zombies", value<double>()->default_value(0),             "Minimum percentage of successfully created tunnels under which tunnel cleanup is paused (default [%]: 0.00)")
 			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Ignored")
 			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Ignored")
@@ -192,7 +193,7 @@ namespace config {
 		options_description precomputation("Precomputation options");
 		precomputation.add_options()
 			("precomputation.elgamal",
-#if defined(__x86_64__)
+#if (defined(_M_AMD64) || defined(__x86_64__))
 				value<bool>()->default_value(false),
 #else
 				value<bool>()->default_value(true),
@@ -220,14 +221,16 @@ namespace config {
 				"https://reseed-pl.i2pd.xyz/,"
 				"https://www2.mk16.de/,"
 			    "https://i2p.ghativega.in/,"
-			    "https://i2p.novg.net/"
+			    "https://i2p.novg.net/,"
+            	"https://reseed.stormycloud.org/"
 			),                                                            "Reseed URLs, separated by comma")
 			("reseed.yggurls", value<std::string>()->default_value(
 				"http://[324:71e:281a:9ed3::ace]:7070/,"
 				"http://[301:65b9:c7cd:9a36::1]:18801/,"
 				"http://[320:8936:ec1a:31f1::216]/,"
 				"http://[306:3834:97b9:a00a::1]/,"
-				"http://[316:f9e0:f22e:a74f::216]/"
+				"http://[316:f9e0:f22e:a74f::216]/,"
+			    "http://[300:eaff:7fab:181b::e621]:7170"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 
@@ -307,7 +310,7 @@ namespace config {
 		options_description cpuext("CPU encryption extensions options");
 		cpuext.add_options()
 			("cpuext.aesni", bool_switch()->default_value(true),                     "Use auto detection for AESNI CPU extensions. If false, AESNI will be not used")
-			("cpuext.avx", bool_switch()->default_value(true),                       "Use auto detection for AVX CPU extensions. If false, AVX will be not used")
+			("cpuext.avx", bool_switch()->default_value(false),                      "Deprecated option")
 			("cpuext.force", bool_switch()->default_value(false),                    "Force usage of CPU extensions. Useful when cpuinfo is not available on virtual machines")
 		;
 

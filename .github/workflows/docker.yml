@@ -5,6 +5,16 @@ on:
     branches:
     - openssl
     - docker
+    paths:
+    - .github/workflows/docker.yml
+    - contrib/docker/**
+    - contrib/certificates/**
+    - daemon/**
+    - i18n/**
+    - libi2pd/**
+    - libi2pd_client/**
+    - Makefile
+    - Makefile.linux
     tags:
     - '*'
 

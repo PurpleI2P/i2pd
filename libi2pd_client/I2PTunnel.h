@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -41,7 +41,7 @@ namespace client
 		public:
 
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
+				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint16_t port = 0); // to I2P
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
@@ -154,7 +154,7 @@ namespace client
 		public:
 
 			I2PClientTunnel (const std::string& name, const std::string& destination,
-				const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort = 0);
+				const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination, uint16_t destinationPort = 0);
 			~I2PClientTunnel () {}
 
 			void Start ();
@@ -174,7 +174,7 @@ namespace client
 
 			std::string m_Name, m_Destination;
 			std::shared_ptr<const Address> m_Address;
-			int m_DestinationPort;
+			uint16_t m_DestinationPort;
 			uint32_t m_KeepAliveInterval;
 			std::unique_ptr<boost::asio::deadline_timer> m_KeepAliveTimer;
 	};
@@ -183,8 +183,8 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnel (const std::string& name, const std::string& address, int port,
-				std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true);
+			I2PServerTunnel (const std::string& name, const std::string& address, uint16_t port,
+				std::shared_ptr<ClientDestination> localDestination, uint16_t inport = 0, bool gzip = true);
 
 			void Start ();
 			void Stop ();
@@ -200,7 +200,7 @@ namespace client
 			void SetLocalAddress (const std::string& localAddress);
 
 			const std::string& GetAddress() const { return m_Address; }
-			int GetPort () const { return m_Port; };
+			uint16_t GetPort () const { return m_Port; };
 			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };
 			const boost::asio::ip::tcp::endpoint& GetEndpoint () const { return m_Endpoint; }
 
@@ -219,7 +219,7 @@ namespace client
 
 			bool m_IsUniqueLocal;
 			std::string m_Name, m_Address;
-			int m_Port;
+			uint16_t m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
 			std::set<i2p::data::IdentHash> m_AccessList;
@@ -232,9 +232,9 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnelHTTP (const std::string& name, const std::string& address, int port,
+			I2PServerTunnelHTTP (const std::string& name, const std::string& address, uint16_t port,
 				std::shared_ptr<ClientDestination> localDestination, const std::string& host,
-				int inport = 0, bool gzip = true);
+				uint16_t inport = 0, bool gzip = true);
 
 		private:
 
@@ -249,9 +249,9 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnelIRC (const std::string& name, const std::string& address, int port,
+			I2PServerTunnelIRC (const std::string& name, const std::string& address, uint16_t port,
 				std::shared_ptr<ClientDestination> localDestination, const std::string& webircpass,
-				int inport = 0, bool gzip = true);
+				uint16_t inport = 0, bool gzip = true);
 
 		private:
 

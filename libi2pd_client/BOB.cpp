@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -127,7 +127,7 @@ namespace client
 		connection->I2PConnect (receiver->data, receiver->dataLen);
 	}
 
-	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, int port,
+	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& outhost, uint16_t port,
 		std::shared_ptr<ClientDestination> localDestination, bool quiet): BOBI2PTunnel (localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (outhost), port), m_IsQuiet (quiet)
 	{
@@ -164,7 +164,7 @@ namespace client
 
 	BOBDestination::BOBDestination (std::shared_ptr<ClientDestination> localDestination,
 			const std::string &nickname, const std::string &inhost, const std::string &outhost,
-			const int inport, const int outport, const bool quiet):
+			const uint16_t inport, const uint16_t outport, const bool quiet):
 		m_LocalDestination (localDestination),
 		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr),
 		m_Nickname(nickname), m_InHost(inhost), m_OutHost(outhost),
@@ -209,7 +209,7 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateInboundTunnel (int port, const std::string& inhost)
+	void BOBDestination::CreateInboundTunnel (uint16_t port, const std::string& inhost)
 	{
 		if (!m_InboundTunnel)
 		{
@@ -230,7 +230,7 @@ namespace client
 		}
 	}
 
-	void BOBDestination::CreateOutboundTunnel (const std::string& outhost, int port, bool quiet)
+	void BOBDestination::CreateOutboundTunnel (const std::string& outhost, uint16_t port, bool quiet)
 	{
 		if (!m_OutboundTunnel)
 		{
@@ -357,13 +357,13 @@ namespace client
 		os << data << std::endl;
 	}
 
-	void BOBCommandSession::BuildStatusLine(bool currentTunnel, BOBDestination *dest, std::string &out)
+	void BOBCommandSession::BuildStatusLine(bool currentTunnel, std::shared_ptr<BOBDestination> dest, std::string &out)
 	{
 		// helper lambdas
 		const auto issetStr = [](const std::string &str) { return str.empty() ? "not_set" : str; }; // for inhost, outhost
 		const auto issetNum = [&issetStr](const int p) { return issetStr(p == 0 ? "" : std::to_string(p)); }; // for inport, outport
 		const auto destExists = [](const BOBDestination * const dest) { return dest != nullptr; };
-		const auto destReady = [](const BOBDestination * const dest) { return dest->IsRunning(); };
+		const auto destReady = [](const BOBDestination * const dest) { return dest && dest->IsRunning(); };
 		const auto bool_str = [](const bool v) { return v ? "true" : "false"; }; // bool -> str
 
 		// tunnel info
@@ -373,9 +373,9 @@ namespace client
 		const std::string outhost = issetStr(currentTunnel ? m_OutHost : dest->GetOutHost());
 		const std::string inport = issetNum(currentTunnel ? m_InPort : dest->GetInPort());
 		const std::string outport = issetNum(currentTunnel ? m_OutPort : dest->GetOutPort());
-		const bool keys = destExists(dest); // key must exist when destination is created
-		const bool starting = destExists(dest) && !destReady(dest);
-		const bool running = destExists(dest) && destReady(dest);
+		const bool keys = destExists(dest.get ()); // key must exist when destination is created
+		const bool starting = destExists(dest.get ()) && !destReady(dest.get ());
+		const bool running = destExists(dest.get ()) && destReady(dest.get ());
 		const bool stopping = false;
 
 		// build line
@@ -446,7 +446,7 @@ namespace client
 
 		if (!m_CurrentDestination)
 		{
-			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options), // deleted in clear command
+			m_CurrentDestination = std::make_shared<BOBDestination> (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options), // deleted in clear command
 				m_Nickname, m_InHost, m_OutHost, m_InPort, m_OutPort, m_IsQuiet);
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}
@@ -595,9 +595,12 @@ namespace client
 		LogPrint (eLogDebug, "BOB: outport ", operand);
 		if (*operand)
 		{
-			m_OutPort = std::stoi(operand);
-			if (m_OutPort >= 0)
+			int port = std::stoi(operand);
+			if (port >= 0 && port < 65536)
+			{
+				m_OutPort = port;
 				SendReplyOK ("outbound port set");
+			}
 			else
 				SendReplyError ("port out of range");
 		}
@@ -622,9 +625,12 @@ namespace client
 		LogPrint (eLogDebug, "BOB: inport ", operand);
 		if (*operand)
 		{
-			m_InPort = std::stoi(operand);
-			if (m_InPort >= 0)
+			int port = std::stoi(operand);
+			if (port >= 0 && port < 65536)
+			{
+				m_InPort = port;
 				SendReplyOK ("inbound port set");
+			}
 			else
 				SendReplyError ("port out of range");
 		}
@@ -660,7 +666,13 @@ namespace client
 				SendReplyError ("Address Not found");
 				return;
 			}
-			auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+			auto localDestination = (m_CurrentDestination && m_CurrentDestination->IsRunning ()) ? 
+				m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
+			if (!localDestination)
+			{
+				SendReplyError ("No local destination");
+				return;
+			}	
 			if (addr->IsIdentHash ())
 			{
 				// we might have leaseset already
@@ -814,7 +826,7 @@ namespace client
 		}
 	}
 
-	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
+	BOBCommandChannel::BOBCommandChannel (const std::string& address, uint16_t port):
 		RunnableService ("BOB"),
 		m_Acceptor (GetIOService (), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port))
 	{
@@ -869,8 +881,6 @@ namespace client
 	{
 		if (IsRunning ())
 			Stop ();
-		for (const auto& it: m_Destinations)
-			delete it.second;
 	}
 
 	void BOBCommandChannel::Start ()
@@ -887,9 +897,9 @@ namespace client
 		StopIOService ();
 	}
 
-	void BOBCommandChannel::AddDestination (const std::string& name, BOBDestination * dest)
+	void BOBCommandChannel::AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest)
 	{
-		m_Destinations[name] = dest;
+		m_Destinations.emplace (name, dest);
 	}
 
 	void BOBCommandChannel::DeleteDestination (const std::string& name)
@@ -898,12 +908,11 @@ namespace client
 		if (it != m_Destinations.end ())
 		{
 			it->second->Stop ();
-			delete it->second;
 			m_Destinations.erase (it);
 		}
 	}
 
-	BOBDestination * BOBCommandChannel::FindDestination (const std::string& name)
+	std::shared_ptr<BOBDestination> BOBCommandChannel::FindDestination (const std::string& name)
 	{
 		auto it = m_Destinations.find (name);
 		if (it != m_Destinations.end ())

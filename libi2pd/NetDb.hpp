@@ -38,9 +38,9 @@ namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
 	const int NETDB_MIN_FLOODFILLS = 5;
-	const int NETDB_MIN_TUNNEL_CREATION_SUCCESS_RATE = 8; // in percents
+	const int NETDB_NUM_FLOODFILLS_THRESHOLD = 1500;
+	const int NETDB_NUM_ROUTERS_THRESHOLD = 4*NETDB_NUM_FLOODFILLS_THRESHOLD;
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
-	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65 * 60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
@@ -85,8 +85,8 @@ namespace data
 			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
 
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
-			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
-			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
+			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -95,6 +95,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
+			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
@@ -128,6 +129,7 @@ namespace data
 			};
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
+			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); };
 
 			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
@@ -139,6 +141,7 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
+			void ManageRouterInfos ();
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
@@ -184,6 +187,7 @@ namespace data
 			i2p::util::MemoryPoolMt<RouterInfo::Addresses> m_RouterInfoAddressVectorsPool;
 			i2p::util::MemoryPoolMt<Lease> m_LeasesPool;
 			i2p::util::MemoryPoolMt<IdentityEx> m_IdentitiesPool;
+			i2p::util::MemoryPoolMt<RouterProfile> m_RouterProfilesPool;
 	};
 
 	extern NetDb netdb;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -13,6 +13,7 @@
 #include <string.h>
 #include <set>
 #include <memory>
+#include <functional>
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Identity.h"
@@ -138,6 +139,10 @@ namespace tunnel
 	class TunnelPool;
 }
 
+	const int CONGESTION_LEVEL_MEDIUM = 70;
+	const int CONGESTION_LEVEL_HIGH = 90;
+	const int CONGESTION_LEVEL_FULL = 100;
+
 	const size_t I2NP_MAX_MESSAGE_SIZE = 62708;
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
 	const size_t I2NP_MAX_MEDIUM_MESSAGE_SIZE = 16384;
@@ -149,7 +154,8 @@ namespace tunnel
 		uint8_t * buf;
 		size_t len, offset, maxLen;
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
-
+		std::function<void ()> onDrop;
+		
 		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
 			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
 
@@ -241,7 +247,6 @@ namespace tunnel
 			SetSize (len - offset - I2NP_HEADER_SIZE);
 			SetChks (0);
 		}
-
 		void ToNTCP2 ()
 		{
 			uint8_t * ntcp2 = GetNTCP2Header ();
@@ -252,6 +257,9 @@ namespace tunnel
 		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0, bool checksum = true);
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
+		bool IsExpired (uint64_t ts) const; // in milliseconds
+
+		void Drop () { if (onDrop) { onDrop (); onDrop = nullptr; }; }
 	};
 
 	template<int sz>
@@ -295,7 +303,7 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg);
 
 	size_t GetI2NPMessageLength (const uint8_t * msg, size_t len);
-	void HandleI2NPMessage (uint8_t * msg, size_t len);
+	void HandleTunnelBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 
 	class I2NPMessagesHandler

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2023, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -210,7 +210,7 @@ namespace client
 	{
 		public:
 
-			I2CPServer (const std::string& interface, int port, bool isSingleThread);
+			I2CPServer (const std::string& interface, uint16_t port, bool isSingleThread);
 			~I2CPServer ();
 
 			void Start ();

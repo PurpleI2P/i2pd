@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -150,17 +150,20 @@ namespace util
 
 		bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 		bool aesni; i2p::config::GetOption("cpuext.aesni", aesni);
-		bool avx; i2p::config::GetOption("cpuext.avx", avx);
 		bool forceCpuExt; i2p::config::GetOption("cpuext.force", forceCpuExt);
 		bool ssu; i2p::config::GetOption("ssu", ssu);
 		if (!ssu && i2p::config::IsDefault ("precomputation.elgamal"))
 			precomputation = false; // we don't elgamal table if no ssu, unless it's specified explicitly
-		i2p::crypto::InitCrypto (precomputation, aesni, avx, forceCpuExt);
+		i2p::crypto::InitCrypto (precomputation, aesni, forceCpuExt);
 
 		i2p::transport::InitAddressFromIface (); // get address4/6 from interfaces
 
 		int netID; i2p::config::GetOption("netid", netID);
 		i2p::context.SetNetID (netID);
+
+		bool checkReserved; i2p::config::GetOption("reservedrange", checkReserved);
+		i2p::transport::transports.SetCheckReserved(checkReserved);
+
 		i2p::context.Init ();
 
 		i2p::transport::InitTransports ();
@@ -176,7 +179,7 @@ namespace util
 
 		bool transit; i2p::config::GetOption("notransit", transit);
 		i2p::context.SetAcceptsTunnels (!transit);
-		uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+		uint32_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 		if (isFloodfill && i2p::config::IsDefault ("limits.transittunnels"))
 			transitTunnels *= 2; // double default number of transit tunnels for floodfill
 		i2p::tunnel::tunnels.SetMaxNumTransitTunnels (transitTunnels);
@@ -299,12 +302,10 @@ namespace util
 
 		bool ntcp2; i2p::config::GetOption("ntcp2.enabled", ntcp2);
 		bool ssu2; i2p::config::GetOption("ssu2.enabled", ssu2);
-		bool checkInReserved; i2p::config::GetOption("reservedrange", checkInReserved);
 		LogPrint(eLogInfo, "Daemon: Starting Transports");
 		if(!ssu2) LogPrint(eLogInfo, "Daemon: SSU2 disabled");
 		if(!ntcp2) LogPrint(eLogInfo, "Daemon: NTCP2 disabled");
 
-		i2p::transport::transports.SetCheckReserved(checkInReserved);
 		i2p::transport::transports.Start(ntcp2, ssu2);
 		if (i2p::transport::transports.IsBoundSSU2() || i2p::transport::transports.IsBoundNTCP2())
 			LogPrint(eLogInfo, "Daemon: Transports started");

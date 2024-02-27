@@ -7,7 +7,8 @@ LIBI2PD = ../libi2pd.a
 
 TESTS = \
 	test-http-merge_chunked test-http-req test-http-res test-http-url test-http-url_decode \
-	test-gost test-gost-sig test-base-64 test-x25519 test-aeadchacha20poly1305 test-blinding test-elligator
+	test-gost test-gost-sig test-base-64 test-x25519 test-aeadchacha20poly1305 test-blinding \
+	test-elligator test-eddsa 
 
 ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstring cygwin, $(SYS)))
 	CXXFLAGS += -DWIN32_LEAN_AND_MEAN
@@ -54,6 +55,9 @@ test-blinding: test-blinding.cpp $(LIBI2PD)
 
 test-elligator: test-elligator.cpp $(LIBI2PD)
 	 $(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+test-eddsa: test-eddsa.cpp $(LIBI2PD)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 run: $(TESTS)
 	@for TEST in $(TESTS); do echo Running $$TEST; ./$$TEST ; done

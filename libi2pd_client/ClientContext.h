@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,8 +15,6 @@
 #include <boost/asio.hpp>
 #include "Destination.h"
 #include "I2PService.h"
-#include "HTTPProxy.h"
-#include "SOCKS.h"
 #include "I2PTunnel.h"
 #include "UDPTunnel.h"
 #include "SAM.h"
@@ -141,8 +139,7 @@ namespace client
 
 			AddressBook m_AddressBook;
 
-			i2p::proxy::HTTPProxy * m_HttpProxy;
-			i2p::proxy::SOCKSProxy * m_SocksProxy;
+			I2PService * m_HttpProxy, * m_SocksProxy;
 			std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint -> tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port> -> tunnel
 
@@ -167,8 +164,8 @@ namespace client
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
-			const i2p::proxy::HTTPProxy * GetHttpProxy () const { return m_HttpProxy; }
-			const i2p::proxy::SOCKSProxy * GetSocksProxy () const { return m_SocksProxy; }
+			const I2PService * GetHttpProxy () const { return m_HttpProxy; }
+			const I2PService * GetSocksProxy () const { return m_SocksProxy; }
 	};
 
 	extern ClientContext context;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -25,7 +25,7 @@ namespace i2p
 namespace transport
 {
 	const int SSU2_CONNECT_TIMEOUT = 5; // 5 seconds
-	const int SSU2_TERMINATION_TIMEOUT = 330; // 5.5 minutes
+	const int SSU2_TERMINATION_TIMEOUT = 165; // in seconds
 	const int SSU2_CLOCK_SKEW = 60; // in seconds
 	const int SSU2_CLOCK_THRESHOLD = 15; // in seconds, if more we should adjust
 	const int SSU2_TOKEN_EXPIRATION_TIMEOUT = 9; // for Retry message, in seconds
@@ -308,6 +308,8 @@ namespace transport
 			void AdjustMaxPayloadSize ();
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
+			bool GetTestingState () const;
+			void SetTestingState(bool testing) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
 			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate

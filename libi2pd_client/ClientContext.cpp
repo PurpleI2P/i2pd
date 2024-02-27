@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -16,6 +16,7 @@
 #include "Identity.h"
 #include "util.h"
 #include "ClientContext.h"
+#include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "MatchedDestination.h"
 
@@ -186,22 +187,30 @@ namespace client
 		LogPrint(eLogInfo, "Clients: Stopping AddressBook");
 		m_AddressBook.Stop ();
 
+		LogPrint(eLogInfo, "Clients: Stopping UDP Tunnels");
 		{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
 		}
 
+		LogPrint(eLogInfo, "Clients: Stopping UDP Tunnels timers");
 		if (m_CleanupUDPTimer)
 		{
 			m_CleanupUDPTimer->cancel ();
 			m_CleanupUDPTimer = nullptr;
 		}
 
-		for (auto& it: m_Destinations)
-			it.second->Stop ();
-		m_Destinations.clear ();
+		{
+			LogPrint(eLogInfo, "Clients: Stopping Destinations");
+			std::lock_guard<std::mutex> lock(m_DestinationsMutex);
+			for (auto& it: m_Destinations)
+				it.second->Stop ();
+			LogPrint(eLogInfo, "Clients: Stopping Destinations - Clear");
+			m_Destinations.clear ();
+		}
 
+		LogPrint(eLogInfo, "Clients: Stopping SharedLocalDestination");
 		m_SharedLocalDestination->Release ();
 		m_SharedLocalDestination = nullptr;
 	}
@@ -569,12 +578,12 @@ namespace client
 					std::string dest;
 					if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 						dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
-					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
+					uint16_t port = section.second.get<uint16_t> (I2P_CLIENT_TUNNEL_PORT);
 					// optional params
-					bool matchTunnels = section.second.get(I2P_CLIENT_TUNNEL_MATCH_TUNNELS, false);
-					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "transient");
-					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+					bool matchTunnels = section.second.get (I2P_CLIENT_TUNNEL_MATCH_TUNNELS, false);
+					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS, "transient");
+					std::string address = section.second.get<std::string> (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+					uint16_t destinationPort = section.second.get<uint16_t> (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 					// I2CP
@@ -712,22 +721,22 @@ namespace client
 				{
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
-					int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
+					uint16_t port = section.second.get<uint16_t> (I2P_SERVER_TUNNEL_PORT);
 					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
 					// optional params
-					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
-					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+					uint16_t inPort = section.second.get<uint16_t> (I2P_SERVER_TUNNEL_INPORT, port);
+					std::string accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
 					if(accessList == "")
-						accessList=section.second.get (I2P_SERVER_TUNNEL_WHITE_LIST, "");
-					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
+						accessList = section.second.get<std::string> (I2P_SERVER_TUNNEL_WHITE_LIST, "");
+					std::string hostOverride = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, false);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "");
-					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
-					bool ssl = section.second.get(I2P_SERVER_TUNNEL_SSL, false);
+					bool isUniqueLocal = section.second.get (I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
+					bool ssl = section.second.get (I2P_SERVER_TUNNEL_SSL, false);
 
 					// I2CP
 					std::map<std::string, std::string> options;
@@ -767,7 +776,7 @@ namespace client
 								address = "127.0.0.1";
 						}
 						auto localAddress = boost::asio::ip::address::from_string(address);
-						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, port, gzip);
+						auto serverTunnel = std::make_shared<I2PUDPServerTunnel>(name, localDestination, localAddress, endpoint, inPort, gzip);
 						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: Disabling loopback address mapping");

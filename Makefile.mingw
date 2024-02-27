@@ -5,13 +5,10 @@ WINDRES = windres
 
 CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
 INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
-LDFLAGS := ${LD_DEBUG} -static
+LDFLAGS := ${LD_DEBUG} -static -fPIC -msse
 
 NEEDED_CXXFLAGS += -std=c++17
 DEFINES += -DWIN32_LEAN_AND_MEAN
-
-# Boost libraries suffix
-BOOST_SUFFIX = -mt
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
@@ -20,17 +17,18 @@ ifeq ($(USE_UPNP),yes)
 endif
 
 LDLIBS += \
-	-lboost_system$(BOOST_SUFFIX) \
-	-lboost_date_time$(BOOST_SUFFIX) \
-	-lboost_filesystem$(BOOST_SUFFIX) \
-	-lboost_program_options$(BOOST_SUFFIX) \
-	-lssl \
-	-lcrypto \
-	-lz \
+	$(MINGW_PREFIX)/lib/libboost_system-mt.a \
+	$(MINGW_PREFIX)/lib/libboost_date_time-mt.a \
+	$(MINGW_PREFIX)/lib/libboost_filesystem-mt.a \
+	$(MINGW_PREFIX)/lib/libboost_program_options-mt.a \
+	$(MINGW_PREFIX)/lib/libssl.a \
+	$(MINGW_PREFIX)/lib/libcrypto.a \
+	$(MINGW_PREFIX)/lib/libz.a \
 	-lwsock32 \
 	-lws2_32 \
-	-lgdi32 \
 	-liphlpapi \
+	-lcrypt32 \
+	-lgdi32 \
 	-lole32 \
 	-luuid \
 	-lpthread
@@ -48,6 +46,7 @@ endif
 
 ifeq ($(USE_AESNI),yes)
 	NEEDED_CXXFLAGS += -maes
+	LDFLAGS += -maes
 	DEFINES += -D__AES__
 endif
 

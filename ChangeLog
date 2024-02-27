@@ -1,6 +1,86 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.50.2] - 2024-01-06
+###Fixed
+- Crash with OpenSSL 3.2.0
+- False positive clock skew detection
+
+## [2.50.1] - 2023-12-23
+###Fixed
+- Support for new EdDSA usage behavior in OpenSSL 3.2.0
+
+## [2.50.0] - 2023-12-18
+### Added
+- Support of concurrent ACCEPTs on SAM 3.1
+- Haiku OS support
+- Low bandwidth and far routers can expire before 1 hour
+### Changed
+- Don't pick too active peer for first hop
+- Try peer test again if status is Unknown
+- Send peer tests with random delay
+- Reseeds list
+### Fixed
+- XSS vulnerability in addresshelper
+- Publishing NAT64 ipv6 addresses
+- Deadlock in AsyncSend callback
+
+## [2.49.0] - 2023-09-18
+### Added
+- Handle SOCK5 authorization with empty user/password
+- Drop incoming transport sessions from too old or from future routers
+- Memory pool for router profiles
+- Allow 0 hops in explicitPeers
+### Changed
+- Separate network and testing status
+- Remove AVX code
+- Improve NTCP2 transport session logging
+- Select router with ipv4 for tunnel endpoint
+- Consider all addresses non-published for U and H routers even if they have host/port
+- Don't pick completely unreachable routers for tunnels
+- Exclude SSU1 introducers from SSU2 addresses
+- Don't create paired inbound tunnel if length is different
+- Remove introducer from RouterInfo after 60 minutes
+- Reduce SSU2 keep alive interval and add keep alive interval variance
+- Don't pick too old sessions for introducer
+### Fixed
+- Version of the subnegotiation in user/password SOCKS5 response
+- Send keepalive for existing session with introducer
+- Buffer offset for EVP_EncryptFinal_ex() to include outlen
+- Termination block size processing for transport sessions
+- Crash if deleted BOB destination was shared between few BOB sessions
+- Introducers with zero tag
+- Padding for SSU2 path response
+
+## [2.48.0] - 2023-06-12
+### Added
+- Allow user/password authentication method for SOCK5 proxy
+- Publish reject all congestion cap 'G' if transit is not accepted
+- 'critical' log level
+- Print b32 on webconsole destination page
+- Webconsole button to drop a remote LeaseSet
+- limits.zombies param - minimum percentage of successfully created tunnels for routers cleanup
+- Recognize real routers if successfully connected or responded to tunnel build request
+### Changed
+- Bypass slow transport sessions for first hop selection
+- Limit AESNI inline asm to x86/x64
+- Create smaller I2NP packets if possible
+- Make router unreachable if AEAD tag verification fails in SessionCreated
+- Don't include a router to floodfills list until it's confirmed as real
+- Drop LeaseSet store request if not floodfill
+- Bypass medium congestion('D') routers for client tunnels
+- Publish encrypted RouterInfo through tunnels
+- Check if s is valid x25519 public key
+- Check if socket is open before sending data in SSU2
+### Fixed
+- Webconsole empty page if destination is not found
+- i2p.streaming.answerPings param
+- Reload tunnels
+- Address caps for unspecified ipv6 address
+- Incomplete HTTP headers in I2P tunnels
+- SSU2 socket network exceptions on Windows
+- Use of 'server' type tunnel port as inport (#1936)
+
 ## [2.47.0] - 2023-03-11
 ### Added
 - Congestion caps

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -59,8 +59,8 @@ namespace client
 				if (dest) dest->Acquire ();
 				m_LocalDestination = dest;
 			}
-			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
-			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, int port);
+			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, uint16_t port = 0);
+			void CreateStream(StreamRequestComplete complete, std::shared_ptr<const Address> address, uint16_t port);
 			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
 
 			virtual void Start () = 0;
@@ -99,6 +99,7 @@ namespace client
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
 			virtual void Handle() {}; //Start handling the socket
+			virtual void Start () {}; 
 
 			void Terminate () { Kill (); };
 
@@ -119,72 +120,171 @@ namespace client
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
-	const size_t TCP_IP_PIPE_BUFFER_SIZE = 8192 * 8;
+	const size_t SOCKETS_PIPE_BUFFER_SIZE = 8192 * 8;
 
-	// bidirectional pipe for 2 tcp/ip sockets
-	class TCPIPPipe: public I2PServiceHandler, public std::enable_shared_from_this<TCPIPPipe>
+	// bidirectional pipe for 2 stream sockets
+	template<typename SocketUpstream, typename SocketDownstream>
+	class SocketsPipe: public I2PServiceHandler, 
+		public std::enable_shared_from_this<SocketsPipe<SocketUpstream, SocketDownstream> >
 	{
 		public:
 
-			TCPIPPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream);
-			~TCPIPPipe();
-			void Start();
-
-		protected:
-
-			void Terminate();
-			void AsyncReceiveUpstream();
-			void AsyncReceiveDownstream();
-			void HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
-			void HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
-			void HandleUpstreamWrite(const boost::system::error_code & ecode);
-			void HandleDownstreamWrite(const boost::system::error_code & ecode);
-			void UpstreamWrite(size_t len);
-			void DownstreamWrite(size_t len);
+			SocketsPipe(I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream):
+				I2PServiceHandler(owner), m_up(upstream), m_down(downstream)
+			{
+				boost::asio::socket_base::receive_buffer_size option(SOCKETS_PIPE_BUFFER_SIZE);
+				upstream->set_option(option);
+				downstream->set_option(option);
+			}	
+			~SocketsPipe() { Terminate(); }
+			
+			void Start() override
+			{
+				Transfer (m_up, m_down, m_upstream_to_down_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
+				Transfer (m_down, m_up, m_downstream_to_up_buf, SOCKETS_PIPE_BUFFER_SIZE); // receive from upstream
+			}	
 
 		private:
 
-			uint8_t m_upstream_to_down_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[TCP_IP_PIPE_BUFFER_SIZE];
-			uint8_t m_upstream_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_buf[TCP_IP_PIPE_BUFFER_SIZE];
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_up, m_down;
+			void Terminate()
+			{
+				if(Kill()) return;
+				if (m_up)
+				{
+					if (m_up->is_open())
+						m_up->close();
+					m_up = nullptr;
+				}
+				if (m_down)
+				{
+					if (m_down->is_open())
+						m_down->close();
+					m_down = nullptr;
+				}
+				Done(SocketsPipe<SocketUpstream, SocketDownstream>::shared_from_this());
+			}
+			
+			template<typename From, typename To>
+			void Transfer (std::shared_ptr<From> from, std::shared_ptr<To> to, uint8_t * buf, size_t len)
+			{
+				if (!from || !to || !buf) return;
+				auto s = SocketsPipe<SocketUpstream, SocketDownstream>::shared_from_this ();
+				from->async_read_some(boost::asio::buffer(buf, len),
+					[from, to, s, buf, len](const boost::system::error_code& ecode, std::size_t transferred)
+				    {
+						if (ecode == boost::asio::error::operation_aborted) return;
+						if (!ecode)
+						{
+							boost::asio::async_write(*to, boost::asio::buffer(buf, transferred), boost::asio::transfer_all(),
+								[from, to, s, buf, len](const boost::system::error_code& ecode, std::size_t transferred)
+				    			{
+									(void) transferred;
+									if (ecode == boost::asio::error::operation_aborted) return;
+									if (!ecode)
+										s->Transfer (from, to, buf, len);
+									else
+									{
+										LogPrint(eLogWarning, "SocketsPipe: Write error:" , ecode.message());
+										s->Terminate();
+									}	
+								});	
+						}	
+						else
+						{
+							LogPrint(eLogWarning, "SocketsPipe: Read error:" , ecode.message());
+							s->Terminate();
+						}	
+					});	
+			}
+			
+		private:
+
+			uint8_t m_upstream_to_down_buf[SOCKETS_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[SOCKETS_PIPE_BUFFER_SIZE];			
+			std::shared_ptr<SocketUpstream> m_up;
+			std::shared_ptr<SocketDownstream> m_down;
 	};
 
-	/* TODO: support IPv6 too */
-	//This is a service that listens for connections on the IP network and interacts with I2P
-	class TCPIPAcceptor: public I2PService
+	template<typename SocketUpstream, typename SocketDownstream>
+	std::shared_ptr<I2PServiceHandler> CreateSocketsPipe (I2PService * owner, std::shared_ptr<SocketUpstream> upstream, std::shared_ptr<SocketDownstream> downstream)
+	{
+		return std::make_shared<SocketsPipe<SocketUpstream, SocketDownstream> >(owner, upstream, downstream);
+	}	
+	
+	//This is a service that listens for connections on the IP network or local socket and interacts with I2P
+	template<typename Protocol>
+	class ServiceAcceptor: public I2PService
 	{
 		public:
 
-			TCPIPAcceptor (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
-				I2PService(localDestination),
-				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
-				m_Timer (GetService ()) {}
-			TCPIPAcceptor (const std::string& address, int port, i2p::data::SigningKeyType kt) :
-				I2PService(kt),
-				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
-				m_Timer (GetService ()) {}
-			virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
-			//If you override this make sure you call it from the children
-			void Start ();
-			//If you override this make sure you call it from the children
-			void Stop ();
+			ServiceAcceptor (const typename Protocol::endpoint& localEndpoint, std::shared_ptr<ClientDestination> localDestination = nullptr) :
+				I2PService(localDestination), m_LocalEndpoint (localEndpoint) {}
+			
+			virtual ~ServiceAcceptor () { Stop(); }
+			void Start () override
+			{
+				m_Acceptor.reset (new typename Protocol::acceptor (GetService (), m_LocalEndpoint));
+				// update the local end point in case port has been set zero and got updated now
+				m_LocalEndpoint = m_Acceptor->local_endpoint();
+				m_Acceptor->listen ();
+				Accept ();
+			}	
+			void Stop () override
+			{	
+				if (m_Acceptor)
+				{
+					m_Acceptor->close();
+					m_Acceptor.reset (nullptr);
+				}
+				ClearHandlers();
+			}
+			const typename Protocol::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
 
-			const boost::asio::ip::tcp::endpoint& GetLocalEndpoint () const { return m_LocalEndpoint; };
-
-			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
+			const char* GetName() override { return "Generic TCP/IP accepting daemon"; }
 
 		protected:
 
-			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
+			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<typename Protocol::socket> socket) = 0;
 
 		private:
 
-			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			boost::asio::ip::tcp::endpoint m_LocalEndpoint;
-			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
+			void Accept()
+			{
+				auto newSocket = std::make_shared<typename Protocol::socket> (GetService ());
+				m_Acceptor->async_accept (*newSocket,
+					[newSocket, this](const boost::system::error_code& ecode)
+				    {
+						if (ecode == boost::asio::error::operation_aborted) return;
+						if (!ecode)
+						{
+							LogPrint(eLogDebug, "ServiceAcceptor: ", GetName(), " accepted");
+							auto handler = CreateHandler(newSocket);
+							if (handler)
+							{
+								AddHandler(handler);
+								handler->Handle();
+							}
+							else
+								newSocket->close();
+							Accept();
+						}	
+						else
+							LogPrint (eLogError, "ServiceAcceptor: ", GetName(), " closing socket on accept because: ", ecode.message ());
+					});	
+			}	
+			
+		private:
+			
+			typename Protocol::endpoint m_LocalEndpoint;
+			std::unique_ptr<typename Protocol::acceptor> m_Acceptor;
 	};
+
+	class TCPIPAcceptor: public ServiceAcceptor<boost::asio::ip::tcp>
+	{
+		public:
+
+			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
+				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port), localDestination) {}
+	};	
 }
 }
 

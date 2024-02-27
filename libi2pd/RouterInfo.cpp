@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -21,6 +21,7 @@
 #include "Base.h"
 #include "Timestamp.h"
 #include "Log.h"
+#include "Transports.h"
 #include "NetDb.hpp"
 #include "RouterContext.h"
 #include "RouterInfo.h"
@@ -130,7 +131,7 @@ namespace data
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
 			{
-				LogPrint(eLogError, "RouterInfo: File", fullPath, " is malformed");
+				LogPrint(eLogError, "RouterInfo: File ", fullPath, " is malformed");
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
@@ -253,7 +254,7 @@ namespace data
 					address->host = boost::asio::ip::address::from_string (value, ecode);
 					if (!ecode && !address->host.is_unspecified ())
 					{
-						if (!i2p::util::net::IsInReservedRange (address->host) ||
+						if (!i2p::transport::transports.IsInReservedRange (address->host) ||
 						    i2p::util::net::IsYggdrasilAddress (address->host))
 							isHost = true;
 						else
@@ -293,7 +294,8 @@ namespace data
 				else if (!strcmp (key, "s")) // ntcp2 or ssu2 static key
 				{
 					Base64ToByteStream (value, strlen (value), address->s, 32);
-					isStaticKey = true;
+					if (!(address->s[31] & 0x80)) // check if x25519 public key
+						isStaticKey = true;
 				}
 				else if (!strcmp (key, "i")) // ntcp2 iv or ssu2 intro
 				{
@@ -362,11 +364,12 @@ namespace data
 				}
 				if (!s) return;
 			}
+			
 			if (address->transportStyle == eTransportNTCP2)
 			{
 				if (isStaticKey)
 				{
-					if (isHost)
+					if (isHost && address->port)
 					{
 						if (address->host.is_v6 ())
 							supportedTransports |= (i2p::util::net::IsYggdrasilAddress (address->host) ? eNTCP2V6Mesh : eNTCP2V6);
@@ -374,8 +377,9 @@ namespace data
 							supportedTransports |= eNTCP2V4;
 						m_ReachableTransports |= supportedTransports;
 					}
-					else if (!address->published)
+					else
 					{
+						address->published = false;
 						if (address->caps)
 						{
 							if (address->caps & AddressCaps::eV4) supportedTransports |= eNTCP2V4;
@@ -386,7 +390,7 @@ namespace data
 					}
 				}
 			}
-			else if (address->transportStyle == eTransportSSU2 && isV2)
+			else if (address->transportStyle == eTransportSSU2 && isV2 && isStaticKey)
 			{
 				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
@@ -400,18 +404,9 @@ namespace data
 				{
 					// exclude invalid introducers
 					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					int numValid = 0;
-					for (auto& it: address->ssu->introducers)
-					{
-						if (it.iTag && ts < it.iExp)
-							numValid++;
-						else
-							it.iTag = 0;
-					}
-					if (numValid)
+					UpdateIntroducers (address, ts);
+					if (!address->ssu->introducers.empty ()) // still has something
 						m_ReachableTransports |= supportedTransports;
-					else
-						address->ssu->introducers.resize (0);
 				}
 			}
 			if (supportedTransports)
@@ -491,7 +486,10 @@ namespace data
 				if (netdb.GetFamilies ().VerifyFamily (family, GetIdentHash (), value))
 					m_FamilyID = netdb.GetFamilies ().GetFamilyID (family);
 				else
+				{	
 					LogPrint (eLogWarning, "RouterInfo: Family ", family, " signature verification failed");
+					SetUnreachable (true);	
+				}		
 			}
 
 			if (!s) return;
@@ -518,7 +516,6 @@ namespace data
 				break;
 				case CAPS_FLAG_HIGH_BANDWIDTH1:
 				case CAPS_FLAG_HIGH_BANDWIDTH2:
-				case CAPS_FLAG_HIGH_BANDWIDTH3:
 					m_Caps |= Caps::eHighBandwidth;
 				break;
 				case CAPS_FLAG_EXTRA_BANDWIDTH1:
@@ -576,6 +573,21 @@ namespace data
 		return caps;
 	}
 
+	void RouterInfo::UpdateIntroducers (std::shared_ptr<Address> address, uint64_t ts)
+	{
+		if (!address || !address->ssu) return;
+		int numValid = 0;
+		for (auto& it: address->ssu->introducers)
+		{
+			if (it.iTag && ts < it.iExp && !it.iH.IsZero ())
+				numValid++;
+			else
+				it.iTag = 0;
+		}
+		if (!numValid)
+			address->ssu->introducers.resize (0);
+	}	
+		
 	bool RouterInfo::IsNewer (const uint8_t * buf, size_t len) const
 	{
 		if (!m_RouterIdentity) return false;
@@ -976,11 +988,23 @@ namespace data
 
 	bool RouterInfo::IsEligibleFloodfill () const
 	{
-		// floodfill must be reachable by ipv4, >= 0.9.38 and not DSA
-		return IsReachableBy (eNTCP2V4 | eSSU2V4) && m_Version >= NETDB_MIN_FLOODFILL_VERSION &&
+		// floodfill must have published ipv4, >= 0.9.38 and not DSA
+		return m_Version >= NETDB_MIN_FLOODFILL_VERSION && IsPublished (true) && 
 			GetIdentity ()->GetSigningKeyType () != SIGNING_KEY_TYPE_DSA_SHA1;
 	}
 
+	bool RouterInfo::IsPublished (bool v4) const
+	{
+		if (m_Caps & (eUnreachable | eHidden)) return false; // if router sets U or H we assume that all addresses are not published
+		auto addr = GetAddresses ();
+		if (v4)	
+			return ((*addr)[eNTCP2V4Idx] && ((*addr)[eNTCP2V4Idx])->published) ||
+				((*addr)[eSSU2V4Idx] && ((*addr)[eSSU2V4Idx])->published);
+		else
+			return ((*addr)[eNTCP2V6Idx] && ((*addr)[eNTCP2V6Idx])->published) ||
+				((*addr)[eSSU2V6Idx] && ((*addr)[eSSU2V6Idx])->published);
+	}	
+		
 	bool RouterInfo::IsSSU2PeerTesting (bool v4) const
 	{
 		if (!(m_SupportedTransports & (v4 ? eSSU2V4 : eSSU2V6))) return false;
@@ -1036,6 +1060,31 @@ namespace data
 		}
 	}
 
+	void RouterInfo::UpdateIntroducers (uint64_t ts)
+	{
+		if (ts*1000 < m_Timestamp + INTRODUCER_UPDATE_INTERVAL) return;
+		if (m_ReachableTransports & eSSU2V4)
+		{
+			auto addr = (*GetAddresses ())[eSSU2V4Idx];
+			if (addr && addr->UsesIntroducer ())
+			{
+				UpdateIntroducers (addr, ts);
+				if (!addr->UsesIntroducer ()) // no more valid introducers
+					m_ReachableTransports &= ~eSSU2V4;
+			}	
+		}	
+		if (m_ReachableTransports & eSSU2V6)
+		{
+			auto addr = (*GetAddresses ())[eSSU2V6Idx];
+			if (addr && addr->UsesIntroducer ())
+			{
+				UpdateIntroducers (addr, ts);
+				if (!addr->UsesIntroducer ()) // no more valid introducers
+					m_ReachableTransports &= ~eSSU2V6;
+			}	
+		}	
+	}	
+		
 	void RouterInfo::UpdateBuffer (const uint8_t * buf, size_t len)
 	{
 		if (!m_Buffer)
@@ -1070,13 +1119,25 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 
-	bool RouterInfo::IsHighCongestion () const
+	bool RouterInfo::IsHighCongestion (bool highBandwidth) const
 	{
-		if (m_Congestion == eLowCongestion || m_Congestion == eMediumCongestion) return false;
-		if (m_Congestion == eRejectAll) return true;
-		if (m_Congestion == eHighCongestion)
-			return 	(i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL) ? true : false;
-		return false;
+		switch (m_Congestion)
+		{
+			case eLowCongestion:
+				return false;
+			break;
+			case eMediumCongestion:
+				return highBandwidth;
+			break;
+			case eHighCongestion:
+				return i2p::util::GetMillisecondsSinceEpoch () < m_Timestamp + HIGH_CONGESTION_INTERVAL*1000LL;
+			break;	
+			case eRejectAll:
+				return true;
+			break;	
+			default:
+				return false;
+		}
 	}
 		
 	void LocalRouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
@@ -1116,7 +1177,7 @@ namespace data
 				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
 				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
 			else
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+				caps += CAPS_FLAG_HIGH_BANDWIDTH2; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill
 		}
 		else
@@ -1124,7 +1185,7 @@ namespace data
 			if (c & eExtraBandwidth)
 				caps += (c & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
 			else
-				caps += (c & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
+				caps += (c & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH2 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
 		}
 		if (c & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (c & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
@@ -1260,6 +1321,7 @@ namespace data
 					int i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
+						if (!introducer.iTag) continue;
 						if (introducer.iExp) // expiration is specified
 						{
 							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
@@ -1272,6 +1334,7 @@ namespace data
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
+						if (!introducer.iTag) continue;
 						WriteString ("ih" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
 						char value[64];
@@ -1284,6 +1347,7 @@ namespace data
 					i = 0;
 					for (const auto& introducer: address.ssu->introducers)
 					{
+						if (!introducer.iTag) continue;
 						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
 						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);

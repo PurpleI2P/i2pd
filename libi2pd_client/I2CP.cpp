@@ -936,7 +936,7 @@ namespace client
 		}
 	}
 
-	I2CPServer::I2CPServer (const std::string& interface, int port, bool isSingleThread):
+	I2CPServer::I2CPServer (const std::string& interface, uint16_t port, bool isSingleThread):
 		RunnableService ("I2CP"), m_IsSingleThread (isSingleThread),
 		m_Acceptor (GetIOService (),
 		boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(interface), port))
