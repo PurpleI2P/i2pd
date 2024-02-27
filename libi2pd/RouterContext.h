@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
-#include <chrono>
 #include <set>
 #include <boost/asio.hpp>
 #include "Identity.h"
@@ -241,7 +240,7 @@ namespace garlic
 			std::shared_ptr<i2p::garlic::RouterIncomingRatchetSession> m_ECIESSession;
 			uint64_t m_LastUpdateTime; // in seconds
 			bool m_AcceptsTunnels, m_IsFloodfill;
-			std::chrono::time_point<std::chrono::steady_clock> m_StartupTime;
+			uint64_t m_StartupTime; // monotonic seconds
 			uint64_t m_BandwidthLimit; // allowed bandwidth
 			int m_ShareRatio;
 			RouterStatus m_Status, m_StatusV6;

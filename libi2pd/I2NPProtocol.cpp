@@ -120,7 +120,7 @@ namespace i2p
 		auto m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		htobe32buf (buf + TUNNEL_TEST_MSGID_OFFSET, msgID);
-		htobe64buf (buf + TUNNEL_TEST_TIMESTAMP_OFFSET, i2p::util::GetSteadyMicroseconds ());
+		htobe64buf (buf + TUNNEL_TEST_TIMESTAMP_OFFSET, i2p::util::GetMonotonicMicroseconds ());
 		m->len += TUNNEL_TEST_SIZE;
 		m->FillI2NPMessageHeader (eI2NPTunnelTest);
 		return m;

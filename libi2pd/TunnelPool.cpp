@@ -456,9 +456,6 @@ namespace tunnel
 
 	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
 	{
-		const uint8_t * buf = msg->GetPayload ();
-		uint32_t msgID = bufbe32toh (buf);
-		
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessDeliveryStatusMessage (msg);
 		else
@@ -491,7 +488,7 @@ namespace tunnel
 		}
 		if (found)
 		{
-			int dlt = (uint64_t)i2p::util::GetSteadyMicroseconds () - (int64_t)timestamp;
+			int dlt = (uint64_t)i2p::util::GetMonotonicMicroseconds () - (int64_t)timestamp;
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " microseconds");
 			if (dlt < 0) dlt = 0; // should not happen
 			int numHops = 0;

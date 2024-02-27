@@ -40,7 +40,7 @@ namespace i2p
 	void RouterContext::Init ()
 	{
 		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
-		m_StartupTime = std::chrono::steady_clock::now();
+		m_StartupTime = i2p::util::GetMonotonicSeconds ();
 
 		if (!Load ())
 			CreateNewRouter ();
@@ -1236,7 +1236,7 @@ namespace i2p
 
 	uint32_t RouterContext::GetUptime () const
 	{
-		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
+		return i2p::util::GetMonotonicSeconds () - m_StartupTime;
 	}
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const
