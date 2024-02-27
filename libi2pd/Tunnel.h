@@ -109,9 +109,9 @@ namespace tunnel
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
 
 			/** @brief add latency sample */
-			void AddLatencySample(const int ms) { m_Latency = LatencyIsKnown() ? (m_Latency + ms) >> 1 : ms; }
+			void AddLatencySample(const int us) { m_Latency = LatencyIsKnown() ? (m_Latency + us) >> 1 : us; }
 			/** @brief get this tunnel's estimated latency */
-			int GetMeanLatency() const { return m_Latency; }
+			int GetMeanLatency() const { return (m_Latency + 500) / 1000; }
 			/** @brief return true if this tunnel's latency fits in range [lowerbound, upperbound] */
 			bool LatencyFitsRange(int lowerbound, int upperbound) const;
 
@@ -130,7 +130,7 @@ namespace tunnel
 			TunnelState m_State;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace
-			int m_Latency; // in milliseconds
+			int m_Latency; // in microseconds
 	};
 
 	class OutboundTunnel: public Tunnel

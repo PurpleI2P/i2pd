@@ -85,7 +85,8 @@ namespace tunnel
 			void ManageTunnels (uint64_t ts);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg);
-			bool ProcessDeliveryStatus (uint32_t msgID, uint64_t timestamp);
+			void ProcessTunnelTest (std::shared_ptr<I2NPMessage> msg);
+			bool ProcessTunnelTest (uint32_t msgID, uint64_t timestamp);
 
 			bool IsExploratory () const;
 			bool IsActive () const { return m_IsActive; };

@@ -232,6 +232,12 @@ namespace util
 		return GetLocalHoursSinceEpoch () + g_TimeOffset/3600;
 	}
 
+	uint64_t GetSteadyMicroseconds()
+	{
+		return std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now().time_since_epoch()).count();
+	}
+
 	void GetCurrentDate (char * date)
 	{
 		GetDateString (GetSecondsSinceEpoch (), date);
