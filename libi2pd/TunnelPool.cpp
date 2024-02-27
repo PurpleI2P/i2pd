@@ -366,6 +366,7 @@ namespace tunnel
 		}
 
 		// new tests
+		if (!m_LocalDestination) return; 
 		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
 		std::vector<std::shared_ptr<OutboundTunnel> > outboundTunnels;
 		{
@@ -390,7 +391,7 @@ namespace tunnel
 			newTests.push_back(std::make_pair (*it1, *it2));
 			++it1; ++it2;
 		}
-		bool encrypt = m_LocalDestination ? m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) : false;
+		bool isECIES = m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
@@ -399,7 +400,7 @@ namespace tunnel
 				std::unique_lock<std::mutex> l(m_TestsMutex);
 				m_Tests[msgID] = it;
 			}
-			auto msg = encrypt ? CreateTunnelTestMsg (msgID) : CreateDeliveryStatusMsg (msgID);
+			auto msg = CreateTunnelTestMsg (msgID);
 			auto outbound = it.first;
 			auto s = shared_from_this ();
 			msg->onDrop = [msgID, outbound, s]()
@@ -414,14 +415,22 @@ namespace tunnel
 						std::unique_lock<std::mutex> l(s->m_OutboundTunnelsMutex);
 						s->m_OutboundTunnels.erase (outbound);
 					}
-				};	
-			if (encrypt)
+				};
+			// encrypt
+			if (isECIES)
 			{
-				// encrypt
 				uint8_t key[32]; RAND_bytes (key, 32);
 				uint64_t tag; RAND_bytes ((uint8_t *)&tag, 8); 
 				m_LocalDestination->SubmitECIESx25519Key (key, tag);
 				msg = i2p::garlic::WrapECIESX25519Message (msg, key, tag);
+			}
+			else
+			{
+				uint8_t key[32], tag[32];
+				RAND_bytes (key, 32); RAND_bytes (tag, 32);
+				m_LocalDestination->SubmitSessionKey (key, tag);
+				i2p::garlic::ElGamalAESSession garlic (key, tag);
+				msg = garlic.WrapSingleMessage (msg);
 			}	
 			outbound->SendTunnelDataMsgTo (it.second->GetNextIdentHash (), it.second->GetNextTunnelID (), msg);
 		}	
@@ -449,16 +458,11 @@ namespace tunnel
 	{
 		const uint8_t * buf = msg->GetPayload ();
 		uint32_t msgID = bufbe32toh (buf);
-		buf += 4;
-		uint64_t timestamp = bufbe64toh (buf); // milliseconds since epoch
-
-		if (!ProcessTunnelTest (msgID, timestamp, false)) // if non encrypted test
-		{
-			if (m_LocalDestination)
-				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
-			else
-				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
-		}	
+		
+		if (m_LocalDestination)
+			m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+		else
+			LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
 	}
 
 	void TunnelPool::ProcessTunnelTest (std::shared_ptr<I2NPMessage> msg)
@@ -471,7 +475,7 @@ namespace tunnel
 		ProcessTunnelTest (msgID, timestamp);
 	}
 
-	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp, bool monotonic)
+	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp)
 	{
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
@@ -487,9 +491,7 @@ namespace tunnel
 		}
 		if (found)
 		{
-			int64_t ts = monotonic ? i2p::util::GetSteadyMicroseconds () : i2p::util::GetMillisecondsSinceEpoch ();
-			int dlt = ts - timestamp;
-			if (!monotonic) dlt *= 1000; // to microseconds
+			int dlt = (uint64_t)i2p::util::GetSteadyMicroseconds () - (int64_t)timestamp;
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " microseconds");
 			if (dlt < 0) dlt = 0; // should not happen
 			int numHops = 0;
