@@ -39,6 +39,7 @@ namespace tunnel
 	const int TUNNEL_CREATION_TIMEOUT = 30; // 30 seconds
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
+	const int UNKNOWN_LATENCY = -1;
 	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
 	const int MAX_TUNNEL_MSGS_BATCH_SIZE = 100; // handle messages without interrupt
 	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 5000;
@@ -108,14 +109,14 @@ namespace tunnel
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) override;
 
 			/** @brief add latency sample */
-			void AddLatencySample(const uint64_t ms) { m_Latency = (m_Latency + ms) >> 1; }
+			void AddLatencySample(const int us) { m_Latency = LatencyIsKnown() ? (m_Latency + us) >> 1 : us; }
 			/** @brief get this tunnel's estimated latency */
-			uint64_t GetMeanLatency() const { return m_Latency; }
+			int GetMeanLatency() const { return (m_Latency + 500) / 1000; }
 			/** @brief return true if this tunnel's latency fits in range [lowerbound, upperbound] */
-			bool LatencyFitsRange(uint64_t lowerbound, uint64_t upperbound) const;
+			bool LatencyFitsRange(int lowerbound, int upperbound) const;
 
-			bool LatencyIsKnown() const { return m_Latency > 0; }
-			bool IsSlow () const { return LatencyIsKnown() && (int)m_Latency > HIGH_LATENCY_PER_HOP*GetNumHops (); }
+			bool LatencyIsKnown() const { return m_Latency != UNKNOWN_LATENCY; }
+			bool IsSlow () const { return LatencyIsKnown() && m_Latency > HIGH_LATENCY_PER_HOP*GetNumHops (); }
 
 			/** visit all hops we currently store */
 			void VisitTunnelHops(TunnelHopVisitor v);
@@ -129,7 +130,7 @@ namespace tunnel
 			TunnelState m_State;
 			i2p::data::RouterInfo::CompatibleTransports m_FarEndTransports;
 			bool m_IsRecreated; // if tunnel is replaced by new, or new tunnel requested to replace
-			uint64_t m_Latency; // in milliseconds
+			int m_Latency; // in microseconds
 	};
 
 	class OutboundTunnel: public Tunnel

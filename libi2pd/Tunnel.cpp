@@ -33,7 +33,7 @@ namespace tunnel
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
 		m_Config (config), m_IsShortBuildMessage (false), m_Pool (nullptr),
 		m_State (eTunnelStatePending), m_FarEndTransports (i2p::data::RouterInfo::eAllTransports),
-		m_IsRecreated (false), m_Latency (0)
+		m_IsRecreated (false), m_Latency (UNKNOWN_LATENCY)
 	{
 	}
 
@@ -198,10 +198,10 @@ namespace tunnel
 		return established;
 	}
 
-	bool Tunnel::LatencyFitsRange(uint64_t lower, uint64_t upper) const
+	bool Tunnel::LatencyFitsRange(int lowerbound, int upperbound) const
 	{
 		auto latency = GetMeanLatency();
-		return latency >= lower && latency <= upper;
+		return latency >= lowerbound && latency <= upperbound;
 	}
 
 	void Tunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)

@@ -367,9 +367,11 @@ namespace client
 				HandleDataMessage (payload, len);
 			break;
 			case eI2NPDeliveryStatus:
-				// try tunnel test first
-				if (!m_Pool || !m_Pool->ProcessDeliveryStatus (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET), bufbe64toh (payload + DELIVERY_STATUS_TIMESTAMP_OFFSET)))
-					HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
+				HandleDeliveryStatusMessage (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET));
+			break;
+			case eI2NPTunnelTest:
+				if (m_Pool)
+					m_Pool->ProcessTunnelTest (bufbe32toh (payload + TUNNEL_TEST_MSGID_OFFSET), bufbe64toh (payload + TUNNEL_TEST_TIMESTAMP_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (payload, len);

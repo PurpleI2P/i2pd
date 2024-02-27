@@ -399,7 +399,7 @@ namespace tunnel
 				std::unique_lock<std::mutex> l(m_TestsMutex);
 				m_Tests[msgID] = it;
 			}
-			auto msg = CreateDeliveryStatusMsg (msgID);
+			auto msg = CreateTunnelTestMsg (msgID);
 			auto outbound = it.first;
 			auto s = shared_from_this ();
 			msg->onDrop = [msgID, outbound, s]()
@@ -452,16 +452,23 @@ namespace tunnel
 		buf += 4;
 		uint64_t timestamp = bufbe64toh (buf);
 
-		if (!ProcessDeliveryStatus (msgID, timestamp))
-		{
-			if (m_LocalDestination)
-				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
-			else
-				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
-		}
+		if (m_LocalDestination)
+			m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+		else
+			LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
 	}
 
-	bool TunnelPool::ProcessDeliveryStatus (uint32_t msgID, uint64_t timestamp)
+	void TunnelPool::ProcessTunnelTest (std::shared_ptr<I2NPMessage> msg)
+	{
+		const uint8_t * buf = msg->GetPayload ();
+		uint32_t msgID = bufbe32toh (buf);
+		buf += 4;
+		uint64_t timestamp = bufbe64toh (buf);
+
+		ProcessTunnelTest (msgID, timestamp);
+	}
+
+	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp)
 	{
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
@@ -477,8 +484,10 @@ namespace tunnel
 		}
 		if (found)
 		{
-			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
-			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
+			int dlt = (int)((int64_t)i2p::util::GetSteadyMicroseconds () - (int64_t)timestamp);
+			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " microseconds");
+			if (dlt < 0) // should not happen
+				dlt = 0;
 			int numHops = 0;
 			if (test.first) numHops += test.first->GetNumHops ();
 			if (test.second) numHops += test.second->GetNumHops ();
@@ -488,20 +497,20 @@ namespace tunnel
 				if (test.first->GetState () != eTunnelStateExpiring)
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
-				test.first->AddLatencySample(latency);
+				test.first->AddLatencySample (latency);
 			}
 			if (test.second)
 			{
 				if (test.second->GetState () != eTunnelStateExpiring)
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
-				test.second->AddLatencySample(latency);
+				test.second->AddLatencySample (latency);
 			}
 		}
 		return found;
