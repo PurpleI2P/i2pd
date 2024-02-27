@@ -450,9 +450,9 @@ namespace tunnel
 		const uint8_t * buf = msg->GetPayload ();
 		uint32_t msgID = bufbe32toh (buf);
 		buf += 4;
-		uint64_t timestamp = bufbe64toh (buf);
+		uint64_t timestamp = bufbe64toh (buf); // milliseconds since epoch
 
-		if (!ProcessTunnelTest (msgID, timestamp)) // if non encrypted
+		if (!ProcessTunnelTest (msgID, timestamp, false)) // if non encrypted test
 		{
 			if (m_LocalDestination)
 				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
@@ -471,7 +471,7 @@ namespace tunnel
 		ProcessTunnelTest (msgID, timestamp);
 	}
 
-	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp)
+	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp, bool monotonic)
 	{
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
@@ -487,10 +487,11 @@ namespace tunnel
 		}
 		if (found)
 		{
-			int dlt = (int)((int64_t)i2p::util::GetSteadyMicroseconds () - (int64_t)timestamp);
+			int64_t ts = monotonic ? i2p::util::GetSteadyMicroseconds () : i2p::util::GetMillisecondsSinceEpoch ();
+			int dlt = ts - timestamp;
+			if (!monotonic) dlt *= 1000; // to microseconds
 			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " microseconds");
-			if (dlt < 0) // should not happen
-				dlt = 0;
+			if (dlt < 0) dlt = 0; // should not happen
 			int numHops = 0;
 			if (test.first) numHops += test.first->GetNumHops ();
 			if (test.second) numHops += test.second->GetNumHops ();
