@@ -258,6 +258,7 @@ namespace transport
 				socket.set_option (boost::asio::ip::v6_only (true));
 			socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
 			socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
+			socket.non_blocking (true);
 		}
 		catch (std::exception& ex )
 		{
