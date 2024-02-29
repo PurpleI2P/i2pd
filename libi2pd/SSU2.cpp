@@ -256,27 +256,32 @@ namespace transport
 			socket.open (localEndpoint.protocol ());
 			if (localEndpoint.address ().is_v6 ())
 				socket.set_option (boost::asio::ip::v6_only (true));
-			boost::asio::socket_base::receive_buffer_size receive_buffer_size_set (SSU2_SOCKET_RECEIVE_BUFFER_SIZE);
-			boost::asio::socket_base::send_buffer_size send_buffer_size_set (SSU2_SOCKET_SEND_BUFFER_SIZE);
-			socket.set_option (receive_buffer_size_set);
-			socket.set_option (send_buffer_size_set);
-			boost::asio::socket_base::receive_buffer_size receive_buffer_size_get;
-			boost::asio::socket_base::send_buffer_size send_buffer_size_get;
-			socket.get_option (receive_buffer_size_get);
-			socket.get_option (send_buffer_size_get);
-			if (receive_buffer_size_get.value () != receive_buffer_size_set.value () ||
-				send_buffer_size_get.value () != send_buffer_size_set.value ())
+
+			uint64_t bufferSize = i2p::context.GetBandwidthLimit() * 1024 / 5; // max lag = 200ms
+			bufferSize = std::max(SSU2_SOCKET_MIN_BUFFER_SIZE, std::min(bufferSize, SSU2_SOCKET_MAX_BUFFER_SIZE));
+
+			boost::asio::socket_base::receive_buffer_size receiveBufferSizeSet (bufferSize);
+			boost::asio::socket_base::send_buffer_size sendBufferSizeSet (bufferSize);
+			socket.set_option (receiveBufferSizeSet);
+			socket.set_option (sendBufferSizeSet);
+			boost::asio::socket_base::receive_buffer_size receiveBufferSizeGet;
+			boost::asio::socket_base::send_buffer_size sendBufferSizeGet;
+			socket.get_option (receiveBufferSizeGet);
+			socket.get_option (sendBufferSizeGet);
+			if (receiveBufferSizeGet.value () != receiveBufferSizeSet.value () ||
+				sendBufferSizeGet.value () != sendBufferSizeSet.value ())
 			{
 				LogPrint (eLogWarning, "SSU2: Socket receive buffer size: requested = ",
-					receive_buffer_size_set.value (), ", got = ", receive_buffer_size_get.value ());
+					receiveBufferSizeSet.value (), ", got = ", receiveBufferSizeGet.value ());
 				LogPrint (eLogWarning, "SSU2: Socket send buffer size: requested = ",
-					send_buffer_size_set.value (), ", got = ", send_buffer_size_get.value ());
+					sendBufferSizeSet.value (), ", got = ", sendBufferSizeGet.value ());
 			}
 			else
 			{
-				LogPrint (eLogInfo, "SSU2: Socket receive buffer size: ", receive_buffer_size_get.value ());
-				LogPrint (eLogInfo, "SSU2: Socket send buffer size: ", send_buffer_size_get.value ());
+				LogPrint (eLogInfo, "SSU2: Socket receive buffer size: ", receiveBufferSizeGet.value ());
+				LogPrint (eLogInfo, "SSU2: Socket send buffer size: ", sendBufferSizeGet.value ());
 			}
+
 			socket.non_blocking (true);
 		}
 		catch (std::exception& ex )
