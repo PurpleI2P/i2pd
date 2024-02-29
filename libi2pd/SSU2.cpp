@@ -662,7 +662,10 @@ namespace transport
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
 		else
-			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+		{
+			LogPrint (ec == boost::asio::error::would_block ? eLogInfo : eLogError,
+				"SSU2: Send exception: ", ec.message (), " to ", to);
+		}
 	}
 
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
@@ -696,7 +699,10 @@ namespace transport
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + headerXLen + payloadLen);
 		else
-			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+		{
+			LogPrint (ec == boost::asio::error::would_block ? eLogInfo : eLogError,
+				"SSU2: Send exception: ", ec.message (), " to ", to);
+		}
 	}
 
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
