@@ -102,7 +102,10 @@ namespace tunnel
 				it->SetTunnelPool (nullptr);
 			m_OutboundTunnels.clear ();
 		}
-		m_Tests.clear ();
+		{
+			std::unique_lock<std::mutex> l(m_TestsMutex);
+			m_Tests.clear ();
+		}	
 	}
 
 	bool TunnelPool::Reconfigure(int inHops, int outHops, int inQuant, int outQuant)
@@ -145,8 +148,11 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto& it: m_Tests)
-				if (it.second.second == expiredTunnel) it.second.second = nullptr;
+			{
+				std::unique_lock<std::mutex> l(m_TestsMutex);
+				for (auto& it: m_Tests)
+					if (it.second.second == expiredTunnel) it.second.second = nullptr;
+			}	
 
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.erase (expiredTunnel);
@@ -167,8 +173,11 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto& it: m_Tests)
-				if (it.second.first == expiredTunnel) it.second.first = nullptr;
+			{
+				std::unique_lock<std::mutex> l(m_TestsMutex);
+				for (auto& it: m_Tests)
+					if (it.second.first == expiredTunnel) it.second.first = nullptr;
+			}	
 
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.erase (expiredTunnel);
