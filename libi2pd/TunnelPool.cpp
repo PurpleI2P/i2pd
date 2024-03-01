@@ -351,7 +351,7 @@ namespace tunnel
 					else
 						it.second.first->SetState (eTunnelStateTestFailed);
 				}
-				else
+				else if (it.second.first->GetState () != eTunnelStateExpiring)
 					it.second.first->SetState (eTunnelStateTestFailed);
 			}
 			if (it.second.second)
@@ -369,7 +369,7 @@ namespace tunnel
 					if (m_LocalDestination)
 						m_LocalDestination->SetLeaseSetUpdated ();
 				}
-				else
+				else if (it.second.second->GetState () != eTunnelStateExpiring)
 					it.second.second->SetState (eTunnelStateTestFailed);
 			}
 		}
@@ -381,7 +381,7 @@ namespace tunnel
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto& it: m_OutboundTunnels)
-				if (it->IsEstablished () || it->GetState () == eTunnelStateTestFailed)
+				if (it->IsEstablished ())
 					outboundTunnels.push_back (it);
 		}
 		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), m_Rng);
@@ -389,7 +389,7 @@ namespace tunnel
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto& it: m_InboundTunnels)
-				if (it->IsEstablished () || it->GetState () == eTunnelStateTestFailed)
+				if (it->IsEstablished ())
 					inboundTunnels.push_back (it);
 		}
 		std::shuffle (inboundTunnels.begin(), inboundTunnels.end(), m_Rng);
