@@ -2180,7 +2180,8 @@ namespace transport
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 								if (ExtractEndpoint (buf + offset + 10, asz, ep))
 									addr = r->GetSSU2Address (ep.address ().is_v4 ());
-								if (addr && m_Server.IsSupported (ep.address ()) && addr->IsPeerTesting ())
+								if (addr && m_Server.IsSupported (ep.address ()) && 
+								    i2p::context.GetRouterInfo ().IsSSU2PeerTesting (ep.address ().is_v4 ()))
 								{
 									// send msg 5 to Alice
 									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
