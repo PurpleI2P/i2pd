@@ -2287,7 +2287,7 @@ namespace transport
 										if (GetTestingState ())
 										{
 											SetTestingState (false);
-											if (GetRouterStatus () != eRouterStatusFirewalled)
+											if (GetRouterStatus () != eRouterStatusFirewalled && addr->IsPeerTesting ())
 											{
 												SetRouterStatus (eRouterStatusFirewalled);
 												if (m_Address->IsV4 ())

@@ -856,8 +856,11 @@ namespace transport
 		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
 		if (it != m_SessionsByRouterHash.end ())
 		{
-			auto s = it->second;
-			if (it->second->IsEstablished ())
+			auto remoteAddr = it->second->GetAddress ();
+			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
+			    (v4 && !addr->IsV4 ()) || (!v4 && !addr->IsV6 ())) return false;
+			auto s = it->second;    
+			if (s->IsEstablished ())
 				GetService ().post ([s]() { s->SendPeerTest (); });
 			else
 				s->SetOnEstablished ([s]() { s->SendPeerTest (); });
