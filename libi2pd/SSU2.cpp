@@ -858,7 +858,7 @@ namespace transport
 		{
 			auto remoteAddr = it->second->GetAddress ();
 			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
-			    (v4 && !addr->IsV4 ()) || (!v4 && !addr->IsV6 ())) return false;
+			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;
 			auto s = it->second;    
 			if (s->IsEstablished ())
 				GetService ().post ([s]() { s->SendPeerTest (); });
