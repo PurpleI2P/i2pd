@@ -586,11 +586,6 @@ namespace client
 				shared_from_this (), std::placeholders::_1));
 			return;
 		}
-		if (!m_Pool->GetInboundTunnels ().size () || !m_Pool->GetOutboundTunnels ().size ())
-		{
-			LogPrint (eLogError, "Destination: Can't publish LeaseSet. Destination is not ready");
-			return;
-		}
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
 		if (!floodfill)
 		{
@@ -602,30 +597,36 @@ namespace client
 		auto inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
 		if (!outbound || !inbound)
 		{
-			LogPrint (eLogInfo, "Destination: No compatible tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
-			m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
-			floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
-			if (floodfill)
-			{
-				outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
-				if (outbound)
+			if (!m_Pool->GetInboundTunnels ().empty () && !m_Pool->GetOutboundTunnels ().empty ())
+			{	
+				LogPrint (eLogInfo, "Destination: No compatible tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
+				m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
+				floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetIdentHash (), m_ExcludedFloodfills);
+				if (floodfill)
 				{
-					inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
-					if (!inbound)
-						LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
+					outbound = m_Pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false));
+					if (outbound)
+					{
+						inbound = m_Pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true));
+						if (!inbound)
+							LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
+					}
+					else
+						LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
 				}
 				else
-					LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
-			}
+					LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
+			}	
 			else
-				LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
+				LogPrint (eLogDebug, "Destination: No tunnels in pool");
+			
 			if (!floodfill || !outbound || !inbound)
 			{
 				// we can't publish now
 				m_ExcludedFloodfills.clear ();
 				m_PublishReplyToken = 1; // dummy non-zero value
 				// try again after a while
-				LogPrint (eLogInfo, "Destination: Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds");
+				LogPrint (eLogInfo, "Destination: Can't publish LeasetSet because destination is not ready. Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds");
 				m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 					shared_from_this (), std::placeholders::_1));
