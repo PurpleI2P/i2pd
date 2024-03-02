@@ -494,7 +494,7 @@ namespace transport
 		m_PendingOutgoingSessions.erase (ep);
 	}
 
-	std::shared_ptr<SSU2Session> SSU2Server::GetRandomSession (
+	std::shared_ptr<SSU2Session> SSU2Server::GetRandomPeerTestSession (
 		i2p::data::RouterInfo::CompatibleTransports remoteTransports, const i2p::data::IdentHash& excluded) const
 	{
 		if (m_Sessions.empty ()) return nullptr;
@@ -505,7 +505,7 @@ namespace transport
 		std::advance (it, ind);
 		while (it != m_Sessions.end ())
 		{
-			if ((it->second->GetRemoteTransports () & remoteTransports) &&
+			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++;
@@ -514,7 +514,7 @@ namespace transport
 		it = m_Sessions.begin ();
 		while (it != m_Sessions.end () && ind)
 		{
-			if ((it->second->GetRemoteTransports () & remoteTransports) &&
+			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++; ind--;
