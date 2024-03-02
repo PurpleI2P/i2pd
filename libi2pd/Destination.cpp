@@ -621,7 +621,14 @@ namespace client
 				LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			if (!floodfill || !outbound || !inbound)
 			{
+				// we can't publish now
 				m_ExcludedFloodfills.clear ();
+				m_PublishReplyToken = 1; // dummy non-zero value
+				// try again after a while
+				LogPrint (eLogInfo, "Destination: Try publishing again after ", PUBLISH_CONFIRMATION_TIMEOUT, " seconds");
+				m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
+				m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
+					shared_from_this (), std::placeholders::_1));
 				return;
 			}
 		}
