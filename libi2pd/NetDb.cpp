@@ -957,8 +957,10 @@ namespace data
 				LogPrint (eLogDebug, "NetDb: Found new/outdated router. Requesting RouterInfo...");
 				if(m_FloodfillBootstrap)
 					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
-				else
+				else if (!IsRouterBanned (router))
 					RequestDestination (router);
+				else
+					LogPrint (eLogDebug, "NetDb: Router ", peerHash, " is banned. Skipped");
 			}
 			else
 				LogPrint (eLogDebug, "NetDb: [:|||:]");

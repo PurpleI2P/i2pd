@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -245,6 +245,15 @@ namespace data
 		return profile;
 	}
 
+	bool IsRouterBanned (const IdentHash& identHash)
+	{
+		std::unique_lock<std::mutex> l(g_ProfilesMutex);
+		auto it = g_Profiles.find (identHash);
+		if (it != g_Profiles.end ())
+			return it->second->IsUnreachable ();
+		return false;
+	}	
+		
 	void InitProfilesStorage ()
 	{
 		g_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
