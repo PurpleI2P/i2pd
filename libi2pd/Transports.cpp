@@ -492,9 +492,9 @@ namespace transport
 				if (sz < CHECK_PROFILE_NUM_DELAYED_MESSAGES && sz + msgs.size () >= CHECK_PROFILE_NUM_DELAYED_MESSAGES)
 				{
 					auto profile = i2p::data::GetRouterProfile (ident);
-					if (profile && profile->IsUnreachable ())
+					if (i2p::data::IsRouterBanned (ident))
 					{
-						LogPrint (eLogWarning, "Transports: Peer profile for ", ident.ToBase64 (), " reports unreachable. Dropped");
+						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 						std::unique_lock<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (it);
 						return;
@@ -584,6 +584,14 @@ namespace transport
 			LogPrint (eLogInfo, "Transports: No compatible addresses available");
 			if (peer.router->IsReachableFrom (i2p::context.GetRouterInfo ()))
 				i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed but router claimed them
+			peer.Done ();
+			std::unique_lock<std::mutex> l(m_PeersMutex);
+			m_Peers.erase (ident);
+			return false;
+		}
+		else if (i2p::data::IsRouterBanned (ident))
+		{
+			LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
