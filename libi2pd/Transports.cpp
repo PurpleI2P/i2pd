@@ -460,9 +460,8 @@ namespace transport
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
-			// check if not known as unreachable
-			auto profile = i2p::data::GetRouterProfile (ident);
-			if (profile && profile->IsUnreachable ()) return; // don't create peer to unreachable router
+			// check if not banned
+			if (i2p::data::IsRouterBanned (ident)) return; // don't create peer to unreachable router
 			// try to connect
 			bool connected = false;
 			try
@@ -491,7 +490,6 @@ namespace transport
 			{
 				if (sz < CHECK_PROFILE_NUM_DELAYED_MESSAGES && sz + msgs.size () >= CHECK_PROFILE_NUM_DELAYED_MESSAGES)
 				{
-					auto profile = i2p::data::GetRouterProfile (ident);
 					if (i2p::data::IsRouterBanned (ident))
 					{
 						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
