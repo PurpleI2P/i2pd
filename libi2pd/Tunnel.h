@@ -40,7 +40,7 @@ namespace tunnel
 	const int STANDARD_NUM_RECORDS = 4; // in VariableTunnelBuild message
 	const int MAX_NUM_RECORDS = 8;
 	const int UNKNOWN_LATENCY = -1;
-	const int HIGH_LATENCY_PER_HOP = 250; // in milliseconds
+	const int HIGH_LATENCY_PER_HOP = 250000; // in microseconds
 	const int MAX_TUNNEL_MSGS_BATCH_SIZE = 100; // handle messages without interrupt
 	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 5000;
 	const int TUNNEL_MANAGE_INTERVAL = 15; // in seconds
