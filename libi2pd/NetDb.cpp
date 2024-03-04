@@ -1114,12 +1114,24 @@ namespace data
 					else
 						LogPrint(eLogWarning, "NetDb: Encrypted reply requested but no tags provided");
 				}
-				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-				if (outbound)
-					outbound->SendTunnelDataMsgTo (replyIdent, replyTunnelID, replyMsg);
-				else
+				bool direct = true;
+				if (!i2p::transport::transports.IsConnected (ident))
+				{
+					auto r = FindRouter (replyIdent);
+					if (r && !r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+						direct = false;
+				}	
+				if (direct)
 					transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+				else
+				{	
+					auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+					auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+					if (outbound)
+						outbound->SendTunnelDataMsgTo (replyIdent, replyTunnelID, replyMsg);
+					else
+						LogPrint (eLogWarning, "NetDb: Can't send lookup reply to ", replyIdent.ToBase64 (), ". Non reachable and no outbound tunnels");
+				}	
 			}
 			else
 				transports.SendMessage (replyIdent, replyMsg);
