@@ -824,17 +824,31 @@ namespace data
 			offset += 4;
 			if (replyToken != 0xFFFFFFFFU) // if not caught on OBEP or IBGW
 			{
+				IdentHash replyIdent(buf + offset);
 				auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 				if (!tunnelID) // send response directly
-					transports.SendMessage (buf + offset, deliveryStatus);
+					transports.SendMessage (replyIdent, deliveryStatus);
 				else
 				{
-					auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-					auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-					if (outbound)
-						outbound->SendTunnelDataMsgTo (buf + offset, tunnelID, deliveryStatus);
+					bool direct = true;
+					if (!i2p::transport::transports.IsConnected (replyIdent))
+					{
+						auto r = FindRouter (replyIdent);
+						if (r && !r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+							direct = false;
+					}	
+					if (direct) // send response directly to IBGW
+						transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (tunnelID, deliveryStatus));
 					else
-						LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
+					{		
+						// send response through exploratory tunnel
+						auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+						auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+						if (outbound)
+							outbound->SendTunnelDataMsgTo (replyIdent, tunnelID, deliveryStatus);
+						else
+							LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
+					}		
 				}
 			}
 			offset += 32;
@@ -1115,7 +1129,7 @@ namespace data
 						LogPrint(eLogWarning, "NetDb: Encrypted reply requested but no tags provided");
 				}
 				bool direct = true;
-				if (!i2p::transport::transports.IsConnected (ident))
+				if (!i2p::transport::transports.IsConnected (replyIdent))
 				{
 					auto r = FindRouter (replyIdent);
 					if (r && !r->IsReachableFrom (i2p::context.GetRouterInfo ()))
