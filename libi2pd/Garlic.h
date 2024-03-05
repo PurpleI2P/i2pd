@@ -291,7 +291,6 @@ namespace garlic
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;
 			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> m_ECIESx25519Tags; // session tag -> session
 			ReceiveRatchetTagSetPtr m_LastTagset; // tagset last message came for
-			int m_NumUsedECIESx25519Tags;
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::unordered_map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
@@ -300,7 +299,7 @@ namespace garlic
 
 			// for HTTP only
 			size_t GetNumIncomingTags () const { return m_Tags.size (); }
-			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size () - m_NumUsedECIESx25519Tags; }
+			size_t GetNumIncomingECIESx25519Tags () const { return m_ECIESx25519Tags.size (); }
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 			const decltype(m_ECIESx25519Sessions)& GetECIESx25519Sessions () const { return m_ECIESx25519Sessions; }
 	};

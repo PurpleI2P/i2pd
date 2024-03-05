@@ -431,8 +431,7 @@ namespace garlic
 	}
 
 	GarlicDestination::GarlicDestination (): m_NumTags (32), // 32 tags by default
-		m_PayloadBuffer (nullptr), m_NumRatchetInboundTags (0), // 0 means standard
-		m_NumUsedECIESx25519Tags (0)
+		m_PayloadBuffer (nullptr), m_NumRatchetInboundTags (0) // 0 means standard
 	{
 	}
 
@@ -589,18 +588,11 @@ namespace garlic
 		auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-			if (!it->second.tagset) return true; // duplicate
-			if (it->second.tagset->HandleNextMessage (buf, len, it->second.index))
-			{	
+			if (it->second.tagset && it->second.tagset->HandleNextMessage (buf, len, it->second.index))
 				m_LastTagset = it->second.tagset;
-				it->second.tagset = nullptr; // mark as used
-			}	
 			else
-			{	
 				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
-				m_ECIESx25519Tags.erase (it);
-			}	
-			m_NumUsedECIESx25519Tags++;
+			m_ECIESx25519Tags.erase (it);
 			return true;
 		}
 		return false;
@@ -885,41 +877,18 @@ namespace garlic
 		}
 
 		numExpiredTags = 0;
-		if (m_NumUsedECIESx25519Tags > ECIESX25519_TAGSET_MAX_NUM_TAGS) // too many used tags
+		for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
 		{
-			std::unordered_map<uint64_t, ECIESX25519AEADRatchetIndexTagset> oldTags;
-			std::swap (m_ECIESx25519Tags, oldTags); // re-create
-			for (auto& it: oldTags)
-				if (it.second.tagset)
-				{
-					if (it.second.tagset->IsExpired (ts) || it.second.tagset->IsIndexExpired (it.second.index))
-					{
-						it.second.tagset->DeleteSymmKey (it.second.index);
-						numExpiredTags++;
-					}
-					else if (it.second.tagset->IsSessionTerminated())
-						numExpiredTags++;
-					else
-						m_ECIESx25519Tags.emplace (it);	
-				}
-		}
-		else
-		{	
-			for (auto it = m_ECIESx25519Tags.begin (); it != m_ECIESx25519Tags.end ();)
+			if (it->second.tagset->IsExpired (ts) || it->second.tagset->IsIndexExpired (it->second.index))
 			{
-				if (!it->second.tagset)
-				{
-					// delete used tag
-					it = m_ECIESx25519Tags.erase (it);
-					continue;
-				}	
-				if (it->second.tagset->IsExpired (ts) || it->second.tagset->IsIndexExpired (it->second.index))
-				{
-					it->second.tagset->DeleteSymmKey (it->second.index);
-					it = m_ECIESx25519Tags.erase (it);
-					numExpiredTags++;
-				}
-				else if (it->second.tagset->IsSessionTerminated())
+				it->second.tagset->DeleteSymmKey (it->second.index);
+				it = m_ECIESx25519Tags.erase (it);
+				numExpiredTags++;
+			}
+			else
+			{
+				auto session = it->second.tagset->GetSession ();
+				if (!session || session->IsTerminated())
 				{
 					it = m_ECIESx25519Tags.erase (it);
 					numExpiredTags++;
@@ -927,8 +896,7 @@ namespace garlic
 				else
 					++it;
 			}
-		}	
-		m_NumUsedECIESx25519Tags = 0;
+		}
 		if (numExpiredTags > 0)
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
 		if (m_LastTagset && m_LastTagset->IsExpired (ts))
