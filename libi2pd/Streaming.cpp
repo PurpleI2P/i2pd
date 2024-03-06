@@ -433,7 +433,10 @@ namespace stream
 					LogPrint(eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
 					rtt = 1;
 				}
-				m_RTT = std::round ((m_RTT*seqn + rtt)/(seqn + 1.0));
+				if (seqn)
+					m_RTT = std::round (RTT_EWMA_ALPHA * m_RTT + (1.0 - RTT_EWMA_ALPHA) * rtt);
+				else
+					m_RTT = rtt;
 				m_RTO = m_RTT*1.5; // TODO: implement it better
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
@@ -998,8 +1001,8 @@ namespace stream
 				m_RTO *= 2;
 				switch (m_NumResendAttempts)
 				{
-					case 1: // congesion avoidance
-						m_WindowSize >>= 1; // /2
+					case 1: // congestion avoidance
+						m_WindowSize -= (m_WindowSize + WINDOW_SIZE_DROP_FRACTION) / WINDOW_SIZE_DROP_FRACTION; // adjustment >= 1
 						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 					break;
 					case 2:
