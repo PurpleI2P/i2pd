@@ -887,8 +887,7 @@ namespace garlic
 			}
 			else
 			{
-				auto session = it->second.tagset->GetSession ();
-				if (!session || session->IsTerminated())
+				if (it->second.tagset->IsSessionTerminated ())
 				{
 					it = m_ECIESx25519Tags.erase (it);
 					numExpiredTags++;
