@@ -410,6 +410,7 @@ namespace client
 		}
 		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
+		std::shared_ptr<LeaseSetRequest> request;
 		switch (buf[DATABASE_STORE_TYPE_OFFSET])
 		{
 			case i2p::data::NETDB_STORE_TYPE_LEASESET: // 1
@@ -465,34 +466,59 @@ namespace client
 			case i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2: // 5
 			{
 				auto it2 = m_LeaseSetRequests.find (key);
-				if (it2 != m_LeaseSetRequests.end () && it2->second->requestedBlindedKey)
-				{
-					auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
-						it2->second->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
-					if (ls2->IsValid () && !ls2->IsExpired ())
+				if (it2 != m_LeaseSetRequests.end ())
+				{	
+					request = it2->second;
+					m_LeaseSetRequests.erase (it2);
+					if (request->requestedBlindedKey)
 					{
-						leaseSet = ls2;
-						std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
-						m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
-						m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
+						auto ls2 = std::make_shared<i2p::data::LeaseSet2> (buf + offset, len - offset,
+							request->requestedBlindedKey, m_LeaseSetPrivKey ? ((const uint8_t *)*m_LeaseSetPrivKey) : nullptr , GetPreferredCryptoType ());
+						if (ls2->IsValid () && !ls2->IsExpired ())
+						{
+							leaseSet = ls2;
+							std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+							m_RemoteLeaseSets[ls2->GetIdentHash ()] = ls2; // ident is not key
+							m_RemoteLeaseSets[key] = ls2; // also store as key for next lookup
+						}
+						else
+							LogPrint (eLogError, "Destination: New remote encrypted LeaseSet2 failed");
 					}
 					else
-						LogPrint (eLogError, "Destination: New remote encrypted LeaseSet2 failed");
+					{
+						// publishing verification doesn't have requestedBlindedKey
+						auto localLeaseSet = GetLeaseSetMt ();
+						if (localLeaseSet->GetStoreHash () == key)
+						{	
+							auto ls = std::make_shared<i2p::data::LeaseSet2> (i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2, 
+								localLeaseSet->GetBuffer (), localLeaseSet->GetBufferLen (), false);
+							leaseSet = ls;	
+						}	
+						else
+							LogPrint (eLogWarning, "Destination: Encrypted LeaseSet2 received for request without blinded key");
+					}	
 				}
 				else
-					LogPrint (eLogInfo, "Destination: Couldn't find request for encrypted LeaseSet2");
+					LogPrint (eLogWarning, "Destination: Couldn't find request for encrypted LeaseSet2");
 				break;
 			}
 			default:
 				LogPrint (eLogError, "Destination: Unexpected client's DatabaseStore type ", buf[DATABASE_STORE_TYPE_OFFSET], ", dropped");
 		}
 
-		auto it1 = m_LeaseSetRequests.find (key);
-		if (it1 != m_LeaseSetRequests.end ())
+		if (!request)
+		{	
+			auto it1 = m_LeaseSetRequests.find (key);
+			if (it1 != m_LeaseSetRequests.end ())
+			{	
+				request = it1->second;
+				m_LeaseSetRequests.erase (it1);
+			}	
+		}	
+		if (request)
 		{
-			it1->second->requestTimeoutTimer.cancel ();
-			if (it1->second) it1->second->Complete (leaseSet);
-			m_LeaseSetRequests.erase (it1);
+			request->requestTimeoutTimer.cancel ();
+			request->Complete (leaseSet);
 		}
 	}
 
@@ -699,7 +725,6 @@ namespace client
 						{
 							// we got latest LeasetSet
 							LogPrint (eLogDebug, "Destination: Published LeaseSet verified for ", s->GetIdentHash().ToBase32());
-							s->m_ExcludedFloodfills.clear ();
 							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));
 							return;
