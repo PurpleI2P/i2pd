@@ -9,6 +9,11 @@
 #include <algorithm>
 #include <boost/filesystem.hpp>
 
+#if defined(MAC_OSX)
+#include <boost/system/system_error.hpp>
+#include <TargetConditionals.h>
+#endif
+
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
@@ -251,8 +256,22 @@ namespace fs {
 			auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
 			if (boost::filesystem::exists(p))
 				continue;
-			if (boost::filesystem::create_directory(p))
+#ifdef TARGET_OS_SIMULATOR
+            // ios simulator fs says it is case sensitive, but it is not
+            boost::system::error_code ec;
+            if (boost::filesystem::create_directory(p, ec))
+                continue;
+            switch (ec.value()) {
+                case boost::system::errc::file_exists:
+                case boost::system::errc::success:
+                    continue;
+                default:
+                    throw boost::system::system_error( ec, __func__ );
+            }
+#else
+            if (boost::filesystem::create_directory(p))
 				continue; /* ^ throws exception on failure */
+#endif
 			return false;
 		}
 		return true;
