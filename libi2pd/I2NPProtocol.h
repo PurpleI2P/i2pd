@@ -152,6 +152,7 @@ namespace tunnel
 	const size_t I2NP_MAX_MESSAGE_SIZE = 62708;
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
 	const size_t I2NP_MAX_MEDIUM_MESSAGE_SIZE = 16384;
+	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT = 2000000; // in microseconds
 	const unsigned int I2NP_MESSAGE_EXPIRATION_TIMEOUT = 8000; // in milliseconds (as initial RTT)
 	const unsigned int I2NP_MESSAGE_CLOCK_SKEW = 60*1000; // 1 minute in milliseconds
 
@@ -161,9 +162,10 @@ namespace tunnel
 		size_t len, offset, maxLen;
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
 		std::function<void ()> onDrop;
-		
-		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
-			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
+		uint64_t localExpiration; // monotonic microseconds
+
+		I2NPMessage (): buf (nullptr), len (I2NP_HEADER_SIZE + 2),
+			offset(2), maxLen (0), from (nullptr), localExpiration(0) {}; // reserve 2 bytes for NTCP header
 
 		// header accessors
 		uint8_t * GetHeader () { return GetBuffer (); };
@@ -173,6 +175,7 @@ namespace tunnel
 		void SetMsgID (uint32_t msgID) { htobe32buf (GetHeader () + I2NP_HEADER_MSGID_OFFSET, msgID); };
 		uint32_t GetMsgID () const { return bufbe32toh (GetHeader () + I2NP_HEADER_MSGID_OFFSET); };
 		void SetExpiration (uint64_t expiration) { htobe64buf (GetHeader () + I2NP_HEADER_EXPIRATION_OFFSET, expiration); };
+		void SetLocalExpiration (uint64_t expiration) { localExpiration = expiration; };
 		uint64_t GetExpiration () const { return bufbe64toh (GetHeader () + I2NP_HEADER_EXPIRATION_OFFSET); };
 		void SetSize (uint16_t size) { htobe16buf (GetHeader () + I2NP_HEADER_SIZE_OFFSET, size); };
 		uint16_t GetSize () const { return bufbe16toh (GetHeader () + I2NP_HEADER_SIZE_OFFSET); };
@@ -264,6 +267,8 @@ namespace tunnel
 		void RenewI2NPMessageHeader ();
 		bool IsExpired () const;
 		bool IsExpired (uint64_t ts) const; // in milliseconds
+		bool IsLocalExpired (uint64_t mts) const { return mts > localExpiration; }; // monotonic microseconds
+		bool IsLocalSemiExpired (uint64_t mts) const { return mts > localExpiration - I2NP_MESSAGE_EXPIRATION_TIMEOUT / 2; }; // monotonic microseconds
 
 		void Drop () { if (onDrop) { onDrop (); onDrop = nullptr; }; }
 	};
