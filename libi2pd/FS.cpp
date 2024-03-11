@@ -256,7 +256,7 @@ namespace fs {
 			auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
 			if (boost::filesystem::exists(p))
 				continue;
-#ifdef TARGET_OS_SIMULATOR
+#if TARGET_OS_SIMULATOR
             // ios simulator fs says it is case sensitive, but it is not
             boost::system::error_code ec;
             if (boost::filesystem::create_directory(p, ec))
