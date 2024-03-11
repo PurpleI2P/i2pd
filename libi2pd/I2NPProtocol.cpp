@@ -115,6 +115,17 @@ namespace i2p
 		return newMsg;
 	}
 
+	std::shared_ptr<I2NPMessage> CreateTunnelTestMsg (uint32_t msgID)
+	{
+		auto m = NewI2NPShortMessage ();
+		uint8_t * buf = m->GetPayload ();
+		htobe32buf (buf + TUNNEL_TEST_MSGID_OFFSET, msgID);
+		htobe64buf (buf + TUNNEL_TEST_TIMESTAMP_OFFSET, i2p::util::GetMonotonicMicroseconds ());
+		m->len += TUNNEL_TEST_SIZE;
+		m->FillI2NPMessageHeader (eI2NPTunnelTest);
+		return m;
+	}
+
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 		auto m = NewI2NPShortMessage ();
@@ -870,6 +881,10 @@ namespace i2p
 						i2p::context.ProcessDeliveryStatusMessage (msg);
 					break;
 				}
+				case eI2NPTunnelTest:
+					if (msg->from && msg->from->GetTunnelPool ())
+						msg->from->GetTunnelPool ()->ProcessTunnelTest (msg);
+				break;
 				case eI2NPVariableTunnelBuild:
 				case eI2NPTunnelBuild:
 				case eI2NPShortTunnelBuild:

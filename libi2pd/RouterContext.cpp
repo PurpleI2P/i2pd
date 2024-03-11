@@ -40,7 +40,7 @@ namespace i2p
 	void RouterContext::Init ()
 	{
 		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
-		m_StartupTime = std::chrono::steady_clock::now();
+		m_StartupTime = i2p::util::GetMonotonicSeconds ();
 
 		if (!Load ())
 			CreateNewRouter ();
@@ -1152,13 +1152,13 @@ namespace i2p
 
 	bool RouterContext::HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID)
 	{
-		if (typeID == eI2NPDeliveryStatus)
+		if (typeID == eI2NPTunnelTest)
 		{
 			// try tunnel test
 			auto pool = GetTunnelPool ();
-			if (pool && pool->ProcessDeliveryStatus (bufbe32toh (payload + DELIVERY_STATUS_MSGID_OFFSET), bufbe64toh (payload + DELIVERY_STATUS_TIMESTAMP_OFFSET)))
+			if (pool && pool->ProcessTunnelTest (bufbe32toh (payload + TUNNEL_TEST_MSGID_OFFSET), bufbe64toh (payload + TUNNEL_TEST_TIMESTAMP_OFFSET)))
 				return true;
-		}	
+		}
 		auto msg = CreateI2NPMessage (typeID, payload, len, msgID);
 		if (!msg) return false;
 		i2p::HandleI2NPMessage (msg);
@@ -1236,7 +1236,7 @@ namespace i2p
 
 	uint32_t RouterContext::GetUptime () const
 	{
-		return std::chrono::duration_cast<std::chrono::seconds> (std::chrono::steady_clock::now() - m_StartupTime).count ();
+		return i2p::util::GetMonotonicSeconds () - m_StartupTime;
 	}
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const

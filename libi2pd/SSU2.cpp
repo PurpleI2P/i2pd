@@ -256,8 +256,33 @@ namespace transport
 			socket.open (localEndpoint.protocol ());
 			if (localEndpoint.address ().is_v6 ())
 				socket.set_option (boost::asio::ip::v6_only (true));
-			socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU2_SOCKET_RECEIVE_BUFFER_SIZE));
-			socket.set_option (boost::asio::socket_base::send_buffer_size (SSU2_SOCKET_SEND_BUFFER_SIZE));
+
+			uint64_t bufferSize = i2p::context.GetBandwidthLimit() * 1024 / 5; // max lag = 200ms
+			bufferSize = std::max(SSU2_SOCKET_MIN_BUFFER_SIZE, std::min(bufferSize, SSU2_SOCKET_MAX_BUFFER_SIZE));
+
+			boost::asio::socket_base::receive_buffer_size receiveBufferSizeSet (bufferSize);
+			boost::asio::socket_base::send_buffer_size sendBufferSizeSet (bufferSize);
+			socket.set_option (receiveBufferSizeSet);
+			socket.set_option (sendBufferSizeSet);
+			boost::asio::socket_base::receive_buffer_size receiveBufferSizeGet;
+			boost::asio::socket_base::send_buffer_size sendBufferSizeGet;
+			socket.get_option (receiveBufferSizeGet);
+			socket.get_option (sendBufferSizeGet);
+			if (receiveBufferSizeGet.value () != receiveBufferSizeSet.value () ||
+				sendBufferSizeGet.value () != sendBufferSizeSet.value ())
+			{
+				LogPrint (eLogWarning, "SSU2: Socket receive buffer size: requested = ",
+					receiveBufferSizeSet.value (), ", got = ", receiveBufferSizeGet.value ());
+				LogPrint (eLogWarning, "SSU2: Socket send buffer size: requested = ",
+					sendBufferSizeSet.value (), ", got = ", sendBufferSizeGet.value ());
+			}
+			else
+			{
+				LogPrint (eLogInfo, "SSU2: Socket receive buffer size: ", receiveBufferSizeGet.value ());
+				LogPrint (eLogInfo, "SSU2: Socket send buffer size: ", sendBufferSizeGet.value ());
+			}
+
+			socket.non_blocking (true);
 		}
 		catch (std::exception& ex )
 		{
@@ -469,7 +494,7 @@ namespace transport
 		m_PendingOutgoingSessions.erase (ep);
 	}
 
-	std::shared_ptr<SSU2Session> SSU2Server::GetRandomSession (
+	std::shared_ptr<SSU2Session> SSU2Server::GetRandomPeerTestSession (
 		i2p::data::RouterInfo::CompatibleTransports remoteTransports, const i2p::data::IdentHash& excluded) const
 	{
 		if (m_Sessions.empty ()) return nullptr;
@@ -480,7 +505,7 @@ namespace transport
 		std::advance (it, ind);
 		while (it != m_Sessions.end ())
 		{
-			if ((it->second->GetRemoteTransports () & remoteTransports) &&
+			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++;
@@ -489,7 +514,7 @@ namespace transport
 		it = m_Sessions.begin ();
 		while (it != m_Sessions.end () && ind)
 		{
-			if ((it->second->GetRemoteTransports () & remoteTransports) &&
+			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++; ind--;
@@ -637,7 +662,10 @@ namespace transport
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + payloadLen);
 		else
-			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+		{
+			LogPrint (ec == boost::asio::error::would_block ? eLogInfo : eLogError,
+				"SSU2: Send exception: ", ec.message (), " to ", to);
+		}
 	}
 
 	void SSU2Server::Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
@@ -671,7 +699,10 @@ namespace transport
 		if (!ec)
 			i2p::transport::transports.UpdateSentBytes (headerLen + headerXLen + payloadLen);
 		else
-			LogPrint (eLogError, "SSU2: Send exception: ", ec.message (), " to ", to);
+		{
+			LogPrint (ec == boost::asio::error::would_block ? eLogInfo : eLogError,
+				"SSU2: Send exception: ", ec.message (), " to ", to);
+		}
 	}
 
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
@@ -825,8 +856,11 @@ namespace transport
 		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
 		if (it != m_SessionsByRouterHash.end ())
 		{
-			auto s = it->second;
-			if (it->second->IsEstablished ())
+			auto remoteAddr = it->second->GetAddress ();
+			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
+			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;
+			auto s = it->second;    
+			if (s->IsEstablished ())
 				GetService ().post ([s]() { s->SendPeerTest (); });
 			else
 				s->SetOnEstablished ([s]() { s->SendPeerTest (); });

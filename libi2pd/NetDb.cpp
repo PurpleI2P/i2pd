@@ -672,10 +672,11 @@ namespace data
 					    (CreateRoutingKey (it.second->GetIdentHash ()) ^ i2p::context.GetIdentHash ()).metric[0] >= 0x02)) // different first 7 bits 
 							it.second->SetUnreachable (true);
 				}	
-				if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
-					it.second->SetUnreachable (false); // don't expire connected router
 			}
-
+			// make router reachable back if connected now
+			if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
+				it.second->SetUnreachable (false);
+			
 			if (it.second->IsUnreachable ())
 			{
 				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
@@ -823,17 +824,31 @@ namespace data
 			offset += 4;
 			if (replyToken != 0xFFFFFFFFU) // if not caught on OBEP or IBGW
 			{
+				IdentHash replyIdent(buf + offset);
 				auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
 				if (!tunnelID) // send response directly
-					transports.SendMessage (buf + offset, deliveryStatus);
+					transports.SendMessage (replyIdent, deliveryStatus);
 				else
 				{
-					auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-					auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-					if (outbound)
-						outbound->SendTunnelDataMsgTo (buf + offset, tunnelID, deliveryStatus);
+					bool direct = true;
+					if (!i2p::transport::transports.IsConnected (replyIdent))
+					{
+						auto r = FindRouter (replyIdent);
+						if (r && !r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+							direct = false;
+					}	
+					if (direct) // send response directly to IBGW
+						transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (tunnelID, deliveryStatus));
 					else
-						LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
+					{		
+						// send response through exploratory tunnel
+						auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+						auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+						if (outbound)
+							outbound->SendTunnelDataMsgTo (replyIdent, tunnelID, deliveryStatus);
+						else
+							LogPrint (eLogWarning, "NetDb: No outbound tunnels for DatabaseStore reply found");
+					}		
 				}
 			}
 			offset += 32;
@@ -956,8 +971,10 @@ namespace data
 				LogPrint (eLogDebug, "NetDb: Found new/outdated router. Requesting RouterInfo...");
 				if(m_FloodfillBootstrap)
 					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
-				else
+				else if (!IsRouterBanned (router))
 					RequestDestination (router);
+				else
+					LogPrint (eLogDebug, "NetDb: Router ", peerHash, " is banned. Skipped");
 			}
 			else
 				LogPrint (eLogDebug, "NetDb: [:|||:]");
@@ -1111,12 +1128,24 @@ namespace data
 					else
 						LogPrint(eLogWarning, "NetDb: Encrypted reply requested but no tags provided");
 				}
-				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-				if (outbound)
-					outbound->SendTunnelDataMsgTo (replyIdent, replyTunnelID, replyMsg);
-				else
+				bool direct = true;
+				if (!i2p::transport::transports.IsConnected (replyIdent))
+				{
+					auto r = FindRouter (replyIdent);
+					if (r && !r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+						direct = false;
+				}	
+				if (direct)
 					transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+				else
+				{	
+					auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+					auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+					if (outbound)
+						outbound->SendTunnelDataMsgTo (replyIdent, replyTunnelID, replyMsg);
+					else
+						LogPrint (eLogWarning, "NetDb: Can't send lookup reply to ", replyIdent.ToBase64 (), ". Non reachable and no outbound tunnels");
+				}	
 			}
 			else
 				transports.SendMessage (replyIdent, replyMsg);

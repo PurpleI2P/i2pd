@@ -102,7 +102,10 @@ namespace tunnel
 				it->SetTunnelPool (nullptr);
 			m_OutboundTunnels.clear ();
 		}
-		m_Tests.clear ();
+		{
+			std::unique_lock<std::mutex> l(m_TestsMutex);
+			m_Tests.clear ();
+		}	
 	}
 
 	bool TunnelPool::Reconfigure(int inHops, int outHops, int inQuant, int outQuant)
@@ -145,8 +148,11 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto& it: m_Tests)
-				if (it.second.second == expiredTunnel) it.second.second = nullptr;
+			{
+				std::unique_lock<std::mutex> l(m_TestsMutex);
+				for (auto& it: m_Tests)
+					if (it.second.second == expiredTunnel) it.second.second = nullptr;
+			}	
 
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.erase (expiredTunnel);
@@ -167,8 +173,11 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto& it: m_Tests)
-				if (it.second.first == expiredTunnel) it.second.first = nullptr;
+			{
+				std::unique_lock<std::mutex> l(m_TestsMutex);
+				for (auto& it: m_Tests)
+					if (it.second.first == expiredTunnel) it.second.first = nullptr;
+			}	
 
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.erase (expiredTunnel);
@@ -342,7 +351,7 @@ namespace tunnel
 					else
 						it.second.first->SetState (eTunnelStateTestFailed);
 				}
-				else
+				else if (it.second.first->GetState () != eTunnelStateExpiring)
 					it.second.first->SetState (eTunnelStateTestFailed);
 			}
 			if (it.second.second)
@@ -360,18 +369,19 @@ namespace tunnel
 					if (m_LocalDestination)
 						m_LocalDestination->SetLeaseSetUpdated ();
 				}
-				else
+				else if (it.second.second->GetState () != eTunnelStateExpiring)
 					it.second.second->SetState (eTunnelStateTestFailed);
 			}
 		}
 
 		// new tests
+		if (!m_LocalDestination) return; 
 		std::vector<std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > newTests;
 		std::vector<std::shared_ptr<OutboundTunnel> > outboundTunnels;
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto& it: m_OutboundTunnels)
-				if (it->IsEstablished () || it->GetState () == eTunnelStateTestFailed)
+				if (it->IsEstablished ())
 					outboundTunnels.push_back (it);
 		}
 		std::shuffle (outboundTunnels.begin(), outboundTunnels.end(), m_Rng);
@@ -379,7 +389,7 @@ namespace tunnel
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto& it: m_InboundTunnels)
-				if (it->IsEstablished () || it->GetState () == eTunnelStateTestFailed)
+				if (it->IsEstablished ())
 					inboundTunnels.push_back (it);
 		}
 		std::shuffle (inboundTunnels.begin(), inboundTunnels.end(), m_Rng);
@@ -390,7 +400,7 @@ namespace tunnel
 			newTests.push_back(std::make_pair (*it1, *it2));
 			++it1; ++it2;
 		}
-		bool encrypt = m_LocalDestination ? m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD) : false;
+		bool isECIES = m_LocalDestination->SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD);
 		for (auto& it: newTests)
 		{
 			uint32_t msgID;
@@ -399,7 +409,7 @@ namespace tunnel
 				std::unique_lock<std::mutex> l(m_TestsMutex);
 				m_Tests[msgID] = it;
 			}
-			auto msg = CreateDeliveryStatusMsg (msgID);
+			auto msg = CreateTunnelTestMsg (msgID);
 			auto outbound = it.first;
 			auto s = shared_from_this ();
 			msg->onDrop = [msgID, outbound, s]()
@@ -414,14 +424,22 @@ namespace tunnel
 						std::unique_lock<std::mutex> l(s->m_OutboundTunnelsMutex);
 						s->m_OutboundTunnels.erase (outbound);
 					}
-				};	
-			if (encrypt)
+				};
+			// encrypt
+			if (isECIES)
 			{
-				// encrypt
 				uint8_t key[32]; RAND_bytes (key, 32);
 				uint64_t tag; RAND_bytes ((uint8_t *)&tag, 8); 
 				m_LocalDestination->SubmitECIESx25519Key (key, tag);
 				msg = i2p::garlic::WrapECIESX25519Message (msg, key, tag);
+			}
+			else
+			{
+				uint8_t key[32], tag[32];
+				RAND_bytes (key, 32); RAND_bytes (tag, 32);
+				m_LocalDestination->SubmitSessionKey (key, tag);
+				i2p::garlic::ElGamalAESSession garlic (key, tag);
+				msg = garlic.WrapSingleMessage (msg);
 			}	
 			outbound->SendTunnelDataMsgTo (it.second->GetNextIdentHash (), it.second->GetNextTunnelID (), msg);
 		}	
@@ -447,21 +465,23 @@ namespace tunnel
 
 	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
 	{
+		if (m_LocalDestination)
+			m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+		else
+			LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
+	}
+
+	void TunnelPool::ProcessTunnelTest (std::shared_ptr<I2NPMessage> msg)
+	{
 		const uint8_t * buf = msg->GetPayload ();
 		uint32_t msgID = bufbe32toh (buf);
 		buf += 4;
 		uint64_t timestamp = bufbe64toh (buf);
 
-		if (!ProcessDeliveryStatus (msgID, timestamp))
-		{
-			if (m_LocalDestination)
-				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
-			else
-				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
-		}
+		ProcessTunnelTest (msgID, timestamp);
 	}
 
-	bool TunnelPool::ProcessDeliveryStatus (uint32_t msgID, uint64_t timestamp)
+	bool TunnelPool::ProcessTunnelTest (uint32_t msgID, uint64_t timestamp)
 	{
 		decltype(m_Tests)::mapped_type test;
 		bool found = false;
@@ -477,8 +497,9 @@ namespace tunnel
 		}
 		if (found)
 		{
-			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
-			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " milliseconds");
+			int dlt = (uint64_t)i2p::util::GetMonotonicMicroseconds () - (int64_t)timestamp;
+			LogPrint (eLogDebug, "Tunnels: Test of ", msgID, " successful. ", dlt, " microseconds");
+			if (dlt < 0) dlt = 0; // should not happen
 			int numHops = 0;
 			if (test.first) numHops += test.first->GetNumHops ();
 			if (test.second) numHops += test.second->GetNumHops ();
@@ -488,20 +509,20 @@ namespace tunnel
 				if (test.first->GetState () != eTunnelStateExpiring)
 					test.first->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.first->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
-				test.first->AddLatencySample(latency);
+				test.first->AddLatencySample (latency);
 			}
 			if (test.second)
 			{
 				if (test.second->GetState () != eTunnelStateExpiring)
 					test.second->SetState (eTunnelStateEstablished);
 				// update latency
-				uint64_t latency = 0;
+				int latency = 0;
 				if (numHops) latency = dlt*test.second->GetNumHops ()/numHops;
 				if (!latency) latency = dlt/2;
-				test.second->AddLatencySample(latency);
+				test.second->AddLatencySample (latency);
 			}
 		}
 		return found;
@@ -823,7 +844,7 @@ namespace tunnel
 	{
 		std::shared_ptr<InboundTunnel> tun = nullptr;
 		std::unique_lock<std::mutex> lock(m_InboundTunnelsMutex);
-		uint64_t min = 1000000;
+		int min = 1000000;
 		for (const auto & itr : m_InboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
 			auto l = itr->GetMeanLatency();
@@ -839,7 +860,7 @@ namespace tunnel
 	{
 		std::shared_ptr<OutboundTunnel> tun = nullptr;
 		std::unique_lock<std::mutex> lock(m_OutboundTunnelsMutex);
-		uint64_t min = 1000000;
+		int min = 1000000;
 		for (const auto & itr : m_OutboundTunnels) {
 			if(!itr->LatencyIsKnown()) continue;
 			auto l = itr->GetMeanLatency();

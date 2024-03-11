@@ -87,6 +87,7 @@ namespace data
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);
+	bool IsRouterBanned (const IdentHash& identHash); // check only existing profiles
 	void InitProfilesStorage ();
 	void DeleteObsoleteProfiles ();
 	void SaveProfiles ();

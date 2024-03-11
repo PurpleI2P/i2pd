@@ -48,6 +48,11 @@ namespace i2p
 	const size_t DELIVERY_STATUS_TIMESTAMP_OFFSET = DELIVERY_STATUS_MSGID_OFFSET + 4;
 	const size_t DELIVERY_STATUS_SIZE = DELIVERY_STATUS_TIMESTAMP_OFFSET + 8;
 
+	// TunnelTest
+	const size_t TUNNEL_TEST_MSGID_OFFSET = 0;
+	const size_t TUNNEL_TEST_TIMESTAMP_OFFSET = TUNNEL_TEST_MSGID_OFFSET + 4;
+	const size_t TUNNEL_TEST_SIZE = TUNNEL_TEST_TIMESTAMP_OFFSET + 8;
+
 	// DatabaseStore
 	const size_t DATABASE_STORE_KEY_OFFSET = 0;
 	const size_t DATABASE_STORE_TYPE_OFFSET = DATABASE_STORE_KEY_OFFSET + 32;
@@ -116,7 +121,8 @@ namespace i2p
 		eI2NPVariableTunnelBuild = 23,
 		eI2NPVariableTunnelBuildReply = 24,
 		eI2NPShortTunnelBuild = 25,
-		eI2NPShortTunnelBuildReply = 26
+		eI2NPShortTunnelBuildReply = 26,
+		eI2NPTunnelTest = 231
 	};
 
 	const uint8_t TUNNEL_BUILD_RECORD_GATEWAY_FLAG = 0x80;
@@ -279,6 +285,7 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	std::shared_ptr<I2NPMessage> CopyI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 
+	std::shared_ptr<I2NPMessage> CreateTunnelTestMsg (uint32_t msgID);
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);

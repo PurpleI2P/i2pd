@@ -25,8 +25,8 @@ namespace transport
 	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 100; // in milliseconds
 	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 10; // in milliseconds
 	const size_t SSU2_MAX_RESEND_PACKETS = 128; // packets to resend at the time
-	const size_t SSU2_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
-	const size_t SSU2_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
+	const uint64_t SSU2_SOCKET_MIN_BUFFER_SIZE = 128 * 1024;
+	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const size_t SSU2_MIN_RECEIVED_PACKET_SIZE = 40; // 16 byte short header + 8 byte minimum payload + 16 byte MAC
 	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
@@ -77,7 +77,7 @@ namespace transport
 			void RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<SSU2Session> FindSession (const i2p::data::IdentHash& ident) const;
 			std::shared_ptr<SSU2Session> FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const;
-			std::shared_ptr<SSU2Session> GetRandomSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports,
+			std::shared_ptr<SSU2Session> GetRandomPeerTestSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports,
 				const i2p::data::IdentHash& excluded) const;
 
 			void AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay);
