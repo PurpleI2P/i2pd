@@ -294,8 +294,10 @@ namespace transport
 		{
 			m_TerminationReason = reason;
 			SendTermination ();
+			m_State = eSSU2SessionStateClosing;
 		}
-		m_State = eSSU2SessionStateClosing;
+		else
+			Done ();
 	}
 
 	void SSU2Session::Established ()
