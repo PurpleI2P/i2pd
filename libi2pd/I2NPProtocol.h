@@ -268,7 +268,7 @@ namespace tunnel
 		bool IsExpired () const;
 		bool IsExpired (uint64_t ts) const; // in milliseconds
 		bool IsLocalExpired (uint64_t mts) const { return mts > localExpiration; }; // monotonic microseconds
-		bool IsLocalSemiExpired (uint64_t mts) const { return mts > localExpiration - I2NP_MESSAGE_EXPIRATION_TIMEOUT / 2; }; // monotonic microseconds
+		bool IsLocalSemiExpired (uint64_t mts) const { return mts > localExpiration - I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT / 2; }; // monotonic microseconds
 
 		void Drop () { if (onDrop) { onDrop (); onDrop = nullptr; }; }
 	};
