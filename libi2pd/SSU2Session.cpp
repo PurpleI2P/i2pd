@@ -537,7 +537,7 @@ namespace transport
 		if (m_SentPackets.empty ()) return 0;
 		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
-			if (ts >= it->second->sendTime + it->second->numResends*m_RTO)
+			if (ts >= it->second->sendTime + (it->second->numResends + 1) * m_RTO)
 			{
 				if (it->second->numResends > SSU2_MAX_NUM_RESENDS)
 				{
