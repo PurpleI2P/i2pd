@@ -84,9 +84,9 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE),
-		m_RTT (SSU2_UNKNOWN_RTT), m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),
-		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
+		m_IsDataReceived (false), m_RTT (SSU2_UNKNOWN_RTT), m_WindowSize (SSU2_MIN_WINDOW_SIZE), 
+		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
+		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
