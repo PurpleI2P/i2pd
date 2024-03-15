@@ -57,7 +57,7 @@ namespace stream
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 128;
 	const int WINDOW_SIZE_DROP_FRACTION = 10; // 1/10
-	const double RTT_EWMA_ALPHA = 0.5;
+	const double RTT_EWMA_ALPHA = 0.125;
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
@@ -254,7 +254,8 @@ namespace stream
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
+			double m_RTT;
+			int m_WindowSize, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
 			size_t m_MTU;

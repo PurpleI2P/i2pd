@@ -434,7 +434,7 @@ namespace stream
 					rtt = 1;
 				}
 				if (seqn)
-					m_RTT = std::round (RTT_EWMA_ALPHA * m_RTT + (1.0 - RTT_EWMA_ALPHA) * rtt);
+					m_RTT = RTT_EWMA_ALPHA * rtt + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
 				else
 					m_RTT = rtt;
 				m_RTO = m_RTT*1.5; // TODO: implement it better
@@ -457,7 +457,7 @@ namespace stream
 				if (!seqn && m_RoutingSession) // first message confirmed
 					m_RoutingSession->SetSharedRoutingPath (
 						std::make_shared<i2p::garlic::GarlicRoutingPath> (
-							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, m_RTT, 0, 0}));
+							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, 0}));
 			}
 			else
 				break;
