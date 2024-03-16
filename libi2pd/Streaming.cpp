@@ -427,17 +427,18 @@ namespace stream
 					}
 				}
 				auto sentPacket = *it;
-				uint64_t rtt = ts - sentPacket->sendTime;
-				if(ts < sentPacket->sendTime)
-				{
-					LogPrint(eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
-					rtt = 1;
-				}
-				if (seqn)
+				int64_t rtt = (int64_t)ts - (int64_t)sentPacket->sendTime;
+				if (rtt < 0)
+					LogPrint (eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
+				bool rttUpdated = true;
+				if (!seqn)
+					m_RTT = rtt < 0 ? 1 : rtt;
+				else if (!sentPacket->resent && rtt >= 0)
 					m_RTT = RTT_EWMA_ALPHA * rtt + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
 				else
-					m_RTT = rtt;
-				m_RTO = m_RTT*1.5; // TODO: implement it better
+					rttUpdated = false;
+				if (rttUpdated)
+					m_RTO = m_RTT * 1.5; // TODO: implement it better
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
@@ -989,6 +990,7 @@ namespace stream
 			{
 				if (ts >= it->sendTime + m_RTO)
 				{
+					it->resent = true;
 					it->sendTime = ts;
 					packets.push_back (it);
 				}
