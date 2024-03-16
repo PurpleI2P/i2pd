@@ -71,8 +71,9 @@ namespace stream
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];
 		uint64_t sendTime;
+		bool resent;
 
-		Packet (): len (0), offset (0), sendTime (0) {};
+		Packet (): len (0), offset (0), sendTime (0), resent (false) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
