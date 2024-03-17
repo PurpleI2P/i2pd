@@ -6,7 +6,13 @@ CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misl
 ## (e.g. -fstack-protector-strong -Wformat -Werror=format-security), we do not want to remove
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
-NEEDED_CXXFLAGS = -std=c++11
+CXXVER := $(shell $(CXX) -dumpversion)
+ifneq ($(shell expr match $(CXX) 'clang'),5)
+	NEEDED_CXXFLAGS = -std=c++11
+else ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
+	NEEDED_CXXFLAGS = -std=c++11
+else # newer versions support C++17
+	NEEDED_CXXFLAGS = -std=c++17
 DEFINES = -D_GLIBCXX_USE_NANOSLEEP=1
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
