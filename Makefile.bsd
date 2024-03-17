@@ -13,6 +13,7 @@ else ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
 	NEEDED_CXXFLAGS = -std=c++11
 else # newer versions support C++17
 	NEEDED_CXXFLAGS = -std=c++17
+endif
 DEFINES = -D_GLIBCXX_USE_NANOSLEEP=1
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
