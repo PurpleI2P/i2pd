@@ -7,9 +7,7 @@ CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misl
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 CXXVER := $(shell $(CXX) -dumpversion)
-ifneq ($(shell expr match $(CXX) 'clang'),5)
-	NEEDED_CXXFLAGS = -std=c++11
-else ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
+ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
 	NEEDED_CXXFLAGS = -std=c++11
 else # newer versions support C++17
 	NEEDED_CXXFLAGS = -std=c++17
