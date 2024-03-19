@@ -1013,7 +1013,8 @@ namespace stream
 			if (packets.size () > 0)
 			{
 				m_NumResendAttempts++;
-				m_RTO *= 2;
+				if (m_RTO != INITIAL_RTO)
+					m_RTO *= 2;
 				switch (m_NumResendAttempts)
 				{
 					case 1: // congestion avoidance
