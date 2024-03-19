@@ -438,7 +438,7 @@ namespace stream
 				else
 					rttUpdated = false;
 				if (rttUpdated)
-					m_RTO = m_RTT * 1.5; // TODO: implement it better
+					m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
@@ -882,7 +882,7 @@ namespace stream
 				m_CurrentOutboundTunnel = routingPath->outboundTunnel;
 				m_CurrentRemoteLease = routingPath->remoteLease;
 				m_RTT = routingPath->rtt;
-				m_RTO = m_RTT*1.5; // TODO: implement it better
+				m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
 			}
 		}
 

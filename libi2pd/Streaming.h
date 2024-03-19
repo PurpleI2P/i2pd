@@ -58,6 +58,7 @@ namespace stream
 	const int MAX_WINDOW_SIZE = 128;
 	const int WINDOW_SIZE_DROP_FRACTION = 10; // 1/10
 	const double RTT_EWMA_ALPHA = 0.125;
+	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
