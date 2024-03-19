@@ -404,6 +404,8 @@ namespace stream
 			LogPrint (eLogError, "Streaming: Unexpected ackThrough=", ackThrough, " > seqn=", m_SequenceNumber);
 			return;
 		}
+		int rttSample = INT_MAX;
+		bool firstRttSample = false;
 		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
@@ -430,39 +432,45 @@ namespace stream
 				int64_t rtt = (int64_t)ts - (int64_t)sentPacket->sendTime;
 				if (rtt < 0)
 					LogPrint (eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
-				bool rttUpdated = true;
 				if (!seqn)
-					m_RTT = rtt < 0 ? 1 : rtt;
+				{
+					firstRttSample = true;
+					rttSample = rtt < 0 ? 1 : rtt;
+				}
 				else if (!sentPacket->resent && rtt >= 0)
-					m_RTT = RTT_EWMA_ALPHA * rtt + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
-				else
-					rttUpdated = false;
-				if (rttUpdated)
-					m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
+					rttSample = std::min (rttSample, (int)rtt);
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
 				if (m_WindowSize < WINDOW_SIZE)
 					m_WindowSize++; // slow start
-				else
-				{
-					// linear growth
-					if (ts > m_LastWindowSizeIncreaseTime + m_RTT)
-					{
-						m_WindowSize++;
-						if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
-						m_LastWindowSizeIncreaseTime = ts;
-					}
-				}
-				if (!seqn && m_RoutingSession) // first message confirmed
-					m_RoutingSession->SetSharedRoutingPath (
-						std::make_shared<i2p::garlic::GarlicRoutingPath> (
-							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, 0}));
 			}
 			else
 				break;
 		}
+		if (rttSample != INT_MAX)
+		{
+			if (firstRttSample)
+				m_RTT = rttSample;
+			else
+				m_RTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
+		}
+		if (acknowledged && m_WindowSize >= WINDOW_SIZE)
+		{
+			// linear growth
+			if (ts > m_LastWindowSizeIncreaseTime + m_RTT)
+			{
+				m_WindowSize++;
+				if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
+				m_LastWindowSizeIncreaseTime = ts;
+			}
+		}
+		if (firstRttSample && m_RoutingSession)
+			m_RoutingSession->SetSharedRoutingPath (
+				std::make_shared<i2p::garlic::GarlicRoutingPath> (
+					i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, 0}));
 		if (m_SentPackets.empty ())
 			m_ResendTimer.cancel ();
 		if (acknowledged)
