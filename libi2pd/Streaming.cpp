@@ -68,7 +68,8 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local,
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
-		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1),
+		m_SendStreamID (0), m_SequenceNumber (0),
+		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1),
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
@@ -81,7 +82,8 @@ namespace stream
 	}
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
-		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1),
+		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0),
+		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1),
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT),
@@ -437,7 +439,7 @@ namespace stream
 					firstRttSample = true;
 					rttSample = rtt < 0 ? 1 : rtt;
 				}
-				else if (!sentPacket->resent && rtt >= 0)
+				else if (!sentPacket->resent && seqn > m_TunnelsChangeSequenceNumber && rtt >= 0)
 					rttSample = std::min (rttSample, (int)rtt);
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
@@ -455,7 +457,10 @@ namespace stream
 				m_RTT = rttSample;
 			else
 				m_RTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
+			bool wasInitial = m_RTO == INITIAL_RTO;
 			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
+			if (wasInitial)
+				ScheduleResend ();
 		}
 		if (acknowledged && m_WindowSize >= WINDOW_SIZE)
 		{
@@ -1016,6 +1021,7 @@ namespace stream
 						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 					break;
 					case 2:
+						m_TunnelsChangeSequenceNumber = m_SequenceNumber;
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 						[[fallthrough]];
@@ -1028,6 +1034,7 @@ namespace stream
 					break;
 					case 3:
 						// pick another outbound tunnel
+						m_TunnelsChangeSequenceNumber = m_SequenceNumber;
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
 						LogPrint (eLogWarning, "Streaming: Another outbound tunnel has been selected for stream with sSID=", m_SendStreamID);

@@ -238,6 +238,7 @@ namespace stream
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
