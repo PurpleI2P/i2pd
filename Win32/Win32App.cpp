@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -145,7 +145,7 @@ namespace win32
 		s << bytes << " Bytes\n";
 	}
 
-	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing)
+	static void ShowNetworkStatus (std::stringstream& s, RouterStatus status, bool testing, RouterError error)
 	{
 		switch (status)
 		{
@@ -158,18 +158,24 @@ namespace win32
 		};
 		if (testing)
 			s << " (Test)";
-		if (i2p::context.GetError () != eRouterErrorNone)
+		if (error != eRouterErrorNone)
 		{
-			switch (i2p::context.GetError ())
+			switch (error)
 			{
 				case eRouterErrorClockSkew:
-					s << " - Clock skew";
+					s << " - " << tr("Clock skew");
 				break;
 				case eRouterErrorOffline:
-					s << " - Offline";
+					s << " - " << tr("Offline");
 				break;
 				case eRouterErrorSymmetricNAT:
-					s << " - Symmetric NAT";
+					s << " - " << tr("Symmetric NAT");
+				break;
+				case eRouterErrorFullConeNAT:
+					s << " - " << tr("Full cone NAT");
+				break;
+				case eRouterErrorNoDescriptors:
+					s << " - " << tr("No Descriptors");
 				break;
 				default: ;
 			}
@@ -180,11 +186,11 @@ namespace win32
 	{
 		s << "\n";
 		s << "Status: ";
-		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting ());
+		ShowNetworkStatus (s, i2p::context.GetStatus (), i2p::context.GetTesting(), i2p::context.GetError ());
 		if (i2p::context.SupportsV6 ())
 		{
 			s << " / ";
-			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6 ());
+			ShowNetworkStatus (s, i2p::context.GetStatusV6 (), i2p::context.GetTestingV6(), i2p::context.GetErrorV6 ());
 		}
 		s << "; ";
 		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
