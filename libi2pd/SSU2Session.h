@@ -359,6 +359,8 @@ namespace transport
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
 			double m_RTT;
+			int m_MsgLocalExpirationTimeout;
+			int m_MsgLocalSemiExpirationTimeout;
 			size_t m_WindowSize, m_RTO;
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
