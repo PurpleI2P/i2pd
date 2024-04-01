@@ -50,7 +50,7 @@ namespace garlic
 	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960; // 16 minutes
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
 	const int OUTGOING_TAGS_CONFIRMATION_TIMEOUT = 10; // 10 seconds
-	const int LEASET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
+	const int LEASESET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
 	const int ROUTING_PATH_EXPIRATION_TIMEOUT = 30; // 30 seconds
 	const int ROUTING_PATH_MAX_NUM_TIMES_USED = 100; // how many times might be used
 

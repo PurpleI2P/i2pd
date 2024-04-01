@@ -950,10 +950,10 @@ namespace stream
 			if (m_RoutingSession->IsLeaseSetNonConfirmed ())
 			{
 				auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-				if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASET_CONFIRMATION_TIMEOUT)
+				if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASESET_CONFIRMATION_TIMEOUT)
 				{
 					// LeaseSet was not confirmed, should try other tunnels
-					LogPrint (eLogWarning, "Streaming: LeaseSet was not confirmed in ", i2p::garlic::LEASET_CONFIRMATION_TIMEOUT, " milliseconds. Trying to resubmit");
+					LogPrint (eLogWarning, "Streaming: LeaseSet was not confirmed in ", i2p::garlic::LEASESET_CONFIRMATION_TIMEOUT, " milliseconds. Trying to resubmit");
 					m_RoutingSession->SetSharedRoutingPath (nullptr);
 					m_CurrentOutboundTunnel = nullptr;
 					m_CurrentRemoteLease = nullptr;
@@ -1074,9 +1074,13 @@ namespace stream
 			{
 				if (m_RoutingSession && m_RoutingSession->IsLeaseSetNonConfirmed ())
 				{
-					// seems something went wrong and we should re-select tunnels
-					m_CurrentOutboundTunnel = nullptr;
-					m_CurrentRemoteLease = nullptr;
+					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+					if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASESET_CONFIRMATION_TIMEOUT)
+					{	
+						// seems something went wrong and we should re-select tunnels
+						m_CurrentOutboundTunnel = nullptr;
+						m_CurrentRemoteLease = nullptr;
+					}	
 				}
 				SendQuickAck ();
 			}

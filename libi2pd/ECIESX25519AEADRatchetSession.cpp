@@ -863,7 +863,7 @@ namespace garlic
 			payloadLen += msg->GetPayloadLength () + 13;
 			if (m_Destination) payloadLen += 32;
 		}
-		if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)
+		if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASESET_CONFIRMATION_TIMEOUT)
 		{
 			// resubmit non-confirmed LeaseSet
 			SetLeaseSetUpdateStatus (eLeaseSetUpdated);

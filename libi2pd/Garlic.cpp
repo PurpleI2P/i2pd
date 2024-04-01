@@ -80,7 +80,7 @@ namespace garlic
 
 	void GarlicRoutingSession::CleanupUnconfirmedLeaseSet (uint64_t ts)
 	{
-		if (m_LeaseSetUpdateMsgID && ts*1000LL > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
+		if (m_LeaseSetUpdateMsgID && ts*1000LL > m_LeaseSetSubmissionTime + LEASESET_CONFIRMATION_TIMEOUT)
 		{
 			if (GetOwner ())
 				GetOwner ()->RemoveDeliveryStatusSession (m_LeaseSetUpdateMsgID);
@@ -232,7 +232,7 @@ namespace garlic
 		if (GetOwner ())
 		{
 			// resubmit non-confirmed LeaseSet
-			if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASET_CONFIRMATION_TIMEOUT)
+			if (GetLeaseSetUpdateStatus () == eLeaseSetSubmitted && ts > GetLeaseSetSubmissionTime () + LEASESET_CONFIRMATION_TIMEOUT)
 			{
 				SetLeaseSetUpdateStatus (eLeaseSetUpdated);
 				SetSharedRoutingPath (nullptr); // invalidate path since leaseset was not confirmed
