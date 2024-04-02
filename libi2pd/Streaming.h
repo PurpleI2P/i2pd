@@ -66,6 +66,7 @@ namespace stream
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
+	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
 
 	struct Packet
 	{

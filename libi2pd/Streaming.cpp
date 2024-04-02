@@ -289,6 +289,8 @@ namespace stream
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
 				}
+				if (delayRequested >= DELAY_CHOKING)
+					m_WindowSize = 1;
 			}
 			optionData += 2;
 		}
@@ -691,6 +693,7 @@ namespace stream
 		htobe32buf (packet + size, lastReceivedSeqn);
 		size += 4; // ack Through
 		uint8_t numNacks = 0;
+		bool choking = false;
 		if (lastReceivedSeqn > m_LastReceivedSequenceNumber)
 		{
 			// fill NACKs
@@ -703,6 +706,7 @@ namespace stream
 				{
 					LogPrint (eLogError, "Streaming: Number of NACKs exceeds 256. seqn=", seqn, " nextSeqn=", nextSeqn);
 					htobe32buf (packet + 12, nextSeqn - 1); // change ack Through back
+					choking = true;
 					break;
 				}
 				for (uint32_t i = nextSeqn; i < seqn; i++)
@@ -724,10 +728,17 @@ namespace stream
 			size++; // NACK count
 		}
 		packet[size] = 0;
-		size++; // resend delay
-		htobuf16 (packet + size, 0); // no flags set
+		size++; // resend delay	
+		htobuf16 (packet + size, choking ? PACKET_FLAG_DELAY_REQUESTED : 0); // no flags set or delay
 		size += 2; // flags
-		htobuf16 (packet + size, 0); // no options
+		if (choking)
+		{
+			htobuf16 (packet + size, 2); // 2 bytes delay interval
+			htobuf16 (packet + size + 2, DELAY_CHOKING); // set choking interval
+			size += 2;
+		}	
+		else	
+			htobuf16 (packet + size, 0); // no options
 		size += 2; // options size
 		p.len = size;
 
