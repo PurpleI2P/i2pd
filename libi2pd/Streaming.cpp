@@ -702,7 +702,7 @@ namespace stream
 				if (numNacks + (seqn - nextSeqn) >= 256)
 				{
 					LogPrint (eLogError, "Streaming: Number of NACKs exceeds 256. seqn=", seqn, " nextSeqn=", nextSeqn);
-					htobe32buf (packet + 12, nextSeqn); // change ack Through
+					htobe32buf (packet + 12, nextSeqn - 1); // change ack Through back
 					break;
 				}
 				for (uint32_t i = nextSeqn; i < seqn; i++)
