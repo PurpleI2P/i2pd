@@ -1,6 +1,67 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.51.0] - 2024-04-06
+### Added
+- Non-blocking mode for UDP sockets
+- Set SSU2 socket buffer size based on bandwidth limit
+- Encrypted tunnel tests
+- Support for multiple UDP server tunnels on one destination 
+- Publish medium congestion indication
+- Local domain sockets for SOCKS proxy upstream
+- Tunnel status "declined" in web console
+- SAM error reply "Incompatible crypto" if remote destination has incompatible crypto
+- Reduce amount of traffic by handling local message drops
+- Keep SSU2 socket open even if it fails to bind
+- Lower SSU2 resend traffic spikes
+- Expiration for messages in SSU2 send queue
+- Use EWMA for stream RTT estimation
+- Request choking delay if too many NACKs in stream
+- Allow 0ms latency for tunnel
+- Randomize tunnels selection for tests
+### Changed
+- Upstream SOCKS proxy from SOCKS4 to SOCKS5
+- Transit tunnels limit to 4 bytes. Default value to 10K 
+- Reply CANT_REACH_PEER if connect to ourselves in SAM
+- Don't send already expired I2NP messages
+- Use monotonic timer to measure tunnel test latency
+- Standard NTCP2 frame doesn't exceed 16K
+- Always send request through tunnels in case of restricted routes
+- Don't delete connected routers from NetDb
+- Send lookup reply directly to reply tunnel gateway if possible
+- Reduce unreachable router ban interval to 8 minutes
+- Don't request banned routers / don't try to connect to unreachable router
+- Consider 'M' routers as low bandwidth
+- Limit minimal received SSU2 packet size to 40 bytes
+- Bob picks peer test session only if Charlie's address supports peer testing
+- Reject peer test msg 2 if peer testing is not supported 
+- Don't request termination if SSU2 session was not established 
+- Set maximum SSU2 queue size depending on RTT value
+- New streaming RTT calculation algorithm
+- Don't double initial RTO for streams when changing tunnels
+- Restore failed tunnel if test or data for inbound tunnel received
+- Don't fail last remaining tunnel in pool
+- Publish LeasetSet again if local destination was not ready or no tunnels
+- Make more attempts to pick high bandwidth hop for client tunnel
+- Reduced SSU2 session termination timeout to 165 seconds
+- Reseeds list
+### Fixed
+- ECIESx25519 symmetric key tagset early expiration
+- Encrypted LeaseSet lookup
+- Outbound tunnel build fails if it's endpoint is the same as reply tunnel gateway 
+- I2PControl RouterManager returns invalid JSON when unknown params are passed
+- Mix of data between different UDP sessions on the same server
+- TARGET_OS_SIMULATOR check 
+- Handling of "reservedrange" param
+- New NTCP2 session gets teminated upon termination of old one
+- New SSU2 session gets teminated upon termination of old one
+- Peer test to non-supporting router
+- Streaming ackThrough off 1 if number of NACKs exceeds 255
+- Race condition in ECIESx25519 tags table
+- Good tunnel becomes failed
+- Crash when packet comes to terminated stream
+- Stream hangs during LeaseSet update
+
 ## [2.50.2] - 2024-01-06
 ###Fixed
 - Crash with OpenSSL 3.2.0
