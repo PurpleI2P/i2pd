@@ -6,7 +6,7 @@
 - Non-blocking mode for UDP sockets
 - Set SSU2 socket buffer size based on bandwidth limit
 - Encrypted tunnel tests
-- Support for multiple UDP server tunnels on one destination 
+- Support for multiple UDP server tunnels on one destination
 - Publish medium congestion indication
 - Local domain sockets for SOCKS proxy upstream
 - Tunnel status "declined" in web console
@@ -21,7 +21,7 @@
 - Randomize tunnels selection for tests
 ### Changed
 - Upstream SOCKS proxy from SOCKS4 to SOCKS5
-- Transit tunnels limit to 4 bytes. Default value to 10K 
+- Transit tunnels limit to 4 bytes. Default value to 10K
 - Reply CANT_REACH_PEER if connect to ourselves in SAM
 - Don't send already expired I2NP messages
 - Use monotonic timer to measure tunnel test latency
@@ -34,8 +34,8 @@
 - Consider 'M' routers as low bandwidth
 - Limit minimal received SSU2 packet size to 40 bytes
 - Bob picks peer test session only if Charlie's address supports peer testing
-- Reject peer test msg 2 if peer testing is not supported 
-- Don't request termination if SSU2 session was not established 
+- Reject peer test msg 2 if peer testing is not supported
+- Don't request termination if SSU2 session was not established
 - Set maximum SSU2 queue size depending on RTT value
 - New streaming RTT calculation algorithm
 - Don't double initial RTO for streams when changing tunnels
@@ -48,10 +48,10 @@
 ### Fixed
 - ECIESx25519 symmetric key tagset early expiration
 - Encrypted LeaseSet lookup
-- Outbound tunnel build fails if it's endpoint is the same as reply tunnel gateway 
+- Outbound tunnel build fails if it's endpoint is the same as reply tunnel gateway
 - I2PControl RouterManager returns invalid JSON when unknown params are passed
 - Mix of data between different UDP sessions on the same server
-- TARGET_OS_SIMULATOR check 
+- TARGET_OS_SIMULATOR check
 - Handling of "reservedrange" param
 - New NTCP2 session gets teminated upon termination of old one
 - New SSU2 session gets teminated upon termination of old one
