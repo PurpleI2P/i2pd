@@ -152,6 +152,9 @@ namespace tunnel
 	const size_t I2NP_MAX_MESSAGE_SIZE = 62708;
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
 	const size_t I2NP_MAX_MEDIUM_MESSAGE_SIZE = 16384;
+	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_FACTOR = 3; // multiples of RTT
+	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MIN = 200000; // in microseconds
+	const unsigned int I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX = 2000000; // in microseconds
 	const unsigned int I2NP_MESSAGE_EXPIRATION_TIMEOUT = 8000; // in milliseconds (as initial RTT)
 	const unsigned int I2NP_MESSAGE_CLOCK_SKEW = 60*1000; // 1 minute in milliseconds
 
@@ -161,9 +164,10 @@ namespace tunnel
 		size_t len, offset, maxLen;
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
 		std::function<void ()> onDrop;
-		
-		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2),
-			offset(2), maxLen (0), from (nullptr) {}; // reserve 2 bytes for NTCP header
+		uint64_t enqueueTime; // monotonic microseconds
+
+		I2NPMessage (): buf (nullptr), len (I2NP_HEADER_SIZE + 2),
+			offset(2), maxLen (0), from (nullptr), enqueueTime (0) {}; // reserve 2 bytes for NTCP header
 
 		// header accessors
 		uint8_t * GetHeader () { return GetBuffer (); };
@@ -173,7 +177,9 @@ namespace tunnel
 		void SetMsgID (uint32_t msgID) { htobe32buf (GetHeader () + I2NP_HEADER_MSGID_OFFSET, msgID); };
 		uint32_t GetMsgID () const { return bufbe32toh (GetHeader () + I2NP_HEADER_MSGID_OFFSET); };
 		void SetExpiration (uint64_t expiration) { htobe64buf (GetHeader () + I2NP_HEADER_EXPIRATION_OFFSET, expiration); };
+		void SetEnqueueTime (uint64_t mts) { enqueueTime = mts; };
 		uint64_t GetExpiration () const { return bufbe64toh (GetHeader () + I2NP_HEADER_EXPIRATION_OFFSET); };
+		uint64_t GetEnqueueTime () const { return enqueueTime; };
 		void SetSize (uint16_t size) { htobe16buf (GetHeader () + I2NP_HEADER_SIZE_OFFSET, size); };
 		uint16_t GetSize () const { return bufbe16toh (GetHeader () + I2NP_HEADER_SIZE_OFFSET); };
 		void UpdateSize () { SetSize (GetPayloadLength ()); };

@@ -36,7 +36,6 @@ namespace transport
 	const size_t SSU2_MAX_PACKET_SIZE = 1500;
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in milliseconds
-	const int SSU2_RESEND_INTERVAL = 300; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const int SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS = 5000; // how many msgID we store for duplicates check
@@ -45,9 +44,11 @@ namespace transport
 	const size_t SSU2_MIN_WINDOW_SIZE = 16; // in packets
 	const size_t SSU2_MAX_WINDOW_SIZE = 256; // in packets
 	const size_t SSU2_MIN_RTO = 100; // in milliseconds
+	const size_t SSU2_INITIAL_RTO = 540; // in milliseconds
 	const size_t SSU2_MAX_RTO = 2500; // in milliseconds
+	const double SSU2_UNKNOWN_RTT = -1;
+	const double SSU2_RTT_EWMA_ALPHA = 0.125;
 	const float SSU2_kAPPA = 1.8;
-	const size_t SSU2_MAX_OUTGOING_QUEUE_SIZE = 500; // in messages
 	const int SSU2_MAX_NUM_ACNT = 255; // acnt, acks or nacks
 	const int SSU2_MAX_NUM_ACK_PACKETS = 511; // ackthrough + acnt + 1 range
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
@@ -357,7 +358,10 @@ namespace transport
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
-			size_t m_WindowSize, m_RTT, m_RTO;
+			double m_RTT;
+			int m_MsgLocalExpirationTimeout;
+			int m_MsgLocalSemiExpirationTimeout;
+			size_t m_WindowSize, m_RTO;
 			uint32_t m_RelayTag; // between Bob and Charlie
 			OnEstablished m_OnEstablished; // callback from Established
 			boost::asio::deadline_timer m_ConnectTimer;

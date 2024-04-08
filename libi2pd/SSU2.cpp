@@ -436,7 +436,11 @@ namespace transport
 		{
 			auto ident = it->second->GetRemoteIdentity ();
 			if (ident)
-				m_SessionsByRouterHash.erase (ident->GetIdentHash ());
+			{
+				auto it1 = m_SessionsByRouterHash.find (ident->GetIdentHash ());
+				if (it1 != m_SessionsByRouterHash.end () && it->second == it1->second)
+					m_SessionsByRouterHash.erase (it1);
+			}	
 			if (m_LastSession == it->second)
 				m_LastSession = nullptr;
 			m_Sessions.erase (it);

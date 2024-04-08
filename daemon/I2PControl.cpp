@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -338,10 +338,11 @@ namespace client
 	{
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
-			if (it != params.begin ()) results << ",";
 			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
 			auto it1 = m_RouterManagerHandlers.find (it->first);
-			if (it1 != m_RouterManagerHandlers.end ()) {
+			if (it1 != m_RouterManagerHandlers.end ()) 
+			{
+				if (it != params.begin ()) results << ",";
 				(this->*(it1->second))(results);
 			} else
 				LogPrint (eLogError, "I2PControl: RouterManager unknown request: ", it->first);

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -8,6 +8,11 @@
 
 #include <algorithm>
 #include <boost/filesystem.hpp>
+
+#if defined(MAC_OSX)
+#include <boost/system/system_error.hpp>
+#include <TargetConditionals.h>
+#endif
 
 #ifdef _WIN32
 #include <shlobj.h>
@@ -251,8 +256,22 @@ namespace fs {
 			auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
 			if (boost::filesystem::exists(p))
 				continue;
-			if (boost::filesystem::create_directory(p))
+#if TARGET_OS_SIMULATOR
+            // ios simulator fs says it is case sensitive, but it is not
+            boost::system::error_code ec;
+            if (boost::filesystem::create_directory(p, ec))
+                continue;
+            switch (ec.value()) {
+                case boost::system::errc::file_exists:
+                case boost::system::errc::success:
+                    continue;
+                default:
+                    throw boost::system::system_error( ec, __func__ );
+            }
+#else
+            if (boost::filesystem::create_directory(p))
 				continue; /* ^ throws exception on failure */
+#endif
 			return false;
 		}
 		return true;

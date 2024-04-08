@@ -84,9 +84,12 @@ namespace transport
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
-		m_IsDataReceived (false), m_WindowSize (SSU2_MIN_WINDOW_SIZE),
-		m_RTT (SSU2_RESEND_INTERVAL), m_RTO (SSU2_RESEND_INTERVAL*SSU2_kAPPA), m_RelayTag (0),
-		m_ConnectTimer (server.GetService ()), m_TerminationReason (eSSU2TerminationReasonNormalClose),
+		m_IsDataReceived (false), m_RTT (SSU2_UNKNOWN_RTT),
+		m_MsgLocalExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX),
+		m_MsgLocalSemiExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX / 2),
+		m_WindowSize (SSU2_MIN_WINDOW_SIZE),
+		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
+		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
@@ -294,8 +297,10 @@ namespace transport
 		{
 			m_TerminationReason = reason;
 			SendTermination ();
+			m_State = eSSU2SessionStateClosing;
 		}
-		m_State = eSSU2SessionStateClosing;
+		else
+			Done ();
 	}
 
 	void SSU2Session::Established ()
@@ -353,25 +358,33 @@ namespace transport
 	void SSU2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		if (m_State == eSSU2SessionStateTerminated) return;
-		bool isSemiFull = m_SendQueue.size () > SSU2_MAX_OUTGOING_QUEUE_SIZE/2;
+		uint64_t mts = i2p::util::GetMonotonicMicroseconds ();
+		bool isSemiFull = false;
+		if (m_SendQueue.size ())
+		{
+			int64_t queueLag = (int64_t)mts - (int64_t)m_SendQueue.front ()->GetEnqueueTime ();
+			isSemiFull = queueLag > m_MsgLocalSemiExpirationTimeout;
+			if (isSemiFull)
+			{
+				LogPrint (eLogWarning, "SSU2: Outgoing messages queue to ",
+					i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()),
+					" is semi-full (size = ", m_SendQueue.size (), ", lag = ", queueLag / 1000, ", rtt = ", (int)m_RTT, ")");
+			}
+		}
 		for (auto it: msgs)
+		{
 			if (isSemiFull && it->onDrop)
 				it->Drop (); // drop earlier because we can handle it
 			else
+			{
+				it->SetEnqueueTime (mts);
 				m_SendQueue.push_back (std::move (it));
+			}
+		}
 		SendQueue ();
 
 		if (m_SendQueue.size () > 0) // windows is full
-		{
-			if (m_SendQueue.size () <= SSU2_MAX_OUTGOING_QUEUE_SIZE)
-				Resend (i2p::util::GetMillisecondsSinceEpoch ());
-			else
-			{
-				LogPrint (eLogWarning, "SSU2: Outgoing messages queue size to ",
-					GetIdentHashBase64(), " exceeds ", SSU2_MAX_OUTGOING_QUEUE_SIZE);
-				RequestTermination (eSSU2TerminationReasonTimeout);
-			}
-		}
+			Resend (i2p::util::GetMillisecondsSinceEpoch ());
 		SetSendQueueSize (m_SendQueue.size ());
 	}
 
@@ -380,6 +393,7 @@ namespace transport
 		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			uint64_t mts = i2p::util::GetMonotonicMicroseconds ();
 			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			size_t ackBlockSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
 			bool ackBlockSent = false;
@@ -387,7 +401,7 @@ namespace transport
 			while (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
 			{
 				auto msg = m_SendQueue.front ();
-				if (!msg || msg->IsExpired (ts))
+				if (!msg || msg->IsExpired (ts) || msg->GetEnqueueTime() + m_MsgLocalExpirationTimeout < mts)
 				{
 					// drop null or expired message
 					if (msg) msg->Drop ();
@@ -527,7 +541,7 @@ namespace transport
 		if (m_SentPackets.empty ()) return 0;
 		std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > resentPackets;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end (); )
-			if (ts >= it->second->sendTime + it->second->numResends*m_RTO)
+			if (ts >= it->second->sendTime + (it->second->numResends + 1) * m_RTO)
 			{
 				if (it->second->numResends > SSU2_MAX_NUM_RESENDS)
 				{
@@ -1743,8 +1757,15 @@ namespace transport
 				if (ts > it1->second->sendTime)
 				{
 					auto rtt = ts - it1->second->sendTime;
-					m_RTT = std::round ((m_RTT*m_SendPacketNum + rtt)/(m_SendPacketNum + 1.0));
+					if (m_RTT != SSU2_UNKNOWN_RTT)
+						m_RTT = SSU2_RTT_EWMA_ALPHA * rtt + (1.0 - SSU2_RTT_EWMA_ALPHA) * m_RTT;
+					else
+						m_RTT = rtt;
 					m_RTO = m_RTT*SSU2_kAPPA;
+					m_MsgLocalExpirationTimeout = std::max (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MIN,
+						std::min (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX,
+						(unsigned int)(m_RTT * 1000 * I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_FACTOR)));
+					m_MsgLocalSemiExpirationTimeout = m_MsgLocalExpirationTimeout / 2;
 					if (m_RTO < SSU2_MIN_RTO) m_RTO = SSU2_MIN_RTO;
 					if (m_RTO > SSU2_MAX_RTO) m_RTO = SSU2_MAX_RTO;
 				}

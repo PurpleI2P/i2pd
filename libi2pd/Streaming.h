@@ -52,12 +52,13 @@ namespace stream
 	const size_t STREAMING_MTU_RATCHETS = 1812;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
-	const int MAX_NUM_RESEND_ATTEMPTS = 6;
+	const int MAX_NUM_RESEND_ATTEMPTS = 9;
 	const int WINDOW_SIZE = 6; // in messages
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 128;
 	const int WINDOW_SIZE_DROP_FRACTION = 10; // 1/10
-	const double RTT_EWMA_ALPHA = 0.5;
+	const double RTT_EWMA_ALPHA = 0.125;
+	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
@@ -65,14 +66,16 @@ namespace stream
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
+	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
 
 	struct Packet
 	{
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];
 		uint64_t sendTime;
+		bool resent;
 
-		Packet (): len (0), offset (0), sendTime (0) {};
+		Packet (): len (0), offset (0), sendTime (0), resent (false) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
@@ -236,6 +239,7 @@ namespace stream
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
@@ -254,7 +258,8 @@ namespace stream
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
+			double m_RTT;
+			int m_WindowSize, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
 			size_t m_MTU;
