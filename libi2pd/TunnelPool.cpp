@@ -263,10 +263,11 @@ namespace tunnel
 		return tunnel;
 	}
 
-	std::shared_ptr<OutboundTunnel> TunnelPool::GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const
+	std::pair<std::shared_ptr<OutboundTunnel>, bool> TunnelPool::GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const
 	{
-		if (old && old->IsEstablished ()) return old;
+		if (old && old->IsEstablished ()) return std::make_pair(old, false);
 		std::shared_ptr<OutboundTunnel> tunnel;
+		bool freshTunnel = false;
 		if (old)
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
@@ -279,8 +280,11 @@ namespace tunnel
 		}
 
 		if (!tunnel)
+		{	
 			tunnel = GetNextOutboundTunnel ();
-		return tunnel;
+			freshTunnel = true;
+		}	
+		return std::make_pair(tunnel, freshTunnel);
 	}
 
 	void TunnelPool::CreateTunnels ()

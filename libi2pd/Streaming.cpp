@@ -927,9 +927,7 @@ namespace stream
 			else if (!m_CurrentOutboundTunnel->IsEstablished ())
 			{
 				auto oldOutboundTunnel = m_CurrentOutboundTunnel;
-				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
-				if (m_CurrentOutboundTunnel && oldOutboundTunnel->GetEndpointIdentHash() != m_CurrentOutboundTunnel->GetEndpointIdentHash())
-					freshTunnel = true;
+				std::tie(m_CurrentOutboundTunnel, freshTunnel) = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
 			}
 			if (!m_CurrentOutboundTunnel)
 			{
