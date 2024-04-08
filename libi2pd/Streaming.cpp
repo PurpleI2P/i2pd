@@ -916,19 +916,31 @@ namespace stream
 			UpdateCurrentRemoteLease (true);
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
+			bool freshTunnel = false;
 			if (!m_CurrentOutboundTunnel)
 			{
 				auto leaseRouter = i2p::data::netdb.FindRouter (m_CurrentRemoteLease->tunnelGateway);
 				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
+				freshTunnel = true;
 			}
 			else if (!m_CurrentOutboundTunnel->IsEstablished ())
+			{
+				auto oldOutboundTunnel = m_CurrentOutboundTunnel;
 				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
+				if (m_CurrentOutboundTunnel && oldOutboundTunnel->GetEndpointIdentHash() != m_CurrentOutboundTunnel->GetEndpointIdentHash())
+					freshTunnel = true;
+			}
 			if (!m_CurrentOutboundTunnel)
 			{
 				LogPrint (eLogError, "Streaming: No outbound tunnels in the pool, sSID=", m_SendStreamID);
 				m_CurrentRemoteLease = nullptr;
 				return;
+			}
+			if (freshTunnel)
+			{
+				m_RTO = INITIAL_RTO;
+				m_TunnelsChangeSequenceNumber = m_SequenceNumber; // should be determined more precisely
 			}
 
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
@@ -1024,34 +1036,31 @@ namespace stream
 			if (packets.size () > 0)
 			{
 				m_NumResendAttempts++;
-				if (m_RTO != INITIAL_RTO)
-					m_RTO *= 2;
-				switch (m_NumResendAttempts)
+				if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
 				{
-					case 1: // congestion avoidance
-						m_WindowSize -= (m_WindowSize + WINDOW_SIZE_DROP_FRACTION) / WINDOW_SIZE_DROP_FRACTION; // adjustment >= 1
-						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
-					break;
-					case 2:
-						m_TunnelsChangeSequenceNumber = m_SequenceNumber;
-						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
-#if (__cplusplus >= 201703L) // C++ 17 or higher
-						[[fallthrough]];
-#endif
-						// no break here
-					case 4:
-						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
-						UpdateCurrentRemoteLease (); // pick another lease
-						LogPrint (eLogWarning, "Streaming: Another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
-					break;
-					case 3:
+					// congestion avoidance
+					m_RTO *= 2;
+					m_WindowSize -= (m_WindowSize + WINDOW_SIZE_DROP_FRACTION) / WINDOW_SIZE_DROP_FRACTION; // adjustment >= 1
+					if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+				}
+				else
+				{
+					m_TunnelsChangeSequenceNumber = m_SequenceNumber;
+					m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
+					if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
+					if (m_NumResendAttempts & 1)
+					{
 						// pick another outbound tunnel
-						m_TunnelsChangeSequenceNumber = m_SequenceNumber;
-						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
-						LogPrint (eLogWarning, "Streaming: Another outbound tunnel has been selected for stream with sSID=", m_SendStreamID);
-					break;
-					default: ;
+						LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
+							", another outbound tunnel has been selected for stream with sSID=", m_SendStreamID);
+					}
+					else
+					{
+						UpdateCurrentRemoteLease (); // pick another lease
+						LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
+							", another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+					}
 				}
 				SendPackets (packets);
 			}
