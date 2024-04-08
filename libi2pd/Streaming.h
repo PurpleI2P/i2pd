@@ -52,7 +52,7 @@ namespace stream
 	const size_t STREAMING_MTU_RATCHETS = 1812;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
-	const int MAX_NUM_RESEND_ATTEMPTS = 6;
+	const int MAX_NUM_RESEND_ATTEMPTS = 9;
 	const int WINDOW_SIZE = 6; // in messages
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 128;
