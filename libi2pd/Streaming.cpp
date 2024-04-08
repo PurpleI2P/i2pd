@@ -925,10 +925,7 @@ namespace stream
 				freshTunnel = true;
 			}
 			else if (!m_CurrentOutboundTunnel->IsEstablished ())
-			{
-				auto oldOutboundTunnel = m_CurrentOutboundTunnel;
 				std::tie(m_CurrentOutboundTunnel, freshTunnel) = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
-			}
 			if (!m_CurrentOutboundTunnel)
 			{
 				LogPrint (eLogError, "Streaming: No outbound tunnels in the pool, sSID=", m_SendStreamID);
