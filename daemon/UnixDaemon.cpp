@@ -162,12 +162,21 @@ namespace i2p
 
 #ifndef ANDROID
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
+#else
+				struct flock fl;
+				fl.l_len = 0;
+				fl.l_type = F_WRLCK;
+				fl.l_whence = SEEK_SET;
+				fl.l_start = 0;
+
+				if (fcntl(pidFH, F_SETLK, &fl) != 0)
+#endif
 				{
 					LogPrint(eLogError, "Daemon: Could not lock pid file ", pidfile, ": ", strerror(errno));
 					std::cerr << "i2pd: Could not lock pid file " << pidfile << ": " << strerror(errno) << std::endl;
 					return false;
 				}
-#endif
+
 				char pid[10];
 				sprintf(pid, "%d\n", getpid());
 				ftruncate(pidFH, 0);
