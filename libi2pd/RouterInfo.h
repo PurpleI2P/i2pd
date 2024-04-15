@@ -253,6 +253,7 @@ namespace data
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
 			bool IsPublished (bool v4) const;
+			bool IsNAT2NATOnly (const RouterInfo& other) const; // only NAT-to-NAT connection is possible
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsSSU2Introducer (bool v4) const;
 			bool IsHighCongestion (bool highBandwidth) const;
@@ -327,7 +328,7 @@ namespace data
 			uint64_t m_Timestamp; // in milliseconds
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			bool m_IsUpdated, m_IsUnreachable;
-			CompatibleTransports m_SupportedTransports, m_ReachableTransports;
+			CompatibleTransports m_SupportedTransports, m_ReachableTransports, m_PublishedTransports;
 			uint8_t m_Caps;
 			int m_Version;
 			Congestion m_Congestion;

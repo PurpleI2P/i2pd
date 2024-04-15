@@ -43,7 +43,7 @@ namespace data
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false),
-		m_SupportedTransports (0),m_ReachableTransports (0),
+		m_SupportedTransports (0),m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
@@ -53,7 +53,7 @@ namespace data
 
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false),
-		m_SupportedTransports (0), m_ReachableTransports (0),
+		m_SupportedTransports (0), m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
@@ -96,6 +96,7 @@ namespace data
 			m_IsUnreachable = false;
 			m_SupportedTransports = 0;
 			m_ReachableTransports = 0;
+			m_PublishedTransports = 0;	
 			m_Caps = 0;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			ClearProperties ();
@@ -375,7 +376,7 @@ namespace data
 							supportedTransports |= (i2p::util::net::IsYggdrasilAddress (address->host) ? eNTCP2V6Mesh : eNTCP2V6);
 						else
 							supportedTransports |= eNTCP2V4;
-						m_ReachableTransports |= supportedTransports;
+						m_PublishedTransports |= supportedTransports;
 					}
 					else
 					{
@@ -396,11 +397,11 @@ namespace data
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
 				if (isHost && address->port)
 				{
-					if (address->host.is_v4 ()) m_ReachableTransports |= eSSU2V4;
-					if (address->host.is_v6 ()) m_ReachableTransports |= eSSU2V6;
+					if (address->host.is_v4 ()) m_PublishedTransports |= eSSU2V4;
+					if (address->host.is_v6 ()) m_PublishedTransports |= eSSU2V6;
 					address->published = true;
 				}
-				if (address->ssu && !address->ssu->introducers.empty ())
+				else if (address->ssu && !address->ssu->introducers.empty ())
 				{
 					// exclude invalid introducers
 					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
@@ -420,6 +421,7 @@ namespace data
 				m_SupportedTransports |= supportedTransports;
 			}
 		}
+		m_ReachableTransports |= m_PublishedTransports;
 		// update addresses
 #if (BOOST_VERSION >= 105300)
 		boost::atomic_store (&m_Addresses, addresses);
@@ -996,13 +998,13 @@ namespace data
 	bool RouterInfo::IsPublished (bool v4) const
 	{
 		if (m_Caps & (eUnreachable | eHidden)) return false; // if router sets U or H we assume that all addresses are not published
-		auto addr = GetAddresses ();
-		if (v4)	
-			return ((*addr)[eNTCP2V4Idx] && ((*addr)[eNTCP2V4Idx])->published) ||
-				((*addr)[eSSU2V4Idx] && ((*addr)[eSSU2V4Idx])->published);
-		else
-			return ((*addr)[eNTCP2V6Idx] && ((*addr)[eNTCP2V6Idx])->published) ||
-				((*addr)[eSSU2V6Idx] && ((*addr)[eSSU2V6Idx])->published);
+		return m_PublishedTransports & (eNTCP2V4 | eSSU2V4);
+	}	
+
+	bool RouterInfo::IsNAT2NATOnly (const RouterInfo& other) const
+	{
+		return !(m_PublishedTransports & other.m_SupportedTransports) &&
+			!(other.m_PublishedTransports & m_SupportedTransports); 	
 	}	
 		
 	bool RouterInfo::IsSSU2PeerTesting (bool v4) const

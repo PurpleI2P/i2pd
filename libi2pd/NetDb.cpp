@@ -1239,7 +1239,7 @@ namespace data
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
-						router->IsReachableFrom (*compatibleWith)) &&
+						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
 					router->IsECIES () && !router->IsHighCongestion (false) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
 			});
@@ -1273,7 +1273,7 @@ namespace data
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)) :
-						router->IsReachableFrom (*compatibleWith)) &&
+						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
 					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
 					router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION &&
 					router->IsECIES () && !router->IsHighCongestion (true) &&
