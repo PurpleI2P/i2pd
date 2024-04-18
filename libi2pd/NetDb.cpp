@@ -269,7 +269,7 @@ namespace data
 						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD || r->GetProfile ()->IsReal ())
 							m_Floodfills.Insert (r);
 						else
-							r->ResetFlooldFill ();
+							r->ResetFloodFill ();
 					}
 				}
 			}
@@ -304,7 +304,7 @@ namespace data
 							m_Floodfills.Insert (r);
 						}
 						else
-							r->ResetFlooldFill ();
+							r->ResetFloodFill ();
 					}
 				}
 				else
