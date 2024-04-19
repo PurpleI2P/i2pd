@@ -247,6 +247,7 @@ namespace data
 			bool IsReachableFrom (const RouterInfo& other) const { return m_ReachableTransports & other.m_SupportedTransports; };
 			bool IsReachableBy (CompatibleTransports transports) const { return m_ReachableTransports & transports; };
 			CompatibleTransports GetCompatibleTransports (bool incoming) const { return incoming ? m_ReachableTransports : m_SupportedTransports; };
+			CompatibleTransports GetPublishedTransports () const { return m_PublishedTransports; };	
 			bool HasValidAddresses () const { return m_SupportedTransports; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };

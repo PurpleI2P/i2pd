@@ -626,13 +626,26 @@ namespace transport
 		if (!peer.router) return;
 		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
 			peer.router->GetCompatibleTransports (true);
+		auto directTransports = compatibleTransports & peer.router->GetPublishedTransports ();
 		peer.numAttempts = 0;
 		peer.priority.clear ();
 		bool ssu2 = peer.router->GetProfile ()->IsReal () ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
-		for (auto transport: priority)
-			if (transport & compatibleTransports)
-				peer.priority.push_back (transport);
+		if (directTransports)
+		{	
+			// direct connections have higher priority
+			for (auto transport: priority)
+				if (transport & directTransports)
+					peer.priority.push_back (transport);
+			compatibleTransports &= ~directTransports;
+		}	
+		if (compatibleTransports)
+		{	
+			// then remaining
+			for (auto transport: priority)
+				if (transport & compatibleTransports)
+					peer.priority.push_back (transport);
+		}	
 	}
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
