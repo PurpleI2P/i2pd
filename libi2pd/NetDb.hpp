@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -38,8 +38,10 @@ namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
 	const int NETDB_MIN_FLOODFILLS = 5;
-	const int NETDB_NUM_FLOODFILLS_THRESHOLD = 1500;
+	const int NETDB_NUM_FLOODFILLS_THRESHOLD = 1000;
 	const int NETDB_NUM_ROUTERS_THRESHOLD = 4*NETDB_NUM_FLOODFILLS_THRESHOLD;
+	const int NETDB_TUNNEL_CREATION_RATE_THRESHOLD = 10; // in %
+	const int NETDB_CHECK_FOR_EXPIRATION_UPTIME = 600; // 10 minutes, in seconds  
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60 * 60; // 1 hour, in seconds
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90 * 60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
