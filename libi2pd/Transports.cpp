@@ -639,7 +639,7 @@ namespace transport
 			{
 				// Non-confirmed router and a NTCP2 direct connection is presented
 				compatibleTransports &= ~directTransports; // exclude SSU2 direct connections
-				directTransports &= (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6);
+				directTransports &= ~(i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6);
 			}	
 			for (auto transport: priority)
 				if (transport & directTransports)
