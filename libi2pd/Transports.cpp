@@ -629,11 +629,18 @@ namespace transport
 		auto directTransports = compatibleTransports & peer.router->GetPublishedTransports ();
 		peer.numAttempts = 0;
 		peer.priority.clear ();
-		bool ssu2 = peer.router->GetProfile ()->IsReal () ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
+		bool isReal = peer.router->GetProfile ()->IsReal (); 
+		bool ssu2 = isReal ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
 		if (directTransports)
 		{	
 			// direct connections have higher priority
+			if (!isReal && (directTransports & (i2p::data::RouterInfo::eNTCP2V4 | i2p::data::RouterInfo::eNTCP2V6)))
+			{
+				// Non-confirmed router and a NTCP2 direct connection is presented
+				compatibleTransports &= ~directTransports; // exclude SSU2 direct connections
+				directTransports &= (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6);
+			}	
 			for (auto transport: priority)
 				if (transport & directTransports)
 					peer.priority.push_back (transport);
