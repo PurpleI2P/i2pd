@@ -1407,7 +1407,7 @@ namespace data
 		// must be called from NetDb thread only
 		for (const auto& it: m_RouterInfos)
 		{
-			if (!it.second->IsFloodfill ())
+			if (!it.second->IsFloodfill () && it.second->GetProfile ()->IsReal ())
 			{
 				XORMetric m = destKey ^ it.first;
 				if (m < minMetric && !excluded.count (it.first))
