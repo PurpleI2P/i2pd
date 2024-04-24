@@ -114,7 +114,7 @@ namespace data
 		{
 			try
 			{
-				auto msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
+				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				if (msg)
 				{
 					int numMsgs = 0;
@@ -467,7 +467,7 @@ namespace data
 					return;
 				}
 				m_FloodfillBootstrap = ri;
-				ReseedFromFloodfill(*ri);
+				//ReseedFromFloodfill(*ri);
 				// don't try reseed servers if trying to bootstrap from floodfill
 				return;
 			}
