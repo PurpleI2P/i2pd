@@ -40,6 +40,7 @@ namespace data
 			void ClearExcludedPeers ();
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsDirect () const { return m_IsDirect; };
+			bool IsActive () const { return m_IsActive; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			uint64_t GetLastRequestTime () const { return m_LastRequestTime; };
@@ -55,7 +56,7 @@ namespace data
 		private:
 
 			IdentHash m_Destination;
-			bool m_IsExploratory, m_IsDirect;
+			bool m_IsExploratory, m_IsDirect, m_IsActive;
 			std::set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;

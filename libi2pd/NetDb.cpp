@@ -741,7 +741,7 @@ namespace data
 			if (direct)
 			{
 				auto msg = dest->CreateRequestMessage (floodfill->GetIdentHash ());
-				msg->onDrop = [this, dest]() { this->m_Requests.SendNextRequest (dest); }; 
+				msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
 				transports.SendMessage (floodfill->GetIdentHash (), msg);
 			}	
 			else
@@ -752,7 +752,7 @@ namespace data
 				if (outbound &&	inbound)
 				{
 					auto msg = dest->CreateRequestMessage (floodfill, inbound);
-					msg->onDrop = [this, dest]() { this->m_Requests.SendNextRequest (dest); }; 
+					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
 					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 				}

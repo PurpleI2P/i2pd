@@ -18,7 +18,7 @@ namespace i2p
 namespace data
 {
 	RequestedDestination::RequestedDestination (const IdentHash& destination, bool isExploratory, bool direct):
-		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), 
+		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), m_IsActive (true),
 		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_LastRequestTime (0) 
 	{
 	}
@@ -60,6 +60,7 @@ namespace data
 
 	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
 	{
+		m_IsActive = false;
 		if (m_RequestComplete)
 		{
 			m_RequestComplete (r);
@@ -69,6 +70,7 @@ namespace data
 
 	void RequestedDestination::Fail ()
 	{
+		m_IsActive = false;
 		if (m_RequestComplete)
 		{
 			m_RequestComplete (nullptr);
@@ -191,7 +193,7 @@ namespace data
 				{
 					LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " directly");
 					auto msg = dest->CreateRequestMessage (nextFloodfill->GetIdentHash ());
-					msg->onDrop = [this, dest]() { this->SendNextRequest (dest); }; 
+					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); }; 
 					i2p::transport::transports.SendMessage (nextFloodfill->GetIdentHash (), msg);
 				}	
 				else
@@ -203,7 +205,7 @@ namespace data
 					{
 						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 						auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
-						msg->onDrop = [this, dest]() { this->SendNextRequest (dest); };
+						msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); };
 						outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 							i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 					}	
