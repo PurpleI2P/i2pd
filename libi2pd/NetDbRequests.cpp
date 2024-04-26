@@ -31,6 +31,7 @@ namespace data
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
+		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
 		std::shared_ptr<I2NPMessage> msg;
 		if(replyTunnel)
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
@@ -53,8 +54,15 @@ namespace data
 		return msg;
 	}
 
+	bool RequestedDestination::IsExcluded (const IdentHash& ident) const 
+	{ 
+		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
+		return m_ExcludedPeers.count (ident); 
+	}
+		
 	void RequestedDestination::ClearExcludedPeers ()
 	{
+		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
 		m_ExcludedPeers.clear ();
 	}
 

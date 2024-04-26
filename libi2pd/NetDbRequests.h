@@ -36,12 +36,12 @@ namespace data
 
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
-			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
+			const std::set<IdentHash>& GetExcludedPeers () const { return m_ExcludedPeers; };
 			void ClearExcludedPeers ();
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsDirect () const { return m_IsDirect; };
 			bool IsActive () const { return m_IsActive; };
-			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
+			bool IsExcluded (const IdentHash& ident) const;
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			uint64_t GetLastRequestTime () const { return m_LastRequestTime; };
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
@@ -57,6 +57,7 @@ namespace data
 
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
+			mutable std::mutex m_ExcludedPeerstMutex;
 			std::set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;
