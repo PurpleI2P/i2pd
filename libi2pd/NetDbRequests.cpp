@@ -199,22 +199,30 @@ namespace data
 				else
 				{	
 					auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-					auto outbound = pool->GetNextOutboundTunnel ();
-					auto inbound = pool->GetNextInboundTunnel ();
-					if (nextFloodfill && outbound && inbound)
-					{
-						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
-						auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
-						msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); };
-						outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
-							i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
+					if (pool)
+					{	
+						auto outbound = pool->GetNextOutboundTunnel ();
+						auto inbound = pool->GetNextInboundTunnel ();
+						if (nextFloodfill && outbound && inbound)
+						{
+							LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
+							auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
+							msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); };
+							outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
+								i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
+						}	
+						else
+						{
+							ret = false;
+							if (!inbound) LogPrint (eLogWarning, "NetDbReq: No inbound tunnels");
+							if (!outbound) LogPrint (eLogWarning, "NetDbReq: No outbound tunnels");
+						}
 					}	
 					else
 					{
 						ret = false;
-						if (!inbound) LogPrint (eLogWarning, "NetDbReq: No inbound tunnels");
-						if (!outbound) LogPrint (eLogWarning, "NetDbReq: No outbound tunnels");
-					}
+						LogPrint (eLogWarning, "NetDbReq: Exploratory pool is not ready");
+					}	
 				}		
 			}
 			else
