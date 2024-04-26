@@ -57,7 +57,7 @@ namespace data
 
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
-			mutable std::mutex m_ExcludedPeerstMutex;
+			mutable std::mutex m_ExcludedPeersMutex;
 			std::set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;

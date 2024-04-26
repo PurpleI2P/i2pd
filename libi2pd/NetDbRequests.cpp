@@ -31,7 +31,7 @@ namespace data
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
-		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
 		std::shared_ptr<I2NPMessage> msg;
 		if(replyTunnel)
 			msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
@@ -47,6 +47,7 @@ namespace data
 
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
 	{
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
 		auto msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
@@ -56,13 +57,13 @@ namespace data
 
 	bool RequestedDestination::IsExcluded (const IdentHash& ident) const 
 	{ 
-		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
 		return m_ExcludedPeers.count (ident); 
 	}
 		
 	void RequestedDestination::ClearExcludedPeers ()
 	{
-		std::lock_guard<std::mutex> l (m_ExcludedPeerstMutex);
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
 		m_ExcludedPeers.clear ();
 	}
 
