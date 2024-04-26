@@ -107,7 +107,7 @@ namespace data
 		i2p::util::SetThreadName("NetDB");
 
 		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0;
-		uint64_t lastProfilesCleanup = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds ();
 		int16_t profilesCleanupVariance = 0;
 
 		while (m_IsRunning)
@@ -148,41 +148,43 @@ namespace data
 				if (!m_IsRunning) break;
 				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
 
-				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastManageRequest >= MANAGE_REQUESTS_INTERVAL || ts + MANAGE_REQUESTS_INTERVAL < lastManageRequest) // manage requests every 15 seconds
+				uint64_t mts = i2p::util::GetMonotonicMilliseconds ();
+				if (mts >= lastManageRequest + MANAGE_REQUESTS_INTERVAL*1000)
 				{
-					m_Requests.ManageRequests ();
-					lastManageRequest = ts;
+					if (lastManageRequest || i2p::tunnel::tunnels.GetExploratoryPool ()) // expolratory pool is ready?
+					{	
+						m_Requests.ManageRequests ();
+						lastManageRequest = mts;
+					}	
 				}
 
-				if (ts - lastManage >= 60 || ts + 60 < lastManage) // manage routers and leasesets every minute
+				if (mts >= lastManage + 60000) // manage routers and leasesets every minute
 				{
 					if (lastManage)
 					{
 						ManageRouterInfos ();
 						ManageLeaseSets ();
 					}
-					lastManage = ts;
+					lastManage = mts;
 				}
 
-				if (ts - lastProfilesCleanup >= (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance) ||
-				    ts + i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT < lastProfilesCleanup)
+				if (mts >= lastProfilesCleanup + (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance)*1000)
 				{
 					m_RouterProfilesPool.CleanUpMt ();
 					if (m_PersistProfiles) PersistProfiles ();
 					DeleteObsoleteProfiles ();
-					lastProfilesCleanup = ts;
+					lastProfilesCleanup = mts;
 					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
 				}
 
-				if (ts - lastExploratory >= 30 || ts + 30 < lastExploratory) // exploratory every 30 seconds
+				if (mts >= lastExploratory + 30000) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
 					if (!numRouters)
 						throw std::runtime_error("No known routers, reseed seems to be totally failed");
 					else // we have peers now
 						m_FloodfillBootstrap = nullptr;
-					if (numRouters < 2500 || ts - lastExploratory >= 90)
+					if (numRouters < 2500 || mts >= lastExploratory + 90000) // 90 seconds
 					{
 						numRouters = 800/numRouters;
 						if (numRouters < 1) numRouters = 1;
@@ -190,7 +192,7 @@ namespace data
 						m_Requests.ManageRequests ();
 						if(!i2p::context.IsHidden ())
 							Explore (numRouters);
-						lastExploratory = ts;
+						lastExploratory = mts;
 					}
 				}
 			}
