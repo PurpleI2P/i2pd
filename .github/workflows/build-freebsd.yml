@@ -13,7 +13,7 @@ on:
     - libi2pd/**
     - libi2pd_client/**
     - Makefile
-    - Makefile.homebrew
+    - Makefile.bsd
     tags:
     - '*'
   pull_request:
@@ -27,7 +27,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Test in FreeBSD
       id: test
@@ -44,7 +44,7 @@ jobs:
           gmake -j2
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: i2pd-freebsd
         path: build/i2pd
