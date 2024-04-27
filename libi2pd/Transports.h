@@ -191,8 +191,8 @@ namespace transport
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
-			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
-			void SetPriority (Peer& peer) const;
+			bool ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer);
+			void SetPriority (std::shared_ptr<Peer> peer) const;
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
@@ -215,7 +215,7 @@ namespace transport
 			SSU2Server * m_SSU2Server;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
-			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<Peer> > m_Peers;
 
 			X25519KeysPairSupplier m_X25519KeysPairSupplier;
 
