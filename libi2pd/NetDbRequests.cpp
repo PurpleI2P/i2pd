@@ -67,6 +67,18 @@ namespace data
 		m_ExcludedPeers.clear ();
 	}
 
+	std::set<IdentHash> RequestedDestination::GetExcludedPeers () const 
+	{ 
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
+		return m_ExcludedPeers; 
+	}
+
+	size_t RequestedDestination::GetNumExcludedPeers () const 
+	{ 
+		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
+		return m_ExcludedPeers.size (); 
+	}
+		
 	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
 	{
 		m_IsActive = false;
@@ -188,7 +200,7 @@ namespace data
 	{
 		if (!dest) return false;
 		bool ret = true;
-		auto count = dest->GetExcludedPeers ().size ();
+		auto count = dest->GetNumExcludedPeers ();
 		if (!dest->IsExploratory () && count < MAX_NUM_REQUEST_ATTEMPTS)
 		{
 			auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());

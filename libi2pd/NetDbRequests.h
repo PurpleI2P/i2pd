@@ -35,8 +35,8 @@ namespace data
 			~RequestedDestination ();
 
 			const IdentHash& GetDestination () const { return m_Destination; };
-			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
-			const std::set<IdentHash>& GetExcludedPeers () const { return m_ExcludedPeers; };
+			size_t GetNumExcludedPeers () const;
+			std::set<IdentHash> GetExcludedPeers () const;
 			void ClearExcludedPeers ();
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsDirect () const { return m_IsDirect; };
