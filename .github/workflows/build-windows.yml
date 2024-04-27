@@ -133,16 +133,17 @@ jobs:
         pushd MINGW-packages
         pushd mingw-w64-headers-git
         sed -i 's/0x601/0x501/' PKGBUILD
-        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
-        pacman --noconfirm -U mingw-w64-i686-headers-git-*-any.pkg.tar.zst
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
         popd
         pushd mingw-w64-crt-git
-        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
-        pacman --noconfirm -U mingw-w64-i686-crt-git-*-any.pkg.tar.zst
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
         popd
         pushd mingw-w64-winpthreads-git
-        MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm
-        pacman --noconfirm -U mingw-w64-i686-libwinpthread-git-*-any.pkg.tar.zst mingw-w64-i686-winpthreads-git-*-any.pkg.tar.zst
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
+        popd
+        pushd mingw-w64-openssl
+        gpg --recv-keys D894E2CE8B3D79F5
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
         popd
         popd
 
