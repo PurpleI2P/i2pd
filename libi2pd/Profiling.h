@@ -10,6 +10,7 @@
 #define PROFILING_H__
 
 #include <memory>
+#include <future>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Identity.h"
 
@@ -31,8 +32,10 @@ namespace data
 	const char PEER_PROFILE_USAGE_CONNECTED[] = "connected";
 	
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 36; // in hours (1.5 days)
-	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 3 * 3600; // in seconds (3 hours)
-	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 3600; // in seconds (1 hour)
+	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 1500; // in seconds (25 minutes)
+	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 900; // in seconds (15 minutes)
+	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT = 5400; // in seconds (1.5 hours)
+	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE = 2400; // in seconds (40 minutes)
 	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
 	const int PEER_PROFILE_PERSIST_INTERVAL = 3300; // in seconds (55 minutes)
 	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 480; // in seconds (8 minutes)
@@ -89,9 +92,9 @@ namespace data
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);
 	bool IsRouterBanned (const IdentHash& identHash); // check only existing profiles
 	void InitProfilesStorage ();
-	void DeleteObsoleteProfiles ();
+	std::future<void> DeleteObsoleteProfiles ();
 	void SaveProfiles ();
-	void PersistProfiles ();
+	std::future<void> PersistProfiles ();
 }
 }
 

@@ -260,7 +260,13 @@ namespace data
 		g_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 	}
 
-	void PersistProfiles ()
+	static void SaveProfilesToDisk (std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > >&& profiles)
+	{
+		for (auto& it: profiles)
+			if (it.second) it.second->Save (it.first);
+	}	
+		
+	std::future<void> PersistProfiles ()
 	{
 		auto ts = GetTime ();
 		std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > > tmp;
@@ -278,8 +284,9 @@ namespace data
 					it++;
 			}
 		}
-		for (auto& it: tmp)
-			if (it.second) it.second->Save (it.first);
+		if (!tmp.empty ())
+			return std::async (std::launch::async, SaveProfilesToDisk, std::move (tmp));
+		return std::future<void>();
 	}
 
 	void SaveProfiles ()
@@ -287,8 +294,7 @@ namespace data
 		std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > tmp;
 		{
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
-			tmp = g_Profiles;
-			g_Profiles.clear ();
+			std::swap (tmp, g_Profiles);
 		}
 		auto ts = GetTime ();
 		for (auto& it: tmp)
@@ -296,7 +302,26 @@ namespace data
 				it.second->Save (it.first);
 	}
 
-	void DeleteObsoleteProfiles ()
+	static void DeleteFilesFromDisk (std::vector<std::string>&& files)
+	{
+		struct stat st;
+		std::time_t now = std::time(nullptr);
+		for (const auto& path: files) 
+		{
+			if (stat(path.c_str(), &st) != 0) 
+			{	
+				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
+				continue;
+			}
+			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600) 
+			{
+				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
+				i2p::fs::Remove(path);
+			}
+		}
+	}	
+		
+	std::future<void> DeleteObsoleteProfiles ()
 	{
 		{
 			auto ts = GetTime ();
@@ -310,21 +335,9 @@ namespace data
 			}
 		}
 
-		struct stat st;
-		std::time_t now = std::time(nullptr);
-
 		std::vector<std::string> files;
 		g_ProfilesStorage.Traverse(files);
-		for (const auto& path: files) {
-			if (stat(path.c_str(), &st) != 0) {
-				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
-				continue;
-			}
-			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600) {
-				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
-				i2p::fs::Remove(path);
-			}
-		}
+		return std::async (std::launch::async, DeleteFilesFromDisk, std::move (files));
 	}
 }
 }

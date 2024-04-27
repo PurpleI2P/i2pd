@@ -15,6 +15,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <future>
 
 #include "Base.h"
 #include "Gzip.h"
@@ -177,6 +178,7 @@ namespace data
 			NetDbRequests m_Requests;
 
 			bool m_PersistProfiles;
+			std::future<void> m_SavingProfiles, m_DeletingProfiles;
 
 			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;

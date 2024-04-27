@@ -107,8 +107,8 @@ namespace data
 		i2p::util::SetThreadName("NetDB");
 
 		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0;
-		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds ();
-		int16_t profilesCleanupVariance = 0;
+		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
+		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
 
 		while (m_IsRunning)
 		{
@@ -171,12 +171,39 @@ namespace data
 				if (mts >= lastProfilesCleanup + (uint64_t)(i2p::data::PEER_PROFILE_AUTOCLEAN_TIMEOUT + profilesCleanupVariance)*1000)
 				{
 					m_RouterProfilesPool.CleanUpMt ();
-					if (m_PersistProfiles) PersistProfiles ();
-					DeleteObsoleteProfiles ();
+					if (m_PersistProfiles)
+					{	
+						bool isSaving = m_SavingProfiles.valid ();
+						if (isSaving && m_SavingProfiles.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
+						{
+							m_SavingProfiles.get ();
+							isSaving = false;
+						}	
+						if (!isSaving)
+							m_SavingProfiles = PersistProfiles ();
+						else
+							LogPrint (eLogWarning, "NetDb: Can't persist profiles. Profiles are being saved to disk");
+					}	
 					lastProfilesCleanup = mts;
 					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
 				}
 
+				if (mts >= lastObsoleteProfilesCleanup + (uint64_t)(i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT + obsoleteProfilesCleanVariance)*1000)
+				{
+					bool isDeleting = m_DeletingProfiles.valid ();
+					if (isDeleting && m_DeletingProfiles.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
+					{
+						m_DeletingProfiles.get ();
+						isDeleting = false;
+					}	
+					if (!isDeleting)
+						m_DeletingProfiles = DeleteObsoleteProfiles ();	
+					else
+						LogPrint (eLogWarning, "NetDb: Can't delete profiles. Profiles are being deleted from disk");
+					lastObsoleteProfilesCleanup = mts;
+					obsoleteProfilesCleanVariance = (rand () % (2 * i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE) - i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT);
+				}	
+			
 				if (mts >= lastExploratory + 30000) // exploratory every 30 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
