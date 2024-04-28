@@ -42,7 +42,7 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
-		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false),
+		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false), m_IsFloodfill (false),
 		m_SupportedTransports (0),m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
@@ -52,7 +52,7 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
-		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false),
+		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false), m_IsFloodfill (false),
 		m_SupportedTransports (0), m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
@@ -97,7 +97,7 @@ namespace data
 			m_SupportedTransports = 0;
 			m_ReachableTransports = 0;
 			m_PublishedTransports = 0;	
-			m_Caps = 0;
+			m_Caps = 0; m_IsFloodfill = false;
 			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			ClearProperties ();
 			// skip identity
@@ -451,7 +451,10 @@ namespace data
 
 			// extract caps
 			if (!strcmp (key, "caps"))
+			{	
 				ExtractCaps (value);
+				m_IsFloodfill = IsDeclaredFloodfill ();
+			}	
 			// extract version
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_VERSION))
 			{
@@ -1427,6 +1430,20 @@ namespace data
 		return "";
 	}
 
+	void LocalRouterInfo::UpdateFloodfillProperty (bool floodfill)
+	{
+		if (floodfill)
+		{	
+			UpdateCaps (GetCaps () | i2p::data::RouterInfo::eFloodfill);
+			SetFloodfill ();
+		}	
+		else
+		{	
+			UpdateCaps (GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
+			ResetFloodfill ();
+		}	
+	}	
+		
 	void LocalRouterInfo::WriteString (const std::string& str, std::ostream& s) const
 	{
 		uint8_t len = str.size ();

@@ -227,8 +227,9 @@ namespace data
 			void SetUnreachableAddressesTransportCaps (uint8_t transports); // bitmask of AddressCaps
 			void UpdateSupportedTransports ();
 			void UpdateIntroducers (uint64_t ts); // ts in seconds
-			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
-			void ResetFloodFill () { m_Caps &= ~Caps::eFloodfill; };
+			bool IsFloodfill () const { return m_IsFloodfill; };
+			void SetFloodfill () { m_IsFloodfill = true; };
+			void ResetFloodfill () { m_IsFloodfill = false; };
 			bool IsECIES () const { return m_RouterIdentity->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD; };
 			bool IsNTCP2 (bool v4only = true) const;
 			bool IsNTCP2V6 () const { return m_SupportedTransports & eNTCP2V6; };
@@ -253,6 +254,7 @@ namespace data
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };
 			bool IsEligibleFloodfill () const;
+			bool IsDeclaredFloodfill () const { return m_Caps & RouterInfo::eFloodfill; };
 			bool IsPublished (bool v4) const;
 			bool IsNAT2NATOnly (const RouterInfo& other) const; // only NAT-to-NAT connection is possible
 			bool IsSSU2PeerTesting (bool v4) const;
@@ -328,7 +330,7 @@ namespace data
 			size_t m_BufferLen;
 			uint64_t m_Timestamp; // in milliseconds
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
-			bool m_IsUpdated, m_IsUnreachable;
+			bool m_IsUpdated, m_IsUnreachable, m_IsFloodfill;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports, m_PublishedTransports;
 			uint8_t m_Caps;
 			int m_Version;
@@ -349,7 +351,8 @@ namespace data
 			void DeleteProperty (const std::string& key);
 			std::string GetProperty (const std::string& key) const;
 			void ClearProperties () override { m_Properties.clear (); };
-
+			void UpdateFloodfillProperty (bool floodfill);
+			
 			bool AddSSU2Introducer (const Introducer& introducer, bool v4);
 			bool RemoveSSU2Introducer (const IdentHash& h, bool v4);
 

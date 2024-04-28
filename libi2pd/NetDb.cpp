@@ -298,7 +298,7 @@ namespace data
 						if (m_Floodfills.GetSize () < NETDB_NUM_FLOODFILLS_THRESHOLD || r->GetProfile ()->IsReal ())
 							m_Floodfills.Insert (r);
 						else
-							r->ResetFloodFill ();
+							r->ResetFloodfill ();
 					}
 				}
 			}
@@ -333,7 +333,7 @@ namespace data
 							m_Floodfills.Insert (r);
 						}
 						else
-							r->ResetFloodFill ();
+							r->ResetFloodfill ();
 					}
 				}
 				else
@@ -458,7 +458,16 @@ namespace data
 			r->SetUnreachable (unreachable);
 			auto profile = r->GetProfile ();
 			if (profile)
+			{	
 				profile->Unreachable (unreachable);
+				if (!unreachable && r->IsDeclaredFloodfill () && !r->IsFloodfill () && 
+				    r->IsEligibleFloodfill () && profile->IsReal ())
+				{
+					// enable previously disabled floodfill
+					std::lock_guard<std::mutex> l(m_FloodfillsMutex);
+					m_Floodfills.Insert (r);
+				}	
+			}	
 		}
 	}
 
