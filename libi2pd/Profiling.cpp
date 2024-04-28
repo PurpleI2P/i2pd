@@ -302,8 +302,11 @@ namespace data
 				it.second->Save (it.first);
 	}
 
-	static void DeleteFilesFromDisk (std::vector<std::string>&& files)
+	static void DeleteFilesFromDisk ()
 	{
+		std::vector<std::string> files;
+		g_ProfilesStorage.Traverse(files);
+		
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 		for (const auto& path: files) 
@@ -335,9 +338,7 @@ namespace data
 			}
 		}
 
-		std::vector<std::string> files;
-		g_ProfilesStorage.Traverse(files);
-		return std::async (std::launch::async, DeleteFilesFromDisk, std::move (files));
+		return std::async (std::launch::async, DeleteFilesFromDisk);
 	}
 }
 }
