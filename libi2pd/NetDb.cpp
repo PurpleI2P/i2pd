@@ -464,6 +464,7 @@ namespace data
 				    r->IsEligibleFloodfill () && profile->IsReal ())
 				{
 					// enable previously disabled floodfill
+					r->SetFloodfill ();
 					std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 					m_Floodfills.Insert (r);
 				}	
