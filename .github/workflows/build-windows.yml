@@ -145,6 +145,9 @@ jobs:
         gpg --recv-keys D894E2CE8B3D79F5
         MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
         popd
+        pushd mingw-w64-boost
+        MINGW_ARCH=mingw32 makepkg-mingw -sCLfi --noconfirm --nocheck
+        popd
         popd
 
     - name: Build application
