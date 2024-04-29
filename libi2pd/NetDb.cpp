@@ -312,8 +312,14 @@ namespace data
 		else
 		{
 			r = std::make_shared<RouterInfo> (buf, len);
-			if (!r->IsUnreachable () && r->HasValidAddresses () && (!r->IsFloodfill () || !r->GetProfile ()->IsUnreachable ()) &&
-			    i2p::util::GetMillisecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp ())
+			bool isValid = !r->IsUnreachable () && r->HasValidAddresses () && (!r->IsFloodfill () || !r->GetProfile ()->IsUnreachable ());
+			if (isValid)
+			{
+				auto mts = i2p::util::GetMillisecondsSinceEpoch ();
+			    isValid = mts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp () && // from future
+					mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL; // too old
+			}
+			if (isValid)	
 			{
 				bool inserted = false;
 				{
