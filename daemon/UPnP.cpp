@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2024, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
@@ -166,11 +174,11 @@ namespace transport
 			if (address && !address->host.is_v6 () && address->port)
 				TryPortMapping (address);
 		}
-		m_Timer.expires_from_now (boost::posix_time::minutes(20)); // every 20 minutes
+		m_Timer.expires_from_now (boost::posix_time::minutes(UPNP_PORT_FORWARDING_INTERVAL)); // every 20 minutes
 		m_Timer.async_wait ([this](const boost::system::error_code& ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-			PortMapping ();
+				PortMapping ();
 		});
 	}
 
