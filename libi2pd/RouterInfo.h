@@ -280,6 +280,7 @@ namespace data
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void DropProfile () { m_Profile = nullptr; };
+			bool HasProfile () const { return (bool)m_Profile; }; 
 
 			bool Update (const uint8_t * buf, size_t len);
 			void DeleteBuffer () { m_Buffer = nullptr; };

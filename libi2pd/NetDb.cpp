@@ -1451,9 +1451,11 @@ namespace data
 		IdentHash destKey = CreateRoutingKey (destination);
 		minMetric.SetMax ();
 		// must be called from NetDb thread only
+		bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
+		std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 		for (const auto& it: m_RouterInfos)
 		{
-			if (!it.second->IsDeclaredFloodfill () && it.second->GetProfile ()->IsReal ())
+			if (!it.second->IsDeclaredFloodfill () && (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
 			{
 				XORMetric m = destKey ^ it.first;
 				if (m < minMetric && !excluded.count (it.first))
