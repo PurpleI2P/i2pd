@@ -991,7 +991,7 @@ namespace data
 		auto dest = m_Requests.FindRequest (ident);
 		if (dest)
 		{
-			if (num > 0)
+			if (num > 0 || dest->GetNumExcludedPeers () < 3) // before 3-rd attempt might be just bad luck
 				// try to send next requests
 				m_Requests.SendNextRequest (dest);
 			else
