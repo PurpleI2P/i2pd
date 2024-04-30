@@ -10,9 +10,6 @@
 #include <string>
 #include <thread>
 
-#include <boost/thread/thread.hpp>
-#include <boost/asio.hpp>
-
 #include "Log.h"
 
 #include "RouterContext.h"
