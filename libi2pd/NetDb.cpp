@@ -146,7 +146,8 @@ namespace data
 					}
 				}
 				if (!m_IsRunning) break;
-				if (!i2p::transport::transports.IsOnline ()) continue; // don't manage netdb when offline
+				if (!i2p::transport::transports.IsOnline () || !i2p::transport::transports.IsRunning ()) 
+					continue; // don't manage netdb when offline or transports are not running
 
 				uint64_t mts = i2p::util::GetMonotonicMilliseconds ();
 				if (mts >= lastManageRequest + MANAGE_REQUESTS_INTERVAL*1000)
