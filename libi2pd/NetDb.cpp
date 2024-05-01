@@ -205,7 +205,7 @@ namespace data
 					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
 				}	
 			
-				if (mts >= lastExploratory + NETDB_EXPLORATORY_INTERVAL) // check exploratory every 55 seconds
+				if (mts >= lastExploratory + NETDB_EXPLORATORY_INTERVAL*1000LL) // check exploratory every 55 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
 					if (!numRouters)
