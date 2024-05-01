@@ -1138,9 +1138,9 @@ namespace data
 					excludedRouters.insert (exclude_ident);
 					exclude_ident += 32;
 				}
-				auto closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
+				auto closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, false);
 				if (closestFloodfills.empty ())
-					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
+					LogPrint (eLogWarning, "NetDb: No more floodfills for ", key, " found. ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
 			}
 		}
