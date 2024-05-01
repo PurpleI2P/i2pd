@@ -108,7 +108,7 @@ namespace data
 
 		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
-		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
+		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, exploratoryIntervalVariance = 0;
 
 		while (m_IsRunning)
 		{
@@ -186,7 +186,7 @@ namespace data
 							LogPrint (eLogWarning, "NetDb: Can't persist profiles. Profiles are being saved to disk");
 					}	
 					lastProfilesCleanup = mts;
-					profilesCleanupVariance = (rand () % (2 * i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE) - i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE);
+					profilesCleanupVariance = rand () % i2p::data::PEER_PROFILE_AUTOCLEAN_VARIANCE;
 				}
 
 				if (mts >= lastObsoleteProfilesCleanup + (uint64_t)(i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT + obsoleteProfilesCleanVariance)*1000)
@@ -202,25 +202,27 @@ namespace data
 					else
 						LogPrint (eLogWarning, "NetDb: Can't delete profiles. Profiles are being deleted from disk");
 					lastObsoleteProfilesCleanup = mts;
-					obsoleteProfilesCleanVariance = (rand () % (2 * i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE) - i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT);
+					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
 				}	
 			
-				if (mts >= lastExploratory + 30000) // exploratory every 30 seconds
+				if (mts >= lastExploratory + NETDB_EXPLORATORY_INTERVAL) // check exploratory every 55 seconds
 				{
 					auto numRouters = m_RouterInfos.size ();
 					if (!numRouters)
 						throw std::runtime_error("No known routers, reseed seems to be totally failed");
 					else // we have peers now
 						m_FloodfillBootstrap = nullptr;
-					if (numRouters < 2500 || mts >= lastExploratory + 90000) // 90 seconds
+					if (numRouters < 2500 || mts >= lastExploratory + (NETDB_EXPLORATORY_INTERVAL + exploratoryIntervalVariance)*1000LL) 
 					{
-						numRouters = 800/numRouters;
-						if (numRouters < 1) numRouters = 1;
-						if (numRouters > 9) numRouters = 9;
-						m_Requests.ManageRequests ();
 						if(!i2p::context.IsHidden ())
+						{	
+							numRouters = 800/numRouters;
+							if (numRouters < 1) numRouters = 1;
+							if (numRouters > 9) numRouters = 9;
 							Explore (numRouters);
+						}	
 						lastExploratory = mts;
+						exploratoryIntervalVariance = rand () % NETDB_EXPLORATORY_INTERVAL_VARIANCE;
 					}
 				}
 			}
