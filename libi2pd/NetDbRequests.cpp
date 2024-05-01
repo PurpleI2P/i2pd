@@ -181,12 +181,17 @@ namespace data
 		{
 			auto& dest = it->second;
 			bool done = false;
-			if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME) // request becomes worthless
-			{
-				if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
-					done = !SendNextRequest (dest);
-			}
-			else // delete obsolete request
+			if (!dest->IsExploratory ())
+			{	
+				if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME) // request becomes worthless
+				{
+					if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
+						done = !SendNextRequest (dest);
+				}
+				else // delete obsolete request
+					done = true;
+			}	
+			else if (ts >= dest->GetCreationTime () + MAX_EXPLORATORY_REQUEST_TIME)
 				done = true;
 
 			if (done)
