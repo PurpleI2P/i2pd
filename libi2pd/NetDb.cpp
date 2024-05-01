@@ -991,15 +991,18 @@ namespace data
 		auto dest = m_Requests.FindRequest (ident);
 		if (dest)
 		{
-			if (num > 0 || dest->GetNumExcludedPeers () < 3) // before 3-rd attempt might be just bad luck
+			if (!dest->IsExploratory () && (num > 0 || dest->GetNumExcludedPeers () < 3)) // before 3-rd attempt might be just bad luck
 				// try to send next requests
 				m_Requests.SendNextRequest (dest);
 			else
 				// no more requests for destination possible. delete it
 				m_Requests.RequestComplete (ident, nullptr);
 		}
-		else if(!m_FloodfillBootstrap)
-			LogPrint (eLogWarning, "NetDb: Requested destination for ", key, " not found");
+		else if (!m_FloodfillBootstrap)
+		{	
+			LogPrint (eLogWarning, "NetDb: Unsolicited database search reply for ", key);
+			return;
+		}	
 
 		// try responses
 		for (int i = 0; i < num; i++)

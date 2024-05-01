@@ -592,17 +592,6 @@ namespace tunnel
 		auto typeID = msg->GetTypeID ();
 		LogPrint (eLogDebug, "Tunnel: Gateway of ", (int) len, " bytes for tunnel ", tunnel->GetTunnelID (), ", msg type ", (int)typeID);
 
-		if (typeID == eI2NPDatabaseSearchReply)
-			// DatabaseSearchReply with new routers
-			i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg));
-		else if (IsRouterInfoMsg (msg))
-		{
-			// transit DatabaseStore might contain new/updated RI
-			auto m = CopyI2NPMessage (msg);
-			if (bufbe32toh (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET))
-				memset (m->GetPayload () + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0xFF, 4); // fake replyToken meaning no reply
-			i2p::data::netdb.PostI2NPMsg (m);
-		}
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
