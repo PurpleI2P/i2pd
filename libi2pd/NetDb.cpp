@@ -788,6 +788,8 @@ namespace data
 				direct = false; // floodfill can't be reached directly
 			if (direct)
 			{
+				if (CheckLogLevel (eLogDebug))
+					LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " directly");
 				auto msg = dest->CreateRequestMessage (floodfill->GetIdentHash ());
 				msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
 				transports.SendMessage (floodfill->GetIdentHash (), msg);
@@ -799,6 +801,8 @@ namespace data
 				auto inbound = pool ? pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
 				if (outbound &&	inbound)
 				{
+					if (CheckLogLevel (eLogDebug))
+						LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 					auto msg = dest->CreateRequestMessage (floodfill, inbound);
 					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
 					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
@@ -827,7 +831,8 @@ namespace data
 			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
 			return;
 		}
-		LogPrint(eLogInfo, "NetDb: Destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
+		if (CheckLogLevel (eLogDebug))
+			LogPrint(eLogDebug, "NetDb: Destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
 		// direct
 		transports.SendMessage (from, dest->CreateRequestMessage (nullptr, nullptr));
 	}
@@ -1002,7 +1007,7 @@ namespace data
 		}
 		else if (!m_FloodfillBootstrap)
 		{	
-			LogPrint (eLogWarning, "NetDb: Unsolicited database search reply for ", key);
+			LogPrint (eLogInfo, "NetDb: Unsolicited or late database search reply for ", key);
 			return;
 		}	
 
