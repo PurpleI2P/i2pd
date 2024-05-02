@@ -53,6 +53,7 @@ namespace data
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
+	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
@@ -97,7 +98,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
-			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+			std::vector<IdentHash> GetClosestNonFloodfill (const IdentHash& destination, size_t num, const std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);

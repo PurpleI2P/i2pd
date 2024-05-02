@@ -9,6 +9,8 @@
 #include <string.h>
 #include <fstream>
 #include <vector>
+#include <map>
+#include <random>
 #include <boost/asio.hpp>
 #include <stdexcept>
 
@@ -992,7 +994,7 @@ namespace data
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
-		int num = buf[32]; // num
+		size_t num = buf[32]; // num
 		LogPrint (eLogDebug, "NetDb: DatabaseSearchReply for ", key, " num=", num);
 		IdentHash ident (buf);
 		auto dest = m_Requests.FindRequest (ident);
@@ -1012,7 +1014,12 @@ namespace data
 		}	
 
 		// try responses
-		for (int i = 0; i < num; i++)
+		if (num > NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES)
+		{
+			LogPrint (eLogWarning, "NetDb: Too many peer hashes ", num, " in database search reply, Reduced to ", NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES);
+			num = NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES;
+		}	
+		for (size_t i = 0; i < num; i++)
 		{
 			const uint8_t * router = buf + 33 + i*32;
 			char peerHash[48];
@@ -1087,17 +1094,8 @@ namespace data
 				excludedRouters.insert (excluded_ident);
 				excluded_ident += 32;
 			}
-			std::vector<IdentHash> routers;
-			for (int i = 0; i < 3; i++)
-			{
-				auto r = GetClosestNonFloodfill (ident, excludedRouters);
-				if (r)
-				{
-					routers.push_back (r->GetIdentHash ());
-					excludedRouters.insert (r->GetIdentHash ());
-				}
-			}
-			replyMsg = CreateDatabaseSearchReply (ident, routers);
+			replyMsg = CreateDatabaseSearchReply (ident, GetClosestNonFloodfill (ident, 
+				NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES, excludedRouters));
 		}
 		else
 		{
@@ -1453,29 +1451,39 @@ namespace data
 		});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination,
-		const std::set<IdentHash>& excluded) const
+	std::vector<IdentHash> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
+		size_t num, const std::set<IdentHash>& excluded) const
 	{
-		std::shared_ptr<const RouterInfo> r;
-		XORMetric minMetric;
-		IdentHash destKey = CreateRoutingKey (destination);
-		minMetric.SetMax ();
-		// must be called from NetDb thread only
-		bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
-		std::lock_guard<std::mutex> l(m_RouterInfosMutex);
-		for (const auto& it: m_RouterInfos)
+		std::vector<IdentHash> ret;
+		if (!num) return ret; // empty list
+		// collect eligible
+		std::vector<std::shared_ptr<const RouterInfo> > eligible;
+		eligible.reserve (NETDB_NUM_ROUTERS_THRESHOLD);
 		{
-			if (!it.second->IsDeclaredFloodfill () && (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
-			{
-				XORMetric m = destKey ^ it.first;
-				if (m < minMetric && !excluded.count (it.first))
-				{
-					minMetric = m;
-					r = it.second;
-				}
-			}
+			bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
+			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
+			for (const auto& it: m_RouterInfos)
+				if (!it.second->IsDeclaredFloodfill () && (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
+					eligible.push_back (it.second);
 		}
-		return r;
+		// reduce number of eligible routers if too many
+		if (eligible.size () > NETDB_NUM_ROUTERS_THRESHOLD)
+		{
+			std::shuffle (eligible.begin(), eligible.end(), std::mt19937(std::random_device()()));
+			eligible.resize (NETDB_NUM_ROUTERS_THRESHOLD);
+		}	
+		// sort by distance
+		IdentHash destKey = CreateRoutingKey (destination);
+		std::map<XORMetric, std::shared_ptr<const RouterInfo> > sorted;
+		for (const auto& it: eligible)
+			sorted.emplace (destKey ^ it->GetIdentHash (), it);
+		// return first num closest routers
+		for (const auto& it: sorted)
+		{
+			ret.push_back (it.second->GetIdentHash ());
+			if (ret.size () >= num) break;
+		}	
+		return ret;
 	}
 
 	void NetDb::ManageRouterInfos ()
