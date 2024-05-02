@@ -1463,7 +1463,8 @@ namespace data
 			bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
 			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 			for (const auto& it: m_RouterInfos)
-				if (!it.second->IsDeclaredFloodfill () && (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
+				if (!it.second->IsDeclaredFloodfill () && !excluded.count (it.first) &&
+				    (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
 					eligible.push_back (it.second);
 		}
 		// reduce number of eligible routers if too many
