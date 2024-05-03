@@ -127,22 +127,20 @@ namespace data
 			if (!ret.second) // not inserted
 			{	
 				dest->SetRequestComplete (nullptr); // don't call requestComplete in destructor	
-				if (requestComplete)
+				dest = ret.first->second; // existing one
+				if (requestComplete && dest->IsActive ())
 				{	
-					auto prev = ret.first->second->GetRequestComplete ();  
+					auto prev = dest->GetRequestComplete ();  
 					if (prev) // if already set 	
-						ret.first->second->SetRequestComplete (
+						dest->SetRequestComplete (
 							[requestComplete, prev](std::shared_ptr<RouterInfo> r)
 							{
 								prev (r); // call previous
 								requestComplete (r); // then new
 							});
 					else
-						ret.first->second->SetRequestComplete (requestComplete);
+						dest->SetRequestComplete (requestComplete);
 				}
-				if (i2p::util::GetSecondsSinceEpoch () > ret.first->second->GetLastRequestTime () + MIN_REQUEST_TIME)
-					if (!SendNextRequest (ret.first->second)) // try next floodfill
-						m_RequestedDestinations.erase (ret.first); // delete request if failed
 				return nullptr;
 			}	
 		}
@@ -224,7 +222,7 @@ namespace data
 
 	bool NetDbRequests::SendNextRequest (std::shared_ptr<RequestedDestination> dest)
 	{
-		if (!dest) return false;
+		if (!dest || !dest->IsActive ()) return false;
 		bool ret = true;
 		auto count = dest->GetNumExcludedPeers ();
 		if (!dest->IsExploratory () && count < MAX_NUM_REQUEST_ATTEMPTS)
