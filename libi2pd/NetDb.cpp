@@ -1458,26 +1458,27 @@ namespace data
 		if (!num) return ret; // empty list
 		// collect eligible
 		std::vector<std::shared_ptr<const RouterInfo> > eligible;
-		eligible.reserve (NETDB_NUM_ROUTERS_THRESHOLD);
+		eligible.reserve (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
 		{
 			bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
 			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
 			for (const auto& it: m_RouterInfos)
-				if (!it.second->IsDeclaredFloodfill () && !excluded.count (it.first) &&
-				    (!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
-					eligible.push_back (it.second);
+				if (!it.second->IsDeclaredFloodfill () &&
+				 	(!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
+						eligible.push_back (it.second);
 		}
 		// reduce number of eligible routers if too many
-		if (eligible.size () > NETDB_NUM_ROUTERS_THRESHOLD)
+		if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 		{
 			std::shuffle (eligible.begin(), eligible.end(), std::mt19937(std::random_device()()));
-			eligible.resize (NETDB_NUM_ROUTERS_THRESHOLD);
+			eligible.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
 		}	
 		// sort by distance
 		IdentHash destKey = CreateRoutingKey (destination);
 		std::map<XORMetric, std::shared_ptr<const RouterInfo> > sorted;
 		for (const auto& it: eligible)
-			sorted.emplace (destKey ^ it->GetIdentHash (), it);
+			if (!excluded.count (it->GetIdentHash ())) 
+				sorted.emplace (destKey ^ it->GetIdentHash (), it);
 		// return first num closest routers
 		for (const auto& it: sorted)
 		{

@@ -54,6 +54,7 @@ namespace data
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
+	const size_t NETDB_MAX_EXPLORATORY_SELECTION_SIZE = 500;
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
