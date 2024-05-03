@@ -780,7 +780,7 @@ namespace data
 		auto dest = m_Requests.CreateRequest (destination, false, direct, requestComplete); // non-exploratory
 		if (!dest)
 		{
-			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
+			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already or cached");
 			return;
 		}
 
@@ -1000,7 +1000,7 @@ namespace data
 		LogPrint (eLogDebug, "NetDb: DatabaseSearchReply for ", key, " num=", num);
 		IdentHash ident (buf);
 		auto dest = m_Requests.FindRequest (ident);
-		if (dest)
+		if (dest && dest->IsActive ())
 		{
 			if (!dest->IsExploratory () && (num > 0 || dest->GetNumExcludedPeers () < 3)) // before 3-rd attempt might be just bad luck
 				// try to send next requests

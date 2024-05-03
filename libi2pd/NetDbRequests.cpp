@@ -81,22 +81,28 @@ namespace data
 		
 	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
 	{
-		m_IsActive = false;
-		if (m_RequestComplete)
-		{
-			m_RequestComplete (r);
-			m_RequestComplete = nullptr;
-		}
+		if (m_IsActive)
+		{	
+			m_IsActive = false;
+			if (m_RequestComplete)
+			{
+				m_RequestComplete (r);
+				m_RequestComplete = nullptr;
+			}
+		}	
 	}
 
 	void RequestedDestination::Fail ()
 	{
-		m_IsActive = false;
-		if (m_RequestComplete)
-		{
-			m_RequestComplete (nullptr);
-			m_RequestComplete = nullptr;
-		}
+		if (m_IsActive)
+		{	
+			m_IsActive = false;
+			if (m_RequestComplete)
+			{
+				m_RequestComplete (nullptr);
+				m_RequestComplete = nullptr;
+			}
+		}	
 	}
 
 	void NetDbRequests::Start ()
@@ -152,7 +158,9 @@ namespace data
 			if (it != m_RequestedDestinations.end ())
 			{
 				request = it->second;
-				m_RequestedDestinations.erase (it);
+				if (request->IsExploratory ())
+					m_RequestedDestinations.erase (it);
+				// otherwise cache for a while
 			}
 		}
 		if (request)
@@ -180,24 +188,37 @@ namespace data
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
 			auto& dest = it->second;
-			bool done = false;
-			if (!dest->IsExploratory ())
+			if (dest->IsActive () || ts < dest->GetCreationTime () + REQUEST_CACHE_TIME)
 			{	
-				if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME) // request becomes worthless
-				{
-					if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
-						done = !SendNextRequest (dest);
-				}
-				else // delete obsolete request
-					done = true;
+				if (!dest->IsExploratory ())
+				{	
+					// regular request
+					bool done = false;
+					if (ts < dest->GetCreationTime () + MAX_REQUEST_TIME)
+					{
+						if (ts > dest->GetLastRequestTime () + MIN_REQUEST_TIME) // try next floodfill if no response after min interval
+							done = !SendNextRequest (dest);
+					}
+					else // request is expired
+						done = true;
+					if (done)
+						dest->Fail ();
+					it++;
+				}	
+				else
+				{	
+					// exploratory
+					if (ts >= dest->GetCreationTime () + MAX_EXPLORATORY_REQUEST_TIME)
+					{
+						dest->Fail ();
+						it = m_RequestedDestinations.erase (it); // delete expired exploratory request right a way
+					}	
+					else
+						it++;
+				}	
 			}	
-			else if (ts >= dest->GetCreationTime () + MAX_EXPLORATORY_REQUEST_TIME)
-				done = true;
-
-			if (done)
-				it = m_RequestedDestinations.erase (it);
 			else
-				++it;
+				it = m_RequestedDestinations.erase (it);
 		}
 	}
 

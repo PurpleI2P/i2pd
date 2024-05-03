@@ -25,6 +25,7 @@ namespace data
 	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL);
 	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30; // in seconds
+	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40; // in seconds
 	
 	class RequestedDestination
 	{
