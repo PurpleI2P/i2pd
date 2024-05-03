@@ -55,6 +55,7 @@ namespace data
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
 	const size_t NETDB_MAX_EXPLORATORY_SELECTION_SIZE = 500;
+	const int NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL = 82; // in seconds
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
@@ -99,7 +100,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
-			std::vector<IdentHash> GetClosestNonFloodfill (const IdentHash& destination, size_t num, const std::set<IdentHash>& excluded) const;
+			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::set<IdentHash>& excluded);
 			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
@@ -189,6 +190,9 @@ namespace data
 
 			std::set<IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken = 0;
+
+			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
+			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
 
 			i2p::util::MemoryPoolMt<RouterInfo::Buffer> m_RouterInfoBuffersPool;
 			i2p::util::MemoryPoolMt<RouterInfo::Address> m_RouterInfoAddressesPool;

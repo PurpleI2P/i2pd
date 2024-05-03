@@ -38,7 +38,9 @@ namespace data
 {
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), 
+		m_Storage("netDb", "r", "routerInfo-", "dat"), m_PersistProfiles (true),
+		m_LastExploratorySelectionUpdateTime (0)
 	{
 	}
 
@@ -1094,7 +1096,7 @@ namespace data
 				excludedRouters.insert (excluded_ident);
 				excluded_ident += 32;
 			}
-			replyMsg = CreateDatabaseSearchReply (ident, GetClosestNonFloodfill (ident, 
+			replyMsg = CreateDatabaseSearchReply (ident, GetExploratoryNonFloodfill (ident, 
 				NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES, excludedRouters));
 		}
 		else
@@ -1451,32 +1453,38 @@ namespace data
 		});
 	}
 
-	std::vector<IdentHash> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
-		size_t num, const std::set<IdentHash>& excluded) const
+	std::vector<IdentHash> NetDb::GetExploratoryNonFloodfill (const IdentHash& destination, 
+		size_t num, const std::set<IdentHash>& excluded)
 	{
 		std::vector<IdentHash> ret;
 		if (!num) return ret; // empty list
-		// collect eligible
-		std::vector<std::shared_ptr<const RouterInfo> > eligible;
-		eligible.reserve (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
+		auto ts = i2p::util::GetMonotonicSeconds ();
+		if (ts > m_LastExploratorySelectionUpdateTime +	NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL)
 		{
-			bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
-			std::lock_guard<std::mutex> l(m_RouterInfosMutex);
-			for (const auto& it: m_RouterInfos)
-				if (!it.second->IsDeclaredFloodfill () &&
-				 	(!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
-						eligible.push_back (it.second);
-		}
-		// reduce number of eligible routers if too many
-		if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
-		{
-			std::shuffle (eligible.begin(), eligible.end(), std::mt19937(std::random_device()()));
-			eligible.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
+			// update selection
+			m_ExploratorySelection.clear ();
+			{
+				// collect eligible from current netdb
+				bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
+				std::lock_guard<std::mutex> l(m_RouterInfosMutex);
+				for (const auto& it: m_RouterInfos)
+					if (!it.second->IsDeclaredFloodfill () &&
+					 	(!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
+							m_ExploratorySelection.push_back (it.second);
+			}
+			if (m_ExploratorySelection.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
+			{
+				// reduce number of eligible to max selection size
+				std::shuffle (m_ExploratorySelection.begin(), m_ExploratorySelection.end(), std::mt19937(std::random_device()()));
+				m_ExploratorySelection.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
+			}	
+			m_LastExploratorySelectionUpdateTime = ts;
 		}	
+		
 		// sort by distance
 		IdentHash destKey = CreateRoutingKey (destination);
 		std::map<XORMetric, std::shared_ptr<const RouterInfo> > sorted;
-		for (const auto& it: eligible)
+		for (const auto& it: m_ExploratorySelection)
 			if (!excluded.count (it->GetIdentHash ())) 
 				sorted.emplace (destKey ^ it->GetIdentHash (), it);
 		// return first num closest routers
