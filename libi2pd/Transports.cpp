@@ -328,7 +328,6 @@ namespace transport
 	{
 		if (m_PeerCleanupTimer) m_PeerCleanupTimer->cancel ();
 		if (m_PeerTestTimer) m_PeerTestTimer->cancel ();
-		m_Peers.clear ();
 
 		if (m_SSU2Server)
 		{
@@ -353,6 +352,7 @@ namespace transport
 			delete m_Thread;
 			m_Thread = nullptr;
 		}
+		m_Peers.clear ();
 	}
 
 	void Transports::Run ()
