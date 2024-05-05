@@ -15,17 +15,19 @@
 #include <unordered_map>
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "util.h"
 
 namespace i2p
 {
 namespace data
 {
-	const size_t MAX_NUM_REQUEST_ATTEMPTS = 7;
+	const size_t MAX_NUM_REQUEST_ATTEMPTS = 5;
 	const uint64_t MANAGE_REQUESTS_INTERVAL = 1; // in seconds
 	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL);
 	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30; // in seconds
 	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40; // in seconds
+	const uint64_t REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL = 191; // in seconds
 	
 	class RequestedDestination
 	{
@@ -83,6 +85,8 @@ namespace data
 
 			mutable std::mutex m_RequestedDestinationsMutex;
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
+			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
+			uint64_t m_LastPoolCleanUpTime = 0; // in seconds
 	};
 }
 }

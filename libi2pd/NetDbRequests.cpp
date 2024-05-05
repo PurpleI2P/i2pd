@@ -107,11 +107,13 @@ namespace data
 
 	void NetDbRequests::Start ()
 	{
+		m_LastPoolCleanUpTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
 	void NetDbRequests::Stop ()
 	{
 		m_RequestedDestinations.clear ();
+		m_RequestedDestinationsPool.CleanUpMt ();
 	}
 
 
@@ -119,7 +121,7 @@ namespace data
 		bool isExploratory, bool direct, RequestedDestination::RequestComplete requestComplete)
 	{
 		// request RouterInfo directly
-		auto dest = std::make_shared<RequestedDestination> (destination, isExploratory, direct);
+		auto dest = m_RequestedDestinationsPool.AcquireSharedMt (destination, isExploratory, direct);
 		dest->SetRequestComplete (requestComplete);
 		{
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex); 
@@ -182,6 +184,11 @@ namespace data
 	void NetDbRequests::ManageRequests ()
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts > m_LastPoolCleanUpTime + REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL)
+		{
+			m_RequestedDestinationsPool.CleanUpMt ();
+			m_LastPoolCleanUpTime = ts;
+		}	
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
