@@ -179,8 +179,7 @@ namespace data
 			Families m_Families;
 			i2p::fs::HashedStorage m_Storage;
 
-			friend class NetDbRequests;
-			NetDbRequests m_Requests;
+			std::shared_ptr<NetDbRequests> m_Requests;
 
 			bool m_PersistProfiles;
 			std::future<void> m_SavingProfiles, m_DeletingProfiles;

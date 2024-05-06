@@ -67,7 +67,7 @@ namespace data
 			RequestComplete m_RequestComplete;
 	};
 
-	class NetDbRequests
+	class NetDbRequests: public std::enable_shared_from_this<NetDbRequests>
 	{
 		public:
 

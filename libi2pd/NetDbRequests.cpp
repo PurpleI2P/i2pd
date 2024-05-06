@@ -246,7 +246,8 @@ namespace data
 					if (CheckLogLevel (eLogDebug))
 						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " directly");
 					auto msg = dest->CreateRequestMessage (nextFloodfill->GetIdentHash ());
-					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); }; 
+					auto s = shared_from_this ();
+					msg->onDrop = [s, dest]() { if (dest->IsActive ()) s->SendNextRequest (dest); }; 
 					i2p::transport::transports.SendMessage (nextFloodfill->GetIdentHash (), msg);
 				}	
 				else
@@ -261,7 +262,8 @@ namespace data
 							if (CheckLogLevel (eLogDebug))
 								LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 							auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
-							msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->SendNextRequest (dest); };
+							auto s = shared_from_this ();
+							msg->onDrop = [s, dest]() { if (dest->IsActive ()) s->SendNextRequest (dest); };
 							outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 								i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 						}	

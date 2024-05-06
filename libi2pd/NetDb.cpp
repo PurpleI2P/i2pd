@@ -80,12 +80,20 @@ namespace data
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
 
+		if (!m_Requests)
+		{	
+			m_Requests = std::make_shared<NetDbRequests>();
+			m_Requests->Start ();
+		}
+		
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
 
 	void NetDb::Stop ()
 	{
+		if (m_Requests)
+			m_Requests->Stop ();
 		if (m_IsRunning)
 		{
 			if (m_PersistProfiles)
@@ -102,8 +110,8 @@ namespace data
 				m_Thread = 0;
 			}
 			m_LeaseSets.clear();
-			m_Requests.Stop ();
 		}
+		m_Requests = nullptr;
 	}
 
 	void NetDb::Run ()
@@ -158,7 +166,7 @@ namespace data
 				{
 					if (lastManageRequest || i2p::tunnel::tunnels.GetExploratoryPool ()) // expolratory pool is ready?
 					{	
-						m_Requests.ManageRequests ();
+						if (m_Requests) m_Requests->ManageRequests ();
 						lastManageRequest = mts;
 					}	
 				}
@@ -274,7 +282,7 @@ namespace data
 					if (!r->Update (buf, len))
 					{
 						updated = false;
-						m_Requests.RequestComplete (ident, r);
+						m_Requests->RequestComplete (ident, r);
 						return r;
 					}
 					if (r->IsUnreachable () ||
@@ -287,7 +295,7 @@ namespace data
 							std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 							m_Floodfills.Remove (r->GetIdentHash ());
 						}
-						m_Requests.RequestComplete (ident, nullptr);
+						m_Requests->RequestComplete (ident, nullptr);
 						return nullptr;
 					}
 				}
@@ -359,7 +367,7 @@ namespace data
 				updated = false;
 		}
 		// take care about requested destination
-		m_Requests.RequestComplete (ident, r);
+		m_Requests->RequestComplete (ident, r);
 		return r;
 	}
 
@@ -777,7 +785,7 @@ namespace data
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
 		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
-		auto dest = m_Requests.CreateRequest (destination, false, direct, requestComplete); // non-exploratory
+		auto dest = m_Requests->CreateRequest (destination, false, direct, requestComplete); // non-exploratory
 		if (!dest)
 		{
 			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already or cached");
@@ -795,7 +803,7 @@ namespace data
 				if (CheckLogLevel (eLogDebug))
 					LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " directly");
 				auto msg = dest->CreateRequestMessage (floodfill->GetIdentHash ());
-				msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
+				msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests->SendNextRequest (dest); }; 
 				transports.SendMessage (floodfill->GetIdentHash (), msg);
 			}	
 			else
@@ -808,28 +816,28 @@ namespace data
 					if (CheckLogLevel (eLogDebug))
 						LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 					auto msg = dest->CreateRequestMessage (floodfill, inbound);
-					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests.SendNextRequest (dest); }; 
+					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests->SendNextRequest (dest); }; 
 					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
 						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 				}
 				else
 				{
 					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
-					m_Requests.RequestComplete (destination, nullptr);
+					m_Requests->RequestComplete (destination, nullptr);
 				}
 			}
 		}
 		else
 		{
 			LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no floodfills found");
-			m_Requests.RequestComplete (destination, nullptr);
+			m_Requests->RequestComplete (destination, nullptr);
 		}
 	}
 
 	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploratory, RequestedDestination::RequestComplete requestComplete)
 	{
 
-		auto dest = m_Requests.CreateRequest (destination, exploratory, true, requestComplete); // non-exploratory
+		auto dest = m_Requests->CreateRequest (destination, exploratory, true, requestComplete); // non-exploratory
 		if (!dest)
 		{
 			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
@@ -999,15 +1007,15 @@ namespace data
 		size_t num = buf[32]; // num
 		LogPrint (eLogDebug, "NetDb: DatabaseSearchReply for ", key, " num=", num);
 		IdentHash ident (buf);
-		auto dest = m_Requests.FindRequest (ident);
+		auto dest = m_Requests->FindRequest (ident);
 		if (dest && dest->IsActive ())
 		{
 			if (!dest->IsExploratory () && (num > 0 || dest->GetNumExcludedPeers () < 3)) // before 3-rd attempt might be just bad luck
 				// try to send next requests
-				m_Requests.SendNextRequest (dest);
+				m_Requests->SendNextRequest (dest);
 			else
 				// no more requests for destination possible. delete it
-				m_Requests.RequestComplete (ident, nullptr);
+				m_Requests->RequestComplete (ident, nullptr);
 		}
 		else if (!m_FloodfillBootstrap)
 		{	
@@ -1222,7 +1230,7 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{
 			RAND_bytes (randomHash, 32);
-			auto dest = m_Requests.CreateRequest (randomHash, true, !throughTunnels); // exploratory
+			auto dest = m_Requests->CreateRequest (randomHash, true, !throughTunnels); // exploratory
 			if (!dest)
 			{
 				LogPrint (eLogWarning, "NetDb: Exploratory destination is requested already");
@@ -1252,7 +1260,7 @@ namespace data
 					i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			}
 			else
-				m_Requests.RequestComplete (randomHash, nullptr);
+				m_Requests->RequestComplete (randomHash, nullptr);
 		}
 		if (throughTunnels && msgs.size () > 0)
 			outbound->SendTunnelDataMsgs (msgs);
