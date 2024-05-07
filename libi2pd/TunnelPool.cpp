@@ -45,7 +45,8 @@ namespace tunnel
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
 		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance),
-		m_IsActive (true), m_CustomPeerSelector(nullptr), m_Rng(m_Rd())
+		m_IsActive (true), m_CustomPeerSelector(nullptr), 
+		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
 			m_NumInboundTunnels = TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY;

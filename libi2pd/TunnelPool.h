@@ -154,7 +154,6 @@ namespace tunnel
 			int m_MinLatency = 0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
 			int m_MaxLatency = 0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
 
-			std::random_device m_Rd;
 			std::mt19937 m_Rng;
 			
 		public:

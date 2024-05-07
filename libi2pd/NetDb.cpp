@@ -1490,7 +1490,7 @@ namespace data
 			if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 			{
 				 std::sample (eligible.begin(), eligible.end(), std::back_inserter(m_ExploratorySelection),
-				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, std::mt19937(std::random_device()()));
+				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, std::mt19937(ts));
 			}	
 			else
 				std::swap (m_ExploratorySelection, eligible);
@@ -1498,7 +1498,7 @@ namespace data
 			if (m_ExploratorySelection.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 			{
 				// reduce number of eligible to max selection size
-				std::shuffle (m_ExploratorySelection.begin(), m_ExploratorySelection.end(), std::mt19937(std::random_device()()));
+				std::shuffle (m_ExploratorySelection.begin(), m_ExploratorySelection.end(), std::mt19937(ts));
 				m_ExploratorySelection.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
 			}	
 #endif			
