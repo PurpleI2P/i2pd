@@ -60,7 +60,7 @@ namespace tunnel
 			m_InboundVariance = (m_NumInboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumInboundHops : 0;
 		if (m_OutboundVariance > 0 && m_NumOutboundHops + m_OutboundVariance > STANDARD_NUM_RECORDS)
 			m_OutboundVariance = (m_NumOutboundHops < STANDARD_NUM_RECORDS) ? STANDARD_NUM_RECORDS - m_NumOutboundHops : 0;
-		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + rand () % TUNNEL_POOL_MANAGE_INTERVAL;
+		m_NextManageTime = i2p::util::GetSecondsSinceEpoch () + m_Rng () % TUNNEL_POOL_MANAGE_INTERVAL;
 	}
 
 	TunnelPool::~TunnelPool ()
@@ -211,14 +211,14 @@ namespace tunnel
 	}
 
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded,
-		i2p::data::RouterInfo::CompatibleTransports compatible) const
+		i2p::data::RouterInfo::CompatibleTransports compatible)
 	{
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		return GetNextTunnel (m_OutboundTunnels, excluded, compatible);
 	}
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded,
-		i2p::data::RouterInfo::CompatibleTransports compatible) const
+		i2p::data::RouterInfo::CompatibleTransports compatible)
 	{
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		return GetNextTunnel (m_InboundTunnels, excluded, compatible);
@@ -226,10 +226,10 @@ namespace tunnel
 
 	template<class TTunnels>
 	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels,
-		typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible) const
+		typename TTunnels::value_type excluded, i2p::data::RouterInfo::CompatibleTransports compatible)
 	{
 		if (tunnels.empty ()) return nullptr;
-		uint32_t ind = rand () % (tunnels.size ()/2 + 1), i = 0;
+		uint32_t ind = m_Rng () % (tunnels.size ()/2 + 1), i = 0;
 		bool skipped = false;
 		typename TTunnels::value_type tunnel = nullptr;
 		for (const auto& it: tunnels)
@@ -249,7 +249,7 @@ namespace tunnel
 		}
 		if (!tunnel && skipped)
 		{
-			ind = rand () % (tunnels.size ()/2 + 1), i = 0;
+			ind = m_Rng () % (tunnels.size ()/2 + 1), i = 0;
 			for (const auto& it: tunnels)
 			{
 				if (it->IsEstablished () && it != excluded)
@@ -264,7 +264,7 @@ namespace tunnel
 		return tunnel;
 	}
 
-	std::pair<std::shared_ptr<OutboundTunnel>, bool> TunnelPool::GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const
+	std::pair<std::shared_ptr<OutboundTunnel>, bool> TunnelPool::GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old)
 	{
 		if (old && old->IsEstablished ()) return std::make_pair(old, false);
 		std::shared_ptr<OutboundTunnel> tunnel;
@@ -456,7 +456,7 @@ namespace tunnel
 		{
 			CreateTunnels ();
 			TestTunnels ();
-			m_NextManageTime = ts + TUNNEL_POOL_MANAGE_INTERVAL + (rand () % TUNNEL_POOL_MANAGE_INTERVAL)/2;
+			m_NextManageTime = ts + TUNNEL_POOL_MANAGE_INTERVAL + (m_Rng () % TUNNEL_POOL_MANAGE_INTERVAL)/2;
 		}
 	}
 
@@ -619,7 +619,7 @@ namespace tunnel
 			numHops = m_NumInboundHops;
 			if (m_InboundVariance)
 			{
-				int offset = rand () % (std::abs (m_InboundVariance) + 1);
+				int offset = m_Rng () % (std::abs (m_InboundVariance) + 1);
 				if (m_InboundVariance < 0) offset = -offset;
 				numHops += offset;
 			}
@@ -629,7 +629,7 @@ namespace tunnel
 			numHops = m_NumOutboundHops;
 			if (m_OutboundVariance)
 			{
-				int offset = rand () % (std::abs (m_OutboundVariance) + 1);
+				int offset = m_Rng () % (std::abs (m_OutboundVariance) + 1);
 				if (m_OutboundVariance < 0) offset = -offset;
 				numHops += offset;
 			}
