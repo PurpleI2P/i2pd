@@ -217,7 +217,7 @@ namespace data
 			uint8_t cost; // ignore
 			s.read ((char *)&cost, sizeof (cost));
 			s.read ((char *)&address->date, sizeof (address->date));
-			bool isHost = false, isStaticKey = false, isV2 = false;
+			bool isHost = false, isStaticKey = false, isV2 = false, isIntroKey = false;
 			char transportStyle[6];
 			ReadString (transportStyle, 6, s);
 			if (!strncmp (transportStyle, "NTCP", 4)) // NTCP or NTCP2
@@ -294,26 +294,38 @@ namespace data
 					address->caps = ExtractAddressCaps (value);
 				else if (!strcmp (key, "s")) // ntcp2 or ssu2 static key
 				{
-					Base64ToByteStream (value, strlen (value), address->s, 32);
-					if (!(address->s[31] & 0x80)) // check if x25519 public key
-						isStaticKey = true;
+					if (Base64ToByteStream (value, strlen (value), address->s, 32) == 32 &&
+						!(address->s[31] & 0x80)) // check if x25519 public key
+							isStaticKey = true;
+					else
+						address->transportStyle = eTransportUnknown; // invalid address
 				}
 				else if (!strcmp (key, "i")) // ntcp2 iv or ssu2 intro
 				{
 					if (address->IsNTCP2 ())
 					{
-						Base64ToByteStream (value, strlen (value), address->i, 16);
-						address->published = true; // presence of "i" means "published" NTCP2
+						if (Base64ToByteStream (value, strlen (value), address->i, 16) == 16)
+							address->published = true; // presence of "i" means "published" NTCP2
+						else
+							address->transportStyle = eTransportUnknown; // invalid address
 					}
 					else if (address->IsSSU2 ())
-						Base64ToByteStream (value, strlen (value), address->i, 32);
+					{	
+						if (Base64ToByteStream (value, strlen (value), address->i, 32) == 32)
+							isIntroKey = true;
+						else
+							address->transportStyle = eTransportUnknown; // invalid address
+					}	
 				}
 				else if (!strcmp (key, "v"))
 				{
 					if (!strcmp (value, "2"))
 						isV2 = true;
 					else
+					{	
 						LogPrint (eLogWarning, "RouterInfo: Unexpected value ", value, " for v");
+						address->transportStyle = eTransportUnknown; // invalid address
+					}	
 				}
 				else if (key[0] == 'i')
 				{
@@ -391,7 +403,7 @@ namespace data
 					}
 				}
 			}
-			else if (address->transportStyle == eTransportSSU2 && isV2 && isStaticKey)
+			else if (address->transportStyle == eTransportSSU2 && isV2 && isStaticKey && isIntroKey)
 			{
 				if (address->IsV4 ()) supportedTransports |= eSSU2V4;
 				if (address->IsV6 ()) supportedTransports |= eSSU2V6;
