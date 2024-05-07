@@ -58,6 +58,12 @@ namespace data
 		m_Families.LoadCertificates ();
 		Load ();
 
+		if (!m_Requests)
+		{	
+			m_Requests = std::make_shared<NetDbRequests>();
+			m_Requests->Start ();
+		}
+		
 		uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
 		if (m_RouterInfos.size () < threshold || m_Floodfills.GetSize () < NETDB_MIN_FLOODFILLS) // reseed if # of router less than threshold or too few floodfiils
 		{
@@ -79,12 +85,6 @@ namespace data
 			m_Floodfills.Insert (i2p::context.GetSharedRouterInfo ());
 
 		i2p::config::GetOption("persist.profiles", m_PersistProfiles);
-
-		if (!m_Requests)
-		{	
-			m_Requests = std::make_shared<NetDbRequests>();
-			m_Requests->Start ();
-		}
 		
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
