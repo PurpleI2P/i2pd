@@ -672,6 +672,17 @@ namespace data
 
 	void NetDb::SaveUpdated ()
 	{
+		if (m_PersistingRouters.valid ())
+		{
+			if (m_PersistingRouters.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+				m_PersistingRouters.get ();
+			else
+			{	
+				LogPrint (eLogWarning, "NetDb: Can't save updated routers. Routers are being saved to disk");
+				return;
+			}	
+		}	
+
 		int updatedCount = 0, deletedCount = 0, deletedFloodfillsCount = 0;
 		auto total = m_RouterInfos.size ();
 		auto totalFloodfills = m_Floodfills.GetSize ();
@@ -687,6 +698,9 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
+		std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > > saveToDisk;
+		std::list<std::string> removeFromDisk;	
+			
 		auto own = i2p::context.GetSharedRouterInfo ();
 		for (auto& it: m_RouterInfos)
 		{
@@ -697,10 +711,8 @@ namespace data
 				if (it.second->GetBuffer ())
 				{
 					// we have something to save
-					it.second->SaveToFile (m_Storage.Path(ident));
+					saveToDisk.push_back(std::make_pair(ident, it.second));
 					it.second->SetUnreachable (false);
-					std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
-					it.second->DeleteBuffer ();
 				}
 				it.second->SetUpdated (false);
 				updatedCount++;
@@ -741,12 +753,18 @@ namespace data
 			{
 				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
 				// delete RI file
-				m_Storage.Remove(ident);
+				removeFromDisk.push_back (ident);
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
 		} // m_RouterInfos iteration
 
+		if (!saveToDisk.empty () || !removeFromDisk.empty ())
+		{
+			m_PersistingRouters = std::async (std::launch::async, &NetDb::PersistRouters,
+				this, std::move (saveToDisk), std::move (removeFromDisk));
+		}	
+			
 		m_RouterInfoBuffersPool.CleanUpMt ();
 		m_RouterInfoAddressesPool.CleanUpMt ();
 		m_RouterInfoAddressVectorsPool.CleanUpMt ();
@@ -782,6 +800,19 @@ namespace data
 		}
 	}
 
+	void NetDb::PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > >&& update, 
+		std::list<std::string>&& remove)
+	{
+		for (auto it: update)
+		{	
+			it.second->SaveToFile (m_Storage.Path(it.first));
+			std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
+			it.second->DeleteBuffer ();
+		}	
+		for (auto it: remove)
+			m_Storage.Remove (it);
+	}	
+	
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
 		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes

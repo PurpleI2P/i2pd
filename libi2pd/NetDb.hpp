@@ -146,6 +146,8 @@ namespace data
 			void Load ();
 			bool LoadRouterInfo (const std::string& path, uint64_t ts);
 			void SaveUpdated ();
+			void PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > >&& update, 
+				std::list<std::string>&& remove);
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
@@ -182,7 +184,7 @@ namespace data
 			std::shared_ptr<NetDbRequests> m_Requests;
 
 			bool m_PersistProfiles;
-			std::future<void> m_SavingProfiles, m_DeletingProfiles;
+			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_PersistingRouters;
 
 			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
