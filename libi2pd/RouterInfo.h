@@ -188,6 +188,13 @@ namespace data
 
 					Buffer () = default;
 					Buffer (const uint8_t * buf, size_t len);
+
+					size_t GetBufferLen () const { return m_BufferLen; };
+					void SetBufferLen (size_t len) { m_BufferLen = len; };
+					
+				private:
+
+					size_t m_BufferLen = 0;
 			};
 
 			typedef std::array<std::shared_ptr<Address>, eNumTransports> Addresses;
@@ -272,18 +279,20 @@ namespace data
 
 			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
-			size_t GetBufferLen () const { return m_BufferLen; };
+			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; };
+			void DeleteBuffer () { m_Buffer = nullptr; };
+			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };			
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; };
 			bool SaveToFile (const std::string& fullPath);
-
+			static bool SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf);
+		
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void DropProfile () { m_Profile = nullptr; };
 			bool HasProfile () const { return (bool)m_Profile; }; 
 
 			bool Update (const uint8_t * buf, size_t len);
-			void DeleteBuffer () { m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 
 			/** return true if we are in a router family and the signature is valid */
@@ -300,7 +309,7 @@ namespace data
 			RouterInfo ();
 			uint8_t * GetBufferPointer (size_t offset = 0 ) { return m_Buffer->data () + offset; };
 			void UpdateBuffer (const uint8_t * buf, size_t len);
-			void SetBufferLen (size_t len) { m_BufferLen = len; };
+			void SetBufferLen (size_t len) { if (m_Buffer) m_Buffer->SetBufferLen (len); };
 			void RefreshTimestamp ();
 			CompatibleTransports GetReachableTransports () const { return m_ReachableTransports; };
 			void SetReachableTransports (CompatibleTransports transports) { m_ReachableTransports = transports; };
@@ -328,7 +337,6 @@ namespace data
 			FamilyID m_FamilyID;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			std::shared_ptr<Buffer> m_Buffer;
-			size_t m_BufferLen;
 			uint64_t m_Timestamp; // in milliseconds
 			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9
 			bool m_IsUpdated, m_IsUnreachable, m_IsFloodfill;

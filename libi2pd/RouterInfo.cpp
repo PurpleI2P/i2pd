@@ -34,6 +34,7 @@ namespace data
 	{
 		if (len > size ()) len = size ();
 		memcpy (data (), buf, len);
+		m_BufferLen = len;
 	}
 
 	RouterInfo::RouterInfo (): m_Buffer (nullptr)
@@ -60,7 +61,7 @@ namespace data
 		{
 			m_Addresses = boost::make_shared<Addresses>(); // create empty list
 			m_Buffer = buf;
-			m_BufferLen = len;
+			if (m_Buffer) m_Buffer->SetBufferLen (len);
 			ReadFromBuffer (true);
 		}
 		else
@@ -129,8 +130,8 @@ namespace data
 		if (s.is_open ())
 		{
 			s.seekg (0,std::ios::end);
-			m_BufferLen = s.tellg ();
-			if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
+			size_t bufferLen = s.tellg ();
+			if (bufferLen < 40 || bufferLen > MAX_RI_BUFFER_SIZE)
 			{
 				LogPrint(eLogError, "RouterInfo: File ", fullPath, " is malformed");
 				return false;
@@ -138,7 +139,8 @@ namespace data
 			s.seekg(0, std::ios::beg);
 			if (!m_Buffer)
 				m_Buffer = NewBuffer ();
-			s.read((char *)m_Buffer->data (), m_BufferLen);
+			s.read((char *)m_Buffer->data (), bufferLen);
+			m_Buffer->SetBufferLen (bufferLen);
 		}
 		else
 		{
@@ -163,11 +165,12 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		m_RouterIdentity = NewIdentity (m_Buffer->data (), m_BufferLen);
+		size_t bufferLen = m_Buffer->GetBufferLen ();
+		m_RouterIdentity = NewIdentity (m_Buffer->data (), bufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
-		if (identityLen >= m_BufferLen)
+		if (identityLen >= bufferLen)
 		{
-			LogPrint (eLogError, "RouterInfo: Identity length ", identityLen, " exceeds buffer size ", m_BufferLen);
+			LogPrint (eLogError, "RouterInfo: Identity length ", identityLen, " exceeds buffer size ", bufferLen);
 			m_IsUnreachable = true;
 			return;
 		}
@@ -181,7 +184,7 @@ namespace data
 				return;
 			}
 			// verify signature
-			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();
+			int l = bufferLen - m_RouterIdentity->GetSignatureLen ();
 			if (l < 0 || !m_RouterIdentity->Verify ((uint8_t *)m_Buffer->data (), l, (uint8_t *)m_Buffer->data () + l))
 			{
 				LogPrint (eLogError, "RouterInfo: Signature verification failed");
@@ -191,7 +194,7 @@ namespace data
 		}
 		// parse RI
 		std::stringstream str;
-		str.write ((const char *)m_Buffer->data () + identityLen, m_BufferLen - identityLen);
+		str.write ((const char *)m_Buffer->data () + identityLen, bufferLen - identityLen);
 		ReadFromStream (str);
 		if (!str)
 		{
@@ -625,6 +628,19 @@ namespace data
 		return m_Buffer->data ();
 	}
 
+	bool RouterInfo::SaveToFile (const std::string& fullPath, std::shared_ptr<Buffer> buf)
+	{
+		if (!buf) return false;
+		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+		if (!f.is_open ()) 
+		{
+			LogPrint (eLogError, "RouterInfo: Can't save to ", fullPath);
+			return false;
+		}
+		f.write ((char *)buf->data (), buf->GetBufferLen ());
+		return true;
+	}	
+		
 	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
 		if (m_IsUnreachable) return false; // don't save bad router
@@ -633,14 +649,7 @@ namespace data
 			LogPrint (eLogWarning, "RouterInfo: Can't save, m_Buffer == NULL");
 			return false;
 		}
-		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-		if (!f.is_open ()) 
-		{
-			LogPrint (eLogError, "RouterInfo: Can't save to ", fullPath);
-			return false;
-		}
-		f.write ((char *)m_Buffer->data (), m_BufferLen);
-		return true;
+		return SaveToFile (fullPath, m_Buffer);
 	}
 
 	size_t RouterInfo::ReadString (char * str, size_t len, std::istream& s) const
@@ -1108,7 +1117,7 @@ namespace data
 			m_Buffer = NewBuffer ();
 		if (len > m_Buffer->size ()) len = m_Buffer->size ();
 		memcpy (m_Buffer->data (), buf, len);
-		m_BufferLen = len;
+		m_Buffer->SetBufferLen (len);
 	}
 
 	std::shared_ptr<RouterInfo::Buffer> RouterInfo::NewBuffer () const

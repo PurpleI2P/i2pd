@@ -698,7 +698,7 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
-		std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > > saveToDisk;
+		std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > > saveToDisk;
 		std::list<std::string> removeFromDisk;	
 			
 		auto own = i2p::context.GetSharedRouterInfo ();
@@ -711,7 +711,14 @@ namespace data
 				if (it.second->GetBuffer ())
 				{
 					// we have something to save
-					saveToDisk.push_back(std::make_pair(ident, it.second));
+					std::shared_ptr<RouterInfo::Buffer> buffer;
+					{
+						std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
+						buffer = it.second->GetSharedBuffer ();
+						it.second->DeleteBuffer ();
+					}
+					if (buffer && !it.second->IsUnreachable ()) // don't save bad router
+						saveToDisk.push_back(std::make_pair(ident, buffer));
 					it.second->SetUnreachable (false);
 				}
 				it.second->SetUpdated (false);
@@ -800,15 +807,11 @@ namespace data
 		}
 	}
 
-	void NetDb::PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > >&& update, 
+	void NetDb::PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > >&& update, 
 		std::list<std::string>&& remove)
 	{
 		for (auto it: update)
-		{	
-			it.second->SaveToFile (m_Storage.Path(it.first));
-			std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
-			it.second->DeleteBuffer ();
-		}	
+			RouterInfo::SaveToFile (m_Storage.Path(it.first), it.second);
 		for (auto it: remove)
 			m_Storage.Remove (it);
 	}	

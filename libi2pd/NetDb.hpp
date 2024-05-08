@@ -146,7 +146,7 @@ namespace data
 			void Load ();
 			bool LoadRouterInfo (const std::string& path, uint64_t ts);
 			void SaveUpdated ();
-			void PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo> > >&& update, 
+			void PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > >&& update, 
 				std::list<std::string>&& remove);
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
