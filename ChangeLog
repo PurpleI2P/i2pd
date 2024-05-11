@@ -1,6 +1,31 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.52.0] - 2024-05-12
+### Added
+- Separate threads for persisting RouterInfos and profiles to disk
+- Give preference to address with direct connection
+- Exclude addresses with incorrect static or intro key
+- Avoid two firewalled routers in the row in tunnel
+- Drop unsolicited database search replies 
+### Changed
+- Increase number of hashes to 16 in exploratory lookup reply
+- Reduce number of a RouterInfo lookup attempts to 5
+- Reset stream RTO if outbound tunnel was changed 
+- Insert previously excluded floodfill back when successfully connected 
+- Increase maximum stream resend attempts to 9
+- Reply to exploratory lookups with only confirmed routers if low tunnel build rate
+- Don't accept too old RouterInfo 
+- Build client tunnels through confirmed routers only if low tunnel build rate 
+- Manage netDb requests more frequently 
+- Don't reply with closer than us only floodfills for lookup
+### Fixed
+- Crash on router lookup if exploratory pool is not ready
+- Race condition in excluded peers for next lookup
+- Excessive number of lookups for same destination
+- Race condition with transport peers during shutdown
+- Corrupted RouterInfo files
+
 ## [2.51.0] - 2024-04-06
 ### Added
 - Non-blocking mode for UDP sockets
