@@ -7,17 +7,17 @@
 - Give preference to address with direct connection
 - Exclude addresses with incorrect static or intro key
 - Avoid two firewalled routers in the row in tunnel
-- Drop unsolicited database search replies 
+- Drop unsolicited database search replies
 ### Changed
 - Increase number of hashes to 16 in exploratory lookup reply
 - Reduce number of a RouterInfo lookup attempts to 5
-- Reset stream RTO if outbound tunnel was changed 
-- Insert previously excluded floodfill back when successfully connected 
+- Reset stream RTO if outbound tunnel was changed
+- Insert previously excluded floodfill back when successfully connected
 - Increase maximum stream resend attempts to 9
 - Reply to exploratory lookups with only confirmed routers if low tunnel build rate
-- Don't accept too old RouterInfo 
-- Build client tunnels through confirmed routers only if low tunnel build rate 
-- Manage netDb requests more frequently 
+- Don't accept too old RouterInfo
+- Build client tunnels through confirmed routers only if low tunnel build rate
+- Manage netDb requests more frequently
 - Don't reply with closer than us only floodfills for lookup
 ### Fixed
 - Crash on router lookup if exploratory pool is not ready
