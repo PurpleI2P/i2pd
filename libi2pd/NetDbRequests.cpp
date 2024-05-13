@@ -284,13 +284,13 @@ namespace data
 			else
 			{
 				ret = false;
-				if (!nextFloodfill) LogPrint (eLogWarning, "NetDbReq: No more floodfills");
+				LogPrint (eLogWarning, "NetDbReq: No more floodfills for ", dest->GetDestination ().ToBase64 (), " after ", count, "attempts");
 			}	
 		}
 		else
 		{
 			if (!dest->IsExploratory ())
-				LogPrint (eLogWarning, "NetDbReq: ", dest->GetDestination ().ToBase64 (), " not found after 7 attempts");
+				LogPrint (eLogWarning, "NetDbReq: ", dest->GetDestination ().ToBase64 (), " not found after ", MAX_NUM_REQUEST_ATTEMPTS," attempts");
 			ret = false;
 		}
 		return ret;

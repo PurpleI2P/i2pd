@@ -820,57 +820,17 @@ namespace data
 	{
 		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
 		auto dest = m_Requests->CreateRequest (destination, false, direct, requestComplete); // non-exploratory
-		if (!dest)
-		{
-			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already or cached");
-			return;
-		}
-
-		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-		if (floodfill)
-		{
-			if (direct && !floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) &&
-				!i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
-				direct = false; // floodfill can't be reached directly
-			if (direct)
-			{
-				if (CheckLogLevel (eLogDebug))
-					LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " directly");
-				auto msg = dest->CreateRequestMessage (floodfill->GetIdentHash ());
-				msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests->SendNextRequest (dest); }; 
-				transports.SendMessage (floodfill->GetIdentHash (), msg);
-			}	
-			else
-			{
-				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = pool ? pool->GetNextOutboundTunnel (nullptr, floodfill->GetCompatibleTransports (false)) : nullptr;
-				auto inbound = pool ? pool->GetNextInboundTunnel (nullptr, floodfill->GetCompatibleTransports (true)) : nullptr;
-				if (outbound &&	inbound)
-				{
-					if (CheckLogLevel (eLogDebug))
-						LogPrint (eLogDebug, "NetDb: Request ", dest->GetDestination ().ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 (), " through tunnels");
-					auto msg = dest->CreateRequestMessage (floodfill, inbound);
-					msg->onDrop = [this, dest]() { if (dest->IsActive ()) this->m_Requests->SendNextRequest (dest); }; 
-					outbound->SendTunnelDataMsgTo (floodfill->GetIdentHash (), 0,
-						i2p::garlic::WrapECIESX25519MessageForRouter (msg, floodfill->GetIdentity ()->GetEncryptionPublicKey ()));
-				}
-				else
-				{
-					LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no tunnels found");
-					m_Requests->RequestComplete (destination, nullptr);
-				}
-			}
-		}
+		if (dest)
+		{	
+			if (!m_Requests->SendNextRequest (dest))
+				m_Requests->RequestComplete (destination, nullptr);
+		}	
 		else
-		{
-			LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no floodfills found");
-			m_Requests->RequestComplete (destination, nullptr);
-		}
+			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already or cached");
 	}
 
 	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploratory, RequestedDestination::RequestComplete requestComplete)
 	{
-
 		auto dest = m_Requests->CreateRequest (destination, exploratory, true, requestComplete); // non-exploratory
 		if (!dest)
 		{
@@ -1045,8 +1005,11 @@ namespace data
 		if (dest && dest->IsActive ())
 		{
 			if (!dest->IsExploratory () && (num > 0 || dest->GetNumExcludedPeers () < 3)) // before 3-rd attempt might be just bad luck
+			{	
 				// try to send next requests
-				m_Requests->SendNextRequest (dest);
+				if (!m_Requests->SendNextRequest (dest))
+					m_Requests->RequestComplete (ident, nullptr);
+			}	
 			else
 				// no more requests for destination possible. delete it
 				m_Requests->RequestComplete (ident, nullptr);
