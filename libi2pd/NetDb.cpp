@@ -1057,6 +1057,10 @@ namespace data
 			return;
 		}	
 
+		// All peers hashs in buffer?
+		if(msg->GetPayloadLength() < (size_t) (33 + num * IDENTITY_HASH_SIZE))
+			return;
+
 		// try responses
 		if (num > NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES)
 		{
@@ -1065,9 +1069,9 @@ namespace data
 		}	
 		for (size_t i = 0; i < num; i++)
 		{
-			const uint8_t * router = buf + 33 + i*32;
+			const uint8_t * router = buf + 33 + i*IDENTITY_HASH_SIZE;
 			char peerHash[48];
-			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
+			int l1 = i2p::data::ByteStreamToBase64 (router, IDENTITY_HASH_SIZE, peerHash, 48);
 			peerHash[l1] = 0;
 			LogPrint (eLogDebug, "NetDb: ", i, ": ", peerHash);
 

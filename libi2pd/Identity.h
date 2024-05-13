@@ -22,7 +22,9 @@ namespace i2p
 {
 namespace data
 {
-	typedef Tag<32> IdentHash;
+	const uint8_t IDENTITY_HASH_SIZE = 32;
+
+	typedef Tag<IDENTITY_HASH_SIZE> IdentHash;
 	inline std::string GetIdentHashAbbreviation (const IdentHash& ident)
 	{
 		return ident.ToBase64 ().substr (0, 4);
