@@ -188,7 +188,7 @@ namespace util
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
 		if (bandwidth.length () > 0)
 		{
-			if (bandwidth[0] >= 'K' && bandwidth[0] <= 'X')
+			if (bandwidth.length() == 1 && ((bandwidth[0] >= 'K' && bandwidth[0] <= 'P') || bandwidth[0] == 'X' ))
 			{
 				i2p::context.SetBandwidth (bandwidth[0]);
 				LogPrint(eLogInfo, "Daemon: Bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
@@ -203,8 +203,8 @@ namespace util
 				}
 				else
 				{
-					LogPrint(eLogInfo, "Daemon: Unexpected bandwidth ", bandwidth, ". Set to 'low'");
-					i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+					LogPrint(eLogInfo, "Daemon: Unexpected bandwidth ", bandwidth, ". Set to 'O'");
+					i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2);
 				}
 			}
 		}
@@ -215,8 +215,8 @@ namespace util
 		}
 		else
 		{
-			LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
-			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+			LogPrint(eLogInfo, "Daemon: bandwidth set to 'O'");
+			i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2);
 		}
 
 		int shareRatio; i2p::config::GetOption("share", shareRatio);
