@@ -256,7 +256,8 @@ namespace transport
 			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
-			size_t Resend (uint64_t ts); // return number or resent packets
+			size_t Resend (uint64_t ts); // return number of resent packets
+			uint64_t GetLastResendTime () const { return m_LastResendTime; };
 			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };
@@ -369,6 +370,7 @@ namespace transport
 			size_t m_MaxPayloadSize;
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
+			uint64_t m_LastResendTime; // in milliseconds
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

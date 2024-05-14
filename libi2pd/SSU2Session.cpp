@@ -90,7 +90,8 @@ namespace transport
 		m_WindowSize (SSU2_MIN_WINDOW_SIZE),
 		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
-		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
+		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
+		m_LastResendTime (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -565,6 +566,7 @@ namespace transport
 				it++;
 		if (!resentPackets.empty ())
 		{
+			m_LastResendTime = ts;
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 			m_SentPackets.merge (resentPackets);
 #else

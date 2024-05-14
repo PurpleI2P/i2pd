@@ -987,7 +987,8 @@ namespace transport
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			for (auto it: m_Sessions)
 			{
-				resentPacketsNum += it.second->Resend (ts);
+				if (ts >= it.second->GetLastResendTime () + SSU2_RESEND_CHECK_TIMEOUT)
+					resentPacketsNum += it.second->Resend (ts);
 				if (resentPacketsNum > SSU2_MAX_RESEND_PACKETS) break;
 			}
 			for (auto it: m_PendingOutgoingSessions)
