@@ -55,6 +55,7 @@ namespace data
 		auto msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination,
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
+		m_NumAttempts++;
 		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}
