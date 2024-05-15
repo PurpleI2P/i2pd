@@ -11,7 +11,7 @@
 
 #include <inttypes.h>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -21,7 +21,7 @@ namespace i2p
 {
 namespace data
 {
-	const size_t MAX_NUM_REQUEST_ATTEMPTS = 5;
+	const int MAX_NUM_REQUEST_ATTEMPTS = 5;
 	const uint64_t MANAGE_REQUESTS_INTERVAL = 1; // in seconds
 	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL);
@@ -39,8 +39,8 @@ namespace data
 			~RequestedDestination ();
 
 			const IdentHash& GetDestination () const { return m_Destination; };
-			size_t GetNumExcludedPeers () const;
-			std::set<IdentHash> GetExcludedPeers () const;
+			std::unordered_set<IdentHash> GetExcludedPeers () const;
+			int GetNumAttempts () const { return m_NumAttempts; };
 			void ClearExcludedPeers ();
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsDirect () const { return m_IsDirect; };
@@ -62,9 +62,10 @@ namespace data
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
 			mutable std::mutex m_ExcludedPeersMutex;
-			std::set<IdentHash> m_ExcludedPeers;
+			std::unordered_set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;
+			int m_NumAttempts;
 	};
 
 	class NetDbRequests: public std::enable_shared_from_this<NetDbRequests>

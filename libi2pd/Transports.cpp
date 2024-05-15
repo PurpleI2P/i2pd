@@ -708,7 +708,7 @@ namespace transport
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			int testDelay = 0;
 			for (int i = 0; i < 5; i++)
@@ -746,7 +746,7 @@ namespace transport
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			int testDelay = 0;
 			for (int i = 0; i < 5; i++)

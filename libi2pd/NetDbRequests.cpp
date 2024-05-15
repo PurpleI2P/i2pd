@@ -12,6 +12,7 @@
 #include "NetDb.hpp"
 #include "NetDbRequests.h"
 #include "ECIESX25519AEADRatchetSession.h"
+#include "RouterContext.h"
 
 namespace i2p
 {
@@ -19,8 +20,10 @@ namespace data
 {
 	RequestedDestination::RequestedDestination (const IdentHash& destination, bool isExploratory, bool direct):
 		m_Destination (destination), m_IsExploratory (isExploratory), m_IsDirect (direct), m_IsActive (true),
-		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_LastRequestTime (0) 
+		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_LastRequestTime (0), m_NumAttempts (0)
 	{
+		if (i2p::context.IsFloodfill ())
+			m_ExcludedPeers.insert (i2p::context.GetIdentHash ()); // exclude self if floodfill
 	}
 		
 	RequestedDestination::~RequestedDestination () 
@@ -42,6 +45,7 @@ namespace data
 		if(router)
 			m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRequestTime = i2p::util::GetSecondsSinceEpoch ();
+		m_NumAttempts++;
 		return msg;
 	}
 
@@ -67,16 +71,10 @@ namespace data
 		m_ExcludedPeers.clear ();
 	}
 
-	std::set<IdentHash> RequestedDestination::GetExcludedPeers () const 
+	std::unordered_set<IdentHash> RequestedDestination::GetExcludedPeers () const 
 	{ 
 		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
 		return m_ExcludedPeers; 
-	}
-
-	size_t RequestedDestination::GetNumExcludedPeers () const 
-	{ 
-		std::lock_guard<std::mutex> l (m_ExcludedPeersMutex);
-		return m_ExcludedPeers.size (); 
 	}
 		
 	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
@@ -231,7 +229,7 @@ namespace data
 	{
 		if (!dest || !dest->IsActive ()) return false;
 		bool ret = true;
-		auto count = dest->GetNumExcludedPeers ();
+		auto count = dest->GetNumAttempts ();
 		if (!dest->IsExploratory () && count < MAX_NUM_REQUEST_ATTEMPTS)
 		{
 			auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());

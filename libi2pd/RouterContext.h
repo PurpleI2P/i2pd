@@ -12,7 +12,7 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -255,7 +255,7 @@ namespace garlic
 			// publish
 			std::unique_ptr<RouterService> m_Service;
 			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer, m_CleanupTimer;
-			std::set<i2p::data::IdentHash> m_PublishExcluded;
+			std::unordered_set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
 	};

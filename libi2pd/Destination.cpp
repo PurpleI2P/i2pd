@@ -801,7 +801,7 @@ namespace client
 
 	void LeaseSetDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete, std::shared_ptr<const i2p::data::BlindedPublicKey> requestedBlindedKey)
 	{
-		std::set<i2p::data::IdentHash> excluded;
+		std::unordered_set<i2p::data::IdentHash> excluded;
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, excluded);
 		if (floodfill)
 		{

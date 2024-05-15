@@ -10,7 +10,7 @@
 #define NETDB_H__
 // this file is called NetDb.hpp to resolve conflict with libc's netdb.h on case insensitive fs
 #include <inttypes.h>
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <thread>
@@ -95,12 +95,12 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
-			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
-				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
-			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::set<IdentHash>& excluded);
+				std::unordered_set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
+			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::unordered_set<IdentHash>& excluded);
 			std::shared_ptr<const RouterInfo> GetRandomRouterInFamily (FamilyID fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
@@ -138,8 +138,6 @@ namespace data
 			std::shared_ptr<Lease> NewLease (const Lease& lease) { return m_LeasesPool.AcquireSharedMt (lease); };
 			std::shared_ptr<IdentityEx> NewIdentity (const uint8_t * buf, size_t len) { return m_IdentitiesPool.AcquireSharedMt (buf, len); };
 			std::shared_ptr<RouterProfile> NewRouterProfile () { return m_RouterProfilesPool.AcquireSharedMt (); };
-
-			uint32_t GetPublishReplyToken () const { return m_PublishReplyToken; };
 
 		private:
 
@@ -188,9 +186,6 @@ namespace data
 
 			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
-
-			std::set<IdentHash> m_PublishExcluded;
-			uint32_t m_PublishReplyToken = 0;
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds

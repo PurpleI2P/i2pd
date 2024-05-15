@@ -15,7 +15,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <functional>
 #include <boost/asio.hpp>
@@ -97,7 +97,7 @@ namespace client
 		struct LeaseSetRequest
 		{
 			LeaseSetRequest (boost::asio::io_service& service): requestTime (0), requestTimeoutTimer (service) {};
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
 			std::list<RequestComplete> requestComplete;
@@ -195,7 +195,7 @@ namespace client
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
 			uint64_t m_LastSubmissionTime; // in seconds
-			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
+			std::unordered_set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer;

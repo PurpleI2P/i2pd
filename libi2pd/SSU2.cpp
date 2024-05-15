@@ -1047,7 +1047,7 @@ namespace transport
 	}
 
 	std::list<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
-		bool v4, const std::set<i2p::data::IdentHash>& excluded) const
+		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const
 	{
 		std::list<std::shared_ptr<SSU2Session> > ret;
 		for (const auto& s : m_Sessions)
@@ -1078,7 +1078,7 @@ namespace transport
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		std::list<i2p::data::IdentHash> newList, impliedList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
-		std::set<i2p::data::IdentHash> excluded;
+		std::unordered_set<i2p::data::IdentHash> excluded;
 		for (const auto& it : introducers)
 		{
 			std::shared_ptr<SSU2Session> session;

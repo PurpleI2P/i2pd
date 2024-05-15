@@ -1004,7 +1004,7 @@ namespace data
 		auto dest = m_Requests->FindRequest (ident);
 		if (dest && dest->IsActive ())
 		{
-			if (!dest->IsExploratory () && (num > 0 || dest->GetNumExcludedPeers () < 3)) // before 3-rd attempt might be just bad luck
+			if (!dest->IsExploratory () && (num > 0 || dest->GetNumAttempts () < 3)) // before 3-rd attempt might be just bad luck
 			{	
 				// try to send next requests
 				if (!m_Requests->SendNextRequest (dest))
@@ -1094,7 +1094,7 @@ namespace data
 				return;
 			}	
 			LogPrint (eLogInfo, "NetDb: Exploratory close to ", key, " ", numExcluded, " excluded");
-			std::set<IdentHash> excludedRouters;
+			std::unordered_set<IdentHash> excludedRouters;
 			const uint8_t * excluded_ident = excluded;
 			for (int i = 0; i < numExcluded; i++)
 			{
@@ -1146,7 +1146,7 @@ namespace data
 
 			if (!replyMsg)
 			{
-				std::set<IdentHash> excludedRouters;
+				std::unordered_set<IdentHash> excludedRouters;
 				const uint8_t * exclude_ident = excluded;
 				for (int i = 0; i < numExcluded; i++)
 				{
@@ -1265,7 +1265,7 @@ namespace data
 
 	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)
 	{
-		std::set<IdentHash> excluded;
+		std::unordered_set<IdentHash> excluded;
 		excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
 		excluded.insert (ident); // don't flood back
 		for (int i = 0; i < 3; i++)
@@ -1306,7 +1306,7 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::set<IdentHash>& excluded) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1316,7 +1316,7 @@ namespace data
 			});
 	}
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::set<IdentHash>& excluded) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const
 	{
 		return GetRandomRouter (
 			[v4, &excluded](std::shared_ptr<const RouterInfo> router)->bool
@@ -1412,7 +1412,7 @@ namespace data
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
-		const std::set<IdentHash>& excluded) const
+		const std::unordered_set<IdentHash>& excluded) const
 	{
 		IdentHash destKey = CreateRoutingKey (destination);
 		std::lock_guard<std::mutex> l(m_FloodfillsMutex);
@@ -1424,7 +1424,7 @@ namespace data
 	}
 
 	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num,
-		std::set<IdentHash>& excluded, bool closeThanUsOnly) const
+		std::unordered_set<IdentHash>& excluded, bool closeThanUsOnly) const
 	{
 		std::vector<IdentHash> res;
 		IdentHash destKey = CreateRoutingKey (destination);
@@ -1459,7 +1459,7 @@ namespace data
 	}
 
 	std::vector<IdentHash> NetDb::GetExploratoryNonFloodfill (const IdentHash& destination, 
-		size_t num, const std::set<IdentHash>& excluded)
+		size_t num, const std::unordered_set<IdentHash>& excluded)
 	{
 		std::vector<IdentHash> ret;
 		if (!num || m_RouterInfos.empty ()) return ret; // empty list

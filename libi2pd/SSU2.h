@@ -10,6 +10,7 @@
 #define SSU2_H__
 
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #include "util.h"
 #include "SSU2Session.h"
@@ -127,7 +128,7 @@ namespace transport
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
 			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
-				bool v4, const std::set<i2p::data::IdentHash>& excluded) const;
+				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const;
 			void UpdateIntroducers (bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
