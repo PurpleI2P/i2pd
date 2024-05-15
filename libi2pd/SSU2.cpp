@@ -973,7 +973,8 @@ namespace transport
 
 	void SSU2Server::ScheduleResend (bool more)
 	{
-		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? SSU2_RESEND_CHECK_MORE_TIMEOUT :
+		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? 
+		    (SSU2_RESEND_CHECK_MORE_TIMEOUT + rand () % SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE):
 			(SSU2_RESEND_CHECK_TIMEOUT + rand () % SSU2_RESEND_CHECK_TIMEOUT_VARIANCE)));
 		m_ResendTimer.async_wait (std::bind (&SSU2Server::HandleResendTimer,
 			this, std::placeholders::_1));

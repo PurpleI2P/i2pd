@@ -23,7 +23,8 @@ namespace transport
 	const int SSU2_CLEANUP_INTERVAL = 72; // in seconds
 	const int SSU2_RESEND_CHECK_TIMEOUT = 40; // in milliseconds
 	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 10; // in milliseconds
-	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 10; // in milliseconds
+	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 4; // in milliseconds
+	const int SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE = 9; // in milliseconds
 	const size_t SSU2_MAX_RESEND_PACKETS = 128; // packets to resend at the time
 	const uint64_t SSU2_SOCKET_MIN_BUFFER_SIZE = 128 * 1024;
 	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
