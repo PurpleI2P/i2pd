@@ -365,15 +365,19 @@ namespace tunnel
 				{
 					it.second.second->SetState (eTunnelStateFailed);
 					{
-						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-						if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
-						{	
-							m_InboundTunnels.erase (it.second.second);
-							if (m_LocalDestination)
-								m_LocalDestination->SetLeaseSetUpdated ();
-						}	
-						else
-							it.second.second->SetState (eTunnelStateTestFailed);
+						bool failed = false;
+						{
+							std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+							if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
+							{	
+								m_InboundTunnels.erase (it.second.second);
+								failed = true;	
+							}	
+							else
+								it.second.second->SetState (eTunnelStateTestFailed);
+						}
+						if (failed && m_LocalDestination)
+							m_LocalDestination->SetLeaseSetUpdated ();
 					}
 					if (m_LocalDestination)
 						m_LocalDestination->SetLeaseSetUpdated ();
