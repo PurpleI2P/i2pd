@@ -367,7 +367,11 @@ namespace tunnel
 					{
 						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 						if (m_InboundTunnels.size () > 1 || m_NumInboundTunnels <= 1) // don't fail last tunnel
+						{	
 							m_InboundTunnels.erase (it.second.second);
+							if (m_LocalDestination)
+								m_LocalDestination->SetLeaseSetUpdated ();
+						}	
 						else
 							it.second.second->SetState (eTunnelStateTestFailed);
 					}
