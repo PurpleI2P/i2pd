@@ -180,6 +180,7 @@ namespace stream
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
+			void ResetRoutingPath ();
 
 			void HandleNextPacket (Packet * packet);
 			void HandlePing (Packet * packet);

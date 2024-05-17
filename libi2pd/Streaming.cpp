@@ -1184,6 +1184,16 @@ namespace stream
 		}
 	}
 
+	void Stream::ResetRoutingPath ()
+	{
+		m_CurrentOutboundTunnel = nullptr;
+		m_CurrentRemoteLease = nullptr;
+		m_RTT = INITIAL_RTT;
+		m_RTO = INITIAL_RTO;
+		if (m_RoutingSession)
+			m_RoutingSession->SetSharedRoutingPath (nullptr); // TODO: count failures
+	}	
+		
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
@@ -1264,6 +1274,7 @@ namespace stream
 				{
 					// already pending
 					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
+					it1->second->ResetRoutingPath (); // Ack was not delivered, changing path
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}
