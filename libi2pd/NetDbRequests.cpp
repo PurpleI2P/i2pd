@@ -266,13 +266,23 @@ namespace data
 				if (direct && !nextFloodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) &&
 					!i2p::transport::transports.IsConnected (nextFloodfill->GetIdentHash ()))
 					direct = false; // floodfill can't be reached directly
+				auto s = shared_from_this ();
+				auto onDrop = [s, dest]()
+					{
+						if (dest->IsActive ())
+						{
+							s->GetIOService ().post ([s, dest]()
+								{
+									if (dest->IsActive ()) s->SendNextRequest (dest);
+								});
+						}	
+					};		
 				if (direct)
 				{
 					if (CheckLogLevel (eLogDebug))
 						LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " directly");
 					auto msg = dest->CreateRequestMessage (nextFloodfill->GetIdentHash ());
-					auto s = shared_from_this ();
-					msg->onDrop = [s, dest]() { if (dest->IsActive ()) s->SendNextRequest (dest); }; 
+					msg->onDrop = onDrop; 
 					i2p::transport::transports.SendMessage (nextFloodfill->GetIdentHash (), msg);
 				}	
 				else
@@ -287,8 +297,7 @@ namespace data
 							if (CheckLogLevel (eLogDebug))
 								LogPrint (eLogDebug, "NetDbReq: Try ", dest->GetDestination ().ToBase64 (), " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 (), " through tunnels");
 							auto msg = dest->CreateRequestMessage (nextFloodfill, inbound); 
-							auto s = shared_from_this ();
-							msg->onDrop = [s, dest]() { if (dest->IsActive ()) s->SendNextRequest (dest); };
+							msg->onDrop = onDrop;
 							outbound->SendTunnelDataMsgTo (nextFloodfill->GetIdentHash (), 0,
 								i2p::garlic::WrapECIESX25519MessageForRouter (msg, nextFloodfill->GetIdentity ()->GetEncryptionPublicKey ()));
 						}	
