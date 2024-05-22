@@ -25,6 +25,8 @@ namespace data
 	const uint64_t MANAGE_REQUESTS_INTERVAL = 1; // in seconds
 	const uint64_t MIN_REQUEST_TIME = 5; // in seconds
 	const uint64_t MAX_REQUEST_TIME = MAX_NUM_REQUEST_ATTEMPTS * (MIN_REQUEST_TIME + MANAGE_REQUESTS_INTERVAL);
+	const uint64_t EXPLORATORY_REQUEST_INTERVAL = 55; // in seconds
+	const uint64_t EXPLORATORY_REQUEST_INTERVAL_VARIANCE = 170; // in seconds 
 	const uint64_t MAX_EXPLORATORY_REQUEST_TIME = 30; // in seconds
 	const uint64_t REQUEST_CACHE_TIME = MAX_REQUEST_TIME + 40; // in seconds
 	const uint64_t REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL = 191; // in seconds
@@ -92,10 +94,13 @@ namespace data
 
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void RequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
+			void Explore (int numDestinations);
 			void ManageRequests ();
 			// timer
 			void ScheduleManageRequests ();
 			void HandleManageRequestsTimer (const boost::system::error_code& ecode);
+			void ScheduleExploratory (uint64_t interval);
+			void HandleExploratoryTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -103,7 +108,7 @@ namespace data
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			uint64_t m_LastPoolCleanUpTime = 0; // in seconds
-			boost::asio::deadline_timer m_ManageRequestsTimer;
+			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer;
 	};
 }
 }

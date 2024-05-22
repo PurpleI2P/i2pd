@@ -118,9 +118,9 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint64_t lastManage = 0, lastExploratory = 0;
+		uint64_t lastManage = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
-		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, exploratoryIntervalVariance = 0;
+		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
 
 		while (m_IsRunning)
 		{
@@ -204,27 +204,6 @@ namespace data
 					lastObsoleteProfilesCleanup = mts;
 					obsoleteProfilesCleanVariance = rand () % i2p::data::PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE;
 				}	
-			
-				if (mts >= lastExploratory + NETDB_EXPLORATORY_INTERVAL*1000LL) // check exploratory every 55 seconds
-				{
-					auto numRouters = m_RouterInfos.size ();
-					if (!numRouters)
-						throw std::runtime_error("No known routers, reseed seems to be totally failed");
-					else // we have peers now
-						m_FloodfillBootstrap = nullptr;
-					if (numRouters < 2500 || mts >= lastExploratory + (NETDB_EXPLORATORY_INTERVAL + exploratoryIntervalVariance)*1000LL) 
-					{
-						if(!i2p::context.IsHidden ())
-						{	
-							numRouters = 800/numRouters;
-							if (numRouters < 1) numRouters = 1;
-							if (numRouters > 9) numRouters = 9;
-							Explore (numRouters);
-						}	
-						lastExploratory = mts;
-						exploratoryIntervalVariance = rand () % NETDB_EXPLORATORY_INTERVAL_VARIANCE;
-					}
-				}
 			}
 			catch (std::exception& ex)
 			{
@@ -1136,56 +1115,6 @@ namespace data
 			else
 				transports.SendMessage (replyIdent, replyMsg);
 		}
-	}
-
-	void NetDb::Explore (int numDestinations)
-	{
-		// new requests
-		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
-		bool throughTunnels = outbound && inbound;
-
-		uint8_t randomHash[32];
-		std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-		LogPrint (eLogInfo, "NetDb: Exploring new ", numDestinations, " routers ...");
-		for (int i = 0; i < numDestinations; i++)
-		{
-			RAND_bytes (randomHash, 32);
-			auto dest = m_Requests->CreateRequest (randomHash, true, !throughTunnels); // exploratory
-			if (!dest)
-			{
-				LogPrint (eLogWarning, "NetDb: Exploratory destination is requested already");
-				return;
-			}
-			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-			if (floodfill)
-			{
-				if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
-					throughTunnels = false;
-				if (throughTunnels)
-				{
-					msgs.push_back (i2p::tunnel::TunnelMessageBlock
-						{
-							i2p::tunnel::eDeliveryTypeRouter,
-							floodfill->GetIdentHash (), 0,
-							CreateDatabaseStoreMsg () // tell floodfill about us
-						});
-					msgs.push_back (i2p::tunnel::TunnelMessageBlock
-						{
-							i2p::tunnel::eDeliveryTypeRouter,
-							floodfill->GetIdentHash (), 0,
-							dest->CreateRequestMessage (floodfill, inbound) // explore
-						});
-				}
-				else
-					i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
-			}
-			else
-				m_Requests->RequestComplete (randomHash, nullptr);
-		}
-		if (throughTunnels && msgs.size () > 0)
-			outbound->SendTunnelDataMsgs (msgs);
 	}
 
 	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)

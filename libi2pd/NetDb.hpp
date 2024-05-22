@@ -48,14 +48,12 @@ namespace data
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27 * 60 * 60; // 27 hours
 	const int NETDB_MAX_OFFLINE_EXPIRATION_TIMEOUT = 180; // in days
 	const int NETDB_EXPIRATION_TIMEOUT_THRESHOLD = 2*60; // 2 minutes
-	const int NETDB_EXPLORATORY_INTERVAL = 55; // in seconds
-	const int NETDB_EXPLORATORY_INTERVAL_VARIANCE = 170; // in seconds 
 	const int NETDB_MIN_HIGHBANDWIDTH_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_FLOODFILL_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const int NETDB_MIN_SHORT_TUNNEL_BUILD_VERSION = MAKE_VERSION_NUMBER(0, 9, 51); // 0.9.51
 	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
 	const size_t NETDB_MAX_EXPLORATORY_SELECTION_SIZE = 500;
-	const int NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL = 82; // in seconds
+	const int NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL = 82; // in seconds. for floodfill
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
@@ -142,8 +140,7 @@ namespace data
 			void SaveUpdated ();
 			void PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > >&& update, 
 				std::list<std::string>&& remove);
-			void Run (); // exploratory thread
-			void Explore (int numDestinations);
+			void Run (); 
 			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
 			void ManageRouterInfos ();
 			void ManageLeaseSets ();
