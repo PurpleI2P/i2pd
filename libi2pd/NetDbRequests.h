@@ -86,10 +86,12 @@ namespace data
 			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
 
 			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
+			void PostRequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
 			
 		private:	
 
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
+			void RequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
 			void ManageRequests ();
 			// timer
 			void ScheduleManageRequests ();

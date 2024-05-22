@@ -807,14 +807,10 @@ namespace data
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
 		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
-		auto dest = m_Requests->CreateRequest (destination, false, direct, requestComplete); // non-exploratory
-		if (dest)
-		{	
-			if (!m_Requests->SendNextRequest (dest))
-				m_Requests->RequestComplete (destination, nullptr);
-		}	
+		if (m_Requests)
+			m_Requests->PostRequestDestination (destination, requestComplete, direct);
 		else
-			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already or cached");
+			LogPrint (eLogError, "NetDb: Requests is null");
 	}
 
 	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploratory, RequestedDestination::RequestComplete requestComplete)

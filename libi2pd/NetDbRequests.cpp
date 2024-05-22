@@ -405,13 +405,34 @@ namespace data
 			/*	if(m_FloodfillBootstrap)
 					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
 				else */if (!IsRouterBanned (router))
-					netdb.RequestDestination (router);
+					RequestDestination (router, nullptr, true);
 				else
 					LogPrint (eLogDebug, "NetDbReq: Router ", peerHash, " is banned. Skipped");
 			}
 			else
 				LogPrint (eLogDebug, "NetDbReq: [:|||:]");
 		}
+	}	
+
+	void NetDbRequests::PostRequestDestination (const IdentHash& destination, 
+		const RequestedDestination::RequestComplete& requestComplete, bool direct)
+	{
+		GetIOService ().post ([this, destination, requestComplete, direct]()
+			{
+				RequestDestination (destination, requestComplete, direct);
+			});	
+	}
+		
+	void NetDbRequests::RequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct)
+	{
+		auto dest = CreateRequest (destination, false, direct, requestComplete); // non-exploratory
+		if (dest)
+		{	
+			if (!SendNextRequest (dest))
+				RequestComplete (destination, nullptr);
+		}	
+		else
+			LogPrint (eLogWarning, "NetDbReq: Destination ", destination.ToBase64(), " is requested already or cached");
 	}	
 }
 }
