@@ -118,7 +118,7 @@ namespace data
 	{
 		i2p::util::SetThreadName("NetDB");
 
-		uint64_t lastManage = 0, lastExploratory = 0, lastManageRequest = 0;
+		uint64_t lastManage = 0, lastExploratory = 0;
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
 		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0, exploratoryIntervalVariance = 0;
 
@@ -162,15 +162,6 @@ namespace data
 					continue; // don't manage netdb when offline or transports are not running
 
 				uint64_t mts = i2p::util::GetMonotonicMilliseconds ();
-				if (mts >= lastManageRequest + MANAGE_REQUESTS_INTERVAL*1000)
-				{
-					if (lastManageRequest || i2p::tunnel::tunnels.GetExploratoryPool ()) // expolratory pool is ready?
-					{	
-						if (m_Requests) m_Requests->ManageRequests ();
-						lastManageRequest = mts;
-					}	
-				}
-
 				if (mts >= lastManage + 60000) // manage routers and leasesets every minute
 				{
 					if (lastManage)

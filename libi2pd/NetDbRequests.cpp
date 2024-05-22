@@ -104,15 +104,37 @@ namespace data
 		}	
 	}
 
+	NetDbRequests::NetDbRequests ():
+		RunnableServiceWithWork ("NetDbReq"),
+		m_ManageRequestsTimer (GetIOService ())
+	{
+	}
+		
+	NetDbRequests::~NetDbRequests ()
+	{
+		Stop ();
+	}	
+		
 	void NetDbRequests::Start ()
 	{
 		m_LastPoolCleanUpTime = i2p::util::GetSecondsSinceEpoch ();
+		if (!IsRunning ())
+		{	
+			StartIOService ();
+			ScheduleManageRequests ();
+		}	
 	}
 
 	void NetDbRequests::Stop ()
 	{
-		m_RequestedDestinations.clear ();
-		m_RequestedDestinationsPool.CleanUpMt ();
+		if (IsRunning ())
+		{	
+			m_ManageRequestsTimer.cancel ();
+			StopIOService ();
+		
+			m_RequestedDestinations.clear ();
+			m_RequestedDestinationsPool.CleanUpMt ();
+		}	
 	}
 
 
@@ -293,6 +315,23 @@ namespace data
 			ret = false;
 		}
 		return ret;
+	}	
+
+	void NetDbRequests::ScheduleManageRequests ()
+	{
+		m_ManageRequestsTimer.expires_from_now (boost::posix_time::seconds(MANAGE_REQUESTS_INTERVAL));
+		m_ManageRequestsTimer.async_wait (std::bind (&NetDbRequests::HandleManageRequestsTimer,
+			this, std::placeholders::_1));
+	}
+		
+	void NetDbRequests::HandleManageRequestsTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (i2p::tunnel::tunnels.GetExploratoryPool ()) // expolratory pool is ready?
+				ManageRequests ();
+			ScheduleManageRequests ();
+		}	
 	}	
 }
 }

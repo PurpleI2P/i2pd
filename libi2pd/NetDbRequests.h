@@ -68,10 +68,14 @@ namespace data
 			int m_NumAttempts;
 	};
 
-	class NetDbRequests: public std::enable_shared_from_this<NetDbRequests>
+	class NetDbRequests: public std::enable_shared_from_this<NetDbRequests>,
+		 private i2p::util::RunnableServiceWithWork
 	{
 		public:
 
+			NetDbRequests ();
+			~NetDbRequests ();
+			
 			void Start ();
 			void Stop ();
 
@@ -79,8 +83,14 @@ namespace data
 				bool direct = false, RequestedDestination::RequestComplete requestComplete = nullptr);
 			void RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
-			void ManageRequests ();
 			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
+
+		private:	
+
+			void ManageRequests ();
+			// timer
+			void ScheduleManageRequests ();
+			void HandleManageRequestsTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -88,6 +98,7 @@ namespace data
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			uint64_t m_LastPoolCleanUpTime = 0; // in seconds
+			boost::asio::deadline_timer m_ManageRequestsTimer;
 	};
 }
 }
