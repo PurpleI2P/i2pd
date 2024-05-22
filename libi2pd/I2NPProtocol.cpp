@@ -862,12 +862,14 @@ namespace i2p
 					break;
 				}
 				case eI2NPDatabaseStore:
-				case eI2NPDatabaseSearchReply:	
 					// forward to netDb if came directly or through exploratory tunnel as response to our request
 					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
 						i2p::data::netdb.PostI2NPMsg (msg);
 				break;
-				
+				case eI2NPDatabaseSearchReply:
+					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
+						i2p::data::netdb.PostDatabaseSearchReplyMsg (msg);
+				break;	
 				case eI2NPDatabaseLookup:
 					// forward to netDb if floodfill and came directly
 					if (!msg->from && i2p::context.IsFloodfill ())

@@ -7,6 +7,7 @@
 */
 
 #include "Log.h"
+#include "Base.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "NetDb.hpp"
@@ -332,6 +333,73 @@ namespace data
 				ManageRequests ();
 			ScheduleManageRequests ();
 		}	
+	}	
+
+	void NetDbRequests::PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
+	{
+		GetIOService ().post ([this, msg]()
+			{
+				HandleDatabaseSearchReplyMsg (msg);
+			});	
+	}	
+
+	void NetDbRequests::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
+	{
+		const uint8_t * buf = msg->GetPayload ();
+		char key[48];
+		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+		key[l] = 0;
+		size_t num = buf[32]; // num
+		LogPrint (eLogDebug, "NetDbReq: DatabaseSearchReply for ", key, " num=", num);
+		IdentHash ident (buf);
+		auto dest = FindRequest (ident);
+		if (dest && dest->IsActive ())
+		{
+			if (!dest->IsExploratory () && (num > 0 || dest->GetNumAttempts () < 3)) // before 3-rd attempt might be just bad luck
+			{	
+				// try to send next requests
+				if (!SendNextRequest (dest))
+					RequestComplete (ident, nullptr);
+			}	
+			else
+				// no more requests for destination possible. delete it
+				RequestComplete (ident, nullptr);
+		}
+		else /*if (!m_FloodfillBootstrap)*/
+		{	
+			LogPrint (eLogInfo, "NetDbReq: Unsolicited or late database search reply for ", key);
+			return;
+		}	
+
+		// try responses
+		if (num > NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES)
+		{
+			LogPrint (eLogWarning, "NetDbReq: Too many peer hashes ", num, " in database search reply, Reduced to ", NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES);
+			num = NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES;
+		}	
+		for (size_t i = 0; i < num; i++)
+		{
+			const uint8_t * router = buf + 33 + i*32;
+			char peerHash[48];
+			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
+			peerHash[l1] = 0;
+			LogPrint (eLogDebug, "NetDbReq: ", i, ": ", peerHash);
+
+			auto r = netdb.FindRouter (router);
+			if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL)
+			{
+				// router with ident not found or too old (1 hour)
+				LogPrint (eLogDebug, "NetDbReq: Found new/outdated router. Requesting RouterInfo...");
+			/*	if(m_FloodfillBootstrap)
+					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
+				else */if (!IsRouterBanned (router))
+					netdb.RequestDestination (router);
+				else
+					LogPrint (eLogDebug, "NetDbReq: Router ", peerHash, " is banned. Skipped");
+			}
+			else
+				LogPrint (eLogDebug, "NetDbReq: [:|||:]");
+		}
 	}	
 }
 }

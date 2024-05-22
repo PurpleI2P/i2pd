@@ -85,8 +85,11 @@ namespace data
 			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
 			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
 
+			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
+			
 		private:	
 
+			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void ManageRequests ();
 			// timer
 			void ScheduleManageRequests ();

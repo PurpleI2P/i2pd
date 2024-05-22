@@ -87,11 +87,6 @@ namespace data
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr, bool direct = true);
 			void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);
 
-			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
-			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
-			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
-			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
-
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
@@ -106,6 +101,7 @@ namespace data
 			void ExcludeReachableTransports (const IdentHash& ident, RouterInfo::CompatibleTransports transports);
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
+			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg); // to NetdbReq thread
 
 			void Reseed ();
 			Families& GetFamilies () { return m_Families; };
@@ -160,6 +156,10 @@ namespace data
 
 			template<typename Filter>
 			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;
+
+			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
+			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);
+			void HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m);
 
 		private:
 

@@ -138,9 +138,6 @@ namespace data
 							case eI2NPDatabaseStore:
 								HandleDatabaseStoreMsg (msg);
 							break;
-							case eI2NPDatabaseSearchReply:
-								HandleDatabaseSearchReplyMsg (msg);
-							break;
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
 							break;
@@ -982,66 +979,7 @@ namespace data
 				LogPrint (eLogError, "NetDb: Database store message is too long ", floodMsg->len);
 		}
 	}
-
-	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
-	{
-		const uint8_t * buf = msg->GetPayload ();
-		char key[48];
-		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
-		key[l] = 0;
-		size_t num = buf[32]; // num
-		LogPrint (eLogDebug, "NetDb: DatabaseSearchReply for ", key, " num=", num);
-		IdentHash ident (buf);
-		auto dest = m_Requests->FindRequest (ident);
-		if (dest && dest->IsActive ())
-		{
-			if (!dest->IsExploratory () && (num > 0 || dest->GetNumAttempts () < 3)) // before 3-rd attempt might be just bad luck
-			{	
-				// try to send next requests
-				if (!m_Requests->SendNextRequest (dest))
-					m_Requests->RequestComplete (ident, nullptr);
-			}	
-			else
-				// no more requests for destination possible. delete it
-				m_Requests->RequestComplete (ident, nullptr);
-		}
-		else if (!m_FloodfillBootstrap)
-		{	
-			LogPrint (eLogInfo, "NetDb: Unsolicited or late database search reply for ", key);
-			return;
-		}	
-
-		// try responses
-		if (num > NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES)
-		{
-			LogPrint (eLogWarning, "NetDb: Too many peer hashes ", num, " in database search reply, Reduced to ", NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES);
-			num = NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES;
-		}	
-		for (size_t i = 0; i < num; i++)
-		{
-			const uint8_t * router = buf + 33 + i*32;
-			char peerHash[48];
-			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
-			peerHash[l1] = 0;
-			LogPrint (eLogDebug, "NetDb: ", i, ": ", peerHash);
-
-			auto r = FindRouter (router);
-			if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL)
-			{
-				// router with ident not found or too old (1 hour)
-				LogPrint (eLogDebug, "NetDb: Found new/outdated router. Requesting RouterInfo...");
-				if(m_FloodfillBootstrap)
-					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
-				else if (!IsRouterBanned (router))
-					RequestDestination (router);
-				else
-					LogPrint (eLogDebug, "NetDb: Router ", peerHash, " is banned. Skipped");
-			}
-			else
-				LogPrint (eLogDebug, "NetDb: [:|||:]");
-		}
-	}
-
+	
 	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		const uint8_t * buf = msg->GetPayload ();
@@ -1402,6 +1340,12 @@ namespace data
 		if (msg) m_Queue.Put (msg);
 	}
 
+	void NetDb::PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
+	{
+		if (msg && m_Requests)
+			m_Requests->PostDatabaseSearchReplyMsg (msg);
+	}	
+	
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
 		const std::unordered_set<IdentHash>& excluded) const
 	{
