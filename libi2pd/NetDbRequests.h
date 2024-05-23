@@ -41,7 +41,7 @@ namespace data
 			~RequestedDestination ();
 
 			const IdentHash& GetDestination () const { return m_Destination; };
-			std::unordered_set<IdentHash> GetExcludedPeers () const;
+			const std::unordered_set<IdentHash>& GetExcludedPeers () const { return m_ExcludedPeers; };
 			int GetNumAttempts () const { return m_NumAttempts; };
 			void ClearExcludedPeers ();
 			bool IsExploratory () const { return m_IsExploratory; };
@@ -63,7 +63,6 @@ namespace data
 
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
-			mutable std::mutex m_ExcludedPeersMutex;
 			std::unordered_set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
 			RequestComplete m_RequestComplete;
@@ -84,14 +83,14 @@ namespace data
 			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, 
 				bool direct = false, RequestedDestination::RequestComplete requestComplete = nullptr);
 			void RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r);
-			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
-			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
-
 			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void PostRequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
 			
 		private:	
 
+			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
+			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
+			
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void RequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
 			void Explore (int numDestinations);
