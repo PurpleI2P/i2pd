@@ -100,14 +100,15 @@ namespace data
 			void HandleManageRequestsTimer (const boost::system::error_code& ecode);
 			void ScheduleExploratory (uint64_t interval);
 			void HandleExploratoryTimer (const boost::system::error_code& ecode);
+			void ScheduleCleanup ();
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			
 		private:
 
 			mutable std::mutex m_RequestedDestinationsMutex;
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
-			uint64_t m_LastPoolCleanUpTime = 0; // in seconds
-			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer;
+			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer, m_CleanupTimer;
 	};
 }
 }

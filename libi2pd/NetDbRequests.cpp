@@ -97,7 +97,8 @@ namespace data
 
 	NetDbRequests::NetDbRequests ():
 		RunnableServiceWithWork ("NetDbReq"),
-		m_ManageRequestsTimer (GetIOService ()), m_ExploratoryTimer (GetIOService ()) 
+		m_ManageRequestsTimer (GetIOService ()), m_ExploratoryTimer (GetIOService ()),
+		m_CleanupTimer (GetIOService ())
 	{
 	}
 		
@@ -108,11 +109,11 @@ namespace data
 		
 	void NetDbRequests::Start ()
 	{
-		m_LastPoolCleanUpTime = i2p::util::GetSecondsSinceEpoch ();
 		if (!IsRunning ())
 		{	
 			StartIOService ();
 			ScheduleManageRequests ();
+			ScheduleCleanup ();
 			if (!i2p::context.IsHidden ())
 				ScheduleExploratory (EXPLORATORY_REQUEST_INTERVAL);
 		}	
@@ -124,6 +125,7 @@ namespace data
 		{	
 			m_ManageRequestsTimer.cancel ();
 			m_ExploratoryTimer.cancel ();
+			m_CleanupTimer.cancel ();
 			StopIOService ();
 		
 			m_RequestedDestinations.clear ();
@@ -131,7 +133,22 @@ namespace data
 		}	
 	}
 
-
+	void NetDbRequests::ScheduleCleanup ()
+	{
+		m_CleanupTimer.expires_from_now (boost::posix_time::seconds(REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL));
+		m_CleanupTimer.async_wait (std::bind (&NetDbRequests::HandleCleanupTimer,
+			this, std::placeholders::_1));
+	}	
+		
+	void NetDbRequests::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{		
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			m_RequestedDestinationsPool.CleanUpMt ();
+			ScheduleCleanup ();
+		}	
+	}
+		
 	std::shared_ptr<RequestedDestination> NetDbRequests::CreateRequest (const IdentHash& destination, 
 		bool isExploratory, bool direct, RequestedDestination::RequestComplete requestComplete)
 	{
@@ -202,11 +219,6 @@ namespace data
 	void NetDbRequests::ManageRequests ()
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		if (ts > m_LastPoolCleanUpTime + REQUESTED_DESTINATIONS_POOL_CLEANUP_INTERVAL)
-		{
-			m_RequestedDestinationsPool.CleanUpMt ();
-			m_LastPoolCleanUpTime = ts;
-		}	
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
