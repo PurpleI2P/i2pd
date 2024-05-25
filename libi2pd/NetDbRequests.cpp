@@ -7,7 +7,6 @@
 */
 
 #include "Log.h"
-#include "Base.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "NetDb.hpp"
@@ -100,7 +99,7 @@ namespace data
 	NetDbRequests::NetDbRequests ():
 		RunnableServiceWithWork ("NetDbReq"),
 		m_ManageRequestsTimer (GetIOService ()), m_ExploratoryTimer (GetIOService ()),
-		m_CleanupTimer (GetIOService ())
+		m_CleanupTimer (GetIOService ()), m_DiscoveredRoutersTimer (GetIOService ())
 	{
 	}
 		
@@ -366,10 +365,12 @@ namespace data
 		size_t num = buf[32]; // num
 		LogPrint (eLogDebug, "NetDbReq: DatabaseSearchReply for ", key, " num=", num);
 		IdentHash ident (buf);
+		bool isExploratory = false;
 		auto dest = FindRequest (ident);
 		if (dest && dest->IsActive ())
 		{
-			if (!dest->IsExploratory () && (num > 0 || dest->GetNumAttempts () < 3)) // before 3-rd attempt might be just bad luck
+			isExploratory = dest->IsExploratory ();
+			if (!isExploratory && (num > 0 || dest->GetNumAttempts () < 3)) // before 3-rd attempt might be just bad luck
 			{	
 				// try to send next requests
 				if (!SendNextRequest (dest))
@@ -391,31 +392,49 @@ namespace data
 			LogPrint (eLogWarning, "NetDbReq: Too many peer hashes ", num, " in database search reply, Reduced to ", NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES);
 			num = NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES;
 		}	
+		if (isExploratory && !m_DiscoveredRouterHashes.empty ())
+		{
+			// request outstanding routers
+			for (auto it: m_DiscoveredRouterHashes)
+				RequestRouter (it);
+			m_DiscoveredRouterHashes.clear ();
+			m_DiscoveredRoutersTimer.cancel ();
+		}	
 		for (size_t i = 0; i < num; i++)
 		{
-			const uint8_t * router = buf + 33 + i*32;
-			char peerHash[48];
-			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
-			peerHash[l1] = 0;
-			LogPrint (eLogDebug, "NetDbReq: ", i, ": ", peerHash);
+			IdentHash router (buf + 33 + i*32);
+			if (CheckLogLevel (eLogDebug))
+				LogPrint (eLogDebug, "NetDbReq: ", i, ": ", router.ToBase64 ());
 
-			auto r = netdb.FindRouter (router);
-			if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL)
-			{
-				// router with ident not found or too old (1 hour)
-				LogPrint (eLogDebug, "NetDbReq: Found new/outdated router. Requesting RouterInfo...");
-			/*	if(m_FloodfillBootstrap)
-					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
-				else */if (!IsRouterBanned (router))
-					RequestDestination (router, nullptr, true);
-				else
-					LogPrint (eLogDebug, "NetDbReq: Router ", peerHash, " is banned. Skipped");
-			}
-			else
-				LogPrint (eLogDebug, "NetDbReq: [:|||:]");
+			if (isExploratory)
+				// postpone request
+				m_DiscoveredRouterHashes.push_back (router);
+			else	
+				// send request right a way
+				RequestRouter (router);
 		}
+		if (isExploratory && !m_DiscoveredRouterHashes.empty ())
+			ScheduleDiscoveredRoutersRequest (); 	
 	}	
 
+	void NetDbRequests::RequestRouter (const IdentHash& router)
+	{		
+		auto r = netdb.FindRouter (router);
+		if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL)
+		{
+			// router with ident not found or too old (1 hour)
+			LogPrint (eLogDebug, "NetDbReq: Found new/outdated router. Requesting RouterInfo...");
+		/*	if(m_FloodfillBootstrap)
+				RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
+			else */if (!IsRouterBanned (router))
+				RequestDestination (router, nullptr, true);
+			else
+				LogPrint (eLogDebug, "NetDbReq: Router ", router.ToBase64 (), " is banned. Skipped");
+		}
+		else
+			LogPrint (eLogDebug, "NetDbReq: [:|||:]");
+	}	
+		
 	void NetDbRequests::PostRequestDestination (const IdentHash& destination, 
 		const RequestedDestination::RequestComplete& requestComplete, bool direct)
 	{
@@ -515,6 +534,28 @@ namespace data
 			else
 				LogPrint (eLogError, "NetDbReq: No known routers, reseed seems to be totally failed");
 			ScheduleExploratory (nextExploratoryInterval);
+		}	
+	}	
+
+	void NetDbRequests::ScheduleDiscoveredRoutersRequest ()
+	{
+		m_DiscoveredRoutersTimer.expires_from_now (boost::posix_time::milliseconds(
+			DISCOVERED_REQUEST_INTERVAL + rand () % DISCOVERED_REQUEST_INTERVAL_VARIANCE));
+		m_DiscoveredRoutersTimer.async_wait (std::bind (&NetDbRequests::HandleDiscoveredRoutersTimer,
+			this, std::placeholders::_1));
+	}	
+
+	void NetDbRequests::HandleDiscoveredRoutersTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (!m_DiscoveredRouterHashes.empty ())
+			{
+				RequestRouter (m_DiscoveredRouterHashes.front ());
+				m_DiscoveredRouterHashes.pop_front ();
+				if (!m_DiscoveredRouterHashes.empty ()) // more hashes to request
+					ScheduleDiscoveredRoutersRequest ();
+			}	
 		}	
 	}	
 }
