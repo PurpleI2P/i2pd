@@ -13,6 +13,7 @@
 #include <memory>
 #include <unordered_set>
 #include <unordered_map>
+#include <list>
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "util.h"
@@ -53,19 +54,22 @@ namespace data
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (const IdentHash& floodfill);
 
-			void SetRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete = requestComplete; };
-			RequestComplete GetRequestComplete () const { return m_RequestComplete; };
-			bool IsRequestComplete () const { return m_RequestComplete != nullptr; };
+			void AddRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete.push_back (requestComplete); };
+			void ResetRequestComplete () { m_RequestComplete.clear (); };
 			void Success (std::shared_ptr<RouterInfo> r);
 			void Fail ();
 
+		private:
+
+			void InvokeRequestComplete (std::shared_ptr<RouterInfo> r);
+			
 		private:
 
 			IdentHash m_Destination;
 			bool m_IsExploratory, m_IsDirect, m_IsActive;
 			std::unordered_set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime, m_LastRequestTime; // in seconds
-			RequestComplete m_RequestComplete;
+			std::list<RequestComplete> m_RequestComplete;
 			int m_NumAttempts;
 	};
 

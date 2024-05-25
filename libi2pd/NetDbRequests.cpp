@@ -29,7 +29,7 @@ namespace data
 		
 	RequestedDestination::~RequestedDestination () 
 	{ 
-		if (m_RequestComplete) m_RequestComplete (nullptr); 
+		InvokeRequestComplete (nullptr);
 	}
 		
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
@@ -68,17 +68,23 @@ namespace data
 	{
 		m_ExcludedPeers.clear ();
 	}
+
+	void RequestedDestination::InvokeRequestComplete (std::shared_ptr<RouterInfo> r)
+	{
+		if (!m_RequestComplete.empty ())
+		{	
+			for (auto it: m_RequestComplete)
+				if (it != nullptr) it (r);
+			m_RequestComplete.clear ();
+		}	
+	}	
 		
 	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
 	{
 		if (m_IsActive)
 		{	
 			m_IsActive = false;
-			if (m_RequestComplete)
-			{
-				m_RequestComplete (r);
-				m_RequestComplete = nullptr;
-			}
+			InvokeRequestComplete (r);
 		}	
 	}
 
@@ -87,11 +93,7 @@ namespace data
 		if (m_IsActive)
 		{	
 			m_IsActive = false;
-			if (m_RequestComplete)
-			{
-				m_RequestComplete (nullptr);
-				m_RequestComplete = nullptr;
-			}
+			InvokeRequestComplete (nullptr);
 		}	
 	}
 
@@ -154,27 +156,22 @@ namespace data
 	{
 		// request RouterInfo directly
 		auto dest = m_RequestedDestinationsPool.AcquireSharedMt (destination, isExploratory, direct);
-		dest->SetRequestComplete (requestComplete);
+		if (requestComplete)
+			dest->AddRequestComplete (requestComplete);
 		{
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex); 
 			auto ret = m_RequestedDestinations.emplace (destination, dest);
 			if (!ret.second) // not inserted
 			{	
-				dest->SetRequestComplete (nullptr); // don't call requestComplete in destructor	
+				dest->ResetRequestComplete (); // don't call requestComplete in destructor	
 				dest = ret.first->second; // existing one
-				if (requestComplete && dest->IsActive ())
+				if (requestComplete)
 				{	
-					auto prev = dest->GetRequestComplete ();  
-					if (prev) // if already set 	
-						dest->SetRequestComplete (
-							[requestComplete, prev](std::shared_ptr<RouterInfo> r)
-							{
-								prev (r); // call previous
-								requestComplete (r); // then new
-							});
+					if (dest->IsActive ())
+						dest->AddRequestComplete (requestComplete);
 					else
-						dest->SetRequestComplete (requestComplete);
-				}
+						requestComplete (nullptr);
+				}	
 				return nullptr;
 			}	
 		}
