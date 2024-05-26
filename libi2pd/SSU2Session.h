@@ -326,6 +326,7 @@ namespace transport
 
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
+			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo::Buffer> riBuffer);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreateI2NPBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage>&& msg);

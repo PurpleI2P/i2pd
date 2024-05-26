@@ -188,6 +188,7 @@ namespace data
 
 					Buffer () = default;
 					Buffer (const uint8_t * buf, size_t len);
+					Buffer (const Buffer& other): Buffer (other.data (), other.m_BufferLen) {};
 
 					size_t GetBufferLen () const { return m_BufferLen; };
 					void SetBufferLen (size_t len) { m_BufferLen = len; };
@@ -281,7 +282,8 @@ namespace data
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; };
 			void DeleteBuffer () { m_Buffer = nullptr; };
-			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };			
+			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };	
+			std::shared_ptr<Buffer> CopyBuffer () const;
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; };

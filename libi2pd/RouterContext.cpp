@@ -77,7 +77,13 @@ namespace i2p
 			m_Service->Stop ();
 		}	
 	}	
-	
+
+	std::shared_ptr<i2p::data::RouterInfo::Buffer> RouterContext::CopyRouterInfoBuffer () const
+	{
+		std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+		return m_RouterInfo.CopyBuffer ();
+	}	
+		
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
@@ -246,7 +252,10 @@ namespace i2p
 
 	void RouterContext::UpdateRouterInfo ()
 	{
-		m_RouterInfo.CreateBuffer (m_Keys);
+		{
+			std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+			m_RouterInfo.CreateBuffer (m_Keys);
+		}
 		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}

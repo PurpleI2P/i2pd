@@ -119,7 +119,11 @@ namespace data
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
 			void ClearRouterInfos () { m_RouterInfos.clear (); };
-			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer () { return m_RouterInfoBuffersPool.AcquireSharedMt (); };
+			template<typename... TArgs>
+			std::shared_ptr<RouterInfo::Buffer> NewRouterInfoBuffer (TArgs&&... args) 
+			{ 
+				return m_RouterInfoBuffersPool.AcquireSharedMt (std::forward<TArgs>(args)...); 
+			}
 			bool PopulateRouterInfoBuffer (std::shared_ptr<RouterInfo> r);
 			std::shared_ptr<RouterInfo::Address> NewRouterInfoAddress () { return m_RouterInfoAddressesPool.AcquireSharedMt (); };
 			boost::shared_ptr<RouterInfo::Addresses> NewRouterInfoAddresses ()

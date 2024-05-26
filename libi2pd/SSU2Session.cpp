@@ -337,7 +337,7 @@ namespace transport
 				{
 					if (!s->IsEstablished ()) return;
 					uint8_t payload[SSU2_MAX_PACKET_SIZE];
-					size_t payloadSize = s->CreateRouterInfoBlock (payload, s->m_MaxPayloadSize - 32, i2p::context.GetSharedRouterInfo ());
+					size_t payloadSize = s->CreateRouterInfoBlock (payload, s->m_MaxPayloadSize - 32, i2p::context.CopyRouterInfoBuffer ());
 					if (payloadSize)
 					{
 						if (payloadSize < s->m_MaxPayloadSize)
@@ -883,12 +883,12 @@ namespace transport
 		// payload
 		size_t maxPayloadSize = m_MaxPayloadSize - 48; // for part 2, 48 is part1
 		uint8_t * payload = m_SentHandshakePacket->payload;
-		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.CopyRouterInfoBuffer ());
 		if (!payloadSize)
 		{
 			// split by two fragments
 			maxPayloadSize += m_MaxPayloadSize;
-			payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+			payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.CopyRouterInfoBuffer ());
 			header.h.flags[0] = 0x02; // frag 0, total fragments 2
 			// TODO: check if we need more fragments
 		}
@@ -2537,27 +2537,34 @@ namespace transport
 
 	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r)
 	{
-		if (!r || !r->GetBuffer () || len < 5) return 0;
+		if (!r || len < 5) return 0;
+		return CreateRouterInfoBlock (buf, len, r->GetSharedBuffer ());
+	}
+
+	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo::Buffer> riBuffer)
+	{
+		if (!riBuffer || len < 5) return 0;
 		buf[0] = eSSU2BlkRouterInfo;
-		size_t size = r->GetBufferLen ();
+		size_t size = riBuffer->GetBufferLen ();
 		if (size + 5 < len)
 		{
-			memcpy (buf + 5, r->GetBuffer (), size);
+			memcpy (buf + 5, riBuffer->data (), size);
 			buf[3] = 0; // flag
 		}
 		else
 		{
 			i2p::data::GzipDeflator deflator;
 			deflator.SetCompressionLevel (9);
-			size = deflator.Deflate (r->GetBuffer (), r->GetBufferLen (), buf + 5, len - 5);
+			size = deflator.Deflate (riBuffer->data (), riBuffer->GetBufferLen (), buf + 5, len - 5);
 			if (!size) return 0; // doesn't fit
 			buf[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
 		}
 		htobe16buf (buf + 1, size + 2); // size
 		buf[4] = 1; // frag
 		return size + 5;
-	}
-
+	}	
+	
+		
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;

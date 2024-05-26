@@ -1120,6 +1120,12 @@ namespace data
 		m_Buffer->SetBufferLen (len);
 	}
 
+	std::shared_ptr<RouterInfo::Buffer> RouterInfo::CopyBuffer () const
+	{
+		if (!m_Buffer) return nullptr;
+		return netdb.NewRouterInfoBuffer (*m_Buffer);
+	}	
+		
 	std::shared_ptr<RouterInfo::Buffer> RouterInfo::NewBuffer () const
 	{
 		return netdb.NewRouterInfoBuffer ();

@@ -129,7 +129,8 @@ namespace transport
 		options[1] = 2; // ver
 		htobe16buf (options + 2, paddingLength); // padLen
 		// m3p2Len
-		auto bufLen = i2p::context.GetRouterInfo ().GetBufferLen ();
+		auto riBuffer = i2p::context.CopyRouterInfoBuffer ();
+		auto bufLen = riBuffer->GetBufferLen ();
 		m3p2Len = bufLen + 4 + 16; // (RI header + RI + MAC for now) TODO: implement options
 		htobe16buf (options + 4, m3p2Len);
 		// fill m3p2 payload (RouterInfo block)
@@ -138,7 +139,7 @@ namespace transport
 		m3p2[0] = eNTCP2BlkRouterInfo; // block
 		htobe16buf (m3p2 + 1, bufLen + 1); // flag + RI
 		m3p2[3] = 0; // flag
-		memcpy (m3p2 + 4, i2p::context.GetRouterInfo ().GetBuffer (), bufLen); // TODO: own RI should be protected by mutex
+		memcpy (m3p2 + 4, riBuffer->data (), bufLen); // TODO: eliminate extra copy
 		// 2 bytes reserved
 		htobe32buf (options + 8, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000); // tsA, rounded to seconds
 		// 4 bytes reserved
@@ -1200,7 +1201,8 @@ namespace transport
 	void NTCP2Session::SendRouterInfo ()
 	{
 		if (!IsEstablished ()) return;
-		auto riLen = i2p::context.GetRouterInfo ().GetBufferLen ();
+		auto riBuffer =  i2p::context.CopyRouterInfoBuffer ();
+		auto riLen = riBuffer->GetBufferLen ();
 		size_t payloadLen = riLen + 3 + 1 + 7; // 3 bytes block header + 1 byte RI flag + 7 bytes DateTime
 		m_NextSendBuffer = new uint8_t[payloadLen + 16 + 2 + 64]; // up to 64 bytes padding
 		// DateTime	block
@@ -1211,7 +1213,7 @@ namespace transport
 		m_NextSendBuffer[9] = eNTCP2BlkRouterInfo;
 		htobe16buf (m_NextSendBuffer + 10, riLen + 1); // size
 		m_NextSendBuffer[12] = 0; // flag
-		memcpy (m_NextSendBuffer + 13, i2p::context.GetRouterInfo ().GetBuffer (), riLen);
+		memcpy (m_NextSendBuffer + 13, riBuffer->data (), riLen); // TODO: eliminate extra copy
 		// padding block
 		auto paddingSize = CreatePaddingBlock (payloadLen, m_NextSendBuffer + 2 + payloadLen, 64);
 		payloadLen += paddingSize;
