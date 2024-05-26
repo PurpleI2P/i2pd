@@ -57,11 +57,8 @@ namespace i2p
 		{	
 			m_Service.reset (new RouterService);
 			m_Service->Start ();
-			if (!m_IsHiddenMode)
-			{
-				m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
-				ScheduleInitialPublish ();
-			}	
+			m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
+			ScheduleInitialPublish ();
 			m_CongestionUpdateTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
 			ScheduleCongestionUpdate ();
 			m_CleanupTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
@@ -1348,16 +1345,21 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			m_PublishExcluded.clear ();
-			m_PublishReplyToken = 0;
-			if (IsFloodfill ())
-			{	
-				UpdateStats (); // for floodfill
-				m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
-			}	
 			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
-			Publish ();	
-			SchedulePublishResend ();
+			if (!m_IsHiddenMode)
+			{	
+				m_PublishExcluded.clear ();
+				m_PublishReplyToken = 0;
+				if (IsFloodfill ())
+				{	
+					UpdateStats (); // for floodfill
+					m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
+				}		
+				Publish ();	
+				SchedulePublishResend ();
+			}	
+			else
+				SchedulePublish ();
 		}	
 	}	
 	
