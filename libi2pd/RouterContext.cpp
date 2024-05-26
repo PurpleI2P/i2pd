@@ -1323,7 +1323,10 @@ namespace i2p
 			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
 				HandlePublishTimer (ecode);
 			else
+			{	
+				UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());	
 				ScheduleInitialPublish ();
+			}		
 		}	
 	}	
 	
