@@ -1384,8 +1384,9 @@ namespace i2p
 					if (m_Service)
 						m_Service->GetService ().post ([this]() { HandlePublishResendTimer (boost::system::error_code ()); });
 				};
-			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
-				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
+			if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()) || // already connected
+				(floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) && // are we able to connect
+				 !i2p::transport::transports.RoutesRestricted ())) // and routes not restricted
 			{	
 				// send directly
 				auto msg = CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken);
