@@ -86,14 +86,14 @@ namespace data
 			void Start ();
 			void Stop ();
 
-			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, 
-				bool direct = false, RequestedDestination::RequestComplete requestComplete = nullptr);
 			void RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r);
 			void PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
 			void PostRequestDestination (const IdentHash& destination, const RequestedDestination::RequestComplete& requestComplete, bool direct);
 			
 		private:	
 
+			std::shared_ptr<RequestedDestination> CreateRequest (const IdentHash& destination, bool isExploratory, 
+				bool direct = false, RequestedDestination::RequestComplete requestComplete = nullptr);
 			std::shared_ptr<RequestedDestination> FindRequest (const IdentHash& ident) const;
 			bool SendNextRequest (std::shared_ptr<RequestedDestination> dest);
 			
@@ -114,7 +114,6 @@ namespace data
 			
 		private:
 
-			mutable std::mutex m_RequestedDestinationsMutex;
 			std::unordered_map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 			std::list<IdentHash> m_DiscoveredRouterHashes;
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;

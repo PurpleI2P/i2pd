@@ -157,23 +157,21 @@ namespace data
 		auto dest = m_RequestedDestinationsPool.AcquireSharedMt (destination, isExploratory, direct);
 		if (requestComplete)
 			dest->AddRequestComplete (requestComplete);
-		{
-			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex); 
-			auto ret = m_RequestedDestinations.emplace (destination, dest);
-			if (!ret.second) // not inserted
+		
+		auto ret = m_RequestedDestinations.emplace (destination, dest);
+		if (!ret.second) // not inserted
+		{	
+			dest->ResetRequestComplete (); // don't call requestComplete in destructor	
+			dest = ret.first->second; // existing one
+			if (requestComplete)
 			{	
-				dest->ResetRequestComplete (); // don't call requestComplete in destructor	
-				dest = ret.first->second; // existing one
-				if (requestComplete)
-				{	
-					if (dest->IsActive ())
-						dest->AddRequestComplete (requestComplete);
-					else
-						requestComplete (nullptr);
-				}	
-				return nullptr;
+				if (dest->IsActive ())
+					dest->AddRequestComplete (requestComplete);
+				else
+					requestComplete (nullptr);
 			}	
-		}
+			return nullptr;
+		}	
 		return dest;
 	}
 
@@ -182,16 +180,13 @@ namespace data
 		GetIOService ().post ([this, ident, r]()
 			{                      
 				std::shared_ptr<RequestedDestination> request;
+				auto it = m_RequestedDestinations.find (ident);
+				if (it != m_RequestedDestinations.end ())
 				{
-					std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-					auto it = m_RequestedDestinations.find (ident);
-					if (it != m_RequestedDestinations.end ())
-					{
-						request = it->second;
-						if (request->IsExploratory ())
-							m_RequestedDestinations.erase (it);
-						// otherwise cache for a while
-					}
+					request = it->second;
+					if (request->IsExploratory ())
+						m_RequestedDestinations.erase (it);
+					// otherwise cache for a while
 				}
 				if (request)
 				{
@@ -205,7 +200,6 @@ namespace data
 
 	std::shared_ptr<RequestedDestination> NetDbRequests::FindRequest (const IdentHash& ident) const
 	{
-		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (ident);
 		if (it != m_RequestedDestinations.end ())
 			return it->second;
@@ -215,7 +209,6 @@ namespace data
 	void NetDbRequests::ManageRequests ()
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
 			auto& dest = it->second;
@@ -424,9 +417,7 @@ namespace data
 		{
 			// router with ident not found or too old (1 hour)
 			LogPrint (eLogDebug, "NetDbReq: Found new/outdated router. Requesting RouterInfo...");
-		/*	if(m_FloodfillBootstrap)
-				RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
-			else */if (!IsRouterBanned (router))
+			if (!IsRouterBanned (router))
 				RequestDestination (router, nullptr, true);
 			else
 				LogPrint (eLogDebug, "NetDbReq: Router ", router.ToBase64 (), " is banned. Skipped");

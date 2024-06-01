@@ -205,7 +205,7 @@ namespace config {
 		reseed.add_options()
 			("reseed.verify", value<bool>()->default_value(false),        "Verify .su3 signature")
 			("reseed.threshold", value<uint16_t>()->default_value(25),    "Minimum number of known routers before requesting reseed")
-			("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
+			("reseed.floodfill", value<std::string>()->default_value(""), "Ignored. Always empty")
 			("reseed.file", value<std::string>()->default_value(""),      "Path to local .su3 file or HTTPS URL to reseed from")
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")

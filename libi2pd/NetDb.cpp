@@ -478,28 +478,6 @@ namespace data
 			m_Reseeder->LoadCertificates (); // we need certificates for SU3 verification
 		}
 
-		// try reseeding from floodfill first if specified
-		std::string riPath; i2p::config::GetOption("reseed.floodfill", riPath);
-		if (!riPath.empty())
-		{
-			auto ri = std::make_shared<RouterInfo>(riPath);
-			if (ri->IsFloodfill())
-			{
-				const uint8_t * riData = ri->GetBuffer();
-				int riLen = ri->GetBufferLen();
-				if (!i2p::data::netdb.AddRouterInfo(riData, riLen))
-				{
-					// bad router info
-					LogPrint(eLogError, "NetDb: Bad router info");
-					return;
-				}
-				m_FloodfillBootstrap = ri;
-				//ReseedFromFloodfill(*ri);
-				// don't try reseed servers if trying to bootstrap from floodfill
-				return;
-			}
-		}
-
 		m_Reseeder->Bootstrap ();
 	}
 
@@ -790,20 +768,6 @@ namespace data
 			m_Requests->PostRequestDestination (destination, requestComplete, direct);
 		else
 			LogPrint (eLogError, "NetDb: Requests is null");
-	}
-
-	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploratory, RequestedDestination::RequestComplete requestComplete)
-	{
-		auto dest = m_Requests->CreateRequest (destination, exploratory, true, requestComplete); // non-exploratory
-		if (!dest)
-		{
-			LogPrint (eLogWarning, "NetDb: Destination ", destination.ToBase64(), " is requested already");
-			return;
-		}
-		if (CheckLogLevel (eLogDebug))
-			LogPrint(eLogDebug, "NetDb: Destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
-		// direct
-		transports.SendMessage (from, dest->CreateRequestMessage (nullptr, nullptr));
 	}
 
 	void NetDb::HandleNTCP2RouterInfoMsg (std::shared_ptr<const I2NPMessage> m)

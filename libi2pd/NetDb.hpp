@@ -83,8 +83,7 @@ namespace data
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr, bool direct = true);
-			void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);
-
+			
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
@@ -184,9 +183,6 @@ namespace data
 
 			bool m_PersistProfiles;
 			std::future<void> m_SavingProfiles, m_DeletingProfiles, m_PersistingRouters;
-
-			/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
-			std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
 
 			std::vector<std::shared_ptr<const RouterInfo> > m_ExploratorySelection;
 			uint64_t m_LastExploratorySelectionUpdateTime; // in monotonic seconds
