@@ -313,6 +313,7 @@ namespace transport
 		m_SentHandshakePacket.reset (nullptr);
 		m_ConnectTimer.cancel ();
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
+		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
 		if (m_OnEstablished)
 		{
@@ -389,9 +390,24 @@ namespace transport
 		SetSendQueueSize (m_SendQueue.size ());
 	}
 
+	void SSU2Session::MoveSendQueue (std::shared_ptr<SSU2Session> other)
+	{
+		if (!other || m_SendQueue.empty ()) return;
+		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		for (auto it: m_SendQueue)
+			if (!it->IsExpired (ts))
+				msgs.push_back (it);
+			else
+				it->Drop ();
+		m_SendQueue.clear ();
+		if (!msgs.empty ())
+			other->PostI2NPMessages (msgs);
+	}	
+		
 	bool SSU2Session::SendQueue ()
 	{
-		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
+		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize && IsEstablished ())
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			uint64_t mts = i2p::util::GetMonotonicMicroseconds ();

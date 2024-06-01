@@ -455,10 +455,12 @@ namespace transport
 			if (ident)
 			{
 				auto ret = m_SessionsByRouterHash.emplace (ident->GetIdentHash (), session);
-				if (!ret.second)
+				if (!ret.second && ret.first->second != session)
 				{
 					// session already exists
 					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
+					// move unsent msgs to new session
+					ret.first->second->MoveSendQueue (session);
 					// terminate existing
 					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonReplacedByNewSession));
 					// update session

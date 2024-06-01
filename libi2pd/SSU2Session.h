@@ -255,6 +255,7 @@ namespace transport
 			void Done () override;
 			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
+			void MoveSendQueue (std::shared_ptr<SSU2Session> other);
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
 			size_t Resend (uint64_t ts); // return number of resent packets
 			uint64_t GetLastResendTime () const { return m_LastResendTime; };
