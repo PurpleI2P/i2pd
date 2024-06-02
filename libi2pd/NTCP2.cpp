@@ -412,6 +412,7 @@ namespace transport
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
 		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
+		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
 	}
 
@@ -1133,7 +1134,7 @@ namespace transport
 
 	void NTCP2Session::SendQueue ()
 	{
-		if (!m_SendQueue.empty ())
+		if (!m_SendQueue.empty () && m_IsEstablished)
 		{
 			std::vector<std::shared_ptr<I2NPMessage> > msgs;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -1170,6 +1171,21 @@ namespace transport
 		}
 	}
 
+	void NTCP2Session::MoveSendQueue (std::shared_ptr<NTCP2Session> other)
+	{
+		if (!other || m_SendQueue.empty ()) return;
+		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		for (auto it: m_SendQueue)
+			if (!it->IsExpired (ts))
+				msgs.push_back (it);
+			else
+				it->Drop ();
+		m_SendQueue.clear ();
+		if (!msgs.empty ())
+			other->PostI2NPMessages (msgs);
+	}	
+		
 	size_t NTCP2Session::CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len)
 	{
 		if (len < 3) return 0;
@@ -1263,7 +1279,7 @@ namespace transport
 			else
 				m_SendQueue.push_back (std::move (it));
 		
-		if (!m_IsSending)
+		if (!m_IsSending && m_IsEstablished)
 			SendQueue ();
 		else if (m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE)
 		{
@@ -1426,6 +1442,7 @@ namespace transport
 			{
 				// replace by new session
 				auto s = it->second;
+				s->MoveSendQueue (session);
 				m_NTCP2Sessions.erase (it);
 				s->Terminate ();
 			}

@@ -383,10 +383,12 @@ namespace transport
 				m_SendQueue.push_back (std::move (it));
 			}
 		}
-		SendQueue ();
-
-		if (m_SendQueue.size () > 0) // windows is full
-			Resend (i2p::util::GetMillisecondsSinceEpoch ());
+		if (IsEstablished ())
+		{	
+			SendQueue ();
+			if (m_SendQueue.size () > 0) // windows is full
+				Resend (i2p::util::GetMillisecondsSinceEpoch ());
+		}	
 		SetSendQueueSize (m_SendQueue.size ());
 	}
 

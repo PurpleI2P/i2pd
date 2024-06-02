@@ -151,7 +151,8 @@ namespace transport
 
 			void SendLocalRouterInfo (bool update) override; // after handshake or by update
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
-
+			void MoveSendQueue (std::shared_ptr<NTCP2Session> other);
+			
 		private:
 
 			void Established ();
