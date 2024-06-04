@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -790,11 +790,14 @@ namespace data
 		return keys;
 	}
 
-	IdentHash CreateRoutingKey (const IdentHash& ident)
+	IdentHash CreateRoutingKey (const IdentHash& ident, bool nextDay)
 	{
 		uint8_t buf[41]; // ident + yyyymmdd
 		memcpy (buf, (const uint8_t *)ident, 32);
-		i2p::util::GetCurrentDate ((char *)(buf + 32));
+		if (nextDay)
+			i2p::util::GetNextDayDate ((char *)(buf + 32));
+		else	
+			i2p::util::GetCurrentDate ((char *)(buf + 32));
 		IdentHash key;
 		SHA256(buf, 40, key);
 		return key;

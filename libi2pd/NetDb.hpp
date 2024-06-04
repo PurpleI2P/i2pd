@@ -54,6 +54,8 @@ namespace data
 	const size_t NETDB_MAX_NUM_SEARCH_REPLY_PEER_HASHES = 16;
 	const size_t NETDB_MAX_EXPLORATORY_SELECTION_SIZE = 500;
 	const int NETDB_EXPLORATORY_SELECTION_UPDATE_INTERVAL = 82; // in seconds. for floodfill
+	const int NETDB_NEXT_DAY_ROUTER_INFO_THRESHOLD = 45; // in minutes
+	const int NETDB_NEXT_DAY_LEASESET_THRESHOLD = 10; // in minutes
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
@@ -89,7 +91,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::unordered_set<IdentHash>& excluded, bool nextDay = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::unordered_set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetExploratoryNonFloodfill (const IdentHash& destination, size_t num, const std::unordered_set<IdentHash>& excluded);
@@ -144,7 +146,7 @@ namespace data
 			void PersistRouters (std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > >&& update, 
 				std::list<std::string>&& remove);
 			void Run (); 
-			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg);
+			void Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg, bool andNextDay = false);
 			void ManageRouterInfos ();
 			void ManageLeaseSets ();
 			void ManageRequests ();

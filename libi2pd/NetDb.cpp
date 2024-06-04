@@ -912,7 +912,10 @@ namespace data
 			{
 				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + payloadOffset, msgLen);
 				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore);
-				Flood (ident, floodMsg);
+				int minutesBeforeMidnight = 24*60 - i2p::util::GetMinutesSinceEpoch () % (24*60);
+				bool andNextDay = storeType ? minutesBeforeMidnight < NETDB_NEXT_DAY_LEASESET_THRESHOLD:
+					minutesBeforeMidnight < NETDB_NEXT_DAY_ROUTER_INFO_THRESHOLD;
+				Flood (ident, floodMsg, andNextDay);
 			}
 			else
 				LogPrint (eLogError, "NetDb: Database store message is too long ", floodMsg->len);
@@ -1081,24 +1084,43 @@ namespace data
 		}
 	}
 
-	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg)
+	void NetDb::Flood (const IdentHash& ident, std::shared_ptr<I2NPMessage> floodMsg, bool andNextDay)
 	{
 		std::unordered_set<IdentHash> excluded;
 		excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
 		excluded.insert (ident); // don't flood back
 		for (int i = 0; i < 3; i++)
 		{
-			auto floodfill = GetClosestFloodfill (ident, excluded);
+			auto floodfill = GetClosestFloodfill (ident, excluded, false); // current day
 			if (floodfill)
 			{
-				auto h = floodfill->GetIdentHash();
-				LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase64());
+				const auto& h = floodfill->GetIdentHash();
 				transports.SendMessage (h, CopyI2NPMessage(floodMsg));
 				excluded.insert (h);
 			}
 			else
-				break;
+				return; // no more floodfills
 		}
+		if (andNextDay)
+		{
+			// flood to two more closest flodfills for next day 
+			std::unordered_set<IdentHash> excluded1;
+			excluded1.insert (i2p::context.GetIdentHash ()); // don't flood to itself
+			excluded1.insert (ident); // don't flood back
+			for (int i = 0; i < 2; i++)
+			{
+				auto floodfill = GetClosestFloodfill (ident, excluded1, true); // next day
+				if (floodfill)
+				{
+					const auto& h = floodfill->GetIdentHash();
+					if (!excluded.count (h)) // we didn't send for current day, otherwise skip
+						transports.SendMessage (h, CopyI2NPMessage(floodMsg));
+					excluded1.insert (h);
+				}
+				else
+					return;
+			}	
+		}	
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter () const
@@ -1236,9 +1258,9 @@ namespace data
 	}	
 	
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination,
-		const std::unordered_set<IdentHash>& excluded) const
+		const std::unordered_set<IdentHash>& excluded, bool nextDay) const
 	{
-		IdentHash destKey = CreateRoutingKey (destination);
+		IdentHash destKey = CreateRoutingKey (destination, nextDay);
 		std::lock_guard<std::mutex> l(m_FloodfillsMutex);
 		return m_Floodfills.FindClosest (destKey, [&excluded](const std::shared_ptr<RouterInfo>& r)->bool
 			{

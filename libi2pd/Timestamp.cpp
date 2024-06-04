@@ -255,6 +255,11 @@ namespace util
 		GetDateString (GetSecondsSinceEpoch (), date);
 	}
 
+	void GetNextDayDate (char * date)
+	{
+		GetDateString (GetSecondsSinceEpoch () + 24*60*60, date);
+	}	
+	
 	void GetDateString (uint64_t timestamp, char * date)
 	{
 		using clock = std::chrono::system_clock;
