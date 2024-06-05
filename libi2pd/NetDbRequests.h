@@ -11,6 +11,7 @@
 
 #include <inttypes.h>
 #include <memory>
+#include <random>
 #include <unordered_set>
 #include <unordered_map>
 #include <list>
@@ -119,6 +120,7 @@ namespace data
 			i2p::util::MemoryPoolMt<RequestedDestination> m_RequestedDestinationsPool;
 			boost::asio::deadline_timer m_ManageRequestsTimer, m_ExploratoryTimer,
 				m_CleanupTimer, m_DiscoveredRoutersTimer;
+			std::mt19937 m_Rng;
 	};
 }
 }

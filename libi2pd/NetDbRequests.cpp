@@ -10,9 +10,10 @@
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "NetDb.hpp"
-#include "NetDbRequests.h"
 #include "ECIESX25519AEADRatchetSession.h"
 #include "RouterContext.h"
+#include "Timestamp.h"
+#include "NetDbRequests.h"
 
 namespace i2p
 {
@@ -99,7 +100,8 @@ namespace data
 	NetDbRequests::NetDbRequests ():
 		RunnableServiceWithWork ("NetDbReq"),
 		m_ManageRequestsTimer (GetIOService ()), m_ExploratoryTimer (GetIOService ()),
-		m_CleanupTimer (GetIOService ()), m_DiscoveredRoutersTimer (GetIOService ())
+		m_CleanupTimer (GetIOService ()), m_DiscoveredRoutersTimer (GetIOService ()),
+		m_Rng(i2p::util::GetMonotonicMicroseconds () % 1000000LL) 
 	{
 	}
 		
@@ -509,8 +511,8 @@ namespace data
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto numRouters = netdb.GetNumRouters ();
-			auto nextExploratoryInterval = numRouters < 2500 ? (EXPLORATORY_REQUEST_INTERVAL + rand () % EXPLORATORY_REQUEST_INTERVAL)/2 :
-				EXPLORATORY_REQUEST_INTERVAL + rand () % EXPLORATORY_REQUEST_INTERVAL_VARIANCE;
+			auto nextExploratoryInterval = numRouters < 2500 ? (EXPLORATORY_REQUEST_INTERVAL + m_Rng () % EXPLORATORY_REQUEST_INTERVAL)/2 :
+				EXPLORATORY_REQUEST_INTERVAL + m_Rng () % EXPLORATORY_REQUEST_INTERVAL_VARIANCE;
 			if (numRouters)
 			{	
 				if (i2p::transport::transports.IsOnline () && i2p::transport::transports.IsRunning ()) 
@@ -531,7 +533,7 @@ namespace data
 	void NetDbRequests::ScheduleDiscoveredRoutersRequest ()
 	{
 		m_DiscoveredRoutersTimer.expires_from_now (boost::posix_time::milliseconds(
-			DISCOVERED_REQUEST_INTERVAL + rand () % DISCOVERED_REQUEST_INTERVAL_VARIANCE));
+			DISCOVERED_REQUEST_INTERVAL + m_Rng () % DISCOVERED_REQUEST_INTERVAL_VARIANCE));
 		m_DiscoveredRoutersTimer.async_wait (std::bind (&NetDbRequests::HandleDiscoveredRoutersTimer,
 			this, std::placeholders::_1));
 	}	
