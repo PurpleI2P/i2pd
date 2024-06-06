@@ -801,9 +801,9 @@ namespace transport
 			if (indices.size () > 1)
 				std::shuffle (indices.begin(), indices.end(), std::mt19937(ts));
 
-			for (auto i: indices)
+			for (auto ind: indices)
 			{
-				const auto& introducer = address->ssu->introducers[indices[i]];
+				const auto& introducer = address->ssu->introducers[ind];
 				// introducer is not expired, because in indices
 				r = i2p::data::netdb.FindRouter (introducer.iH);
 				if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
