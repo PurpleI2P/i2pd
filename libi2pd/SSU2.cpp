@@ -775,38 +775,41 @@ namespace transport
 		auto address = session->GetAddress ();
 		if (!address) return;
 		session->WaitForIntroduction ();
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		std::vector<int> indices; int i = 0;
 		// try to find existing session first
 		for (auto& it: address->ssu->introducers)
 		{
-			auto it1 = m_SessionsByRouterHash.find (it.iH);
-			if (it1 != m_SessionsByRouterHash.end ())
+			if (it.iTag && ts < it.iExp)
 			{
-				it1->second->Introduce (session, it.iTag);
-				return;
-			}
+				auto it1 = m_SessionsByRouterHash.find (it.iH);
+				if (it1 != m_SessionsByRouterHash.end ())
+				{
+					it1->second->Introduce (session, it.iTag);
+					return;
+				}
+				else
+					indices.push_back(i);
+			}	
+			i++;
 		}
 		// we have to start a new session to an introducer
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		std::shared_ptr<i2p::data::RouterInfo> r;
 		uint32_t relayTag = 0;
-		if (!address->ssu->introducers.empty ())
+		if (!indices.empty ())
 		{
-			std::vector<int> indices;
-			for (int i = 0; i < (int)address->ssu->introducers.size (); i++) indices.push_back(i);
 			if (indices.size () > 1)
-				std::shuffle (indices.begin(), indices.end(), std::mt19937(std::random_device()()));
+				std::shuffle (indices.begin(), indices.end(), std::mt19937(ts));
 
 			for (auto i: indices)
 			{
 				const auto& introducer = address->ssu->introducers[indices[i]];
-				if (introducer.iTag && ts < introducer.iExp)
+				// introducer is not expired, because in indices
+				r = i2p::data::netdb.FindRouter (introducer.iH);
+				if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
 				{
-					r = i2p::data::netdb.FindRouter (introducer.iH);
-					if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
-					{
-						relayTag = introducer.iTag;
-						if (relayTag) break;
-					}
+					relayTag = introducer.iTag;
+					if (relayTag) break;
 				}
 			}
 		}
