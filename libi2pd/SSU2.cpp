@@ -794,6 +794,7 @@ namespace transport
 			i++;
 		}
 		// we have to start a new session to an introducer
+		std::vector<i2p::data::IdentHash> newRouters;
 		std::shared_ptr<i2p::data::RouterInfo> r;
 		uint32_t relayTag = 0;
 		if (!indices.empty ())
@@ -806,11 +807,16 @@ namespace transport
 				const auto& introducer = address->ssu->introducers[ind];
 				// introducer is not expired, because in indices
 				r = i2p::data::netdb.FindRouter (introducer.iH);
-				if (r && r->IsReachableFrom (i2p::context.GetRouterInfo ()))
-				{
-					relayTag = introducer.iTag;
-					if (relayTag) break;
-				}
+				if (r)
+				{	
+					if (r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+					{
+						relayTag = introducer.iTag;
+						if (relayTag) break;
+					}
+				}	
+				else if (i2p::data::IsRouterBanned (introducer.iH))
+					newRouters.push_back (introducer.iH);
 			}
 		}
 		if (r)
@@ -851,9 +857,8 @@ namespace transport
 		else
 		{
 			// introducers not found, try to request them
-			for (auto& it: address->ssu->introducers)
-				if (it.iTag && ts < it.iExp)
-					i2p::data::netdb.RequestDestination (it.iH);
+			for (auto& it: newRouters)
+				i2p::data::netdb.RequestDestination (it);
 		}
 	}
 
