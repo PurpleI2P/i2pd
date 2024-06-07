@@ -815,7 +815,7 @@ namespace transport
 						if (relayTag) break;
 					}
 				}	
-				else if (i2p::data::IsRouterBanned (introducer.iH))
+				else if (!i2p::data::IsRouterBanned (introducer.iH))
 					newRouters.push_back (introducer.iH);
 			}
 		}
