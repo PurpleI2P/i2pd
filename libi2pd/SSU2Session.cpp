@@ -680,10 +680,14 @@ namespace transport
 		size_t payloadSize = 7;
 		if (GetRouterStatus () == eRouterStatusFirewalled && m_Address->IsIntroducer ())
 		{
-			// relay tag request
-			payload[payloadSize] = eSSU2BlkRelayTagRequest;
-			memset (payload + payloadSize + 1, 0, 2); // size = 0
-			payloadSize += 3;
+			if (!m_Server.IsMaxNumIntroducers (m_RemoteEndpoint.address ().is_v4 ()) ||
+			    m_Server.GetRng ()() & 0x01) // request tag with probability 1/2 if we have enough introducers
+			{	
+				// relay tag request
+				payload[payloadSize] = eSSU2BlkRelayTagRequest;
+				memset (payload + payloadSize + 1, 0, 2); // size = 0
+				payloadSize += 3;
+			}	
 		}
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// KDF for session request
