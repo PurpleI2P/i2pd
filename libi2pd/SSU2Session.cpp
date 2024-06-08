@@ -516,7 +516,7 @@ namespace transport
 			else
 				extraSize -= packet->payloadSize;
 		}
-		size_t offset = extraSize > 0 ? (rand () % extraSize) : 0;
+		size_t offset = extraSize > 0 ? (m_Server.GetRng ()() % extraSize) : 0;
 		if (offset + packet->payloadSize >= m_MaxPayloadSize) offset = 0;
 		auto size = CreateFirstFragmentBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - offset - packet->payloadSize, msg);
 		if (!size) return false;
@@ -528,7 +528,7 @@ namespace transport
 		uint8_t fragmentNum = 0;
 		while (msg->offset < msg->len)
 		{
-			offset = extraSize > 0 ? (rand () % extraSize) : 0;
+			offset = extraSize > 0 ? (m_Server.GetRng ()() % extraSize) : 0;
 			packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			packet->payloadSize = CreateFollowOnFragmentBlock (packet->payload, m_MaxPayloadSize - offset, msg, fragmentNum, msgID);
 			extraSize -= offset;
@@ -934,7 +934,7 @@ namespace transport
 		{
 			if (payloadSize > m_MaxPayloadSize - 48)
 			{
-				payloadSize = m_MaxPayloadSize - 48 - (rand () % 16);
+				payloadSize = m_MaxPayloadSize - 48 - (m_Server.GetRng ()() % 16);
 				if (m_SentHandshakePacket->payloadSize - payloadSize < 24)
 					payloadSize -= 24;
 			}
@@ -2695,7 +2695,7 @@ namespace transport
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
 		if (len < 3 || len < minSize) return 0;
-		size_t paddingSize = rand () & 0x0F; // 0 - 15
+		size_t paddingSize = m_Server.GetRng ()() & 0x0F; // 0 - 15
 		if (paddingSize + 3 > len) paddingSize = len - 3;
 		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
 		buf[0] = eSSU2BlkPadding;
@@ -2981,7 +2981,7 @@ namespace transport
 	{
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		payload[0] = eSSU2BlkPathChallenge;
-		size_t len = rand () % (m_MaxPayloadSize - 3);
+		size_t len = m_Server.GetRng ()() % (m_MaxPayloadSize - 3);
 		htobe16buf (payload + 1, len);
 		if (len > 0)
 		{

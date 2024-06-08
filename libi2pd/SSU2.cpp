@@ -25,7 +25,7 @@ namespace transport
 		m_TerminationTimer (GetService ()), m_CleanupTimer (GetService ()), m_ResendTimer (GetService ()),
 		m_IntroducersUpdateTimer (GetService ()), m_IntroducersUpdateTimerV6 (GetService ()),
 		m_IsPublished (true), m_IsSyncClockFromPeers (true), m_PendingTimeOffset (0),
-		m_IsThroughProxy (false)
+		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL), m_IsThroughProxy (false)
 	{
 	}
 
@@ -800,7 +800,7 @@ namespace transport
 		if (!indices.empty ())
 		{
 			if (indices.size () > 1)
-				std::shuffle (indices.begin(), indices.end(), std::mt19937(ts));
+				std::shuffle (indices.begin(), indices.end(), m_Rng);
 
 			for (auto ind: indices)
 			{
@@ -984,8 +984,8 @@ namespace transport
 	void SSU2Server::ScheduleResend (bool more)
 	{
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds (more ? 
-		    (SSU2_RESEND_CHECK_MORE_TIMEOUT + rand () % SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE):
-			(SSU2_RESEND_CHECK_TIMEOUT + rand () % SSU2_RESEND_CHECK_TIMEOUT_VARIANCE)));
+		    (SSU2_RESEND_CHECK_MORE_TIMEOUT + m_Rng () % SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE):
+			(SSU2_RESEND_CHECK_TIMEOUT + m_Rng () % SSU2_RESEND_CHECK_TIMEOUT_VARIANCE)));
 		m_ResendTimer.async_wait (std::bind (&SSU2Server::HandleResendTimer,
 			this, std::placeholders::_1));
 	}
@@ -1057,7 +1057,7 @@ namespace transport
 	}
 
 	std::list<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
-		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const
+		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded)
 	{
 		std::list<std::shared_ptr<SSU2Session> > ret;
 		for (const auto& s : m_Sessions)
@@ -1074,7 +1074,7 @@ namespace transport
 			int sz = ret.size () - maxNumIntroducers;
 			for (int i = 0; i < sz; i++)
 			{
-				auto ind = rand () % ret.size ();
+				auto ind = m_Rng () % ret.size ();
 				auto it = ret.begin ();
 				std::advance (it, ind);
 				ret.erase (it);
@@ -1192,7 +1192,7 @@ namespace transport
 		if (m_IsPublished)
 		{
 			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
-				SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
+				SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
 		}
@@ -1206,7 +1206,7 @@ namespace transport
 			i2p::context.ClearSSU2Introducers (true);
 			m_Introducers.clear ();
 			m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(
-				(SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
+				(SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimer.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, true));
 		}
@@ -1217,7 +1217,7 @@ namespace transport
 		if (m_IsPublished)
 		{
 			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
-				SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
+				SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
 		}
@@ -1231,7 +1231,7 @@ namespace transport
 			i2p::context.ClearSSU2Introducers (false);
 			m_IntroducersV6.clear ();
 			m_IntroducersUpdateTimerV6.expires_from_now (boost::posix_time::seconds(
-				(SSU2_KEEP_ALIVE_INTERVAL + rand () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
+				(SSU2_KEEP_ALIVE_INTERVAL + m_Rng () % SSU2_KEEP_ALIVE_INTERVAL_VARIANCE)/2));
 			m_IntroducersUpdateTimerV6.async_wait (std::bind (&SSU2Server::HandleIntroducersUpdateTimer,
 				this, std::placeholders::_1, false));
 		}

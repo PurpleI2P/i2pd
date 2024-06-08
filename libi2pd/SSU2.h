@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
+#include <random>
 #include "util.h"
 #include "SSU2Session.h"
 #include "Socks5.h"
@@ -69,6 +70,7 @@ namespace transport
 			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
+			std::mt19937& GetRng () { return m_Rng; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
 
@@ -128,7 +130,7 @@ namespace transport
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
 			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
-				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const;
+				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded);
 			void UpdateIntroducers (bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
@@ -168,6 +170,7 @@ namespace transport
 			bool m_IsSyncClockFromPeers;
 			int64_t m_PendingTimeOffset; // during peer test
 			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
+			std::mt19937 m_Rng;
 
 			// proxy
 			bool m_IsThroughProxy;
