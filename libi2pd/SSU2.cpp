@@ -1056,30 +1056,32 @@ namespace transport
 		return ret;
 	}
 
-	std::list<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
-		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded)
+	std::vector<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
+		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const
 	{
-		std::list<std::shared_ptr<SSU2Session> > ret;
+		std::vector<std::shared_ptr<SSU2Session> > ret;
+		if (maxNumIntroducers <= 0) return ret;
+		auto newer = [](const std::shared_ptr<SSU2Session>& s1, const std::shared_ptr<SSU2Session>& s2) -> bool 
+		{
+			auto t1 = s1->GetCreationTime (), t2 = s2->GetCreationTime (); 
+        	return (t1 != t2) ? (t1 > t2) : (s1->GetConnID () > s2->GetConnID ());
+   		};
+		std::set<std::shared_ptr<SSU2Session>, decltype (newer)> introducers(newer);
 		for (const auto& s : m_Sessions)
 		{
 			if (s.second->IsEstablished () && (s.second->GetRelayTag () && s.second->IsOutgoing ()) &&
 			    !excluded.count (s.second->GetRemoteIdentity ()->GetIdentHash ()) &&
 			    ((v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V4)) ||
 			    (!v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V6))))
-				ret.push_back (s.second);
+				introducers.insert (s.second);
 		}
-		if ((int)ret.size () > maxNumIntroducers)
+		int i = 0;
+		for (auto it: introducers)
 		{
-			// shink ret randomly
-			int sz = ret.size () - maxNumIntroducers;
-			for (int i = 0; i < sz; i++)
-			{
-				auto ind = m_Rng () % ret.size ();
-				auto it = ret.begin ();
-				std::advance (it, ind);
-				ret.erase (it);
-			}
-		}
+			ret.push_back (it);
+			i++;
+			if (i >= maxNumIntroducers) break;
+		}	
 		return ret;
 	}
 

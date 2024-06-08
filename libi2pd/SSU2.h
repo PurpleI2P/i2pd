@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <mutex>
 #include <random>
 #include "util.h"
@@ -129,8 +130,8 @@ namespace transport
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
-			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
-				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded);
+			std::vector<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
+				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const;
 			void UpdateIntroducers (bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
