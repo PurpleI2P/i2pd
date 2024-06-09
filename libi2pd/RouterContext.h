@@ -230,6 +230,7 @@ namespace garlic
 			void HandlePublishResendTimer (const boost::system::error_code& ecode);
 			void ScheduleCongestionUpdate ();
 			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
+			void UpdateCongestion ();
 			void ScheduleCleanupTimer ();
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			

@@ -1330,7 +1330,10 @@ namespace i2p
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
+			{
+				UpdateCongestion ();
 				HandlePublishTimer (ecode);
+			}	
 			else
 			{	
 				UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());	
@@ -1469,23 +1472,28 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			auto c = i2p::data::RouterInfo::eLowCongestion;
-			if (!AcceptsTunnels () || !m_ShareRatio)
-				c = i2p::data::RouterInfo::eRejectAll;
-			else
-			{
-				int congestionLevel = GetCongestionLevel (true);
-				if (congestionLevel > CONGESTION_LEVEL_HIGH)
-					c = i2p::data::RouterInfo::eHighCongestion;
-				else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
-					c = i2p::data::RouterInfo::eMediumCongestion;
-			}
-			if (m_RouterInfo.UpdateCongestion (c))
-				UpdateRouterInfo ();
+			UpdateCongestion ();
 			ScheduleCongestionUpdate ();
 		}	
 	}	
 
+	void RouterContext::UpdateCongestion ()
+	{
+		auto c = i2p::data::RouterInfo::eLowCongestion;
+		if (!AcceptsTunnels () || !m_ShareRatio)
+			c = i2p::data::RouterInfo::eRejectAll;
+		else
+		{
+			int congestionLevel = GetCongestionLevel (true);
+			if (congestionLevel > CONGESTION_LEVEL_HIGH)
+				c = i2p::data::RouterInfo::eHighCongestion;
+			else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
+				c = i2p::data::RouterInfo::eMediumCongestion;
+		}
+		if (m_RouterInfo.UpdateCongestion (c))
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::ScheduleCleanupTimer ()
 	{
 		if (m_CleanupTimer)
