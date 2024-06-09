@@ -1657,8 +1657,12 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: RelayTagRequest");
 					if (!m_RelayTag)
 					{
-						RAND_bytes ((uint8_t *)&m_RelayTag, 4);
-						m_Server.AddRelay (m_RelayTag, shared_from_this ());
+						auto addr = FindLocalAddress ();
+						if (addr && addr->IsIntroducer ())
+						{	
+							RAND_bytes ((uint8_t *)&m_RelayTag, 4);
+							m_Server.AddRelay (m_RelayTag, shared_from_this ());
+						}	
 					}
 				break;
 				case eSSU2BlkRelayTag:
@@ -2478,6 +2482,8 @@ namespace transport
 	{
 		if (m_Address)
 			return i2p::context.GetRouterInfo ().GetSSU2Address (m_Address->IsV4 ());
+		else if (!m_RemoteEndpoint.address ().is_unspecified ())
+			return i2p::context.GetRouterInfo ().GetSSU2Address (m_RemoteEndpoint.address ().is_v4 ());
 		return nullptr;
 	}
 
