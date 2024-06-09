@@ -796,6 +796,7 @@ namespace transport
 		// we have to start a new session to an introducer
 		std::vector<i2p::data::IdentHash> newRouters;
 		std::shared_ptr<i2p::data::RouterInfo> r;
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 		uint32_t relayTag = 0;
 		if (!indices.empty ())
 		{
@@ -812,7 +813,16 @@ namespace transport
 					if (r->IsReachableFrom (i2p::context.GetRouterInfo ()))
 					{
 						relayTag = introducer.iTag;
-						if (relayTag) break;
+						addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+						if (!addr->host.is_unspecified () && addr->port &&
+							!i2p::transport::transports.IsInReservedRange(addr->host))
+							break;
+						else
+						{
+							// address is invalid, try next introducer
+							relayTag = 0;
+							addr = nullptr;
+						}	
 					}
 				}	
 				else if (!i2p::data::IsRouterBanned (introducer.iH))
@@ -821,44 +831,38 @@ namespace transport
 		}
 		if (r)
 		{
-			if (relayTag)
+			if (relayTag && addr)
 			{
 				// introducer and tag found connect to it through SSU2
-				auto addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
-				if (addr)
+				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (addr->host, addr->port));
+				if (!s)
 				{
-					bool isValidEndpoint = !addr->host.is_unspecified () && addr->port &&
-						!i2p::transport::transports.IsInReservedRange(addr->host);
-					if (isValidEndpoint)
-					{
-						auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (addr->host, addr->port));
-						if (!s)
-						{
-							s = std::make_shared<SSU2Session> (*this, r, addr);
-							s->SetOnEstablished ([session, s, relayTag]() { s->Introduce (session, relayTag); });
-							s->Connect ();
-						}
-						else
-						{
-							auto onEstablished = s->GetOnEstablished ();
-							if (onEstablished)
-								s->SetOnEstablished ([session, s, relayTag, onEstablished]()
-									{
-										onEstablished ();
-										s->Introduce (session, relayTag);
-									});
-							else
-								s->SetOnEstablished ([session, s, relayTag]() {s->Introduce (session, relayTag); });
-						}
-					}
+					s = std::make_shared<SSU2Session> (*this, r, addr);
+					s->SetOnEstablished ([session, s, relayTag]() { s->Introduce (session, relayTag); });
+					s->Connect ();
+				}
+				else
+				{
+					auto onEstablished = s->GetOnEstablished ();
+					if (onEstablished)
+						s->SetOnEstablished ([session, s, relayTag, onEstablished]()
+							{
+								onEstablished ();
+								s->Introduce (session, relayTag);
+							});
+					else
+						s->SetOnEstablished ([session, s, relayTag]() {s->Introduce (session, relayTag); });
 				}
 			}
+			else
+				session->Done ();
 		}
 		else
 		{
 			// introducers not found, try to request them
 			for (auto& it: newRouters)
 				i2p::data::netdb.RequestDestination (it);
+			session->Done (); // don't wait for connect timeout
 		}
 	}
 
