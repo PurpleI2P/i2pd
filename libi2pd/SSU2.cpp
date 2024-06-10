@@ -814,7 +814,7 @@ namespace transport
 					{
 						relayTag = introducer.iTag;
 						addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
-						if (!addr->host.is_unspecified () && addr->port &&
+						if (addr && !addr->host.is_unspecified () && addr->port &&
 							!i2p::transport::transports.IsInReservedRange(addr->host))
 							break;
 						else
