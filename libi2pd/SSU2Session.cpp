@@ -1575,14 +1575,9 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Options");
 				break;
 				case eSSU2BlkRouterInfo:
-				{
-					// not from SessionConfirmed, we must add it instantly to use in next block
 					LogPrint (eLogDebug, "SSU2: RouterInfo");
-					auto ri = ExtractRouterInfo (buf + offset, size);
-					if (ri)
-						i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
-					break;
-				}
+					HandleRouterInfo (buf + offset, size);
+				break;
 				case eSSU2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "SSU2: I2NP message");
@@ -1742,6 +1737,32 @@ namespace transport
 		};
 	}
 
+	void SSU2Session::HandleRouterInfo (const uint8_t * buf, size_t len)
+	{
+		auto ri = ExtractRouterInfo (buf, len);
+		if (ri)
+		{	
+			// not from SessionConfirmed, we must add it instantly to use in next block
+			auto newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
+			if (newRi)
+			{
+				auto remoteIdentity = GetRemoteIdentity ();
+				if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+				{
+					// peer's RouterInfo update
+					SetRemoteIdentity (newRi->GetIdentity ());
+					auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
+					if (address)
+					{
+						m_Address = address;
+						if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
+							m_RelayTag = 0; // not longer introducer
+					}	
+				}	
+			}	
+		}	
+	}	
+		
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
 	{
 		if (m_State == eSSU2SessionStateSessionConfirmedSent)

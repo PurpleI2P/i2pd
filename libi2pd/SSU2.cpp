@@ -1104,22 +1104,21 @@ namespace transport
 				session = it1->second;
 				excluded.insert (it);
 			}
-			if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ()) // still session with introducer?
-			{
-				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+			if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing () && // still session with introducer?
+				ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+			{	
+				session->SendKeepAlive ();
+				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
+					newList.push_back (it);
+				else	
 				{	
-					session->SendKeepAlive ();
-					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
-						newList.push_back (it);
-					else	
-					{	
-						impliedList.push_back (it); // keep in introducers list, but not publish
-						session = nullptr;	
-					}		
-				}	
-				else
-					session = nullptr;
-			}
+					impliedList.push_back (it); // keep in introducers list, but not publish
+					session = nullptr;	
+				}		
+			}	
+			else
+				session = nullptr;
+			
 			if (!session)
 				i2p::context.RemoveSSU2Introducer (it, v4);
 		}
