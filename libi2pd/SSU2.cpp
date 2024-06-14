@@ -810,7 +810,8 @@ namespace transport
 				r = i2p::data::netdb.FindRouter (introducer.iH);
 				if (r)
 				{	
-					if (r->IsReachableFrom (i2p::context.GetRouterInfo ()))
+					if (r->IsPublishedOn (i2p::context.GetRouterInfo ().GetCompatibleTransports (false) & // outgoing
+					    (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6)))                  
 					{
 						relayTag = introducer.iTag;
 						addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
@@ -819,9 +820,26 @@ namespace transport
 							break;
 						else
 						{
-							// address is invalid, try next introducer
-							relayTag = 0;
-							addr = nullptr;
+							// address is invalid try another SSU2 address if exists
+							if (address->IsV4 ())
+							{
+								if (i2p::context.SupportsV6 ())
+									addr = r->GetSSU2V6Address ();
+							}	
+							else
+							{
+								if (i2p::context.SupportsV4 ())
+									addr = r->GetSSU2V4Address ();
+							}	
+							if (addr && !addr->host.is_unspecified () && addr->port &&
+								!i2p::transport::transports.IsInReservedRange(addr->host))
+								break;
+							else
+							{	
+								// all addresses are invalid, try next introducer
+								relayTag = 0;
+								addr = nullptr;
+							}	
 						}	
 					}
 				}	

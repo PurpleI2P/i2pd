@@ -1022,9 +1022,14 @@ namespace data
 	bool RouterInfo::IsPublished (bool v4) const
 	{
 		if (m_Caps & (eUnreachable | eHidden)) return false; // if router sets U or H we assume that all addresses are not published
-		return m_PublishedTransports & (v4 ? (eNTCP2V4 | eSSU2V4) : (eNTCP2V6 | eSSU2V6));
+		return IsPublishedOn (v4 ? (eNTCP2V4 | eSSU2V4) : (eNTCP2V6 | eSSU2V6));
 	}	
 
+	bool RouterInfo::IsPublishedOn (CompatibleTransports transports) const
+	{
+		return m_PublishedTransports & transports;
+	}
+	
 	bool RouterInfo::IsNAT2NATOnly (const RouterInfo& other) const
 	{
 		return !(m_PublishedTransports & other.m_SupportedTransports) &&

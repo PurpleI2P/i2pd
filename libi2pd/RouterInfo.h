@@ -264,6 +264,7 @@ namespace data
 			bool IsEligibleFloodfill () const;
 			bool IsDeclaredFloodfill () const { return m_Caps & RouterInfo::eFloodfill; };
 			bool IsPublished (bool v4) const;
+			bool IsPublishedOn (CompatibleTransports transports) const;
 			bool IsNAT2NATOnly (const RouterInfo& other) const; // only NAT-to-NAT connection is possible
 			bool IsSSU2PeerTesting (bool v4) const;
 			bool IsSSU2Introducer (bool v4) const;
