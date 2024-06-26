@@ -839,9 +839,12 @@ namespace transport
 								// all addresses are invalid, try next introducer
 								relayTag = 0;
 								addr = nullptr;
+								r = nullptr;
 							}	
 						}	
 					}
+					else
+						r = nullptr;
 				}	
 				else if (!i2p::data::IsRouterBanned (introducer.iH))
 					newRouters.push_back (introducer.iH);
