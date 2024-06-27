@@ -785,8 +785,12 @@ namespace transport
 				auto it1 = m_SessionsByRouterHash.find (it.iH);
 				if (it1 != m_SessionsByRouterHash.end ())
 				{
-					it1->second->Introduce (session, it.iTag);
-					return;
+					auto addr = it1->second->GetAddress ();
+					if (addr && addr->IsIntroducer ())
+					{	
+						it1->second->Introduce (session, it.iTag);
+						return;
+					}	
 				}
 				else
 					indices.push_back(i);
@@ -815,12 +819,12 @@ namespace transport
 					{
 						relayTag = introducer.iTag;
 						addr = address->IsV6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
-						if (addr && !addr->host.is_unspecified () && addr->port &&
+						if (addr && addr->IsIntroducer () && !addr->host.is_unspecified () && addr->port &&
 							!i2p::transport::transports.IsInReservedRange(addr->host))
 							break;
 						else
 						{
-							// address is invalid try another SSU2 address if exists
+							// address is invalid or not intrudcer, try another SSU2 address if exists
 							if (address->IsV4 ())
 							{
 								if (i2p::context.SupportsV6 ())
@@ -831,7 +835,7 @@ namespace transport
 								if (i2p::context.SupportsV4 ())
 									addr = r->GetSSU2V4Address ();
 							}	
-							if (addr && !addr->host.is_unspecified () && addr->port &&
+							if (addr && addr->IsIntroducer () && !addr->host.is_unspecified () && addr->port &&
 								!i2p::transport::transports.IsInReservedRange(addr->host))
 								break;
 							else

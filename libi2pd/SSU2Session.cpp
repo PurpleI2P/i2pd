@@ -1125,6 +1125,13 @@ namespace transport
 			LogPrint (eLogError, "SSU2: RouterInfo in SessionConfirmed is from future for ", (ri->GetTimestamp () - ts)/1000LL, " seconds");
 			return false;
 		}	
+		// update RouterInfo in netdb
+		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
+		if (!ri)
+		{
+			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+			return false;
+		}
 		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))
 		{
@@ -1137,13 +1144,6 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
 				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
-			return false;
-		}
-		// update RouterInfo in netdb
-		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
-		if (!ri)
-		{
-			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
