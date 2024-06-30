@@ -75,8 +75,8 @@ namespace stream
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_RTO (INITIAL_RTO),
-		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrewRTTSample (INITIAL_RTT), m_PrewRTT (INITIAL_RTT), m_Jitter (0),
-		m_LastWindowSizeIncreaseTime (0), m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -90,8 +90,8 @@ namespace stream
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_PrewRTTSample (INITIAL_RTT), m_PrewRTT (INITIAL_RTT), m_Jitter (0),
-		m_LastWindowSizeIncreaseTime (0), m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -108,6 +108,7 @@ namespace stream
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
+		m_SendTimer.cancel ();
 		//CleanUp (); /* Need to recheck - broke working on windows */
 		if (deleteFromDestination)
 			m_LocalDestination.DeleteStream (shared_from_this ());
@@ -469,23 +470,23 @@ namespace stream
 			if (firstRttSample)
 			{
 				m_RTT = rttSample;
-				m_PrewRTTSample = rttSample;
+				m_PrevRTTSample = rttSample;
 			}
 			else
 				m_RTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
 			// calculate jitter
 			int jitter = 0;
-			if (rttSample > m_PrewRTTSample)
-				jitter = rttSample - m_PrewRTTSample;
-			else if (rttSample < m_PrewRTTSample)
-				jitter = m_PrewRTTSample - rttSample;
+			if (rttSample > m_PrevRTTSample)
+				jitter = rttSample - m_PrevRTTSample;
+			else if (rttSample < m_PrevRTTSample)
+				jitter = m_PrevRTTSample - rttSample;
 			else
 				jitter = std::round (rttSample / 10); // 10%
 			m_Jitter = std::round (RTT_EWMA_ALPHA * m_Jitter + (1.0 - RTT_EWMA_ALPHA) * jitter);
-			m_PrewRTTSample = rttSample;
+			m_PrevRTTSample = rttSample;
 			//
 			// delay-based CC
-			if ((m_RTT > m_PrewRTT) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
+			if ((m_RTT > m_PrevRTT) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
 			{
 				m_WindowSize >>= 1; // /2
 				m_IsWinDropped = true; // don't drop window twice
@@ -493,7 +494,7 @@ namespace stream
 			if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 			int pacTime = std::round (m_RTT*1000/m_WindowSize);
 			m_PacingTime = std::max (MIN_PACING_TIME, pacTime);
-			m_PrewRTT = m_RTT * 1.1 + m_Jitter;
+			m_PrevRTT = m_RTT * 1.1 + m_Jitter;
 			//
 			bool wasInitial = m_RTO == INITIAL_RTO;
 			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter)); // TODO: implement it better

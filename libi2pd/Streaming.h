@@ -269,8 +269,8 @@ namespace stream
 
 			SendBufferQueue m_SendBuffer;
 			double m_RTT;
-			int m_WindowSize, m_RTO, m_AckDelay, m_PrewRTTSample, m_PrewRTT, m_Jitter;
-			uint64_t m_LastWindowSizeIncreaseTime, m_PacingTime;
+			int m_WindowSize, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
+			uint64_t m_PacingTime;
 			int m_NumResendAttempts;
 			size_t m_MTU;
 	};
