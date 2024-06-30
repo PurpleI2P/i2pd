@@ -75,6 +75,7 @@ namespace i2p
 			if (m_CongestionUpdateTimer)
 				m_CongestionUpdateTimer->cancel ();
 			m_Service->Stop ();
+			CleanUp (); // GarlicDestination
 		}	
 	}	
 
