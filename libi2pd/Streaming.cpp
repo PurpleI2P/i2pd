@@ -75,13 +75,15 @@ namespace stream
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_RTO (INITIAL_RTO),
-		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_OutboundSpeed (local.GetOwner ()->GetStreamingOutboundSpeed ()), m_PrevRTTSample (INITIAL_RTT), 
-		m_PrevRTT (INITIAL_RTT), m_Jitter (0),
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
+		m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
 		m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
+		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
+		if (outboundSpeed)
+			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;
 	}
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
@@ -92,11 +94,13 @@ namespace stream
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_OutboundSpeed (local.GetOwner ()->GetStreamingOutboundSpeed ()),
-		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0),
+		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
 		m_PacingTime (INITIAL_PACING_TIME), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
+		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
+		if (outboundSpeed)
+			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;	
 	}
 
 	Stream::~Stream ()
@@ -1301,11 +1305,8 @@ namespace stream
 	void Stream::UpdatePacingTime ()
 	{
 		m_PacingTime = std::round (m_RTT*1000/m_WindowSize);
-		if (m_OutboundSpeed)
-		{	
-			auto minTime = (1000000LL*STREAMING_MTU)/m_OutboundSpeed;
-			if (m_PacingTime < minTime) m_PacingTime = minTime;
-		}			
+		if (m_MinPacingTime && m_PacingTime < m_MinPacingTime)
+			m_PacingTime = m_MinPacingTime;
 	}	
 		
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
