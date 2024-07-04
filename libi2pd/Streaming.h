@@ -53,8 +53,6 @@ namespace stream
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
 	const int MAX_NUM_RESEND_ATTEMPTS = 10;
-	const int MAX_STREAM_SPEED = 1730000000; // 1 - 1730000000 // in bytes/sec // no more than 1.73 Gbytes/s
-	const int MIN_PACING_TIME = 1000000 * STREAMING_MTU / MAX_STREAM_SPEED; // in microseconds
 	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 128;
@@ -241,6 +239,8 @@ namespace stream
 			void ScheduleAck (int timeout);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
+			void UpdatePacingTime ();
+			
 		private:
 
 			boost::asio::io_service& m_Service;
@@ -251,6 +251,7 @@ namespace stream
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
 			bool m_IsNAcked;
+			bool m_IsSendTime;
 			bool m_IsWinDropped;
 			bool m_IsTimeOutResend;
 			StreamingDestination& m_LocalDestination;
@@ -269,7 +270,7 @@ namespace stream
 
 			SendBufferQueue m_SendBuffer;
 			double m_RTT;
-			int m_WindowSize, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
+			int m_WindowSize, m_RTO, m_AckDelay, m_OutboundSpeed, m_PrevRTTSample, m_PrevRTT, m_Jitter;
 			uint64_t m_PacingTime;
 			int m_NumResendAttempts;
 			size_t m_MTU;
