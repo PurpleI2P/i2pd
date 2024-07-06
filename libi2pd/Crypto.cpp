@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -19,15 +19,10 @@
 #if OPENSSL_HKDF
 #include <openssl/kdf.h>
 #endif
-#if !OPENSSL_AEAD_CHACHA20_POLY1305
-#include "ChaCha20.h"
-#include "Poly1305.h"
-#endif
 #include "Crypto.h"
 #include "Ed25519.h"
 #include "I2PEndian.h"
 #include "Log.h"
-
 
 namespace i2p
 {
@@ -988,7 +983,6 @@ namespace crypto
 		if (len < msgLen) return false;
 		if (encrypt && len < msgLen + 16) return false;
 		bool ret = true;
-#if OPENSSL_AEAD_CHACHA20_POLY1305
 		int outlen = 0;
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
 		if (encrypt)
@@ -1013,73 +1007,12 @@ namespace crypto
 		}
 
 		EVP_CIPHER_CTX_free (ctx);
-#else
-		chacha::Chacha20State state;
-		// generate one time poly key
-		chacha::Chacha20Init (state, nonce, key, 0);
-		uint64_t polyKey[8];
-		memset(polyKey, 0, sizeof(polyKey));
-		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
-		// create Poly1305 hash
-		Poly1305 polyHash (polyKey);
-		if (!ad) adLen = 0;
-		uint8_t padding[16]; memset (padding, 0, 16);
-		if (ad)
-		{
-			polyHash.Update (ad, adLen);// additional authenticated data
-			auto rem = adLen & 0x0F; // %16
-			if (rem)
-			{
-				// padding1
-				rem = 16 - rem;
-				polyHash.Update (padding, rem);
-			}
-		}
-		// encrypt/decrypt data and add to hash
-		Chacha20SetCounter (state, 1);
-		if (buf != msg)
-			memcpy (buf, msg, msgLen);
-		if (encrypt)
-		{
-			chacha::Chacha20Encrypt (state, buf, msgLen); // encrypt
-			polyHash.Update (buf, msgLen); // after encryption
-		}
-		else
-		{
-			polyHash.Update (buf, msgLen); // before decryption
-			chacha::Chacha20Encrypt (state, buf, msgLen); // decrypt
-		}
-
-		auto rem = msgLen & 0x0F; // %16
-		if (rem)
-		{
-			// padding2
-			rem = 16 - rem;
-			polyHash.Update (padding, rem);
-		}
-		// adLen and msgLen
-		htole64buf (padding, adLen);
-		htole64buf (padding + 8, msgLen);
-		polyHash.Update (padding, 16);
-
-		if (encrypt)
-			// calculate Poly1305 tag and write in after encrypted data
-			polyHash.Finish ((uint64_t *)(buf + msgLen));
-		else
-		{
-			uint64_t tag[4];
-			// calculate Poly1305 tag
-			polyHash.Finish (tag);
-			if (memcmp (tag, msg + msgLen, 16)) ret = false; // compare with provided
-		}
-#endif
 		return ret;
 	}
 
 	void AEADChaCha20Poly1305Encrypt (const std::vector<std::pair<uint8_t *, size_t> >& bufs, const uint8_t * key, const uint8_t * nonce, uint8_t * mac)
 	{
 		if (bufs.empty ()) return;
-#if OPENSSL_AEAD_CHACHA20_POLY1305
 		int outlen = 0;
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
 		EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
@@ -1090,45 +1023,10 @@ namespace crypto
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
 		EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, 16, mac);
 		EVP_CIPHER_CTX_free (ctx);
-#else
-		chacha::Chacha20State state;
-		// generate one time poly key
-		chacha::Chacha20Init (state, nonce, key, 0);
-		uint64_t polyKey[8];
-		memset(polyKey, 0, sizeof(polyKey));
-		chacha::Chacha20Encrypt (state, (uint8_t *)polyKey, 64);
-		Poly1305 polyHash (polyKey);
-		// encrypt buffers
-		Chacha20SetCounter (state, 1);
-		size_t size = 0;
-		for (const auto& it: bufs)
-		{
-			chacha::Chacha20Encrypt (state, it.first, it.second);
-			polyHash.Update (it.first, it.second); // after encryption
-			size += it.second;
-		}
-		// padding
-		uint8_t padding[16];
-		memset (padding, 0, 16);
-		auto rem = size & 0x0F; // %16
-		if (rem)
-		{
-			// padding2
-			rem = 16 - rem;
-			polyHash.Update (padding, rem);
-		}
-		// adLen and msgLen
-		// adLen is always zero
-		htole64buf (padding + 8, size);
-		polyHash.Update (padding, 16);
-		// MAC
-		polyHash.Finish ((uint64_t *)mac);
-#endif
 	}
 
 	void ChaCha20 (const uint8_t * msg, size_t msgLen, const uint8_t * key, const uint8_t * nonce, uint8_t * out)
 	{
-#if OPENSSL_AEAD_CHACHA20_POLY1305
 		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
 		uint32_t iv[4];
 		iv[0] = htole32 (1); memcpy (iv + 1, nonce, 12); // counter | nonce
@@ -1137,12 +1035,6 @@ namespace crypto
 		EVP_EncryptUpdate(ctx, out, &outlen, msg, msgLen);
 		EVP_EncryptFinal_ex(ctx, NULL, &outlen);
 		EVP_CIPHER_CTX_free (ctx);
-#else
-		chacha::Chacha20State state;
-		chacha::Chacha20Init (state, nonce, key, 1);
-		if (out != msg) memcpy (out, msg, msgLen);
-		chacha::Chacha20Encrypt (state, out, msgLen);
-#endif
 	}
 
 	void HKDF (const uint8_t * salt, const uint8_t * key, size_t keyLen, const std::string& info,
@@ -1295,9 +1187,6 @@ namespace crypto
 	void InitCrypto (bool precomputation, bool aesni, bool force)
 	{
 		i2p::cpu::Detect (aesni, force);
-#if LEGACY_OPENSSL
-		SSL_library_init ();
-#endif
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
 			m_OpenSSLMutexes.emplace_back (new std::mutex);
