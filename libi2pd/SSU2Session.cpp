@@ -1126,12 +1126,14 @@ namespace transport
 			return false;
 		}	
 		// update RouterInfo in netdb
-		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
-		if (!ri)
+		auto ri1 = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
+		if (!ri1)
 		{
 			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
+		if (ri->GetTimestamp () >= ri1->GetTimestamp ()) ri = ri1; // received RouterInfo is not older than one in netdb
+		
 		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))
 		{
