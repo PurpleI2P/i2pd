@@ -1132,7 +1132,14 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
-		if (ri->GetTimestamp () >= ri1->GetTimestamp ()) ri = ri1; // received RouterInfo is not older than one in netdb
+		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL >= ri1->GetTimestamp ()) 
+			ri = ri1; // received RouterInfo is not older than one in netdb
+		else
+		{
+			// othewise we assume duplicate
+			auto profile = i2p::data::GetRouterProfile (ri->GetIdentHash ());
+			if (profile) profile->Duplicated (); // mark router as duplicated in profile	
+		}	
 		
 		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))

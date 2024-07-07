@@ -30,6 +30,7 @@ namespace data
 	const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
 	const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
 	const char PEER_PROFILE_USAGE_CONNECTED[] = "connected";
+	const char PEER_PROFILE_USAGE_DUPLICATED[] = "duplicated";
 	
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 36; // in hours (1.5 days)
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 1500; // in seconds (25 minutes)
@@ -59,6 +60,7 @@ namespace data
 
 			void Unreachable (bool unreachable);
 			void Connected ();
+			void Duplicated ();
 
 			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
@@ -87,6 +89,7 @@ namespace data
 			uint32_t m_NumTimesTaken;
 			uint32_t m_NumTimesRejected;
 			bool m_HasConnected; // successful trusted(incoming or NTCP2) connection 
+			bool m_IsDuplicated;
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);

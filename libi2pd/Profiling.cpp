@@ -36,7 +36,8 @@ namespace data
 		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
 		m_LastDeclineTime (0), m_LastUnreachableTime (0),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
-		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false)
+		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false),
+		m_IsDuplicated (false)
 	{
 	}
 
@@ -57,6 +58,8 @@ namespace data
 		usage.put (PEER_PROFILE_USAGE_TAKEN, m_NumTimesTaken);
 		usage.put (PEER_PROFILE_USAGE_REJECTED, m_NumTimesRejected);
 		usage.put (PEER_PROFILE_USAGE_CONNECTED, m_HasConnected);
+		if (m_IsDuplicated)
+			usage.put (PEER_PROFILE_USAGE_DUPLICATED, true);
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
@@ -126,6 +129,7 @@ namespace data
 					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
 					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
 					m_HasConnected = usage.get (PEER_PROFILE_USAGE_CONNECTED, false);
+					m_IsDuplicated = usage.get (PEER_PROFILE_USAGE_DUPLICATED, false);
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
@@ -178,6 +182,11 @@ namespace data
 		UpdateTime ();
 	}
 
+	void RouterProfile::Duplicated ()
+	{
+		m_IsDuplicated = true;
+	}	
+		
 	bool RouterProfile::IsLowPartcipationRate () const
 	{
 		return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // < 20% rate
@@ -201,7 +210,7 @@ namespace data
 
 	bool RouterProfile::IsBad ()
 	{
-		if (IsDeclinedRecently () || IsUnreachable ()) return true;
+		if (IsDeclinedRecently () || IsUnreachable () || m_IsDuplicated) return true;
 		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () /*|| IsLowReplyRate ()*/;
 		if (isBad && m_NumTimesRejected > 10*(m_NumTimesTaken + 1))
 		{
