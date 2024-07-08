@@ -1132,14 +1132,11 @@ namespace transport
 			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
 			return false;
 		}
-		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL >= ri1->GetTimestamp ()) 
-			ri = ri1; // received RouterInfo is not older than one in netdb
-		else
-		{
-			// othewise we assume duplicate
-			auto profile = i2p::data::GetRouterProfile (ri->GetIdentHash ());
-			if (profile) profile->Duplicated (); // mark router as duplicated in profile	
-		}	
+		bool isOlder = false;
+		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
+			// received RouterInfo is older than one in netdb
+			isOlder = true;	
+		ri = ri1;
 		
 		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))
@@ -1151,8 +1148,14 @@ namespace transport
 		    (!m_RemoteEndpoint.address ().is_v6 () ||
 			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
-			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
-				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
+			if (isOlder)
+			{
+				auto profile = i2p::data::GetRouterProfile (ri->GetIdentHash ());
+				if (profile) profile->Duplicated (); // mark router as duplicated in profile
+			}	
+			else	
+				LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
+					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
