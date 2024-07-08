@@ -66,6 +66,7 @@ namespace data
 			bool IsUpdated () const { return m_IsUpdated; };
 			
 			bool IsUseful() const;
+			bool IsDuplicated () const { return m_IsDuplicated; };
 			
 		private:
 
