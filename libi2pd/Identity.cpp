@@ -479,7 +479,12 @@ namespace data
 		{
 			// offline information
 			const uint8_t * offlineInfo = buf + ret;
-			ret += 4; // expires timestamp
+			uint32_t expires = bufbe32toh (buf + ret); ret += 4; // expires timestamp
+			if (expires < i2p::util::GetSecondsSinceEpoch ())
+			{
+				LogPrint (eLogError, "Identity: Offline signature expired");
+				return 0;
+			}	
 			SigningKeyType keyType = bufbe16toh (buf + ret); ret += 2; // key type
 			std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (keyType));
 			if (!transientVerifier) return 0;
