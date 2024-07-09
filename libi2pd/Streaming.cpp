@@ -1167,7 +1167,7 @@ namespace stream
 				if (m_IsNAcked) ScheduleSend ();
 			}
 			else
-				ScheduleSend ();
+				SendBuffer ();
 			if (!m_IsNAcked) ScheduleResend ();
 	}
 
