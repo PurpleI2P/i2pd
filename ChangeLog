@@ -1,6 +1,32 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.53.0] - 2024-07-19
+### Added
+- New congestion control algorithm for streaming
+- Support miniupnp-2.2.8
+- Limit stream's outbound speed 
+- Flood to next day closest floodfills before UTC midnight 
+- Recognize duplicated routers and bypass them 
+- Random SSU2 resend interval
+### Changed
+- Set minimal version to 0.9.69 for floodfills and 0.9.58 for client tunnels
+- Removed openssl 1.0.2 support
+- Move unsent I2NP messages to the new session if replaced
+- Use mt19937 RNG instead rand() 
+- Update router's congestion caps before initial publishing
+- Don't try introducer with invalid address
+- Select newest introducers to publish
+- Don't request relay tag for every session if we have enough introducers
+- Update timestamp for non-reachable or hidden router
+- Reset streaming routing path if duplicated SYN received
+- Update LeaseSet if inbound tunnel failed 
+- Reseeds list
+### Fixed
+- Crash when a destination gets terminated
+- Expired offline signature upon destination creation
+- Race condition between local RouterInfo buffer creation and sending it through the transports
+
 ## [2.52.0] - 2024-05-12
 ### Added
 - Separate threads for persisting RouterInfos and profiles to disk
