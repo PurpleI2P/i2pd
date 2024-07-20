@@ -1,0 +1,5 @@
+i2pd (2.53.0-1) unstable; urgency=medium
+
+  i2pd binary moved from /usr/sbin to /usr/bin. Please check your scripts if you used the old path.
+
+ -- r4sas <r4sas@i2pmail.org>  Fri, 19 Jul 2024 16:00:00 +0000

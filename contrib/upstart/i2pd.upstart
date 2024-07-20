@@ -8,4 +8,4 @@ env LOGFILE="/var/log/i2pd/i2pd.log"
 
 expect fork
 
-exec /usr/sbin/i2pd --daemon --service --log=file --logfile=$LOGFILE
+exec /usr/bin/i2pd --daemon --service --log=file --logfile=$LOGFILE

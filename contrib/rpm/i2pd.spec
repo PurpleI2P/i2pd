@@ -91,7 +91,7 @@ pushd build
 %endif
 
 chrpath -d i2pd
-%{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
+%{__install} -D -m 755 i2pd %{buildroot}%{_bindir}/i2pd
 %{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
@@ -127,7 +127,7 @@ getent passwd i2pd >/dev/null || \
 
 %files
 %doc LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf contrib/tunnels.d
-%{_sbindir}/i2pd
+%{_bindir}/i2pd
 %config(noreplace) %{_sysconfdir}/i2pd/*.conf
 %config(noreplace) %{_sysconfdir}/i2pd/tunnels.conf.d/*.conf
 %config %{_sysconfdir}/i2pd/subscriptions.txt
