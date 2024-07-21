@@ -21,7 +21,6 @@
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-#include <openssl/engine.h>
 #include <openssl/opensslv.h>
 
 #include "Base.h"
