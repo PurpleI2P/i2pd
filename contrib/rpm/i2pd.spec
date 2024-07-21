@@ -22,6 +22,10 @@ BuildRequires: openssl-devel
 BuildRequires: miniupnpc-devel
 BuildRequires: systemd-units
 
+%if 0%{?fedora} >= 40
+BuildRequires: openssl-devel-engine
+%endif
+
 Requires:      logrotate
 Requires:      systemd
 Requires(pre): %{_sbindir}/useradd %{_sbindir}/groupadd
