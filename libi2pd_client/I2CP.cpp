@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -33,9 +33,9 @@ namespace client
 
 	void I2CPDestination::Stop ()
 	{
+		m_LeaseSetCreationTimer.cancel ();
 		LeaseSetDestination::Stop ();
 		m_Owner = nullptr;
-		m_LeaseSetCreationTimer.cancel ();
 	}
 
 	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
