@@ -287,6 +287,11 @@ namespace client
 
 	void I2CPSession::Start ()
 	{
+		if (m_Socket)
+		{	
+			m_Socket->set_option (boost::asio::socket_base::receive_buffer_size (I2CP_MAX_MESSAGE_LENGTH));
+			m_Socket->set_option (boost::asio::socket_base::send_buffer_size (I2CP_MAX_MESSAGE_LENGTH));
+		}	
 		ReadProtocolByte ();
 	}
 
