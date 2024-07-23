@@ -338,7 +338,27 @@ namespace client
 			if (m_PayloadLen > 0)
 			{
 				if (m_PayloadLen <= I2CP_MAX_MESSAGE_LENGTH)
-					ReceivePayload ();
+				{
+					if (!m_Socket) return;
+					boost::system::error_code ec;
+					size_t moreBytes = m_Socket->available(ec);
+					if (!ec)
+					{	
+						if (moreBytes >= m_PayloadLen)
+						{
+							// read and process payload immediately if available
+							moreBytes = boost::asio::read (*m_Socket, boost::asio::buffer(m_Payload, m_PayloadLen), boost::asio::transfer_all (), ec);
+							HandleReceivedPayload (ec, moreBytes);
+						}	
+						else	
+							ReceivePayload ();
+					}	
+					else
+					{
+						LogPrint (eLogWarning, "I2CP: Socket error: ", ec.message ());
+						Terminate ();
+					}	
+				}	
 				else
 				{
 					LogPrint (eLogError, "I2CP: Unexpected payload length ", m_PayloadLen);
