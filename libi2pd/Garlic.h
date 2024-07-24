@@ -51,8 +51,7 @@ namespace garlic
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
 	const int OUTGOING_TAGS_CONFIRMATION_TIMEOUT = 10; // 10 seconds
 	const int LEASESET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
-	const int ROUTING_PATH_EXPIRATION_TIMEOUT = 30; // 30 seconds
-	const int ROUTING_PATH_MAX_NUM_TIMES_USED = 100; // how many times might be used
+	const int ROUTING_PATH_EXPIRATION_TIMEOUT = 120; // in seconds
 
 	struct SessionTag: public i2p::data::Tag<32>
 	{
@@ -89,7 +88,6 @@ namespace garlic
 		std::shared_ptr<const i2p::data::Lease> remoteLease;
 		int rtt; // RTT
 		uint32_t updateTime; // seconds since epoch
-		int numTimesUsed;
 	};
 
 	class GarlicDestination;

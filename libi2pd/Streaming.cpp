@@ -520,7 +520,7 @@ namespace stream
 		if (firstRttSample && m_RoutingSession)
 			m_RoutingSession->SetSharedRoutingPath (
 				std::make_shared<i2p::garlic::GarlicRoutingPath> (
-					i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, 0}));
+					i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0}));
 		if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ())
 		{
 			m_ResendTimer.cancel ();

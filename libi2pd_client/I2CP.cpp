@@ -202,7 +202,7 @@ namespace client
 			else
 				remoteSession->SetSharedRoutingPath (nullptr);
 		}
-		else
+		if (!outboundTunnel || !remoteLease)
 		{
 			auto leases = remote->GetNonExpiredLeases (false); // without threshold
 			if (leases.empty ())
@@ -216,7 +216,7 @@ namespace client
 			}
 			if (remoteLease && outboundTunnel)
 				remoteSession->SetSharedRoutingPath (std::make_shared<i2p::garlic::GarlicRoutingPath> (
-					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0, 0})); // 10 secs RTT
+					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0})); // 10 secs RTT
 			else
 				remoteSession->SetSharedRoutingPath (nullptr);
 		}
