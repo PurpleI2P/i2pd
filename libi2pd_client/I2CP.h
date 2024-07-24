@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -79,7 +79,8 @@ namespace client
 		public:
 
 			I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
-				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
+				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread, 
+			    const std::map<std::string, std::string>& params);
 			~I2CPDestination () {};
 
 			void Stop ();
@@ -120,7 +121,7 @@ namespace client
 			std::shared_ptr<i2p::crypto::ECIESX25519AEADRatchetDecryptor> m_ECIESx25519Decryptor;
 			uint8_t m_ECIESx25519PrivateKey[32];
 			uint64_t m_LeaseSetExpirationTime;
-			bool m_IsCreatingLeaseSet;
+			bool m_IsCreatingLeaseSet, m_IsSameThread;
 			boost::asio::deadline_timer m_LeaseSetCreationTimer;
 			i2p::util::MemoryPoolMt<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE> > m_I2NPMsgsPool;
 	};

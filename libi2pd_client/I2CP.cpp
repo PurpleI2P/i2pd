@@ -24,10 +24,11 @@ namespace client
 {
 
 	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
-		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
+		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
+	    const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),
 		m_Owner (owner), m_Identity (identity), m_EncryptionKeyType (m_Identity->GetCryptoKeyType ()),
-		m_IsCreatingLeaseSet (false), m_LeaseSetCreationTimer (service)
+		m_IsCreatingLeaseSet (false), m_IsSameThread (isSameThread), m_LeaseSetCreationTimer (service)
 	{
 	}
 
@@ -152,20 +153,32 @@ namespace client
 		memcpy (buf + 4, payload, len);
 		msg->len += len + 4;
 		msg->FillI2NPMessageHeader (eI2NPData);
-		auto s = GetSharedFromThis ();
 		auto remote = FindLeaseSet (ident);
 		if (remote)
 		{
-			GetService ().post (
-				[s, msg, remote, nonce]()
-				{
-					bool sent = s->SendMsg (msg, remote);
-					if (s->m_Owner)
-						s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
-				});
+			if (m_IsSameThread)
+			{
+				// send right a way
+				bool sent = SendMsg (msg, remote);
+				if (m_Owner)
+					m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+			}	
+			else
+			{	
+				// send in destination's thread
+				auto s = GetSharedFromThis ();
+				GetService ().post (
+					[s, msg, remote, nonce]()
+					{
+						bool sent = s->SendMsg (msg, remote);
+						if (s->m_Owner)
+							s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+					});
+			}	
 		}
 		else
 		{
+			auto s = GetSharedFromThis ();
 			RequestDestination (ident,
 				[s, msg, nonce](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
@@ -246,7 +259,7 @@ namespace client
 	RunnableI2CPDestination::RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
 		RunnableService ("I2CP"),
-		I2CPDestination (GetIOService (), owner, identity, isPublic, params)
+		I2CPDestination (GetIOService (), owner, identity, isPublic, false, params)
 	{
 	}
 
@@ -583,7 +596,7 @@ namespace client
 			if (!m_Destination)
 			{
 				m_Destination = m_Owner.IsSingleThread () ?
-					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, params):
+					std::make_shared<I2CPDestination>(m_Owner.GetService (), shared_from_this (), identity, true, true, params):
 					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
 				if (m_Owner.InsertSession (shared_from_this ()))
 				{
