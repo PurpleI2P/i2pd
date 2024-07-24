@@ -58,6 +58,7 @@ namespace client
 		eI2CPMessageStatusAccepted = 1,
 		eI2CPMessageStatusGuaranteedSuccess = 4,
 		eI2CPMessageStatusGuaranteedFailure = 5,
+		eI2CPMessageStatusNoLocalTunnels = 16,
 		eI2CPMessageStatusNoLeaseSet = 21
 	};
 

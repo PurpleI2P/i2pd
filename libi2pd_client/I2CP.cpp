@@ -202,6 +202,7 @@ namespace client
 			LogPrint (eLogError, "I2CP: Failed to create remote session");
 			return false;
 		}
+		auto garlic = remoteSession->WrapSingleMessage (msg); // shared routing path mitgh be dropped here
 		auto path = remoteSession->GetSharedRoutingPath ();
 		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
 		std::shared_ptr<const i2p::data::Lease> remoteLease;
@@ -236,7 +237,6 @@ namespace client
 		if (remoteLease && outboundTunnel)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-			auto garlic = remoteSession->WrapSingleMessage (msg);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock
 				{
 					i2p::tunnel::eDeliveryTypeTunnel,
@@ -787,9 +787,14 @@ namespace client
 					{
 						offset += 4;
 						uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
-						if (m_IsSendAccepted)
-							SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
-						m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+						if (m_Destination->IsReady ())
+						{	
+							if (m_IsSendAccepted)
+								SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+							m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+						}	
+						else
+							SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLocalTunnels);
 					}
 					else
 						LogPrint(eLogError, "I2CP: Cannot send message, too big");
