@@ -333,8 +333,9 @@ namespace garlic
 					auto offset1 = offset;
 					for (auto i = 0; i < numAcks; i++)
 					{
-						offset1 += 2; // tagsetid
-						MessageConfirmed (bufbe16toh (buf + offset1)); offset1 += 2; // N
+						uint32_t tagsetid = bufbe16toh (buf + offset1); offset1 += 2; // tagsetid
+						uint16_t n = bufbe16toh (buf + offset1); offset1 += 2; // N
+						MessageConfirmed ((tagsetid << 16) + n); // msgid
 					}
 					break;
 				}
@@ -877,7 +878,7 @@ namespace garlic
 			{
 				// ack request
 				SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
-				SetLeaseSetUpdateMsgID (m_SendTagset->GetNextIndex ());
+				SetLeaseSetUpdateMsgID ((m_SendTagset->GetTagSetID () << 16) + m_SendTagset->GetNextIndex ()); // (tagsetid << 16) + N
 				SetLeaseSetSubmissionTime (ts);
 				payloadLen += 4;
 			}
