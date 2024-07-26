@@ -777,11 +777,12 @@ namespace client
 			size_t offset = 2;
 			if (m_Destination)
 			{
-				i2p::data::IdentityEx identity;
-				size_t identsize = identity.FromBuffer (buf + offset, len - offset);
-				if (identsize)
+				size_t identSize = i2p::data::GetIdentityBufferLen (buf + offset, len - offset);
+				if (identSize)
 				{
-					offset += identsize;
+					i2p::data::IdentHash identHash;
+					SHA256(buf + offset, identSize, identHash); // caclulate ident hash, because we don't need full identity
+					offset += identSize;
 					uint32_t payloadLen = bufbe32toh (buf + offset);
 					if (payloadLen + offset <= len)
 					{
@@ -791,7 +792,7 @@ namespace client
 						{	
 							if (m_IsSendAccepted)
 								SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
-							m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+							m_Destination->SendMsgTo (buf + offset, payloadLen, identHash, nonce);
 						}	
 						else
 							SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLocalTunnels);

@@ -136,6 +136,8 @@ namespace data
 			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
 	};
 
+	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer
+
 	class PrivateKeys // for eepsites
 	{
 		public:

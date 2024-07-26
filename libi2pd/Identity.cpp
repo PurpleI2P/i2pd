@@ -420,6 +420,14 @@ namespace data
 		return CreateEncryptor (GetCryptoKeyType (), key);
 	}
 
+	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len)
+	{
+		if (len < DEFAULT_IDENTITY_SIZE) return 0;
+		size_t l = DEFAULT_IDENTITY_SIZE + bufbe16toh (buf + DEFAULT_IDENTITY_SIZE - 2);
+		if (l > len) return 0;
+		return l;
+	}	
+		
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
