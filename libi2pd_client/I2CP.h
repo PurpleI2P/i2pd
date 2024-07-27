@@ -12,8 +12,10 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <map>
+#include <unordered_map>
 #include <boost/asio.hpp>
 #include "util.h"
 #include "Destination.h"
@@ -92,7 +94,8 @@ namespace client
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
 			void LeaseSet2Created (uint8_t storeType, const uint8_t * buf, size_t len); // called from I2CPSession
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
-
+			bool SendMsg (const uint8_t * payload, size_t len, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession, uint32_t nonce);
+			
 			// implements LocalDestination
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
 			bool SupportsEncryptionType (i2p::data::CryptoKeyType keyType) const;
@@ -110,7 +113,9 @@ namespace client
 			std::shared_ptr<I2CPDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<I2CPDestination>(shared_from_this ()); }
 			bool SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
-
+			bool SendMsg (std::shared_ptr<I2NPMessage> garlic, 
+				std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel, std::shared_ptr<const i2p::data::Lease> remoteLease);
+			
 			void PostCreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 
 		private:
@@ -157,6 +162,7 @@ namespace client
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
 			void SendMessagePayloadMessage (const uint8_t * payload, size_t len);
 			void SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status);
+			void AddRoutingSession (const i2p::data::IdentHash& signingKey, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession);
 
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
@@ -197,6 +203,8 @@ namespace client
 			size_t m_PayloadLen;
 
 			std::shared_ptr<I2CPDestination> m_Destination;
+			std::mutex m_RoutingSessionsMutex;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::garlic::GarlicRoutingSession> > m_RoutingSessions; // signing key->session
 			uint16_t m_SessionID;
 			uint32_t m_MessageID;
 			bool m_IsSendAccepted;
@@ -225,8 +233,6 @@ namespace client
 			std::shared_ptr<I2CPSession> FindSessionByIdentHash (const i2p::data::IdentHash& ident) const;
 
 		private:
-
-			void Run ();
 
 			void Accept ();
 

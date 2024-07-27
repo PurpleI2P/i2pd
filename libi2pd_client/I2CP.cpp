@@ -234,16 +234,24 @@ namespace client
 			else
 				remoteSession->SetSharedRoutingPath (nullptr);
 		}
+		m_Owner->AddRoutingSession (remote->GetIdentity ()->GetStandardIdentity ().signingKey - 96, remoteSession); // last 32 bytes
+		return SendMsg (garlic, outboundTunnel, remoteLease);
+	}
+
+	bool I2CPDestination::SendMsg (std::shared_ptr<I2NPMessage> garlic, 
+	    std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel, std::shared_ptr<const i2p::data::Lease> remoteLease)
+	{
 		if (remoteLease && outboundTunnel)
 		{
-			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-			msgs.push_back (i2p::tunnel::TunnelMessageBlock
-				{
-					i2p::tunnel::eDeliveryTypeTunnel,
-					remoteLease->tunnelGateway, remoteLease->tunnelID,
-					garlic
+			outboundTunnel->SendTunnelDataMsgs (
+			    {
+					i2p::tunnel::TunnelMessageBlock
+					{
+						i2p::tunnel::eDeliveryTypeTunnel,
+						remoteLease->tunnelGateway, remoteLease->tunnelID,
+						garlic
+					}
 				});
-			outboundTunnel->SendTunnelDataMsgs (msgs);
 			return true;
 		}
 		else
@@ -253,9 +261,43 @@ namespace client
 			else
 				LogPrint (eLogWarning, "I2CP: Failed to send message. No outbound tunnels");
 			return false;
-		}
-	}
+		}		
+	}	
 
+	bool I2CPDestination::SendMsg (const uint8_t * payload, size_t len, 
+		std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession, uint32_t nonce)
+	{
+		if (!remoteSession) return false;
+		auto path = remoteSession->GetSharedRoutingPath ();
+		if (!path) return false;
+		// get tunnels
+		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
+		std::shared_ptr<const i2p::data::Lease> remoteLease;
+		if (!remoteSession->CleanupUnconfirmedTags ()) // no stuck tags
+		{
+			outboundTunnel = path->outboundTunnel;
+			remoteLease = path->remoteLease;
+		}
+		else
+		{	
+			remoteSession->SetSharedRoutingPath (nullptr);
+			return false;
+		}	
+		// create Data message
+		auto msg = m_I2NPMsgsPool.AcquireSharedMt ();
+		uint8_t * buf = msg->GetPayload ();
+		htobe32buf (buf, len);
+		memcpy (buf + 4, payload, len);
+		msg->len += len + 4;
+		msg->FillI2NPMessageHeader (eI2NPData);
+		// wrap in gralic
+		auto garlic = remoteSession->WrapSingleMessage (msg);
+		// send
+		bool sent = SendMsg (garlic, outboundTunnel, remoteLease);
+		m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusGuaranteedSuccess);
+		return sent;
+	}
+		
 	RunnableI2CPDestination::RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
 		RunnableService ("I2CP"),
@@ -707,6 +749,13 @@ namespace client
 		SendI2CPMessage (I2CP_MESSAGE_STATUS_MESSAGE, buf, 15);
 	}
 
+	void I2CPSession::AddRoutingSession (const i2p::data::IdentHash& signingKey, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession)
+	{
+		if (!remoteSession) return;
+		std::lock_guard<std::mutex> l(m_RoutingSessionsMutex);
+		m_RoutingSessions[signingKey] = remoteSession;
+	}
+		
 	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
@@ -777,11 +826,10 @@ namespace client
 			size_t offset = 2;
 			if (m_Destination)
 			{
-				size_t identSize = i2p::data::GetIdentityBufferLen (buf + offset, len - offset);
+				const uint8_t * ident = buf + offset;
+				size_t identSize = i2p::data::GetIdentityBufferLen (ident, len - offset);
 				if (identSize)
 				{
-					i2p::data::IdentHash identHash;
-					SHA256(buf + offset, identSize, identHash); // caclulate ident hash, because we don't need full identity
 					offset += identSize;
 					uint32_t payloadLen = bufbe32toh (buf + offset);
 					if (payloadLen + offset <= len)
@@ -792,10 +840,30 @@ namespace client
 						{	
 							if (m_IsSendAccepted)
 								SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
-							m_Destination->SendMsgTo (buf + offset, payloadLen, identHash, nonce);
-						}	
+							std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession;
+							{
+								std::lock_guard<std::mutex> l(m_RoutingSessionsMutex);
+								auto it = m_RoutingSessions.find (ident + i2p::data::DEFAULT_IDENTITY_SIZE - 35); // 32 bytes signing key
+								if (it != m_RoutingSessions.end ())
+								{		
+									if (!it->second->IsTerminated ())
+										remoteSession = it->second;
+									else
+										m_RoutingSessions.erase (it);
+								}
+							}
+							if (!remoteSession || !m_Destination->SendMsg (buf + offset, payloadLen, remoteSession, nonce))
+							{	
+								i2p::data::IdentHash identHash;
+								SHA256(ident, identSize, identHash); // caclulate ident hash, because we don't need full identity
+								m_Destination->SendMsgTo (buf + offset, payloadLen, identHash, nonce);
+							}	
+						}
 						else
+						{
+							LogPrint(eLogInfo, "I2CP: Destination is not ready");
 							SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLocalTunnels);
+						}	
 					}
 					else
 						LogPrint(eLogError, "I2CP: Cannot send message, too big");
