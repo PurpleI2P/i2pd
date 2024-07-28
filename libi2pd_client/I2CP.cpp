@@ -234,7 +234,7 @@ namespace client
 			else
 				remoteSession->SetSharedRoutingPath (nullptr);
 		}
-		m_Owner->AddRoutingSession (remote->GetIdentity ()->GetStandardIdentity ().signingKey - 96, remoteSession); // last 32 bytes
+		m_Owner->AddRoutingSession (remote->GetIdentity ()->GetStandardIdentity ().signingKey + 96, remoteSession); // last 32 bytes
 		return SendMsg (garlic, outboundTunnel, remoteLease);
 	}
 
