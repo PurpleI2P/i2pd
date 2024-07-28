@@ -16,6 +16,7 @@
 #include "ClientContext.h"
 #include "Transports.h"
 #include "Signature.h"
+#include "Config.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -1003,8 +1004,12 @@ namespace client
 	{
 		uint8_t limits[64];
 		memset (limits, 0, 64);
-		htobe32buf (limits, i2p::context.GetBandwidthLimit ()); // inbound
-		htobe32buf (limits + 4, i2p::context.GetBandwidthLimit ()); // outbound
+		uint32_t limit; i2p::config::GetOption("i2cp.inboundlimit", limit);
+		if (!limit) limit = i2p::context.GetBandwidthLimit ();
+		htobe32buf (limits, limit); // inbound
+		i2p::config::GetOption("i2cp.outboundlimit", limit);
+		if (!limit) limit = i2p::context.GetBandwidthLimit ();
+		htobe32buf (limits + 4, limit); // outbound
 		SendI2CPMessage (I2CP_BANDWIDTH_LIMITS_MESSAGE, limits, 64);
 	}
 
