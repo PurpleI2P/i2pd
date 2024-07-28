@@ -1003,8 +1003,8 @@ namespace client
 	{
 		uint8_t limits[64];
 		memset (limits, 0, 64);
-		htobe32buf (limits, i2p::transport::transports.GetInBandwidth ()); // inbound
-		htobe32buf (limits + 4, i2p::transport::transports.GetOutBandwidth ()); // outbound
+		htobe32buf (limits, i2p::context.GetBandwidthLimit ()); // inbound
+		htobe32buf (limits + 4, i2p::context.GetBandwidthLimit ()); // outbound
 		SendI2CPMessage (I2CP_BANDWIDTH_LIMITS_MESSAGE, limits, 64);
 	}
 
