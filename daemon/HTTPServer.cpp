@@ -417,6 +417,15 @@ namespace http {
 		}
 	}
 
+	static void ShowHop(std::stringstream& s, const i2p::data::IdentityEx& ident)
+	{
+		auto identHash = ident.GetIdentHash();
+		auto router = i2p::data::netdb.FindRouter(identHash);
+		s << i2p::data::GetIdentHashAbbreviation(identHash);
+		if (router)
+			s << "<small style=\"color:gray\"> " << router->GetBandwidthCap() << "</small>";
+	}
+
 	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest, uint32_t token)
 	{
 		s << "<b>Base32:</b><br>\r\n<textarea readonly cols=\"80\" rows=\"1\">";
@@ -482,7 +491,9 @@ namespace http {
 					it->VisitTunnelHops(
 						[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
 						{
-							s << "&#8658; " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " ";
+							s << "&#8658; ";
+							ShowHop(s, *hopIdent);
+							s << " ";
 						}
 					);
 				}
@@ -503,7 +514,9 @@ namespace http {
 					it->VisitTunnelHops(
 						[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
 						{
-							s << " " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " &#8658;";
+							s << " ";
+							ShowHop(s, *hopIdent);
+							s << " &#8658;";
 						}
 					);
 				}
@@ -699,7 +712,9 @@ namespace http {
 				it->VisitTunnelHops(
 					[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
 					{
-						s << "&#8658; " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " ";
+						s << "&#8658; ";
+						ShowHop(s, *hopIdent);
+						s << " ";
 					}
 				);
 			}
@@ -720,7 +735,9 @@ namespace http {
 				it->VisitTunnelHops(
 					[&s](std::shared_ptr<const i2p::data::IdentityEx> hopIdent)
 					{
-						s << " " << i2p::data::GetIdentHashAbbreviation (hopIdent->GetIdentHash ()) << " &#8658;";
+						s << " ";
+						ShowHop(s, *hopIdent);
+						s << " &#8658;";
 					}
 				);
 			}
