@@ -1,6 +1,13 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.53.1] - 2024-07-29
+### Changed
+- I2CP performance improvement
+### Fixed
+- 100% CPU usage after I2CP/SAM/BOB session termination
+- Incorrect client limits returned through I2CP
+
 ## [2.53.0] - 2024-07-19
 ### Added
 - New congestion control algorithm for streaming

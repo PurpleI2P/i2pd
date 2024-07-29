@@ -1,7 +1,7 @@
 %define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:          i2pd-git
-Version:       2.53.0
+Version:       2.53.1
 Release:       git%{git_hash}%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd
@@ -148,6 +148,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon Jul 29 2024 orignal <orignal@i2pmail.org> - 2.53.1
+- update to 2.53.1
+
 * Fri Jul 19 2024 orignal <orignal@i2pmail.org> - 2.53.0
 - update to 2.53.0
 
