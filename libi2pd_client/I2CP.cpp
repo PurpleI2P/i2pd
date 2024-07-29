@@ -652,8 +652,9 @@ namespace client
 				{
 					LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
 					m_Destination->Start ();
-					// check if ready, or schedule readiness timer
-					HandleSessionReadinessCheckTimer (boost::system::error_code ());
+					/*// check if ready, or schedule readiness timer
+					HandleSessionReadinessCheckTimer (boost::system::error_code ());*/
+					SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
 				}
 				else
 				{
