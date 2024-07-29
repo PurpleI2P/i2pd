@@ -337,8 +337,8 @@ namespace client
 	}
 
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-		m_Owner (owner), m_Socket (socket), m_SessionID (0xFFFF),
-		m_MessageID (0), m_IsSendAccepted (true), m_IsSending (false)
+		m_Owner (owner), m_Socket (socket), m_ReadinessCheckTimer (owner.GetService ()),
+		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true), m_IsSending (false)
 	{
 	}
 
@@ -470,6 +470,7 @@ namespace client
 
 	void I2CPSession::Terminate ()
 	{
+		m_ReadinessCheckTimer.cancel ();
 		if (m_Destination)
 		{
 			m_Destination->Stop ();
@@ -649,9 +650,10 @@ namespace client
 					std::make_shared<RunnableI2CPDestination>(shared_from_this (), identity, true, params);
 				if (m_Owner.InsertSession (shared_from_this ()))
 				{
-					SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
 					LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
 					m_Destination->Start ();
+					// check if ready, or schedule readiness timer
+					HandleSessionReadinessCheckTimer (boost::system::error_code ());
 				}
 				else
 				{
@@ -672,6 +674,27 @@ namespace client
 		}
 	}
 
+	void I2CPSession::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_Destination)
+			{
+				if (m_Destination->IsReady ())
+				{
+					LogPrint (eLogDebug, "I2CP: Session ", m_SessionID, " created");
+					SendSessionStatusMessage (eI2CPSessionStatusCreated); // created
+				}	
+				else
+				{
+					m_ReadinessCheckTimer.expires_from_now (boost::posix_time::seconds(I2CP_SESSION_READINESS_CHECK_INTERVAL));
+					m_ReadinessCheckTimer.async_wait (std::bind (&I2CPSession::HandleSessionReadinessCheckTimer,
+						shared_from_this (), std::placeholders::_1));
+				}
+			}	
+		}
+	}
+		
 	void I2CPSession::DestroySessionMessageHandler (const uint8_t * buf, size_t len)
 	{
 		SendSessionStatusMessage (eI2CPSessionStatusDestroyed); // destroy
