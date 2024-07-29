@@ -180,7 +180,6 @@ namespace client
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		}
 		SaveTags ();
-		m_Service.stop (); // make sure we don't process more messages after this point. TODO: implement it better
 		CleanUp (); // GarlicDestination
 	}
 
