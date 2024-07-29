@@ -30,7 +30,6 @@ namespace client
 	const size_t I2CP_MAX_MESSAGE_LENGTH = 65535;
 	const size_t I2CP_MAX_SEND_QUEUE_SIZE = 1024*1024; // in bytes, 1M
 	const int I2CP_LEASESET_CREATION_TIMEOUT = 10; // in seconds
-	const int I2CP_SESSION_READINESS_CHECK_INTERVAL = 3; // in seconds
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
@@ -197,14 +196,11 @@ namespace client
 			void ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping);
 			void SendSessionStatusMessage (I2CPSessionStatus status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);
-
-			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 			
 		private:
 
 			I2CPServer& m_Owner;
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-			boost::asio::deadline_timer m_ReadinessCheckTimer;
 			uint8_t m_Header[I2CP_HEADER_SIZE], m_Payload[I2CP_MAX_MESSAGE_LENGTH];
 			size_t m_PayloadLen;
 
