@@ -104,6 +104,7 @@ namespace client
 
 		protected:
 
+			void CleanupDestination ();
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
 			void CreateNewLeaseSet (const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels);
@@ -163,6 +164,7 @@ namespace client
 			void SendMessagePayloadMessage (const uint8_t * payload, size_t len);
 			void SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status);
 			void AddRoutingSession (const i2p::data::IdentHash& signingKey, std::shared_ptr<i2p::garlic::GarlicRoutingSession> remoteSession);
+			void CleanupRoutingSessions ();
 
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);

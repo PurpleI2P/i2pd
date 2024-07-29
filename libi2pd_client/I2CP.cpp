@@ -298,6 +298,12 @@ namespace client
 		m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusGuaranteedSuccess);
 		return sent;
 	}
+
+	void I2CPDestination::CleanupDestination ()
+	{
+		m_I2NPMsgsPool.CleanUpMt ();
+		if (m_Owner) m_Owner->CleanupRoutingSessions ();
+	}	
 		
 	RunnableI2CPDestination::RunnableI2CPDestination (std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params):
@@ -756,6 +762,18 @@ namespace client
 		std::lock_guard<std::mutex> l(m_RoutingSessionsMutex);
 		m_RoutingSessions[signingKey] = remoteSession;
 	}
+
+	void I2CPSession::CleanupRoutingSessions ()
+	{
+		std::lock_guard<std::mutex> l(m_RoutingSessionsMutex);
+		for (auto it = m_RoutingSessions.begin (); it != m_RoutingSessions.end ();)
+		{
+			if (it->second->IsTerminated ())
+				it = m_RoutingSessions.erase (it);
+			else	
+				it++;
+		}	
+	}	
 		
 	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)
 	{
