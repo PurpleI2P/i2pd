@@ -148,7 +148,7 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Mon Jul 29 2024 orignal <orignal@i2pmail.org> - 2.53.1
+* Tue Jul 30 2024 orignal <orignal@i2pmail.org> - 2.53.1
 - update to 2.53.1
 
 * Fri Jul 19 2024 orignal <orignal@i2pmail.org> - 2.53.0
