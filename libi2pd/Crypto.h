@@ -32,7 +32,7 @@
 #	define OPENSSL_HKDF 1
 #	define OPENSSL_EDDSA 1
 #	define OPENSSL_X25519 1
-#	if (OPENSSL_VERSION_NUMBER != 0x030000000) // 3.0.0, regression in SipHash
+#	if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
 #		define OPENSSL_SIPHASH 1
 #	endif
 #endif
