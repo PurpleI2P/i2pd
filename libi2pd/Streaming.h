@@ -67,6 +67,7 @@ namespace stream
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
+	const uint64_t MIN_PACING_TIME = 250; // in microseconds. TODO: depends on OS
 
 	struct Packet
 	{
@@ -271,7 +272,7 @@ namespace stream
 			SendBufferQueue m_SendBuffer;
 			double m_RTT;
 			int m_WindowSize, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
-			uint64_t m_MinPacingTime, m_PacingTime;
+			uint64_t m_MinPacingTime, m_PacingTime; // miscroseconds
 			int m_NumResendAttempts;
 			size_t m_MTU;
 	};
