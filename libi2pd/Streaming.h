@@ -55,19 +55,19 @@ namespace stream
 	const int MAX_NUM_RESEND_ATTEMPTS = 10;
 	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 1;
-	const int MAX_WINDOW_SIZE = 128;
-	const double RTT_EWMA_ALPHA = 0.8;
+	const int MAX_WINDOW_SIZE = 1024;
+	const double RTT_EWMA_ALPHA = 0.125;
 	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int INITIAL_PACING_TIME = 1000 * INITIAL_RTT / INITIAL_WINDOW_SIZE; // in microseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
-	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
+	const size_t MAX_PENDING_INCOMING_BACKLOG = 1024;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
-	const uint64_t MIN_PACING_TIME = 250; // in microseconds. TODO: depends on OS
+	const uint64_t SEND_INTERVAL = 1000; // in microseconds
 
 	struct Packet
 	{
@@ -252,6 +252,9 @@ namespace stream
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
 			bool m_IsNAcked;
+			bool m_IsFirstACK;
+			bool m_IsResendNeeded;
+			bool m_IsFirstRttSample;
 			bool m_IsSendTime;
 			bool m_IsWinDropped;
 			bool m_IsTimeOutResend;
@@ -270,10 +273,11 @@ namespace stream
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			double m_RTT;
-			int m_WindowSize, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
-			uint64_t m_MinPacingTime, m_PacingTime; // miscroseconds
-			int m_NumResendAttempts;
+			double m_RTT, m_SlowRTT;
+			float m_WindowSize, m_LastWindowDropSize;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
+			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
+			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
 	};
 
