@@ -295,7 +295,9 @@ namespace client
 		auto garlic = remoteSession->WrapSingleMessage (msg);
 		// send
 		bool sent = SendMsg (garlic, outboundTunnel, remoteLease);
-		m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusGuaranteedSuccess);
+		m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+		if (!sent)
+			remoteSession->SetSharedRoutingPath (nullptr);
 		return sent;
 	}
 
