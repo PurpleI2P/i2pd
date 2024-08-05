@@ -398,7 +398,6 @@ namespace garlic
 		{
 			uint16_t keyID = bufbe16toh (buf); buf += 2; // keyID
 			bool newKey = flag & ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
-			m_SendReverseKey = true;
 			if (!m_NextReceiveRatchet)
 				m_NextReceiveRatchet.reset (new DHRatchet ());
 			else
@@ -410,6 +409,7 @@ namespace garlic
 				}
 				m_NextReceiveRatchet->keyID = keyID;
 			}
+			m_SendReverseKey = true;
 			int tagsetID = 2*keyID;
 			if (newKey)
 			{
@@ -781,6 +781,8 @@ namespace garlic
 				[[fallthrough]];
 #endif
 			case eSessionStateEstablished:
+				if (m_SendReverseKey && receiveTagset->GetTagSetID () == 2*m_NextReceiveRatchet->keyID)
+					m_SendReverseKey = false; // tag received on new tagset	
 				if (receiveTagset->IsNS ())
 				{
 					// our of sequence NSR
@@ -978,7 +980,6 @@ namespace garlic
 					memcpy (payload + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
-				m_SendReverseKey = false;
 			}
 			if (m_SendForwardKey)
 			{
