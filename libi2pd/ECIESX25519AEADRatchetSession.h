@@ -149,6 +149,7 @@ namespace garlic
 			std::shared_ptr<i2p::crypto::X25519Keys> key;
 			uint8_t remote[32]; // last remote public key
 			bool newKey = true;
+			int GetReceiveTagSetID () const { return newKey ? (2*keyID + 1) : 2*keyID; }
 		};
 
 		public:

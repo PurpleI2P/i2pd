@@ -409,16 +409,14 @@ namespace garlic
 				}
 				m_NextReceiveRatchet->keyID = keyID;
 			}
-			m_SendReverseKey = true;
-			int tagsetID = 2*keyID;
 			if (newKey)
 			{
 				m_NextReceiveRatchet->key = i2p::transport::transports.GetNextX25519KeysPair ();
 				m_NextReceiveRatchet->newKey = true;
-				tagsetID++;
 			}
 			else
 				m_NextReceiveRatchet->newKey = false;
+			auto tagsetID = m_NextReceiveRatchet->GetReceiveTagSetID ();
 			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 				memcpy (m_NextReceiveRatchet->remote, buf, 32);
 
@@ -432,7 +430,9 @@ namespace garlic
 			GenerateMoreReceiveTags (newTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
 				GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MAX_NUM_GENERATED_TAGS);
 			receiveTagset->Expire ();
+			
 			LogPrint (eLogDebug, "Garlic: Next receive tagset ", tagsetID, " created");
+			m_SendReverseKey = true;
 		}
 	}
 
@@ -781,7 +781,7 @@ namespace garlic
 				[[fallthrough]];
 #endif
 			case eSessionStateEstablished:
-				if (m_SendReverseKey && receiveTagset->GetTagSetID () == 2*m_NextReceiveRatchet->keyID)
+				if (m_SendReverseKey && receiveTagset->GetTagSetID () == m_NextReceiveRatchet->GetReceiveTagSetID ())
 					m_SendReverseKey = false; // tag received on new tagset	
 				if (receiveTagset->IsNS ())
 				{
