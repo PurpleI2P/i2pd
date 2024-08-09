@@ -144,7 +144,7 @@ namespace transport
 
 	void SSU2Session::HandleConnectTimer (const boost::system::error_code& ecode)
 	{
-		if (!ecode)
+		if (!ecode && m_State != eSSU2SessionStateTerminated)
 		{
 			// timeout expired
 			if (m_State == eSSU2SessionStateIntroduced) // WaitForIntroducer
