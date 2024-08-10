@@ -501,17 +501,15 @@ namespace transport
 	}
 
 	std::shared_ptr<SSU2Session> SSU2Server::GetRandomPeerTestSession (
-		i2p::data::RouterInfo::CompatibleTransports remoteTransports, const i2p::data::IdentHash& excluded) const
+		i2p::data::RouterInfo::CompatibleTransports remoteTransports, const i2p::data::IdentHash& excluded)
 	{
 		if (m_Sessions.empty ()) return nullptr;
-		uint16_t ind;
-		RAND_bytes ((uint8_t *)&ind, sizeof (ind));
-		ind %= m_Sessions.size ();
+		int ind = m_Rng () % m_Sessions.size ();
 		auto it = m_Sessions.begin ();
 		std::advance (it, ind);
 		while (it != m_Sessions.end ())
 		{
-			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
+			if (it->second->IsEstablished () && (it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++;
@@ -520,7 +518,7 @@ namespace transport
 		it = m_Sessions.begin ();
 		while (it != m_Sessions.end () && ind)
 		{
-			if ((it->second->GetRemotePeerTestTransports () & remoteTransports) &&
+			if (it->second->IsEstablished () && (it->second->GetRemotePeerTestTransports () & remoteTransports) &&
 			    it->second->GetRemoteIdentity ()->GetIdentHash () != excluded)
 				return it->second;
 			it++; ind--;
