@@ -981,7 +981,7 @@ namespace client
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_StreamingOutboundSpeed (DEFAULT_MAX_OUTBOUND_SPEED),
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
-		m_DatagramDestination (nullptr), m_RefCounter (0),
+		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
 		m_ReadyChecker(service)
 	{
 		if (keys.IsOfflineSignature () && GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_LEASESET)
@@ -1101,7 +1101,6 @@ namespace client
 	void ClientDestination::Stop ()
 	{
 		LogPrint(eLogDebug, "Destination: Stopping destination ", GetIdentHash().ToBase32(), ".b32.i2p");
-		LeaseSetDestination::Stop ();
 		m_ReadyChecker.cancel();
 		LogPrint(eLogDebug, "Destination: -> Stopping Streaming Destination");
 		m_StreamingDestination->Stop ();
@@ -1123,6 +1122,7 @@ namespace client
 			delete m_DatagramDestination;
 			m_DatagramDestination = nullptr;
 		}
+		LeaseSetDestination::Stop ();
 		LogPrint(eLogDebug, "Destination: -> Stopping done");
 	}
 
@@ -1430,12 +1430,19 @@ namespace client
 			if (m_StandardEncryptionKey)
 				keySections.push_back ({m_StandardEncryptionKey->keyType, (uint16_t)m_StandardEncryptionKey->decryptor->GetPublicKeyLen (), m_StandardEncryptionKey->pub} );
 
+			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			if (publishedTimestamp <= m_LastPublishedTimestamp) 
+			{
+				LogPrint (eLogDebug, "Destination: LeaseSet update at the same second");
+				publishedTimestamp++; // force newer timestamp
+			}	
 			bool isPublishedEncrypted = GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
-				m_Keys, keySections, tunnels, IsPublic (), isPublishedEncrypted);
+				m_Keys, keySections, tunnels, IsPublic (), publishedTimestamp, isPublishedEncrypted);
 			if (isPublishedEncrypted) // encrypt if type 5
 				ls2 = std::make_shared<i2p::data::LocalEncryptedLeaseSet2> (ls2, m_Keys, GetAuthType (), m_AuthKeys);
 			leaseSet = ls2;
+			m_LastPublishedTimestamp = publishedTimestamp;
 		}
 		SetLeaseSet (leaseSet);
 	}

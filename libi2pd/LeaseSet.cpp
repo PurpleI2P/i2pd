@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -808,7 +808,7 @@ namespace data
 
 	LocalLeaseSet2::LocalLeaseSet2 (uint8_t storeType, const i2p::data::PrivateKeys& keys,
 		const KeySections& encryptionKeys, const std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> >& tunnels,
-		bool isPublic, bool isPublishedEncrypted):
+		bool isPublic, uint64_t publishedTimestamp, bool isPublishedEncrypted):
 		LocalLeaseSet (keys.GetPublic (), nullptr, 0)
 	{
 		auto identity = keys.GetPublic ();
@@ -837,8 +837,7 @@ namespace data
 		m_Buffer[0] = storeType;
 		// LS2 header
 		auto offset = identity->ToBuffer (m_Buffer + 1, m_BufferLen) + 1;
-		auto timestamp = i2p::util::GetSecondsSinceEpoch ();
-		htobe32buf (m_Buffer + offset, timestamp); offset += 4; // published timestamp (seconds)
+		htobe32buf (m_Buffer + offset, publishedTimestamp); offset += 4; // published timestamp (seconds)
 		uint8_t * expiresBuf = m_Buffer + offset; offset += 2; // expires, fill later
 		htobe16buf (m_Buffer + offset, flags); offset += 2; // flags
 		if (keys.IsOfflineSignature ())
@@ -875,13 +874,13 @@ namespace data
 		if (expirationTime)
 		{
 			SetExpirationTime (expirationTime*1000LL);
-			auto expires = (int)expirationTime - timestamp;
+			auto expires = (int)expirationTime - publishedTimestamp;
 			htobe16buf (expiresBuf, expires > 0 ? expires : 0);
 		}
 		else
 		{
 			// no tunnels or withdraw
-			SetExpirationTime (timestamp*1000LL);
+			SetExpirationTime (publishedTimestamp*1000LL);
 			memset (expiresBuf, 0, 2); // expires immeditely
 		}
 		// sign
