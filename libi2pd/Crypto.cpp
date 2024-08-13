@@ -997,6 +997,15 @@ namespace crypto
 		}
 		else
 		{
+#if defined(LIBRESSL_VERSION_NUMBER)
+			std::vector<uint8_t> m(msgLen + 16);
+			if (msg == buf)
+			{	
+				// we have to use different buffers otherwise verification fails
+				memcpy (m.data (), msg, msgLen + 16);
+				msg = m.data ();
+			}	
+#endif			
 			EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), 0, 0, 0);
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, 12, 0);
 			EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, (uint8_t *)(msg + msgLen));
