@@ -78,7 +78,7 @@ namespace stream
 
 		Packet (): len (0), offset (0), sendTime (0), resent (false) {};
 		uint8_t * GetBuffer () { return buf + offset; };
-		size_t GetLength () const { return len - offset; };
+		size_t GetLength () const { return len > offset ? len - offset : 0; };
 
 		uint32_t GetSendStreamID () const { return bufbe32toh (buf); };
 		uint32_t GetReceiveStreamID () const { return bufbe32toh (buf + 4); };

@@ -297,6 +297,11 @@ namespace stream
 	{
 		const uint8_t * optionData = packet->GetOptionData ();
 		size_t optionSize = packet->GetOptionSize ();
+		if (optionSize > packet->len)
+		{
+			LogPrint (eLogInfo, "Streaming: Invalid option size ", optionSize, " Discarded");
+			return false;
+		}	
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 		{
 			if (!m_IsAckSendScheduled)
