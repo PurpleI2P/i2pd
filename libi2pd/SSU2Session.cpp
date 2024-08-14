@@ -91,7 +91,7 @@ namespace transport
 		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
-		m_LastResendTime (0)
+		m_LastResendTime (0), m_LastResendAttemptTime (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -548,6 +548,8 @@ namespace transport
 
 	size_t SSU2Session::Resend (uint64_t ts)
 	{
+		if (ts + SSU2_RESEND_ATTEMPT_MIN_INTERVAL < m_LastResendAttemptTime) return 0;
+		m_LastResendAttemptTime = ts;
 		// resend handshake packet
 		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->sendTime + SSU2_HANDSHAKE_RESEND_INTERVAL)
 		{
@@ -3131,6 +3133,8 @@ namespace transport
 			m_Handler.Flush ();
 			m_IsDataReceived = false;
 		}
+		else if (!sent && !m_SentPackets.empty ()) // if only acks received, nothing sent and we still have something to resend
+			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
 
 }

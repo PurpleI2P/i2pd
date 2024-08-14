@@ -37,6 +37,7 @@ namespace transport
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
+	const int SSU2_RESEND_ATTEMPT_MIN_INTERVAL = 3; // in milliseconds
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const int SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS = 5000; // how many msgID we store for duplicates check
 	const int SSU2_RECEIVED_I2NP_MSGIDS_CLEANUP_TIMEOUT = 10; // in seconds
@@ -373,7 +374,7 @@ namespace transport
 			size_t m_MaxPayloadSize;
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
-			uint64_t m_LastResendTime; // in milliseconds
+			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
