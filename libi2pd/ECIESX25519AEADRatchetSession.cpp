@@ -229,6 +229,29 @@ namespace garlic
 		tagsetNsr->NextSessionTagRatchet ();
 	}
 
+	bool ECIESX25519AEADRatchetSession::MessageConfirmed (uint32_t msgID)
+	{
+		auto ret = GarlicRoutingSession::MessageConfirmed (msgID); // LeaseSet
+		if (m_AckRequestMsgID && m_AckRequestMsgID == msgID)
+		{
+			m_AckRequestMsgID = 0;
+			m_AckRequestNumAttempts = 0;
+			ret = true;
+		}	
+		return ret;
+	}	
+
+	bool ECIESX25519AEADRatchetSession::CleanupUnconfirmedTags ()
+	{
+		if (m_AckRequestMsgID && m_AckRequestNumAttempts > ECIESX25519_ACK_REQUEST_MAX_NUM_ATTEMPTS)
+		{
+			m_AckRequestMsgID = 0;
+			m_AckRequestNumAttempts = 0;
+			return true;	
+		}
+		return false;
+	}	
+		
 	bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
 	{
 		if (!GetOwner ()) return false;
@@ -335,7 +358,7 @@ namespace garlic
 					{
 						uint32_t tagsetid = bufbe16toh (buf + offset1); offset1 += 2; // tagsetid
 						uint16_t n = bufbe16toh (buf + offset1); offset1 += 2; // N
-						MessageConfirmed ((tagsetid << 16) + n); // msgid
+						MessageConfirmed ((tagsetid << 16) + n); // msgid = (tagsetid << 16) + N
 					}
 					break;
 				}
@@ -860,6 +883,7 @@ namespace garlic
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
+		bool sendAckRequest = false;
 		if (first) payloadLen += 7;// datatime
 		if (msg)
 		{
@@ -878,13 +902,28 @@ namespace garlic
 			payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;
 			if (!first)
 			{
-				// ack request
+				// ack request for LeaseSet
+				m_AckRequestMsgID = m_SendTagset->GetMsgID ();
+				sendAckRequest = true;
+				// update LeaseSet status
 				SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
-				SetLeaseSetUpdateMsgID ((m_SendTagset->GetTagSetID () << 16) + m_SendTagset->GetNextIndex ()); // (tagsetid << 16) + N
+				SetLeaseSetUpdateMsgID (m_AckRequestMsgID);
 				SetLeaseSetSubmissionTime (ts);
-				payloadLen += 4;
 			}
 		}
+		if (!sendAckRequest && !first &&
+		    ((!m_AckRequestMsgID && ts > m_LastAckRequestSendTime + ECIESX25519_ACK_REQUEST_INTERVAL) || // regular request
+		     (m_AckRequestMsgID && ts > m_LastAckRequestSendTime + LEASESET_CONFIRMATION_TIMEOUT))) // previous request failed. try again
+		{	
+			// not LeaseSet
+			m_AckRequestMsgID = m_SendTagset->GetMsgID ();
+			if (m_AckRequestMsgID)
+			{	
+				m_AckRequestNumAttempts++;
+				sendAckRequest = true;
+			}	
+		}	
+		if (sendAckRequest) payloadLen += 4;
 		if (m_AckRequests.size () > 0)
 			payloadLen += m_AckRequests.size ()*4 + 3;
 		if (m_SendReverseKey)
@@ -936,16 +975,15 @@ namespace garlic
 			}
 			// LeaseSet
 			if (leaseSet)
-			{
 				offset += CreateLeaseSetClove (leaseSet, ts, payload + offset, payloadLen - offset);
-				if (!first)
-				{
-					// ack request
-					payload[offset] = eECIESx25519BlkAckRequest; offset++;
-					htobe16buf (payload + offset, 1); offset += 2;
-					payload[offset] = 0; offset++; // flags
-				}
-			}
+			// ack request
+			if (sendAckRequest)
+			{
+				payload[offset] = eECIESx25519BlkAckRequest; offset++;
+				htobe16buf (payload + offset, 1); offset += 2;
+				payload[offset] = 0; offset++; // flags
+				m_LastAckRequestSendTime = ts;
+			}	
 			// msg
 			if (msg)
 				offset += CreateGarlicClove (msg, payload + offset, payloadLen - offset);

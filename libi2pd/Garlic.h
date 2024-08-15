@@ -109,7 +109,7 @@ namespace garlic
 			GarlicRoutingSession ();
 			virtual ~GarlicRoutingSession ();
 			virtual std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg) = 0;
-			virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession
+			virtual bool CleanupUnconfirmedTags () { return false; }; // for I2CP, override in ElGamalAESSession and ECIESX25519AEADRatchetSession
 			virtual bool MessageConfirmed (uint32_t msgID);
 			virtual bool IsRatchets () const { return false; };
 			virtual bool IsReadyToSend () const { return true; };
