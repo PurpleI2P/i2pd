@@ -86,6 +86,8 @@ namespace client
 	const int DEFAULT_INITIAL_ACK_DELAY = 200; // milliseconds
 	const char I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED[] = "i2p.streaming.maxOutboundSpeed"; // bytes/sec
 	const int DEFAULT_MAX_OUTBOUND_SPEED = 1730000000; // no more than 1.73 Gbytes/s
+	const char I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED[] = "i2p.streaming.maxInboundSpeed"; // bytes/sec
+	const int DEFAULT_MAX_INBOUND_SPEED = 1730000000; // no more than 1.73 Gbytes/s
 	const char I2CP_PARAM_STREAMING_ANSWER_PINGS[] = "i2p.streaming.answerPings";
 	const int DEFAULT_ANSWER_PINGS = true;
 
@@ -262,6 +264,7 @@ namespace client
 			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 			int GetStreamingOutboundSpeed () const { return m_StreamingOutboundSpeed; }
+			int GetStreamingInboundSpeed () const { return m_StreamingInboundSpeed; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
 
 			// datagram
@@ -300,6 +303,7 @@ namespace client
 
 			int m_StreamingAckDelay;
 			int m_StreamingOutboundSpeed;
+			int m_StreamingInboundSpeed;
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;

@@ -70,6 +70,7 @@ namespace stream
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
 		m_SendStreamID (0), m_SequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
+		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (true),
 		m_IsTimeOutResend (false), m_LocalDestination (local),
@@ -78,18 +79,25 @@ namespace stream
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
 		m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0),
+		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
+		m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
 		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
 		if (outboundSpeed)
 			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;
+		
+		auto inboundSpeed = local.GetOwner ()->GetStreamingInboundSpeed (); // for limit inbound speed
+		if (inboundSpeed)
+			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
+		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (true),
 		m_IsTimeOutResend (false), m_LocalDestination (local),
@@ -98,12 +106,18 @@ namespace stream
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0),
+		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
+		m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
 		if (outboundSpeed)
-			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;	
+			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;
+		
+		auto inboundSpeed = local.GetOwner ()->GetStreamingInboundSpeed (); // for limit inbound speed
+		if (inboundSpeed)
+			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
 	Stream::~Stream ()
@@ -754,10 +768,26 @@ namespace stream
 	void Stream::SendQuickAck ()
 	{
 		int32_t lastReceivedSeqn = m_LastReceivedSequenceNumber;
+		// for limit inbound speed
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		int numPackets = 0;
+		int64_t passedTime = m_PacketACKInterval * INITIAL_WINDOW_SIZE; // in microseconds // while m_LastACKSendTime == 0
+		if (m_LastACKSendTime)
+			passedTime = (ts - m_LastACKSendTime)*1000; // in microseconds
+		numPackets = (passedTime + m_PacketACKIntervalRem) / m_PacketACKInterval;
+		m_PacketACKIntervalRem = (passedTime + m_PacketACKIntervalRem) - (numPackets * m_PacketACKInterval);
+		if (m_LastConfirmedReceivedSequenceNumber + numPackets < m_LastReceivedSequenceNumber)
+			lastReceivedSeqn = m_LastConfirmedReceivedSequenceNumber + numPackets;
+		if (numPackets == 0) return;
+		// for limit inbound speed
 		if (!m_SavedPackets.empty ())
 		{
-			int32_t seqn = (*m_SavedPackets.rbegin ())->GetSeqn ();
-			if (seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+			for (auto it: m_SavedPackets)
+			{
+				auto seqn = it->GetSeqn ();
+				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) break; // for limit inbound speed
+				if (seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+			}
 		}
 		if (lastReceivedSeqn < 0)
 		{
@@ -786,6 +816,11 @@ namespace stream
 			for (auto it: m_SavedPackets)
 			{
 				auto seqn = it->GetSeqn ();
+				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) // for limit inbound speed
+				{
+					htobe32buf (packet + 12, nextSeqn - 1);
+					break;
+				}
 				if (numNacks + (seqn - nextSeqn) >= 256)
 				{
 					LogPrint (eLogError, "Streaming: Number of NACKs exceeds 256. seqn=", seqn, " nextSeqn=", nextSeqn);
@@ -827,6 +862,8 @@ namespace stream
 		p.len = size;
 
 		SendPackets (std::vector<Packet *> { &p });
+		m_LastACKSendTime = ts; // for limit inbound speed
+		m_LastConfirmedReceivedSequenceNumber = lastReceivedSeqn; // for limit inbound speed
 		LogPrint (eLogDebug, "Streaming: Quick Ack sent. ", (int)numNacks, " NACKs");
 	}
 

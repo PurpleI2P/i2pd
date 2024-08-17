@@ -249,6 +249,7 @@ namespace stream
 			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			int32_t m_PreviousReceivedSequenceNumber;
+			int32_t m_LastConfirmedReceivedSequenceNumber; // for limit inbound speed
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
 			bool m_IsNAcked;
@@ -277,6 +278,7 @@ namespace stream
 			float m_WindowSize, m_LastWindowDropSize;
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
+			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
 	};
