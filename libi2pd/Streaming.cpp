@@ -236,7 +236,8 @@ namespace stream
 					if (!m_IsAckSendScheduled)
 					{	
 						// send NACKs for missing messages 
-						int ackTimeout = MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ();
+						SendQuickAck (); 
+						auto ackTimeout = m_RTT/10;
 						if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
 						ScheduleAck (ackTimeout);
 					}	
