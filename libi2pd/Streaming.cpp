@@ -786,7 +786,7 @@ namespace stream
 			{
 				auto seqn = it->GetSeqn ();
 				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) break; // for limit inbound speed
-				if (seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+				if ((int)seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
 			}
 		}
 		if (lastReceivedSeqn < 0)
