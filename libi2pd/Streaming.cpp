@@ -237,8 +237,14 @@ namespace stream
  					UpdateCurrentRemoteLease ();
  				}
  				m_PreviousReceivedSequenceNumber = receivedSeqn;
-				SendQuickAck (); // resend ack for previous message again
 				m_LocalDestination.DeletePacket (packet); // packet dropped
+				if (!m_IsAckSendScheduled)
+				{
+					SendQuickAck (); // resend ack for previous message again
+					auto ackTimeout = m_RTT/10;
+					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+					ScheduleAck (ackTimeout);
+				}
 			}
 			else
 			{
