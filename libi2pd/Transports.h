@@ -72,17 +72,18 @@ namespace transport
 		uint64_t creationTime, nextRouterInfoUpdateTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
-		bool isHighBandwidth, isReachable;
+		bool isHighBandwidth, isEligible;
 
 		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
 			numAttempts (0), router (r), creationTime (ts),
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
-			isHighBandwidth (false), isReachable (false)
+			isHighBandwidth (false), isEligible (false)
 		{
 			if (router)
 			{		
 				isHighBandwidth = router->IsHighBandwidth ();
-				isReachable = (bool)router->GetCompatibleTransports (true);
+				isEligible = router->IsECIES () && (bool)router->GetCompatibleTransports (true) && // reachable
+					router->GetCongestion () != i2p::data::RouterInfo::eRejectAll;	
 			}	
 		}
 			
@@ -101,7 +102,8 @@ namespace transport
 			if (router)
 			{	
 				isHighBandwidth = router->IsHighBandwidth ();
-				isReachable = (bool)router->GetCompatibleTransports (true);
+				isEligible = router->IsECIES () && (bool)router->GetCompatibleTransports (true) && // reachable
+					router->GetCongestion () != i2p::data::RouterInfo::eRejectAll;
 			}	
 		}
 
