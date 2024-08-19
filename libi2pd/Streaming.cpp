@@ -1418,6 +1418,16 @@ namespace stream
 			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
 		}
+		// drop window to initial upon RemoteLease change
+		m_RTO = INITIAL_RTO;
+		m_WindowSize = INITIAL_WINDOW_SIZE;
+		m_LastWindowDropSize = 0;
+		m_WindowIncCounter = 0;
+		m_IsWinDropped = true;
+		m_IsFirstRttSample = true;
+		m_DropWindowDelayTime = 0;
+		m_IsFirstACK = true;
+		UpdatePacingTime ();
 	}
 
 	void Stream::ResetRoutingPath ()
