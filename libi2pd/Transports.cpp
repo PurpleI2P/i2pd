@@ -131,6 +131,17 @@ namespace transport
 			LogPrint(eLogError, "Transports: Return null DHKeys");
 	}
 
+	void Peer::UpdateParams (std::shared_ptr<const i2p::data::RouterInfo> router)
+	{
+		if (router)
+		{		
+			isHighBandwidth = router->IsHighBandwidth ();
+			isEligible =(bool)router->GetCompatibleTransports (true) && // reachable
+				router->GetCongestion () != i2p::data::RouterInfo::eRejectAll && // accepts tunnel
+				router->IsECIES () && router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION; // not too old
+		}	
+	}	
+		
 	Transports transports;
 
 	Transports::Transports ():

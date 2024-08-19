@@ -79,12 +79,7 @@ namespace transport
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
 			isHighBandwidth (false), isEligible (false)
 		{
-			if (router)
-			{		
-				isHighBandwidth = router->IsHighBandwidth ();
-				isEligible = router->IsECIES () && (bool)router->GetCompatibleTransports (true) && // reachable
-					router->GetCongestion () != i2p::data::RouterInfo::eRejectAll;	
-			}	
+			UpdateParams (router);
 		}
 			
 		void Done ()
@@ -99,15 +94,11 @@ namespace transport
 		void SetRouter (std::shared_ptr<const i2p::data::RouterInfo> r)
 		{
 			router = r;
-			if (router)
-			{	
-				isHighBandwidth = router->IsHighBandwidth ();
-				isEligible = router->IsECIES () && (bool)router->GetCompatibleTransports (true) && // reachable
-					router->GetCongestion () != i2p::data::RouterInfo::eRejectAll;
-			}	
+			UpdateParams (router);
 		}
 
-		bool IsConnected () const { return !sessions.empty (); }	
+		bool IsConnected () const { return !sessions.empty (); }
+		void UpdateParams (std::shared_ptr<const i2p::data::RouterInfo> router);
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
