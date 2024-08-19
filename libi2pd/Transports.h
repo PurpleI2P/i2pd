@@ -64,12 +64,13 @@ namespace transport
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds
 	const size_t PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE = 25;
+	const int PEER_SELECTION_MIN_INTERVAL = 20; // in seconds
 	struct Peer
 	{
 		int numAttempts;
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::list<std::shared_ptr<TransportSession> > sessions;
-		uint64_t creationTime, nextRouterInfoUpdateTime;
+		uint64_t creationTime, nextRouterInfoUpdateTime, lastSelectionTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
 		bool isHighBandwidth, isEligible;
@@ -77,7 +78,7 @@ namespace transport
 		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
 			numAttempts (0), router (r), creationTime (ts),
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
-			isHighBandwidth (false), isEligible (false)
+			lastSelectionTime (0), isHighBandwidth (false), isEligible (false) 
 		{
 			UpdateParams (router);
 		}

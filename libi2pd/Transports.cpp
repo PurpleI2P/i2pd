@@ -977,6 +977,7 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (Filter filter) const
 	{
 		if (m_Peers.empty()) return nullptr;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		bool found = false;
 		i2p::data::IdentHash ident;
 		{
@@ -1017,9 +1018,11 @@ namespace transport
 				it = it1;
 				while (it != it2 && it != m_Peers.end ())
 				{
-					if (filter (it->second))
+					if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+					    filter (it->second))
 					{
 						ident = it->first;
+						it->second->lastSelectionTime = ts;
 						found = true;
 						break;
 					}
@@ -1031,9 +1034,11 @@ namespace transport
 					it = m_Peers.begin ();
 					while (it != it1 && it != m_Peers.end ())
 					{
-						if (filter (it->second))
+						if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+						    filter (it->second))
 						{
 							ident = it->first;
+							it->second->lastSelectionTime = ts;
 							found = true;
 							break;
 						}
@@ -1045,9 +1050,11 @@ namespace transport
 						it = it2;
 						while (it != m_Peers.end ())
 						{
-							if (filter (it->second))
+							if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+							    filter (it->second))
 							{
 								ident = it->first;
+								it->second->lastSelectionTime = ts;
 								found = true;
 								break;
 							}
