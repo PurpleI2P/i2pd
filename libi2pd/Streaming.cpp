@@ -79,9 +79,9 @@ namespace stream
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
 		m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
-		m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_NumPacketsToResend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -106,9 +106,9 @@ namespace stream
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
-		m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_NumPacketsToResend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
@@ -461,6 +461,7 @@ namespace stream
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
+		m_NumPacketsToResend = nackCount;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
 			auto seqn = (*it)->GetSeqn ();
@@ -1201,6 +1202,7 @@ namespace stream
 			m_IsTimeOutResend = true;
 			m_IsNAcked = false;
 			m_IsResendNeeded = false;
+			m_NumPacketsToSend = 1;
 			ResendPacket (); // send one packet per RTO, waiting for ack
 		}
 	}
@@ -1217,6 +1219,7 @@ namespace stream
 			}
 
 			// collect packets to resend
+			int numPacketsToResend = m_NumPacketsToResend;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
@@ -1226,10 +1229,13 @@ namespace stream
 					if (ts < it->sendTime + m_RTO*2)
 						it->resent = true;
 					else
+					{
 						it->resent = false;
-					it->sendTime = ts;
+						it->sendTime = ts;
+					}
 					packets.push_back (it);
-					if (int(packets.size ()) >= m_NumPacketsToSend) break;
+					m_NumPacketsToResend--;
+					if ((int)packets.size () >= m_NumPacketsToSend || (int)packets.size () >= numPacketsToResend) break;
 				}
 			}
 			
