@@ -102,15 +102,15 @@ namespace client
 		i2p::data::LocalLeaseSet ls (m_Identity, priv, tunnels); // we don't care about encryption key, we need leases only
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
-		leases[-1] = tunnels.size ();
-		if (m_Owner)
+		int numLeases = leases[-1];
+		if (m_Owner && numLeases)
 		{
 			uint16_t sessionID = m_Owner->GetSessionID ();
 			if (sessionID != 0xFFFF)
 			{
 				m_IsCreatingLeaseSet = true;
 				htobe16buf (leases - 3, sessionID);
-				size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
+				size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*numLeases;
 				m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l);
 				m_LeaseSetCreationTimer.expires_from_now (boost::posix_time::seconds (I2CP_LEASESET_CREATION_TIMEOUT));
 				auto s = GetSharedFromThis ();
@@ -124,6 +124,8 @@ namespace client
 				});
 			}
 		}
+		else
+			LogPrint (eLogError, "I2CP: Can't request LeaseSet");
 	}
 
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)

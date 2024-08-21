@@ -728,25 +728,41 @@ namespace data
 		memset (m_Buffer + offset, 0, signingKeyLen);
 		offset += signingKeyLen;
 		// num leases
+		auto numLeasesPos = offset;	
 		m_Buffer[offset] = num;
 		offset++;
 		// leases
 		m_Leases = m_Buffer + offset;
 		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
+		int skipped = 0;
 		for (int i = 0; i < num; i++)
 		{
+			uint64_t ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
+			ts *= 1000; // in milliseconds
+			if (ts <= currentTime)
+			{
+				// already expired, skip
+				skipped++;
+				continue;
+			}	
+			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
+			// make sure leaseset is newer than previous, but adding some time to expiration date
+			ts += (currentTime - tunnels[i]->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
 			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
 			offset += 32; // gateway id
 			htobe32buf (m_Buffer + offset, tunnels[i]->GetNextTunnelID ());
 			offset += 4; // tunnel id
-			uint64_t ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
-			ts *= 1000; // in milliseconds
-			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
-			// make sure leaseset is newer than previous, but adding some time to expiration date
-			ts += (currentTime - tunnels[i]->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
 			htobe64buf (m_Buffer + offset, ts);
 			offset += 8; // end date
 		}
+		if (skipped > 0)
+		{
+			// adjust num leases
+			if (skipped > num) skipped = num;
+			num -= skipped;
+			m_BufferLen -= skipped*LEASE_SIZE;
+			m_Buffer[numLeasesPos] = num;
+		}	
 		// we don't sign it yet. must be signed later on
 	}
 
