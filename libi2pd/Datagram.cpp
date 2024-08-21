@@ -288,8 +288,8 @@ namespace datagram
 
 	DatagramSession::DatagramSession(std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		const i2p::data::IdentHash & remoteIdent) :
-		m_LocalDestination(localDestination),
-		m_RemoteIdent(remoteIdent),
+		m_LocalDestination(localDestination), m_RemoteIdent(remoteIdent),
+		m_LastUse (0), m_LastFlush (0),
 		m_RequestingLS(false)
 	{
 	}
@@ -310,8 +310,12 @@ namespace datagram
 		if (msg || m_SendQueue.empty ())
 			m_SendQueue.push_back(msg);
 		// flush queue right away if full
-		if (!msg || m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE)
+		if (!msg || m_SendQueue.size() >= DATAGRAM_SEND_QUEUE_MAX_SIZE || 
+		    m_LastUse > m_LastFlush + DATAGRAM_MAX_FLUSH_INTERVAL)
+		{	
 			FlushSendQueue();
+			m_LastFlush = ts;
+		}
 	}
 
 	DatagramSession::Info DatagramSession::GetSessionInfo() const
@@ -344,7 +348,7 @@ namespace datagram
 		if(path)
 			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
 		if (IsRatchets ())
-			SendMsg (nullptr); // send empty message in case if we have some data to send
+			SendMsg (nullptr); // send empty message in case if we don't have some data to send
 	}
 
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetSharedRoutingPath ()

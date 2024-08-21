@@ -43,6 +43,7 @@ namespace datagram
 	const uint64_t DATAGRAM_SESSION_PATH_MIN_LIFETIME = 5 * 1000;
 	// max 64 messages buffered in send queue for each datagram session
 	const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
+	const uint64_t DATAGRAM_MAX_FLUSH_INTERVAL = 5; // in milliseconds
 
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
@@ -98,7 +99,7 @@ namespace datagram
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			std::vector<std::shared_ptr<i2p::garlic::GarlicRoutingSession> > m_PendingRoutingSessions;
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
-			uint64_t m_LastUse;
+			uint64_t m_LastUse, m_LastFlush; // milliseconds
 			bool m_RequestingLS;
 	};
 
