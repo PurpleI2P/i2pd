@@ -858,11 +858,17 @@ namespace data
 		}
 		// leases
 		uint32_t expirationTime = 0; // in seconds
+		int skipped = 0; auto numLeasesPos = offset;
 		m_Buffer[offset] = num; offset++; // num leases
 		for (int i = 0; i < num; i++)
 		{
 			auto ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // in seconds, 1 minute before expiration
-			if (ts <= publishedTimestamp) continue; // already expired, skip
+			if (ts <= publishedTimestamp) 
+			{	
+				// already expired, skip
+				skipped++;
+				continue; 
+			}	
 			if (ts > expirationTime) expirationTime = ts;
 			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
 			offset += 32; // gateway id
@@ -871,6 +877,14 @@ namespace data
 			htobe32buf (m_Buffer + offset, ts);
 			offset += 4; // end date
 		}
+		if (skipped > 0)
+		{
+			// adjust num leases
+			if (skipped > num) skipped = num;
+			num -= skipped;
+			m_BufferLen -= skipped*LEASE2_SIZE;
+			m_Buffer[numLeasesPos] = num;
+		}	
 		// update expiration
 		if (expirationTime)
 		{
