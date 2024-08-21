@@ -314,7 +314,7 @@ namespace datagram
 		    m_LastUse > m_LastFlush + DATAGRAM_MAX_FLUSH_INTERVAL)
 		{	
 			FlushSendQueue();
-			m_LastFlush = ts;
+			m_LastFlush =  m_LastUse;
 		}
 	}
 
