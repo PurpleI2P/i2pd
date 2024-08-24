@@ -64,7 +64,7 @@ namespace chinese // language namespace
 		{"Full cone NAT", "全锥型NAT"},
 		{"No Descriptors", "无描述符"},
 		{"Uptime", "运行时间"},
-		{"Network status", "IPv4 网络状态"},
+		{"Network status", "网络状态"},
 		{"Network status v6", "IPv6 网络状态"},
 		{"Stopping in", "距停止还有："},
 		{"Family", "家族"},
