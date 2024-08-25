@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <list>
 #include <thread>
+#include <iomanip>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Base.h"
@@ -27,14 +28,9 @@ namespace data
 	static std::unordered_map<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > g_Profiles;
 	static std::mutex g_ProfilesMutex;
 
-	static boost::posix_time::ptime GetTime ()
-	{
-		return boost::posix_time::second_clock::local_time();
-	}
-
 	RouterProfile::RouterProfile ():
-		m_LastUpdateTime (GetTime ()), m_IsUpdated (false),
-		m_LastDeclineTime (0), m_LastUnreachableTime (0),
+		m_IsUpdated (false), m_LastDeclineTime (0), m_LastUnreachableTime (0),
+		m_LastUpdateTime (i2p::util::GetSecondsSinceEpoch ()), 
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0), m_HasConnected (false),
 		m_IsDuplicated (false)
@@ -43,7 +39,7 @@ namespace data
 
 	void RouterProfile::UpdateTime ()
 	{
-		m_LastUpdateTime = GetTime ();
+		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 		m_IsUpdated = true;
 	}
 
@@ -62,7 +58,7 @@ namespace data
 			usage.put (PEER_PROFILE_USAGE_DUPLICATED, true);
 		// fill property tree
 		boost::property_tree::ptree pt;
-		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
+		pt.put (PEER_PROFILE_LAST_UPDATE_TIMESTAMP, m_LastUpdateTime);
 		if (m_LastUnreachableTime)
 			pt.put (PEER_PROFILE_LAST_UNREACHABLE_TIME, m_LastUnreachableTime);
 		pt.put_child (PEER_PROFILE_SECTION_PARTICIPATION, participation);
@@ -104,10 +100,22 @@ namespace data
 
 		try
 		{
-			auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
-			if (t.length () > 0)
-				m_LastUpdateTime = boost::posix_time::time_from_string (t);
-			if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT)
+			auto ts = pt.get (PEER_PROFILE_LAST_UPDATE_TIMESTAMP, 0);
+			if (ts)
+				m_LastUpdateTime = ts;
+			else	
+			{	
+				// try old lastupdatetime 
+				auto ut = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
+				if (ut.length () > 0)
+				{	
+					std::istringstream ss (ut); std::tm t;
+					ss >> std::get_time(&t, "%Y-%b-%d %H:%M:%S");
+					if (!ss.fail())
+						m_LastUpdateTime = mktime (&t); // t is local time
+				}	
+			}	
+			if (i2p::util::GetSecondsSinceEpoch () - m_LastUpdateTime < PEER_PROFILE_EXPIRATION_TIMEOUT)
 			{
 				m_LastUnreachableTime = pt.get (PEER_PROFILE_LAST_UNREACHABLE_TIME, 0);
 				try
@@ -277,13 +285,13 @@ namespace data
 		
 	std::future<void> PersistProfiles ()
 	{
-		auto ts = GetTime ();
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		std::list<std::pair<i2p::data::IdentHash, std::shared_ptr<RouterProfile> > > tmp;
 		{
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 			{
-				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () > PEER_PROFILE_PERSIST_INTERVAL)
+				if (ts - it->second->GetLastUpdateTime () > PEER_PROFILE_PERSIST_INTERVAL)
 				{
 					if (it->second->IsUpdated ())
 						tmp.push_back (std::make_pair (it->first, it->second));
@@ -305,9 +313,9 @@ namespace data
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			std::swap (tmp, g_Profiles);
 		}
-		auto ts = GetTime ();
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto& it: tmp)
-			if (it.second->IsUseful() && (it.second->IsUpdated () || (ts - it.second->GetLastUpdateTime ()).total_seconds () < PEER_PROFILE_EXPIRATION_TIMEOUT*3600))
+			if (it.second->IsUseful() && (it.second->IsUpdated () || ts - it.second->GetLastUpdateTime () < PEER_PROFILE_EXPIRATION_TIMEOUT))
 				it.second->Save (it.first);
 	}
 
@@ -325,7 +333,7 @@ namespace data
 				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
 				continue;
 			}
-			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600) 
+			if (now - st.st_mtime >= PEER_PROFILE_EXPIRATION_TIMEOUT) 
 			{
 				LogPrint(eLogDebug, "Profiling: Removing expired peer profile: ", path);
 				i2p::fs::Remove(path);
@@ -336,11 +344,11 @@ namespace data
 	std::future<void> DeleteObsoleteProfiles ()
 	{
 		{
-			auto ts = GetTime ();
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			std::unique_lock<std::mutex> l(g_ProfilesMutex);
 			for (auto it = g_Profiles.begin (); it != g_Profiles.end ();)
 			{
-				if ((ts - it->second->GetLastUpdateTime ()).total_seconds () >= PEER_PROFILE_EXPIRATION_TIMEOUT*3600)
+				if (ts - it->second->GetLastUpdateTime () >= PEER_PROFILE_EXPIRATION_TIMEOUT)
 					it = g_Profiles.erase (it);
 				else
 					it++;

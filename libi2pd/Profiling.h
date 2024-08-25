@@ -11,7 +11,6 @@
 
 #include <memory>
 #include <future>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Identity.h"
 
 namespace i2p
@@ -22,7 +21,8 @@ namespace data
 	const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
 	const char PEER_PROFILE_SECTION_USAGE[] = "usage";
 	// params
-	const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
+	const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime"; // deprecated
+	const char PEER_PROFILE_LAST_UPDATE_TIMESTAMP[] = "lastupdatetimestamp";
 	const char PEER_PROFILE_LAST_UNREACHABLE_TIME[] = "lastunreachabletime";
 	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
 	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
@@ -32,7 +32,7 @@ namespace data
 	const char PEER_PROFILE_USAGE_CONNECTED[] = "connected";
 	const char PEER_PROFILE_USAGE_DUPLICATED[] = "duplicated";
 	
-	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 36; // in hours (1.5 days)
+	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 36*60*60; // in seconds (1.5 days)
 	const int PEER_PROFILE_AUTOCLEAN_TIMEOUT = 1500; // in seconds (25 minutes)
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 900; // in seconds (15 minutes)
 	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT = 5400; // in seconds (1.5 hours)
@@ -62,7 +62,7 @@ namespace data
 			void Connected ();
 			void Duplicated ();
 
-			boost::posix_time::ptime GetLastUpdateTime () const { return m_LastUpdateTime; };
+			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			bool IsUpdated () const { return m_IsUpdated; };
 			
 			bool IsUseful() const;
@@ -79,9 +79,8 @@ namespace data
 
 		private:
 
-			boost::posix_time::ptime m_LastUpdateTime; // TODO: use std::chrono
 			bool m_IsUpdated;
-			uint64_t m_LastDeclineTime, m_LastUnreachableTime; // in seconds
+			uint64_t m_LastDeclineTime, m_LastUnreachableTime, m_LastUpdateTime; // in seconds
 			// participation
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;

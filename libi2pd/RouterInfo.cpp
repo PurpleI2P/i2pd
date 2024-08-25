@@ -12,6 +12,7 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/algorithm/string.hpp> // for boost::to_lower
 #if (BOOST_VERSION >= 105300)
 #include <boost/atomic.hpp>
 #endif

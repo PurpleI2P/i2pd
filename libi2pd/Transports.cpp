@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <boost/algorithm/string.hpp> // for boost::to_lower
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
