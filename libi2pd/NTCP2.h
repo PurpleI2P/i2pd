@@ -14,6 +14,7 @@
 #include <list>
 #include <map>
 #include <array>
+#include <random>
 #include <openssl/bn.h>
 #include <openssl/evp.h>
 #include <boost/asio.hpp>
@@ -35,7 +36,8 @@ namespace transport
 
 	const int NTCP2_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
-	const int NTCP2_TERMINATION_TIMEOUT = 120; // 2 minutes
+	const int NTCP2_TERMINATION_TIMEOUT = 115; // 2 minutes - 5 seconds
+	const int NTCP2_TERMINATION_TIMEOUT_VARIANCE = 10; // 10 seconds
 	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const int NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT = 3; // 3 seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
@@ -103,8 +105,8 @@ namespace transport
 		void KeyDerivationFunction2 (const uint8_t * sessionRequest, size_t sessionRequestLen, const uint8_t * epub); // for SessionCreate
 		void CreateEphemeralKey ();
 
-		void CreateSessionRequestMessage ();
-		void CreateSessionCreatedMessage ();
+		void CreateSessionRequestMessage (std::mt19937& rng);
+		void CreateSessionCreatedMessage (std::mt19937& rng);
 		void CreateSessionConfirmedMessagePart1 (const uint8_t * nonce);
 		void CreateSessionConfirmedMessagePart2 (const uint8_t * nonce);
 
@@ -248,6 +250,7 @@ namespace transport
 			void Start ();
 			void Stop ();
 			boost::asio::io_service& GetService () { return GetIOService (); };
+			std::mt19937& GetRng () { return m_Rng; };
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);
 			void RemoveNTCP2Session (std::shared_ptr<NTCP2Session> session);
@@ -286,6 +289,7 @@ namespace transport
 			boost::asio::ip::tcp::resolver m_Resolver;
 			std::unique_ptr<boost::asio::ip::tcp::endpoint> m_ProxyEndpoint;
 			std::shared_ptr<boost::asio::ip::tcp::endpoint> m_Address4, m_Address6, m_YggdrasilAddress;
+			std::mt19937 m_Rng;
 
 		public:
 

@@ -108,10 +108,10 @@ namespace transport
 		m_EphemeralKeys = i2p::transport::transports.GetNextX25519KeysPair ();
 	}
 
-	void NTCP2Establisher::CreateSessionRequestMessage ()
+	void NTCP2Establisher::CreateSessionRequestMessage (std::mt19937& rng)
 	{
 		// create buffer and fill padding
-		auto paddingLength = rand () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
+		auto paddingLength = rng () % (NTCP2_SESSION_REQUEST_MAX_SIZE - 64); // message length doesn't exceed 287 bytes
 		m_SessionRequestBufferLen = paddingLength + 64;
 		RAND_bytes (m_SessionRequestBuffer + 64, paddingLength);
 		// encrypt X
@@ -149,9 +149,9 @@ namespace transport
 		i2p::crypto::AEADChaCha20Poly1305 (options, 16, GetH (), 32, GetK (), nonce, m_SessionRequestBuffer + 32, 32, true); // encrypt
 	}
 
-	void NTCP2Establisher::CreateSessionCreatedMessage ()
+	void NTCP2Establisher::CreateSessionCreatedMessage (std::mt19937& rng)
 	{
-		auto paddingLen = rand () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
+		auto paddingLen = rng () % (NTCP2_SESSION_CREATED_MAX_SIZE - 64);
 		m_SessionCreatedBufferLen = paddingLen + 64;
 		RAND_bytes (m_SessionCreatedBuffer + 64, paddingLen);
 		// encrypt Y
@@ -349,7 +349,7 @@ namespace transport
 				LogPrint (eLogWarning, "NTCP2: Missing NTCP2 address");
 		}
 		m_NextRouterInfoResendTime = i2p::util::GetSecondsSinceEpoch () + NTCP2_ROUTERINFO_RESEND_INTERVAL +
-			rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
+			m_Server.GetRng ()() % NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
 	}
 
 	NTCP2Session::~NTCP2Session ()
@@ -411,7 +411,7 @@ namespace transport
 	{
 		m_IsEstablished = true;
 		m_Establisher.reset (nullptr);
-		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT);
+		SetTerminationTimeout (NTCP2_TERMINATION_TIMEOUT + m_Server.GetRng ()() % NTCP2_TERMINATION_TIMEOUT_VARIANCE);
 		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
 	}
@@ -464,7 +464,7 @@ namespace transport
 
 	void NTCP2Session::SendSessionRequest ()
 	{
-		m_Establisher->CreateSessionRequestMessage ();
+		m_Establisher->CreateSessionRequestMessage (m_Server.GetRng ());
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionRequestBuffer, m_Establisher->m_SessionRequestBufferLen), boost::asio::transfer_all (),
@@ -542,7 +542,7 @@ namespace transport
 
 	void NTCP2Session::SendSessionCreated ()
 	{
-		m_Establisher->CreateSessionCreatedMessage ();
+		m_Establisher->CreateSessionCreatedMessage (m_Server.GetRng ());
 		// send message
 		m_HandshakeInterval = i2p::util::GetMillisecondsSinceEpoch ();
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->m_SessionCreatedBuffer, m_Establisher->m_SessionCreatedBufferLen), boost::asio::transfer_all (),
@@ -1121,7 +1121,7 @@ namespace transport
 			if (GetLastActivityTimestamp () > m_NextRouterInfoResendTime)
 			{
 				m_NextRouterInfoResendTime += NTCP2_ROUTERINFO_RESEND_INTERVAL +
-					rand ()%NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
+					m_Server.GetRng ()() % NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD;
 				SendRouterInfo ();
 			}
 			else
@@ -1298,7 +1298,8 @@ namespace transport
 
 	NTCP2Server::NTCP2Server ():
 		RunnableServiceWithWork ("NTCP2"), m_TerminationTimer (GetService ()),
-			m_ProxyType(eNoProxy), m_Resolver(GetService ())
+		m_ProxyType(eNoProxy), m_Resolver(GetService ()),
+		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 	}
 
