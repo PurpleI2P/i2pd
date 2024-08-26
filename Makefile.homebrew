@@ -11,14 +11,14 @@ LDFLAGS ?= ${LD_DEBUG}
 DEFINES += -DMAC_OSX
 
 ifeq ($(USE_STATIC),yes)
-	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_date_time.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a
+	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
 endif
 	LDLIBS +=  -lpthread -ldl
 else
 	LDFLAGS += -L${SSLROOT}/lib -L${BOOSTROOT}/lib
-	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_filesystem -lboost_program_options -lpthread
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -L${UPNPROOT}/lib
 	LDLIBS += -lminiupnpc

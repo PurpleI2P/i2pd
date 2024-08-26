@@ -39,7 +39,6 @@ ifeq ($(USE_STATIC),yes)
 #   the shared libraries from the glibc version used for linking
 	LIBDIR := /usr/lib/$(SYS)
 	LDLIBS += $(LIBDIR)/libboost_system.a
-	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
 	LDLIBS += $(LIBDIR)/libboost_program_options.a
 	LDLIBS += $(LIBDIR)/libssl.a
@@ -50,7 +49,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 	LDLIBS += -lpthread -ldl
 else
-	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_filesystem -lboost_program_options -lpthread
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
 endif
