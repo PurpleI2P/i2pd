@@ -417,7 +417,14 @@ namespace datagram
 					auto sz = ls.size();
 					if (sz)
 					{
-						auto idx = rand() % sz;
+						int idx = -1;
+						if (m_LocalDestination)
+						{
+							auto pool = m_LocalDestination->GetTunnelPool ();
+							if (pool)
+								idx = m_LocalDestination->GetTunnelPool ()->GetRng ()() % sz;
+						}
+						if (idx < 0) idx = rand () % sz;
 						path->remoteLease = ls[idx];
 					}
 					else
@@ -443,7 +450,14 @@ namespace datagram
 				auto sz = ls.size();
 				if (sz)
 				{
-					auto idx = rand() % sz;
+					int idx = -1;
+					if (m_LocalDestination)
+					{
+						auto pool = m_LocalDestination->GetTunnelPool ();
+						if (pool)
+							idx = m_LocalDestination->GetTunnelPool ()->GetRng ()() % sz;
+					}
+					if (idx < 0) idx = rand () % sz;
 					path->remoteLease = ls[idx];
 				}
 				else
