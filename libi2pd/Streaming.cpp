@@ -81,7 +81,7 @@ namespace stream
 		m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
 		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
-		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_NumPacketsToResend (0), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -108,7 +108,7 @@ namespace stream
 		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
 		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
-		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_NumPacketsToResend (0), m_MTU (STREAMING_MTU)
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
@@ -147,6 +147,8 @@ namespace stream
 			m_ReceiveQueue.pop ();
 			m_LocalDestination.DeletePacket (packet);
 		}
+		
+		m_NACKedPackets.clear ();
 
 		for (auto it: m_SentPackets)
 			m_LocalDestination.DeletePacket (it);
@@ -452,6 +454,7 @@ namespace stream
 		bool acknowledged = false;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
+		m_NACKedPackets.clear ();
 		if (ackThrough > m_SequenceNumber)
 		{
 			LogPrint (eLogError, "Streaming: Unexpected ackThrough=", ackThrough, " > seqn=", m_SequenceNumber);
@@ -461,7 +464,6 @@ namespace stream
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
-		m_NumPacketsToResend = nackCount;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
 			auto seqn = (*it)->GetSeqn ();
@@ -473,6 +475,7 @@ namespace stream
 					for (int i = 0; i < nackCount; i++)
 						if (seqn == packet->GetNACK (i))
 						{
+							m_NACKedPackets.insert (*it);
 							m_IsNAcked = true;
 							nacked = true;
 							break;
@@ -1219,23 +1222,38 @@ namespace stream
 			}
 
 			// collect packets to resend
-			int numPacketsToResend = m_NumPacketsToResend;
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			std::vector<Packet *> packets;
-			for (auto it : m_SentPackets)
+			if (m_IsNAcked)
 			{
-				if (ts >= it->sendTime + m_RTO)
+				for (auto it : m_NACKedPackets)
 				{
-					if (ts < it->sendTime + m_RTO*2)
-						it->resent = true;
-					else
+					if (ts >= it->sendTime + m_RTO)
 					{
-						it->resent = false;
+						if (ts < it->sendTime + m_RTO*2)
+							it->resent = true;
+						else
+							it->resent = false;
 						it->sendTime = ts;
+						packets.push_back (it);
+						if ((int)packets.size () >= m_NumPacketsToSend) break;
 					}
-					packets.push_back (it);
-					m_NumPacketsToResend--;
-					if ((int)packets.size () >= m_NumPacketsToSend || (int)packets.size () >= numPacketsToResend) break;
+				}
+			}
+			else
+			{
+				for (auto it : m_SentPackets)
+				{
+					if (ts >= it->sendTime + m_RTO)
+					{
+						if (ts < it->sendTime + m_RTO*2)
+							it->resent = true;
+						else
+							it->resent = false;
+						it->sendTime = ts;
+						packets.push_back (it);
+						if ((int)packets.size () >= m_NumPacketsToSend) break;
+					}
 				}
 			}
 			

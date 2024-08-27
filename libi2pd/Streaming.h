@@ -269,6 +269,7 @@ namespace stream
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::set<Packet *, PacketCmp> m_SentPackets;
+			std::set<Packet *, PacketCmp> m_NACKedPackets;
 			boost::asio::deadline_timer m_ReceiveTimer, m_SendTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;
@@ -279,7 +280,7 @@ namespace stream
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
-			int m_NumResendAttempts, m_NumPacketsToSend, m_NumPacketsToResend;
+			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
 	};
 
