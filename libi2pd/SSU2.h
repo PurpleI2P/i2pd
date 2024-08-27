@@ -22,7 +22,8 @@ namespace i2p
 {
 namespace transport
 {
-	const int SSU2_TERMINATION_CHECK_TIMEOUT = 25; // in seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT = 23; // in seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT_VARIANCE = 5; // in seconds
 	const int SSU2_CLEANUP_INTERVAL = 72; // in seconds
 	const int SSU2_RESEND_CHECK_TIMEOUT = 40; // in milliseconds
 	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 10; // in milliseconds

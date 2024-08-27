@@ -38,7 +38,8 @@ namespace transport
 	const int NTCP2_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP2_TERMINATION_TIMEOUT = 115; // 2 minutes - 5 seconds
 	const int NTCP2_TERMINATION_TIMEOUT_VARIANCE = 10; // 10 seconds
-	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
+	const int NTCP2_TERMINATION_CHECK_TIMEOUT = 28; // 28 seconds
+	const int NTCP2_TERMINATION_CHECK_TIMEOUT_VARIANCE = 5; // 5 seconds
 	const int NTCP2_RECEIVE_BUFFER_DELETION_TIMEOUT = 3; // 3 seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL = 25*60; // 25 minuntes in seconds
 	const int NTCP2_ROUTERINFO_RESEND_INTERVAL_THRESHOLD = 25*60; // 25 minuntes

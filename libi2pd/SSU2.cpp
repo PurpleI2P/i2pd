@@ -914,7 +914,8 @@ namespace transport
 
 	void SSU2Server::ScheduleTermination ()
 	{
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU2_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(
+			SSU2_TERMINATION_CHECK_TIMEOUT + m_Rng () % SSU2_TERMINATION_CHECK_TIMEOUT_VARIANCE));
 		m_TerminationTimer.async_wait (std::bind (&SSU2Server::HandleTerminationTimer,
 			this, std::placeholders::_1));
 	}
