@@ -12,7 +12,7 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -114,7 +114,8 @@ namespace garlic
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
 			}
-
+			std::shared_ptr<i2p::data::RouterInfo::Buffer> CopyRouterInfoBuffer () const;
+			
 			const uint8_t * GetNTCP2StaticPublicKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPublicKey : nullptr; };
 			const uint8_t * GetNTCP2StaticPrivateKey () const { return m_NTCP2Keys ? m_NTCP2Keys->staticPrivateKey : nullptr; };
 			const uint8_t * GetNTCP2IV () const { return m_NTCP2Keys ? m_NTCP2Keys->iv : nullptr; };
@@ -229,6 +230,7 @@ namespace garlic
 			void HandlePublishResendTimer (const boost::system::error_code& ecode);
 			void ScheduleCongestionUpdate ();
 			void HandleCongestionUpdateTimer (const boost::system::error_code& ecode);
+			void UpdateCongestion ();
 			void ScheduleCleanupTimer ();
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			
@@ -255,9 +257,10 @@ namespace garlic
 			// publish
 			std::unique_ptr<RouterService> m_Service;
 			std::unique_ptr<boost::asio::deadline_timer> m_PublishTimer, m_CongestionUpdateTimer, m_CleanupTimer;
-			std::set<i2p::data::IdentHash> m_PublishExcluded;
+			std::unordered_set<i2p::data::IdentHash> m_PublishExcluded;
 			uint32_t m_PublishReplyToken;
 			bool m_IsHiddenMode; // not publish
+			mutable std::mutex m_RouterInfoMutex;
 	};
 
 	extern RouterContext context;

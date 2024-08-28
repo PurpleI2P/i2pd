@@ -15,10 +15,11 @@
 #include "Log.h"
 #include "Transports.h"
 
-class CNetworkListManagerEvent : public INetworkListManagerEvents
+class CNetworkListManagerEvent final : public INetworkListManagerEvents
 {
 public:
 	CNetworkListManagerEvent() : m_ref(1) { }
+	~CNetworkListManagerEvent() { }
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
 	{

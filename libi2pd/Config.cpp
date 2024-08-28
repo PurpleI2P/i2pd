@@ -168,6 +168,8 @@ namespace config {
 			("i2cp.address", value<std::string>()->default_value("127.0.0.1"), "I2CP listen address")
 			("i2cp.port", value<uint16_t>()->default_value(7654),              "I2CP listen port")
 			("i2cp.singlethread", value<bool>()->default_value(true),          "Destinations run in the I2CP server's thread")
+			("i2cp.inboundlimit", value<uint32_t>()->default_value(0),         "Client inbound limit in KBps to return in BandwidthLimitsMessage. Router's bandwidth by default")
+			("i2cp.outboundlimit", value<uint32_t>()->default_value(0),        "Client outbound limit in KBps to return in BandwidthLimitsMessage. Router's bandwidth by default")
 		;
 
 		options_description i2pcontrol("I2PControl options");
@@ -205,7 +207,7 @@ namespace config {
 		reseed.add_options()
 			("reseed.verify", value<bool>()->default_value(false),        "Verify .su3 signature")
 			("reseed.threshold", value<uint16_t>()->default_value(25),    "Minimum number of known routers before requesting reseed")
-			("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
+			("reseed.floodfill", value<std::string>()->default_value(""), "Ignored. Always empty")
 			("reseed.file", value<std::string>()->default_value(""),      "Path to local .su3 file or HTTPS URL to reseed from")
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
 			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
@@ -229,8 +231,7 @@ namespace config {
 				"http://[301:65b9:c7cd:9a36::1]:18801/,"
 				"http://[320:8936:ec1a:31f1::216]/,"
 				"http://[306:3834:97b9:a00a::1]/,"
-				"http://[316:f9e0:f22e:a74f::216]/,"
-			    "http://[300:eaff:7fab:181b::e621]:7170"
+				"http://[316:f9e0:f22e:a74f::216]/"
 			),                                                            "Reseed URLs through the Yggdrasil, separated by comma")
 		;
 

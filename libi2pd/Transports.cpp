@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <boost/algorithm/string.hpp> // for boost::to_lower
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"
@@ -131,6 +132,17 @@ namespace transport
 			LogPrint(eLogError, "Transports: Return null DHKeys");
 	}
 
+	void Peer::UpdateParams (std::shared_ptr<const i2p::data::RouterInfo> router)
+	{
+		if (router)
+		{		
+			isHighBandwidth = router->IsHighBandwidth ();
+			isEligible =(bool)router->GetCompatibleTransports (true) && // reachable
+				router->GetCongestion () != i2p::data::RouterInfo::eRejectAll && // accepts tunnel
+				router->IsECIES () && router->GetVersion () >= NETDB_MIN_HIGHBANDWIDTH_VERSION; // not too old
+		}	
+	}	
+		
 	Transports transports;
 
 	Transports::Transports ():
@@ -328,7 +340,6 @@ namespace transport
 	{
 		if (m_PeerCleanupTimer) m_PeerCleanupTimer->cancel ();
 		if (m_PeerTestTimer) m_PeerTestTimer->cancel ();
-		m_Peers.clear ();
 
 		if (m_SSU2Server)
 		{
@@ -353,6 +364,7 @@ namespace transport
 			delete m_Thread;
 			m_Thread = nullptr;
 		}
+		m_Peers.clear ();
 	}
 
 	void Transports::Run ()
@@ -457,6 +469,7 @@ namespace transport
 			return;
 		}
 		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
+		std::shared_ptr<Peer> peer;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -470,10 +483,12 @@ namespace transport
 				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
 				{
 					auto ts = i2p::util::GetSecondsSinceEpoch ();
+					peer = std::make_shared<Peer>(r, ts);
 					std::unique_lock<std::mutex> l(m_PeersMutex);
-					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, {r, ts})).first;
+					peer = m_Peers.emplace (ident, peer).first->second;
 				}
-				connected = ConnectToPeer (ident, it->second);
+				if (peer)
+					connected = ConnectToPeer (ident, peer);
 			}
 			catch (std::exception& ex)
 			{
@@ -481,11 +496,15 @@ namespace transport
 			}
 			if (!connected) return;
 		}
-		if (it->second.IsConnected ())
-			it->second.sessions.front ()->SendI2NPMessages (msgs);
+		else
+			peer = it->second;
+		
+		if (!peer) return;
+		if (peer->IsConnected ())
+			peer->sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{
-			auto sz = it->second.delayedMessages.size (); 	
+			auto sz = peer->delayedMessages.size (); 	
 			if (sz < MAX_NUM_DELAYED_MESSAGES)
 			{
 				if (sz < CHECK_PROFILE_NUM_DELAYED_MESSAGES && sz + msgs.size () >= CHECK_PROFILE_NUM_DELAYED_MESSAGES)
@@ -494,7 +513,7 @@ namespace transport
 					{
 						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 						std::unique_lock<std::mutex> l(m_PeersMutex);
-						m_Peers.erase (it);
+						m_Peers.erase (ident);
 						return;
 					}	
 				}	
@@ -502,30 +521,30 @@ namespace transport
 					if (sz > MAX_NUM_DELAYED_MESSAGES/2 && it1->onDrop)
 						it1->Drop (); // drop earlier because we can handle it
 					else
-						it->second.delayedMessages.push_back (it1);
+						peer->delayedMessages.push_back (it1);
 			}
 			else
 			{
 				LogPrint (eLogWarning, "Transports: Delayed messages queue size to ",
 					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				m_Peers.erase (it);
+				m_Peers.erase (ident);
 			}
 		}
 	}
 
-	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
+	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer)
 	{
-		if (!peer.router) // reconnect
-			peer.SetRouter (netdb.FindRouter (ident)); // try to get new one from netdb
-		if (peer.router) // we have RI already
+		if (!peer->router) // reconnect
+			peer->SetRouter (netdb.FindRouter (ident)); // try to get new one from netdb
+		if (peer->router) // we have RI already
 		{
-			if (peer.priority.empty ())
+			if (peer->priority.empty ())
 				SetPriority (peer);
-			while (peer.numAttempts < (int)peer.priority.size ())
+			while (peer->numAttempts < (int)peer->priority.size ())
 			{
-				auto tr = peer.priority[peer.numAttempts];
-				peer.numAttempts++;
+				auto tr = peer->priority[peer->numAttempts];
+				peer->numAttempts++;
 				switch (tr)
 				{
 					case i2p::data::RouterInfo::eNTCP2V4:
@@ -533,12 +552,12 @@ namespace transport
 					{
 						if (!m_NTCP2Server) continue;
 						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eNTCP2V6) ?
-							peer.router->GetPublishedNTCP2V6Address () : peer.router->GetPublishedNTCP2V4Address ();
+							peer->router->GetPublishedNTCP2V6Address () : peer->router->GetPublishedNTCP2V4Address ();
 						if (address && IsInReservedRange(address->host))
 							address = nullptr;
 						if (address)
 						{
-							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer->router, address);
 							if( m_NTCP2Server->UsingProxy())
 								m_NTCP2Server->ConnectWithProxy(s);
 							else
@@ -552,12 +571,12 @@ namespace transport
 					{
 						if (!m_SSU2Server) continue;
 						std::shared_ptr<const RouterInfo::Address> address = (tr == i2p::data::RouterInfo::eSSU2V6) ?
-							peer.router->GetSSU2V6Address () : peer.router->GetSSU2V4Address ();
+							peer->router->GetSSU2V6Address () : peer->router->GetSSU2V4Address ();
 						if (address && IsInReservedRange(address->host))
 							address = nullptr;
 						if (address && address->IsReachableSSU ())
 						{
-							if (m_SSU2Server->CreateSession (peer.router, address))
+							if (m_SSU2Server->CreateSession (peer->router, address))
 								return true;
 						}
 						break;
@@ -565,10 +584,10 @@ namespace transport
 					case i2p::data::RouterInfo::eNTCP2V6Mesh:
 					{
 						if (!m_NTCP2Server) continue;
-						auto address = peer.router->GetYggdrasilAddress ();
+						auto address = peer->router->GetYggdrasilAddress ();
 						if (address)
 						{
-							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router, address);
+							auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer->router, address);
 							m_NTCP2Server->Connect (s);
 							return true;
 						}
@@ -580,9 +599,9 @@ namespace transport
 			}
 
 			LogPrint (eLogInfo, "Transports: No compatible addresses available");
-			if (peer.router->IsReachableFrom (i2p::context.GetRouterInfo ()))
+			if (peer->router->IsReachableFrom (i2p::context.GetRouterInfo ()))
 				i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed but router claimed them
-			peer.Done ();
+			peer->Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
 			return false;
@@ -590,7 +609,7 @@ namespace transport
 		else if (i2p::data::IsRouterBanned (ident))
 		{
 			LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
-			peer.Done ();
+			peer->Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
 			return false;
@@ -604,7 +623,7 @@ namespace transport
 		return true;
 	}
 
-	void Transports::SetPriority (Peer& peer) const
+	void Transports::SetPriority (std::shared_ptr<Peer> peer) const
 	{
 		static const std::vector<i2p::data::RouterInfo::SupportedTransports>
 			ntcp2Priority =
@@ -623,16 +642,36 @@ namespace transport
 			i2p::data::RouterInfo::eNTCP2V4,
 			i2p::data::RouterInfo::eNTCP2V6Mesh
 		};
-		if (!peer.router) return;
+		if (!peer || !peer->router) return;
 		auto compatibleTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
-			peer.router->GetCompatibleTransports (true);
-		peer.numAttempts = 0;
-		peer.priority.clear ();
-		bool ssu2 = peer.router->GetProfile ()->IsReal () ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
+			peer->router->GetCompatibleTransports (true);
+		auto directTransports = compatibleTransports & peer->router->GetPublishedTransports ();
+		peer->numAttempts = 0;
+		peer->priority.clear ();
+		bool isReal = peer->router->GetProfile ()->IsReal (); 
+		bool ssu2 = isReal ? (rand () & 1) : false; // try NTCP2 if router is not confirmed real
 		const auto& priority = ssu2 ? ssu2Priority : ntcp2Priority;
-		for (auto transport: priority)
-			if (transport & compatibleTransports)
-				peer.priority.push_back (transport);
+		if (directTransports)
+		{	
+			// direct connections have higher priority
+			if (!isReal && (directTransports & (i2p::data::RouterInfo::eNTCP2V4 | i2p::data::RouterInfo::eNTCP2V6)))
+			{
+				// Non-confirmed router and a NTCP2 direct connection is presented
+				compatibleTransports &= ~directTransports; // exclude SSU2 direct connections
+				directTransports &= ~(i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6);
+			}	
+			for (auto transport: priority)
+				if (transport & directTransports)
+					peer->priority.push_back (transport);
+			compatibleTransports &= ~directTransports;
+		}	
+		if (compatibleTransports)
+		{	
+			// then remaining
+			for (auto transport: priority)
+				if (transport & compatibleTransports)
+					peer->priority.push_back (transport);
+		}	
 	}
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
@@ -648,8 +687,8 @@ namespace transport
 			if (r)
 			{
 				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
-				it->second.SetRouter (r);
-				if (!it->second.IsConnected ())
+				it->second->SetRouter (r);
+				if (!it->second->IsConnected ())
 					ConnectToPeer (ident, it->second);
 			}
 			else
@@ -681,7 +720,7 @@ namespace transport
 		if (ipv4 && i2p::context.SupportsV4 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv4");
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			int testDelay = 0;
 			for (int i = 0; i < 5; i++)
@@ -719,7 +758,7 @@ namespace transport
 		if (ipv6 && i2p::context.SupportsV6 ())
 		{
 			LogPrint (eLogInfo, "Transports: Started peer test IPv6");
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			excluded.insert (i2p::context.GetIdentHash ()); // don't pick own router
 			int testDelay = 0;
 			for (int i = 0; i < 5; i++)
@@ -776,31 +815,32 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-				if (it->second.numAttempts > 1)
+				auto peer = it->second;
+				if (peer->numAttempts > 1)
 				{
 					// exclude failed transports
 					i2p::data::RouterInfo::CompatibleTransports transports = 0;
-					int numExcluded = it->second.numAttempts - 1;
-					if (numExcluded > (int)it->second.priority.size ()) numExcluded = it->second.priority.size ();
+					int numExcluded = peer->numAttempts - 1;
+					if (numExcluded > (int)peer->priority.size ()) numExcluded = peer->priority.size ();
 					for (int i = 0; i < numExcluded; i++)
-						transports |= it->second.priority[i];
+						transports |= peer->priority[i];
 					i2p::data::netdb.ExcludeReachableTransports (ident, transports);
 				}	
-				if (it->second.router && it->second.numAttempts)
+				if (peer->router && peer->numAttempts)
 				{	
-					auto transport = it->second.priority[it->second.numAttempts-1];
+					auto transport = peer->priority[peer->numAttempts-1];
 					if (transport == i2p::data::RouterInfo::eNTCP2V4 || 
 						transport == i2p::data::RouterInfo::eNTCP2V6 || transport == i2p::data::RouterInfo::eNTCP2V6Mesh)
-						it->second.router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
+						peer->router->GetProfile ()->Connected (); // outgoing NTCP2 connection if always real
 					i2p::data::netdb.SetUnreachable (ident, false); // clear unreachable 
 				}		
-				it->second.numAttempts = 0;
-				it->second.router = nullptr; // we don't need RouterInfo after successive connect
+				peer->numAttempts = 0;
+				peer->router = nullptr; // we don't need RouterInfo after successive connect
 				bool sendDatabaseStore = true;
-				if (it->second.delayedMessages.size () > 0)
+				if (it->second->delayedMessages.size () > 0)
 				{
 					// check if first message is our DatabaseStore (publishing)
-					auto firstMsg = it->second.delayedMessages[0];
+					auto firstMsg = peer->delayedMessages[0];
 					if (firstMsg && firstMsg->GetTypeID () == eI2NPDatabaseStore &&
 							i2p::data::IdentHash(firstMsg->GetPayload () + DATABASE_STORE_KEY_OFFSET) == i2p::context.GetIdentHash ())
 						sendDatabaseStore = false; // we have it in the list already
@@ -809,9 +849,9 @@ namespace transport
 					session->SendLocalRouterInfo ();
 				else
 					session->SetTerminationTimeout (10); // most likely it's publishing, no follow-up messages expected, set timeout to 10 seconds
-				it->second.sessions.push_back (session);
-				session->SendI2NPMessages (it->second.delayedMessages);
-				it->second.delayedMessages.clear ();
+				peer->sessions.push_back (session);
+				session->SendI2NPMessages (peer->delayedMessages);
+				peer->delayedMessages.clear ();
 			}
 			else // incoming connection or peer test
 			{
@@ -826,10 +866,11 @@ namespace transport
 				auto r = i2p::data::netdb.FindRouter (ident); // router should be in netdb after SessionConfirmed
 				if (r) r->GetProfile ()->Connected ();
 				auto ts = i2p::util::GetSecondsSinceEpoch ();
+				auto peer = std::make_shared<Peer>(r, ts);
+				peer->sessions.push_back (session);
+				peer->router = nullptr;
 				std::unique_lock<std::mutex> l(m_PeersMutex);
-				auto it = m_Peers.insert (std::make_pair (ident, Peer{ r, ts })).first;
-				it->second.sessions.push_back (session);
-				it->second.router = nullptr;
+				m_Peers.emplace (ident, peer);
 			}
 		});
 	}
@@ -844,15 +885,16 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-				bool wasConnected = it->second.IsConnected ();
-				it->second.sessions.remove (session);
-				if (!it->second.IsConnected ())
+				auto peer = it->second;
+				bool wasConnected = peer->IsConnected ();
+				peer->sessions.remove (session);
+				if (!peer->IsConnected ())
 				{
-					if (it->second.delayedMessages.size () > 0)
+					if (peer->delayedMessages.size () > 0)
 					{
 						if (wasConnected) // we had an active session before
-							it->second.numAttempts = 0; // start over
-						ConnectToPeer (ident, it->second);
+							peer->numAttempts = 0; // start over
+						ConnectToPeer (ident, peer);
 					}
 					else
 					{
@@ -878,12 +920,12 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Peers.begin (); it != m_Peers.end (); )
 			{
-				it->second.sessions.remove_if (
+				it->second->sessions.remove_if (
 					[](std::shared_ptr<TransportSession> session)->bool
 					{
 						return !session || !session->IsEstablished ();
 					});
- 				if (!it->second.IsConnected () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+ 				if (!it->second->IsConnected () && ts > it->second->creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
 				/*	if (!it->second.router) 
@@ -897,12 +939,12 @@ namespace transport
 				}
 				else
 				{
-					if (ts > it->second.nextRouterInfoUpdateTime)
+					if (ts > it->second->nextRouterInfoUpdateTime)
 					{
-						auto session = it->second.sessions.front ();
+						auto session = it->second->sessions.front ();
 						if (session)
 							session->SendLocalRouterInfo (true);
-						it->second.nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL +
+						it->second->nextRouterInfoUpdateTime = ts + PEER_ROUTER_INFO_UPDATE_INTERVAL +
 							rand () % PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE;
 					}
 					++it;
@@ -936,6 +978,7 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (Filter filter) const
 	{
 		if (m_Peers.empty()) return nullptr;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		bool found = false;
 		i2p::data::IdentHash ident;
 		{
@@ -976,9 +1019,11 @@ namespace transport
 				it = it1;
 				while (it != it2 && it != m_Peers.end ())
 				{
-					if (filter (it->second))
+					if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+					    filter (it->second))
 					{
 						ident = it->first;
+						it->second->lastSelectionTime = ts;
 						found = true;
 						break;
 					}
@@ -990,9 +1035,11 @@ namespace transport
 					it = m_Peers.begin ();
 					while (it != it1 && it != m_Peers.end ())
 					{
-						if (filter (it->second))
+						if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+						    filter (it->second))
 						{
 							ident = it->first;
+							it->second->lastSelectionTime = ts;
 							found = true;
 							break;
 						}
@@ -1004,9 +1051,11 @@ namespace transport
 						it = it2;
 						while (it != m_Peers.end ())
 						{
-							if (filter (it->second))
+							if (ts > it->second->lastSelectionTime + PEER_SELECTION_MIN_INTERVAL &&
+							    filter (it->second))
 							{
 								ident = it->first;
+								it->second->lastSelectionTime = ts;
 								found = true;
 								break;
 							}
@@ -1022,13 +1071,13 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer (bool isHighBandwidth) const
 	{
 		return GetRandomPeer (
-			[isHighBandwidth](const Peer& peer)->bool
+			[isHighBandwidth](std::shared_ptr<const Peer> peer)->bool
 			{
 				// connected, not overloaded and not slow
-				return !peer.router && peer.IsConnected () && peer.isReachable &&
-					peer.sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
-					!peer.sessions.front ()->IsSlow () && !peer.sessions.front ()->IsBandwidthExceeded (peer.isHighBandwidth) &&
-					(!isHighBandwidth || peer.isHighBandwidth);
+				return !peer->router && peer->IsConnected () && peer->isEligible &&
+					peer->sessions.front ()->GetSendQueueSize () <= PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE &&
+					!peer->sessions.front ()->IsSlow () && !peer->sessions.front ()->IsBandwidthExceeded (peer->isHighBandwidth) &&
+					(!isHighBandwidth || peer->isHighBandwidth);
 			});
 	}
 

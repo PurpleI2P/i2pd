@@ -57,11 +57,8 @@ namespace i2p
 		{	
 			m_Service.reset (new RouterService);
 			m_Service->Start ();
-			if (!m_IsHiddenMode)
-			{
-				m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
-				ScheduleInitialPublish ();
-			}	
+			m_PublishTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
+			ScheduleInitialPublish ();
 			m_CongestionUpdateTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
 			ScheduleCongestionUpdate ();
 			m_CleanupTimer.reset (new boost::asio::deadline_timer (m_Service->GetService ()));
@@ -78,9 +75,16 @@ namespace i2p
 			if (m_CongestionUpdateTimer)
 				m_CongestionUpdateTimer->cancel ();
 			m_Service->Stop ();
+			CleanUp (); // GarlicDestination
 		}	
 	}	
-	
+
+	std::shared_ptr<i2p::data::RouterInfo::Buffer> RouterContext::CopyRouterInfoBuffer () const
+	{
+		std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+		return m_RouterInfo.CopyBuffer ();
+	}	
+		
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
@@ -249,7 +253,10 @@ namespace i2p
 
 	void RouterContext::UpdateRouterInfo ()
 	{
-		m_RouterInfo.CreateBuffer (m_Keys);
+		{
+			std::lock_guard<std::mutex> l(m_RouterInfoMutex);
+			m_RouterInfo.CreateBuffer (m_Keys);
+		}
 		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -560,10 +567,10 @@ namespace i2p
 	{
 		m_IsFloodfill = floodfill;
 		if (floodfill)
-			m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eFloodfill);
+			m_RouterInfo.UpdateFloodfillProperty (true);
 		else
 		{
-			m_RouterInfo.UpdateCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
+			m_RouterInfo.UpdateFloodfillProperty (false);
 			// we don't publish number of routers and leaseset for non-floodfill
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS);
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS);
@@ -1324,9 +1331,15 @@ namespace i2p
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			if (m_RouterInfo.IsReachableBy (i2p::data::RouterInfo::eAllTransports))
+			{
+				UpdateCongestion ();
 				HandlePublishTimer (ecode);
+			}	
 			else
+			{	
+				UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());	
 				ScheduleInitialPublish ();
+			}		
 		}	
 	}	
 	
@@ -1348,16 +1361,21 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			m_PublishExcluded.clear ();
-			m_PublishReplyToken = 0;
-			if (IsFloodfill ())
-			{	
-				UpdateStats (); // for floodfill
-				m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
-			}	
 			UpdateTimestamp (i2p::util::GetSecondsSinceEpoch ());
-			Publish ();	
-			SchedulePublishResend ();
+			if (!m_IsHiddenMode)
+			{	
+				m_PublishExcluded.clear ();
+				m_PublishReplyToken = 0;
+				if (IsFloodfill ())
+				{	
+					UpdateStats (); // for floodfill
+					m_PublishExcluded.insert (i2p::context.GetIdentHash ()); // don't publish to ourselves
+				}		
+				Publish ();	
+				SchedulePublishResend ();
+			}	
+			else
+				SchedulePublish ();
 		}	
 	}	
 	
@@ -1382,8 +1400,9 @@ namespace i2p
 					if (m_Service)
 						m_Service->GetService ().post ([this]() { HandlePublishResendTimer (boost::system::error_code ()); });
 				};
-			if (floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) || // are we able to connect?
-				i2p::transport::transports.IsConnected (floodfill->GetIdentHash ())) // already connected ?
+			if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()) || // already connected
+				(floodfill->IsReachableFrom (i2p::context.GetRouterInfo ()) && // are we able to connect
+				 !i2p::transport::transports.RoutesRestricted ())) // and routes not restricted
 			{	
 				// send directly
 				auto msg = CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken);
@@ -1454,23 +1473,28 @@ namespace i2p
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			auto c = i2p::data::RouterInfo::eLowCongestion;
-			if (!AcceptsTunnels () || !m_ShareRatio)
-				c = i2p::data::RouterInfo::eRejectAll;
-			else
-			{
-				int congestionLevel = GetCongestionLevel (true);
-				if (congestionLevel > CONGESTION_LEVEL_HIGH)
-					c = i2p::data::RouterInfo::eHighCongestion;
-				else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
-					c = i2p::data::RouterInfo::eMediumCongestion;
-			}
-			if (m_RouterInfo.UpdateCongestion (c))
-				UpdateRouterInfo ();
+			UpdateCongestion ();
 			ScheduleCongestionUpdate ();
 		}	
 	}	
 
+	void RouterContext::UpdateCongestion ()
+	{
+		auto c = i2p::data::RouterInfo::eLowCongestion;
+		if (!AcceptsTunnels () || !m_ShareRatio)
+			c = i2p::data::RouterInfo::eRejectAll;
+		else
+		{
+			int congestionLevel = GetCongestionLevel (true);
+			if (congestionLevel > CONGESTION_LEVEL_HIGH)
+				c = i2p::data::RouterInfo::eHighCongestion;
+			else if (congestionLevel > CONGESTION_LEVEL_MEDIUM)
+				c = i2p::data::RouterInfo::eMediumCongestion;
+		}
+		if (m_RouterInfo.UpdateCongestion (c))
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::ScheduleCleanupTimer ()
 	{
 		if (m_CleanupTimer)

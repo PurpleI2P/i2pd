@@ -90,7 +90,8 @@ namespace transport
 		m_WindowSize (SSU2_MIN_WINDOW_SIZE),
 		m_RTO (SSU2_INITIAL_RTO), m_RelayTag (0),m_ConnectTimer (server.GetService ()), 
 		m_TerminationReason (eSSU2TerminationReasonNormalClose),
-		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32) // min size
+		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
+		m_LastResendTime (0), m_LastResendAttemptTime (0)
 	{
 		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
@@ -143,7 +144,7 @@ namespace transport
 
 	void SSU2Session::HandleConnectTimer (const boost::system::error_code& ecode)
 	{
-		if (!ecode)
+		if (!ecode && m_State != eSSU2SessionStateTerminated)
 		{
 			// timeout expired
 			if (m_State == eSSU2SessionStateIntroduced) // WaitForIntroducer
@@ -312,6 +313,7 @@ namespace transport
 		m_SentHandshakePacket.reset (nullptr);
 		m_ConnectTimer.cancel ();
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
+		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
 		if (m_OnEstablished)
 		{
@@ -336,7 +338,7 @@ namespace transport
 				{
 					if (!s->IsEstablished ()) return;
 					uint8_t payload[SSU2_MAX_PACKET_SIZE];
-					size_t payloadSize = s->CreateRouterInfoBlock (payload, s->m_MaxPayloadSize - 32, i2p::context.GetSharedRouterInfo ());
+					size_t payloadSize = s->CreateRouterInfoBlock (payload, s->m_MaxPayloadSize - 32, i2p::context.CopyRouterInfoBuffer ());
 					if (payloadSize)
 					{
 						if (payloadSize < s->m_MaxPayloadSize)
@@ -381,16 +383,33 @@ namespace transport
 				m_SendQueue.push_back (std::move (it));
 			}
 		}
-		SendQueue ();
-
-		if (m_SendQueue.size () > 0) // windows is full
-			Resend (i2p::util::GetMillisecondsSinceEpoch ());
+		if (IsEstablished ())
+		{	
+			SendQueue ();
+			if (m_SendQueue.size () > 0) // windows is full
+				Resend (i2p::util::GetMillisecondsSinceEpoch ());
+		}	
 		SetSendQueueSize (m_SendQueue.size ());
 	}
 
+	void SSU2Session::MoveSendQueue (std::shared_ptr<SSU2Session> other)
+	{
+		if (!other || m_SendQueue.empty ()) return;
+		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		for (auto it: m_SendQueue)
+			if (!it->IsExpired (ts))
+				msgs.push_back (it);
+			else
+				it->Drop ();
+		m_SendQueue.clear ();
+		if (!msgs.empty ())
+			other->PostI2NPMessages (msgs);
+	}	
+		
 	bool SSU2Session::SendQueue ()
 	{
-		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize)
+		if (!m_SendQueue.empty () && m_SentPackets.size () <= m_WindowSize && IsEstablished ())
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			uint64_t mts = i2p::util::GetMonotonicMicroseconds ();
@@ -497,7 +516,7 @@ namespace transport
 			else
 				extraSize -= packet->payloadSize;
 		}
-		size_t offset = extraSize > 0 ? (rand () % extraSize) : 0;
+		size_t offset = extraSize > 0 ? (m_Server.GetRng ()() % extraSize) : 0;
 		if (offset + packet->payloadSize >= m_MaxPayloadSize) offset = 0;
 		auto size = CreateFirstFragmentBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - offset - packet->payloadSize, msg);
 		if (!size) return false;
@@ -509,7 +528,7 @@ namespace transport
 		uint8_t fragmentNum = 0;
 		while (msg->offset < msg->len)
 		{
-			offset = extraSize > 0 ? (rand () % extraSize) : 0;
+			offset = extraSize > 0 ? (m_Server.GetRng ()() % extraSize) : 0;
 			packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 			packet->payloadSize = CreateFollowOnFragmentBlock (packet->payload, m_MaxPayloadSize - offset, msg, fragmentNum, msgID);
 			extraSize -= offset;
@@ -529,6 +548,8 @@ namespace transport
 
 	size_t SSU2Session::Resend (uint64_t ts)
 	{
+		if (ts + SSU2_RESEND_ATTEMPT_MIN_INTERVAL < m_LastResendAttemptTime) return 0;
+		m_LastResendAttemptTime = ts;
 		// resend handshake packet
 		if (m_SentHandshakePacket && ts >= m_SentHandshakePacket->sendTime + SSU2_HANDSHAKE_RESEND_INTERVAL)
 		{
@@ -565,6 +586,7 @@ namespace transport
 				it++;
 		if (!resentPackets.empty ())
 		{
+			m_LastResendTime = ts;
 #if (__cplusplus >= 201703L) // C++ 17 or higher
 			m_SentPackets.merge (resentPackets);
 #else
@@ -660,10 +682,14 @@ namespace transport
 		size_t payloadSize = 7;
 		if (GetRouterStatus () == eRouterStatusFirewalled && m_Address->IsIntroducer ())
 		{
-			// relay tag request
-			payload[payloadSize] = eSSU2BlkRelayTagRequest;
-			memset (payload + payloadSize + 1, 0, 2); // size = 0
-			payloadSize += 3;
+			if (!m_Server.IsMaxNumIntroducers (m_RemoteEndpoint.address ().is_v4 ()) ||
+			    m_Server.GetRng ()() & 0x01) // request tag with probability 1/2 if we have enough introducers
+			{	
+				// relay tag request
+				payload[payloadSize] = eSSU2BlkRelayTagRequest;
+				memset (payload + payloadSize + 1, 0, 2); // size = 0
+				payloadSize += 3;
+			}	
 		}
 		payloadSize += CreatePaddingBlock (payload + payloadSize, 40 - payloadSize, 1);
 		// KDF for session request
@@ -881,12 +907,12 @@ namespace transport
 		// payload
 		size_t maxPayloadSize = m_MaxPayloadSize - 48; // for part 2, 48 is part1
 		uint8_t * payload = m_SentHandshakePacket->payload;
-		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+		size_t payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.CopyRouterInfoBuffer ());
 		if (!payloadSize)
 		{
 			// split by two fragments
 			maxPayloadSize += m_MaxPayloadSize;
-			payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.GetSharedRouterInfo ());
+			payloadSize = CreateRouterInfoBlock (payload, maxPayloadSize, i2p::context.CopyRouterInfoBuffer ());
 			header.h.flags[0] = 0x02; // frag 0, total fragments 2
 			// TODO: check if we need more fragments
 		}
@@ -914,7 +940,7 @@ namespace transport
 		{
 			if (payloadSize > m_MaxPayloadSize - 48)
 			{
-				payloadSize = m_MaxPayloadSize - 48 - (rand () % 16);
+				payloadSize = m_MaxPayloadSize - 48 - (m_Server.GetRng ()() % 16);
 				if (m_SentHandshakePacket->payloadSize - payloadSize < 24)
 					payloadSize -= 24;
 			}
@@ -1101,6 +1127,23 @@ namespace transport
 			LogPrint (eLogError, "SSU2: RouterInfo in SessionConfirmed is from future for ", (ri->GetTimestamp () - ts)/1000LL, " seconds");
 			return false;
 		}	
+		// update RouterInfo in netdb
+		auto ri1 = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
+		if (!ri1)
+		{
+			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+			return false;
+		}
+		std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+		if (ri->GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
+		{	
+			// received RouterInfo is older than one in netdb
+			profile = i2p::data::GetRouterProfile (ri->GetIdentHash ()); // retrieve profile	
+			if (profile && profile->IsDuplicated ())
+				return false;
+		}	
+		ri = ri1;
+		
 		m_Address = m_RemoteEndpoint.address ().is_v6 () ? ri->GetSSU2V6Address () : ri->GetSSU2V4Address ();
 		if (!m_Address || memcmp (S, m_Address->s, 32))
 		{
@@ -1111,15 +1154,11 @@ namespace transport
 		    (!m_RemoteEndpoint.address ().is_v6 () ||
 			 memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), m_Address->host.to_v6 ().to_bytes ().data (), 8))) // temporary address
 		{
-			LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
-				" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
-			return false;
-		}
-		// update RouterInfo in netdb
-		ri = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ()); // ri points to one from netdb now
-		if (!ri)
-		{
-			LogPrint (eLogError, "SSU2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+			if (profile) // older router?
+				profile->Duplicated (); // mark router as duplicated in profile
+			else	
+				LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
+					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
 		SetRemoteIdentity (ri->GetRouterIdentity ());
@@ -1551,14 +1590,9 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Options");
 				break;
 				case eSSU2BlkRouterInfo:
-				{
-					// not from SessionConfirmed, we must add it instantly to use in next block
 					LogPrint (eLogDebug, "SSU2: RouterInfo");
-					auto ri = ExtractRouterInfo (buf + offset, size);
-					if (ri)
-						i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
-					break;
-				}
+					HandleRouterInfo (buf + offset, size);
+				break;
 				case eSSU2BlkI2NPMessage:
 				{
 					LogPrint (eLogDebug, "SSU2: I2NP message");
@@ -1633,8 +1667,12 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: RelayTagRequest");
 					if (!m_RelayTag)
 					{
-						RAND_bytes ((uint8_t *)&m_RelayTag, 4);
-						m_Server.AddRelay (m_RelayTag, shared_from_this ());
+						auto addr = FindLocalAddress ();
+						if (addr && addr->IsIntroducer ())
+						{	
+							RAND_bytes ((uint8_t *)&m_RelayTag, 4);
+							m_Server.AddRelay (m_RelayTag, shared_from_this ());
+						}	
 					}
 				break;
 				case eSSU2BlkRelayTag:
@@ -1714,6 +1752,32 @@ namespace transport
 		};
 	}
 
+	void SSU2Session::HandleRouterInfo (const uint8_t * buf, size_t len)
+	{
+		auto ri = ExtractRouterInfo (buf, len);
+		if (ri)
+		{	
+			// not from SessionConfirmed, we must add it instantly to use in next block
+			auto newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
+			if (newRi)
+			{
+				auto remoteIdentity = GetRemoteIdentity ();
+				if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+				{
+					// peer's RouterInfo update
+					SetRemoteIdentity (newRi->GetIdentity ());
+					auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
+					if (address)
+					{
+						m_Address = address;
+						if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
+							m_RelayTag = 0; // not longer introducer
+					}	
+				}	
+			}	
+		}	
+	}	
+		
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
 	{
 		if (m_State == eSSU2SessionStateSessionConfirmedSent)
@@ -2454,6 +2518,8 @@ namespace transport
 	{
 		if (m_Address)
 			return i2p::context.GetRouterInfo ().GetSSU2Address (m_Address->IsV4 ());
+		else if (!m_RemoteEndpoint.address ().is_unspecified ())
+			return i2p::context.GetRouterInfo ().GetSSU2Address (m_RemoteEndpoint.address ().is_v4 ());
 		return nullptr;
 	}
 
@@ -2535,27 +2601,34 @@ namespace transport
 
 	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r)
 	{
-		if (!r || !r->GetBuffer () || len < 5) return 0;
+		if (!r || len < 5) return 0;
+		return CreateRouterInfoBlock (buf, len, r->GetSharedBuffer ());
+	}
+
+	size_t SSU2Session::CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo::Buffer> riBuffer)
+	{
+		if (!riBuffer || len < 5) return 0;
 		buf[0] = eSSU2BlkRouterInfo;
-		size_t size = r->GetBufferLen ();
+		size_t size = riBuffer->GetBufferLen ();
 		if (size + 5 < len)
 		{
-			memcpy (buf + 5, r->GetBuffer (), size);
+			memcpy (buf + 5, riBuffer->data (), size);
 			buf[3] = 0; // flag
 		}
 		else
 		{
 			i2p::data::GzipDeflator deflator;
 			deflator.SetCompressionLevel (9);
-			size = deflator.Deflate (r->GetBuffer (), r->GetBufferLen (), buf + 5, len - 5);
+			size = deflator.Deflate (riBuffer->data (), riBuffer->GetBufferLen (), buf + 5, len - 5);
 			if (!size) return 0; // doesn't fit
 			buf[3] = SSU2_ROUTER_INFO_FLAG_GZIP; // flag
 		}
 		htobe16buf (buf + 1, size + 2); // size
 		buf[4] = 1; // frag
 		return size + 5;
-	}
-
+	}	
+	
+		
 	size_t SSU2Session::CreateAckBlock (uint8_t * buf, size_t len)
 	{
 		if (len < 8) return 0;
@@ -2668,7 +2741,7 @@ namespace transport
 	size_t SSU2Session::CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize)
 	{
 		if (len < 3 || len < minSize) return 0;
-		size_t paddingSize = rand () & 0x0F; // 0 - 15
+		size_t paddingSize = m_Server.GetRng ()() & 0x0F; // 0 - 15
 		if (paddingSize + 3 > len) paddingSize = len - 3;
 		else if (paddingSize + 3 < minSize) paddingSize = minSize - 3;
 		buf[0] = eSSU2BlkPadding;
@@ -2954,7 +3027,7 @@ namespace transport
 	{
 		uint8_t payload[SSU2_MAX_PACKET_SIZE];
 		payload[0] = eSSU2BlkPathChallenge;
-		size_t len = rand () % (m_MaxPayloadSize - 3);
+		size_t len = m_Server.GetRng ()() % (m_MaxPayloadSize - 3);
 		htobe16buf (payload + 1, len);
 		if (len > 0)
 		{
@@ -3060,6 +3133,8 @@ namespace transport
 			m_Handler.Flush ();
 			m_IsDataReceived = false;
 		}
+		else if (!sent && !m_SentPackets.empty ()) // if only acks received, nothing sent and we still have something to resend
+			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
 
 }

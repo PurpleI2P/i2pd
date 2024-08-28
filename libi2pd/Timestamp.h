@@ -28,7 +28,8 @@ namespace util
 	uint64_t GetMonotonicMilliseconds ();
 	uint64_t GetMonotonicSeconds ();
 	
-	void GetCurrentDate (char * date); // returns date as YYYYMMDD string, 9 bytes
+	void GetCurrentDate (char * date); // returns UTC date as YYYYMMDD string, 9 bytes
+	void GetNextDayDate (char * date); // returns next UTC day as YYYYMMDD string, 9 bytes
 	void GetDateString (uint64_t timestamp, char * date); // timestamp is seconds since epoch, returns date as YYYYMMDD string, 9 bytes
 	void AdjustTimeOffset (int64_t offset); // in seconds from current
 

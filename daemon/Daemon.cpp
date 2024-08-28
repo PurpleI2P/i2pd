@@ -188,7 +188,7 @@ namespace util
 		std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
 		if (bandwidth.length () > 0)
 		{
-			if (bandwidth[0] >= 'K' && bandwidth[0] <= 'X')
+			if (bandwidth.length () == 1 && ((bandwidth[0] >= 'K' && bandwidth[0] <= 'P') || bandwidth[0] == 'X' ))
 			{
 				i2p::context.SetBandwidth (bandwidth[0]);
 				LogPrint(eLogInfo, "Daemon: Bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");

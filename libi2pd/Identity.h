@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -136,6 +136,8 @@ namespace data
 			uint8_t m_ExtendedBuffer[MAX_EXTENDED_BUFFER_SIZE];
 	};
 
+	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len); // return actual identity length in buffer
+
 	class PrivateKeys // for eepsites
 	{
 		public:
@@ -206,7 +208,7 @@ namespace data
 		bool operator< (const XORMetric& other) const { return memcmp (metric, other.metric, 32) < 0; };
 	};
 
-	IdentHash CreateRoutingKey (const IdentHash& ident);
+	IdentHash CreateRoutingKey (const IdentHash& ident, bool nextDay = false);
 	XORMetric operator^(const IdentHash& key1, const IdentHash& key2);
 
 	// destination for delivery instructions

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -58,7 +58,7 @@ namespace french // language namespace
 		{"Unknown", "Inconnu"},
 		{"Proxy", "Proxy"},
 		{"Mesh", "Maillé"},
-		{"Clock skew", "Horloge décalée"},
+		{"Clock skew", "Décalage de l'horloge"},
 		{"Offline", "Hors ligne"},
 		{"Symmetric NAT", "NAT symétrique"},
 		{"Full cone NAT", "NAT à cône complet"},
@@ -68,8 +68,8 @@ namespace french // language namespace
 		{"Network status v6", "État du réseau v6"},
 		{"Stopping in", "Arrêt dans"},
 		{"Family", "Famille"},
-		{"Tunnel creation success rate", "Taux de succès de création de tunnels"},
-		{"Total tunnel creation success rate", "Taux de réussite de création de tunnel"},
+		{"Tunnel creation success rate", "Taux de création de tunnel réussie"},
+		{"Total tunnel creation success rate", "Taux total de création de tunnel réussie"},
 		{"Received", "Reçu"},
 		{"%.2f KiB/s", "%.2f Kio/s"},
 		{"Sent", "Envoyé"},

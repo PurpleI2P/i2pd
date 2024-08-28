@@ -1,3 +1,22 @@
+i2pd (2.53.1-1) unstable; urgency=medium
+
+  * updated to version 2.53.1
+
+ -- orignal <orignal@i2pmail.org>  Tue, 30 Jul 2024 16:00:00 +0000
+
+i2pd (2.53.0-1) unstable; urgency=medium
+
+  * updated to version 2.53.0/0.9.63
+  * binary moved from /usr/sbin to /usr/bin
+
+ -- r4sas <r4sas@i2pmail.org>  Sat, 20 Jul 2024 15:10:00 +0000
+
+i2pd (2.52.0-1) unstable; urgency=medium
+
+  * updated to version 2.52.0
+
+ -- orignal <orignal@i2pmail.org>  Sun, 12 May 2024 16:00:00 +0000
+
 i2pd (2.51.0-1) unstable; urgency=medium
 
   * updated to version 2.51.0/0.9.62

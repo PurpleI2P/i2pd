@@ -73,16 +73,24 @@ void UnSubscribeFromEvents()
 		}
 
 		if (pNetEvent)
+		{
 			pNetEvent->Release();
+		}
 
 		if (pCPContainer)
+		{
 			pCPContainer->Release();
+		}
 
 		if (pNetworkListManager)
+		{
 			pNetworkListManager->Release();
+		}
 
 		if (pUnknown)
+		{
 			pUnknown->Release();
+		}
 
 		CoUninitialize();
 	}

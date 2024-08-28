@@ -1,41 +1,40 @@
 # root directory holding homebrew
-BREWROOT = /usr/local
+BREWROOT = /opt/homebrew
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/openssl@1.1
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
-CXXFLAGS = ${CXX_DEBUG} -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
-INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include
-LDFLAGS = ${LD_DEBUG}
 
-ifndef TRAVIS
-	CXX = clang++
-endif
+CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wno-overloaded-virtual
+NEEDED_CXXFLAGS ?= -std=c++11
+INCFLAGS ?= -I${SSLROOT}/include -I${BOOSTROOT}/include
+LDFLAGS ?= ${LD_DEBUG}
+DEFINES += -DMAC_OSX
 
 ifeq ($(USE_STATIC),yes)
-	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_date_time.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a -lpthread
+	LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a
+ifeq ($(USE_UPNP),yes)
+	LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
+endif
+	LDLIBS +=  -lpthread -ldl
 else
 	LDFLAGS += -L${SSLROOT}/lib -L${BOOSTROOT}/lib
-	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_filesystem -lboost_program_options -lpthread
+ifeq ($(USE_UPNP),yes)
+	LDFLAGS += -L${UPNPROOT}/lib
+	LDLIBS += -lminiupnpc
+endif
 endif
 
 ifeq ($(USE_UPNP),yes)
-	LDFLAGS += -ldl
-	CXXFLAGS += -DUSE_UPNP
+	DEFINES += -DUSE_UPNP
 	INCFLAGS += -I${UPNPROOT}/include
-	ifeq ($(USE_STATIC),yes)
-		LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
-	else
-		LDFLAGS += -L${UPNPROOT}/lib
-		LDLIBS += -lminiupnpc
-	endif
 endif
 
-# OSX Notes
-# http://www.hutsby.net/2011/08/macs-with-aes-ni.html
-# Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
-# Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
 ifeq ($(USE_AESNI),yes)
-	CXXFLAGS += -D__AES__ -maes
+ifneq (, $(findstring i386, $(SYS))$(findstring i686, $(SYS))$(findstring x86_64, $(SYS))) # only x86-based CPU supports that
+	NEEDED_CXXFLAGS += -maes
+	DEFINES += -D__AES__
+endif
 endif
 
 install: all

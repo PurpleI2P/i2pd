@@ -7,7 +7,7 @@ tunconf="/etc/i2pd/tunnels.conf"
 tundir="/etc/i2pd/tunnels.conf.d"
 
 name="i2pd"
-command="/usr/sbin/i2pd"
+command="/usr/bin/i2pd"
 command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf --tunnelsdir=$tundir --pidfile=$pidfile"
 description="i2p router written in C++"
 required_dirs="/var/lib/i2pd"

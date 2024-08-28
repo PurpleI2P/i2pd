@@ -37,6 +37,7 @@ namespace transport
 	const size_t SSU2_MIN_PACKET_SIZE = 1280;
 	const int SSU2_HANDSHAKE_RESEND_INTERVAL = 1000; // in milliseconds
 	const int SSU2_MAX_NUM_RESENDS = 5;
+	const int SSU2_RESEND_ATTEMPT_MIN_INTERVAL = 3; // in milliseconds
 	const int SSU2_INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	const int SSU2_MAX_NUM_RECEIVED_I2NP_MSGIDS = 5000; // how many msgID we store for duplicates check
 	const int SSU2_RECEIVED_I2NP_MSGIDS_CLEANUP_TIMEOUT = 10; // in seconds
@@ -255,8 +256,10 @@ namespace transport
 			void Done () override;
 			void SendLocalRouterInfo (bool update) override;
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
+			void MoveSendQueue (std::shared_ptr<SSU2Session> other);
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
-			size_t Resend (uint64_t ts); // return number or resent packets
+			size_t Resend (uint64_t ts); // return number of resent packets
+			uint64_t GetLastResendTime () const { return m_LastResendTime; };
 			bool IsEstablished () const override { return m_State == eSSU2SessionStateEstablished; };
 			uint64_t GetConnID () const { return m_SourceConnID; };
 			SSU2SessionState GetState () const { return m_State; };
@@ -301,6 +304,7 @@ namespace transport
 
 			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleDateTime (const uint8_t * buf, size_t len);
+			void HandleRouterInfo (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
 			void HandleAddress (const uint8_t * buf, size_t len);
@@ -325,6 +329,7 @@ namespace transport
 
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
+			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo::Buffer> riBuffer);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreateI2NPBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage>&& msg);
@@ -369,6 +374,7 @@ namespace transport
 			size_t m_MaxPayloadSize;
 			std::unique_ptr<i2p::data::IdentHash> m_PathChallenge;
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
+			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 	};
 
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)

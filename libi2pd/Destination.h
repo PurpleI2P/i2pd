@@ -15,7 +15,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <functional>
 #include <boost/asio.hpp>
@@ -84,6 +84,10 @@ namespace client
 	// streaming
 	const char I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY[] = "i2p.streaming.initialAckDelay";
 	const int DEFAULT_INITIAL_ACK_DELAY = 200; // milliseconds
+	const char I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED[] = "i2p.streaming.maxOutboundSpeed"; // bytes/sec
+	const int DEFAULT_MAX_OUTBOUND_SPEED = 1730000000; // no more than 1.73 Gbytes/s
+	const char I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED[] = "i2p.streaming.maxInboundSpeed"; // bytes/sec
+	const int DEFAULT_MAX_INBOUND_SPEED = 1730000000; // no more than 1.73 Gbytes/s
 	const char I2CP_PARAM_STREAMING_ANSWER_PINGS[] = "i2p.streaming.answerPings";
 	const int DEFAULT_ANSWER_PINGS = true;
 
@@ -97,7 +101,7 @@ namespace client
 		struct LeaseSetRequest
 		{
 			LeaseSetRequest (boost::asio::io_service& service): requestTime (0), requestTimeoutTimer (service) {};
-			std::set<i2p::data::IdentHash> excluded;
+			std::unordered_set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
 			std::list<RequestComplete> requestComplete;
@@ -195,7 +199,7 @@ namespace client
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
 			uint64_t m_LastSubmissionTime; // in seconds
-			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
+			std::unordered_set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer;
@@ -259,6 +263,8 @@ namespace client
 			bool IsAcceptingStreams () const;
 			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
+			int GetStreamingOutboundSpeed () const { return m_StreamingOutboundSpeed; }
+			int GetStreamingInboundSpeed () const { return m_StreamingInboundSpeed; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
 
 			// datagram
@@ -296,12 +302,15 @@ namespace client
 			std::unique_ptr<EncryptionKey> m_ECIESx25519EncryptionKey;
 
 			int m_StreamingAckDelay;
+			int m_StreamingOutboundSpeed;
+			int m_StreamingInboundSpeed;
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_LastStreamingDestination; uint16_t m_LastPort; // for server tunnels
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 			int m_RefCounter; // how many clients(tunnels) use this destination
+			uint64_t m_LastPublishedTimestamp;
 
 			boost::asio::deadline_timer m_ReadyChecker;
 

@@ -147,7 +147,7 @@ namespace i2p
 	}
 
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from,
-		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
+		uint32_t replyTunnelID, bool exploratory, std::unordered_set<i2p::data::IdentHash> * excludedPeers)
 	{
 		int cnt = excludedPeers ? excludedPeers->size () : 0;
 		auto m = cnt > 7 ? NewI2NPMessage () : NewI2NPShortMessage ();
@@ -192,7 +192,7 @@ namespace i2p
 	}
 
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest,
-		const std::set<i2p::data::IdentHash>& excludedFloodfills,
+		const std::unordered_set<i2p::data::IdentHash>& excludedFloodfills,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey,
 			const uint8_t * replyTag, bool replyECIES)
 	{
@@ -862,12 +862,14 @@ namespace i2p
 					break;
 				}
 				case eI2NPDatabaseStore:
-				case eI2NPDatabaseSearchReply:	
 					// forward to netDb if came directly or through exploratory tunnel as response to our request
 					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
 						i2p::data::netdb.PostI2NPMsg (msg);
 				break;
-				
+				case eI2NPDatabaseSearchReply:
+					if (!msg->from || !msg->from->GetTunnelPool () || msg->from->GetTunnelPool ()->IsExploratory ())
+						i2p::data::netdb.PostDatabaseSearchReplyMsg (msg);
+				break;	
 				case eI2NPDatabaseLookup:
 					// forward to netDb if floodfill and came directly
 					if (!msg->from && i2p::context.IsFloodfill ())

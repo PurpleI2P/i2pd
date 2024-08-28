@@ -69,28 +69,55 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local,
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
 		m_SendStreamID (0), m_SequenceNumber (0),
-		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1),
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
-		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service),
+		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
+		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
+		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (true),
+		m_IsTimeOutResend (false), m_LocalDestination (local),
+		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
-		m_RTT (INITIAL_RTT), m_WindowSize (MIN_WINDOW_SIZE), m_RTO (INITIAL_RTO),
-		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
+		m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
+		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
+		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
+		if (outboundSpeed)
+			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;
+		
+		auto inboundSpeed = local.GetOwner ()->GetStreamingInboundSpeed (); // for limit inbound speed
+		if (inboundSpeed)
+			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0),
-		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1),
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
-		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT),
-		m_WindowSize (MIN_WINDOW_SIZE), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0), m_MTU (STREAMING_MTU)
+		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
+		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
+		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (true),
+		m_IsTimeOutResend (false), m_LocalDestination (local),
+		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT),
+		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowIncCounter (0), 
+		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
+		m_PrevRTTSample (INITIAL_RTT), m_PrevRTT (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_DropWindowDelayTime (0), m_LastSendTime (0),
+		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
+		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
+		auto outboundSpeed = local.GetOwner ()->GetStreamingOutboundSpeed ();
+		if (outboundSpeed)
+			m_MinPacingTime = (1000000LL*STREAMING_MTU)/outboundSpeed;
+		
+		auto inboundSpeed = local.GetOwner ()->GetStreamingInboundSpeed (); // for limit inbound speed
+		if (inboundSpeed)
+			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
 	Stream::~Stream ()
@@ -105,6 +132,7 @@ namespace stream
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
+		m_SendTimer.cancel ();
 		//CleanUp (); /* Need to recheck - broke working on windows */
 		if (deleteFromDestination)
 			m_LocalDestination.DeleteStream (shared_from_this ());
@@ -119,6 +147,8 @@ namespace stream
 			m_ReceiveQueue.pop ();
 			m_LocalDestination.DeletePacket (packet);
 		}
+		
+		m_NACKedPackets.clear ();
 
 		for (auto it: m_SentPackets)
 			m_LocalDestination.DeletePacket (it);
@@ -203,8 +233,20 @@ namespace stream
 			{
 				// we have received duplicate
 				LogPrint (eLogWarning, "Streaming: Duplicate message ", receivedSeqn, " on sSID=", m_SendStreamID);
-				SendQuickAck (); // resend ack for previous message again
+				if (receivedSeqn <= m_PreviousReceivedSequenceNumber || receivedSeqn == m_LastReceivedSequenceNumber)
+ 				{
+ 					m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+ 					UpdateCurrentRemoteLease ();
+ 				}
+ 				m_PreviousReceivedSequenceNumber = receivedSeqn;
 				m_LocalDestination.DeletePacket (packet); // packet dropped
+				if (!m_IsAckSendScheduled)
+				{
+					SendQuickAck (); // resend ack for previous message again
+					auto ackTimeout = m_RTT/10;
+					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+					ScheduleAck (ackTimeout);
+				}
 			}
 			else
 			{
@@ -216,7 +258,8 @@ namespace stream
 					if (!m_IsAckSendScheduled)
 					{	
 						// send NACKs for missing messages 
-						int ackTimeout = MIN_SEND_ACK_TIMEOUT*m_SavedPackets.size ();
+						SendQuickAck (); 
+						auto ackTimeout = m_RTT/10;
 						if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
 						ScheduleAck (ackTimeout);
 					}	
@@ -277,6 +320,11 @@ namespace stream
 	{
 		const uint8_t * optionData = packet->GetOptionData ();
 		size_t optionSize = packet->GetOptionSize ();
+		if (optionSize > packet->len)
+		{
+			LogPrint (eLogInfo, "Streaming: Invalid option size ", optionSize, " Discarded");
+			return false;
+		}	
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 		{
 			if (!m_IsAckSendScheduled)
@@ -290,7 +338,10 @@ namespace stream
 						shared_from_this (), std::placeholders::_1));
 				}
 				if (delayRequested >= DELAY_CHOKING)
+				{
 					m_WindowSize = 1;
+					m_WindowIncCounter = 0;
+				}
 			}
 			optionData += 2;
 		}
@@ -403,13 +454,15 @@ namespace stream
 		bool acknowledged = false;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
+		m_NACKedPackets.clear ();
 		if (ackThrough > m_SequenceNumber)
 		{
 			LogPrint (eLogError, "Streaming: Unexpected ackThrough=", ackThrough, " > seqn=", m_SequenceNumber);
 			return;
 		}
 		int rttSample = INT_MAX;
-		bool firstRttSample = false;
+		m_IsNAcked = false;
+		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
@@ -422,6 +475,8 @@ namespace stream
 					for (int i = 0; i < nackCount; i++)
 						if (seqn == packet->GetNACK (i))
 						{
+							m_NACKedPackets.insert (*it);
+							m_IsNAcked = true;
 							nacked = true;
 							break;
 						}
@@ -438,7 +493,7 @@ namespace stream
 					LogPrint (eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
 				if (!seqn)
 				{
-					firstRttSample = true;
+					m_IsFirstRttSample = true;
 					rttSample = rtt < 0 ? 1 : rtt;
 				}
 				else if (!sentPacket->resent && seqn > m_TunnelsChangeSequenceNumber && rtt >= 0)
@@ -447,42 +502,86 @@ namespace stream
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
-				if (m_WindowSize < WINDOW_SIZE)
-					m_WindowSize++; // slow start
+				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
+					m_WindowIncCounter++;
 			}
 			else
 				break;
 		}
 		if (rttSample != INT_MAX)
 		{
-			if (firstRttSample)
+			if (m_IsFirstRttSample)
+			{
 				m_RTT = rttSample;
+				m_SlowRTT = rttSample;
+				m_PrevRTTSample = rttSample;
+				if (m_RoutingSession)
+					m_RoutingSession->SetSharedRoutingPath (
+						std::make_shared<i2p::garlic::GarlicRoutingPath> (
+							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0}));
+				m_IsFirstRttSample = false;
+			}
 			else
-				m_RTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
+				m_RTT = RTT_EWMA_ALPHA * m_RTT + (1.0 - RTT_EWMA_ALPHA) * rttSample;
+			// calculate jitter
+			int jitter = 0;
+			if (rttSample > m_PrevRTTSample)
+				jitter = rttSample - m_PrevRTTSample;
+			else if (rttSample < m_PrevRTTSample)
+				jitter = m_PrevRTTSample - rttSample;
+			else
+				jitter = std::round (rttSample / 10); // 10%
+			jitter += 5; // for low-latency connections
+			m_Jitter = std::round (RTT_EWMA_ALPHA * jitter + (1.0 - RTT_EWMA_ALPHA) * m_Jitter);
+			m_PrevRTTSample = rttSample;
+			//
+			// delay-based CC
+			if ((m_PrevRTT > m_SlowRTT + m_Jitter) && (m_RTT > m_SlowRTT + m_Jitter) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
+			{
+				if (m_LastWindowDropSize)
+					m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize) / 2;
+				else
+					m_LastWindowDropSize = m_WindowSize;
+				m_WindowSize = m_WindowSize / 2; // /2
+				if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+				m_WindowIncCounter = 0;
+				m_DropWindowDelayTime = ts + m_SlowRTT;
+				m_IsFirstACK = true;
+				m_IsWinDropped = true; // don't drop window twice
+			}
+			UpdatePacingTime ();
+			if (rttSample < m_RTT) // need for delay-based CC
+				m_SlowRTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_SlowRTT;
+			else
+				m_SlowRTT = RTT_EWMA_ALPHA * m_RTT + (1.0 - RTT_EWMA_ALPHA) * m_SlowRTT;
+			m_PrevRTT = m_RTT;
+			
 			bool wasInitial = m_RTO == INITIAL_RTO;
-			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter)); // TODO: implement it better
+			
 			if (wasInitial)
 				ScheduleResend ();
 		}
-		if (acknowledged && m_WindowSize >= WINDOW_SIZE)
+		if ( ts > m_DropWindowDelayTime)
+			m_IsWinDropped = false;
+		if (acknowledged || m_IsNAcked)
 		{
-			// linear growth
-			if (ts > m_LastWindowSizeIncreaseTime + m_RTT)
-			{
-				m_WindowSize++;
-				if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
-				m_LastWindowSizeIncreaseTime = ts;
-			}
+			ScheduleResend ();
 		}
-		if (firstRttSample && m_RoutingSession)
-			m_RoutingSession->SetSharedRoutingPath (
-				std::make_shared<i2p::garlic::GarlicRoutingPath> (
-					i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, (int)m_RTT, 0, 0}));
-		if (m_SentPackets.empty ())
+		if ((m_SendBuffer.IsEmpty () && m_SentPackets.size () > 0) // tail loss
+			|| int(m_SentPackets.size ()) > m_WindowSize) // or we drop window
+		{
+			m_IsResendNeeded = true;
+		}
+		if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ())
+		{
 			m_ResendTimer.cancel ();
+			m_SendTimer.cancel ();
+		}
 		if (acknowledged)
 		{
 			m_NumResendAttempts = 0;
+			m_IsFirstACK = false;
 			SendBuffer ();
 		}
 		if (m_Status == eStreamStatusClosed)
@@ -557,9 +656,16 @@ namespace stream
 
 	void Stream::SendBuffer ()
 	{
+		ScheduleSend ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
-		if (numMsgs <= 0) return; // window is full
-
+		if (numMsgs <= 0 || !m_IsSendTime) // window is full
+		{
+			m_LastSendTime = ts;
+			return;
+		}
+		else if (numMsgs > m_NumPacketsToSend)
+			numMsgs = m_NumPacketsToSend;
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
 		while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
@@ -653,13 +759,15 @@ namespace stream
 				m_AckSendTimer.cancel ();
 			}
 			bool isEmpty = m_SentPackets.empty ();
-			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+//			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			for (auto& it: packets)
 			{
 				it->sendTime = ts;
 				m_SentPackets.insert (it);
 			}
 			SendPackets (packets);
+			m_LastSendTime = ts;
+			m_IsSendTime = false;
 			if (m_Status == eStreamStatusClosing && m_SendBuffer.IsEmpty ())
 				SendClose ();
 			if (isEmpty)
@@ -670,10 +778,26 @@ namespace stream
 	void Stream::SendQuickAck ()
 	{
 		int32_t lastReceivedSeqn = m_LastReceivedSequenceNumber;
+		// for limit inbound speed
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		int numPackets = 0;
+		int64_t passedTime = m_PacketACKInterval * INITIAL_WINDOW_SIZE; // in microseconds // while m_LastACKSendTime == 0
+		if (m_LastACKSendTime)
+			passedTime = (ts - m_LastACKSendTime)*1000; // in microseconds
+		numPackets = (passedTime + m_PacketACKIntervalRem) / m_PacketACKInterval;
+		m_PacketACKIntervalRem = (passedTime + m_PacketACKIntervalRem) - (numPackets * m_PacketACKInterval);
+		if (m_LastConfirmedReceivedSequenceNumber + numPackets < m_LastReceivedSequenceNumber)
+			lastReceivedSeqn = m_LastConfirmedReceivedSequenceNumber + numPackets;
+		if (numPackets == 0) return;
+		// for limit inbound speed
 		if (!m_SavedPackets.empty ())
 		{
-			int32_t seqn = (*m_SavedPackets.rbegin ())->GetSeqn ();
-			if (seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+			for (auto it: m_SavedPackets)
+			{
+				auto seqn = it->GetSeqn ();
+				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) break; // for limit inbound speed
+				if ((int)seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+			}
 		}
 		if (lastReceivedSeqn < 0)
 		{
@@ -702,6 +826,11 @@ namespace stream
 			for (auto it: m_SavedPackets)
 			{
 				auto seqn = it->GetSeqn ();
+				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) // for limit inbound speed
+				{
+					htobe32buf (packet + 12, nextSeqn - 1);
+					break;
+				}
 				if (numNacks + (seqn - nextSeqn) >= 256)
 				{
 					LogPrint (eLogError, "Streaming: Number of NACKs exceeds 256. seqn=", seqn, " nextSeqn=", nextSeqn);
@@ -743,6 +872,8 @@ namespace stream
 		p.len = size;
 
 		SendPackets (std::vector<Packet *> { &p });
+		m_LastACKSendTime = ts; // for limit inbound speed
+		m_LastConfirmedReceivedSequenceNumber = lastReceivedSeqn; // for limit inbound speed
 		LogPrint (eLogDebug, "Streaming: Quick Ack sent. ", (int)numNacks, " NACKs");
 	}
 
@@ -873,6 +1004,7 @@ namespace stream
 				m_IsAckSendScheduled = false;
 				m_AckSendTimer.cancel ();
 			}
+			if (!packet->sendTime) packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
 			SendPackets (std::vector<Packet *> { packet });
 			bool isEmpty = m_SentPackets.empty ();
 			m_SentPackets.insert (packet);
@@ -906,7 +1038,7 @@ namespace stream
 				m_CurrentOutboundTunnel = routingPath->outboundTunnel;
 				m_CurrentRemoteLease = routingPath->remoteLease;
 				m_RTT = routingPath->rtt;
-				m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5)); // TODO: implement it better
+				m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.3 + m_Jitter)); // TODO: implement it better
 			}
 		}
 
@@ -925,12 +1057,7 @@ namespace stream
 				freshTunnel = true;
 			}
 			else if (!m_CurrentOutboundTunnel->IsEstablished ())
-			{
-				auto oldOutboundTunnel = m_CurrentOutboundTunnel;
-				m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
-				if (m_CurrentOutboundTunnel && oldOutboundTunnel->GetEndpointIdentHash() != m_CurrentOutboundTunnel->GetEndpointIdentHash())
-					freshTunnel = true;
-			}
+				std::tie(m_CurrentOutboundTunnel, freshTunnel) = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
 			if (!m_CurrentOutboundTunnel)
 			{
 				LogPrint (eLogError, "Streaming: No outbound tunnels in the pool, sSID=", m_SendStreamID);
@@ -940,7 +1067,7 @@ namespace stream
 			if (freshTunnel)
 			{
 				m_RTO = INITIAL_RTO;
-				m_TunnelsChangeSequenceNumber = m_SequenceNumber; // should be determined more precisely
+//				m_TunnelsChangeSequenceNumber = m_SequenceNumber; // should be determined more precisely
 			}
 
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
@@ -993,6 +1120,68 @@ namespace stream
 			SendQuickAck ();
 	}
 
+	void Stream::ScheduleSend ()
+	{
+		if (m_Status != eStreamStatusTerminated)
+		{
+			m_SendTimer.cancel ();
+			m_SendTimer.expires_from_now (boost::posix_time::microseconds(SEND_INTERVAL));
+			m_SendTimer.async_wait (std::bind (&Stream::HandleSendTimer,
+				shared_from_this (), std::placeholders::_1));
+		}
+	}
+
+	void Stream::HandleSendTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_WindowIncCounter && m_WindowSize < MAX_WINDOW_SIZE)
+			{
+				if (m_LastWindowDropSize && (m_LastWindowDropSize > m_WindowSize))
+				{
+					m_WindowSize += 2.001-(2/((m_LastWindowDropSize+(1/m_WindowSize))/m_WindowSize)); // some magic here
+					m_WindowIncCounter --;
+				}
+				else
+				{
+					m_WindowSize += 1;
+					m_WindowIncCounter --;
+				}
+				if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
+				UpdatePacingTime ();
+			}
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			if (m_LastSendTime && ts*1000 > m_LastSendTime*1000 + m_PacingTime)
+			{
+				m_NumPacketsToSend = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) / m_PacingTime;
+				m_PacingTimeRem = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) - (m_NumPacketsToSend * m_PacingTime);
+				m_IsSendTime = true;
+				if (m_IsNAcked || m_IsResendNeeded) // resend packets
+					ResendPacket ();
+				// delay-based CC
+				else if (!m_IsWinDropped && int(m_SentPackets.size ()) == m_WindowSize) // we sending packets too fast, early detection
+				{
+					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+					if (m_LastWindowDropSize)
+						m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize) / 2;
+					else
+						m_LastWindowDropSize = m_WindowSize;
+					m_WindowSize = m_WindowSize / 2; // /2
+					if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+					m_WindowIncCounter = 0;
+					m_DropWindowDelayTime = ts + m_SlowRTT;
+					m_IsFirstACK = true;
+					m_IsWinDropped = true; // don't drop window twice
+					UpdatePacingTime ();
+				}
+				else if (m_WindowSize > int(m_SentPackets.size ())) // send packets
+					SendBuffer ();
+			}
+			else // pass
+				ScheduleSend ();
+		}
+	}
+
 	void Stream::ScheduleResend ()
 	{
 		if (m_Status != eStreamStatusTerminated)
@@ -1010,6 +1199,19 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			m_IsSendTime = true;
+			if (m_RTO > INITIAL_RTO) m_RTO = INITIAL_RTO;
+			m_SendTimer.cancel (); // if no ack's in RTO, disable fast retransmit
+			m_IsTimeOutResend = true;
+			m_IsNAcked = false;
+			m_IsResendNeeded = false;
+			m_NumPacketsToSend = 1;
+			ResendPacket (); // send one packet per RTO, waiting for ack
+		}
+	}
+	
+	void Stream::ResendPacket ()
+	{
 			// check for resend attempts
 			if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
 			{
@@ -1022,31 +1224,74 @@ namespace stream
 			// collect packets to resend
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			std::vector<Packet *> packets;
-			for (auto it : m_SentPackets)
+			if (m_IsNAcked)
 			{
-				if (ts >= it->sendTime + m_RTO)
+				for (auto it : m_NACKedPackets)
 				{
-					it->resent = true;
-					it->sendTime = ts;
-					packets.push_back (it);
+					if (ts >= it->sendTime + m_RTO)
+					{
+						if (ts < it->sendTime + m_RTO*2)
+							it->resent = true;
+						else
+							it->resent = false;
+						it->sendTime = ts;
+						packets.push_back (it);
+						if ((int)packets.size () >= m_NumPacketsToSend) break;
+					}
 				}
 			}
-
-			// select tunnels if necessary and send
-			if (packets.size () > 0)
+			else
 			{
-				m_NumResendAttempts++;
+				for (auto it : m_SentPackets)
+				{
+					if (ts >= it->sendTime + m_RTO)
+					{
+						if (ts < it->sendTime + m_RTO*2)
+							it->resent = true;
+						else
+							it->resent = false;
+						it->sendTime = ts;
+						packets.push_back (it);
+						if ((int)packets.size () >= m_NumPacketsToSend) break;
+					}
+				}
+			}
+			
+			// select tunnels if necessary and send
+			if (packets.size () > 0 && m_IsSendTime)
+			{
+				if (m_IsNAcked) m_NumResendAttempts = 1;
+				else if (m_IsTimeOutResend) m_NumResendAttempts++;
 				if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
 				{
-					// congestion avoidance
-					m_RTO *= 2;
-					m_WindowSize -= (m_WindowSize + WINDOW_SIZE_DROP_FRACTION) / WINDOW_SIZE_DROP_FRACTION; // adjustment >= 1
-					if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+					// loss-based CC
+					if (!m_IsWinDropped)
+					{
+						if (m_LastWindowDropSize)
+							m_LastWindowDropSize = (m_LastWindowDropSize + m_WindowSize) / 2;
+						else
+							m_LastWindowDropSize = m_WindowSize;
+						m_WindowSize = m_WindowSize / 2; // /2
+						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+						m_WindowIncCounter = 0;
+						m_IsWinDropped = true; // don't drop window twice
+						m_DropWindowDelayTime = ts + m_SlowRTT;
+						m_IsFirstACK = true;
+						UpdatePacingTime ();
+					}
 				}
-				else
+				else if (m_IsTimeOutResend)
 				{
-					m_TunnelsChangeSequenceNumber = m_SequenceNumber;
+					m_IsTimeOutResend = false;
 					m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
+					m_WindowSize = INITIAL_WINDOW_SIZE;
+					m_LastWindowDropSize = 0;
+					m_WindowIncCounter = 0;
+					m_IsWinDropped = true;
+					m_IsFirstRttSample = true;
+					m_DropWindowDelayTime = 0;
+					m_IsFirstACK = true;
+					UpdatePacingTime ();
 					if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 					if (m_NumResendAttempts & 1)
 					{
@@ -1063,9 +1308,13 @@ namespace stream
 					}
 				}
 				SendPackets (packets);
+				m_LastSendTime = ts;
+				m_IsSendTime = false;
+				if (m_IsNAcked || m_IsResendNeeded) ScheduleSend ();
 			}
-			ScheduleResend ();
-		}
+			else
+				SendBuffer ();
+			if (!m_IsNAcked && !m_IsResendNeeded) ScheduleResend ();
 	}
 
 	void Stream::ScheduleAck (int timeout)
@@ -1187,8 +1436,35 @@ namespace stream
 			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
 		}
+		// drop window to initial upon RemoteLease change
+		m_RTO = INITIAL_RTO;
+		m_WindowSize = INITIAL_WINDOW_SIZE;
+		m_LastWindowDropSize = 0;
+		m_WindowIncCounter = 0;
+		m_IsWinDropped = true;
+		m_IsFirstRttSample = true;
+		m_DropWindowDelayTime = 0;
+		m_IsFirstACK = true;
+		UpdatePacingTime ();
 	}
 
+	void Stream::ResetRoutingPath ()
+	{
+		m_CurrentOutboundTunnel = nullptr;
+		m_CurrentRemoteLease = nullptr;
+		m_RTT = INITIAL_RTT;
+		m_RTO = INITIAL_RTO;
+		if (m_RoutingSession)
+			m_RoutingSession->SetSharedRoutingPath (nullptr); // TODO: count failures
+	}	
+
+	void Stream::UpdatePacingTime ()
+	{
+		m_PacingTime = std::round (m_RTT*1000/m_WindowSize);
+		if (m_MinPacingTime && m_PacingTime < m_MinPacingTime)
+			m_PacingTime = m_MinPacingTime;
+	}	
+		
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ())
@@ -1269,6 +1545,7 @@ namespace stream
 				{
 					// already pending
 					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
+					it1->second->ResetRoutingPath (); // Ack was not delivered, changing path
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}

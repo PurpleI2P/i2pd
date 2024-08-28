@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -420,6 +420,14 @@ namespace data
 		return CreateEncryptor (GetCryptoKeyType (), key);
 	}
 
+	size_t GetIdentityBufferLen (const uint8_t * buf, size_t len)
+	{
+		if (len < DEFAULT_IDENTITY_SIZE) return 0;
+		size_t l = DEFAULT_IDENTITY_SIZE + bufbe16toh (buf + DEFAULT_IDENTITY_SIZE - 2);
+		if (l > len) return 0;
+		return l;
+	}	
+		
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
@@ -479,7 +487,12 @@ namespace data
 		{
 			// offline information
 			const uint8_t * offlineInfo = buf + ret;
-			ret += 4; // expires timestamp
+			uint32_t expires = bufbe32toh (buf + ret); ret += 4; // expires timestamp
+			if (expires < i2p::util::GetSecondsSinceEpoch ())
+			{
+				LogPrint (eLogError, "Identity: Offline signature expired");
+				return 0;
+			}	
 			SigningKeyType keyType = bufbe16toh (buf + ret); ret += 2; // key type
 			std::unique_ptr<i2p::crypto::Verifier> transientVerifier (IdentityEx::CreateVerifier (keyType));
 			if (!transientVerifier) return 0;
@@ -790,11 +803,14 @@ namespace data
 		return keys;
 	}
 
-	IdentHash CreateRoutingKey (const IdentHash& ident)
+	IdentHash CreateRoutingKey (const IdentHash& ident, bool nextDay)
 	{
 		uint8_t buf[41]; // ident + yyyymmdd
 		memcpy (buf, (const uint8_t *)ident, 32);
-		i2p::util::GetCurrentDate ((char *)(buf + 32));
+		if (nextDay)
+			i2p::util::GetNextDayDate ((char *)(buf + 32));
+		else	
+			i2p::util::GetCurrentDate ((char *)(buf + 32));
 		IdentHash key;
 		SHA256(buf, 40, key);
 		return key;

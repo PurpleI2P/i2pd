@@ -64,26 +64,23 @@ namespace transport
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL = 31*60; // in seconds
 	const int PEER_ROUTER_INFO_UPDATE_INTERVAL_VARIANCE = 7*60; // in seconds
 	const size_t PEER_ROUTER_INFO_OVERLOAD_QUEUE_SIZE = 25;
+	const int PEER_SELECTION_MIN_INTERVAL = 20; // in seconds
 	struct Peer
 	{
 		int numAttempts;
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::list<std::shared_ptr<TransportSession> > sessions;
-		uint64_t creationTime, nextRouterInfoUpdateTime;
+		uint64_t creationTime, nextRouterInfoUpdateTime, lastSelectionTime;
 		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
-		bool isHighBandwidth, isReachable;
+		bool isHighBandwidth, isEligible;
 
 		Peer (std::shared_ptr<const i2p::data::RouterInfo> r, uint64_t ts):
 			numAttempts (0), router (r), creationTime (ts),
 			nextRouterInfoUpdateTime (ts + PEER_ROUTER_INFO_UPDATE_INTERVAL),
-			isHighBandwidth (false), isReachable (false)
+			lastSelectionTime (0), isHighBandwidth (false), isEligible (false) 
 		{
-			if (router)
-			{		
-				isHighBandwidth = router->IsHighBandwidth ();
-				isReachable = (bool)router->GetCompatibleTransports (true);
-			}	
+			UpdateParams (router);
 		}
 			
 		void Done ()
@@ -98,14 +95,11 @@ namespace transport
 		void SetRouter (std::shared_ptr<const i2p::data::RouterInfo> r)
 		{
 			router = r;
-			if (router)
-			{	
-				isHighBandwidth = router->IsHighBandwidth ();
-				isReachable = (bool)router->GetCompatibleTransports (true);
-			}	
+			UpdateParams (router);
 		}
 
-		bool IsConnected () const { return !sessions.empty (); }	
+		bool IsConnected () const { return !sessions.empty (); }
+		void UpdateParams (std::shared_ptr<const i2p::data::RouterInfo> router);
 	};
 
 	const uint64_t SESSION_CREATION_TIMEOUT = 15; // in seconds
@@ -134,6 +128,7 @@ namespace transport
 
 			void Start (bool enableNTCP2=true, bool enableSSU2=true);
 			void Stop ();
+			bool IsRunning () const { return m_IsRunning; }
 
 			bool IsBoundSSU2() const { return m_SSU2Server != nullptr; }
 			bool IsBoundNTCP2() const { return m_NTCP2Server != nullptr; }
@@ -191,8 +186,8 @@ namespace transport
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
 			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
-			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
-			void SetPriority (Peer& peer) const;
+			bool ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer);
+			void SetPriority (std::shared_ptr<Peer> peer) const;
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
 			void HandleUpdateBandwidthTimer (const boost::system::error_code& ecode);
@@ -215,7 +210,7 @@ namespace transport
 			SSU2Server * m_SSU2Server;
 			NTCP2Server * m_NTCP2Server;
 			mutable std::mutex m_PeersMutex;
-			std::unordered_map<i2p::data::IdentHash, Peer> m_Peers;
+			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<Peer> > m_Peers;
 
 			X25519KeysPairSupplier m_X25519KeysPairSupplier;
 

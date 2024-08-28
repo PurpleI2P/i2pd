@@ -229,6 +229,29 @@ namespace garlic
 		tagsetNsr->NextSessionTagRatchet ();
 	}
 
+	bool ECIESX25519AEADRatchetSession::MessageConfirmed (uint32_t msgID)
+	{
+		auto ret = GarlicRoutingSession::MessageConfirmed (msgID); // LeaseSet
+		if (m_AckRequestMsgID && m_AckRequestMsgID == msgID)
+		{
+			m_AckRequestMsgID = 0;
+			m_AckRequestNumAttempts = 0;
+			ret = true;
+		}	
+		return ret;
+	}	
+
+	bool ECIESX25519AEADRatchetSession::CleanupUnconfirmedTags ()
+	{
+		if (m_AckRequestMsgID && m_AckRequestNumAttempts > ECIESX25519_ACK_REQUEST_MAX_NUM_ATTEMPTS)
+		{
+			m_AckRequestMsgID = 0;
+			m_AckRequestNumAttempts = 0;
+			return true;	
+		}
+		return false;
+	}	
+		
 	bool ECIESX25519AEADRatchetSession::HandleNewIncomingSession (const uint8_t * buf, size_t len)
 	{
 		if (!GetOwner ()) return false;
@@ -333,8 +356,9 @@ namespace garlic
 					auto offset1 = offset;
 					for (auto i = 0; i < numAcks; i++)
 					{
-						offset1 += 2; // tagsetid
-						MessageConfirmed (bufbe16toh (buf + offset1)); offset1 += 2; // N
+						uint32_t tagsetid = bufbe16toh (buf + offset1); offset1 += 2; // tagsetid
+						uint16_t n = bufbe16toh (buf + offset1); offset1 += 2; // N
+						MessageConfirmed ((tagsetid << 16) + n); // msgid = (tagsetid << 16) + N
 					}
 					break;
 				}
@@ -397,7 +421,6 @@ namespace garlic
 		{
 			uint16_t keyID = bufbe16toh (buf); buf += 2; // keyID
 			bool newKey = flag & ECIESX25519_NEXT_KEY_REQUEST_REVERSE_KEY_FLAG;
-			m_SendReverseKey = true;
 			if (!m_NextReceiveRatchet)
 				m_NextReceiveRatchet.reset (new DHRatchet ());
 			else
@@ -409,15 +432,14 @@ namespace garlic
 				}
 				m_NextReceiveRatchet->keyID = keyID;
 			}
-			int tagsetID = 2*keyID;
 			if (newKey)
 			{
 				m_NextReceiveRatchet->key = i2p::transport::transports.GetNextX25519KeysPair ();
 				m_NextReceiveRatchet->newKey = true;
-				tagsetID++;
 			}
 			else
 				m_NextReceiveRatchet->newKey = false;
+			auto tagsetID = m_NextReceiveRatchet->GetReceiveTagSetID ();
 			if (flag & ECIESX25519_NEXT_KEY_KEY_PRESENT_FLAG)
 				memcpy (m_NextReceiveRatchet->remote, buf, 32);
 
@@ -431,7 +453,9 @@ namespace garlic
 			GenerateMoreReceiveTags (newTagset, (GetOwner () && GetOwner ()->GetNumRatchetInboundTags () > 0) ?
 				GetOwner ()->GetNumRatchetInboundTags () : ECIESX25519_MAX_NUM_GENERATED_TAGS);
 			receiveTagset->Expire ();
+			
 			LogPrint (eLogDebug, "Garlic: Next receive tagset ", tagsetID, " created");
+			m_SendReverseKey = true;
 		}
 	}
 
@@ -753,7 +777,8 @@ namespace garlic
 			}
 			else
 			{
-				moreTags = ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 2); // N/4
+				moreTags = (receiveTagset->GetTagSetID () > 0) ? ECIESX25519_MAX_NUM_GENERATED_TAGS : // for non first tagset
+					(ECIESX25519_MIN_NUM_GENERATED_TAGS + (index >> 1)); // N/2
 				if (moreTags > ECIESX25519_MAX_NUM_GENERATED_TAGS) moreTags = ECIESX25519_MAX_NUM_GENERATED_TAGS;
 				moreTags -= (receiveTagset->GetNextIndex () - index);
 				index -= ECIESX25519_MAX_NUM_GENERATED_TAGS; // trim behind
@@ -780,6 +805,8 @@ namespace garlic
 				[[fallthrough]];
 #endif
 			case eSessionStateEstablished:
+				if (m_SendReverseKey && receiveTagset->GetTagSetID () == m_NextReceiveRatchet->GetReceiveTagSetID ())
+					m_SendReverseKey = false; // tag received on new tagset	
 				if (receiveTagset->IsNS ())
 				{
 					// our of sequence NSR
@@ -857,6 +884,7 @@ namespace garlic
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		size_t payloadLen = 0;
+		bool sendAckRequest = false;
 		if (first) payloadLen += 7;// datatime
 		if (msg)
 		{
@@ -875,13 +903,28 @@ namespace garlic
 			payloadLen += leaseSet->GetBufferLen () + DATABASE_STORE_HEADER_SIZE + 13;
 			if (!first)
 			{
-				// ack request
+				// ack request for LeaseSet
+				m_AckRequestMsgID = m_SendTagset->GetMsgID ();
+				sendAckRequest = true;
+				// update LeaseSet status
 				SetLeaseSetUpdateStatus (eLeaseSetSubmitted);
-				SetLeaseSetUpdateMsgID (m_SendTagset->GetNextIndex ());
+				SetLeaseSetUpdateMsgID (m_AckRequestMsgID);
 				SetLeaseSetSubmissionTime (ts);
-				payloadLen += 4;
 			}
 		}
+		if (!sendAckRequest && !first &&
+		    ((!m_AckRequestMsgID && ts > m_LastAckRequestSendTime + ECIESX25519_ACK_REQUEST_INTERVAL) || // regular request
+		     (m_AckRequestMsgID && ts > m_LastAckRequestSendTime + LEASESET_CONFIRMATION_TIMEOUT))) // previous request failed. try again
+		{	
+			// not LeaseSet
+			m_AckRequestMsgID = m_SendTagset->GetMsgID ();
+			if (m_AckRequestMsgID)
+			{	
+				m_AckRequestNumAttempts++;
+				sendAckRequest = true;
+			}	
+		}	
+		if (sendAckRequest) payloadLen += 4;
 		if (m_AckRequests.size () > 0)
 			payloadLen += m_AckRequests.size ()*4 + 3;
 		if (m_SendReverseKey)
@@ -933,16 +976,15 @@ namespace garlic
 			}
 			// LeaseSet
 			if (leaseSet)
-			{
 				offset += CreateLeaseSetClove (leaseSet, ts, payload + offset, payloadLen - offset);
-				if (!first)
-				{
-					// ack request
-					payload[offset] = eECIESx25519BlkAckRequest; offset++;
-					htobe16buf (payload + offset, 1); offset += 2;
-					payload[offset] = 0; offset++; // flags
-				}
-			}
+			// ack request
+			if (sendAckRequest)
+			{
+				payload[offset] = eECIESx25519BlkAckRequest; offset++;
+				htobe16buf (payload + offset, 1); offset += 2;
+				payload[offset] = 0; offset++; // flags
+				m_LastAckRequestSendTime = ts;
+			}	
 			// msg
 			if (msg)
 				offset += CreateGarlicClove (msg, payload + offset, payloadLen - offset);
@@ -977,7 +1019,6 @@ namespace garlic
 					memcpy (payload + offset, m_NextReceiveRatchet->key->GetPublicKey (), 32);
 					offset += 32; // public key
 				}
-				m_SendReverseKey = false;
 			}
 			if (m_SendForwardKey)
 			{

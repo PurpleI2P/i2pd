@@ -1,9 +1,14 @@
+/*
+* Copyright (c) 2013-2024, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
-
-#include <boost/thread/thread.hpp>
-#include <boost/asio.hpp>
 
 #include "Log.h"
 
@@ -110,10 +115,16 @@ namespace transport
 			return;
 		}
 
+#if (MINIUPNPC_API_VERSION >= 18)
+		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr),
+					m_externalIPAddress, sizeof (m_externalIPAddress));
+#else
 		err = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
+#endif
 		m_upnpUrlsInitialized=err!=0;
 		if (err == UPNP_IGD_VALID_CONNECTED)
 		{
+#if (MINIUPNPC_API_VERSION < 18)
 			err = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
 			if(err != UPNPCOMMAND_SUCCESS)
 			{
@@ -121,6 +132,7 @@ namespace transport
 				return;
 			}
 			else
+#endif
 			{
 				LogPrint (eLogError, "UPnP: Found Internet Gateway Device ", m_upnpUrls.controlURL);
 				if (!m_externalIPAddress[0])
@@ -166,11 +178,11 @@ namespace transport
 			if (address && !address->host.is_v6 () && address->port)
 				TryPortMapping (address);
 		}
-		m_Timer.expires_from_now (boost::posix_time::minutes(20)); // every 20 minutes
+		m_Timer.expires_from_now (boost::posix_time::minutes(UPNP_PORT_FORWARDING_INTERVAL)); // every 20 minutes
 		m_Timer.async_wait ([this](const boost::system::error_code& ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-			PortMapping ();
+				PortMapping ();
 		});
 	}
 

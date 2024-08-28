@@ -1,6 +1,65 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.53.1] - 2024-07-29
+### Changed
+- I2CP performance improvement
+### Fixed
+- 100% CPU usage after I2CP/SAM/BOB session termination
+- Incorrect client limits returned through I2CP
+- Build with LibreSSL
+
+## [2.53.0] - 2024-07-19
+### Added
+- New congestion control algorithm for streaming
+- Support miniupnp-2.2.8
+- Limit stream's outbound speed
+- Flood to next day closest floodfills before UTC midnight
+- Recognize duplicated routers and bypass them
+- Random SSU2 resend interval
+### Changed
+- Set minimal version to 0.9.69 for floodfills and 0.9.58 for client tunnels
+- Removed openssl 1.0.2 support
+- Move unsent I2NP messages to the new session if replaced
+- Use mt19937 RNG instead rand()
+- Update router's congestion caps before initial publishing
+- Don't try introducer with invalid address
+- Select newest introducers to publish
+- Don't request relay tag for every session if we have enough introducers
+- Update timestamp for non-reachable or hidden router
+- Reset streaming routing path if duplicated SYN received
+- Update LeaseSet if inbound tunnel failed
+- Reseeds list
+### Fixed
+- Crash when a destination gets terminated
+- Expired offline signature upon destination creation
+- Race condition between local RouterInfo buffer creation and sending it through the transports
+
+## [2.52.0] - 2024-05-12
+### Added
+- Separate threads for persisting RouterInfos and profiles to disk
+- Give preference to address with direct connection
+- Exclude addresses with incorrect static or intro key
+- Avoid two firewalled routers in the row in tunnel
+- Drop unsolicited database search replies
+### Changed
+- Increase number of hashes to 16 in exploratory lookup reply
+- Reduce number of a RouterInfo lookup attempts to 5
+- Reset stream RTO if outbound tunnel was changed
+- Insert previously excluded floodfill back when successfully connected
+- Increase maximum stream resend attempts to 9
+- Reply to exploratory lookups with only confirmed routers if low tunnel build rate
+- Don't accept too old RouterInfo
+- Build client tunnels through confirmed routers only if low tunnel build rate
+- Manage netDb requests more frequently
+- Don't reply with closer than us only floodfills for lookup
+### Fixed
+- Crash on router lookup if exploratory pool is not ready
+- Race condition in excluded peers for next lookup
+- Excessive number of lookups for same destination
+- Race condition with transport peers during shutdown
+- Corrupted RouterInfo files
+
 ## [2.51.0] - 2024-04-06
 ### Added
 - Non-blocking mode for UDP sockets

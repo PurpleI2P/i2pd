@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023, The PurpleI2P Project
+* Copyright (c) 2022-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -64,11 +64,12 @@ namespace chinese // language namespace
 		{"Full cone NAT", "全锥型NAT"},
 		{"No Descriptors", "无描述符"},
 		{"Uptime", "运行时间"},
-		{"Network status", "IPv4 网络状态"},
+		{"Network status", "网络状态"},
 		{"Network status v6", "IPv6 网络状态"},
 		{"Stopping in", "距停止还有："},
 		{"Family", "家族"},
 		{"Tunnel creation success rate", "隧道创建成功率"},
+		{"Total tunnel creation success rate", "当前隧道创建成功率"},
 		{"Received", "已接收"},
 		{"%.2f KiB/s", "%.2f KiB/s"},
 		{"Sent", "已发送"},
@@ -95,6 +96,7 @@ namespace chinese // language namespace
 		{"Address", "地址"},
 		{"Type", "类型"},
 		{"EncType", "加密类型"},
+		{"Expire LeaseSet", "到期租约集"},
 		{"Inbound tunnels", "入站隧道"},
 		{"%dms", "%dms"},
 		{"Outbound tunnels", "出站隧道"},
@@ -151,6 +153,8 @@ namespace chinese // language namespace
 		{"StreamID can't be null", "StreamID 不能为空"},
 		{"Return to destination page", "返回目标页面"},
 		{"You will be redirected in %d seconds", "您将在%d秒内被重定向"},
+		{"LeaseSet expiration time updated", "租约集到期时间已更新"},
+		{"LeaseSet is not found or already expired", "租约集未找到或已过期"},
 		{"Transit tunnels count must not exceed %d", "中转隧道数量限制为 %d"},
 		{"Back to commands list", "返回命令列表"},
 		{"Register at reg.i2p", "在 reg.i2p 注册域名"},

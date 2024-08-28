@@ -10,7 +10,10 @@
 #define SSU2_H__
 
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include <mutex>
+#include <random>
 #include "util.h"
 #include "SSU2Session.h"
 #include "Socks5.h"
@@ -19,11 +22,13 @@ namespace i2p
 {
 namespace transport
 {
-	const int SSU2_TERMINATION_CHECK_TIMEOUT = 25; // in seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT = 23; // in seconds
+	const int SSU2_TERMINATION_CHECK_TIMEOUT_VARIANCE = 5; // in seconds
 	const int SSU2_CLEANUP_INTERVAL = 72; // in seconds
 	const int SSU2_RESEND_CHECK_TIMEOUT = 40; // in milliseconds
 	const int SSU2_RESEND_CHECK_TIMEOUT_VARIANCE = 10; // in milliseconds
-	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 10; // in milliseconds
+	const int SSU2_RESEND_CHECK_MORE_TIMEOUT = 4; // in milliseconds
+	const int SSU2_RESEND_CHECK_MORE_TIMEOUT_VARIANCE = 9; // in milliseconds
 	const size_t SSU2_MAX_RESEND_PACKETS = 128; // packets to resend at the time
 	const uint64_t SSU2_SOCKET_MIN_BUFFER_SIZE = 128 * 1024;
 	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
@@ -67,6 +72,8 @@ namespace transport
 			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
+			std::mt19937& GetRng () { return m_Rng; }
+			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
 
@@ -78,7 +85,7 @@ namespace transport
 			std::shared_ptr<SSU2Session> FindSession (const i2p::data::IdentHash& ident) const;
 			std::shared_ptr<SSU2Session> FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const;
 			std::shared_ptr<SSU2Session> GetRandomPeerTestSession (i2p::data::RouterInfo::CompatibleTransports remoteTransports,
-				const i2p::data::IdentHash& excluded) const;
+				const i2p::data::IdentHash& excluded);
 
 			void AddRelay (uint32_t tag, std::shared_ptr<SSU2Session> relay);
 			void RemoveRelay (uint32_t tag);
@@ -125,8 +132,8 @@ namespace transport
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
-			std::list<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
-				bool v4, const std::set<i2p::data::IdentHash>& excluded) const;
+			std::vector<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
+				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const;
 			void UpdateIntroducers (bool v4);
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode, bool v4);
@@ -166,6 +173,7 @@ namespace transport
 			bool m_IsSyncClockFromPeers;
 			int64_t m_PendingTimeOffset; // during peer test
 			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
+			std::mt19937 m_Rng;
 
 			// proxy
 			bool m_IsThroughProxy;

@@ -52,21 +52,22 @@ namespace stream
 	const size_t STREAMING_MTU_RATCHETS = 1812;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
-	const int MAX_NUM_RESEND_ATTEMPTS = 9;
-	const int WINDOW_SIZE = 6; // in messages
+	const int MAX_NUM_RESEND_ATTEMPTS = 10;
+	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 1;
-	const int MAX_WINDOW_SIZE = 128;
-	const int WINDOW_SIZE_DROP_FRACTION = 10; // 1/10
+	const int MAX_WINDOW_SIZE = 1024;
 	const double RTT_EWMA_ALPHA = 0.125;
 	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
+	const int INITIAL_PACING_TIME = 1000 * INITIAL_RTT / INITIAL_WINDOW_SIZE; // in microseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
-	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
+	const size_t MAX_PENDING_INCOMING_BACKLOG = 1024;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
+	const uint64_t SEND_INTERVAL = 1000; // in microseconds
 
 	struct Packet
 	{
@@ -77,7 +78,7 @@ namespace stream
 
 		Packet (): len (0), offset (0), sendTime (0), resent (false) {};
 		uint8_t * GetBuffer () { return buf + offset; };
-		size_t GetLength () const { return len - offset; };
+		size_t GetLength () const { return len > offset ? len - offset : 0; };
 
 		uint32_t GetSendStreamID () const { return bufbe32toh (buf); };
 		uint32_t GetReceiveStreamID () const { return bufbe32toh (buf + 4); };
@@ -180,6 +181,7 @@ namespace stream
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
+			void ResetRoutingPath ();
 
 			void HandleNextPacket (Packet * packet);
 			void HandlePing (Packet * packet);
@@ -230,19 +232,33 @@ namespace stream
 			template<typename Buffer, typename ReceiveHandler>
 			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
 
+			void ScheduleSend ();
+			void HandleSendTimer (const boost::system::error_code& ecode);
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
+			void ResendPacket ();
 			void ScheduleAck (int timeout);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
+			void UpdatePacingTime ();
+			
 		private:
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
+			int32_t m_PreviousReceivedSequenceNumber;
+			int32_t m_LastConfirmedReceivedSequenceNumber; // for limit inbound speed
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
+			bool m_IsNAcked;
+			bool m_IsFirstACK;
+			bool m_IsResendNeeded;
+			bool m_IsFirstRttSample;
+			bool m_IsSendTime;
+			bool m_IsWinDropped;
+			bool m_IsTimeOutResend;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
@@ -253,15 +269,18 @@ namespace stream
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::set<Packet *, PacketCmp> m_SentPackets;
-			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
+			std::set<Packet *, PacketCmp> m_NACKedPackets;
+			boost::asio::deadline_timer m_ReceiveTimer, m_SendTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			double m_RTT;
-			int m_WindowSize, m_RTO, m_AckDelay;
-			uint64_t m_LastWindowSizeIncreaseTime;
-			int m_NumResendAttempts;
+			double m_RTT, m_SlowRTT;
+			float m_WindowSize, m_LastWindowDropSize;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
+			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
+			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
+			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
 	};
 

@@ -45,22 +45,17 @@ namespace garlic
 	{
 		if (!m_SharedRoutingPath) return nullptr;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		if (m_SharedRoutingPath->numTimesUsed >= ROUTING_PATH_MAX_NUM_TIMES_USED ||
-			!m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
+		if (!m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
 			ts*1000LL > m_SharedRoutingPath->remoteLease->endDate ||
 			ts > m_SharedRoutingPath->updateTime + ROUTING_PATH_EXPIRATION_TIMEOUT)
 				m_SharedRoutingPath = nullptr;
-		if (m_SharedRoutingPath) m_SharedRoutingPath->numTimesUsed++;
 		return m_SharedRoutingPath;
 	}
 
 	void GarlicRoutingSession::SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path)
 	{
 		if (path && path->outboundTunnel && path->remoteLease)
-		{
 			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
-			path->numTimesUsed = 0;
-		}
 		else
 			path = nullptr;
 		m_SharedRoutingPath = path;

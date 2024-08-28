@@ -1,5 +1,5 @@
 Name:          i2pd
-Version:       2.51.0
+Version:       2.53.1
 Release:       1%{?dist}
 Summary:       I2P router written in C++
 Conflicts:     i2pd-git
@@ -21,6 +21,10 @@ BuildRequires: boost-devel
 BuildRequires: openssl-devel
 BuildRequires: miniupnpc-devel
 BuildRequires: systemd-units
+
+%if 0%{?fedora} > 40 || 0%{?eln}
+BuildRequires: openssl-devel-engine
+%endif
 
 Requires:      logrotate
 Requires:      systemd
@@ -91,7 +95,7 @@ pushd build
 %endif
 
 chrpath -d i2pd
-%{__install} -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
+%{__install} -D -m 755 i2pd %{buildroot}%{_bindir}/i2pd
 %{__install} -d -m 755 %{buildroot}%{_datadir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
 %{__install} -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
@@ -127,7 +131,7 @@ getent passwd i2pd >/dev/null || \
 
 %files
 %doc LICENSE README.md contrib/i2pd.conf contrib/subscriptions.txt contrib/tunnels.conf contrib/tunnels.d
-%{_sbindir}/i2pd
+%{_bindir}/i2pd
 %config(noreplace) %{_sysconfdir}/i2pd/*.conf
 %config(noreplace) %{_sysconfdir}/i2pd/tunnels.conf.d/*.conf
 %config %{_sysconfdir}/i2pd/subscriptions.txt
@@ -142,6 +146,15 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Tue Jul 30 2024 orignal <orignal@i2pmail.org> - 2.53.1
+- update to 2.53.1
+
+* Fri Jul 19 2024 orignal <orignal@i2pmail.org> - 2.53.0
+- update to 2.53.0
+
+* Sun May 12 2024 orignal <orignal@i2pmail.org> - 2.52.0
+- update to 2.52.0
+
 * Sat Apr 06 2024 orignal <orignal@i2pmail.org> - 2.51.0
 - update to 2.51.0
 

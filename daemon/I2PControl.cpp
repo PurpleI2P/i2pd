@@ -8,14 +8,12 @@
 
 #include <stdio.h>
 #include <sstream>
+#include <iomanip>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 
 // Use global placeholders from boost introduced when local_time.hpp is loaded
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
-
-#include <boost/date_time/local_time/local_time.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -258,9 +256,9 @@ namespace client
 			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
 			header << "Content-Type: application/json\r\n";
 			header << "Date: ";
-			auto facet = new boost::local_time::local_time_facet ("%a, %d %b %Y %H:%M:%S GMT");
-			header.imbue(std::locale (header.getloc(), facet));
-			header << boost::posix_time::second_clock::local_time() << "\r\n";
+			std::time_t t = std::time (nullptr);
+    		std::tm tm = *std::gmtime (&t);
+			header << std::put_time(&tm, "%a, %d %b %Y %T GMT") << "\r\n";
 			header << "\r\n";
 			offset = header.str ().size ();
 			memcpy (buf->data (), header.str ().c_str (), offset);
