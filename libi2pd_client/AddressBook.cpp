@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,7 +15,6 @@
 #include <condition_variable>
 #include <openssl/rand.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -26,6 +25,14 @@
 #include "ClientContext.h"
 #include "AddressBook.h"
 #include "Config.h"
+
+#if STD_FILESYSTEM
+#include <filesystem>
+namespace fs_lib = std::filesystem;
+#else
+#include <boost/filesystem.hpp>
+namespace fs_lib = boost::filesystem;
+#endif
 
 namespace i2p
 {
@@ -266,11 +273,11 @@ namespace client
 	void AddressBookFilesystemStorage::ResetEtags ()
 	{
 		LogPrint (eLogError, "Addressbook: Resetting eTags");
-		for (boost::filesystem::directory_iterator it (etagsPath); it != boost::filesystem::directory_iterator (); ++it)
+		for (fs_lib::directory_iterator it (etagsPath); it != fs_lib::directory_iterator (); ++it)
 		{
-			if (!boost::filesystem::is_regular_file (it->status ()))
+			if (!fs_lib::is_regular_file (it->status ()))
 				continue;
-			boost::filesystem::remove (it->path ());
+			fs_lib::remove (it->path ());
 		}
 	}
 

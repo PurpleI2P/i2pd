@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,10 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+
+#if (!defined(_WIN32) && !TARGET_OS_SIMULATOR && (__cplusplus >= 201703L)) // C++ 17 or higher
+#	define STD_FILESYSTEM 1
+#endif
 
 namespace i2p {
 namespace fs {
