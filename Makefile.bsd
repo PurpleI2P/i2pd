@@ -1,5 +1,10 @@
 CXX = clang++
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
+DEFINES = -D_GLIBCXX_USE_NANOSLEEP=1
+INCFLAGS = -I/usr/include/ -I/usr/local/include/
+LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
+LDLIBS = -lcrypto -lssl -lz -lpthread -lboost_system -lboost_program_options
+
 ## NOTE: NEEDED_CXXFLAGS is here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build
@@ -9,10 +14,7 @@ CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misl
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
 	NEEDED_CXXFLAGS = -std=c++11
+	LDLIBS += -lboost_filesystem
 else # newer versions support C++17
 	NEEDED_CXXFLAGS = -std=c++17
 endif
-DEFINES = -D_GLIBCXX_USE_NANOSLEEP=1
-INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = ${LD_DEBUG} -Wl,-rpath,/usr/local/lib -L/usr/local/lib
-LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_filesystem -lboost_program_options -lpthread
