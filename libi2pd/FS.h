@@ -15,7 +15,7 @@
 #include <sstream>
 #include <functional>
 
-#if (!defined(_WIN32) && !TARGET_OS_SIMULATOR && \
+#if (!defined(_WIN32) && !defined(MAC_OSX) && !TARGET_OS_SIMULATOR && \
 	(__cplusplus >= 201703L) && defined(__cpp_lib_filesystem)) // C++ 17 or higher supporting filesystem
 #	define STD_FILESYSTEM 1
 #endif
