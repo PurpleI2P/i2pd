@@ -61,7 +61,7 @@ namespace fs {
 
 	const std::string GetUTF8DataDir () {
 #ifdef _WIN32
-#if (BOOST_VERSION >= 108500)
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
 		fs_lib::path path (dataDir);
 #else
 		fs_lib::wpath path (dataDir);
@@ -98,7 +98,7 @@ namespace fs {
 			}
 			else
 			{
-#if (BOOST_VERSION >= 108500)
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
 				dataDir = fs_lib::path(commonAppData).string() + "\\" + appName;
 #else
 				dataDir = fs_lib::wpath(commonAppData).string() + "\\" + appName;
@@ -127,7 +127,7 @@ namespace fs {
 		}
 		else
 		{
-#if (BOOST_VERSION >= 108500)
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
 			auto execPath = fs_lib::path(localAppData).parent_path();
 #else
 			auto execPath = fs_lib::wpath(localAppData).parent_path();
@@ -150,7 +150,7 @@ namespace fs {
 				}
 				else
 				{
-#if (BOOST_VERSION >= 108500)
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
 					dataDir = fs_lib::path(localAppData).string() + "\\" + appName;
 #else
 					dataDir = fs_lib::wpath(localAppData).string() + "\\" + appName;
