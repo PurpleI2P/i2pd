@@ -157,18 +157,21 @@ else()
   set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -ffunction-sections -fdata-sections")
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from above
 
-  # check for c++17 & c++11 support
+  # check for с++20 & c++17 & c++11 support
   include(CheckCXXCompilerFlag)
 
+  CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
   CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
 
-  if(CXX17_SUPPORTED)
+  if(CXX20_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+  elseif(CXX17_SUPPORTED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
   elseif(CXX11_SUPPORTED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   else()
-    message(SEND_ERROR "C++17 nor C++11 standard not seems to be supported by compiler. Too old version?")
+    message(SEND_ERROR "C++20 nor C++17 nor C++11 standard not seems to be supported by compiler. Too old version?")
   endif()
 endif()
 
