@@ -56,7 +56,9 @@ namespace stream
 	const int INITIAL_WINDOW_SIZE = 10;
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 1024;
-	const double RTT_EWMA_ALPHA = 0.125;
+	const double RTT_EWMA_ALPHA = 0.25;
+	const double SLOWRTT_EWMA_ALPHA = 0.125;
+	const double PREV_SPEED_KEEP_TIME_COEFF = 0.1; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
 	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
@@ -241,11 +243,13 @@ namespace stream
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
 			void UpdatePacingTime ();
+			void ProcessWindowDrop ();
 			
 		private:
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			uint32_t m_DropWindowDelaySequenceNumber;
 			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			int32_t m_PreviousReceivedSequenceNumber;
@@ -276,8 +280,9 @@ namespace stream
 
 			SendBufferQueue m_SendBuffer;
 			double m_RTT, m_SlowRTT;
-			float m_WindowSize, m_LastWindowDropSize;
-			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
+			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
+			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
