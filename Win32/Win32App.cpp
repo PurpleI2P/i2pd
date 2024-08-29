@@ -313,7 +313,7 @@ namespace win32
 					}
 					case ID_DATADIR:
 					{
-						std::string datadir(i2p::fs::GetUTF8DataDir());
+						std::string datadir(i2p::fs::GetDataDir());
 						ShellExecute(NULL, "explore", datadir.c_str(), NULL, NULL, SW_SHOWNORMAL);
 						return 0;
 					}

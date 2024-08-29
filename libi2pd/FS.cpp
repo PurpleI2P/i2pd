@@ -61,15 +61,17 @@ namespace fs {
 
 	const std::string GetUTF8DataDir () {
 #ifdef _WIN32
-#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
-		fs_lib::path path (dataDir);
-#else
-		fs_lib::wpath path (dataDir);
-#endif
-		auto loc = fs_lib::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) ); // convert path to UTF-8
-		auto dataDirUTF8 = path.string();
-		fs_lib::path::imbue(loc); // Return locale settings back
-		return dataDirUTF8;
+		int size = MultiByteToWideChar(CP_ACP, 0,
+			dataDir.c_str(), dataDir.size(), nullptr, 0);
+		std::wstring utf16Str(size, L'\0');
+		MultiByteToWideChar(CP_ACP, 0,
+			dataDir.c_str(), dataDir.size(), &utf16Str[0], size);
+		int utf8Size = WideCharToMultiByte(CP_UTF8, 0,
+			utf16Str.c_str(), utf16Str.size(), nullptr, 0, nullptr, nullptr);
+		std::string utf8Str(utf8Size, '\0');
+		WideCharToMultiByte(CP_UTF8, 0,
+			utf16Str.c_str(), utf16Str.size(), &utf8Str[0], utf8Size, nullptr, nullptr);
+		return utf8Str;
 #else
 		return dataDir; // linux, osx, android uses UTF-8 by default
 #endif
