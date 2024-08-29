@@ -254,7 +254,7 @@ namespace fs {
 		std::error_code ec;
 		auto t = std::filesystem::last_write_time (path, ec);
 		if (ec) return 0;
-#if __cplusplus >= 202002L // C++ 20 or higher
+#if !defined(__clang__) && __cplusplus >= 202002L // C++ 20 or higher
 		const auto sctp = std::chrono::clock_cast<std::chrono::system_clock>(t);
 #else		
 		const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
