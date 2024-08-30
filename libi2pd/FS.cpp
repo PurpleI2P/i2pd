@@ -254,12 +254,12 @@ namespace fs {
 		std::error_code ec;
 		auto t = std::filesystem::last_write_time (path, ec);
 		if (ec) return 0;
-#if !defined(__clang__) && __cplusplus >= 202002L // C++ 20 or higher
+/*#if __cplusplus >= 202002L // C++ 20 or higher
 		const auto sctp = std::chrono::clock_cast<std::chrono::system_clock>(t);
-#else		
+#else	*/	// TODO: wait until implemented
 		const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
 		    t - decltype(t)::clock::now() + std::chrono::system_clock::now());
-#endif		
+/*#endif */	
    		return std::chrono::system_clock::to_time_t(sctp);	
 #else		
 		boost::system::error_code ec;
