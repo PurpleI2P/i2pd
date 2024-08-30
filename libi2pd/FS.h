@@ -16,12 +16,13 @@
 #include <functional>
 
 #ifndef STD_FILESYSTEM
-#if __cplusplus >= 201703L // C++ 17 or higher 
-#include <filesystem>
-#if (!defined(MAC_OSX) && !TARGET_OS_SIMULATOR && defined(__cpp_lib_filesystem)) // supports std::filesystem
+#if (!defined(MAC_OSX) && !TARGET_OS_SIMULATOR && \
+	(__cplusplus >= 201703L) && defined(__cpp_lib_filesystem)) // C++ 17 or higher supporting std::filesystem
 #	define STD_FILESYSTEM 1
+#else
+#	define STD_FILESYSTEM 0
 #endif
-#endif
+
 #endif
 
 namespace i2p {
