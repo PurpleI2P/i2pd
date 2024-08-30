@@ -17,13 +17,13 @@ else ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # gcc >= 4.10
 	NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[8-9]"),3) # gcc 4.8 - 4.9
 	NEEDED_CXXFLAGS += -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1
-else ifeq ($(shell expr match ${CXXVER} "[5-6]"),1) # gcc 5 - 6
+else ifeq ($(shell expr match ${CXXVER} "[5-7]"),1) # gcc 5 - 7
 	NEEDED_CXXFLAGS += -std=c++11
 	LDLIBS = -latomic
-else ifeq ($(shell expr match ${CXXVER} "[7-9]"),1) # gcc 7 - 9
+else ifeq ($(shell expr match ${CXXVER} "[8-9]"),1) # gcc 8 - 9
 	NEEDED_CXXFLAGS += -std=c++17
-	LDLIBS = -latomic
-else ifeq ($(shell expr match ${CXXVER} "1[0-2]"),2) # gcc 10-12
+	LDLIBS = -latomic -lstdc++fs
+else ifeq ($(shell expr match ${CXXVER} "1[0-2]"),2) # gcc 10 - 12
 	NEEDED_CXXFLAGS += -std=c++17
 	LDLIBS = -latomic
 else ifeq ($(shell expr match ${CXXVER} "1[3-9]"),2) # gcc 13+
