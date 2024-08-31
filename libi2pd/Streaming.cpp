@@ -459,7 +459,6 @@ namespace stream
 
 	void Stream::ProcessAck (Packet * packet)
 	{
-		srand (time(NULL));
 		bool acknowledged = false;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
@@ -514,7 +513,7 @@ namespace stream
 				acknowledged = true;
 				ackCount++;
 				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
-					if (m_RTT < rand () % INITIAL_RTT) // dirty
+					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTT) // dirty
 						m_WindowIncCounter++;
 			}
 			else
@@ -1410,7 +1409,7 @@ namespace stream
 				}
 				if (!updated)
 				{
-					uint32_t i = rand () % leases.size ();
+					uint32_t i = m_LocalDestination.GetRandom () % leases.size ();
 					if (m_CurrentRemoteLease && leases[i]->tunnelID == m_CurrentRemoteLease->tunnelID)
 						// make sure we don't select previous
 						i = (i + 1) % leases.size (); // if so, pick next
@@ -1811,5 +1810,15 @@ namespace stream
 		return msg;
 	}
 
+	uint32_t StreamingDestination::GetRandom ()
+	{
+		if (m_Owner)
+		{	
+			auto pool = m_Owner->GetTunnelPool ();
+			if (pool) 
+				return pool->GetRng ()();
+		}
+		return rand ();
+	}	
 }
 }

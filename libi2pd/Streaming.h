@@ -321,6 +321,7 @@ namespace stream
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
+			uint32_t GetRandom ();
 
 		private:
 
