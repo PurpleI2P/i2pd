@@ -9,7 +9,9 @@
 #include <algorithm>
 
 #if defined(MAC_OSX)
+#if !STD_FILESYSTEM
 #include <boost/system/system_error.hpp>
+#endif
 #include <TargetConditionals.h>
 #endif
 

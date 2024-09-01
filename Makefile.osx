@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++11
+CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++17
 INCFLAGS = -I/usr/local/include
 DEFINES := -DMAC_OSX
 LDFLAGS := -Wl,-rpath,/usr/local/lib -L/usr/local/lib
