@@ -226,7 +226,8 @@ namespace client
 				leases = remote->GetNonExpiredLeases (true); // with threshold
 			if (!leases.empty ())
 			{
-				remoteLease = leases[rand () % leases.size ()];
+				auto pool = GetTunnelPool ();
+				remoteLease = leases[(pool ? pool->GetRng ()() : rand ()) % leases.size ()];
 				auto leaseRouter = i2p::data::netdb.FindRouter (remoteLease->tunnelGateway);
 				outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel (nullptr,
 					leaseRouter ? leaseRouter->GetCompatibleTransports (false) : (i2p::data::RouterInfo::CompatibleTransports)i2p::data::RouterInfo::eAllTransports);
