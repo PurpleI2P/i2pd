@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -14,6 +14,7 @@
 #include <list>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace i2p
@@ -45,7 +46,7 @@ namespace http
 		 * @return true on success, false on invalid url
 		 */
 		bool parse (const char *str, std::size_t len = 0);
-		bool parse (const std::string& url);
+		bool parse (std::string_view url);
 
 		/**
 		 * @brief Parse query part of url to key/value map
@@ -92,7 +93,7 @@ namespace http
 		 * @note Positive return value is a size of header
 		 */
 		int parse(const char *buf, size_t len);
-		int parse(const std::string& buf);
+		int parse(std::string_view buf);
 
 		/** @brief Serialize HTTP request to string */
 		std::string to_string();
@@ -128,7 +129,7 @@ namespace http
 		 * @note Positive return value is a size of header
 		 */
 		int parse(const char *buf, size_t len);
-		int parse(const std::string& buf);
+		int parse(const std::string_view buf);
 
 		/**
 		 * @brief Serialize HTTP response to string
@@ -161,7 +162,7 @@ namespace http
 	 * @param null If set to true - decode also %00 sequence, otherwise - skip
 	 * @return Decoded string
 	 */
-	std::string UrlDecode(const std::string& data, bool null = false);
+	std::string UrlDecode(std::string_view data, bool null = false);
 
 	/**
 	 * @brief Merge HTTP response content with Transfer-Encoding: chunked

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -40,12 +40,13 @@ namespace http
 	inline bool is_http_method(const std::string & str) {
 		return std::find(HTTP_METHODS.begin(), HTTP_METHODS.end(), str) != std::end(HTTP_METHODS);
 	}
-
-	void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) {
+	
+	static void strsplit(std::stringstream& ss, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 	
+	{
 		std::size_t count = 0;
-		std::stringstream ss(line);
 		std::string token;
-		while (1) {
+		while (1) 
+		{
 			count++;
 			if (limit > 0 && count >= limit)
 				delim = '\n'; /* reset delimiter */
@@ -55,7 +56,19 @@ namespace http
 		}
 	}
 
-	static std::pair<std::string, std::string> parse_header_line(const std::string& line)
+	static void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
+	{
+		std::stringstream ss(line);
+		strsplit (ss, tokens, delim, limit);
+	}
+
+	static void strsplit(std::string_view line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
+	{	
+		std::stringstream ss(std::move(std::string(line)));
+		strsplit (ss, tokens, delim, limit);
+	}
+	
+	static std::pair<std::string, std::string> parse_header_line(std::string_view line)
 	{
 		std::size_t pos = 0;
 		std::size_t len = 1; /*: */
@@ -69,7 +82,8 @@ namespace http
 			if (len == 1)
 				return std::make_pair("", ""); // no following space, but something else
 		}
-		return std::make_pair(line.substr(0, pos), line.substr(pos + len));
+		return std::make_pair(std::move (std::string (line.substr(0, pos))), 
+			std::move (std::string (line.substr(pos + len))));
 	}
 
 	void gen_rfc7231_date(std::string & out) {
@@ -83,15 +97,17 @@ namespace http
 		out = buf;
 	}
 
-	bool URL::parse(const char *str, std::size_t len) {
-		std::string url(str, len ? len : strlen(str));
-		return parse(url);
+	bool URL::parse(const char *str, std::size_t len) 
+	{
+		return parse({str, len ? len : strlen(str)});
 	}
 
-	bool URL::parse(const std::string& url) {
+	bool URL::parse(std::string_view url) 
+	{
 		std::size_t pos_p = 0; /* < current parse position */
 		std::size_t pos_c = 0; /* < work position */
-		if(url.at(0) != '/' || pos_p > 0) {
+		if(url.at(0) != '/' || pos_p > 0) 
+		{
 			std::size_t pos_s = 0;
 
 			/* schema */
@@ -141,7 +157,7 @@ namespace http
 				/* port[/path] */
 				pos_p = pos_c + 1;
 				pos_c = url.find('/', pos_p);
-				std::string port_str = (pos_c == std::string::npos)
+				std::string_view port_str = (pos_c == std::string::npos)
 					? url.substr(pos_p, std::string::npos)
 					: url.substr(pos_p, pos_c - pos_p);
 				/* stoi throws exception on failure, we don't need it */
@@ -272,12 +288,13 @@ namespace http
 		headers.erase(name);
 	}
 
-	int HTTPReq::parse(const char *buf, size_t len) {
-		std::string str(buf, len);
-		return parse(str);
+	int HTTPReq::parse(const char *buf, size_t len) 
+	{
+		return parse({buf, len});
 	}
 
-	int HTTPReq::parse(const std::string& str) {
+	int HTTPReq::parse(std::string_view str) 
+	{
 		enum { REQ_LINE, HEADER_LINE } expect = REQ_LINE;
 		std::size_t eoh = str.find(HTTP_EOH); /* request head size */
 		std::size_t eol = 0, pos = 0;
@@ -286,9 +303,11 @@ namespace http
 		if (eoh == std::string::npos)
 			return 0; /* str not contains complete request */
 
-		while ((eol = str.find(CRLF, pos)) != std::string::npos) {
-			if (expect == REQ_LINE) {
-				std::string line = str.substr(pos, eol - pos);
+		while ((eol = str.find(CRLF, pos)) != std::string::npos) 
+		{
+			if (expect == REQ_LINE) 
+			{
+				std::string_view line = str.substr(pos, eol - pos);
 				std::vector<std::string> tokens;
 				strsplit(line, tokens, ' ');
 				if (tokens.size() != 3)
@@ -307,7 +326,7 @@ namespace http
 			}
 			else
 			{
-				std::string line = str.substr(pos, eol - pos);
+				std::string_view line = str.substr(pos, eol - pos);
 				auto p = parse_header_line(line);
 				if (p.first.length () > 0)
 					headers.push_back (p);
@@ -413,12 +432,13 @@ namespace http
 		return length;
 	}
 
-	int HTTPRes::parse(const char *buf, size_t len) {
-		std::string str(buf, len);
-		return parse(str);
+	int HTTPRes::parse(const char *buf, size_t len) 
+	{
+		return parse({buf,len});
 	}
 
-	int HTTPRes::parse(const std::string& str) {
+	int HTTPRes::parse(std::string_view str) 
+	{
 		enum { RES_LINE, HEADER_LINE } expect = RES_LINE;
 		std::size_t eoh = str.find(HTTP_EOH); /* request head size */
 		std::size_t eol = 0, pos = 0;
@@ -426,9 +446,11 @@ namespace http
 		if (eoh == std::string::npos)
 			return 0; /* str not contains complete request */
 
-		while ((eol = str.find(CRLF, pos)) != std::string::npos) {
-			if (expect == RES_LINE) {
-				std::string line = str.substr(pos, eol - pos);
+		while ((eol = str.find(CRLF, pos)) != std::string::npos) 
+		{
+			if (expect == RES_LINE) 
+			{
+				std::string_view line = str.substr(pos, eol - pos);
 				std::vector<std::string> tokens;
 				strsplit(line, tokens, ' ', 3);
 				if (tokens.size() != 3)
@@ -442,8 +464,10 @@ namespace http
 				version = tokens[0];
 				status  = tokens[2];
 				expect  = HEADER_LINE;
-			} else {
-				std::string line = str.substr(pos, eol - pos);
+			} 
+			else 
+			{
+				std::string_view line = str.substr(pos, eol - pos);
 				auto p = parse_header_line(line);
 				if (p.first.length () > 0)
 					headers.insert (p);
@@ -508,14 +532,14 @@ namespace http
 		return ptr;
 	}
 
-	std::string UrlDecode(const std::string& data, bool allow_null)
+	std::string UrlDecode(std::string_view data, bool allow_null)
 	{
 		std::string decoded(data);
 		size_t pos = 0;
 		while ((pos = decoded.find('%', pos)) != std::string::npos)
 		{
-			char c = strtol(decoded.substr(pos + 1, 2).c_str(), NULL, 16);
-			if (c == '\0' && !allow_null)
+			char c = std::stol(decoded.substr(pos + 1, 2), nullptr, 16);
+			if (!c && !allow_null)
 			{
 				pos += 3;
 				continue;
