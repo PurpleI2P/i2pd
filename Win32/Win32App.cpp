@@ -355,7 +355,7 @@ namespace win32
 						}
 					}
 				}
-				[fallthrough]];
+				[[fallthrough]];
 			}
 			case WM_TRAYICON:
 			{
