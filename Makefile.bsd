@@ -13,8 +13,7 @@ LDLIBS = -lcrypto -lssl -lz -lpthread -lboost_system -lboost_program_options
 ## custom FLAGS to work at build-time.
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq (${CXXVER}, "4.2.1") # older clang always returned 4.2.1
-	NEEDED_CXXFLAGS = -std=c++11
-	LDLIBS += -lboost_filesystem
+	$(error Compiler too old)
 else # newer versions support C++17
 	NEEDED_CXXFLAGS = -std=c++17
 endif
