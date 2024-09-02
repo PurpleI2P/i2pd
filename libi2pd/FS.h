@@ -16,8 +16,7 @@
 #include <functional>
 
 #ifndef STD_FILESYSTEM
-#	if (!TARGET_OS_SIMULATOR && \
-	(__cplusplus >= 201703L) && __has_include(<filesystem>)) // C++ 17 or higher and supports std::filesystem
+#	if (!TARGET_OS_SIMULATOR && __has_include(<filesystem>)) // supports std::filesystem
 #		define STD_FILESYSTEM 1
 #	else
 #		define STD_FILESYSTEM 0

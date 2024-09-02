@@ -1314,12 +1314,8 @@ namespace data
 		{
 			// update selection
 			m_ExploratorySelection.clear ();
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			std::vector<std::shared_ptr<const RouterInfo> > eligible;
-			eligible.reserve (m_RouterInfos.size ());
-#else		
-			auto& eligible = m_ExploratorySelection;
-#endif			
+			eligible.reserve (m_RouterInfos.size ());		
 			{
 				// collect eligible from current netdb
 				bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
@@ -1329,22 +1325,13 @@ namespace data
 					 	(!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
 							eligible.push_back (it.second);
 			}
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 			{
 				 std::sample (eligible.begin(), eligible.end(), std::back_inserter(m_ExploratorySelection),
 				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, std::mt19937(ts));
 			}	
 			else
-				std::swap (m_ExploratorySelection, eligible);
-#else			
-			if (m_ExploratorySelection.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
-			{
-				// reduce number of eligible to max selection size
-				std::shuffle (m_ExploratorySelection.begin(), m_ExploratorySelection.end(), std::mt19937(ts));
-				m_ExploratorySelection.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
-			}	
-#endif			
+				std::swap (m_ExploratorySelection, eligible);	
 			m_LastExploratorySelectionUpdateTime = ts;
 		}	
 		

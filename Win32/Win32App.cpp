@@ -355,9 +355,7 @@ namespace win32
 						}
 					}
 				}
-#if (__cplusplus >= 201703L) // C++ 17 or higher
-				[[fallthrough]];
-#endif
+				[fallthrough]];
 			}
 			case WM_TRAYICON:
 			{

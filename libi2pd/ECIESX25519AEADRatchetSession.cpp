@@ -801,9 +801,7 @@ namespace garlic
 				m_State = eSessionStateEstablished;
 				m_NSRSendTagset = nullptr;
 				m_EphemeralKeys = nullptr;
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
-#endif
 			case eSessionStateEstablished:
 				if (m_SendReverseKey && receiveTagset->GetTagSetID () == m_NextReceiveRatchet->GetReceiveTagSetID ())
 					m_SendReverseKey = false; // tag received on new tagset	

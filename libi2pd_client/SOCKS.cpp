@@ -444,9 +444,7 @@ namespace proxy
 						break;
 						case CMD_UDP:
 							if (m_socksv == SOCKS5) break;
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 							[[fallthrough]];
-#endif
 						default:
 							LogPrint(eLogError, "SOCKS: Invalid command: ", ((int)*sock_buff));
 							SocksRequestFailed(SOCKS5_GEN_FAIL);

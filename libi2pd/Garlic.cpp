@@ -1031,9 +1031,7 @@ namespace garlic
 			case eGarlicDeliveryTypeDestination:
 				LogPrint (eLogDebug, "Garlic: Type destination");
 				buf += 32; // TODO: check destination
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
-#endif
 				// no break here
 			case eGarlicDeliveryTypeLocal:
 			{

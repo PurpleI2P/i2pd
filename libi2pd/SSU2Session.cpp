@@ -587,11 +587,7 @@ namespace transport
 		if (!resentPackets.empty ())
 		{
 			m_LastResendTime = ts;
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			m_SentPackets.merge (resentPackets);
-#else
-			m_SentPackets.insert (resentPackets.begin (), resentPackets.end ());
-#endif
 			m_WindowSize >>= 1; // /2
 			if (m_WindowSize < SSU2_MIN_WINDOW_SIZE) m_WindowSize = SSU2_MIN_WINDOW_SIZE;
 			return resentPackets.size ();
