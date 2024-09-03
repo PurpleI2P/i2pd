@@ -610,8 +610,8 @@ namespace i2p
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit = 12; type = low;   break;
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit = i2p::data::LOW_BANDWIDTH_LIMIT; type = low;   break; // 48
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH3  : limit = 64; type = low;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit = 128; type = high;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit = i2p::data::HIGH_BANDWIDTH_LIMIT; type = high;  break; // 256
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH4  : limit = 128; type = low;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH  : limit = i2p::data::HIGH_BANDWIDTH_LIMIT; type = high;  break; // 256
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = i2p::data::EXTRA_BANDWIDTH_LIMIT; type = extra; break; // 2048
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 1000000; type = unlim; break; // 1Gbyte/s
 			default:
