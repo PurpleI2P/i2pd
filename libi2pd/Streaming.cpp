@@ -326,12 +326,16 @@ namespace stream
 			LogPrint (eLogInfo, "Streaming: Invalid option size ", optionSize, " Discarded");
 			return false;
 		}	
+		if (!flags) return true;
+		bool immediateAckRequested = false;
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 		{
-			if (!m_IsAckSendScheduled)
+			uint16_t delayRequested = bufbe16toh (optionData);
+			if (!delayRequested) // 0 requests an immediate ack
+				immediateAckRequested = true;
+			else if (!m_IsAckSendScheduled)
 			{
-				uint16_t delayRequested = bufbe16toh (optionData);
-				if (delayRequested > 0 && delayRequested < m_RTT)
+				if (delayRequested < m_RTT)
 				{
 					m_IsAckSendScheduled = true;
 					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(delayRequested));
@@ -432,6 +436,8 @@ namespace stream
 				return false;
 			}
 		}
+		if (immediateAckRequested)
+			SendQuickAck ();
 		return true;
 	}
 

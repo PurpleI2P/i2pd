@@ -283,7 +283,7 @@ namespace stream
 			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
-			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
+			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_LastSendTime; // microseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
