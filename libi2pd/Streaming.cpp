@@ -1439,7 +1439,7 @@ namespace stream
 		m_RTO = INITIAL_RTO;
 		if (m_WindowSize > INITIAL_WINDOW_SIZE)
 		{
-			m_WindowDropTargetSize = INITIAL_WINDOW_SIZE;
+			m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
 			m_IsWinDropped = true;
 		}
 		else
