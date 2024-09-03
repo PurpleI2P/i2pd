@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cassert>
 #include <string>
+#include <string_view>
 #include <atomic>
 #include <memory>
 #include <set>
@@ -59,7 +60,8 @@ namespace proxy {
 		"</head>\r\n"
 	;
 
-	bool str_rmatch(std::string & str, const char *suffix) {
+	static bool str_rmatch(std::string & str, const char *suffix) 
+	{
 		auto pos = str.rfind (suffix);
 		if (pos == std::string::npos)
 			return false; /* not found */
@@ -77,16 +79,16 @@ namespace proxy {
 			void Terminate();
 			void AsyncSockRead();
 			static bool ExtractAddressHelper(i2p::http::URL& url, std::string& jump, bool& confirm);
-			static bool VerifyAddressHelper (const std::string& jump);
+			static bool VerifyAddressHelper (std::string_view jump);
 			static void SanitizeHTTPRequest(i2p::http::HTTPReq& req);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
 			void GenericProxyError(const std::string& title, const std::string& description);
 			void GenericProxyInfo(const std::string& title, const std::string& description);
-			void HostNotFound(std::string& host);
-			void SendProxyError(std::string& content);
-			void SendRedirect(std::string& address);
+			void HostNotFound(const std::string& host);
+			void SendProxyError(const std::string& content);
+			void SendRedirect(const std::string& address);
 
 			void ForwardToUpstreamProxy();
 			void HandleUpstreamHTTPProxyConnect(const boost::system::error_code & ec);
@@ -175,7 +177,8 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::HostNotFound(std::string& host) {
+	void HTTPReqHandler::HostNotFound(const std::string& host) 
+	{
 		std::stringstream ss;
 		ss << "<h1>" << tr("Proxy error: Host not found") << "</h1>\r\n"
 		   << "<p>" << tr("Remote host not found in router's addressbook") << "</p>\r\n"
@@ -192,7 +195,7 @@ namespace proxy {
 		SendProxyError(content);
 	}
 
-	void HTTPReqHandler::SendProxyError(std::string& content)
+	void HTTPReqHandler::SendProxyError(const std::string& content)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 500;
@@ -208,7 +211,7 @@ namespace proxy {
 			std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	void HTTPReqHandler::SendRedirect(std::string& address)
+	void HTTPReqHandler::SendRedirect(const std::string& address)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 302;
@@ -272,7 +275,7 @@ namespace proxy {
 		return true;
 	}
 
-	bool HTTPReqHandler::VerifyAddressHelper (const std::string& jump)
+	bool HTTPReqHandler::VerifyAddressHelper (std::string_view jump)
 	{
 		auto pos = jump.find(".b32.i2p");
 		if (pos != std::string::npos)
@@ -441,7 +444,7 @@ namespace proxy {
 		bool useConnect = false;
 		if(m_ClientRequest.method == "CONNECT")
 		{
-			std::string uri(m_ClientRequest.uri);
+			const std::string& uri = m_ClientRequest.uri;
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
 			{

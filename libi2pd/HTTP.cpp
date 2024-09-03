@@ -269,7 +269,7 @@ namespace http
 		return host.rfind(".i2p") == ( host.size() - 4 );
 	}
 
-	void HTTPMsg::add_header(const char *name, std::string & value, bool replace) {
+	void HTTPMsg::add_header(const char *name, const std::string & value, bool replace) {
 		add_header(name, value.c_str(), replace);
 	}
 
