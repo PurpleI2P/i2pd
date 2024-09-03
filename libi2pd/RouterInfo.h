@@ -40,8 +40,8 @@ namespace data
 	const char CAPS_FLAG_LOW_BANDWIDTH1   = 'K'; /*   < 12 KBps */
 	const char CAPS_FLAG_LOW_BANDWIDTH2   = 'L'; /*  12-48 KBps */
 	const char CAPS_FLAG_LOW_BANDWIDTH3  = 'M'; /*  48-64 KBps */
-	const char CAPS_FLAG_HIGH_BANDWIDTH1  = 'N'; /*  64-128 KBps */
-	const char CAPS_FLAG_HIGH_BANDWIDTH2  = 'O'; /* 128-256 KBps */
+	const char CAPS_FLAG_LOW_BANDWIDTH4  = 'N'; /*  64-128 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH  = 'O'; /* 128-256 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2048 KBps */
 	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2048 KBps */
 	// bandwidth limits in kBps

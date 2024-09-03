@@ -538,10 +538,10 @@ namespace data
 				case CAPS_FLAG_LOW_BANDWIDTH1:
 				case CAPS_FLAG_LOW_BANDWIDTH2:
 				case CAPS_FLAG_LOW_BANDWIDTH3:
+				case CAPS_FLAG_LOW_BANDWIDTH4:
 					m_BandwidthCap = *cap;
 				break;
-				case CAPS_FLAG_HIGH_BANDWIDTH1:
-				case CAPS_FLAG_HIGH_BANDWIDTH2:
+				case CAPS_FLAG_HIGH_BANDWIDTH:
 					m_Caps |= Caps::eHighBandwidth;
 					m_BandwidthCap = *cap;
 				break;
@@ -1224,7 +1224,7 @@ namespace data
 				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
 				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
 			else
-				caps += CAPS_FLAG_HIGH_BANDWIDTH2; // 'O'
+				caps += CAPS_FLAG_HIGH_BANDWIDTH; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill
 		}
 		else
@@ -1232,7 +1232,7 @@ namespace data
 			if (c & eExtraBandwidth)
 				caps += (c & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
 			else
-				caps += (c & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH2 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
+				caps += (c & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth
 		}
 		if (c & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (c & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
