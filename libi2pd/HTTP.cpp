@@ -58,13 +58,13 @@ namespace http
 
 	static void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
 	{
-		std::stringstream ss(line);
+		std::stringstream ss{line};
 		strsplit (ss, tokens, delim, limit);
 	}
 
 	static void strsplit(std::string_view line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) 
 	{	
-		std::stringstream ss(std::move(std::string(line)));
+		std::stringstream ss{std::string(line)};
 		strsplit (ss, tokens, delim, limit);
 	}
 	
@@ -74,16 +74,15 @@ namespace http
 		std::size_t len = 1; /*: */
 		std::size_t max = line.length();
 		if ((pos = line.find(':', pos)) == std::string::npos)
-			return std::make_pair("", ""); // no ':' found
+			return std::pair{"", ""}; // no ':' found
 		if (pos + 1 < max) // ':' at the end of header is valid
 		{
 			while ((pos + len) < max && isspace(line.at(pos + len)))
 				len++;
 			if (len == 1)
-				return std::make_pair("", ""); // no following space, but something else
+				return std::pair{"", ""}; // no following space, but something else
 		}
-		return std::make_pair(std::move (std::string (line.substr(0, pos))), 
-			std::move (std::string (line.substr(pos + len))));
+		return std::pair{std::string (line.substr(0, pos)), std::string (line.substr(pos + len))};
 	}
 
 	void gen_rfc7231_date(std::string & out) {
