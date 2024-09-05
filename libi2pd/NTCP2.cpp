@@ -724,8 +724,24 @@ namespace transport
 						SendTerminationAndTerminate (eNTCP2Message3Error);
 						return;
 					}	
-					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri.GetNTCP2V4Address () :
-						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri.GetYggdrasilAddress () : ri.GetNTCP2V6Address ());
+					// update RouterInfo in netdb
+					auto ri1 = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ()); // ri1 points to one from netdb now
+					if (!ri1)
+					{
+						LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+						return;
+					}
+					std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
+					if (ri.GetTimestamp () + i2p::data::NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < ri1->GetTimestamp ())
+					{	
+						// received RouterInfo is older than one in netdb
+						profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
+						if (profile && profile->IsDuplicated ())
+							return;
+					}
+					
+					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
+						(i2p::util::net::IsYggdrasilAddress (m_RemoteEndpoint.address ()) ? ri1->GetYggdrasilAddress () : ri1->GetNTCP2V6Address ());
 					if (!addr || memcmp (m_Establisher->m_RemoteStaticKey, addr->s, 32))
 					{
 						LogPrint (eLogError, "NTCP2: Wrong static key in SessionConfirmed");
@@ -737,16 +753,17 @@ namespace transport
 					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data () + 1, addr->host.to_v6 ().to_bytes ().data () + 1, 7) : // from the same yggdrasil subnet
 					     memcmp (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), addr->host.to_v6 ().to_bytes ().data (), 8)))) // temporary address
 					{
-						LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
+						if (profile) // older router?
+							profile->Duplicated (); // mark router as duplicated in profile
+						else
+							LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
 						Terminate ();
 						return;
 					}
-					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, buf.data () + 3, size)); // TODO: should insert ri and not parse it twice
 					// TODO: process options
 
 					// ready to communicate
-					auto existing = i2p::data::netdb.FindRouter (ri.GetRouterIdentity ()->GetIdentHash ()); // check if exists already
-					SetRemoteIdentity (existing ? existing->GetRouterIdentity () : ri.GetRouterIdentity ());
+					SetRemoteIdentity (ri1->GetRouterIdentity ());
 					if (m_Server.AddNTCP2Session (shared_from_this (), true))
 					{
 						Established ();
@@ -939,7 +956,15 @@ namespace transport
 				case eNTCP2BlkRouterInfo:
 				{
 					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);
-					i2p::data::netdb.PostI2NPMsg (CreateI2NPMessage (eI2NPDummyMsg, frame + offset, size));
+					i2p::data::RouterInfo ri (frame + offset + 1, size - 1);	
+					auto newRi = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ());
+					if (newRi)
+					{
+						auto remoteIdentity = GetRemoteIdentity ();
+						if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+							// peer's RouterInfo update
+							SetRemoteIdentity (newRi->GetIdentity ());
+					}	
 					break;
 				}
 				case eNTCP2BlkI2NPMessage:
