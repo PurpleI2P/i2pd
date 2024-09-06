@@ -323,6 +323,9 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
+				case eRouterStatusProxy:
+					m_AcceptsTunnels = false;
+				break;	
 				default:
 					;
 			}
