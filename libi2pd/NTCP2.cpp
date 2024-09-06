@@ -955,9 +955,8 @@ namespace transport
 				break;
 				case eNTCP2BlkRouterInfo:
 				{
-					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);
-					i2p::data::RouterInfo ri (frame + offset + 1, size - 1);	
-					auto newRi = i2p::data::netdb.AddRouterInfo (ri.GetBuffer (), ri.GetBufferLen ());
+					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);	
+					auto newRi = i2p::data::netdb.AddRouterInfo (frame + offset + 1, size - 1);
 					if (newRi)
 					{
 						auto remoteIdentity = GetRemoteIdentity ();

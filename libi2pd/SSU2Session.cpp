@@ -1750,28 +1750,34 @@ namespace transport
 
 	void SSU2Session::HandleRouterInfo (const uint8_t * buf, size_t len)
 	{
-		auto ri = ExtractRouterInfo (buf, len);
-		if (ri)
+		if (len < 2) return;
+		// not from SessionConfirmed, we must add it instantly to use in next block
+		std::shared_ptr<const i2p::data::RouterInfo> newRi;
+		if (buf[0] & SSU2_ROUTER_INFO_FLAG_GZIP) // compressed?
 		{	
-			// not from SessionConfirmed, we must add it instantly to use in next block
-			auto newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
-			if (newRi)
+			auto ri = ExtractRouterInfo (buf, len);
+			if (ri)
+				newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());
+		}	
+		else // use buffer directly. TODO: handle frag
+			newRi = i2p::data::netdb.AddRouterInfo (buf + 2, len - 2);
+
+		if (newRi)
+		{
+			auto remoteIdentity = GetRemoteIdentity ();
+			if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
 			{
-				auto remoteIdentity = GetRemoteIdentity ();
-				if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+				// peer's RouterInfo update
+				SetRemoteIdentity (newRi->GetIdentity ());
+				auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
+				if (address)
 				{
-					// peer's RouterInfo update
-					SetRemoteIdentity (newRi->GetIdentity ());
-					auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
-					if (address)
-					{
-						m_Address = address;
-						if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
-							m_RelayTag = 0; // not longer introducer
-					}	
+					m_Address = address;
+					if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
+						m_RelayTag = 0; // not longer introducer
 				}	
 			}	
-		}	
+		}		
 	}	
 		
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
