@@ -177,6 +177,7 @@ namespace garlic
 			void SetMTU (int mtu, bool v4);
 			void SetHidden(bool hide) { m_IsHiddenMode = hide; };
 			bool IsHidden() const { return m_IsHiddenMode; };
+			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy; }; // TODO: implement other cases
 			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove

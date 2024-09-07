@@ -759,7 +759,8 @@ namespace data
 	
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
-		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
+		if (direct && (i2p::transport::transports.RoutesRestricted () || i2p::context.IsLimitedConnectivity ())) 
+		    direct = false; // always use tunnels for restricted routes or limited connectivity
 		if (m_Requests)
 			m_Requests->PostRequestDestination (destination, requestComplete, direct);
 		else
