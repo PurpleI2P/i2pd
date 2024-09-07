@@ -325,6 +325,7 @@ namespace i2p
 				break;
 				case eRouterStatusProxy:
 					m_AcceptsTunnels = false;
+					UpdateCongestion ();
 				break;	
 				default:
 					;
