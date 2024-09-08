@@ -10,10 +10,10 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include <fstream>
+#include <memory>
 #include <boost/lexical_cast.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/algorithm/string.hpp> // for boost::to_lower
-#if (BOOST_VERSION >= 105300)
+#ifndef __cpp_lib_atomic_shared_ptr
 #include <boost/atomic.hpp>
 #endif
 #include "version.h"
@@ -40,7 +40,7 @@ namespace data
 
 	RouterInfo::RouterInfo (): m_Buffer (nullptr)
 	{
-		m_Addresses = boost::make_shared<Addresses>(); // create empty list
+		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 	}
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
@@ -48,7 +48,7 @@ namespace data
 		m_SupportedTransports (0),m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
-		m_Addresses = boost::make_shared<Addresses>(); // create empty list
+		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 		m_Buffer = NewBuffer (); // always RouterInfo's
 		ReadFromFile (fullPath);
 	}
@@ -60,7 +60,7 @@ namespace data
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
 		{
-			m_Addresses = boost::make_shared<Addresses>(); // create empty list
+			m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 			m_Buffer = buf;
 			if (m_Buffer) m_Buffer->SetBufferLen (len);
 			ReadFromBuffer (true);
@@ -439,10 +439,10 @@ namespace data
 		}
 		m_ReachableTransports |= m_PublishedTransports;
 		// update addresses
-#if (BOOST_VERSION >= 105300)
+#ifdef __cpp_lib_atomic_shared_ptr
+		m_Addresses = addresses;
+#else		
 		boost::atomic_store (&m_Addresses, addresses);
-#else
-		m_Addresses = addresses; // race condition
 #endif
 		// read peers
 		uint8_t numPeers;
@@ -692,12 +692,12 @@ namespace data
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eNTCP2V4;
-			(*m_Addresses)[eNTCP2V4Idx] = addr;
+			(*GetAddresses ())[eNTCP2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
 			m_SupportedTransports |= eNTCP2V6;
-			(*m_Addresses)[eNTCP2V6Idx] = addr;
+			(*GetAddresses ())[eNTCP2V6Idx] = addr;
 		}
 	}
 
@@ -718,11 +718,12 @@ namespace data
 			if (host.is_v4 ()) addr->caps |= eV4;
 			if (host.is_v6 ()) addr->caps |= eV6;
 		}	
+		auto addresses = GetAddresses ();
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eNTCP2V4;
 			m_ReachableTransports |= eNTCP2V4;
-			(*m_Addresses)[eNTCP2V4Idx] = addr;
+			(*addresses)[eNTCP2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
@@ -730,30 +731,31 @@ namespace data
 			{
 				m_SupportedTransports |= eNTCP2V6Mesh;
 				m_ReachableTransports |= eNTCP2V6Mesh;
-				(*m_Addresses)[eNTCP2V6MeshIdx] = addr;
+				(*addresses)[eNTCP2V6MeshIdx] = addr;
 			}
 			else
 			{
 				m_SupportedTransports |= eNTCP2V6;
 				m_ReachableTransports |= eNTCP2V6;
-				(*m_Addresses)[eNTCP2V6Idx] = addr;
+				(*addresses)[eNTCP2V6Idx] = addr;
 			}
 		}
 	}
 
 	void RouterInfo::RemoveNTCP2Address (bool v4)
 	{
+		auto addresses = GetAddresses ();
 		if (v4)
 		{
-			if ((*m_Addresses)[eNTCP2V6Idx])
-				(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
-			(*m_Addresses)[eNTCP2V4Idx].reset ();
+			if ((*addresses)[eNTCP2V6Idx])
+				(*addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
+			(*addresses)[eNTCP2V4Idx].reset ();
 		}
 		else
 		{
-			if ((*m_Addresses)[eNTCP2V4Idx])
-				(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
-			(*m_Addresses)[eNTCP2V6Idx].reset ();
+			if ((*addresses)[eNTCP2V4Idx])
+				(*addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
+			(*addresses)[eNTCP2V6Idx].reset ();
 		}
 		UpdateSupportedTransports ();
 	}
@@ -769,15 +771,16 @@ namespace data
 		addr->ssu->mtu = 0;
 		memcpy (addr->s, staticKey, 32);
 		memcpy (addr->i, introKey, 32);
+		auto addresses = GetAddresses ();
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eSSU2V4;
-			(*m_Addresses)[eSSU2V4Idx] = addr;
+			(*addresses)[eSSU2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
 			m_SupportedTransports |= eSSU2V6;
-			(*m_Addresses)[eSSU2V6Idx] = addr;
+			(*addresses)[eSSU2V6Idx] = addr;
 		}
 	}
 
@@ -802,33 +805,35 @@ namespace data
 			if (host.is_v4 ()) addr->caps |= eV4;
 			if (host.is_v6 ()) addr->caps |= eV6;
 		}
+		auto addresses = GetAddresses ();
 		if (addr->IsV4 ())
 		{
 			m_SupportedTransports |= eSSU2V4;
 			m_ReachableTransports |= eSSU2V4;
-			(*m_Addresses)[eSSU2V4Idx] = addr;
+			(*addresses)[eSSU2V4Idx] = addr;
 		}
 		if (addr->IsV6 ())
 		{
 			m_SupportedTransports |= eSSU2V6;
 			m_ReachableTransports |= eSSU2V6;
-			(*m_Addresses)[eSSU2V6Idx] = addr;
+			(*addresses)[eSSU2V6Idx] = addr;
 		}
 	}
 
 	void RouterInfo::RemoveSSU2Address (bool v4)
 	{
+		auto addresses = GetAddresses ();
 		if (v4)
 		{
-			if ((*m_Addresses)[eSSU2V6Idx])
-				(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
-			(*m_Addresses)[eSSU2V4Idx].reset ();
+			if ((*addresses)[eSSU2V6Idx])
+				(*addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
+			(*addresses)[eSSU2V4Idx].reset ();
 		}
 		else
 		{
-			if ((*m_Addresses)[eSSU2V4Idx])
-				(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
-			(*m_Addresses)[eSSU2V6Idx].reset ();
+			if ((*addresses)[eSSU2V4Idx])
+				(*addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
+			(*addresses)[eSSU2V6Idx].reset ();
 		}
 		UpdateSupportedTransports ();
 	}
@@ -869,17 +874,18 @@ namespace data
 	{
 		if (IsV6 ())
 		{
-			if ((*m_Addresses)[eNTCP2V6Idx])
+			auto addresses = GetAddresses ();
+			if ((*addresses)[eNTCP2V6Idx])
 			{
-				if ((*m_Addresses)[eNTCP2V6Idx]->IsV4 () && (*m_Addresses)[eNTCP2V4Idx])
-					(*m_Addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
-				(*m_Addresses)[eNTCP2V6Idx].reset ();
+				if ((*addresses)[eNTCP2V6Idx]->IsV4 () && (*addresses)[eNTCP2V4Idx])
+					(*addresses)[eNTCP2V4Idx]->caps &= ~AddressCaps::eV6;
+				(*addresses)[eNTCP2V6Idx].reset ();
 			}
-			if ((*m_Addresses)[eSSU2V6Idx])
+			if ((*addresses)[eSSU2V6Idx])
 			{
-				if ((*m_Addresses)[eSSU2V6Idx]->IsV4 () && (*m_Addresses)[eSSU2V4Idx])
-					(*m_Addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
-				(*m_Addresses)[eSSU2V6Idx].reset ();
+				if ((*addresses)[eSSU2V6Idx]->IsV4 () && (*addresses)[eSSU2V4Idx])
+					(*addresses)[eSSU2V4Idx]->caps &= ~AddressCaps::eV6;
+				(*addresses)[eSSU2V6Idx].reset ();
 			}
 			UpdateSupportedTransports ();
 		}
@@ -889,17 +895,18 @@ namespace data
 	{
 		if (IsV4 ())
 		{
-			if ((*m_Addresses)[eNTCP2V4Idx])
+			auto addresses = GetAddresses ();
+			if ((*addresses)[eNTCP2V4Idx])
 			{
-				if ((*m_Addresses)[eNTCP2V4Idx]->IsV6 () && (*m_Addresses)[eNTCP2V6Idx])
-					(*m_Addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
-				(*m_Addresses)[eNTCP2V4Idx].reset ();
+				if ((*addresses)[eNTCP2V4Idx]->IsV6 () && (*addresses)[eNTCP2V6Idx])
+					(*addresses)[eNTCP2V6Idx]->caps &= ~AddressCaps::eV4;
+				(*addresses)[eNTCP2V4Idx].reset ();
 			}
-			if ((*m_Addresses)[eSSU2V4Idx])
+			if ((*addresses)[eSSU2V4Idx])
 			{
-				if ((*m_Addresses)[eSSU2V4Idx]->IsV6 () && (*m_Addresses)[eSSU2V6Idx])
-					(*m_Addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
-				(*m_Addresses)[eSSU2V4Idx].reset ();
+				if ((*addresses)[eSSU2V4Idx]->IsV6 () && (*addresses)[eSSU2V6Idx])
+					(*addresses)[eSSU2V6Idx]->caps &= ~AddressCaps::eV4;
+				(*addresses)[eSSU2V4Idx].reset ();
 			}
 			UpdateSupportedTransports ();
 		}
@@ -920,7 +927,7 @@ namespace data
 		{
 			m_SupportedTransports &= ~eNTCP2V6Mesh;
 			m_ReachableTransports &= ~eNTCP2V6Mesh;
-			(*m_Addresses)[eNTCP2V6MeshIdx].reset ();
+			(*GetAddresses ())[eNTCP2V6MeshIdx].reset ();
 		}
 	}
 
@@ -949,12 +956,12 @@ namespace data
 		return nullptr;
 	}
 
-	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::GetAddresses () const
+	RouterInfo::AddressesPtr RouterInfo::GetAddresses () const
 	{
-#if (BOOST_VERSION >= 105300)
-		return boost::atomic_load (&m_Addresses);
-#else
+#ifdef __cpp_lib_atomic_shared_ptr
 		return m_Addresses;
+#else		
+		return boost::atomic_load (&m_Addresses);
 #endif
 	}
 
@@ -962,10 +969,10 @@ namespace data
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (Filter filter) const
 	{
 		// TODO: make it more generic using comparator
-#if (BOOST_VERSION >= 105300)
+#ifdef __cpp_lib_atomic_shared_ptr
+		AddressesPtr addresses = m_Addresses;
+#else		
 		auto addresses = boost::atomic_load (&m_Addresses);
-#else
-		auto addresses = m_Addresses;
 #endif
 		for (const auto& address : *addresses)
 			if (address && filter (address)) return address;
@@ -1062,7 +1069,7 @@ namespace data
 
 	void RouterInfo::SetUnreachableAddressesTransportCaps (uint8_t transports)
 	{
-		for (auto& addr: *m_Addresses)
+		for (auto& addr: *GetAddresses ())
 		{
 			if (addr && !addr->published)
 			{
@@ -1076,7 +1083,7 @@ namespace data
 	{
 		m_SupportedTransports = 0;
 		m_ReachableTransports = 0;
-		for (const auto& addr: *m_Addresses)
+		for (const auto& addr: *GetAddresses ())
 		{
 			if (!addr) continue;
 			uint8_t transports = 0;
@@ -1151,7 +1158,7 @@ namespace data
 		return netdb.NewRouterInfoAddress ();
 	}
 
-	boost::shared_ptr<RouterInfo::Addresses> RouterInfo::NewAddresses () const
+	RouterInfo::AddressesPtr RouterInfo::NewAddresses () const
 	{
 		return netdb.NewRouterInfoAddresses ();
 	}
@@ -1503,9 +1510,9 @@ namespace data
 		return std::make_shared<Address> ();
 	}
 
-	boost::shared_ptr<RouterInfo::Addresses> LocalRouterInfo::NewAddresses () const
+	RouterInfo::AddressesPtr LocalRouterInfo::NewAddresses () const
 	{
-		return boost::make_shared<Addresses> ();
+		return RouterInfo::AddressesPtr(new RouterInfo::Addresses ());
 	}
 
 	std::shared_ptr<IdentityEx> LocalRouterInfo::NewIdentity (const uint8_t * buf, size_t len) const
