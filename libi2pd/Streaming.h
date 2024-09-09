@@ -70,7 +70,9 @@ namespace stream
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
 	const uint64_t SEND_INTERVAL = 1000; // in microseconds
-
+	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
+	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
+	
 	struct Packet
 	{
 		size_t len, offset;
@@ -283,7 +285,8 @@ namespace stream
 			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
-			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_LastSendTime; // microseconds
+			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
+				m_LastSendTime; // miliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
