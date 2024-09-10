@@ -265,6 +265,7 @@ namespace stream
 			bool m_IsSendTime;
 			bool m_IsWinDropped;
 			bool m_IsTimeOutResend;
+			bool m_IsImmediateAckRequested;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key

@@ -73,7 +73,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
@@ -101,7 +101,7 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
@@ -192,7 +192,15 @@ namespace stream
 				ProcessOptions (flags, packet);
 			else	
 				// plain ack
-				LogPrint (eLogDebug, "Streaming: Plain ACK received");
+				{
+					LogPrint (eLogDebug, "Streaming: Plain ACK received");
+					if (m_IsImmediateAckRequested)
+					{
+						auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+						m_RTT = (m_RTT + (ts - m_LastSendTime)) / 2;
+						m_IsImmediateAckRequested = false;
+					}
+				}
 			m_LocalDestination.DeletePacket (packet);
 			return;
 		}
@@ -893,7 +901,11 @@ namespace stream
 			htobe16buf (packet + size, 2); // 2 bytes delay interval
 			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediated ack interval
 			size += 2;
-			if (requestImmediateAck) m_LastSendTime = ts; // ack request sent
+			if (requestImmediateAck) // ack request sent
+			{
+				m_LastSendTime = ts;
+				m_IsImmediateAckRequested = true;
+			}
 		}	
 		else	
 			htobuf16 (packet + size, 0); // no options
