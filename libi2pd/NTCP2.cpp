@@ -729,6 +729,7 @@ namespace transport
 					if (!ri1)
 					{
 						LogPrint (eLogError, "NTCP2: Couldn't update RouterInfo from SessionConfirmed in netdb");
+						Terminate ();
 						return;
 					}
 					std::shared_ptr<i2p::data::RouterProfile> profile; // not null if older 
@@ -737,7 +738,10 @@ namespace transport
 						// received RouterInfo is older than one in netdb
 						profile = i2p::data::GetRouterProfile (ri1->GetIdentHash ()); // retrieve profile	
 						if (profile && profile->IsDuplicated ())
+						{	
+							SendTerminationAndTerminate (eNTCP2Banned);
 							return;
+						}	
 					}
 					
 					auto addr = m_RemoteEndpoint.address ().is_v4 () ? ri1->GetNTCP2V4Address () :
@@ -756,8 +760,8 @@ namespace transport
 						if (profile) // older router?
 							profile->Duplicated (); // mark router as duplicated in profile
 						else
-							LogPrint (eLogError, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
-						Terminate ();
+							LogPrint (eLogInfo, "NTCP2: Host mismatch between published address ", addr->host, " and actual endpoint ", m_RemoteEndpoint.address ());
+						SendTerminationAndTerminate (eNTCP2Banned);
 						return;
 					}
 					// TODO: process options
