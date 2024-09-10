@@ -886,12 +886,12 @@ namespace stream
 		if (!choking)
 			requestImmediateAck = m_LastSendTime && ts > m_LastSendTime + REQUEST_IMMEDIATE_ACK_INTERVAL &&
 				ts > m_LastSendTime + REQUEST_IMMEDIATE_ACK_INTERVAL + m_LocalDestination.GetRandom () % REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE;
-		htobuf16 (packet + size, (choking || requestImmediateAck) ? PACKET_FLAG_DELAY_REQUESTED : 0); // no flags set or delay requested
+		htobe16buf (packet + size, (choking || requestImmediateAck) ? PACKET_FLAG_DELAY_REQUESTED : 0); // no flags set or delay requested
 		size += 2; // flags
 		if (choking || requestImmediateAck)
 		{
-			htobuf16 (packet + size, 2); // 2 bytes delay interval
-			htobuf16 (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediated ack interval
+			htobe16buf (packet + size, 2); // 2 bytes delay interval
+			htobe16buf (packet + size + 2, choking ? DELAY_CHOKING : 0); // set choking or immediated ack interval
 			size += 2;
 			if (requestImmediateAck) m_LastSendTime = ts; // ack request sent
 		}	
