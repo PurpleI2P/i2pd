@@ -184,10 +184,15 @@ namespace stream
 			ProcessAck (packet);
 
 		int32_t receivedSeqn = packet->GetSeqn ();
-		if (!receivedSeqn && !packet->GetFlags ())
+		if (!receivedSeqn)
 		{
-			// plain ack
-			LogPrint (eLogDebug, "Streaming: Plain ACK received");
+			uint16_t flags = packet->GetFlags ();
+			if (flags)
+				// plain ack with options
+				ProcessOptions (flags, packet);
+			else	
+				// plain ack
+				LogPrint (eLogDebug, "Streaming: Plain ACK received");
 			m_LocalDestination.DeletePacket (packet);
 			return;
 		}
