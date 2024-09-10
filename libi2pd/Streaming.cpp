@@ -184,7 +184,7 @@ namespace stream
 			ProcessAck (packet);
 
 		int32_t receivedSeqn = packet->GetSeqn ();
-		if (!receivedSeqn)
+		if (!receivedSeqn && m_LastReceivedSequenceNumber >= 0)
 		{
 			uint16_t flags = packet->GetFlags ();
 			if (flags)
