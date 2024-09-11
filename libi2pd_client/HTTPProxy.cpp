@@ -376,7 +376,7 @@ namespace proxy {
 		std::string jump;
 		if (ExtractAddressHelper(m_RequestURL, jump, m_Confirm))
 		{
-			if (!m_Addresshelper)
+			if (!m_Addresshelper || !i2p::client::context.GetAddressBook ().IsEnabled ())
 			{
 				LogPrint(eLogWarning, "HTTPProxy: Addresshelper request rejected");
 				GenericProxyError(tr("Invalid request"), tr("Addresshelper is not supported"));

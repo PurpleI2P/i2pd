@@ -441,7 +441,7 @@ namespace client
 			auto ident = std::make_shared<i2p::data::IdentityEx>();
 			if (ident->FromBase64 (jump))
 			{
-				m_Storage->AddAddress (ident);
+				if (m_Storage) m_Storage->AddAddress (ident);
 				m_Addresses[address] = std::make_shared<Address>(ident->GetIdentHash ());
 				LogPrint (eLogInfo, "Addressbook: Added ", address," -> ", ToAddress(ident->GetIdentHash ()));
 			}
@@ -452,18 +452,19 @@ namespace client
 
 	void AddressBook::InsertFullAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		m_Storage->AddAddress (address);
+		if (m_Storage) m_Storage->AddAddress (address);
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetFullAddress (const std::string& address)
 	{
 		auto addr = GetAddress (address);
 		if (!addr || !addr->IsIdentHash ()) return nullptr;
-		return m_Storage->GetAddress (addr->identHash);
+		return m_Storage ? m_Storage->GetAddress (addr->identHash) : nullptr;
 	}
 
 	void AddressBook::LoadHosts ()
 	{
+		if (!m_Storage) return;
 		if (m_Storage->Load (m_Addresses) > 0)
 		{
 			m_IsLoaded = true;
@@ -534,15 +535,18 @@ namespace client
 						ident->GetSigningKeyType () != i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) // don't replace by DSA
 					{
 						it->second->identHash = ident->GetIdentHash ();
-						m_Storage->AddAddress (ident);
-						m_Storage->RemoveAddress (it->second->identHash);
+						if (m_Storage)
+						{	
+							m_Storage->AddAddress (ident);
+							m_Storage->RemoveAddress (it->second->identHash);
+						}	
 						LogPrint (eLogInfo, "Addressbook: Updated host: ", name);
 					}
 				}
 				else
 				{
 					m_Addresses.emplace (name, std::make_shared<Address>(ident->GetIdentHash ()));
-					m_Storage->AddAddress (ident);
+					if (m_Storage) m_Storage->AddAddress (ident);
 					if (is_update)
 						LogPrint (eLogInfo, "Addressbook: Added new host: ", name);
 				}
@@ -554,7 +558,7 @@ namespace client
 		if (numAddresses > 0)
 		{
 			if (!incomplete) m_IsLoaded = true;
-			m_Storage->Save (m_Addresses);
+			if (m_Storage) m_Storage->Save (m_Addresses);
 		}
 		return !incomplete;
 	}
