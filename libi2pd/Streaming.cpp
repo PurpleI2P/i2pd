@@ -197,7 +197,13 @@ namespace stream
 					if (m_IsImmediateAckRequested)
 					{
 						auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-						m_RTT = (m_RTT + (ts - m_LastSendTime)) / 2;
+						if (m_IsFirstRttSample)
+						{
+							m_RTT = ts - m_LastSendTime;
+							m_IsFirstRttSample = false;
+						}
+						else
+							m_RTT = (m_RTT + (ts - m_LastSendTime)) / 2;
 						m_IsImmediateAckRequested = false;
 					}
 				}
