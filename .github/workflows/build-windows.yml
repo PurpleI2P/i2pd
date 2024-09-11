@@ -205,6 +205,7 @@ jobs:
       run: |
         cd MINGW-packages/mingw-w64-openssl
         gpg --recv-keys D894E2CE8B3D79F5
+        gpg --recv-keys 216094DFD0CB81EF
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install openssl package
       run: pacman --noconfirm -U MINGW-packages/mingw-w64-openssl/mingw-w64-i686-*-any.pkg.tar.zst
