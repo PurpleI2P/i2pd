@@ -76,7 +76,7 @@ namespace stream
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
-		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
+		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
 		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
 		m_Jitter (0), m_MinPacingTime (0),
@@ -103,7 +103,7 @@ namespace stream
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT),
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
@@ -550,27 +550,34 @@ namespace stream
 			{
 				m_RTT = rttSample;
 				m_SlowRTT = rttSample;
+				m_SlowRTT2 = rttSample;
 				m_PrevRTTSample = rttSample;
+				m_Jitter = rttSample / 10; // 10%
+				m_Jitter += 5; // for low-latency connections
 				m_IsFirstRttSample = false;
 			}
 			else
-				m_RTT = RTT_EWMA_ALPHA * rttSample + (1.0 - RTT_EWMA_ALPHA) * m_RTT;
-			// calculate jitter
-			double jitter = 0;
-			if (rttSample > m_PrevRTTSample)
-				jitter = rttSample - m_PrevRTTSample;
-			else if (rttSample < m_PrevRTTSample)
-				jitter = m_PrevRTTSample - rttSample;
-			else
-				jitter = std::round (rttSample / 10); // 10%
-			jitter += 1; // for low-latency connections
-			m_Jitter = (0.025 * jitter) + (1.0 - 0.025) * m_Jitter;
+				m_RTT = (m_PrevRTTSample + rttSample) / 2;
+			if (!m_IsWinDropped) 
+			{
+				m_SlowRTT = SLOWRTT_EWMA_ALPHA * m_RTT + (1.0 - SLOWRTT_EWMA_ALPHA) * m_SlowRTT;
+				m_SlowRTT2 = RTT_EWMA_ALPHA * m_RTT + (1.0 - RTT_EWMA_ALPHA) * m_SlowRTT2;
+				// calculate jitter
+				double jitter = 0;
+				if (rttSample > m_PrevRTTSample)
+					jitter = rttSample - m_PrevRTTSample;
+				else if (rttSample < m_PrevRTTSample)
+					jitter = m_PrevRTTSample - rttSample;
+				else
+					jitter = rttSample / 10; // 10%
+				jitter += 5; // for low-latency connections
+				m_Jitter = (0.05 * jitter) + (1.0 - 0.05) * m_Jitter;
+			}
 			//
 			// delay-based CC
-			if ((m_RTT > m_SlowRTT + m_Jitter && rttSample > m_RTT && rttSample > m_PrevRTTSample) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
+			if ((m_SlowRTT2 > m_SlowRTT + m_Jitter && rttSample > m_SlowRTT2 && rttSample > m_PrevRTTSample) && !m_IsWinDropped) // Drop window if RTT grows too fast, late detection
 				ProcessWindowDrop ();
 			UpdatePacingTime ();
-			m_SlowRTT = SLOWRTT_EWMA_ALPHA * rttSample + (1.0 - SLOWRTT_EWMA_ALPHA) * m_SlowRTT;
 			m_PrevRTTSample = rttSample;
 			
 			bool wasInitial = m_RTO == INITIAL_RTO;
@@ -579,18 +586,23 @@ namespace stream
 			if (wasInitial)
 				ScheduleResend ();
 		}
-		if (ackThrough > m_DropWindowDelaySequenceNumber && m_WindowSize <= m_WindowDropTargetSize)
-			m_IsWinDropped = false;
-		if (acknowledged && m_IsWinDropped && m_WindowSize > m_WindowDropTargetSize)
+		if (m_IsWinDropped && ackThrough > m_DropWindowDelaySequenceNumber)
 		{
-			if (ackCount > 1)
-				m_WindowSize = m_SentPackets.size () + 1;
-			else
-			{
-				m_WindowSize = m_SentPackets.size ();
-				m_IsResendNeeded = true;
-			}
+			m_IsFirstRttSample = true;
+			m_IsWinDropped = false;
+		}
+		if (m_WindowDropTargetSize && m_WindowSize <= m_WindowDropTargetSize)
+		{
+			m_WindowDropTargetSize = 0;
+			m_DropWindowDelaySequenceNumber = m_SequenceNumber;
+		}
+		if (acknowledged && m_WindowDropTargetSize && m_WindowSize > m_WindowDropTargetSize)
+		{
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5 + m_Jitter)); // we assume that the next rtt sample may be much larger than the current
+			m_IsResendNeeded = true;
+			m_WindowSize = m_SentPackets.size () + 1; // if there are no packets to resend, just send one regular packet
 			if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+			if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
 			m_WindowIncCounter = 0;
 			UpdatePacingTime ();
 		}
@@ -598,10 +610,10 @@ namespace stream
 		{
 			ScheduleResend ();
 		}
-		if ((m_SendBuffer.IsEmpty () && m_SentPackets.size () > 0) // tail loss
-			|| int(m_SentPackets.size ()) > m_WindowSize) // or we drop window
+		if (m_SendBuffer.IsEmpty () && m_SentPackets.size () > 0) // tail loss
 		{
 			m_IsResendNeeded = true;
+			m_RTO = std::max (MIN_RTO, (int)(m_RTT * 1.5 + m_Jitter)); // to prevent spurious retransmit
 		}
 		if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ())
 		{
@@ -1304,7 +1316,7 @@ namespace stream
 				if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
 				{
 					// loss-based CC
-					if (!m_IsWinDropped)
+					if (!m_IsWinDropped && LOSS_BASED_CONTROL_ENABLED)
 						ProcessWindowDrop ();
 				}
 				else if (m_IsTimeOutResend)
