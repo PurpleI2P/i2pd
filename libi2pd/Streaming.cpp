@@ -497,7 +497,6 @@ namespace stream
 		m_IsNAcked = false;
 		m_IsResendNeeded = false;
 		int nackCount = packet->GetNACKCount ();
-		int ackCount = 0;
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{
 			auto seqn = (*it)->GetSeqn ();
@@ -536,7 +535,6 @@ namespace stream
 				m_SentPackets.erase (it++);
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
-				ackCount++;
 				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
 					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTT) // dirty
 						m_WindowIncCounter++;
