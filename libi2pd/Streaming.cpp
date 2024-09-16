@@ -1526,7 +1526,8 @@ namespace stream
 		
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
-		m_PendingIncomingTimer (m_Owner->GetService ())
+		m_PendingIncomingTimer (m_Owner->GetService ()), 
+		m_LastCleanupTime (i2p::util::GetSecondsSinceEpoch ())
 	{
 	}
 
@@ -1715,10 +1716,12 @@ namespace stream
 			m_IncomingStreams.erase (stream->GetSendStreamID ());
 			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
-		if (m_Streams.empty ())
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (m_Streams.empty () || ts > m_LastCleanupTime + STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL)
 		{
 			m_PacketsPool.CleanUp ();
 			m_I2NPMsgsPool.CleanUp ();
+			m_LastCleanupTime = ts;
 		}
 	}
 

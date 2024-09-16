@@ -73,6 +73,7 @@ namespace stream
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
 	const bool LOSS_BASED_CONTROL_ENABLED = 1; // 0/1
+	const uint64_t STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL = 646; // in seconds
 	
 	struct Packet
 	{
@@ -350,7 +351,8 @@ namespace stream
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
-
+			uint64_t m_LastCleanupTime; // in seconds
+			
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
