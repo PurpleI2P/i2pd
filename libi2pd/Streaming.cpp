@@ -835,7 +835,15 @@ namespace stream
 		numPackets = (passedTime + m_PacketACKIntervalRem) / m_PacketACKInterval;
 		m_PacketACKIntervalRem = (passedTime + m_PacketACKIntervalRem) - (numPackets * m_PacketACKInterval);
 		if (m_LastConfirmedReceivedSequenceNumber + numPackets < m_LastReceivedSequenceNumber)
+		{
 			lastReceivedSeqn = m_LastConfirmedReceivedSequenceNumber + numPackets;
+			if (!m_IsAckSendScheduled)
+			{
+				auto ackTimeout = m_RTT/10;
+				if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+				ScheduleAck (ackTimeout);
+			}
+		}
 		if (numPackets == 0) return;
 		// for limit inbound speed
 		if (!m_SavedPackets.empty ())
@@ -1396,6 +1404,7 @@ namespace stream
 
 	void Stream::UpdateCurrentRemoteLease (bool expired)
 	{
+		bool isLeaseChanged = true;
 		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ())
 		{
 			auto remoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
@@ -1451,7 +1460,7 @@ namespace stream
 							break;
 						}
 				}
-				if (!updated)
+				if (!updated && leases.size () > 1)
 				{
 					uint32_t i = m_LocalDestination.GetRandom () % leases.size ();
 					if (m_CurrentRemoteLease && leases[i]->tunnelID == m_CurrentRemoteLease->tunnelID)
@@ -1459,6 +1468,8 @@ namespace stream
 						i = (i + 1) % leases.size (); // if so, pick next
 					m_CurrentRemoteLease = leases[i];
 				}
+				else
+					isLeaseChanged = false;
 			}
 			else
 			{
@@ -1473,20 +1484,23 @@ namespace stream
 			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
 		}
-		// drop window to initial upon RemoteLease change
-		m_RTO = INITIAL_RTO;
-		if (m_WindowSize > INITIAL_WINDOW_SIZE)
+		if (isLeaseChanged)
 		{
-			m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
-			m_IsWinDropped = true;
+			// drop window to initial upon RemoteLease change
+			m_RTO = INITIAL_RTO;
+			if (m_WindowSize > INITIAL_WINDOW_SIZE)
+			{
+				m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
+				m_IsWinDropped = true;
+			}
+			else
+				m_WindowSize = INITIAL_WINDOW_SIZE;
+			m_LastWindowDropSize = 0;
+			m_WindowIncCounter = 0;
+			m_IsFirstRttSample = true;
+			m_IsFirstACK = true;
+			UpdatePacingTime ();
 		}
-		else
-			m_WindowSize = INITIAL_WINDOW_SIZE;
-		m_LastWindowDropSize = 0;
-		m_WindowIncCounter = 0;
-		m_IsFirstRttSample = true;
-		m_IsFirstACK = true;
-		UpdatePacingTime ();
 	}
 
 	void Stream::ResetRoutingPath ()
