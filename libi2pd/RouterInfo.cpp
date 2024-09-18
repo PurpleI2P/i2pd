@@ -49,7 +49,7 @@ namespace data
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
-		m_Buffer = NewBuffer (); // always RouterInfo's
+		m_Buffer = RouterInfo::NewBuffer (); // always RouterInfo's
 		ReadFromFile (fullPath);
 	}
 
@@ -74,7 +74,7 @@ namespace data
 	}
 
 	RouterInfo::RouterInfo (const uint8_t * buf, size_t len):
-		RouterInfo (std::make_shared<Buffer> (buf, len), len)
+		RouterInfo (netdb.NewRouterInfoBuffer (buf, len), len)
 	{
 	}
 
