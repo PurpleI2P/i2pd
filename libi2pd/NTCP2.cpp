@@ -695,7 +695,7 @@ namespace transport
 						return;
 					}
 					auto size = bufbe16toh (buf.data () + 1);
-					if (size > buf.size () - 3)
+					if (size > buf.size () - 3 || size > i2p::data::MAX_RI_BUFFER_SIZE + 1)
 					{
 						LogPrint (eLogError, "NTCP2: Unexpected RouterInfo size ", size, " in SessionConfirmed");
 						Terminate ();
@@ -960,14 +960,19 @@ namespace transport
 				case eNTCP2BlkRouterInfo:
 				{
 					LogPrint (eLogDebug, "NTCP2: RouterInfo flag=", (int)frame[offset]);	
-					auto newRi = i2p::data::netdb.AddRouterInfo (frame + offset + 1, size - 1);
-					if (newRi)
-					{
-						auto remoteIdentity = GetRemoteIdentity ();
-						if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
-							// peer's RouterInfo update
-							SetRemoteIdentity (newRi->GetIdentity ());
+					if (size <= i2p::data::MAX_RI_BUFFER_SIZE + 1)
+					{		
+						auto newRi = i2p::data::netdb.AddRouterInfo (frame + offset + 1, size - 1);
+						if (newRi)
+						{
+							auto remoteIdentity = GetRemoteIdentity ();
+							if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+								// peer's RouterInfo update
+								SetRemoteIdentity (newRi->GetIdentity ());
+						}	
 					}	
+					else
+						LogPrint (eLogInfo, "NTCP2: RouterInfo block is too long ", size);
 					break;
 				}
 				case eNTCP2BlkI2NPMessage:

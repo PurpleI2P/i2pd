@@ -2937,13 +2937,15 @@ namespace transport
 			i2p::data::GzipInflator inflator;
 			uint8_t uncompressed[i2p::data::MAX_RI_BUFFER_SIZE];
 			size_t uncompressedSize = inflator.Inflate (buf + 2, size - 2, uncompressed, i2p::data::MAX_RI_BUFFER_SIZE);
-			if (uncompressedSize && uncompressedSize < i2p::data::MAX_RI_BUFFER_SIZE)
+			if (uncompressedSize && uncompressedSize <= i2p::data::MAX_RI_BUFFER_SIZE)
 				ri = std::make_shared<i2p::data::RouterInfo>(uncompressed, uncompressedSize);
 			else
 				LogPrint (eLogInfo, "SSU2: RouterInfo decompression failed ", uncompressedSize);
 		}
-		else
+		else if (size <= i2p::data::MAX_RI_BUFFER_SIZE + 2)
 			ri = std::make_shared<i2p::data::RouterInfo>(buf + 2, size - 2);
+		else
+			LogPrint (eLogInfo, "SSU2: RouterInfo is too long ", size);
 		return ri;
 	}
 
