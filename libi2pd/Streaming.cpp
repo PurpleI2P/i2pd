@@ -1460,16 +1460,19 @@ namespace stream
 							break;
 						}
 				}
-				if (!updated && leases.size () > 1)
+				if (!updated)
 				{
 					uint32_t i = m_LocalDestination.GetRandom () % leases.size ();
 					if (m_CurrentRemoteLease && leases[i]->tunnelID == m_CurrentRemoteLease->tunnelID)
+					{
 						// make sure we don't select previous
-						i = (i + 1) % leases.size (); // if so, pick next
+						if (leases.size () > 1)
+							i = (i + 1) % leases.size (); // if so, pick next
+						else
+							isLeaseChanged = false;
+					}
 					m_CurrentRemoteLease = leases[i];
 				}
-				else
-					isLeaseChanged = false;
 			}
 			else
 			{
