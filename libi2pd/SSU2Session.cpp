@@ -265,6 +265,7 @@ namespace transport
 			m_OnEstablished = nullptr;
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
+			m_Server.AddConnectedRecently (m_RemoteEndpoint, GetLastActivityTimestamp ());
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
@@ -281,14 +282,10 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			auto remoteIdentity = GetRemoteIdentity ();
 			if (remoteIdentity)
-			{
 				LogPrint (eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
 					" (", i2p::data::GetIdentHashAbbreviation (remoteIdentity->GetIdentHash ()), ") terminated");
-			}
 			else
-			{
 				LogPrint (eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (), " terminated");
-			}
 		}
 	}
 
@@ -1153,7 +1150,7 @@ namespace transport
 			if (profile) // older router?
 				profile->Duplicated (); // mark router as duplicated in profile
 			else	
-				LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
+				LogPrint (eLogInfo, "SSU2: Host mismatch between published address ", m_Address->host,
 					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
@@ -2276,14 +2273,19 @@ namespace transport
 								if (addr && m_Server.IsSupported (ep.address ()) && 
 								    i2p::context.GetRouterInfo ().IsSSU2PeerTesting (ep.address ().is_v4 ()))
 								{
-									// send msg 5 to Alice
-									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
-									session->SetState (eSSU2SessionStatePeerTest);
-									session->m_RemoteEndpoint = ep; // might be different
-									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
-									session->m_SourceConnID = ~session->m_DestConnID;
-									m_Server.AddSession (session);
-									session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr->i);
+									if (!m_Server.IsConnectedRecently (ep)) // no alive hole punch
+									{	
+										// send msg 5 to Alice
+										auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
+										session->SetState (eSSU2SessionStatePeerTest);
+										session->m_RemoteEndpoint = ep; // might be different
+										session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
+										session->m_SourceConnID = ~session->m_DestConnID;
+										m_Server.AddSession (session);
+										session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr->i);
+									}
+									else
+										code = eSSU2PeerTestCodeCharlieAliceIsAlreadyConnected;
 								}
 								else
 									code = eSSU2PeerTestCodeCharlieUnsupportedAddress;

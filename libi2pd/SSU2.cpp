@@ -210,6 +210,22 @@ namespace transport
 		return ep.port ();
 	}
 
+	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep) const
+	{
+		if (!ep.port () || ep.address ().is_unspecified ()) return false;
+		auto it = m_ConnectedRecently.find (ep);
+		if (it != m_ConnectedRecently.end ())
+			return i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION;
+		return false;
+	}	
+
+	void SSU2Server::AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts)
+	{
+		if (!ep.port () || ep.address ().is_unspecified () || 
+		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
+		m_ConnectedRecently.try_emplace (ep, ts);
+	}	
+		
 	void SSU2Server::AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from)
 	{
 		if (offset)
@@ -1001,6 +1017,14 @@ namespace transport
 					it++;
 			}
 
+			for (auto it = m_ConnectedRecently.begin (); it != m_ConnectedRecently.end (); )
+			{
+				if (ts > it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+					it = m_ConnectedRecently.erase (it);
+				else
+					it++;
+			}	
+			
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();

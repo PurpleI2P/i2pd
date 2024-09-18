@@ -39,6 +39,7 @@ namespace transport
 	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
+	const int SSU2_HOLE_PUNCH_EXPIRATION = 20; // in seconds
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
@@ -72,6 +73,8 @@ namespace transport
 			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
+			bool IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep) const;
+			void AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts);
 			std::mt19937& GetRng () { return m_Rng; }
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
@@ -160,7 +163,7 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			mutable std::mutex m_PendingOutgoingSessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
-			std::map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
+			std::unordered_map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
@@ -174,7 +177,8 @@ namespace transport
 			int64_t m_PendingTimeOffset; // during peer test
 			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
 			std::mt19937 m_Rng;
-
+			std::map<boost::asio::ip::udp::endpoint, uint64_t> m_ConnectedRecently; // endpoint -> last activity time in seconds
+		
 			// proxy
 			bool m_IsThroughProxy;
 			uint8_t m_UDPRequestHeader[SOCKS5_UDP_IPV6_REQUEST_HEADER_SIZE];
