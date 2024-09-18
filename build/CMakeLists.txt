@@ -125,6 +125,11 @@ if(WIN32)
 
 endif()
 
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
+if(NOT DEFINED Boost_FOUND)
+  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
+endif()
+
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
 endif()
@@ -157,10 +162,12 @@ else()
   set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -ffunction-sections -fdata-sections")
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from above
 
-  # check for с++20 & c++17 support
+  # check for c++20 & c++17 support
   include(CheckCXXCompilerFlag)
 
-  CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
+  if(Boost_VERSION VERSION_GREATER_EQUAL "1.83") # min boost version for c++20
+    CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
+  endif()
   CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
  
 
@@ -283,11 +290,6 @@ else()
     set(Boost_USE_STATIC_LIBS OFF)
     set(Boost_USE_STATIC_RUNTIME OFF)
   endif()
-endif()
-
-find_package(Boost REQUIRED COMPONENTS system filesystem program_options OPTIONAL_COMPONENTS atomic)
-if(NOT DEFINED Boost_FOUND)
-  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
 endif()
 
 find_package(OpenSSL REQUIRED)
