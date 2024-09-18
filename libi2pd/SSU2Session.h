@@ -114,6 +114,7 @@ namespace transport
 		eSSU2SessionStateIntroduced,
 		eSSU2SessionStatePeerTest,
 		eSSU2SessionStatePeerTestReceived, // 5 before 4
+		eSSU2SessionStateVoidPeerTestReceived, // 5 before 4, but from connected recently
 		eSSU2SessionStateTokenRequestReceived
 	};
 

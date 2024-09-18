@@ -2365,10 +2365,11 @@ namespace transport
 								if (addr)
 								{
 									it->second.first->m_Address = addr;
-									if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
+									auto state = it->second.first->m_State;
+									if (state == eSSU2SessionStatePeerTestReceived || state == eSSU2SessionStateVoidPeerTestReceived)
 									{
 										// msg 5 already received. send msg 6
-										SetRouterStatus (eRouterStatusOK);
+										SetRouterStatus (state == eSSU2SessionStatePeerTestReceived ? eRouterStatusOK : eRouterStatusUnknown);
 										it->second.first->m_State = eSSU2SessionStatePeerTest;
 										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
 									}
@@ -2426,14 +2427,15 @@ namespace transport
 			case 5: // Alice from Charlie 1
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
 				{
+					bool isConnectedRecently = m_Server.IsConnectedRecently (m_RemoteEndpoint);
 					if (m_Address)
 					{
-						SetRouterStatus (eRouterStatusOK);
+						SetRouterStatus (isConnectedRecently ? eRouterStatusUnknown : eRouterStatusOK);
 						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
 					}
 					else
 						// we received msg 5 before msg 4
-						m_State = eSSU2SessionStatePeerTestReceived;
+						m_State = isConnectedRecently ? eSSU2SessionStateVoidPeerTestReceived : eSSU2SessionStatePeerTestReceived;
 				}
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
