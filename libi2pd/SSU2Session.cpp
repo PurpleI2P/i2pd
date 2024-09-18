@@ -2054,6 +2054,7 @@ namespace transport
 							token = m_Server.GetIncomingToken (ep);
 							isV4 = ep.address ().is_v4 ();
 							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
+							m_Server.AddConnectedRecently (ep, i2p::util::GetSecondsSinceEpoch ());
 						}
 						else
 						{

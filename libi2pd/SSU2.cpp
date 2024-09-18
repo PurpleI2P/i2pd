@@ -210,12 +210,17 @@ namespace transport
 		return ep.port ();
 	}
 
-	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep) const
+	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep)
 	{
 		if (!ep.port () || ep.address ().is_unspecified ()) return false;
 		auto it = m_ConnectedRecently.find (ep);
 		if (it != m_ConnectedRecently.end ())
-			return i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION;
+		{	
+			if (i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+				return true;
+			else
+				m_ConnectedRecently.erase (it);
+		}	
 		return false;
 	}	
 
@@ -223,7 +228,9 @@ namespace transport
 	{
 		if (!ep.port () || ep.address ().is_unspecified () || 
 		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
-		m_ConnectedRecently.try_emplace (ep, ts);
+		auto [it, added] = m_ConnectedRecently.try_emplace (ep, ts);
+		if (!added && ts > it->second)
+			it->second = ts; // renew timestamp of existing endpoint
 	}	
 		
 	void SSU2Server::AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from)
