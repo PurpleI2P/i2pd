@@ -829,6 +829,7 @@ namespace stream
 		// for limit inbound speed
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numPackets = 0;
+		bool lostPackets = false;
 		int64_t passedTime = m_PacketACKInterval * INITIAL_WINDOW_SIZE; // in microseconds // while m_LastACKSendTime == 0
 		if (m_LastACKSendTime)
 			passedTime = (ts - m_LastACKSendTime)*1000; // in microseconds
@@ -851,8 +852,26 @@ namespace stream
 			for (auto it: m_SavedPackets)
 			{
 				auto seqn = it->GetSeqn ();
-				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) break; // for limit inbound speed
-				if ((int)seqn > lastReceivedSeqn) lastReceivedSeqn = seqn;
+				// for limit inbound speed
+				if (m_LastConfirmedReceivedSequenceNumber + numPackets < int(seqn)) 
+				{
+					if (!m_IsAckSendScheduled)
+					{
+						auto ackTimeout = m_RTT/10;
+						if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
+						ScheduleAck (ackTimeout);
+					}
+					if (lostPackets)
+						break;
+					else
+						return;
+				}
+				// for limit inbound speed
+				if ((int)seqn > lastReceivedSeqn)
+				{
+					lastReceivedSeqn = seqn;
+					lostPackets = true;	// for limit inbound speed
+				}
 			}
 		}
 		if (lastReceivedSeqn < 0)
