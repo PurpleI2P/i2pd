@@ -2365,12 +2365,13 @@ namespace transport
 								if (addr)
 								{
 									it->second.first->m_Address = addr;
-									auto state = it->second.first->m_State;
+									auto& state = it->second.first->m_State;
 									if (state == eSSU2SessionStatePeerTestReceived || state == eSSU2SessionStateVoidPeerTestReceived)
 									{
 										// msg 5 already received. send msg 6
-										SetRouterStatus (state == eSSU2SessionStatePeerTestReceived ? eRouterStatusOK : eRouterStatusUnknown);
-										it->second.first->m_State = eSSU2SessionStatePeerTest;
+										if (state == eSSU2SessionStatePeerTestReceived)
+											SetRouterStatus (eRouterStatusOK);
+										state = eSSU2SessionStatePeerTest;
 										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
 									}
 									else
@@ -2430,7 +2431,8 @@ namespace transport
 					bool isConnectedRecently = m_Server.IsConnectedRecently (m_RemoteEndpoint);
 					if (m_Address)
 					{
-						SetRouterStatus (isConnectedRecently ? eRouterStatusUnknown : eRouterStatusOK);
+						if (!isConnectedRecently)
+							SetRouterStatus (eRouterStatusOK);
 						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
 					}
 					else
