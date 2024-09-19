@@ -125,11 +125,6 @@ if(WIN32)
 
 endif()
 
-find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
-if(NOT DEFINED Boost_FOUND)
-  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
-endif()
-
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
 endif()
@@ -161,23 +156,6 @@ else()
   endif()
   set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -ffunction-sections -fdata-sections")
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections") # -flto is added from above
-
-  # check for c++20 & c++17 support
-  include(CheckCXXCompilerFlag)
-
-  if(Boost_VERSION VERSION_GREATER_EQUAL "1.83") # min boost version for c++20
-    CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
-  endif()
-  CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
- 
-
-  if(CXX20_SUPPORTED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
-  elseif(CXX17_SUPPORTED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-  else()
-    message(SEND_ERROR "C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
-  endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -292,6 +270,11 @@ else()
   endif()
 endif()
 
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
+if(NOT DEFINED Boost_FOUND)
+  message(SEND_ERROR "Boost is not found, or your boost version was below 1.46. Please download Boost!")
+endif()
+
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_FOUND)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
@@ -315,6 +298,26 @@ if(ZLIB_FOUND)
   link_directories(${ZLIB_ROOT}/lib)
 endif()
 
+# C++ standard to use, based on compiler and version of boost
+if(NOT MSVC)
+# check for c++20 & c++17 support
+  include(CheckCXXCompilerFlag)
+
+  if(Boost_VERSION VERSION_GREATER_EQUAL "1.83") # min boost version for c++20
+    CHECK_CXX_COMPILER_FLAG("-std=c++20" CXX20_SUPPORTED)
+  endif()
+  CHECK_CXX_COMPILER_FLAG("-std=c++17" CXX17_SUPPORTED)
+ 
+
+  if(CXX20_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+  elseif(CXX17_SUPPORTED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+  else()
+    message(SEND_ERROR "C++20 nor C++17 standard not seems to be supported by compiler. Too old version?")
+  endif()
+endif()
+
 # load includes
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 
@@ -325,6 +328,7 @@ message(STATUS "Compiler vendor    : ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Compiler version   : ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Architecture       : ${ARCHITECTURE}")
+message(STATUS "Compiler flags     : ${CMAKE_CXX_FLAGS}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
