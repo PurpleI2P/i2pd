@@ -587,7 +587,7 @@ namespace tunnel
 		else if (i2p::transport::transports.GetNumPeers () > 100 ||
 			(inbound && i2p::transport::transports.GetNumPeers () > 25))
 		{
-			auto r = i2p::transport::transports.GetRandomPeer (!IsExploratory ());
+			auto r = i2p::transport::transports.GetRandomPeer (m_IsHighBandwidth);
 			if (r && r->IsECIES () && !r->GetProfile ()->IsBad () &&
 				(numHops > 1 || (r->IsV4 () && (!inbound || r->IsPublished (true))))) // first inbound must be published ipv4
 			{
