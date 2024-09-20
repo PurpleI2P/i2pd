@@ -41,11 +41,11 @@ namespace tunnel
 	}
 
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
-		int numOutboundTunnels, int inboundVariance, int outboundVariance):
+		int numOutboundTunnels, int inboundVariance, int outboundVariance, bool isHighBandwidth):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels),
 		m_InboundVariance (inboundVariance), m_OutboundVariance (outboundVariance),
-		m_IsActive (true), m_CustomPeerSelector(nullptr), 
+		m_IsActive (true), m_IsHighBandwidth (isHighBandwidth), m_CustomPeerSelector(nullptr), 
 		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 		if (m_NumInboundTunnels > TUNNEL_POOL_MAX_INBOUND_TUNNELS_QUANTITY)
@@ -549,20 +549,22 @@ namespace tunnel
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop, 
 		bool reverse, bool endpoint) const
 	{
-		bool tryHighBandwidth = !IsExploratory ();
+		bool tryClient = !IsExploratory ();
 		std::shared_ptr<const i2p::data::RouterInfo> hop;
 		for (int i = 0; i < TUNNEL_POOL_MAX_HOP_SELECTION_ATTEMPTS; i++)
 		{
-			hop = tryHighBandwidth ?
-				i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint) :
-				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint);
+			hop = tryClient ?
+				(m_IsHighBandwidth ? 
+				 	i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop, reverse, endpoint) : 
+				 	i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, true)):
+				i2p::data::netdb.GetRandomRouter (prevHop, reverse, endpoint, false);
 			if (hop)
 			{
 				if (!hop->GetProfile ()->IsBad ())
 					break;
 			}
-			else if (tryHighBandwidth)
-				tryHighBandwidth = false;
+			else if (tryClient)
+				tryClient = false;
 			else
 				return nullptr;
 		}

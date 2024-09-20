@@ -62,7 +62,7 @@ namespace tunnel
 		public:
 
 			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels,
-				int numOutboundTunnels, int inboundVariance, int outboundVariance);
+				int numOutboundTunnels, int inboundVariance, int outboundVariance, bool isHighBandwidth);
 			~TunnelPool ();
 
 			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; };
@@ -146,7 +146,7 @@ namespace tunnel
 			std::set<std::shared_ptr<OutboundTunnel>, TunnelCreationTimeCmp> m_OutboundTunnels;
 			mutable std::mutex m_TestsMutex;
 			std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
-			bool m_IsActive;
+			bool m_IsActive, m_IsHighBandwidth;
 			uint64_t m_NextManageTime; // in seconds
 			std::mutex m_CustomPeerSelectorMutex;
 			ITunnelPeerSelector * m_CustomPeerSelector;

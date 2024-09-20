@@ -232,8 +232,9 @@ namespace tunnel
 			void PostTunnelData (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
-			std::shared_ptr<TunnelPool> CreateTunnelPool (int numInboundHops, int numOuboundHops,
-				int numInboundTunnels, int numOutboundTunnels, int inboundVariance, int outboundVariance);
+			std::shared_ptr<TunnelPool> CreateTunnelPool (int numInboundHops, 
+			    int numOuboundHops, int numInboundTunnels, int numOutboundTunnels, 
+			    int inboundVariance, int outboundVariance,  bool isHighBandwidth);
 			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
 

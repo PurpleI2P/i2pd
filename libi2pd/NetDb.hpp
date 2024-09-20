@@ -87,7 +87,7 @@ namespace data
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr, bool direct = true);
 			
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
-			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint, bool clientTunnel) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith, bool reverse, bool endpoint) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2PeerTestRouter (bool v4, const std::unordered_set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetRandomSSU2Introducer (bool v4, const std::unordered_set<IdentHash>& excluded) const;

@@ -474,6 +474,7 @@ namespace client
 		options[I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, DEFAULT_MAX_OUTBOUND_SPEED);
 		options[I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, DEFAULT_MAX_INBOUND_SPEED);
 		options[I2CP_PARAM_STREAMING_ANSWER_PINGS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_ANSWER_PINGS, isServer ? DEFAULT_ANSWER_PINGS : false);
+		options[I2CP_PARAM_STREAMING_PROFILE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE); 
 		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, isServer ? "4" : "0,4");
 		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
@@ -519,6 +520,8 @@ namespace client
 			options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_PRIV_KEY, value) && !value.empty ())
 			options[I2CP_PARAM_LEASESET_PRIV_KEY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_STREAMING_PROFILE, value))
+			options[I2CP_PARAM_STREAMING_PROFILE] = value;
 	}
 
 	void ClientContext::ReadTunnels ()

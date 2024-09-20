@@ -69,7 +69,7 @@ namespace data
 		{
 			Reseed ();
 		}
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false, false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
 		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
@@ -1130,15 +1130,18 @@ namespace data
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
-		bool reverse, bool endpoint) const
+		bool reverse, bool endpoint, bool clientTunnel) const
 	{
+		bool checkIsReal = clientTunnel && i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
+			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
 		return GetRandomRouter (
-			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
-					router->IsECIES () && !router->IsHighCongestion (false) &&
+					router->IsECIES () && !router->IsHighCongestion (clientTunnel) &&
+					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
 			});
 	}
