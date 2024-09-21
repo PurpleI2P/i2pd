@@ -295,7 +295,8 @@ namespace data
 			{
 				auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 			    isValid = mts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp () && // from future
-					mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL; // too old
+					(mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL || // too old
+					 context.GetUptime () < NETDB_CHECK_FOR_EXPIRATION_UPTIME/10); // enough uptime
 			}
 			if (isValid)	
 			{
