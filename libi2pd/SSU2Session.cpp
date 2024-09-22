@@ -18,6 +18,12 @@ namespace i2p
 {
 namespace transport
 {
+	static inline void CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4);
+		htole64buf (nonce + 4, seqn);
+	}
+	
 	void SSU2IncompleteMessage::AttachNextFragment (const uint8_t * fragment, size_t fragmentSize)
 	{
 		if (msg->len + fragmentSize > msg->maxLen)
@@ -227,11 +233,9 @@ namespace transport
 		RAND_bytes ((uint8_t *)&nonce, 4);
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// session for message 5
-		auto session = std::make_shared<SSU2Session> (m_Server);
-		session->SetState (eSSU2SessionStatePeerTest);
+		auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
+			htobe64 (((uint64_t)nonce << 32) | nonce), 0, shared_from_this ());
 		m_PeerTests.emplace (nonce, std::make_pair (session, ts/1000));
-		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
-		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
 		// peer test block
 		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
@@ -1456,39 +1460,8 @@ namespace transport
 
 	bool SSU2Session::ProcessPeerTest (uint8_t * buf, size_t len)
 	{
-		// we are Alice or Charlie
-		Header header;
-		memcpy (header.buf, buf, 16);
-		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
-		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
-		if (header.h.type != eSSU2PeerTest)
-		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
-			return false;
-		}
-		if (len < 48)
-		{
-			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
-			return false;
-		}
-		uint8_t nonce[12] = {0};
-		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
-		m_DestConnID = headerX[0];
-		// decrypt and handle payload
-		uint8_t * payload = buf + 32;
-		CreateNonce (be32toh (header.h.packetNum), nonce);
-		uint8_t h[32];
-		memcpy (h, header.buf, 16);
-		memcpy (h + 16, &headerX, 16);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32,
-			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
-		{
-			LogPrint (eLogWarning, "SSU2: PeerTest AEAD verification failed ");
-			return false;
-		}
-		HandlePayload (payload, len - 48);
-		return true;
+		LogPrint (eLogWarning, "SSU2:  Unexpected peer test message for this session type");
+		return false;
 	}
 
 	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len, uint8_t flags)
@@ -2277,11 +2250,10 @@ namespace transport
 									if (!m_Server.IsConnectedRecently (ep)) // no alive hole punch
 									{	
 										// send msg 5 to Alice
-										auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
-										session->SetState (eSSU2SessionStatePeerTest);
+										auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
+											0, htobe64 (((uint64_t)nonce << 32) | nonce), shared_from_this ());
+										session->m_Address = addr;
 										session->m_RemoteEndpoint = ep; // might be different
-										session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
-										session->m_SourceConnID = ~session->m_DestConnID;
 										m_Server.AddSession (session);
 										session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr->i);
 									}
@@ -2954,12 +2926,6 @@ namespace transport
 		return ri;
 	}
 
-	void SSU2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
-	{
-		memset (nonce, 0, 4);
-		htole64buf (nonce + 4, seqn);
-	}
-
 	bool SSU2Session::UpdateReceivePacketNum (uint32_t packetNum)
 	{
 		if (packetNum <= m_ReceivePacketNum) return false; // duplicate
@@ -3148,5 +3114,52 @@ namespace transport
 			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
 
+	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, 
+		uint64_t destConnID, std::shared_ptr<SSU2Session> mainSession): SSU2Session (server),
+		m_MainSession (mainSession)
+	{
+		if (!sourceConnID) sourceConnID = ~destConnID;
+		if (!destConnID) destConnID = ~sourceConnID;
+		SetSourceConnID (sourceConnID);
+		SetDestConnID (destConnID);	
+		SetState (eSSU2SessionStatePeerTest);	
+	}	
+
+	bool SSU2PeerTestSession::ProcessPeerTest (uint8_t * buf, size_t len)
+	{
+		// we are Alice or Charlie, msgs 5,6,7
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (header.h.type != eSSU2PeerTest)
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
+			return false;
+		}
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
+			return false;
+		}
+		uint8_t nonce[12] = {0};
+		uint64_t headerX[2]; // sourceConnID, token
+		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		SetDestConnID (headerX[0]);
+		// decrypt and handle payload
+		uint8_t * payload = buf + 32;
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &headerX, 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32,
+			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest AEAD verification failed ");
+			return false;
+		}
+		HandlePayload (payload, len - 48);
+		return true;
+	}	
 }
 }

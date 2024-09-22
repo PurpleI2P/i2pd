@@ -207,36 +207,40 @@ namespace transport
 	class SSU2Server;
 	class SSU2Session: public TransportSession, public std::enable_shared_from_this<SSU2Session>
 	{
-		union Header
-		{
-			uint64_t ll[2];
-			uint8_t buf[16];
-			struct
+		protected:
+			
+			union Header
 			{
-				uint64_t connID;
-				uint32_t packetNum;
-				uint8_t type;
-				uint8_t flags[3];
-			} h;
-		};
+				uint64_t ll[2];
+				uint8_t buf[16];
+				struct
+				{
+					uint64_t connID;
+					uint32_t packetNum;
+					uint8_t type;
+					uint8_t flags[3];
+				} h;
+			};
 
-		struct HandshakePacket
-		{
-			Header header;
-			uint8_t headerX[48]; // part1 for SessionConfirmed
-			uint8_t payload[SSU2_MAX_PACKET_SIZE*2];
-			size_t payloadSize = 0;
-			uint64_t sendTime = 0; // in milliseconds
-			bool isSecondFragment = false; // for SessionConfirmed
-		};
+		private:
+			
+			struct HandshakePacket
+			{
+				Header header;
+				uint8_t headerX[48]; // part1 for SessionConfirmed
+				uint8_t payload[SSU2_MAX_PACKET_SIZE*2];
+				size_t payloadSize = 0;
+				uint64_t sendTime = 0; // in milliseconds
+				bool isSecondFragment = false; // for SessionConfirmed
+			};
 
-		typedef std::function<void ()> OnEstablished;
+			typedef std::function<void ()> OnEstablished;
 
 		public:
 
 			SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr,
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr = nullptr);
-			~SSU2Session ();
+			virtual ~SSU2Session ();
 
 			void SetRemoteEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_RemoteEndpoint = ep; };
 			const boost::asio::ip::udp::endpoint& GetRemoteEndpoint () const { return m_RemoteEndpoint; };
@@ -271,9 +275,16 @@ namespace transport
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
 			bool ProcessHolePunch (uint8_t * buf, size_t len);
-			bool ProcessPeerTest (uint8_t * buf, size_t len);
+			virtual bool ProcessPeerTest (uint8_t * buf, size_t len);
 			void ProcessData (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
 
+		protected:
+
+			void SetSourceConnID (uint64_t sourceConnID) { m_SourceConnID = sourceConnID; }
+			void SetDestConnID (uint64_t destConnID) { m_DestConnID = destConnID; }
+
+			void HandlePayload (const uint8_t * buf, size_t len);
+			
 		private:
 
 			void Terminate ();
@@ -303,7 +314,6 @@ namespace transport
 			void SendPathResponse (const uint8_t * data, size_t len);
 			void SendPathChallenge ();
 
-			void HandlePayload (const uint8_t * buf, size_t len);
 			void HandleDateTime (const uint8_t * buf, size_t len);
 			void HandleRouterInfo (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
@@ -318,7 +328,6 @@ namespace transport
 			bool GetTestingState () const;
 			void SetTestingState(bool testing) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
-			void CreateNonce (uint64_t seqn, uint8_t * nonce);
 			bool UpdateReceivePacketNum (uint32_t packetNum); // for Ack, returns false if duplicate
 			void HandleFirstFragment (const uint8_t * buf, size_t len);
 			void HandleFollowOnFragment (const uint8_t * buf, size_t len);
@@ -341,7 +350,7 @@ namespace transport
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
-
+			
 		private:
 
 			SSU2Server& m_Server;
@@ -359,8 +368,8 @@ namespace transport
 			std::set<uint32_t> m_OutOfSequencePackets; // packet nums > receive packet num
 			std::map<uint32_t, std::shared_ptr<SSU2SentPacket> > m_SentPackets; // packetNum -> packet
 			std::unordered_map<uint32_t, std::shared_ptr<SSU2IncompleteMessage> > m_IncompleteMessages; // msgID -> I2NP
-			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
-			std::map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_PeerTests; // same as for relay sessions
+			std::unordered_map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
+			std::unordered_map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_PeerTests; // same as for relay sessions
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
 			bool m_IsDataReceived;
@@ -378,6 +387,20 @@ namespace transport
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 	};
 
+	class SSU2PeerTestSession: public SSU2Session // for PeerTest msgs 5,6,7
+	{
+		public:
+
+			SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID,
+				std::shared_ptr<SSU2Session> mainSession);
+
+			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
+			
+		private:
+
+			std::weak_ptr<SSU2Session> m_MainSession;
+	};	
+	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
 	{
 		uint64_t data = 0;
