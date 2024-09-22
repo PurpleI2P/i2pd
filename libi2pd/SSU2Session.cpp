@@ -85,7 +85,7 @@ namespace transport
 	}
 
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool noise):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
@@ -99,11 +99,13 @@ namespace transport
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
 		m_LastResendTime (0), m_LastResendAttemptTime (0)
 	{
-		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
+		if (noise)	
+			m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
 		{
 			// outgoing
-			InitNoiseXKState1 (*m_NoiseState, m_Address->s);
+			if (noise)
+				InitNoiseXKState1 (*m_NoiseState, m_Address->s);
 			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
 			m_RemoteTransports = in_RemoteRouter->GetCompatibleTransports (false);
 			if (in_RemoteRouter->IsSSU2PeerTesting (true)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V4;
@@ -114,7 +116,8 @@ namespace transport
 		else
 		{
 			// incoming
-			InitNoiseXKState1 (*m_NoiseState, i2p::context.GetSSU2StaticPublicKey ());
+			if (noise)
+				InitNoiseXKState1 (*m_NoiseState, i2p::context.GetSSU2StaticPublicKey ());
 		}
 	}
 
@@ -3115,7 +3118,8 @@ namespace transport
 	}
 
 	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, 
-		uint64_t destConnID, std::shared_ptr<SSU2Session> mainSession): SSU2Session (server),
+		uint64_t destConnID, std::shared_ptr<SSU2Session> mainSession): 
+		SSU2Session (server, nullptr, nullptr, false),
 		m_MainSession (mainSession)
 	{
 		if (!sourceConnID) sourceConnID = ~destConnID;
