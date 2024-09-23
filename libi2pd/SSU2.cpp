@@ -154,6 +154,8 @@ namespace transport
 		m_Relays.clear ();
 		m_Introducers.clear ();
 		m_IntroducersV6.clear ();
+		m_ConnectedRecently.clear ();
+		m_RequestedPeerTests.clear ();
 	}
 
 	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
@@ -572,6 +574,23 @@ namespace transport
 		return nullptr;
 	}
 
+	bool SSU2Server::AddRequestedPeerTest (uint32_t nonce, std::shared_ptr<SSU2PeerTestSession> session, uint64_t ts)
+	{
+		return m_RequestedPeerTests.emplace (nonce, std::pair{ session, ts }).second;
+	}
+		
+	std::shared_ptr<SSU2PeerTestSession> SSU2Server::GetRequestedPeerTest (uint32_t nonce)
+	{
+		auto it = m_RequestedPeerTests.find (nonce);
+		if (it != m_RequestedPeerTests.end ())
+		{
+			auto s = it->second.first.lock ();
+			m_RequestedPeerTests.erase (it);
+			return s;
+		}
+		return nullptr;
+	}	
+		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		if (len < 24) return;
@@ -1031,6 +1050,14 @@ namespace transport
 				else
 					it++;
 			}	
+
+			for (auto it = m_RequestedPeerTests.begin (); it != m_RequestedPeerTests.end ();)
+			{
+				if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT)
+					it = m_RequestedPeerTests.erase (it);
+				else
+					it++;
+			}
 			
 			m_PacketsPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();

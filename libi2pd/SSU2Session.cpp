@@ -237,8 +237,8 @@ namespace transport
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// session for message 5
 		auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
-			htobe64 (((uint64_t)nonce << 32) | nonce), 0, shared_from_this ());
-		m_PeerTests.emplace (nonce, std::make_pair (session, ts/1000));
+			htobe64 (((uint64_t)nonce << 32) | nonce), 0);
+		m_Server.AddRequestedPeerTest (nonce, session, ts/1000);
 		m_Server.AddSession (session);
 		// peer test block
 		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
@@ -2255,7 +2255,7 @@ namespace transport
 									{	
 										// send msg 5 to Alice
 										auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
-											0, htobe64 (((uint64_t)nonce << 32) | nonce), shared_from_this ());
+											0, htobe64 (((uint64_t)nonce << 32) | nonce));
 										session->m_Address = addr;
 										session->m_RemoteEndpoint = ep; // might be different
 										m_Server.AddSession (session);
@@ -2318,15 +2318,15 @@ namespace transport
 			}
 			case 4: // Alice from Bob
 			{
-				auto it = m_PeerTests.find (nonce);
-				if (it != m_PeerTests.end ())
+				auto session = m_Server.GetRequestedPeerTest (nonce);
+				if (session)
 				{
 					if (buf[1] == eSSU2PeerTestCodeAccept)
 					{
 						if (GetRouterStatus () == eRouterStatusUnknown)
 							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-						if (r && it->second.first)
+						if (r)
 						{
 							uint8_t asz = buf[offset + 9];
 							SignedData s;
@@ -2336,19 +2336,19 @@ namespace transport
 							s.Insert (buf + offset, asz + 10); // ver, nonce, ts, asz, Alice's endpoint
 							if (s.Verify (r->GetIdentity (), buf + offset + asz + 10))
 							{
-								it->second.first->SetRemoteIdentity (r->GetIdentity ());
+								session->SetRemoteIdentity (r->GetIdentity ());
 								auto addr = r->GetSSU2Address (m_Address->IsV4 ());
 								if (addr)
 								{
-									it->second.first->m_Address = addr;
-									auto& state = it->second.first->m_State;
+									session->m_Address = addr;
+									auto& state = session->m_State;
 									if (state == eSSU2SessionStatePeerTestReceived || state == eSSU2SessionStateVoidPeerTestReceived)
 									{
 										// msg 5 already received. send msg 6
 										if (state == eSSU2SessionStatePeerTestReceived)
 											SetRouterStatus (eRouterStatusOK);
 										state = eSSU2SessionStatePeerTest;
-										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+										session->SendPeerTest (6, buf + offset, len - offset, addr->i);
 									}
 									else
 									{
@@ -2371,20 +2371,19 @@ namespace transport
 								else
 								{
 									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found");
-									it->second.first->Done ();
+									session->Done ();
 								}
 							}
 							else
 							{
 								LogPrint (eLogWarning, "SSU2: Peer test 4 signature verification failed");
-								it->second.first->Done ();
+								session->Done ();
 							}
 						}
 						else
 						{
 							LogPrint (eLogWarning, "SSU2: Peer test 4 router not found");
-							if (it->second.first)
-								it->second.first->Done ();
+							session->Done ();
 						}
 					}
 					else
@@ -2393,9 +2392,8 @@ namespace transport
 							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
 						if (GetTestingState ())
 							SetRouterStatus (eRouterStatusUnknown);
-						it->second.first->Done ();
+						session->Done ();
 					}
-					m_PeerTests.erase (it);
 				}
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown peer test 4 nonce ", nonce);
@@ -3089,10 +3087,8 @@ namespace transport
 			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
 
-	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, 
-		uint64_t destConnID, std::shared_ptr<SSU2Session> mainSession): 
-		SSU2Session (server, nullptr, nullptr, false),
-		m_MainSession (mainSession)
+	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID): 
+		SSU2Session (server, nullptr, nullptr, false), m_MsgNumReceived (0)
 	{
 		if (!sourceConnID) sourceConnID = ~destConnID;
 		if (!destConnID) destConnID = ~sourceConnID;
@@ -3143,6 +3139,10 @@ namespace transport
 		// msgs 5-7
 		if (len < 8) return;
 		uint8_t msg = buf[0];
+		if (msg < m_MsgNumReceived)
+		{
+			LogPrint (eLogInfo, "SSU2: PeerTest msg num ", msg, " received after ", m_MsgNumReceived, ". Ignored");
+		}	
 		size_t offset = 3; // points to signed data after msg + code + flag
 		uint32_t nonce = bufbe32toh (buf + offset + 1); // 1 - ver
 		switch (msg) // msg
@@ -3185,9 +3185,11 @@ namespace transport
 				GetServer ().RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));	
 				break;
 			}	
-			default:
+			default:	
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", msg);
+				return;
 		}	
+		m_MsgNumReceived = msg;	
 	}	
 }
 }

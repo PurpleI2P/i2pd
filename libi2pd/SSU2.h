@@ -94,6 +94,9 @@ namespace transport
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSU2Session> FindRelaySession (uint32_t tag);
 
+			bool AddRequestedPeerTest (uint32_t nonce, std::shared_ptr<SSU2PeerTestSession> session, uint64_t ts);
+			std::shared_ptr<SSU2PeerTestSession> GetRequestedPeerTest (uint32_t nonce);		
+		
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * payload, size_t payloadLen,
 				const boost::asio::ip::udp::endpoint& to);
 			void Send (const uint8_t * header, size_t headerLen, const uint8_t * headerX, size_t headerXLen,
@@ -178,6 +181,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
 			std::mt19937 m_Rng;
 			std::map<boost::asio::ip::udp::endpoint, uint64_t> m_ConnectedRecently; // endpoint -> last activity time in seconds
+			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2PeerTestSession>, uint64_t > > m_RequestedPeerTests; // nonce->(Alice, timestamp) 
 		
 			// proxy
 			bool m_IsThroughProxy;
