@@ -280,10 +280,17 @@ namespace transport
 
 		protected:
 
+			SSU2Server& GetServer () { return m_Server; }
+			RouterStatus GetRouterStatus () const;
+			void SetRouterStatus (RouterStatus status) const;
+			
+			uint64_t GetSourceConnID () const { return m_SourceConnID; }
 			void SetSourceConnID (uint64_t sourceConnID) { m_SourceConnID = sourceConnID; }
+			uint64_t GetDestConnID () const { return m_DestConnID; }
 			void SetDestConnID (uint64_t destConnID) { m_DestConnID = destConnID; }
 
 			void HandlePayload (const uint8_t * buf, size_t len);
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message
 			
 		private:
 
@@ -310,7 +317,6 @@ namespace transport
 			void SendQuickAck ();
 			void SendTermination ();
 			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message
 			void SendPathResponse (const uint8_t * data, size_t len);
 			void SendPathChallenge ();
 
@@ -323,8 +329,6 @@ namespace transport
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
 			void AdjustMaxPayloadSize ();
-			RouterStatus GetRouterStatus () const;
-			void SetRouterStatus (RouterStatus status) const;
 			bool GetTestingState () const;
 			void SetTestingState(bool testing) const;
 			std::shared_ptr<const i2p::data::RouterInfo> ExtractRouterInfo (const uint8_t * buf, size_t size);
@@ -334,7 +338,7 @@ namespace transport
 			void HandleRelayRequest (const uint8_t * buf, size_t len);
 			void HandleRelayIntro (const uint8_t * buf, size_t len, int attempts = 0);
 			void HandleRelayResponse (const uint8_t * buf, size_t len);
-			void HandlePeerTest (const uint8_t * buf, size_t len);
+			virtual void HandlePeerTest (const uint8_t * buf, size_t len);
 			void HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg);
 
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
@@ -395,6 +399,10 @@ namespace transport
 				std::shared_ptr<SSU2Session> mainSession);
 
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
+
+		private:
+
+			void HandlePeerTest (const uint8_t * buf, size_t len) override;
 			
 		private:
 

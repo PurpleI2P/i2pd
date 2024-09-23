@@ -2165,6 +2165,7 @@ namespace transport
 
 	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
 	{
+		// msgs 1-4	
 		if (len < 3) return;
 		uint8_t msg = buf[0];
 		size_t offset = 3; // points to signed data
@@ -2400,35 +2401,6 @@ namespace transport
 					LogPrint (eLogWarning, "SSU2: Unknown peer test 4 nonce ", nonce);
 				break;
 			}
-			case 5: // Alice from Charlie 1
-				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
-				{
-					bool isConnectedRecently = m_Server.IsConnectedRecently (m_RemoteEndpoint);
-					if (m_Address)
-					{
-						if (!isConnectedRecently)
-							SetRouterStatus (eRouterStatusOK);
-						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
-					}
-					else
-						// we received msg 5 before msg 4
-						m_State = isConnectedRecently ? eSSU2SessionStateVoidPeerTestReceived : eSSU2SessionStatePeerTestReceived;
-				}
-				else
-					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
-			break;
-			case 6: // Charlie from Alice
-				if (m_Address)
-					SendPeerTest (7, buf + offset, len - offset, m_Address->i);
-				else
-					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
-			break;
-			case 7: // Alice from Charlie 2
-				if (m_Address->IsV6 ())
-					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
-				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
-			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
 		}
@@ -3164,6 +3136,58 @@ namespace transport
 		}
 		HandlePayload (payload, len - 48);
 		return true;
+	}	
+
+	void SSU2PeerTestSession::HandlePeerTest (const uint8_t * buf, size_t len)
+	{
+		// msgs 5-7
+		if (len < 8) return;
+		uint8_t msg = buf[0];
+		size_t offset = 3; // points to signed data after msg + code + flag
+		uint32_t nonce = bufbe32toh (buf + offset + 1); // 1 - ver
+		switch (msg) // msg
+		{
+			case 5: // Alice from Charlie 1
+			{	
+				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
+				{
+					bool isConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
+					auto addr = GetAddress ();
+					if (addr)
+					{
+						if (!isConnectedRecently)
+							SetRouterStatus (eRouterStatusOK);
+						SendPeerTest (6, buf + offset, len - offset, addr->i);
+					}
+					else
+						// we received msg 5 before msg 4
+						SetState (isConnectedRecently ? eSSU2SessionStateVoidPeerTestReceived : eSSU2SessionStatePeerTestReceived);
+				}
+				else
+					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", GetSourceConnID ());
+				break;
+			}
+			case 6: // Charlie from Alice
+			{	
+				auto addr = GetAddress ();
+				if (addr)
+					SendPeerTest (7, buf + offset, len - offset, addr->i);
+				else
+					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
+				GetServer ().RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
+				break;
+			}			
+			case 7: // Alice from Charlie 2
+			{	
+				auto addr = GetAddress ();
+				if (addr && addr->IsV6 ())
+					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
+				GetServer ().RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));	
+				break;
+			}	
+			default:
+				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", msg);
+		}	
 	}	
 }
 }
