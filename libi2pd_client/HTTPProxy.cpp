@@ -553,9 +553,9 @@ namespace proxy {
 		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to change uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
-		/* update User-Agent to ESR version of Firefox, same as Tor Browser below version 8, for non-HTTPS connections */
-		if(m_ClientRequest.method != "CONNECT")
-			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0");
+		/* update User-Agent to ESR version of Firefox, same as Tor Browser below version 13, for non-HTTPS connections */
+		if(m_ClientRequest.method != "CONNECT" && !m_SendUserAgent)
+			m_ClientRequest.UpdateHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0");
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
