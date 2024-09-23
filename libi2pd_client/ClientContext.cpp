@@ -666,7 +666,9 @@ namespace client
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
 							bool addresshelper = section.second.get("addresshelper", true);
-							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, outproxy, addresshelper, localDestination);
+							bool senduseragent = section.second.get("senduseragent", false);
+							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, 
+								outproxy, addresshelper, senduseragent, localDestination);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}
@@ -882,6 +884,7 @@ namespace client
 			uint16_t    httpProxyPort;         i2p::config::GetOption("httpproxy.port",          httpProxyPort);
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
+			bool        httpSendUserAgent;     i2p::config::GetOption("httpproxy.senduseragent", httpSendUserAgent);
 			if (httpAddresshelper)
 				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
@@ -901,7 +904,8 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, httpAddresshelper, localDestination);
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, 
+					httpOutProxyURL, httpAddresshelper, httpSendUserAgent, localDestination);
 				m_HttpProxy->Start();
 			}
 			catch (std::exception& e)

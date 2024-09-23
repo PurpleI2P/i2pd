@@ -80,7 +80,7 @@ namespace proxy {
 			void AsyncSockRead();
 			static bool ExtractAddressHelper(i2p::http::URL& url, std::string& jump, bool& confirm);
 			static bool VerifyAddressHelper (std::string_view jump);
-			static void SanitizeHTTPRequest(i2p::http::HTTPReq& req);
+			void SanitizeHTTPRequest(i2p::http::HTTPReq& req);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
@@ -110,7 +110,7 @@ namespace proxy {
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_proxysock;
 			boost::asio::ip::tcp::resolver m_proxy_resolver;
 			std::string m_OutproxyUrl, m_Response;
-			bool m_Addresshelper;
+			bool m_Addresshelper, m_SendUserAgent;
 			i2p::http::URL m_ProxyURL;
 			i2p::http::URL m_RequestURL;
 			int m_req_len;
@@ -126,7 +126,8 @@ namespace proxy {
 				m_proxysock(std::make_shared<boost::asio::ip::tcp::socket>(parent->GetService())),
 				m_proxy_resolver(parent->GetService()),
 				m_OutproxyUrl(parent->GetOutproxyURL()),
-				m_Addresshelper(parent->GetHelperSupport()) {}
+				m_Addresshelper(parent->GetHelperSupport()),
+				m_SendUserAgent (parent->GetSendUserAgent ()) {}
 			~HTTPReqHandler() { Terminate(); }
 			void Handle () { AsyncSockRead(); } /* overload */
 	};
@@ -315,7 +316,8 @@ namespace proxy {
 		req.RemoveHeader("X-Forwarded");
 		req.RemoveHeader("Proxy-"); // Proxy-*
 		/* replace headers */
-		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
+		if (!m_SendUserAgent)
+			req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 
 		/**
 		 * i2pd PR #1816:
@@ -751,9 +753,10 @@ namespace proxy {
 		Done (shared_from_this());
 	}
 
-	HTTPProxy::HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy, bool addresshelper, std::shared_ptr<i2p::client::ClientDestination> localDestination):
+	HTTPProxy::HTTPProxy(const std::string& name, const std::string& address, uint16_t port, 
+	    const std::string & outproxy, bool addresshelper, bool senduseragent, std::shared_ptr<i2p::client::ClientDestination> localDestination):
 		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()),
-		m_Name (name), m_OutproxyUrl (outproxy), m_Addresshelper (addresshelper)
+		m_Name (name), m_OutproxyUrl (outproxy), m_Addresshelper (addresshelper), m_SendUserAgent (senduseragent)
 	{
 	}
 
