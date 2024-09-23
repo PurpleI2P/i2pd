@@ -2341,14 +2341,18 @@ namespace transport
 								if (addr)
 								{
 									session->m_Address = addr;
-									auto& state = session->m_State;
-									if (state == eSSU2SessionStatePeerTestReceived || state == eSSU2SessionStateVoidPeerTestReceived)
+									if (session->GetMsgNumReceived () >= 5)
 									{
-										// msg 5 already received. send msg 6
-										if (state == eSSU2SessionStatePeerTestReceived)
-											SetRouterStatus (eRouterStatusOK);
-										state = eSSU2SessionStatePeerTest;
-										session->SendPeerTest (6, buf + offset, len - offset, addr->i);
+										// msg 5 already received 
+										if (session->GetMsgNumReceived () == 5)
+										{	
+											if (!session->IsConnectedRecently ())
+												SetRouterStatus (eRouterStatusOK);
+										 	// send msg 6
+											session->SendPeerTest (6, buf + offset, len - offset, addr->i);
+										}
+										else
+											LogPrint (eLogWarning, "SSU2: PeerTest 4 received, but msg ", session->GetMsgNumReceived (), " already received");
 									}
 									else
 									{
@@ -3088,7 +3092,8 @@ namespace transport
 	}
 
 	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID): 
-		SSU2Session (server, nullptr, nullptr, false), m_MsgNumReceived (0)
+		SSU2Session (server, nullptr, nullptr, false), 
+		m_MsgNumReceived (0), m_IsConnectedRecently (false)
 	{
 		if (!sourceConnID) sourceConnID = ~destConnID;
 		if (!destConnID) destConnID = ~sourceConnID;
@@ -3151,17 +3156,14 @@ namespace transport
 			{	
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
 				{
-					bool isConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
+					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
 					auto addr = GetAddress ();
 					if (addr)
 					{
-						if (!isConnectedRecently)
+						if (!m_IsConnectedRecently)
 							SetRouterStatus (eRouterStatusOK);
 						SendPeerTest (6, buf + offset, len - offset, addr->i);
 					}
-					else
-						// we received msg 5 before msg 4
-						SetState (isConnectedRecently ? eSSU2SessionStateVoidPeerTestReceived : eSSU2SessionStatePeerTestReceived);
 				}
 				else
 					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", GetSourceConnID ());

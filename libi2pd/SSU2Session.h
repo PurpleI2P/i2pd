@@ -113,8 +113,6 @@ namespace transport
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
 		eSSU2SessionStatePeerTest,
-		eSSU2SessionStatePeerTestReceived, // 5 before 4
-		eSSU2SessionStateVoidPeerTestReceived, // 5 before 4, but from connected recently
 		eSSU2SessionStateTokenRequestReceived
 	};
 
@@ -397,7 +395,8 @@ namespace transport
 
 			SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID);
 
-			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }		
+			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }	
+			bool IsConnectedRecently () const { return m_IsConnectedRecently; }
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
 
 		private:
@@ -407,6 +406,7 @@ namespace transport
 		private:
 
 			uint8_t m_MsgNumReceived;
+			bool m_IsConnectedRecently;
 	};	
 	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
