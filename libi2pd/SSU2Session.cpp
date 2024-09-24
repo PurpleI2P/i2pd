@@ -2318,6 +2318,7 @@ namespace transport
 									}
 									else
 									{
+										session->m_Address = addr;
 										if (GetTestingState ())
 										{
 											SetTestingState (false);
