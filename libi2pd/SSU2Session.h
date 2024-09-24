@@ -281,14 +281,19 @@ namespace transport
 			SSU2Server& GetServer () { return m_Server; }
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
+			size_t GetMaxPayloadSize () const { return m_MaxPayloadSize; }
 			
 			uint64_t GetSourceConnID () const { return m_SourceConnID; }
 			void SetSourceConnID (uint64_t sourceConnID) { m_SourceConnID = sourceConnID; }
 			uint64_t GetDestConnID () const { return m_DestConnID; }
 			void SetDestConnID (uint64_t destConnID) { m_DestConnID = destConnID; }
 
+			void SetAddress (std::shared_ptr<const i2p::data::RouterInfo::Address> addr) { m_Address = addr; }
 			void HandlePayload (const uint8_t * buf, size_t len);
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey); // PeerTest message
+
+			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
+			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
+			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			
 		private:
 
@@ -339,17 +344,14 @@ namespace transport
 			virtual void HandlePeerTest (const uint8_t * buf, size_t len);
 			void HandleI2NPMsg (std::shared_ptr<I2NPMessage>&& msg);
 
-			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo> r);
 			size_t CreateRouterInfoBlock (uint8_t * buf, size_t len, std::shared_ptr<const i2p::data::RouterInfo::Buffer> riBuffer);
 			size_t CreateAckBlock (uint8_t * buf, size_t len);
-			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreateI2NPBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage>&& msg);
 			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4);
-			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
 			
@@ -398,12 +400,16 @@ namespace transport
 			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }	
 			bool IsConnectedRecently () const { return m_IsConnectedRecently; }
 			void SetStatusChanged () { m_IsStatusChanged = true; }
+			
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
+				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
 
 		private:
 
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen); // PeerTest message
 			void HandlePeerTest (const uint8_t * buf, size_t len) override;
-
+						
 		private:
 
 			uint8_t m_MsgNumReceived;
