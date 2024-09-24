@@ -2362,6 +2362,7 @@ namespace transport
 											if (GetRouterStatus () != eRouterStatusFirewalled && addr->IsPeerTesting ())
 											{
 												SetRouterStatus (eRouterStatusFirewalled);
+												session->SetStatusChanged ();
 												if (m_Address->IsV4 ())
 													m_Server.RescheduleIntroducersUpdateTimer ();
 												else
@@ -3093,7 +3094,7 @@ namespace transport
 
 	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID): 
 		SSU2Session (server, nullptr, nullptr, false), 
-		m_MsgNumReceived (0), m_IsConnectedRecently (false)
+		m_MsgNumReceived (0), m_IsConnectedRecently (false), m_IsStatusChanged (false)
 	{
 		if (!sourceConnID) sourceConnID = ~destConnID;
 		if (!destConnID) destConnID = ~sourceConnID;
@@ -3162,6 +3163,8 @@ namespace transport
 					{
 						if (!m_IsConnectedRecently)
 							SetRouterStatus (eRouterStatusOK);
+						else if (m_IsStatusChanged && GetRouterStatus () == eRouterStatusFirewalled)
+							SetRouterStatus (eRouterStatusUnknown);
 						SendPeerTest (6, buf + offset, len - offset, addr->i);
 					}
 				}

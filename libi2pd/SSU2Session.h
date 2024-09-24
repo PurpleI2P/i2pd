@@ -397,6 +397,7 @@ namespace transport
 
 			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }	
 			bool IsConnectedRecently () const { return m_IsConnectedRecently; }
+			void SetStatusChanged () { m_IsStatusChanged = true; }
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
 
 		private:
@@ -406,7 +407,7 @@ namespace transport
 		private:
 
 			uint8_t m_MsgNumReceived;
-			bool m_IsConnectedRecently;
+			bool m_IsConnectedRecently, m_IsStatusChanged;
 	};	
 	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
