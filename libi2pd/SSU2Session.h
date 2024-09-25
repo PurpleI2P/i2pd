@@ -248,7 +248,7 @@ namespace transport
 			void SetOnEstablished (OnEstablished e) { m_OnEstablished = e; };
 			OnEstablished GetOnEstablished () const { return m_OnEstablished; };
 
-			void Connect ();
+			virtual void Connect ();
 			bool Introduce (std::shared_ptr<SSU2Session> session, uint32_t relayTag);
 			void WaitForIntroduction ();
 			void SendPeerTest (); // Alice, Data message
@@ -268,7 +268,7 @@ namespace transport
 			SSU2SessionState GetState () const { return m_State; };
 			void SetState (SSU2SessionState state) { m_State = state; };
 
-			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
+			virtual bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len);
 			bool ProcessSessionCreated (uint8_t * buf, size_t len);
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
@@ -404,7 +404,9 @@ namespace transport
 			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
-
+			void Connect () override; // outgoing
+			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len) override; // incoming
+			
 		private:
 
 			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen); // PeerTest message

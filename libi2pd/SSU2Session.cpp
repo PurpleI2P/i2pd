@@ -3140,7 +3140,7 @@ namespace transport
 					SendPeerTest (7, buf + offset, len - offset);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				GetServer ().RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
+				GetServer ().RemoveSession (GetConnID ());
 				break;
 			}			
 			case 7: // Alice from Charlie 2
@@ -3148,7 +3148,7 @@ namespace transport
 				auto addr = GetAddress ();
 				if (addr && addr->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
-				GetServer ().RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));	
+				GetServer ().RemoveSession (GetConnID ());	
 				break;
 			}	
 			default:	
@@ -3202,6 +3202,17 @@ namespace transport
 		if (!addr) return;
 		SetAddress (addr);
 		SendPeerTest (msg, signedData, signedDataLen);
+	}	
+
+	void SSU2PeerTestSession::Connect ()
+	{
+		LogPrint (eLogError, "SSU2: Can't connect peer test session");
+	}	
+
+	bool SSU2PeerTestSession::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
+	{
+		LogPrint (eLogError, "SSU2: Can't handle incoming message in peer test session");
+		return false;
 	}	
 }
 }

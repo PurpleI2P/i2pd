@@ -450,7 +450,8 @@ namespace transport
 		if (session)
 		{
 			m_Sessions.emplace (session->GetConnID (), session);
-			AddSessionByRouterHash (session);
+			if (session->GetState () != eSSU2SessionStatePeerTest)
+				AddSessionByRouterHash (session);
 		}
 	}
 
@@ -459,13 +460,16 @@ namespace transport
 		auto it = m_Sessions.find (connID);
 		if (it != m_Sessions.end ())
 		{
-			auto ident = it->second->GetRemoteIdentity ();
-			if (ident)
-			{
-				auto it1 = m_SessionsByRouterHash.find (ident->GetIdentHash ());
-				if (it1 != m_SessionsByRouterHash.end () && it->second == it1->second)
-					m_SessionsByRouterHash.erase (it1);
-			}	
+			if (it->second->GetState () != eSSU2SessionStatePeerTest)
+			{	
+				auto ident = it->second->GetRemoteIdentity ();
+				if (ident)
+				{
+					auto it1 = m_SessionsByRouterHash.find (ident->GetIdentHash ());
+					if (it1 != m_SessionsByRouterHash.end () && it->second == it1->second.lock ())
+						m_SessionsByRouterHash.erase (it1);
+				}	
+			}
 			if (m_LastSession == it->second)
 				m_LastSession = nullptr;
 			m_Sessions.erase (it);
@@ -480,16 +484,20 @@ namespace transport
 			if (ident)
 			{
 				auto ret = m_SessionsByRouterHash.emplace (ident->GetIdentHash (), session);
-				if (!ret.second && ret.first->second != session)
+				if (!ret.second)
 				{
-					// session already exists
-					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
-					// move unsent msgs to new session
-					ret.first->second->MoveSendQueue (session);
-					// terminate existing
-					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonReplacedByNewSession));
-					// update session
-					ret.first->second = session;
+					auto oldSession = ret.first->second.lock ();
+					if (oldSession != session)
+					{	
+						// session already exists
+						LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
+						// move unsent msgs to new session
+						oldSession->MoveSendQueue (session);
+						// terminate existing
+						GetService ().post (std::bind (&SSU2Session::RequestTermination, oldSession, eSSU2TerminationReasonReplacedByNewSession));
+						// update session
+						ret.first->second = session;
+					}	
 				}
 			}
 		}
@@ -506,7 +514,7 @@ namespace transport
 	{
 		auto it = m_SessionsByRouterHash.find (ident);
 		if (it != m_SessionsByRouterHash.end ())
-			return it->second;
+			return it->second.lock ();
 		return nullptr;
 	}
 
@@ -761,11 +769,9 @@ namespace transport
 			if (it != m_SessionsByRouterHash.end ())
 			{
 				// session with router found, trying to send peer test if requested
-				if (peerTest && it->second->IsEstablished ())
-				{
-					auto session = it->second;
+				auto session = it->second.lock ();
+				if (peerTest && session && session->IsEstablished ())
 					GetService ().post ([session]() { session->SendPeerTest (); });
-				}
 				return false;
 			}
 			// check is no pending session
@@ -825,11 +831,15 @@ namespace transport
 				auto it1 = m_SessionsByRouterHash.find (it.iH);
 				if (it1 != m_SessionsByRouterHash.end ())
 				{
-					auto addr = it1->second->GetAddress ();
-					if (addr && addr->IsIntroducer ())
+					auto s = it1->second.lock ();
+					if (s)
 					{	
-						it1->second->Introduce (session, it.iTag);
-						return;
+						auto addr = s->GetAddress ();
+						if (addr && addr->IsIntroducer ())
+						{	
+							s->Introduce (session, it.iTag);
+							return;
+						}
 					}	
 				}
 				else
@@ -936,17 +946,19 @@ namespace transport
 		if (!router) return false;
 		auto addr = v4 ? router->GetSSU2V4Address () : router->GetSSU2V6Address ();
 		if (!addr) return false;
+		std::shared_ptr<SSU2Session> session;
 		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
 		if (it != m_SessionsByRouterHash.end ())
+			session = it->second.lock ();
+		if (session)
 		{
-			auto remoteAddr = it->second->GetAddress ();
+			auto remoteAddr = session->GetAddress ();
 			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
-			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;
-			auto s = it->second;    
-			if (s->IsEstablished ())
-				GetService ().post ([s]() { s->SendPeerTest (); });
+			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;   
+			if (session->IsEstablished ())
+				GetService ().post ([session]() { session->SendPeerTest (); });
 			else
-				s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+				session->SetOnEstablished ([session]() { session->SendPeerTest (); });
 			return true;
 		}
 		else
@@ -997,7 +1009,7 @@ namespace transport
 
 			for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.begin ();)
 			{
-				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
+				if (it->second.expired ())
 					it = m_SessionsByRouterHash.erase (it);
 				else
 					it++;
@@ -1183,7 +1195,7 @@ namespace transport
 			auto it1 = m_SessionsByRouterHash.find (it);
 			if (it1 != m_SessionsByRouterHash.end ())
 			{
-				session = it1->second;
+				session = it1->second.lock ();
 				excluded.insert (it);
 			}
 			if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing () && // still session with introducer?
@@ -1217,8 +1229,8 @@ namespace transport
 					auto it1 = m_SessionsByRouterHash.find (it);
 					if (it1 != m_SessionsByRouterHash.end ())
 					{
-						auto session = it1->second;
-						if (session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
+						auto session = it1->second.lock ();
+						if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
 						{
 							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 							if (std::find (newList.begin (), newList.end (), it) == newList.end ())
