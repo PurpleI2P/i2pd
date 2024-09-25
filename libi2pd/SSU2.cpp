@@ -515,11 +515,19 @@ namespace transport
 		return m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session).second;
 	}
 
-	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident) const
+	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident)
 	{
 		auto it = m_SessionsByRouterHash.find (ident);
 		if (it != m_SessionsByRouterHash.end ())
-			return it->second.lock ();
+		{	
+			if (!it->second.expired ())
+			{
+				auto s = it->second.lock ();
+				if (s && s->GetState () != eSSU2SessionStateTerminated)
+					return s;
+			}
+			m_SessionsByRouterHash.erase (it);
+		}	
 		return nullptr;
 	}
 
