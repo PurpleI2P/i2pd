@@ -3064,6 +3064,7 @@ namespace transport
 		SetSourceConnID (sourceConnID);
 		SetDestConnID (destConnID);	
 		SetState (eSSU2SessionStatePeerTest);	
+		SetTerminationTimeout (SSU2_PEER_TEST_EXPIRATION_TIMEOUT);
 	}	
 
 	bool SSU2PeerTestSession::ProcessPeerTest (uint8_t * buf, size_t len)
@@ -3140,6 +3141,7 @@ namespace transport
 					SendPeerTest (7, buf + offset, len - offset);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
+				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());
 				break;
 			}			
@@ -3148,6 +3150,7 @@ namespace transport
 				auto addr = GetAddress ();
 				if (addr && addr->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
+				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());	
 				break;
 			}	
