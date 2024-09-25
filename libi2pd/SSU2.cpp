@@ -476,6 +476,11 @@ namespace transport
 		}
 	}
 
+	void SSU2Server::RequestRemoveSession (uint64_t connID)
+	{
+		GetService ().post ([connID, this]() { RemoveSession (connID); });
+	}	
+		
 	void SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)

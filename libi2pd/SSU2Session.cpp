@@ -224,7 +224,7 @@ namespace transport
 			// connect
 			m_State = eSSU2SessionStateTokenReceived;
 			m_Server.AddPendingOutgoingSession (shared_from_this ());
-			m_Server.RemoveSession (oldConnID);
+			m_Server.RequestRemoveSession (oldConnID);
 			Connect ();
 		}
 	}
@@ -3140,7 +3140,7 @@ namespace transport
 					SendPeerTest (7, buf + offset, len - offset);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				GetServer ().RemoveSession (GetConnID ());
+				GetServer ().RequestRemoveSession (GetConnID ());
 				break;
 			}			
 			case 7: // Alice from Charlie 2
@@ -3148,7 +3148,7 @@ namespace transport
 				auto addr = GetAddress ();
 				if (addr && addr->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
-				GetServer ().RemoveSession (GetConnID ());	
+				GetServer ().RequestRemoveSession (GetConnID ());	
 				break;
 			}	
 			default:	

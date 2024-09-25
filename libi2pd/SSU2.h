@@ -82,6 +82,7 @@ namespace transport
 
 			void AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
+			void RequestRemoveSession (uint64_t connID);
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);
 			bool AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session);
 			void RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep);
