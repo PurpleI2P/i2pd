@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -132,7 +132,7 @@ namespace util
 			}
 
 			template<template<typename, typename...>class C, typename... R>
-			void ReleaseMt(const C<T *, R...>& c)
+			void ReleaseMt(C<T *, R...>&& c)
 			{
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (auto& it: c)

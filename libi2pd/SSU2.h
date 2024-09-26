@@ -126,7 +126,7 @@ namespace transport
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred,
 				Packet * packet, boost::asio::ip::udp::socket& socket);
 			void HandleReceivedPacket (Packet * packet);
-			void HandleReceivedPackets (std::vector<Packet *> packets);
+			void HandleReceivedPackets (std::vector<Packet *>&& packets);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 
 			void ScheduleTermination ();

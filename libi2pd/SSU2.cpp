@@ -391,7 +391,10 @@ namespace transport
 						break;
 					}
 				}
-				GetService ().post (std::bind (&SSU2Server::HandleReceivedPackets, this, packets));
+				GetService ().post ([packets = std::move (packets), this]() mutable
+					{
+						HandleReceivedPackets (std::move (packets));
+					});
 			}
 			else
 				GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packet));
@@ -435,7 +438,7 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPackets (std::vector<Packet *> packets)
+	void SSU2Server::HandleReceivedPackets (std::vector<Packet *>&& packets)
 	{
 		if (m_IsThroughProxy)
 			for (auto& packet: packets)
@@ -443,7 +446,7 @@ namespace transport
 		else
 			for (auto& packet: packets)
 				ProcessNextPacket (packet->buf, packet->len, packet->from);
-		m_PacketsPool.ReleaseMt (packets);
+		m_PacketsPool.ReleaseMt (std::move (packets));
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
 	}
