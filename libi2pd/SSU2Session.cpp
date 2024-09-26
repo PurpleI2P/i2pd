@@ -2252,27 +2252,31 @@ namespace transport
 			case 3: // Bob from Charlie
 			{
 				auto it = m_PeerTests.find (nonce);
-				if (it != m_PeerTests.end () && it->second.first)
+				if (it != m_PeerTests.end ())
 				{
-					uint8_t payload[SSU2_MAX_PACKET_SIZE];
-					// Charlie's RouterInfo
-					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
-					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-					size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-					if (!payloadSize && r)
-						it->second.first->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-					if (payloadSize + len + 16 > m_MaxPayloadSize)
-					{
-						// doesn't fit one message, send RouterInfo in separate message
-						it->second.first->SendData (payload, payloadSize);
-						payloadSize = 0;
-					}
-					// PeerTest to Alice
-					payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize, 4,
-						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
-					if (payloadSize < m_MaxPayloadSize)
-						payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					it->second.first->SendData (payload, payloadSize);
+					auto aliceSession = it->second.first.lock ();
+					if (aliceSession && aliceSession->IsEstablished ())
+					{	
+						uint8_t payload[SSU2_MAX_PACKET_SIZE];
+						// Charlie's RouterInfo
+						auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+						if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
+						size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
+						if (!payloadSize && r)
+							aliceSession->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+						if (payloadSize + len + 16 > m_MaxPayloadSize)
+						{
+							// doesn't fit one message, send RouterInfo in separate message
+							aliceSession->SendData (payload, payloadSize);
+							payloadSize = 0;
+						}
+						// PeerTest to Alice
+						payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize, 4,
+							(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
+						if (payloadSize < m_MaxPayloadSize)
+							payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+						aliceSession->SendData (payload, payloadSize);
+					}	
 					m_PeerTests.erase (it);
 				}
 				else
@@ -3028,9 +3032,9 @@ namespace transport
 		}
 		for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
 		{
-			if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT)
+			if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT || it->second.first.expired ())
 			{
-				LogPrint (eLogWarning, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds, deleted");
+				LogPrint (eLogWarning, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds or session invalid. Deleted");
 				it = m_PeerTests.erase (it);
 			}
 			else

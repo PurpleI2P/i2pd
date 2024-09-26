@@ -40,6 +40,7 @@ namespace transport
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
 	const int SSU2_HOLE_PUNCH_EXPIRATION = 150; // in seconds
+	const size_t SSU2_MAX_NUM_PACKETS_PER_BATCH = 32;
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
@@ -168,7 +169,7 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSU2Session> > m_PendingOutgoingSessions;
 			mutable std::mutex m_PendingOutgoingSessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::pair<uint64_t, uint32_t> > m_IncomingTokens, m_OutgoingTokens; // remote endpoint -> (token, expires in seconds)
-			std::unordered_map<uint32_t, std::shared_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
+			std::unordered_map<uint32_t, std::weak_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<i2p::data::IdentHash> m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;

@@ -370,7 +370,7 @@ namespace transport
 			{
 				std::vector<Packet *> packets;
 				packets.push_back (packet);
-				while (moreBytes && packets.size () < 32)
+				while (moreBytes && packets.size () < SSU2_MAX_NUM_PACKETS_PER_BATCH)
 				{
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
@@ -599,10 +599,13 @@ namespace transport
 		auto it = m_Relays.find (tag);
 		if (it != m_Relays.end ())
 		{
-			if (it->second->IsEstablished ())
-				return it->second;
-			else
-				m_Relays.erase (it);
+			if (!it->second.expired ())
+			{	
+				auto s = it->second.lock ();
+				if (s && s->IsEstablished ())
+					return s;
+			}	
+			m_Relays.erase (it);
 		}
 		return nullptr;
 	}
@@ -1045,7 +1048,7 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
 			{
-				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
+				if (it->second.expired ())
 					it = m_Relays.erase (it);
 				else
 					it++;
