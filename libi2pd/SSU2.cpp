@@ -377,7 +377,10 @@ namespace transport
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
-						packets.push_back (packet);
+						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
+							packets.push_back (packet);
+						else // drop too short packets
+							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
 						if (ec) break;
 					}
