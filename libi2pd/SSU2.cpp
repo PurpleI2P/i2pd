@@ -1212,14 +1212,14 @@ namespace transport
 	void SSU2Server::UpdateIntroducers (bool v4)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::list<i2p::data::IdentHash> newList, impliedList;
+		std::list<std::pair<i2p::data::IdentHash, uint32_t> > newList, impliedList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
 		std::unordered_set<i2p::data::IdentHash> excluded;
-		for (const auto& it : introducers)
+		for (const auto& [ident, tag] : introducers)
 		{
-			std::shared_ptr<SSU2Session> session = FindSession (it);
+			std::shared_ptr<SSU2Session> session = FindSession (ident);
 			if (session)
-				excluded.insert (it);
+				excluded.insert (ident);
 			if (session)
 			{	
 				if (session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing () && // still session with introducer?
@@ -1227,19 +1227,27 @@ namespace transport
 				{	
 					session->SendKeepAlive ();
 					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
-						newList.push_back (it);
+					{	
+						newList.push_back ({ident, session->GetRelayTag ()});
+						if (tag != session->GetRelayTag ())
+						{
+							LogPrint (eLogDebug, "SSU2: Introducer session to  ", session->GetIdentHashBase64() , " was replaced. iTag ", tag, "->", session->GetRelayTag ());
+							i2p::context.UpdateSSU2Introducer (ident, v4, session->GetRelayTag (),
+								session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION);
+						}	
+					}
 					else	
 					{	
-						impliedList.push_back (it); // keep in introducers list, but not publish
+						impliedList.push_back ({ident, session->GetRelayTag ()}); // keep in introducers list, but not publish
 						session = nullptr;	
-					}		
+					}
 				}	
 				else
 					session = nullptr;
 			}	
 			
 			if (!session)
-				i2p::context.RemoveSSU2Introducer (it, v4);
+				i2p::context.RemoveSSU2Introducer (ident, v4);
 		}
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
@@ -1249,13 +1257,14 @@ namespace transport
 				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
 				impliedList.clear ();
-				for (auto& it : introducers)
+				for (const auto& [ident, tag] : introducers)
 				{
-					auto session = FindSession (it);
+					auto session = FindSession (ident);
 					if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
 					{
 						session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
-						if (std::find (newList.begin (), newList.end (), it) == newList.end ())
+						if (std::find_if (newList.begin (), newList.end (), 
+						    [&ident](const auto& s){ return ident == s.first; }) == newList.end ())
 							sessions.push_back (session);
 					}
 				}
@@ -1276,7 +1285,7 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU2: Introducer added ", it->GetRelayTag (), " at ",
 						i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()));
-					newList.push_back (it->GetRemoteIdentity ()->GetIdentHash ());
+					newList.push_back ({ it->GetRemoteIdentity ()->GetIdentHash (), tag });
 					if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
 				}
 			}

@@ -1554,5 +1554,23 @@ namespace data
 		}
 		return false;
 	}
+
+	bool LocalRouterInfo::UpdateSSU2Introducer (const IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp)
+	{
+		auto addresses = GetAddresses ();
+		if (!addresses) return false;
+		auto addr = (*addresses)[v4 ? eSSU2V4Idx : eSSU2V6Idx];
+		if (addr)
+		{
+			for (auto& it: addr->ssu->introducers)
+				if (h == it.iH)
+				{
+					it.iTag = iTag;
+					it.iExp = iExp;
+					return true;
+				}	
+		}
+		return false;
+	}	
 }
 }

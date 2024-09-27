@@ -557,6 +557,12 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::UpdateSSU2Introducer (const i2p::data::IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp)
+	{
+		if (m_RouterInfo.UpdateSSU2Introducer (h, v4, iTag, iExp))
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::ClearSSU2Introducers (bool v4)
 	{
 		auto addr = m_RouterInfo.GetSSU2Address (v4);

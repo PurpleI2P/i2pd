@@ -154,6 +154,7 @@ namespace garlic
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
+			void UpdateSSU2Introducer (const i2p::data::IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp);
 			void ClearSSU2Introducers (bool v4);
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);

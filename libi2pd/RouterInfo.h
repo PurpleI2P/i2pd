@@ -380,6 +380,7 @@ namespace data
 			
 			bool AddSSU2Introducer (const Introducer& introducer, bool v4);
 			bool RemoveSSU2Introducer (const IdentHash& h, bool v4);
+			bool UpdateSSU2Introducer (const IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp);
 
 		private:
 
