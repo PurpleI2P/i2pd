@@ -1269,14 +1269,14 @@ namespace transport
 				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
 				impliedList.clear ();
-				for (const auto& [ident, tag] : introducers)
+				for (const auto& it : introducers)
 				{
-					auto session = FindSession (ident);
+					auto session = FindSession (it.first);
 					if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
 					{
 						session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 						if (std::find_if (newList.begin (), newList.end (), 
-						    [&ident](const auto& s){ return ident == s.first; }) == newList.end ())
+						    [&ident = it.first](const auto& s){ return ident == s.first; }) == newList.end ())
 							sessions.push_back (session);
 					}
 				}
