@@ -131,14 +131,22 @@ namespace util
 				this->Release (t);
 			}
 
+			void ReleaseMt (T * * arr, size_t num)
+			{
+				if (!arr || !num) return;
+				std::lock_guard<std::mutex> l(m_Mutex);
+				for (size_t i = 0; i < num; i++)
+					this->Release (arr[i]);
+			}	
+			
 			template<template<typename, typename...>class C, typename... R>
-			void ReleaseMt(C<T *, R...>&& c)
+			void ReleaseMt(const C<T *, R...>& c)
 			{
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (auto& it: c)
 					this->Release (it);
 			}
-
+			
 			template<typename... TArgs>
 			std::shared_ptr<T> AcquireSharedMt (TArgs&&... args)
 			{

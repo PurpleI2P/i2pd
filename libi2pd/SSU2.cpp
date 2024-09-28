@@ -368,9 +368,9 @@ namespace transport
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)
 			{
-				std::vector<Packet *> packets;
-				packets.push_back (packet);
-				while (moreBytes && packets.size () < SSU2_MAX_NUM_PACKETS_PER_BATCH)
+				auto packets = m_PacketsArrayPool.AcquireMt ();
+				packets->AddPacket (packet);
+				while (moreBytes && packets->numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH)
 				{
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
@@ -378,7 +378,13 @@ namespace transport
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
 						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
-							packets.push_back (packet);
+						{	
+							if (!packets->AddPacket (packet))
+							{
+								LogPrint (eLogError, "SSU2: Received packets array is full");
+								m_PacketsPool.ReleaseMt (packet);
+							}	
+						}	
 						else // drop too short packets
 							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
@@ -391,10 +397,7 @@ namespace transport
 						break;
 					}
 				}
-				GetService ().post ([packets = std::move (packets), this]() mutable
-					{
-						HandleReceivedPackets (std::move (packets));
-					});
+				GetService ().post (std::bind (&SSU2Server::HandleReceivedPackets, this, packets));
 			}
 			else
 				GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packet));
@@ -438,15 +441,23 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPackets (std::vector<Packet *>&& packets)
+	void SSU2Server::HandleReceivedPackets (Packets * packets)
 	{
+		if (!packets) return;
 		if (m_IsThroughProxy)
-			for (auto& packet: packets)
+			for (size_t i = 0; i < packets->numPackets; i++)
+			{
+				auto& packet = (*packets)[i];
 				ProcessNextPacketFromProxy (packet->buf, packet->len);
+			}	
 		else
-			for (auto& packet: packets)
+			for (size_t i = 0; i < packets->numPackets; i++)
+			{
+				auto& packet = (*packets)[i];
 				ProcessNextPacket (packet->buf, packet->len, packet->from);
-		m_PacketsPool.ReleaseMt (std::move (packets));
+			}	
+		m_PacketsPool.ReleaseMt (packets->data (), packets->numPackets);
+		m_PacketsArrayPool.ReleaseMt (packets);
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
 	}
@@ -1098,6 +1109,7 @@ namespace transport
 			}	
 			
 			m_PacketsPool.CleanUpMt ();
+			m_PacketsArrayPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();

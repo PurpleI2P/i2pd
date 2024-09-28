@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <array>
 #include <mutex>
 #include <random>
 #include "util.h"
@@ -51,6 +52,20 @@ namespace transport
 			boost::asio::ip::udp::endpoint from;
 		};
 
+		struct Packets: public std::array<Packet *, SSU2_MAX_NUM_PACKETS_PER_BATCH>
+		{
+			size_t numPackets = 0;
+			bool AddPacket (Packet *p) 
+			{
+				if (p && numPackets < size ()) 
+				{ 
+					data()[numPackets] = p; numPackets++; 
+					return true;
+				} 
+				return false;
+			} 
+		};
+	
 		class ReceiveService: public i2p::util::RunnableService
 		{
 			public:
@@ -127,7 +142,7 @@ namespace transport
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred,
 				Packet * packet, boost::asio::ip::udp::socket& socket);
 			void HandleReceivedPacket (Packet * packet);
-			void HandleReceivedPackets (std::vector<Packet *>&& packets);
+			void HandleReceivedPackets (Packets * packets);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 
 			void ScheduleTermination ();
@@ -172,6 +187,7 @@ namespace transport
 			std::unordered_map<uint32_t, std::weak_ptr<SSU2Session> > m_Relays; // we are introducer, relay tag -> session
 			std::list<std::pair<i2p::data::IdentHash, uint32_t> > m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
+			i2p::util::MemoryPoolMt<Packets> m_PacketsArrayPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
