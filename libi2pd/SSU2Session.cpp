@@ -2171,11 +2171,14 @@ namespace transport
 				else
 				{
 					// Charlie not found, send error back to Alice
-					uint8_t payload[SSU2_MAX_PACKET_SIZE], zeroHash[32] = {0};
-					size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, 4,
+					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+					uint8_t zeroHash[32] = {0};
+					packet->payloadSize = CreatePeerTestBlock (packet->payload, m_MaxPayloadSize, 4,
 						eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + offset, len - offset);
-					payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					SendData (payload, payloadSize);
+					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+					packet->sendTime = ts;
+					m_SentPackets.emplace (packetNum, packet);
 				}
 				break;
 			}
@@ -2241,11 +2244,13 @@ namespace transport
 				else
 					code = eSSU2PeerTestCodeCharlieAliceIsUnknown;
 				// send msg 3 back to Bob
-				uint8_t payload[SSU2_MAX_PACKET_SIZE];
-				size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, 3,
+				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+				packet->payloadSize = CreatePeerTestBlock (packet->payload, m_MaxPayloadSize, 3,
 					code, nullptr, newSignedData.data (), newSignedData.size ());
-				payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-				SendData (payload, payloadSize);
+				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+				uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+				packet->sendTime = ts;
+				m_SentPackets.emplace (packetNum, packet);
 				break;
 			}
 			case 3: // Bob from Charlie
@@ -2253,25 +2258,29 @@ namespace transport
 				auto aliceSession = m_Server.GetPeerTest (nonce);
 				if (aliceSession && aliceSession->IsEstablished ())
 				{	
-					uint8_t payload[SSU2_MAX_PACKET_SIZE];
+					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					// Charlie's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
 					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-					size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-					if (!payloadSize && r)
+					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+					if (!packet->payloadSize && r)
 						aliceSession->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-					if (payloadSize + len + 16 > m_MaxPayloadSize)
+					if (packet->payloadSize + len + 16 > m_MaxPayloadSize)
 					{
 						// doesn't fit one message, send RouterInfo in separate message
-						aliceSession->SendData (payload, payloadSize);
-						payloadSize = 0;
+						uint32_t packetNum = aliceSession->SendData (packet->payload, packet->payloadSize);
+						packet->sendTime = ts;
+						aliceSession->m_SentPackets.emplace (packetNum, packet);
+						packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					}
 					// PeerTest to Alice
-					payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize, 4,
+					packet->payloadSize += CreatePeerTestBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize, 4,
 						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
-					if (payloadSize < m_MaxPayloadSize)
-						payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					aliceSession->SendData (payload, payloadSize);
+					if (packet->payloadSize < m_MaxPayloadSize)
+						packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					uint32_t packetNum = aliceSession->SendData (packet->payload, packet->payloadSize);
+					packet->sendTime = ts;
+					aliceSession->m_SentPackets.emplace (packetNum, packet);
 				}	
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown peer test 3 nonce ", nonce);
