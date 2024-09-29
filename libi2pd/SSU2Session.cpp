@@ -3045,7 +3045,8 @@ namespace transport
 
 	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID): 
 		SSU2Session (server, nullptr, nullptr, false), 
-		m_MsgNumReceived (0), m_IsConnectedRecently (false), m_IsStatusChanged (false)
+		m_MsgNumReceived (0), m_NumResends (0),m_IsConnectedRecently (false), m_IsStatusChanged (false),
+		m_PeerTestResendTimer (server.GetService ())
 	{
 		if (!sourceConnID) sourceConnID = ~destConnID;
 		if (!destConnID) destConnID = ~sourceConnID;
@@ -3097,9 +3098,10 @@ namespace transport
 		// msgs 5-7
 		if (len < 8) return;
 		uint8_t msg = buf[0];
-		if (msg < m_MsgNumReceived)
+		if (msg <= m_MsgNumReceived)
 		{
-			LogPrint (eLogInfo, "SSU2: PeerTest msg num ", msg, " received after ", m_MsgNumReceived, ". Ignored");
+			LogPrint (eLogDebug, "SSU2: PeerTest msg num ", msg, " received after ", m_MsgNumReceived, ". Ignored");
+			return;
 		}	
 		size_t offset = 3; // points to signed data after msg + code + flag
 		uint32_t nonce = bufbe32toh (buf + offset + 1); // 1 - ver
@@ -3125,6 +3127,7 @@ namespace transport
 			}
 			case 6: // Charlie from Alice
 			{	
+				m_PeerTestResendTimer.cancel (); // no more msg 5 resends
 				if (GetAddress ())
 					SendPeerTest (7, buf + offset, len - offset);
 				else
@@ -3135,6 +3138,7 @@ namespace transport
 			}			
 			case 7: // Alice from Charlie 2
 			{	
+				m_PeerTestResendTimer.cancel (); // no more msg 6 resends
 				auto addr = GetAddress ();
 				if (addr && addr->IsV6 ())
 					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
@@ -3149,7 +3153,7 @@ namespace transport
 		m_MsgNumReceived = msg;	
 	}
 
-	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen)
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg)
 	{
 		auto addr = GetAddress ();
 		if (!addr) return;
@@ -3172,7 +3176,7 @@ namespace transport
 		if (msg == 6 || msg == 7)
 			payloadSize += CreateAddressBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize, GetRemoteEndpoint ());
 		payloadSize += CreatePeerTestBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize,
-			msg, eSSU2PeerTestCodeAccept, nullptr, signedData, signedDataLen);
+			msg, eSSU2PeerTestCodeAccept, nullptr, m_SignedData.data (), m_SignedData.size ());
 		payloadSize += CreatePaddingBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize);
 		// encrypt
 		uint8_t n[12];
@@ -3187,12 +3191,26 @@ namespace transport
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
 	}	
 
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen)
+	{
+#if __cplusplus >= 202002L // C++20
+		m_SignedData.assign (signedData, signedData + signedDataLen);
+#else		
+		m_SignedData.resize (signedDataLen);
+		memcpy (m_SignedData.data (), signedData, signedDataLen);
+#endif		
+		SendPeerTest (msg);
+		// schedule resend for msgs 5 or 6
+		if (msg == 5 || msg == 6)
+			ScheduleResend ();
+	}	
+		
 	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr)
 	{
 		if (!addr) return;
 		SetAddress (addr);
-		SendPeerTest (msg, signedData, signedDataLen);
+		SendPeerTest (msg, signedData, signedDataLen);	
 	}	
 
 	void SSU2PeerTestSession::Connect ()
@@ -3204,6 +3222,35 @@ namespace transport
 	{
 		LogPrint (eLogError, "SSU2: Can't handle incoming message in peer test session");
 		return false;
+	}	
+
+	void SSU2PeerTestSession::ScheduleResend ()
+	{
+		if (m_NumResends < SSU2_PEER_TEST_MAX_NUM_RESENDS)
+		{
+			m_PeerTestResendTimer.expires_from_now (boost::posix_time::milliseconds(
+				SSU2_PEER_TEST_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE));
+			std::weak_ptr<SSU2PeerTestSession> s(std::static_pointer_cast<SSU2PeerTestSession>(shared_from_this ()));
+			m_PeerTestResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+				{
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						auto s1 = s.lock ();
+						if (s1) 
+						{
+							int msg = 0;
+							if (s1->m_MsgNumReceived < 6)
+								msg = (s1->m_MsgNumReceived == 5) ? 6 : 5;
+							if (msg) // 5 or 6
+							{	
+								s1->SendPeerTest (msg);
+								s1->ScheduleResend ();
+							}	
+						}	
+					}	
+				});
+			m_NumResends++;
+		}	
 	}	
 }
 }
