@@ -152,6 +152,7 @@ namespace transport
 		m_SessionsByRouterHash.clear ();
 		m_PendingOutgoingSessions.clear ();
 		m_Relays.clear ();
+		m_PeerTests.clear ();
 		m_Introducers.clear ();
 		m_IntroducersV6.clear ();
 		m_ConnectedRecently.clear ();
@@ -621,6 +622,23 @@ namespace transport
 		return nullptr;
 	}
 
+	bool SSU2Server::AddPeerTest (uint32_t nonce, std::shared_ptr<SSU2Session> aliceSession, uint64_t ts)
+	{
+		return m_PeerTests.emplace (nonce, std::pair{ aliceSession, ts }).second;
+	}	
+
+	std::shared_ptr<SSU2Session> SSU2Server::GetPeerTest (uint32_t nonce)
+	{
+		auto it = m_PeerTests.find (nonce);
+		if (it != m_PeerTests.end ())
+		{
+			auto s = it->second.first.lock ();
+			m_PeerTests.erase (it);
+			return s;
+		}
+		return nullptr;
+	}	
+		
 	bool SSU2Server::AddRequestedPeerTest (uint32_t nonce, std::shared_ptr<SSU2PeerTestSession> session, uint64_t ts)
 	{
 		return m_RequestedPeerTests.emplace (nonce, std::pair{ session, ts }).second;
@@ -1065,6 +1083,17 @@ namespace transport
 					it++;
 			}
 
+			for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
+			{
+				if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT || it->second.first.expired ())
+				{
+					LogPrint (eLogInfo, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds or session invalid. Deleted");
+					it = m_PeerTests.erase (it);
+				}
+				else
+					it++;
+			}
+			
 			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )
 			{
 				if (ts > it->second.second)
