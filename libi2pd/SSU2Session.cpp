@@ -2078,13 +2078,16 @@ namespace transport
 			if (it->second.first && it->second.first->IsEstablished ())
 			{
 				// we are Bob, message from Charlie
-				uint8_t payload[SSU2_MAX_PACKET_SIZE];
+				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+				uint8_t * payload = packet->payload;
 				payload[0] = eSSU2BlkRelayResponse;
 				htobe16buf (payload + 1, len);
 				memcpy (payload + 3, buf, len); // forward to Alice as is
-				size_t payloadSize = len + 3;
-				payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-				it->second.first->SendData (payload, payloadSize);
+				packet->payloadSize = len + 3;
+				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+				uint32_t packetNum = it->second.first->SendData (packet->payload, packet->payloadSize);
+				packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
+				it->second.first->m_SentPackets.emplace (packetNum, packet);
 			}
 			else
 			{
