@@ -282,6 +282,7 @@ namespace transport
 			RouterStatus GetRouterStatus () const;
 			void SetRouterStatus (RouterStatus status) const;
 			size_t GetMaxPayloadSize () const { return m_MaxPayloadSize; }
+			void SetIsDataReceived (bool dataReceived) { m_IsDataReceived = dataReceived; };
 			
 			uint64_t GetSourceConnID () const { return m_SourceConnID; }
 			void SetSourceConnID (uint64_t sourceConnID) { m_SourceConnID = sourceConnID; }

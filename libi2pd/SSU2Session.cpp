@@ -1420,6 +1420,7 @@ namespace transport
 			return false;
 		}
 		HandlePayload (payload, len - 48);
+		m_IsDataReceived = false;
 		// connect to Charlie
 		ConnectAfterIntroduction ();
 
@@ -3113,6 +3114,7 @@ namespace transport
 			return false;
 		}
 		HandlePayload (payload, len - 48);
+		SetIsDataReceived (false);
 		return true;
 	}	
 
