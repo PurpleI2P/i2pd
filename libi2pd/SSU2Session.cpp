@@ -174,36 +174,38 @@ namespace transport
 		// create nonce
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// payload
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = 0;
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		uint8_t * payload = packet->payload;
 		payload[0] = eSSU2BlkRelayRequest;
 		payload[3] = 0; // flag
 		htobe32buf (payload + 4, nonce);
 		htobe32buf (payload + 8, relayTag);
-		htobe32buf (payload + 12, ts);
+		htobe32buf (payload + 12, ts/1000);
 		payload[16] = 2; // ver
 		size_t asz = CreateEndpoint (payload + 18, m_MaxPayloadSize - 18, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
 		if (!asz) return false;
 		payload[17] = asz;
-		payloadSize += asz + 18;
+		packet->payloadSize = asz + 18;
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
 		s.Insert (payload + 4, 14 + asz); // nonce, relay tag, timestamp, ver, asz and Alice's endpoint
-		s.Sign (i2p::context.GetPrivateKeys (), payload + payloadSize);
-		payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
-		htobe16buf (payload + 1, payloadSize - 3); // size
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+		s.Sign (i2p::context.GetPrivateKeys (), payload + packet->payloadSize);
+		packet->payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
+		htobe16buf (payload + 1, packet->payloadSize - 3); // size
+		packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		// send
-		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
+		m_RelaySessions.emplace (nonce, std::make_pair (session, ts/1000));
 		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
-		SendData (payload, payloadSize);
-
+		int32_t packetNum = SendData (packet->payload, packet->payloadSize);
+		packet->sendTime = ts;
+		m_SentPackets.emplace (packetNum, packet);
+		
 		return true;
 	}
 
@@ -1945,27 +1947,31 @@ namespace transport
 			SendData (payload, payloadSize);
 			return;
 		}
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		session->m_RelaySessions.emplace (bufbe32toh (buf + 1), // nonce
-			std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()) );
+			std::make_pair (shared_from_this (), mts/1000) );
 
 		// send relay intro to Charlie
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
 		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
 
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-		if (!payloadSize && r)
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+		if (!packet->payloadSize && r)
 			session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-		payloadSize += CreateRelayIntroBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, buf + 1, len -1);
-		if (payloadSize < m_MaxPayloadSize)
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		session->SendData (payload, payloadSize);
+		packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
+		if (packet->payloadSize < m_MaxPayloadSize)
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+		uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
+		packet->sendTime = mts;
+		session->m_SentPackets.emplace (packetNum, packet);
 	}
 
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		uint64_t token = 0;
 		bool isV4 = false;
@@ -1993,7 +1999,7 @@ namespace transport
 							token = m_Server.GetIncomingToken (ep);
 							isV4 = ep.address ().is_v4 ();
 							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
-							m_Server.AddConnectedRecently (ep, i2p::util::GetSecondsSinceEpoch ());
+							m_Server.AddConnectedRecently (ep, mts/1000);
 						}
 						else
 						{
@@ -2038,11 +2044,13 @@ namespace transport
 			code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
 		}
 		// send relay response to Bob
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize,
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		packet->payloadSize = CreateRelayResponseBlock (packet->payload, m_MaxPayloadSize,
 			code, bufbe32toh (buf + 33), token, isV4);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		SendData (payload, payloadSize);
+		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+		uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+		packet->sendTime = mts;
+		m_SentPackets.emplace (packetNum, packet);
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
