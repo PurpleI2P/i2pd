@@ -1570,14 +1570,17 @@ namespace transport
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
 					HandleRelayRequest (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkRelayResponse:
 					LogPrint (eLogDebug, "SSU2: RelayResponse");
 					HandleRelayResponse (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkRelayIntro:
 					LogPrint (eLogDebug, "SSU2: RelayIntro");
 					HandleRelayIntro (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkPeerTest:
 					LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
