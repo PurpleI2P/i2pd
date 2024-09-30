@@ -2127,14 +2127,14 @@ namespace transport
 				}
 				else
 				{
-					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1]);
+					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1], " nonce=", bufbe32toh (buf + 2));
 					it->second.first->Done ();
 				}
 			}
 			m_RelaySessions.erase (it);
 		}
 		else
-			LogPrint (eLogWarning, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
+			LogPrint (eLogDebug, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
 	}
 
 	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
@@ -2294,7 +2294,7 @@ namespace transport
 					aliceSession->m_SentPackets.emplace (packetNum, packet);
 				}	
 				else
-					LogPrint (eLogWarning, "SSU2: Unknown peer test 3 nonce ", nonce);
+					LogPrint (eLogDebug, "SSU2: Unknown peer test 3 nonce ", nonce);
 				break;
 			}
 			case 4: // Alice from Bob
@@ -2382,7 +2382,7 @@ namespace transport
 					}
 				}
 				else
-					LogPrint (eLogWarning, "SSU2: Unknown peer test 4 nonce ", nonce);
+					LogPrint (eLogDebug, "SSU2: Unknown peer test 4 nonce ", nonce);
 				break;
 			}
 			default:
