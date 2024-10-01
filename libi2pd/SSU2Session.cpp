@@ -2387,7 +2387,7 @@ namespace transport
 					{
 						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1], " from ",
 							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
-						if (GetTestingState ())
+						if (GetTestingState () && GetRouterStatus () != eRouterStatusFirewalled)
 							SetRouterStatus (eRouterStatusUnknown);
 						session->Done ();
 					}
