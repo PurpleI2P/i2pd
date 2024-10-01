@@ -1327,6 +1327,7 @@ namespace transport
 					LogPrint (eLogDebug, "SSU2: Introducer added ", it->GetRelayTag (), " at ",
 						i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()));
 					newList.push_back ({ it->GetRemoteIdentity ()->GetIdentHash (), tag });
+					it->SendKeepAlive ();
 					if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
 				}
 			}
