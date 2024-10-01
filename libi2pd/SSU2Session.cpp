@@ -219,15 +219,22 @@ namespace transport
 	{
 		if (m_State == eSSU2SessionStateIntroduced)
 		{
-			// create new connID
-			uint64_t oldConnID = GetConnID ();
-			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
-			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);
-			// connect
+			// we are Alice
+			//  keep ConnIDs used for introduction, because Charlie waits for SessionRequest from us
 			m_State = eSSU2SessionStateTokenReceived;
-			m_Server.AddPendingOutgoingSession (shared_from_this ());
-			m_Server.RequestRemoveSession (oldConnID);
-			Connect ();
+			// move session to pending outgoing
+			if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
+			{                                                             
+				m_Server.RemoveSession (GetConnID ());
+				// connect
+				LogPrint (eLogDebug, "SSU2: Connecting after introduction to ", GetIdentHashBase64());
+				Connect ();
+			}
+			else 
+			{
+				LogPrint (eLogError, "SSU2: Session ", GetConnID (), " is already pending");
+				m_Server.RequestRemoveSession (GetConnID ());
+			}	
 		}
 	}
 
