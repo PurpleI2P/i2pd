@@ -1267,7 +1267,9 @@ namespace transport
 					ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
 				{	
 					session->SendKeepAlive ();
-					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
+					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION ||
+					    ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION +
+					    m_Rng () % SSU2_TO_INTRODUCER_SESSION_DURATION_VARIANCE)	
 					{	
 						newList.push_back ({ident, session->GetRelayTag ()});
 						if (tag != session->GetRelayTag ())
