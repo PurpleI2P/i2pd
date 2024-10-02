@@ -268,7 +268,7 @@ namespace transport
 		{
 			uint8_t payload[20];
 			size_t payloadSize = CreatePaddingBlock (payload, 20, 8);
-			SendData (payload, payloadSize);
+			SendData (payload, payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
 		}
 	}
 
@@ -1503,6 +1503,7 @@ namespace transport
 			return;
 		}
 		UpdateNumReceivedBytes (len);
+		if (header.h.flags[0] & SSU2_FLAG_IMMEDIATE_ACK_REQUESTED) m_IsDataReceived = true;
 		if (!packetNum || UpdateReceivePacketNum (packetNum))
 			HandlePayload (payload, payloadSize);
 	}
