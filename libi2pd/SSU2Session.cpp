@@ -170,7 +170,12 @@ namespace transport
 		if (!session || !relayTag) return false;
 		// find local address to introduce
 		auto localAddress = session->FindLocalAddress ();
-		if (!localAddress) return false;
+		if (!localAddress || localAddress->host.is_unspecified () || !localAddress->port) 
+		{	
+			// can't introduce invalid endpoint
+			LogPrint (eLogWarning, "SSU2: Can't find local address to introduce");
+			return false; 
+		}	
 		// create nonce
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
