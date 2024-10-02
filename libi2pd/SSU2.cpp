@@ -1267,9 +1267,7 @@ namespace transport
 					ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
 				{	
 					session->SendKeepAlive ();
-					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION ||
-					    ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION +
-					    m_Rng () % SSU2_TO_INTRODUCER_SESSION_DURATION_VARIANCE)	
+					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
 					{	
 						newList.push_back ({ident, session->GetRelayTag ()});
 						if (tag != session->GetRelayTag ())
@@ -1316,6 +1314,9 @@ namespace transport
 			for (const auto& it : sessions)
 			{
 				uint32_t tag = it->GetRelayTag ();
+				auto extraTime = std::min ((int)(ts - it->GetCreationTime ()), SSU2_TO_INTRODUCER_SESSION_EXPIRATION_VARIANCE);
+				if( extraTime > 1)
+					it->SetCreationTime (it->GetCreationTime () + m_Rng () % extraTime); 
 				uint32_t exp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
 				if (!tag || ts + SSU2_TO_INTRODUCER_SESSION_DURATION/2 > exp)
 					continue; // don't pick too old session for introducer	

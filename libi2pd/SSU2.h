@@ -35,9 +35,9 @@ namespace transport
 	const uint64_t SSU2_SOCKET_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
 	const size_t SSU2_MAX_NUM_INTRODUCERS = 3;
 	const size_t SSU2_MIN_RECEIVED_PACKET_SIZE = 40; // 16 byte short header + 8 byte minimum payload + 16 byte MAC
-	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3480; // 58 minutes
-	const int SSU2_TO_INTRODUCER_SESSION_DURATION_VARIANCE = 330; // 5 minutes
+	const int SSU2_TO_INTRODUCER_SESSION_DURATION = 3680; // 1 hour
 	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION = 4800; // 80 minutes
+	const int SSU2_TO_INTRODUCER_SESSION_EXPIRATION_VARIANCE = 120; // 2 minutes
 	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
