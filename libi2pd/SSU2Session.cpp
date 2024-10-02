@@ -2002,7 +2002,9 @@ namespace transport
 				boost::asio::ip::udp::endpoint ep;
 				if (ExtractEndpoint (buf + 47, asz, ep))
 				{
-					auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+					std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
+					if (!ep.address ().is_unspecified () && ep.port ())
+						addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
 					if (addr)
 					{
 						if (m_Server.IsSupported (ep.address ()))
@@ -2234,7 +2236,7 @@ namespace transport
 							{
 								boost::asio::ip::udp::endpoint ep;
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
-								if (ExtractEndpoint (buf + offset + 10, asz, ep))
+								if (ExtractEndpoint (buf + offset + 10, asz, ep) && !ep.address ().is_unspecified () && ep.port ())
 									addr = r->GetSSU2Address (ep.address ().is_v4 ());
 								if (addr && m_Server.IsSupported (ep.address ()) && 
 								    i2p::context.GetRouterInfo ().IsSSU2PeerTesting (ep.address ().is_v4 ()))
