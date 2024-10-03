@@ -1222,31 +1222,25 @@ namespace transport
 	}
 
 	std::vector<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
-		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const
+		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded)
 	{
 		std::vector<std::shared_ptr<SSU2Session> > ret;
-		if (maxNumIntroducers <= 0) return ret;
-		auto newer = [](const std::shared_ptr<SSU2Session>& s1, const std::shared_ptr<SSU2Session>& s2) -> bool 
-		{
-			auto t1 = s1->GetCreationTime (), t2 = s2->GetCreationTime (); 
-        	return (t1 != t2) ? (t1 > t2) : (s1->GetConnID () > s2->GetConnID ());
-   		};
-		std::set<std::shared_ptr<SSU2Session>, decltype (newer)> introducers(newer);
+		if (maxNumIntroducers <= 0 || m_Sessions.empty ()) return ret;
+		
+		std::vector<std::shared_ptr<SSU2Session> > eligible;
+		eligible.reserve (m_Sessions.size ()/2);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		for (const auto& s : m_Sessions)
 		{
 			if (s.second->IsEstablished () && (s.second->GetRelayTag () && s.second->IsOutgoing ()) &&
+			    ts < s.second->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION/2 &&
 			    !excluded.count (s.second->GetRemoteIdentity ()->GetIdentHash ()) &&
 			    ((v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V4)) ||
 			    (!v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V6))))
-				introducers.insert (s.second);
+				eligible.push_back (s.second);
 		}
-		int i = 0;
-		for (auto it: introducers)
-		{
-			ret.push_back (it);
-			i++;
-			if (i >= maxNumIntroducers) break;
-		}	
+		
+		std::sample (eligible.begin(), eligible.end(), std::back_inserter(ret), maxNumIntroducers, m_Rng);
 		return ret;
 	}
 
@@ -1293,33 +1287,28 @@ namespace transport
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
 			auto sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
-			if (sessions.empty () && !introducers.empty ())
+			if (sessions.empty () && !impliedList.empty ())
 			{
-				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
-				impliedList.clear ();
-				for (const auto& it : introducers)
+				for (const auto& it : impliedList)
 				{
 					auto session = FindSession (it.first);
-					if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
+					if (session)
 					{
-						session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
 						if (std::find_if (newList.begin (), newList.end (), 
 						    [&ident = it.first](const auto& s){ return ident == s.first; }) == newList.end ())
 							sessions.push_back (session);
 					}
 				}
+				impliedList.clear ();
 			}
 
 			for (const auto& it : sessions)
 			{
-				uint32_t tag = it->GetRelayTag ();
-				auto extraTime = std::min ((int)(ts - it->GetCreationTime ()), SSU2_TO_INTRODUCER_SESSION_EXPIRATION_VARIANCE);
-				if( extraTime > 1)
-					it->SetCreationTime (it->GetCreationTime () + m_Rng () % extraTime); 
+				uint32_t tag = it->GetRelayTag ();		
 				uint32_t exp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
-				if (!tag || ts + SSU2_TO_INTRODUCER_SESSION_DURATION/2 > exp)
-					continue; // don't pick too old session for introducer	
+				if (!tag && ts >= exp) 
+					continue; // don't publish expired introducer
 				i2p::data::RouterInfo::Introducer introducer;
 				introducer.iTag = tag;
 				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
