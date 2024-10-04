@@ -1982,6 +1982,7 @@ namespace transport
 			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
 		packet->sendTime = mts;
+		// Charlie always responds with RelayResponse
 		session->m_SentPackets.emplace (packetNum, packet);
 	}
 
@@ -2068,8 +2069,8 @@ namespace transport
 			code, bufbe32toh (buf + 33), token, isV4);
 		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		/*uint32_t packetNum = */SendData (packet->payload, packet->payloadSize);
-		// for some reason Bob never ack this RelayResponse
-		// TODO: unccomend line below once the problem is resolved
+		// sometimes Bob doesn't ack this RelayResponse
+		// TODO: uncomment line below once the problem is resolved
 		//packet->sendTime = mts;
 		//m_SentPackets.emplace (packetNum, packet);
 	}
@@ -2106,9 +2107,11 @@ namespace transport
 				memcpy (payload + 3, buf, len); // forward to Alice as is
 				packet->payloadSize = len + 3;
 				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-				uint32_t packetNum = it->second.first->SendData (packet->payload, packet->payloadSize);
-				packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
-				it->second.first->m_SentPackets.emplace (packetNum, packet);
+				/*uint32_t packetNum = */it->second.first->SendData (packet->payload, packet->payloadSize);
+				// sometimes Alice doesn't ack this RelayResponse
+				// TODO: uncomment line below once the problem is resolved
+				//packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
+				//it->second.first->m_SentPackets.emplace (packetNum, packet);
 			}
 			else
 			{
