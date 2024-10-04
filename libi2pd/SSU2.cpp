@@ -1284,6 +1284,7 @@ namespace transport
 			if (!session)
 				i2p::context.RemoveSSU2Introducer (ident, v4);
 		}
+		int numOldSessions = 0;
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
 			auto sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
@@ -1297,7 +1298,10 @@ namespace transport
 					{
 						if (std::find_if (newList.begin (), newList.end (), 
 						    [&ident = it.first](const auto& s){ return ident == s.first; }) == newList.end ())
+						{	
 							sessions.push_back (session);
+							numOldSessions++;
+						}	
 					}
 				}
 				impliedList.clear ();
@@ -1326,9 +1330,17 @@ namespace transport
 		}
 		introducers = newList;
 
-		if (introducers.size () < SSU2_MAX_NUM_INTRODUCERS)
+		if (introducers.size () < SSU2_MAX_NUM_INTRODUCERS || numOldSessions)
 		{
-			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS; i++)
+			// we need to create more sessions with relay tag
+			
+			// exclude all existing sessions
+			excluded.clear ();
+			for (const auto& [ident, s] : m_SessionsByRouterHash)
+				excluded.insert (ident);
+
+			// sesssion about to expire are not counted
+			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS + numOldSessions; i++)
 			{
 				auto introducer = i2p::data::netdb.GetRandomSSU2Introducer (v4, excluded);
 				if (introducer)
