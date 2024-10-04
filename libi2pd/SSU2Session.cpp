@@ -2067,9 +2067,11 @@ namespace transport
 		packet->payloadSize = CreateRelayResponseBlock (packet->payload, m_MaxPayloadSize,
 			code, bufbe32toh (buf + 33), token, isV4);
 		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-		uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
-		packet->sendTime = mts;
-		m_SentPackets.emplace (packetNum, packet);
+		/*uint32_t packetNum = */SendData (packet->payload, packet->payloadSize);
+		// for some reason Bob never ack this RelayResponse
+		// TODO: unccomend line below once the problem is resolved
+		//packet->sendTime = mts;
+		//m_SentPackets.emplace (packetNum, packet);
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
