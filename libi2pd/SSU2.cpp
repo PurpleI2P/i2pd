@@ -1336,8 +1336,11 @@ namespace transport
 			
 			// exclude all existing sessions
 			excluded.clear ();
-			for (const auto& [ident, s] : m_SessionsByRouterHash)
-				excluded.insert (ident);
+			{
+				std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
+				for (const auto& [ident, s] : m_SessionsByRouterHash)
+					excluded.insert (ident);
+			}	
 
 			// sesssion about to expire are not counted
 			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS + numOldSessions; i++)
