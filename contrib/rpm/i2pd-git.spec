@@ -24,7 +24,7 @@ BuildRequires: openssl-devel
 BuildRequires: miniupnpc-devel
 BuildRequires: systemd-units
 
-%if 0%{?fedora} > 40 || 0%{?eln}
+%if 0%{?fedora} == 41
 BuildRequires: openssl-devel-engine
 %endif
 
