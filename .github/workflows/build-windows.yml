@@ -108,6 +108,7 @@ jobs:
         path: build/i2pd.exe
 
   build-xp:
+    if: false
     name: XP
     runs-on: windows-latest
 
@@ -220,7 +221,7 @@ jobs:
       id: cache-boost
       with:
         path: MINGW-packages/mingw-w64-boost/*.zst
-        key: winxp-winpthreads-${{ steps.version-boost.outputs.version }}
+        key: winxp-boost-${{ steps.version-boost.outputs.version }}
     - name: Build WinXP-capable boost package
       if: steps.cache-boost.outputs.cache-hit != 'true'
       run: |
