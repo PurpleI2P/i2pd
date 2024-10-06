@@ -1,6 +1,44 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.54.0] - 2024-10-06
+### Added
+- Maintain recently connected routers list to avoid false-positive peer test
+- Limited connectivity mode(through proxy)
+- "i2p.streaming.profile" tunnel's param to let tunnel select also low-bandwidth routers
+- Limit stream's inbound speed
+- Periodic ack requests in ratchets session
+- Set congestion cap G immediately if through proxy
+- Show tunnel's routers bandwidth caps in web console
+- Handle immediate ack requsted flag in SSU2 data packets
+- Resend and ack peer test and relay messages
+- "senduseragent" HTTP proxy's param to pass through user's User-Agent
+### Changed
+- Exclude 'N' routers from high-bandwidth routers for client tunnels
+- C++11 support has been dropped, the minimal requirement is C++17 now, C++20 for some compilers
+- Removed dependency from boost::date_time and boost::filesystem
+- Set default i2cp.leaseSetEncType to 0,4 and to 4 for server tunnels
+- Handle i2cp.inboundlimit and i2cp.outboundlimit params in I2CP
+- Publish LeaseSet with new timestamp update if tunnel was replaced in the same second
+- Increase max number of generated tags to 800 per tagset
+- Routing path expiration by time instead num attempts 
+- Save timestamp from epoch instead local time to profiles
+- Update introducer's iTag if session to introducer was replaced to new one
+- RTT, window size and number of NACKs calculation for streaming
+- Don't select same peer for tunnel too often
+- Use WinApi for data path UTF-8 conversion for Windows 
+### Fixed
+- Jump link crash if address book is disabled
+- Race condition if connect through an introducer
+- "Date" header in I2PControl response
+- Incomplete response from web console
+- AEAD verification with LibreSSL
+- Number of generated tags and new keys for follow-on tagsets
+- Expired leases in LeaseSet
+- Attempts to send HolePunch to 0.0.0.0
+- Incorrect options size in quick ack streaming packet
+- Low bandwidth router appeared as first peer in high-bandwidth client tunnel
+
 ## [2.53.1] - 2024-07-29
 ### Changed
 - I2CP performance improvement
