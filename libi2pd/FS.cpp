@@ -261,13 +261,13 @@ namespace fs {
 #else	*/	// TODO: wait until implemented
 		const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
 		    t - decltype(t)::clock::now() + std::chrono::system_clock::now());
-/*#endif */	
-   		return std::chrono::system_clock::to_time_t(sctp);	
-#else		
+/*#endif */
+		return std::chrono::system_clock::to_time_t(sctp);
+#else
 		boost::system::error_code ec;
 		auto t = boost::filesystem::last_write_time (path, ec);
 		return ec ? 0 : t;
-#endif		
+#endif
 	}
 
 	bool Remove(const std::string & path) {

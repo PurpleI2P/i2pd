@@ -7,7 +7,7 @@ CXXFLAGS := $(CXX_DEBUG) -fPIC -msse
 INCFLAGS := -I$(DAEMON_SRC_DIR) -IWin32
 LDFLAGS := ${LD_DEBUG} -static -fPIC -msse
 
-NEEDED_CXXFLAGS += -std=c++17
+NEEDED_CXXFLAGS += -std=c++20
 DEFINES += -DWIN32_LEAN_AND_MEAN
 
 # UPNP Support
@@ -16,7 +16,12 @@ ifeq ($(USE_UPNP),yes)
 	LDLIBS = -lminiupnpc
 endif
 
+ifeq ($(USE_WINXP_FLAGS), yes)
+	DEFINES += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
+endif
+
 LDLIBS += \
+	$(MINGW_PREFIX)/lib/libboost_filesystem-mt.a \
 	$(MINGW_PREFIX)/lib/libboost_program_options-mt.a \
 	$(MINGW_PREFIX)/lib/libssl.a \
 	$(MINGW_PREFIX)/lib/libcrypto.a \
@@ -35,10 +40,6 @@ ifeq ($(USE_WIN32_APP), yes)
 	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
-endif
-
-ifeq ($(USE_WINXP_FLAGS), yes)
-	DEFINES += -DWINVER=0x0501 -D_WIN32_WINNT=0x0501
 endif
 
 ifeq ($(USE_AESNI),yes)

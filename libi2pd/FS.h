@@ -16,7 +16,9 @@
 #include <functional>
 
 #ifndef STD_FILESYSTEM
-#	if (!TARGET_OS_SIMULATOR && __has_include(<filesystem>)) // supports std::filesystem
+#	if (_WIN32 && __GNUG__) // MinGW GCC somehow incorrectly converts paths
+#		define STD_FILESYSTEM 0
+#	elif (!TARGET_OS_SIMULATOR && __has_include(<filesystem>)) // supports std::filesystem
 #		define STD_FILESYSTEM 1
 #	else
 #		define STD_FILESYSTEM 0

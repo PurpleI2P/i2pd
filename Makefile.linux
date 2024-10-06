@@ -15,7 +15,7 @@ ifeq ($(shell expr match $(CXX) 'clang'),5)
 	NEEDED_CXXFLAGS += -std=c++17
 else ifeq ($(shell expr match ${CXXVER} "7"),1) # gcc 7
 	NEEDED_CXXFLAGS += -std=c++17
-	LDLIBS = -lboost_filesystem 
+	LDLIBS = -lboost_filesystem
 else ifeq ($(shell expr match ${CXXVER} "[8-9]"),1) # gcc 8 - 9
 	NEEDED_CXXFLAGS += -std=c++17
 	LDLIBS = -lstdc++fs
