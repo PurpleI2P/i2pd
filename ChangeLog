@@ -10,7 +10,7 @@
 - Periodic ack requests in ratchets session
 - Set congestion cap G immediately if through proxy
 - Show tunnel's routers bandwidth caps in web console
-- Handle immediate ack requsted flag in SSU2 data packets
+- Handle immediate ack requested flag in SSU2 data packets
 - Resend and ack peer test and relay messages
 - "senduseragent" HTTP proxy's param to pass through user's User-Agent
 ### Changed
