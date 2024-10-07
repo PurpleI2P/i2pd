@@ -1239,8 +1239,11 @@ namespace transport
 			    (!v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V6))))
 				eligible.push_back (s.second);
 		}
-		
-		std::sample (eligible.begin(), eligible.end(), std::back_inserter(ret), maxNumIntroducers, m_Rng);
+
+		if (eligible.size () <= (size_t)maxNumIntroducers)
+			return eligible;
+		else	
+			std::sample (eligible.begin(), eligible.end(), std::back_inserter(ret), maxNumIntroducers, m_Rng);
 		return ret;
 	}
 
