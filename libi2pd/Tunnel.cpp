@@ -411,10 +411,12 @@ namespace tunnel
 		return tunnel;
 	}
 
-	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (int numInboundHops, int numOutboundHops,
-		int numInboundTunnels, int numOutboundTunnels, int inboundVariance, int outboundVariance)
+	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (int numInboundHops, 
+	    int numOutboundHops, int numInboundTunnels, int numOutboundTunnels, 
+	    int inboundVariance, int outboundVariance, bool isHighBandwidth)
 	{
-		auto pool = std::make_shared<TunnelPool> (numInboundHops, numOutboundHops, numInboundTunnels, numOutboundTunnels, inboundVariance, outboundVariance);
+		auto pool = std::make_shared<TunnelPool> (numInboundHops, numOutboundHops, 
+			numInboundTunnels, numOutboundTunnels, inboundVariance, outboundVariance, isHighBandwidth);
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		m_Pools.push_back (pool);
 		return pool;
@@ -705,7 +707,7 @@ namespace tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true); // reachable by us
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false); // reachable by us
 			if (!inboundTunnel || !router) return;
 			LogPrint (eLogDebug, "Tunnel: Creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
@@ -765,7 +767,7 @@ namespace tunnel
 				int obLen; i2p::config::GetOption("exploratory.outbound.length", obLen);
 				int ibNum; i2p::config::GetOption("exploratory.inbound.quantity", ibNum);
 				int obNum; i2p::config::GetOption("exploratory.outbound.quantity", obNum);
-				m_ExploratoryPool = CreateTunnelPool (ibLen, obLen, ibNum, obNum, 0, 0);
+				m_ExploratoryPool = CreateTunnelPool (ibLen, obLen, ibNum, obNum, 0, 0, false);
 				m_ExploratoryPool->SetLocalDestination (i2p::context.GetSharedDestination ());
 			}
 			return;
@@ -777,7 +779,7 @@ namespace tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?
 				i2p::transport::transports.GetRestrictedPeer() :
 				// should be reachable by us because we send build request directly
-				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true);
+				i2p::data::netdb.GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, true, false);
 			if (!router) {
 				LogPrint (eLogWarning, "Tunnel: Can't find any router, skip creating tunnel");
 				return;

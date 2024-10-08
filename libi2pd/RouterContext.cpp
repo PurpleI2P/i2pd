@@ -323,6 +323,10 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
+				case eRouterStatusProxy:
+					m_AcceptsTunnels = false;
+					UpdateCongestion ();
+				break;	
 				default:
 					;
 			}
@@ -553,6 +557,12 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::UpdateSSU2Introducer (const i2p::data::IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp)
+	{
+		if (m_RouterInfo.UpdateSSU2Introducer (h, v4, iTag, iExp))
+			UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::ClearSSU2Introducers (bool v4)
 	{
 		auto addr = m_RouterInfo.GetSSU2Address (v4);
@@ -610,8 +620,8 @@ namespace i2p
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit = 12; type = low;   break;
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit = i2p::data::LOW_BANDWIDTH_LIMIT; type = low;   break; // 48
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH3  : limit = 64; type = low;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit = 128; type = high;  break;
-			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit = i2p::data::HIGH_BANDWIDTH_LIMIT; type = high;  break; // 256
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH4  : limit = 128; type = low;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH  : limit = i2p::data::HIGH_BANDWIDTH_LIMIT; type = high;  break; // 256
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = i2p::data::EXTRA_BANDWIDTH_LIMIT; type = extra; break; // 2048
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 1000000; type = unlim; break; // 1Gbyte/s
 			default:
@@ -626,9 +636,7 @@ namespace i2p
 			case low   : /* not set */; break;
 			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break; // 'P'
 			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth;
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			[[fallthrough]];
-#endif
 			// no break here, extra + high means 'X'
 			case high : caps |= i2p::data::RouterInfo::eHighBandwidth; break;
 		}

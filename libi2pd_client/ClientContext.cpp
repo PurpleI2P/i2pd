@@ -474,8 +474,9 @@ namespace client
 		options[I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_OUTBOUND_SPEED, DEFAULT_MAX_OUTBOUND_SPEED);
 		options[I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, DEFAULT_MAX_INBOUND_SPEED);
 		options[I2CP_PARAM_STREAMING_ANSWER_PINGS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_ANSWER_PINGS, isServer ? DEFAULT_ANSWER_PINGS : false);
+		options[I2CP_PARAM_STREAMING_PROFILE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE); 
 		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
-		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4");
+		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, isServer ? "4" : "0,4");
 		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
 		std::string privKey = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_PRIV_KEY, "");
 		if (privKey.length () > 0) options[I2CP_PARAM_LEASESET_PRIV_KEY] = privKey;
@@ -519,6 +520,8 @@ namespace client
 			options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_LEASESET_PRIV_KEY, value) && !value.empty ())
 			options[I2CP_PARAM_LEASESET_PRIV_KEY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_STREAMING_PROFILE, value))
+			options[I2CP_PARAM_STREAMING_PROFILE] = value;
 	}
 
 	void ClientContext::ReadTunnels ()
@@ -663,7 +666,9 @@ namespace client
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
 							bool addresshelper = section.second.get("addresshelper", true);
-							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, outproxy, addresshelper, localDestination);
+							bool senduseragent = section.second.get("senduseragent", false);
+							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, 
+								outproxy, addresshelper, senduseragent, localDestination);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
 						}
@@ -879,6 +884,7 @@ namespace client
 			uint16_t    httpProxyPort;         i2p::config::GetOption("httpproxy.port",          httpProxyPort);
 			std::string httpOutProxyURL;       i2p::config::GetOption("httpproxy.outproxy",      httpOutProxyURL);
 			bool        httpAddresshelper;     i2p::config::GetOption("httpproxy.addresshelper", httpAddresshelper);
+			bool        httpSendUserAgent;     i2p::config::GetOption("httpproxy.senduseragent", httpSendUserAgent);
 			if (httpAddresshelper)
 				i2p::config::GetOption("addressbook.enabled", httpAddresshelper); // addresshelper is not supported without address book
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype", sigType);
@@ -898,7 +904,8 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, httpAddresshelper, localDestination);
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, 
+					httpOutProxyURL, httpAddresshelper, httpSendUserAgent, localDestination);
 				m_HttpProxy->Start();
 			}
 			catch (std::exception& e)

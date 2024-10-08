@@ -128,8 +128,11 @@ jobs:
         cache: true
         update: true
 
-    - name: Clone MinGW packages repository
-      run: git clone https://github.com/msys2/MINGW-packages
+    - name: Clone MinGW packages repository and revert boost to 1.85.0
+      run: |
+        git clone https://github.com/msys2/MINGW-packages
+        cd MINGW-packages
+        git checkout 4cbb366edf2f268ac3146174b40ce38604646fc5 mingw-w64-boost
 
     # headers
     - name: Get headers package version
@@ -205,21 +208,23 @@ jobs:
       run: |
         cd MINGW-packages/mingw-w64-openssl
         gpg --recv-keys D894E2CE8B3D79F5
+        gpg --recv-keys 216094DFD0CB81EF
         MINGW_ARCH=mingw32 makepkg-mingw -sCLf --noconfirm --nocheck
     - name: Install openssl package
       run: pacman --noconfirm -U MINGW-packages/mingw-w64-openssl/mingw-w64-i686-*-any.pkg.tar.zst
 
     # Boost
-    - name: Get boost package version
-      id:  version-boost
-      run: |
-        echo "version=$(pacman -Si mingw-w64-i686-boost | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
+    #- name: Get boost package version
+    #  id:  version-boost
+    #  run: |
+    #    echo "version=$(pacman -Si mingw-w64-i686-boost | grep -Po '^Version\s*: \K.+')" >> $GITHUB_OUTPUT
     - name: Cache boost package
       uses: actions/cache@v4
       id: cache-boost
       with:
         path: MINGW-packages/mingw-w64-boost/*.zst
-        key: winxp-winpthreads-${{ steps.version-boost.outputs.version }}
+        key: winxp-boost-1.85.0+crt-${{ steps.version-headers.outputs.version }}+ossl-${{ steps.version-openssl.outputs.version }}
+    # Rebuild package if packages above has changed
     - name: Build WinXP-capable boost package
       if: steps.cache-boost.outputs.cache-hit != 'true'
       run: |

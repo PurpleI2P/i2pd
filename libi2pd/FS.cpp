@@ -7,10 +7,11 @@
 */
 
 #include <algorithm>
-#include <boost/filesystem.hpp>
 
 #if defined(MAC_OSX)
+#if !STD_FILESYSTEM
 #include <boost/system/system_error.hpp>
+#endif
 #include <TargetConditionals.h>
 #endif
 
@@ -24,6 +25,14 @@
 #include "FS.h"
 #include "Log.h"
 #include "Garlic.h"
+
+#if STD_FILESYSTEM
+#include <filesystem>
+namespace fs_lib = std::filesystem;
+#else
+#include <boost/filesystem.hpp>
+namespace fs_lib = boost::filesystem;
+#endif
 
 namespace i2p {
 namespace fs {
@@ -54,15 +63,17 @@ namespace fs {
 
 	const std::string GetUTF8DataDir () {
 #ifdef _WIN32
-#if (BOOST_VERSION >= 108500)
-		boost::filesystem::path path (dataDir);
-#else
-		boost::filesystem::wpath path (dataDir);
-#endif
-		auto loc = boost::filesystem::path::imbue(std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) ); // convert path to UTF-8
-		auto dataDirUTF8 = path.string();
-		boost::filesystem::path::imbue(loc); // Return locale settings back
-		return dataDirUTF8;
+		int size = MultiByteToWideChar(CP_ACP, 0,
+			dataDir.c_str(), dataDir.size(), nullptr, 0);
+		std::wstring utf16Str(size, L'\0');
+		MultiByteToWideChar(CP_ACP, 0,
+			dataDir.c_str(), dataDir.size(), &utf16Str[0], size);
+		int utf8Size = WideCharToMultiByte(CP_UTF8, 0,
+			utf16Str.c_str(), utf16Str.size(), nullptr, 0, nullptr, nullptr);
+		std::string utf8Str(utf8Size, '\0');
+		WideCharToMultiByte(CP_UTF8, 0,
+			utf16Str.c_str(), utf16Str.size(), &utf8Str[0], utf8Size, nullptr, nullptr);
+		return utf8Str;
 #else
 		return dataDir; // linux, osx, android uses UTF-8 by default
 #endif
@@ -91,10 +102,10 @@ namespace fs {
 			}
 			else
 			{
-#if (BOOST_VERSION >= 108500)
-				dataDir = boost::filesystem::path(commonAppData).string() + "\\" + appName;
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
+				dataDir = fs_lib::path(commonAppData).string() + "\\" + appName;
 #else
-				dataDir = boost::filesystem::wpath(commonAppData).string() + "\\" + appName;
+				dataDir = fs_lib::wpath(commonAppData).string() + "\\" + appName;
 #endif
 			}
 #else
@@ -120,14 +131,14 @@ namespace fs {
 		}
 		else
 		{
-#if (BOOST_VERSION >= 108500)
-			auto execPath = boost::filesystem::path(localAppData).parent_path();
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
+			auto execPath = fs_lib::path(localAppData).parent_path();
 #else
-			auto execPath = boost::filesystem::wpath(localAppData).parent_path();
+			auto execPath = fs_lib::wpath(localAppData).parent_path();
 #endif
 
 			// if config file exists in .exe's folder use it
-			if(boost::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
+			if(fs_lib::exists(execPath/"i2pd.conf")) // TODO: magic string
 			{
 				dataDir = execPath.string ();
 			} else // otherwise %appdata%
@@ -143,10 +154,10 @@ namespace fs {
 				}
 				else
 				{
-#if (BOOST_VERSION >= 108500)
-					dataDir = boost::filesystem::path(localAppData).string() + "\\" + appName;
+#if ((BOOST_VERSION >= 108500) || STD_FILESYSTEM)
+					dataDir = fs_lib::path(localAppData).string() + "\\" + appName;
 #else
-					dataDir = boost::filesystem::wpath(localAppData).string() + "\\" + appName;
+					dataDir = fs_lib::wpath(localAppData).string() + "\\" + appName;
 #endif
 				}
 			}
@@ -169,7 +180,7 @@ namespace fs {
 #if defined(ANDROID)
 		const char * ext = getenv("EXTERNAL_STORAGE");
 		if (!ext) ext = "/sdcard";
-		if (boost::filesystem::exists(ext))
+		if (fs_lib::exists(ext))
 		{
 			dataDir = std::string (ext) + "/" + appName;
 			return;
@@ -202,16 +213,16 @@ namespace fs {
 	}
 
 	bool Init() {
-		if (!boost::filesystem::exists(dataDir))
-			boost::filesystem::create_directory(dataDir);
+		if (!fs_lib::exists(dataDir))
+			fs_lib::create_directory(dataDir);
 
 		std::string destinations = DataDirPath("destinations");
-		if (!boost::filesystem::exists(destinations))
-			boost::filesystem::create_directory(destinations);
+		if (!fs_lib::exists(destinations))
+			fs_lib::create_directory(destinations);
 
 		std::string tags = DataDirPath("tags");
-		if (!boost::filesystem::exists(tags))
-			boost::filesystem::create_directory(tags);
+		if (!fs_lib::exists(tags))
+			fs_lib::create_directory(tags);
 		else
 			i2p::garlic::CleanUpTagsFiles ();
 
@@ -219,13 +230,13 @@ namespace fs {
 	}
 
 	bool ReadDir(const std::string & path, std::vector<std::string> & files) {
-		if (!boost::filesystem::exists(path))
+		if (!fs_lib::exists(path))
 			return false;
-		boost::filesystem::directory_iterator it(path);
-		boost::filesystem::directory_iterator end;
+		fs_lib::directory_iterator it(path);
+		fs_lib::directory_iterator end;
 
 		for ( ; it != end; it++) {
-			if (!boost::filesystem::is_regular_file(it->status()))
+			if (!fs_lib::is_regular_file(it->status()))
 				continue;
 			files.push_back(it->path().string());
 		}
@@ -234,29 +245,42 @@ namespace fs {
 	}
 
 	bool Exists(const std::string & path) {
-		return boost::filesystem::exists(path);
+		return fs_lib::exists(path);
 	}
 
 	uint32_t GetLastUpdateTime (const std::string & path)
 	{
-		if (!boost::filesystem::exists(path))
+		if (!fs_lib::exists(path))
 			return 0;
+#if STD_FILESYSTEM
+		std::error_code ec;
+		auto t = std::filesystem::last_write_time (path, ec);
+		if (ec) return 0;
+/*#if __cplusplus >= 202002L // C++ 20 or higher
+		const auto sctp = std::chrono::clock_cast<std::chrono::system_clock>(t);
+#else	*/	// TODO: wait until implemented
+		const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+		    t - decltype(t)::clock::now() + std::chrono::system_clock::now());
+/*#endif */
+		return std::chrono::system_clock::to_time_t(sctp);
+#else
 		boost::system::error_code ec;
 		auto t = boost::filesystem::last_write_time (path, ec);
 		return ec ? 0 : t;
+#endif
 	}
 
 	bool Remove(const std::string & path) {
-		if (!boost::filesystem::exists(path))
+		if (!fs_lib::exists(path))
 			return false;
-		return boost::filesystem::remove(path);
+		return fs_lib::remove(path);
 	}
 
 	bool CreateDirectory (const std::string& path)
 	{
-		if (boost::filesystem::exists(path) && boost::filesystem::is_directory (boost::filesystem::status (path)))
+		if (fs_lib::exists(path) && fs_lib::is_directory (fs_lib::status (path)))
 			return true;
-		return boost::filesystem::create_directory(path);
+		return fs_lib::create_directory(path);
 	}
 
 	void HashedStorage::SetPlace(const std::string &path) {
@@ -264,18 +288,18 @@ namespace fs {
 	}
 
 	bool HashedStorage::Init(const char * chars, size_t count) {
-		if (!boost::filesystem::exists(root)) {
-			boost::filesystem::create_directories(root);
+		if (!fs_lib::exists(root)) {
+			fs_lib::create_directories(root);
 		}
 
 		for (size_t i = 0; i < count; i++) {
 			auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
-			if (boost::filesystem::exists(p))
+			if (fs_lib::exists(p))
 				continue;
 #if TARGET_OS_SIMULATOR
 			// ios simulator fs says it is case sensitive, but it is not
 			boost::system::error_code ec;
-			if (boost::filesystem::create_directory(p, ec))
+			if (fs_lib::create_directory(p, ec))
 				continue;
 			switch (ec.value()) {
 				case boost::system::errc::file_exists:
@@ -285,7 +309,7 @@ namespace fs {
 					throw boost::system::system_error( ec, __func__ );
 			}
 #else
-			if (boost::filesystem::create_directory(p))
+			if (fs_lib::create_directory(p))
 				continue; /* ^ throws exception on failure */
 #endif
 			return false;
@@ -308,9 +332,9 @@ namespace fs {
 
 	void HashedStorage::Remove(const std::string & ident) {
 		std::string path = Path(ident);
-		if (!boost::filesystem::exists(path))
+		if (!fs_lib::exists(path))
 			return;
-		boost::filesystem::remove(path);
+		fs_lib::remove(path);
 	}
 
 	void HashedStorage::Traverse(std::vector<std::string> & files) {
@@ -321,12 +345,12 @@ namespace fs {
 
 	void HashedStorage::Iterate(FilenameVisitor v)
 	{
-		boost::filesystem::path p(root);
-		boost::filesystem::recursive_directory_iterator it(p);
-		boost::filesystem::recursive_directory_iterator end;
+		fs_lib::path p(root);
+		fs_lib::recursive_directory_iterator it(p);
+		fs_lib::recursive_directory_iterator end;
 
 		for ( ; it != end; it++) {
-			if (!boost::filesystem::is_regular_file( it->status() ))
+			if (!fs_lib::is_regular_file( it->status() ))
 				continue;
 			const std::string & t = it->path().string();
 			v(t);

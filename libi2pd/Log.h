@@ -172,16 +172,6 @@ void LogPrint (std::stringstream& s, TValue&& arg) noexcept
 	s << std::forward<TValue>(arg);
 }
 
-#if (__cplusplus < 201703L) // below C++ 17
-/** internal usage only -- folding args array to single string */
-template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
-{
-	LogPrint (s, std::forward<TValue>(arg));
-	LogPrint (s, std::forward<TArgs>(args)...);
-}
-#endif
-
 /**
  * @brief Create log message and send it to queue
  * @param level Message level (eLogError, eLogInfo, ...)
@@ -194,13 +184,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 
 	// fold message to single string
 	std::stringstream ss;
-
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 	(LogPrint (ss, std::forward<TArgs>(args)), ...);
-#else
-	LogPrint (ss, std::forward<TArgs>(args)...);
-#endif
-
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), std::move(ss).str());
 	msg->tid = std::this_thread::get_id();
 	i2p::log::Logger().Append(msg);
@@ -217,11 +201,7 @@ void ThrowFatal (TArgs&&... args) noexcept
 	if (!f) return;
 	// fold message to single string
 	std::stringstream ss("");
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 	(LogPrint (ss, std::forward<TArgs>(args)), ...);
-#else
-	LogPrint (ss, std::forward<TArgs>(args)...);
-#endif
 	f (ss.str ());
 }
 

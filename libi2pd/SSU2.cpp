@@ -152,8 +152,11 @@ namespace transport
 		m_SessionsByRouterHash.clear ();
 		m_PendingOutgoingSessions.clear ();
 		m_Relays.clear ();
+		m_PeerTests.clear ();
 		m_Introducers.clear ();
 		m_IntroducersV6.clear ();
+		m_ConnectedRecently.clear ();
+		m_RequestedPeerTests.clear ();
 	}
 
 	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
@@ -210,6 +213,29 @@ namespace transport
 		return ep.port ();
 	}
 
+	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep)
+	{
+		if (!ep.port () || ep.address ().is_unspecified ()) return false;
+		auto it = m_ConnectedRecently.find (ep);
+		if (it != m_ConnectedRecently.end ())
+		{	
+			if (i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+				return true;
+			else
+				m_ConnectedRecently.erase (it);
+		}	
+		return false;
+	}	
+
+	void SSU2Server::AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts)
+	{
+		if (!ep.port () || ep.address ().is_unspecified () || 
+		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
+		auto [it, added] = m_ConnectedRecently.try_emplace (ep, ts);
+		if (!added && ts > it->second)
+			it->second = ts; // renew timestamp of existing endpoint
+	}	
+		
 	void SSU2Server::AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from)
 	{
 		if (offset)
@@ -343,16 +369,25 @@ namespace transport
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)
 			{
-				std::vector<Packet *> packets;
-				packets.push_back (packet);
-				while (moreBytes && packets.size () < 32)
+				auto packets = m_PacketsArrayPool.AcquireMt ();
+				packets->AddPacket (packet);
+				while (moreBytes && packets->numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH)
 				{
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
-						packets.push_back (packet);
+						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
+						{	
+							if (!packets->AddPacket (packet))
+							{
+								LogPrint (eLogError, "SSU2: Received packets array is full");
+								m_PacketsPool.ReleaseMt (packet);
+							}	
+						}	
+						else // drop too short packets
+							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
 						if (ec) break;
 					}
@@ -407,15 +442,23 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPackets (std::vector<Packet *> packets)
+	void SSU2Server::HandleReceivedPackets (Packets * packets)
 	{
+		if (!packets) return;
 		if (m_IsThroughProxy)
-			for (auto& packet: packets)
+			for (size_t i = 0; i < packets->numPackets; i++)
+			{
+				auto& packet = (*packets)[i];
 				ProcessNextPacketFromProxy (packet->buf, packet->len);
+			}	
 		else
-			for (auto& packet: packets)
+			for (size_t i = 0; i < packets->numPackets; i++)
+			{
+				auto& packet = (*packets)[i];
 				ProcessNextPacket (packet->buf, packet->len, packet->from);
-		m_PacketsPool.ReleaseMt (packets);
+			}	
+		m_PacketsPool.ReleaseMt (packets->data (), packets->numPackets);
+		m_PacketsArrayPool.ReleaseMt (packets);
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
 	}
@@ -425,7 +468,8 @@ namespace transport
 		if (session)
 		{
 			m_Sessions.emplace (session->GetConnID (), session);
-			AddSessionByRouterHash (session);
+			if (session->GetState () != eSSU2SessionStatePeerTest)
+				AddSessionByRouterHash (session);
 		}
 	}
 
@@ -434,19 +478,28 @@ namespace transport
 		auto it = m_Sessions.find (connID);
 		if (it != m_Sessions.end ())
 		{
-			auto ident = it->second->GetRemoteIdentity ();
-			if (ident)
-			{
-				auto it1 = m_SessionsByRouterHash.find (ident->GetIdentHash ());
-				if (it1 != m_SessionsByRouterHash.end () && it->second == it1->second)
-					m_SessionsByRouterHash.erase (it1);
-			}	
+			if (it->second->GetState () != eSSU2SessionStatePeerTest)
+			{	
+				auto ident = it->second->GetRemoteIdentity ();
+				if (ident)
+				{
+					std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
+					auto it1 = m_SessionsByRouterHash.find (ident->GetIdentHash ());
+					if (it1 != m_SessionsByRouterHash.end () && it->second == it1->second.lock ())
+						m_SessionsByRouterHash.erase (it1);
+				}	
+			}
 			if (m_LastSession == it->second)
 				m_LastSession = nullptr;
 			m_Sessions.erase (it);
 		}
 	}
 
+	void SSU2Server::RequestRemoveSession (uint64_t connID)
+	{
+		GetService ().post ([connID, this]() { RemoveSession (connID); });
+	}	
+		
 	void SSU2Server::AddSessionByRouterHash (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)
@@ -454,18 +507,26 @@ namespace transport
 			auto ident = session->GetRemoteIdentity ();
 			if (ident)
 			{
-				auto ret = m_SessionsByRouterHash.emplace (ident->GetIdentHash (), session);
-				if (!ret.second && ret.first->second != session)
+				std::shared_ptr<SSU2Session> oldSession;
 				{
+					std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
+					auto ret = m_SessionsByRouterHash.emplace (ident->GetIdentHash (), session);
+					if (!ret.second)
+					{
+						oldSession = ret.first->second.lock ();
+						// update session
+						ret.first->second = session;
+					}	
+				}	
+				if (oldSession && oldSession != session)
+				{	
 					// session already exists
 					LogPrint (eLogWarning, "SSU2: Session to ", ident->GetIdentHash ().ToBase64 (), " already exists");
 					// move unsent msgs to new session
-					ret.first->second->MoveSendQueue (session);
+					oldSession->MoveSendQueue (session);
 					// terminate existing
-					GetService ().post (std::bind (&SSU2Session::RequestTermination, ret.first->second, eSSU2TerminationReasonReplacedByNewSession));
-					// update session
-					ret.first->second = session;
-				}
+					GetService ().post (std::bind (&SSU2Session::RequestTermination, oldSession, eSSU2TerminationReasonReplacedByNewSession));
+				}	
 			}
 		}
 	}
@@ -473,21 +534,30 @@ namespace transport
 	bool SSU2Server::AddPendingOutgoingSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (!session) return false;
-		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
+		std::lock_guard<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		return m_PendingOutgoingSessions.emplace (session->GetRemoteEndpoint (), session).second;
 	}
 
-	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident) const
+	std::shared_ptr<SSU2Session> SSU2Server::FindSession (const i2p::data::IdentHash& ident)
 	{
+		std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
 		auto it = m_SessionsByRouterHash.find (ident);
 		if (it != m_SessionsByRouterHash.end ())
-			return it->second;
+		{	
+			if (!it->second.expired ())
+			{
+				auto s = it->second.lock ();
+				if (s && s->GetState () != eSSU2SessionStateTerminated)
+					return s;
+			}
+			m_SessionsByRouterHash.erase (it);
+		}	
 		return nullptr;
 	}
 
 	std::shared_ptr<SSU2Session> SSU2Server::FindPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep) const
 	{
-		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
+		std::lock_guard<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		auto it = m_PendingOutgoingSessions.find (ep);
 		if (it != m_PendingOutgoingSessions.end ())
 			return it->second;
@@ -496,7 +566,7 @@ namespace transport
 
 	void SSU2Server::RemovePendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep)
 	{
-		std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
+		std::lock_guard<std::mutex> l(m_PendingOutgoingSessionsMutex);
 		m_PendingOutgoingSessions.erase (ep);
 	}
 
@@ -541,14 +611,51 @@ namespace transport
 		auto it = m_Relays.find (tag);
 		if (it != m_Relays.end ())
 		{
-			if (it->second->IsEstablished ())
-				return it->second;
-			else
-				m_Relays.erase (it);
+			if (!it->second.expired ())
+			{	
+				auto s = it->second.lock ();
+				if (s && s->IsEstablished ())
+					return s;
+			}	
+			m_Relays.erase (it);
 		}
 		return nullptr;
 	}
 
+	bool SSU2Server::AddPeerTest (uint32_t nonce, std::shared_ptr<SSU2Session> aliceSession, uint64_t ts)
+	{
+		return m_PeerTests.emplace (nonce, std::pair{ aliceSession, ts }).second;
+	}	
+
+	std::shared_ptr<SSU2Session> SSU2Server::GetPeerTest (uint32_t nonce)
+	{
+		auto it = m_PeerTests.find (nonce);
+		if (it != m_PeerTests.end ())
+		{
+			auto s = it->second.first.lock ();
+			m_PeerTests.erase (it);
+			return s;
+		}
+		return nullptr;
+	}	
+		
+	bool SSU2Server::AddRequestedPeerTest (uint32_t nonce, std::shared_ptr<SSU2PeerTestSession> session, uint64_t ts)
+	{
+		return m_RequestedPeerTests.emplace (nonce, std::pair{ session, ts }).second;
+	}
+		
+	std::shared_ptr<SSU2PeerTestSession> SSU2Server::GetRequestedPeerTest (uint32_t nonce)
+	{
+		auto it = m_RequestedPeerTests.find (nonce);
+		if (it != m_RequestedPeerTests.end ())
+		{
+			auto s = it->second.first.lock ();
+			m_RequestedPeerTests.erase (it);
+			return s;
+		}
+		return nullptr;
+	}	
+		
 	void SSU2Server::ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		if (len < 24) return;
@@ -618,7 +725,7 @@ namespace transport
 				if (it1->second->GetState () == eSSU2SessionStateSessionRequestSent &&
 					it1->second->ProcessSessionCreated (buf, len))
 				{
-					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
+					std::lock_guard<std::mutex> l(m_PendingOutgoingSessionsMutex);
 					m_PendingOutgoingSessions.erase (it1); // we are done with that endpoint
 				}
 				else
@@ -715,15 +822,12 @@ namespace transport
 		if (router && address)
 		{
 			// check if no session
-			auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
-			if (it != m_SessionsByRouterHash.end ())
+			auto existingSession = FindSession (router->GetIdentHash ());
+			if (existingSession)
 			{
 				// session with router found, trying to send peer test if requested
-				if (peerTest && it->second->IsEstablished ())
-				{
-					auto session = it->second;
-					GetService ().post ([session]() { session->SendPeerTest (); });
-				}
+				if (peerTest && existingSession->IsEstablished ())
+					GetService ().post ([existingSession]() { existingSession->SendPeerTest (); });
 				return false;
 			}
 			// check is no pending session
@@ -780,15 +884,15 @@ namespace transport
 		{
 			if (it.iTag && ts < it.iExp)
 			{
-				auto it1 = m_SessionsByRouterHash.find (it.iH);
-				if (it1 != m_SessionsByRouterHash.end ())
+				auto s = FindSession (it.iH);
+				if (s)
 				{
-					auto addr = it1->second->GetAddress ();
+					auto addr = s->GetAddress ();
 					if (addr && addr->IsIntroducer ())
 					{	
-						it1->second->Introduce (session, it.iTag);
+						s->Introduce (session, it.iTag);
 						return;
-					}	
+					}
 				}
 				else
 					indices.push_back(i);
@@ -894,17 +998,16 @@ namespace transport
 		if (!router) return false;
 		auto addr = v4 ? router->GetSSU2V4Address () : router->GetSSU2V6Address ();
 		if (!addr) return false;
-		auto it = m_SessionsByRouterHash.find (router->GetIdentHash ());
-		if (it != m_SessionsByRouterHash.end ())
+		auto session = FindSession (router->GetIdentHash ());
+		if (session)
 		{
-			auto remoteAddr = it->second->GetAddress ();
+			auto remoteAddr = session->GetAddress ();
 			if (!remoteAddr || !remoteAddr->IsPeerTesting () ||
-			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;
-			auto s = it->second;    
-			if (s->IsEstablished ())
-				GetService ().post ([s]() { s->SendPeerTest (); });
+			    (v4 && !remoteAddr->IsV4 ()) || (!v4 && !remoteAddr->IsV6 ())) return false;   
+			if (session->IsEstablished ())
+				GetService ().post ([session]() { session->SendPeerTest (); });
 			else
-				s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+				session->SetOnEstablished ([session]() { session->SendPeerTest (); });
 			return true;
 		}
 		else
@@ -925,17 +1028,20 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it = m_PendingOutgoingSessions.begin (); it != m_PendingOutgoingSessions.end ();)
+
 			{
-				if (it->second->IsTerminationTimeoutExpired (ts))
+				std::lock_guard<std::mutex> l(m_PendingOutgoingSessionsMutex);
+				for (auto it = m_PendingOutgoingSessions.begin (); it != m_PendingOutgoingSessions.end ();)
 				{
-					//it->second->Terminate ();
-					std::unique_lock<std::mutex> l(m_PendingOutgoingSessionsMutex);
-					it = m_PendingOutgoingSessions.erase (it);
+					if (it->second->IsTerminationTimeoutExpired (ts))
+					{
+						//it->second->Terminate ();
+						it = m_PendingOutgoingSessions.erase (it);
+					}
+					else
+						it++;
 				}
-				else
-					it++;
-			}
+			}	
 
 			for (auto it: m_Sessions)
 			{
@@ -951,14 +1057,6 @@ namespace transport
 				}
 				else
 					it.second->CleanUp (ts);
-			}
-
-			for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.begin ();)
-			{
-				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
-					it = m_SessionsByRouterHash.erase (it);
-				else
-					it++;
 			}
 
 			ScheduleTermination ();
@@ -979,12 +1077,23 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Relays.begin (); it != m_Relays.begin ();)
 			{
-				if (it->second && it->second->GetState () == eSSU2SessionStateTerminated)
+				if (it->second.expired ())
 					it = m_Relays.erase (it);
 				else
 					it++;
 			}
 
+			for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
+			{
+				if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT || it->second.first.expired ())
+				{
+					LogPrint (eLogInfo, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds or session invalid. Deleted");
+					it = m_PeerTests.erase (it);
+				}
+				else
+					it++;
+			}
+			
 			for (auto it = m_IncomingTokens.begin (); it != m_IncomingTokens.end (); )
 			{
 				if (ts > it->second.second)
@@ -1001,7 +1110,35 @@ namespace transport
 					it++;
 			}
 
+			for (auto it = m_ConnectedRecently.begin (); it != m_ConnectedRecently.end (); )
+			{
+				if (ts > it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+					it = m_ConnectedRecently.erase (it);
+				else
+					it++;
+			}	
+
+			for (auto it = m_RequestedPeerTests.begin (); it != m_RequestedPeerTests.end ();)
+			{
+				if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT)
+					it = m_RequestedPeerTests.erase (it);
+				else
+					it++;
+			}
+
+			{
+				std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
+				for (auto it = m_SessionsByRouterHash.begin (); it != m_SessionsByRouterHash.begin ();)
+				{
+					if (it->second.expired ())
+						it = m_SessionsByRouterHash.erase (it);
+					else
+						it++;
+				}
+			}	
+			
 			m_PacketsPool.CleanUpMt ();
+			m_PacketsArrayPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();
@@ -1085,97 +1222,100 @@ namespace transport
 	}
 
 	std::vector<std::shared_ptr<SSU2Session> > SSU2Server::FindIntroducers (int maxNumIntroducers,
-		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded) const
+		bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded)
 	{
 		std::vector<std::shared_ptr<SSU2Session> > ret;
-		if (maxNumIntroducers <= 0) return ret;
-		auto newer = [](const std::shared_ptr<SSU2Session>& s1, const std::shared_ptr<SSU2Session>& s2) -> bool 
-		{
-			auto t1 = s1->GetCreationTime (), t2 = s2->GetCreationTime (); 
-        	return (t1 != t2) ? (t1 > t2) : (s1->GetConnID () > s2->GetConnID ());
-   		};
-		std::set<std::shared_ptr<SSU2Session>, decltype (newer)> introducers(newer);
+		if (maxNumIntroducers <= 0 || m_Sessions.empty ()) return ret;
+		
+		std::vector<std::shared_ptr<SSU2Session> > eligible;
+		eligible.reserve (m_Sessions.size ()/2);
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		for (const auto& s : m_Sessions)
 		{
 			if (s.second->IsEstablished () && (s.second->GetRelayTag () && s.second->IsOutgoing ()) &&
+			    ts < s.second->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION/2 &&
 			    !excluded.count (s.second->GetRemoteIdentity ()->GetIdentHash ()) &&
 			    ((v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V4)) ||
 			    (!v4 && (s.second->GetRemoteTransports () & i2p::data::RouterInfo::eSSU2V6))))
-				introducers.insert (s.second);
+				eligible.push_back (s.second);
 		}
-		int i = 0;
-		for (auto it: introducers)
-		{
-			ret.push_back (it);
-			i++;
-			if (i >= maxNumIntroducers) break;
-		}	
+
+		if (eligible.size () <= (size_t)maxNumIntroducers)
+			return eligible;
+		else	
+			std::sample (eligible.begin(), eligible.end(), std::back_inserter(ret), maxNumIntroducers, m_Rng);
 		return ret;
 	}
 
 	void SSU2Server::UpdateIntroducers (bool v4)
 	{
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::list<i2p::data::IdentHash> newList, impliedList;
+		std::list<std::pair<i2p::data::IdentHash, uint32_t> > newList, impliedList;
 		auto& introducers = v4 ? m_Introducers : m_IntroducersV6;
 		std::unordered_set<i2p::data::IdentHash> excluded;
-		for (const auto& it : introducers)
+		for (const auto& [ident, tag] : introducers)
 		{
-			std::shared_ptr<SSU2Session> session;
-			auto it1 = m_SessionsByRouterHash.find (it);
-			if (it1 != m_SessionsByRouterHash.end ())
-			{
-				session = it1->second;
-				excluded.insert (it);
-			}
-			if (session && session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing () && // still session with introducer?
-				ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
+			std::shared_ptr<SSU2Session> session = FindSession (ident);
+			if (session)
+				excluded.insert (ident);
+			if (session)
 			{	
-				session->SendKeepAlive ();
-				if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
-					newList.push_back (it);
-				else	
+				if (session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing () && // still session with introducer?
+					ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION)
 				{	
-					impliedList.push_back (it); // keep in introducers list, but not publish
-					session = nullptr;	
-				}		
+					session->SendKeepAlive ();
+					if (ts < session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION)	
+					{	
+						newList.push_back ({ident, session->GetRelayTag ()});
+						if (tag != session->GetRelayTag ())
+						{
+							LogPrint (eLogDebug, "SSU2: Introducer session to  ", session->GetIdentHashBase64() , " was replaced. iTag ", tag, "->", session->GetRelayTag ());
+							i2p::context.UpdateSSU2Introducer (ident, v4, session->GetRelayTag (),
+								session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION);
+						}	
+					}
+					else	
+					{	
+						impliedList.push_back ({ident, session->GetRelayTag ()}); // keep in introducers list, but not publish
+						session = nullptr;	
+					}
+				}	
+				else
+					session = nullptr;
 			}	
-			else
-				session = nullptr;
 			
 			if (!session)
-				i2p::context.RemoveSSU2Introducer (it, v4);
+				i2p::context.RemoveSSU2Introducer (ident, v4);
 		}
+		int numOldSessions = 0;
 		if (newList.size () < SSU2_MAX_NUM_INTRODUCERS)
 		{
 			auto sessions = FindIntroducers (SSU2_MAX_NUM_INTRODUCERS - newList.size (), v4, excluded);
-			if (sessions.empty () && !introducers.empty ())
+			if (sessions.empty () && !impliedList.empty ())
 			{
-				// bump creation time for previous introducers if no new sessions found
 				LogPrint (eLogDebug, "SSU2: No new introducers found. Trying to reuse existing");
-				impliedList.clear ();
-				for (auto& it : introducers)
+				for (const auto& it : impliedList)
 				{
-					auto it1 = m_SessionsByRouterHash.find (it);
-					if (it1 != m_SessionsByRouterHash.end ())
+					auto session = FindSession (it.first);
+					if (session)
 					{
-						auto session = it1->second;
-						if (session->IsEstablished () && session->GetRelayTag () && session->IsOutgoing ())
-						{
-							session->SetCreationTime (session->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_DURATION);
-							if (std::find (newList.begin (), newList.end (), it) == newList.end ())
-								sessions.push_back (session);
-						}
+						if (std::find_if (newList.begin (), newList.end (), 
+						    [&ident = it.first](const auto& s){ return ident == s.first; }) == newList.end ())
+						{	
+							sessions.push_back (session);
+							numOldSessions++;
+						}	
 					}
 				}
+				impliedList.clear ();
 			}
 
 			for (const auto& it : sessions)
 			{
-				uint32_t tag = it->GetRelayTag ();
+				uint32_t tag = it->GetRelayTag ();		
 				uint32_t exp = it->GetCreationTime () + SSU2_TO_INTRODUCER_SESSION_EXPIRATION;
-				if (!tag || ts + SSU2_TO_INTRODUCER_SESSION_DURATION/2 > exp)
-					continue; // don't pick too old session for introducer	
+				if (!tag && ts >= exp) 
+					continue; // don't publish expired introducer
 				i2p::data::RouterInfo::Introducer introducer;
 				introducer.iTag = tag;
 				introducer.iH = it->GetRemoteIdentity ()->GetIdentHash ();
@@ -1185,16 +1325,28 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU2: Introducer added ", it->GetRelayTag (), " at ",
 						i2p::data::GetIdentHashAbbreviation (it->GetRemoteIdentity ()->GetIdentHash ()));
-					newList.push_back (it->GetRemoteIdentity ()->GetIdentHash ());
+					newList.push_back ({ it->GetRemoteIdentity ()->GetIdentHash (), tag });
+					it->SendKeepAlive ();
 					if (newList.size () >= SSU2_MAX_NUM_INTRODUCERS) break;
 				}
 			}
 		}
 		introducers = newList;
 
-		if (introducers.size () < SSU2_MAX_NUM_INTRODUCERS)
+		if (introducers.size () < SSU2_MAX_NUM_INTRODUCERS || numOldSessions)
 		{
-			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS; i++)
+			// we need to create more sessions with relay tag
+			
+			// exclude all existing sessions
+			excluded.clear ();
+			{
+				std::lock_guard<std::mutex> l(m_SessionsByRouterHashMutex);
+				for (const auto& [ident, s] : m_SessionsByRouterHash)
+					excluded.insert (ident);
+			}	
+
+			// sesssion about to expire are not counted
+			for (auto i = introducers.size (); i < SSU2_MAX_NUM_INTRODUCERS + numOldSessions; i++)
 			{
 				auto introducer = i2p::data::netdb.GetRandomSSU2Introducer (v4, excluded);
 				if (introducer)

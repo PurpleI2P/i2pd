@@ -117,9 +117,14 @@ namespace config {
 			("httpproxy.latency.max", value<std::string>()->default_value("0"),       "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""),           "HTTP proxy upstream out proxy url")
 			("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
+			("httpproxy.senduseragent", value<bool>()->default_value(false),          "Pass through user's User-Agent if enabled. Disabled by deafult")
 			("httpproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
 			("httpproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
 			("httpproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
+			("httpproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of HTTP proxy stream in bytes/sec")
+			("httpproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of HTTP proxy stream in bytes/sec")
+			("httpproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "HTTP Proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
+
 		;
 
 		options_description socksproxy("SOCKS Proxy options");
@@ -144,6 +149,9 @@ namespace config {
 			("socksproxy.i2cp.leaseSetType", value<std::string>()->default_value("3"), "Local destination's LeaseSet type")
 			("socksproxy.i2cp.leaseSetEncType", value<std::string>()->default_value("0,4"), "Local destination's LeaseSet encryption type")
 			("socksproxy.i2cp.leaseSetPrivKey", value<std::string>()->default_value(""), "LeaseSet private key")
+			("socksproxy.i2p.streaming.maxOutboundSpeed", value<std::string>()->default_value("1730000000"), "Max outbound speed of SOCKS proxy stream in bytes/sec")
+			("socksproxy.i2p.streaming.maxInboundSpeed", value<std::string>()->default_value("1730000000"), "Max inbound speed of SOCKS proxy stream in bytes/sec")
+			("socksproxy.i2p.streaming.profile", value<std::string>()->default_value("1"), "SOCKS Proxy bandwidth usage profile. 1 - bulk(high), 2- interactive(low)")
 		;
 
 		options_description sam("SAM bridge options");

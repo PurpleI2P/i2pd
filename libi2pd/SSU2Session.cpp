@@ -18,6 +18,12 @@ namespace i2p
 {
 namespace transport
 {
+	static inline void CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4);
+		htole64buf (nonce + 4, seqn);
+	}
+	
 	void SSU2IncompleteMessage::AttachNextFragment (const uint8_t * fragment, size_t fragmentSize)
 	{
 		if (msg->len + fragmentSize > msg->maxLen)
@@ -79,7 +85,7 @@ namespace transport
 	}
 
 	SSU2Session::SSU2Session (SSU2Server& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool noise):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
 		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
@@ -93,11 +99,13 @@ namespace transport
 		m_MaxPayloadSize (SSU2_MIN_PACKET_SIZE - IPV6_HEADER_SIZE - UDP_HEADER_SIZE - 32), // min size
 		m_LastResendTime (0), m_LastResendAttemptTime (0)
 	{
-		m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
+		if (noise)	
+			m_NoiseState.reset (new i2p::crypto::NoiseSymmetricState);
 		if (in_RemoteRouter && m_Address)
 		{
 			// outgoing
-			InitNoiseXKState1 (*m_NoiseState, m_Address->s);
+			if (noise)
+				InitNoiseXKState1 (*m_NoiseState, m_Address->s);
 			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
 			m_RemoteTransports = in_RemoteRouter->GetCompatibleTransports (false);
 			if (in_RemoteRouter->IsSSU2PeerTesting (true)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V4;
@@ -108,7 +116,8 @@ namespace transport
 		else
 		{
 			// incoming
-			InitNoiseXKState1 (*m_NoiseState, i2p::context.GetSSU2StaticPublicKey ());
+			if (noise)
+				InitNoiseXKState1 (*m_NoiseState, i2p::context.GetSSU2StaticPublicKey ());
 		}
 	}
 
@@ -161,40 +170,47 @@ namespace transport
 		if (!session || !relayTag) return false;
 		// find local address to introduce
 		auto localAddress = session->FindLocalAddress ();
-		if (!localAddress) return false;
+		if (!localAddress || localAddress->host.is_unspecified () || !localAddress->port) 
+		{	
+			// can't introduce invalid endpoint
+			LogPrint (eLogWarning, "SSU2: Can't find local address to introduce");
+			return false; 
+		}	
 		// create nonce
 		uint32_t nonce;
 		RAND_bytes ((uint8_t *)&nonce, 4);
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// payload
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = 0;
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		uint8_t * payload = packet->payload;
 		payload[0] = eSSU2BlkRelayRequest;
 		payload[3] = 0; // flag
 		htobe32buf (payload + 4, nonce);
 		htobe32buf (payload + 8, relayTag);
-		htobe32buf (payload + 12, ts);
+		htobe32buf (payload + 12, ts/1000);
 		payload[16] = 2; // ver
 		size_t asz = CreateEndpoint (payload + 18, m_MaxPayloadSize - 18, boost::asio::ip::udp::endpoint (localAddress->host, localAddress->port));
 		if (!asz) return false;
 		payload[17] = asz;
-		payloadSize += asz + 18;
+		packet->payloadSize = asz + 18;
 		SignedData s;
 		s.Insert ((const uint8_t *)"RelayRequestData", 16); // prologue
 		s.Insert (GetRemoteIdentity ()->GetIdentHash (), 32); // bhash
 		s.Insert (session->GetRemoteIdentity ()->GetIdentHash (), 32); // chash
 		s.Insert (payload + 4, 14 + asz); // nonce, relay tag, timestamp, ver, asz and Alice's endpoint
-		s.Sign (i2p::context.GetPrivateKeys (), payload + payloadSize);
-		payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
-		htobe16buf (payload + 1, payloadSize - 3); // size
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
+		s.Sign (i2p::context.GetPrivateKeys (), payload + packet->payloadSize);
+		packet->payloadSize += i2p::context.GetIdentity ()->GetSignatureLen ();
+		htobe16buf (payload + 1, packet->payloadSize - 3); // size
+		packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		// send
-		m_RelaySessions.emplace (nonce, std::make_pair (session, ts));
+		m_RelaySessions.emplace (nonce, std::make_pair (session, ts/1000));
 		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
 		session->m_DestConnID = ~session->m_SourceConnID;
 		m_Server.AddSession (session);
-		SendData (payload, payloadSize);
-
+		int32_t packetNum = SendData (packet->payload, packet->payloadSize);
+		packet->sendTime = ts;
+		m_SentPackets.emplace (packetNum, packet);
+		
 		return true;
 	}
 
@@ -208,15 +224,22 @@ namespace transport
 	{
 		if (m_State == eSSU2SessionStateIntroduced)
 		{
-			// create new connID
-			uint64_t oldConnID = GetConnID ();
-			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
-			RAND_bytes ((uint8_t *)&m_SourceConnID, 8);
-			// connect
+			// we are Alice
+			//  keep ConnIDs used for introduction, because Charlie waits for SessionRequest from us
 			m_State = eSSU2SessionStateTokenReceived;
-			m_Server.AddPendingOutgoingSession (shared_from_this ());
-			m_Server.RemoveSession (oldConnID);
-			Connect ();
+			// move session to pending outgoing
+			if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
+			{                                                             
+				m_Server.RemoveSession (GetConnID ());
+				// connect
+				LogPrint (eLogDebug, "SSU2: Connecting after introduction to ", GetIdentHashBase64());
+				Connect ();
+			}
+			else 
+			{
+				LogPrint (eLogError, "SSU2: Session ", GetConnID (), " is already pending");
+				m_Server.RequestRemoveSession (GetConnID ());
+			}	
 		}
 	}
 
@@ -227,11 +250,9 @@ namespace transport
 		RAND_bytes ((uint8_t *)&nonce, 4);
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		// session for message 5
-		auto session = std::make_shared<SSU2Session> (m_Server);
-		session->SetState (eSSU2SessionStatePeerTest);
-		m_PeerTests.emplace (nonce, std::make_pair (session, ts/1000));
-		session->m_SourceConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
-		session->m_DestConnID = ~session->m_SourceConnID;
+		auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
+			htobe64 (((uint64_t)nonce << 32) | nonce), 0);
+		m_Server.AddRequestedPeerTest (nonce, session, ts/1000);
 		m_Server.AddSession (session);
 		// peer test block
 		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
@@ -252,7 +273,7 @@ namespace transport
 		{
 			uint8_t payload[20];
 			size_t payloadSize = CreatePaddingBlock (payload, 20, 8);
-			SendData (payload, payloadSize);
+			SendData (payload, payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
 		}
 	}
 
@@ -265,6 +286,7 @@ namespace transport
 			m_OnEstablished = nullptr;
 			if (m_RelayTag)
 				m_Server.RemoveRelay (m_RelayTag);
+			m_Server.AddConnectedRecently (m_RemoteEndpoint, GetLastActivityTimestamp ());
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
@@ -275,20 +297,15 @@ namespace transport
 			m_SentPackets.clear ();
 			m_IncompleteMessages.clear ();
 			m_RelaySessions.clear ();
-			m_PeerTests.clear ();
 			m_ReceivedI2NPMsgIDs.clear ();
 			m_Server.RemoveSession (m_SourceConnID);
 			transports.PeerDisconnected (shared_from_this ());
 			auto remoteIdentity = GetRemoteIdentity ();
 			if (remoteIdentity)
-			{
 				LogPrint (eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
 					" (", i2p::data::GetIdentHashAbbreviation (remoteIdentity->GetIdentHash ()), ") terminated");
-			}
 			else
-			{
 				LogPrint (eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (), " terminated");
-			}
 		}
 	}
 
@@ -587,11 +604,7 @@ namespace transport
 		if (!resentPackets.empty ())
 		{
 			m_LastResendTime = ts;
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			m_SentPackets.merge (resentPackets);
-#else
-			m_SentPackets.insert (resentPackets.begin (), resentPackets.end ());
-#endif
 			m_WindowSize >>= 1; // /2
 			if (m_WindowSize < SSU2_MIN_WINDOW_SIZE) m_WindowSize = SSU2_MIN_WINDOW_SIZE;
 			return resentPackets.size ();
@@ -1157,7 +1170,7 @@ namespace transport
 			if (profile) // older router?
 				profile->Duplicated (); // mark router as duplicated in profile
 			else	
-				LogPrint (eLogError, "SSU2: Host mismatch between published address ", m_Address->host,
+				LogPrint (eLogInfo, "SSU2: Host mismatch between published address ", m_Address->host,
 					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
@@ -1419,83 +1432,17 @@ namespace transport
 			return false;
 		}
 		HandlePayload (payload, len - 48);
+		m_IsDataReceived = false;
 		// connect to Charlie
 		ConnectAfterIntroduction ();
 
 		return true;
 	}
 
-	void SSU2Session::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, const uint8_t * introKey)
-	{
-		Header header;
-		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
-		// fill packet
-		header.h.connID = m_DestConnID; // dest id
-		RAND_bytes (header.buf + 8, 4); // random packet num
-		header.h.type = eSSU2PeerTest;
-		header.h.flags[0] = 2; // ver
-		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
-		header.h.flags[2] = 0; // flag
-		memcpy (h, header.buf, 16);
-		memcpy (h + 16, &m_SourceConnID, 8); // source id
-		// payload
-		payload[0] = eSSU2BlkDateTime;
-		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
-		size_t payloadSize = 7;
-		if (msg == 6 || msg == 7)
-			payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, m_RemoteEndpoint);
-		payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize,
-			msg, eSSU2PeerTestCodeAccept, nullptr, signedData, signedDataLen);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		// encrypt
-		uint8_t n[12];
-		CreateNonce (be32toh (header.h.packetNum), n);
-		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, introKey, n, payload, payloadSize + 16, true);
-		payloadSize += 16;
-		header.ll[0] ^= CreateHeaderMask (introKey, payload + (payloadSize - 24));
-		header.ll[1] ^= CreateHeaderMask (introKey, payload + (payloadSize - 12));
-		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
-		// send
-		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, m_RemoteEndpoint);
-	}
-
 	bool SSU2Session::ProcessPeerTest (uint8_t * buf, size_t len)
 	{
-		// we are Alice or Charlie
-		Header header;
-		memcpy (header.buf, buf, 16);
-		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
-		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
-		if (header.h.type != eSSU2PeerTest)
-		{
-			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
-			return false;
-		}
-		if (len < 48)
-		{
-			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
-			return false;
-		}
-		uint8_t nonce[12] = {0};
-		uint64_t headerX[2]; // sourceConnID, token
-		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
-		m_DestConnID = headerX[0];
-		// decrypt and handle payload
-		uint8_t * payload = buf + 32;
-		CreateNonce (be32toh (header.h.packetNum), nonce);
-		uint8_t h[32];
-		memcpy (h, header.buf, 16);
-		memcpy (h + 16, &headerX, 16);
-		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32,
-			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
-		{
-			LogPrint (eLogWarning, "SSU2: PeerTest AEAD verification failed ");
-			return false;
-		}
-		HandlePayload (payload, len - 48);
-		return true;
+		LogPrint (eLogWarning, "SSU2:  Unexpected peer test message for this session type");
+		return false;
 	}
 
 	uint32_t SSU2Session::SendData (const uint8_t * buf, size_t len, uint8_t flags)
@@ -1561,6 +1508,7 @@ namespace transport
 			return;
 		}
 		UpdateNumReceivedBytes (len);
+		if (header.h.flags[0] & SSU2_FLAG_IMMEDIATE_ACK_REQUESTED) m_IsDataReceived = true;
 		if (!packetNum || UpdateReceivePacketNum (packetNum))
 			HandlePayload (payload, payloadSize);
 	}
@@ -1636,14 +1584,17 @@ namespace transport
 				case eSSU2BlkRelayRequest:
 					LogPrint (eLogDebug, "SSU2: RelayRequest");
 					HandleRelayRequest (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkRelayResponse:
 					LogPrint (eLogDebug, "SSU2: RelayResponse");
 					HandleRelayResponse (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkRelayIntro:
 					LogPrint (eLogDebug, "SSU2: RelayIntro");
 					HandleRelayIntro (buf + offset, size);
+					m_IsDataReceived = true;
 				break;
 				case eSSU2BlkPeerTest:
 					LogPrint (eLogDebug, "SSU2: PeerTest msg=", (int)buf[offset], " code=", (int)buf[offset+1]);
@@ -1754,28 +1705,34 @@ namespace transport
 
 	void SSU2Session::HandleRouterInfo (const uint8_t * buf, size_t len)
 	{
-		auto ri = ExtractRouterInfo (buf, len);
-		if (ri)
+		if (len < 2) return;
+		// not from SessionConfirmed, we must add it instantly to use in next block
+		std::shared_ptr<const i2p::data::RouterInfo> newRi;
+		if (buf[0] & SSU2_ROUTER_INFO_FLAG_GZIP) // compressed?
 		{	
-			// not from SessionConfirmed, we must add it instantly to use in next block
-			auto newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());	// TODO: add ri
-			if (newRi)
+			auto ri = ExtractRouterInfo (buf, len);
+			if (ri)
+				newRi = i2p::data::netdb.AddRouterInfo (ri->GetBuffer (), ri->GetBufferLen ());
+		}	
+		else // use buffer directly. TODO: handle frag
+			newRi = i2p::data::netdb.AddRouterInfo (buf + 2, len - 2);
+
+		if (newRi)
+		{
+			auto remoteIdentity = GetRemoteIdentity ();
+			if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
 			{
-				auto remoteIdentity = GetRemoteIdentity ();
-				if (remoteIdentity && remoteIdentity->GetIdentHash () == newRi->GetIdentHash ())
+				// peer's RouterInfo update
+				SetRemoteIdentity (newRi->GetIdentity ());
+				auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
+				if (address)
 				{
-					// peer's RouterInfo update
-					SetRemoteIdentity (newRi->GetIdentity ());
-					auto address = m_RemoteEndpoint.address ().is_v6 () ? newRi->GetSSU2V6Address () : newRi->GetSSU2V4Address ();
-					if (address)
-					{
-						m_Address = address;
-						if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
-							m_RelayTag = 0; // not longer introducer
-					}	
+					m_Address = address;
+					if (IsOutgoing () && m_RelayTag && !address->IsIntroducer ())
+						m_RelayTag = 0; // not longer introducer
 				}	
 			}	
-		}	
+		}		
 	}	
 		
 	void SSU2Session::HandleAck (const uint8_t * buf, size_t len)
@@ -2007,27 +1964,32 @@ namespace transport
 			SendData (payload, payloadSize);
 			return;
 		}
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		session->m_RelaySessions.emplace (bufbe32toh (buf + 1), // nonce
-			std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()) );
+			std::make_pair (shared_from_this (), mts/1000) );
 
 		// send relay intro to Charlie
 		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
 		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
 		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
 
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-		if (!payloadSize && r)
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+		if (!packet->payloadSize && r)
 			session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-		payloadSize += CreateRelayIntroBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, buf + 1, len -1);
-		if (payloadSize < m_MaxPayloadSize)
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		session->SendData (payload, payloadSize);
+		packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
+		if (packet->payloadSize < m_MaxPayloadSize)
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+		uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
+		packet->sendTime = mts;
+		// Charlie always responds with RelayResponse
+		session->m_SentPackets.emplace (packetNum, packet);
 	}
 
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		uint64_t token = 0;
 		bool isV4 = false;
@@ -2047,7 +2009,9 @@ namespace transport
 				boost::asio::ip::udp::endpoint ep;
 				if (ExtractEndpoint (buf + 47, asz, ep))
 				{
-					auto addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+					std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
+					if (!ep.address ().is_unspecified () && ep.port ())
+						addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
 					if (addr)
 					{
 						if (m_Server.IsSupported (ep.address ()))
@@ -2055,6 +2019,7 @@ namespace transport
 							token = m_Server.GetIncomingToken (ep);
 							isV4 = ep.address ().is_v4 ();
 							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
+							m_Server.AddConnectedRecently (ep, mts/1000);
 						}
 						else
 						{
@@ -2099,11 +2064,15 @@ namespace transport
 			code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
 		}
 		// send relay response to Bob
-		uint8_t payload[SSU2_MAX_PACKET_SIZE];
-		size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize,
+		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		packet->payloadSize = CreateRelayResponseBlock (packet->payload, m_MaxPayloadSize,
 			code, bufbe32toh (buf + 33), token, isV4);
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		SendData (payload, payloadSize);
+		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+		/*uint32_t packetNum = */SendData (packet->payload, packet->payloadSize);
+		// sometimes Bob doesn't ack this RelayResponse
+		// TODO: uncomment line below once the problem is resolved
+		//packet->sendTime = mts;
+		//m_SentPackets.emplace (packetNum, packet);
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
@@ -2131,13 +2100,18 @@ namespace transport
 			if (it->second.first && it->second.first->IsEstablished ())
 			{
 				// we are Bob, message from Charlie
-				uint8_t payload[SSU2_MAX_PACKET_SIZE];
+				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+				uint8_t * payload = packet->payload;
 				payload[0] = eSSU2BlkRelayResponse;
 				htobe16buf (payload + 1, len);
 				memcpy (payload + 3, buf, len); // forward to Alice as is
-				size_t payloadSize = len + 3;
-				payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-				it->second.first->SendData (payload, payloadSize);
+				packet->payloadSize = len + 3;
+				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+				/*uint32_t packetNum = */it->second.first->SendData (packet->payload, packet->payloadSize);
+				// sometimes Alice doesn't ack this RelayResponse
+				// TODO: uncomment line below once the problem is resolved
+				//packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
+				//it->second.first->m_SentPackets.emplace (packetNum, packet);
 			}
 			else
 			{
@@ -2177,18 +2151,19 @@ namespace transport
 				}
 				else
 				{
-					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1]);
+					LogPrint (eLogInfo, "SSU2: RelayResponse status code=", (int)buf[1], " nonce=", bufbe32toh (buf + 2));
 					it->second.first->Done ();
 				}
 			}
 			m_RelaySessions.erase (it);
 		}
 		else
-			LogPrint (eLogWarning, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
+			LogPrint (eLogDebug, "SSU2: RelayResponse unknown nonce ", bufbe32toh (buf + 2));
 	}
 
 	void SSU2Session::HandlePeerTest (const uint8_t * buf, size_t len)
 	{
+		// msgs 1-4	
 		if (len < 3) return;
 		uint8_t msg = buf[0];
 		size_t offset = 3; // points to signed data
@@ -2204,7 +2179,7 @@ namespace transport
 					GetRemoteIdentity ()->GetIdentHash ());
 				if (session) // session with Charlie
 				{
-					session->m_PeerTests.emplace (nonce, std::make_pair (shared_from_this (), i2p::util::GetSecondsSinceEpoch ()));
+					m_Server.AddPeerTest (nonce, shared_from_this (), ts/1000);
 					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					// Alice's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
@@ -2231,11 +2206,14 @@ namespace transport
 				else
 				{
 					// Charlie not found, send error back to Alice
-					uint8_t payload[SSU2_MAX_PACKET_SIZE], zeroHash[32] = {0};
-					size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, 4,
+					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+					uint8_t zeroHash[32] = {0};
+					packet->payloadSize = CreatePeerTestBlock (packet->payload, m_MaxPayloadSize, 4,
 						eSSU2PeerTestCodeBobNoCharlieAvailable, zeroHash, buf + offset, len - offset);
-					payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					SendData (payload, payloadSize);
+					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+					packet->sendTime = ts;
+					m_SentPackets.emplace (packetNum, packet);
 				}
 				break;
 			}
@@ -2269,19 +2247,22 @@ namespace transport
 							{
 								boost::asio::ip::udp::endpoint ep;
 								std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
-								if (ExtractEndpoint (buf + offset + 10, asz, ep))
+								if (ExtractEndpoint (buf + offset + 10, asz, ep) && !ep.address ().is_unspecified () && ep.port ())
 									addr = r->GetSSU2Address (ep.address ().is_v4 ());
 								if (addr && m_Server.IsSupported (ep.address ()) && 
 								    i2p::context.GetRouterInfo ().IsSSU2PeerTesting (ep.address ().is_v4 ()))
 								{
-									// send msg 5 to Alice
-									auto session = std::make_shared<SSU2Session> (m_Server, r, addr);
-									session->SetState (eSSU2SessionStatePeerTest);
-									session->m_RemoteEndpoint = ep; // might be different
-									session->m_DestConnID = htobe64 (((uint64_t)nonce << 32) | nonce);
-									session->m_SourceConnID = ~session->m_DestConnID;
-									m_Server.AddSession (session);
-									session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr->i);
+									if (!m_Server.IsConnectedRecently (ep)) // no alive hole punch
+									{	
+										// send msg 5 to Alice
+										auto session = std::make_shared<SSU2PeerTestSession> (m_Server, 
+											0, htobe64 (((uint64_t)nonce << 32) | nonce));
+										session->m_RemoteEndpoint = ep; // might be different
+										m_Server.AddSession (session);
+										session->SendPeerTest (5, newSignedData.data (), newSignedData.size (), addr);
+									}
+									else
+										code = eSSU2PeerTestCodeCharlieAliceIsAlreadyConnected;
 								}
 								else
 									code = eSSU2PeerTestCodeCharlieUnsupportedAddress;
@@ -2298,54 +2279,59 @@ namespace transport
 				else
 					code = eSSU2PeerTestCodeCharlieAliceIsUnknown;
 				// send msg 3 back to Bob
-				uint8_t payload[SSU2_MAX_PACKET_SIZE];
-				size_t payloadSize = CreatePeerTestBlock (payload, m_MaxPayloadSize, 3,
+				auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+				packet->payloadSize = CreatePeerTestBlock (packet->payload, m_MaxPayloadSize, 3,
 					code, nullptr, newSignedData.data (), newSignedData.size ());
-				payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-				SendData (payload, payloadSize);
+				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+				uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+				packet->sendTime = ts;
+				m_SentPackets.emplace (packetNum, packet);
 				break;
 			}
 			case 3: // Bob from Charlie
 			{
-				auto it = m_PeerTests.find (nonce);
-				if (it != m_PeerTests.end () && it->second.first)
-				{
-					uint8_t payload[SSU2_MAX_PACKET_SIZE];
+				auto aliceSession = m_Server.GetPeerTest (nonce);
+				if (aliceSession && aliceSession->IsEstablished ())
+				{	
+					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					// Charlie's RouterInfo
 					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
 					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-					size_t payloadSize = r ? CreateRouterInfoBlock (payload, m_MaxPayloadSize - len - 32, r) : 0;
-					if (!payloadSize && r)
-						it->second.first->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-					if (payloadSize + len + 16 > m_MaxPayloadSize)
+					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+					if (!packet->payloadSize && r)
+						aliceSession->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+					if (packet->payloadSize + len + 16 > m_MaxPayloadSize)
 					{
 						// doesn't fit one message, send RouterInfo in separate message
-						it->second.first->SendData (payload, payloadSize);
-						payloadSize = 0;
+						uint32_t packetNum = aliceSession->SendData (packet->payload, packet->payloadSize);
+						packet->sendTime = ts;
+						aliceSession->m_SentPackets.emplace (packetNum, packet);
+						packet = m_Server.GetSentPacketsPool ().AcquireShared ();
 					}
 					// PeerTest to Alice
-					payloadSize += CreatePeerTestBlock (payload + payloadSize, m_MaxPayloadSize, 4,
+					packet->payloadSize += CreatePeerTestBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize, 4,
 						(SSU2PeerTestCode)buf[1], GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
-					if (payloadSize < m_MaxPayloadSize)
-						payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-					it->second.first->SendData (payload, payloadSize);
-					m_PeerTests.erase (it);
-				}
+					if (packet->payloadSize < m_MaxPayloadSize)
+						packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+					uint32_t packetNum = aliceSession->SendData (packet->payload, packet->payloadSize);
+					packet->sendTime = ts;
+					aliceSession->m_SentPackets.emplace (packetNum, packet);
+				}	
 				else
-					LogPrint (eLogWarning, "SSU2: Unknown peer test 3 nonce ", nonce);
+					LogPrint (eLogDebug, "SSU2: Unknown peer test 3 nonce ", nonce);
 				break;
 			}
 			case 4: // Alice from Bob
 			{
-				auto it = m_PeerTests.find (nonce);
-				if (it != m_PeerTests.end ())
+				auto session = m_Server.GetRequestedPeerTest (nonce);
+				if (session)
 				{
 					if (buf[1] == eSSU2PeerTestCodeAccept)
 					{
 						if (GetRouterStatus () == eRouterStatusUnknown)
 							SetTestingState (true);
 						auto r = i2p::data::netdb.FindRouter (buf + 3); // find Charlie
-						if (r && it->second.first)
+						if (r)
 						{
 							uint8_t asz = buf[offset + 9];
 							SignedData s;
@@ -2355,26 +2341,33 @@ namespace transport
 							s.Insert (buf + offset, asz + 10); // ver, nonce, ts, asz, Alice's endpoint
 							if (s.Verify (r->GetIdentity (), buf + offset + asz + 10))
 							{
-								it->second.first->SetRemoteIdentity (r->GetIdentity ());
+								session->SetRemoteIdentity (r->GetIdentity ());
 								auto addr = r->GetSSU2Address (m_Address->IsV4 ());
 								if (addr)
 								{
-									it->second.first->m_Address = addr;
-									if (it->second.first->m_State == eSSU2SessionStatePeerTestReceived)
+									if (session->GetMsgNumReceived () >= 5)
 									{
-										// msg 5 already received. send msg 6
-										SetRouterStatus (eRouterStatusOK);
-										it->second.first->m_State = eSSU2SessionStatePeerTest;
-										it->second.first->SendPeerTest (6, buf + offset, len - offset, addr->i);
+										// msg 5 already received 
+										if (session->GetMsgNumReceived () == 5)
+										{	
+											if (!session->IsConnectedRecently ())
+												SetRouterStatus (eRouterStatusOK);
+										 	// send msg 6
+											session->SendPeerTest (6, buf + offset, len - offset, addr);
+										}
+										else
+											LogPrint (eLogWarning, "SSU2: PeerTest 4 received, but msg ", session->GetMsgNumReceived (), " already received");
 									}
 									else
 									{
+										session->m_Address = addr;
 										if (GetTestingState ())
 										{
 											SetTestingState (false);
 											if (GetRouterStatus () != eRouterStatusFirewalled && addr->IsPeerTesting ())
 											{
 												SetRouterStatus (eRouterStatusFirewalled);
+												session->SetStatusChanged ();
 												if (m_Address->IsV4 ())
 													m_Server.RescheduleIntroducersUpdateTimer ();
 												else
@@ -2388,63 +2381,34 @@ namespace transport
 								else
 								{
 									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found");
-									it->second.first->Done ();
+									session->Done ();
 								}
 							}
 							else
 							{
 								LogPrint (eLogWarning, "SSU2: Peer test 4 signature verification failed");
-								it->second.first->Done ();
+								session->Done ();
 							}
 						}
 						else
 						{
 							LogPrint (eLogWarning, "SSU2: Peer test 4 router not found");
-							if (it->second.first)
-								it->second.first->Done ();
+							session->Done ();
 						}
 					}
 					else
 					{
 						LogPrint (eLogInfo, "SSU2: Peer test 4 error code ", (int)buf[1], " from ",
 							i2p::data::GetIdentHashAbbreviation (buf[1] < 64 ? GetRemoteIdentity ()->GetIdentHash () : i2p::data::IdentHash (buf + 3)));
-						if (GetTestingState ())
+						if (GetTestingState () && GetRouterStatus () != eRouterStatusFirewalled)
 							SetRouterStatus (eRouterStatusUnknown);
-						it->second.first->Done ();
+						session->Done ();
 					}
-					m_PeerTests.erase (it);
 				}
 				else
-					LogPrint (eLogWarning, "SSU2: Unknown peer test 4 nonce ", nonce);
+					LogPrint (eLogDebug, "SSU2: Unknown peer test 4 nonce ", nonce);
 				break;
 			}
-			case 5: // Alice from Charlie 1
-				if (htobe64 (((uint64_t)nonce << 32) | nonce) == m_SourceConnID)
-				{
-					if (m_Address)
-					{
-						SetRouterStatus (eRouterStatusOK);
-						SendPeerTest (6, buf + offset, len - offset, m_Address->i);
-					}
-					else
-						// we received msg 5 before msg 4
-						m_State = eSSU2SessionStatePeerTestReceived;
-				}
-				else
-					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", m_SourceConnID);
-			break;
-			case 6: // Charlie from Alice
-				if (m_Address)
-					SendPeerTest (7, buf + offset, len - offset, m_Address->i);
-				else
-					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				m_Server.RemoveSession (~htobe64 (((uint64_t)nonce << 32) | nonce));
-			break;
-			case 7: // Alice from Charlie 2
-				if (m_Address->IsV6 ())
-					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
-				m_Server.RemoveSession (htobe64 (((uint64_t)nonce << 32) | nonce));
-			break;
 			default:
 				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", buf[0]);
 		}
@@ -2933,20 +2897,16 @@ namespace transport
 			i2p::data::GzipInflator inflator;
 			uint8_t uncompressed[i2p::data::MAX_RI_BUFFER_SIZE];
 			size_t uncompressedSize = inflator.Inflate (buf + 2, size - 2, uncompressed, i2p::data::MAX_RI_BUFFER_SIZE);
-			if (uncompressedSize && uncompressedSize < i2p::data::MAX_RI_BUFFER_SIZE)
+			if (uncompressedSize && uncompressedSize <= i2p::data::MAX_RI_BUFFER_SIZE)
 				ri = std::make_shared<i2p::data::RouterInfo>(uncompressed, uncompressedSize);
 			else
 				LogPrint (eLogInfo, "SSU2: RouterInfo decompression failed ", uncompressedSize);
 		}
-		else
+		else if (size <= i2p::data::MAX_RI_BUFFER_SIZE + 2)
 			ri = std::make_shared<i2p::data::RouterInfo>(buf + 2, size - 2);
+		else
+			LogPrint (eLogInfo, "SSU2: RouterInfo is too long ", size);
 		return ri;
-	}
-
-	void SSU2Session::CreateNonce (uint64_t seqn, uint8_t * nonce)
-	{
-		memset (nonce, 0, 4);
-		htole64buf (nonce + 4, seqn);
 	}
 
 	bool SSU2Session::UpdateReceivePacketNum (uint32_t packetNum)
@@ -3108,16 +3068,6 @@ namespace transport
 			else
 				++it;
 		}
-		for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
-		{
-			if (ts > it->second.second + SSU2_PEER_TEST_EXPIRATION_TIMEOUT)
-			{
-				LogPrint (eLogWarning, "SSU2: Peer test nonce ", it->first, " was not responded in ", SSU2_PEER_TEST_EXPIRATION_TIMEOUT, " seconds, deleted");
-				it = m_PeerTests.erase (it);
-			}
-			else
-				++it;
-		}
 		if (m_PathChallenge)
 			RequestTermination (eSSU2TerminationReasonNormalClose);
 	}
@@ -3137,5 +3087,215 @@ namespace transport
 			Resend (i2p::util::GetMillisecondsSinceEpoch ()); // than right time to resend
 	}
 
+	SSU2PeerTestSession::SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID): 
+		SSU2Session (server, nullptr, nullptr, false), 
+		m_MsgNumReceived (0), m_NumResends (0),m_IsConnectedRecently (false), m_IsStatusChanged (false),
+		m_PeerTestResendTimer (server.GetService ())
+	{
+		if (!sourceConnID) sourceConnID = ~destConnID;
+		if (!destConnID) destConnID = ~sourceConnID;
+		SetSourceConnID (sourceConnID);
+		SetDestConnID (destConnID);	
+		SetState (eSSU2SessionStatePeerTest);	
+		SetTerminationTimeout (SSU2_PEER_TEST_EXPIRATION_TIMEOUT);
+	}	
+
+	bool SSU2PeerTestSession::ProcessPeerTest (uint8_t * buf, size_t len)
+	{
+		// we are Alice or Charlie, msgs 5,6,7
+		Header header;
+		memcpy (header.buf, buf, 16);
+		header.ll[0] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 24));
+		header.ll[1] ^= CreateHeaderMask (i2p::context.GetSSU2IntroKey (), buf + (len - 12));
+		if (header.h.type != eSSU2PeerTest)
+		{
+			LogPrint (eLogWarning, "SSU2: Unexpected message type ", (int)header.h.type, " instead ", (int)eSSU2PeerTest);
+			return false;
+		}
+		if (len < 48)
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest message too short ", len);
+			return false;
+		}
+		uint8_t nonce[12] = {0};
+		uint64_t headerX[2]; // sourceConnID, token
+		i2p::crypto::ChaCha20 (buf + 16, 16, i2p::context.GetSSU2IntroKey (), nonce, (uint8_t *)headerX);
+		SetDestConnID (headerX[0]);
+		// decrypt and handle payload
+		uint8_t * payload = buf + 32;
+		CreateNonce (be32toh (header.h.packetNum), nonce);
+		uint8_t h[32];
+		memcpy (h, header.buf, 16);
+		memcpy (h + 16, &headerX, 16);
+		if (!i2p::crypto::AEADChaCha20Poly1305 (payload, len - 48, h, 32,
+			i2p::context.GetSSU2IntroKey (), nonce, payload, len - 48, false))
+		{
+			LogPrint (eLogWarning, "SSU2: PeerTest AEAD verification failed ");
+			return false;
+		}
+		HandlePayload (payload, len - 48);
+		SetIsDataReceived (false);
+		return true;
+	}	
+
+	void SSU2PeerTestSession::HandlePeerTest (const uint8_t * buf, size_t len)
+	{
+		// msgs 5-7
+		if (len < 8) return;
+		uint8_t msg = buf[0];
+		if (msg <= m_MsgNumReceived)
+		{
+			LogPrint (eLogDebug, "SSU2: PeerTest msg num ", msg, " received after ", m_MsgNumReceived, ". Ignored");
+			return;
+		}	
+		size_t offset = 3; // points to signed data after msg + code + flag
+		uint32_t nonce = bufbe32toh (buf + offset + 1); // 1 - ver
+		switch (msg) // msg
+		{
+			case 5: // Alice from Charlie 1
+			{	
+				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
+				{
+					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
+					if (GetAddress ())
+					{
+						if (!m_IsConnectedRecently)
+							SetRouterStatus (eRouterStatusOK);
+						else if (m_IsStatusChanged && GetRouterStatus () == eRouterStatusFirewalled)
+							SetRouterStatus (eRouterStatusUnknown);
+						SendPeerTest (6, buf + offset, len - offset);
+					}
+				}
+				else
+					LogPrint (eLogWarning, "SSU2: Peer test 5 nonce mismatch ", nonce, " connID=", GetSourceConnID ());
+				break;
+			}
+			case 6: // Charlie from Alice
+			{	
+				m_PeerTestResendTimer.cancel (); // no more msg 5 resends
+				if (GetAddress ())
+					SendPeerTest (7, buf + offset, len - offset);
+				else
+					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
+				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
+				GetServer ().RequestRemoveSession (GetConnID ());
+				break;
+			}			
+			case 7: // Alice from Charlie 2
+			{	
+				m_PeerTestResendTimer.cancel (); // no more msg 6 resends
+				auto addr = GetAddress ();
+				if (addr && addr->IsV6 ())
+					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
+				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
+				GetServer ().RequestRemoveSession (GetConnID ());	
+				break;
+			}	
+			default:	
+				LogPrint (eLogWarning, "SSU2: PeerTest unexpected msg num ", msg);
+				return;
+		}	
+		m_MsgNumReceived = msg;	
+	}
+
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg)
+	{
+		auto addr = GetAddress ();
+		if (!addr) return;
+		Header header;
+		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
+		// fill packet
+		header.h.connID = GetDestConnID (); // dest id
+		RAND_bytes (header.buf + 8, 4); // random packet num
+		header.h.type = eSSU2PeerTest;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		htobuf64 (h + 16, GetSourceConnID ()); // source id
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		size_t payloadSize = 7;
+		if (msg == 6 || msg == 7)
+			payloadSize += CreateAddressBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize, GetRemoteEndpoint ());
+		payloadSize += CreatePeerTestBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize,
+			msg, eSSU2PeerTestCodeAccept, nullptr, m_SignedData.data (), m_SignedData.size ());
+		payloadSize += CreatePaddingBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize);
+		// encrypt
+		uint8_t n[12];
+		CreateNonce (be32toh (header.h.packetNum), n);
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, addr->i, n, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
+		memset (n, 0, 12);
+		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		// send
+		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
+	}	
+
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen)
+	{
+#if __cplusplus >= 202002L // C++20
+		m_SignedData.assign (signedData, signedData + signedDataLen);
+#else		
+		m_SignedData.resize (signedDataLen);
+		memcpy (m_SignedData.data (), signedData, signedDataLen);
+#endif		
+		SendPeerTest (msg);
+		// schedule resend for msgs 5 or 6
+		if (msg == 5 || msg == 6)
+			ScheduleResend ();
+	}	
+		
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr)
+	{
+		if (!addr) return;
+		SetAddress (addr);
+		SendPeerTest (msg, signedData, signedDataLen);	
+	}	
+
+	void SSU2PeerTestSession::Connect ()
+	{
+		LogPrint (eLogError, "SSU2: Can't connect peer test session");
+	}	
+
+	bool SSU2PeerTestSession::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
+	{
+		LogPrint (eLogError, "SSU2: Can't handle incoming message in peer test session");
+		return false;
+	}	
+
+	void SSU2PeerTestSession::ScheduleResend ()
+	{
+		if (m_NumResends < SSU2_PEER_TEST_MAX_NUM_RESENDS)
+		{
+			m_PeerTestResendTimer.expires_from_now (boost::posix_time::milliseconds(
+				SSU2_PEER_TEST_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE));
+			std::weak_ptr<SSU2PeerTestSession> s(std::static_pointer_cast<SSU2PeerTestSession>(shared_from_this ()));
+			m_PeerTestResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+				{
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						auto s1 = s.lock ();
+						if (s1) 
+						{
+							int msg = 0;
+							if (s1->m_MsgNumReceived < 6)
+								msg = (s1->m_MsgNumReceived == 5) ? 6 : 5;
+							if (msg) // 5 or 6
+							{	
+								s1->SendPeerTest (msg);
+								s1->ScheduleResend ();
+							}	
+						}	
+					}	
+				});
+			m_NumResends++;
+		}	
+	}	
 }
 }

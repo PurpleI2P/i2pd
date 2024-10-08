@@ -1480,7 +1480,7 @@ namespace http {
 		reply.body = content;
 
 		m_SendBuffer = reply.to_string();
-		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer),
+		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer), boost::asio::transfer_all (), 
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 

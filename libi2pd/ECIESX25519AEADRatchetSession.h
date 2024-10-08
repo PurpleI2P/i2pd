@@ -35,7 +35,7 @@ namespace garlic
 	const int ECIESX25519_ACK_REQUEST_MAX_NUM_ATTEMPTS = 3;
 	const int ECIESX25519_TAGSET_MAX_NUM_TAGS = 8192; // number of tags we request new tagset after
 	const int ECIESX25519_MIN_NUM_GENERATED_TAGS = 24;
-	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 320;
+	const int ECIESX25519_MAX_NUM_GENERATED_TAGS = 800;
 	const int ECIESX25519_NSR_NUM_GENERATED_TAGS = 12;
 
 	const size_t ECIESX25519_OPTIMAL_PAYLOAD_SIZE = 1912; // 1912 = 1956 /* to fit 2 tunnel messages */

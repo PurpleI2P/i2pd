@@ -69,7 +69,7 @@ namespace data
 		{
 			Reseed ();
 		}
-		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false))
+		else if (!GetRandomRouter (i2p::context.GetSharedRouterInfo (), false, false, false))
 			Reseed (); // we don't have a router we can connect to. Trying to reseed
 
 		auto it = m_RouterInfos.find (i2p::context.GetIdentHash ());
@@ -140,10 +140,6 @@ namespace data
 							break;
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
-							break;
-							case eI2NPDummyMsg:
-								// plain RouterInfo from NTCP2 with flags for now
-								HandleNTCP2RouterInfoMsg (msg);
 							break;
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: Unexpected message type ", (int) msg->GetTypeID ());
@@ -299,7 +295,8 @@ namespace data
 			{
 				auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 			    isValid = mts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL > r->GetTimestamp () && // from future
-					mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL; // too old
+					(mts < r->GetTimestamp () + NETDB_MAX_EXPIRATION_TIMEOUT*1000LL || // too old
+					 context.GetUptime () < NETDB_CHECK_FOR_EXPIRATION_UPTIME/10); // enough uptime
 			}
 			if (isValid)	
 			{
@@ -763,7 +760,8 @@ namespace data
 	
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete, bool direct)
 	{
-		if (direct && i2p::transport::transports.RoutesRestricted ()) direct = false; // always use tunnels for restricted routes
+		if (direct && (i2p::transport::transports.RoutesRestricted () || i2p::context.IsLimitedConnectivity ())) 
+		    direct = false; // always use tunnels for restricted routes or limited connectivity
 		if (m_Requests)
 			m_Requests->PostRequestDestination (destination, requestComplete, direct);
 		else
@@ -1133,15 +1131,18 @@ namespace data
 	}
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith,
-		bool reverse, bool endpoint) const
+		bool reverse, bool endpoint, bool clientTunnel) const
 	{
+		bool checkIsReal = clientTunnel && i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD && // too low rate
+			context.GetUptime () > NETDB_CHECK_FOR_EXPIRATION_UPTIME; // after 10 minutes uptime
 		return GetRandomRouter (
-			[compatibleWith, reverse, endpoint](std::shared_ptr<const RouterInfo> router)->bool
+			[compatibleWith, reverse, endpoint, clientTunnel, checkIsReal](std::shared_ptr<const RouterInfo> router)->bool
 			{
 				return !router->IsHidden () && router != compatibleWith &&
 					(reverse ? (compatibleWith->IsReachableFrom (*router) && router->GetCompatibleTransports (true)):
 						router->IsReachableFrom (*compatibleWith)) && !router->IsNAT2NATOnly (*compatibleWith) &&
-					router->IsECIES () && !router->IsHighCongestion (false) &&
+					router->IsECIES () && !router->IsHighCongestion (clientTunnel) &&
+					(!checkIsReal || router->GetProfile ()->IsReal ()) &&
 					(!endpoint || (router->IsV4 () && (!reverse || router->IsPublished (true)))); // endpoint must be ipv4 and published if inbound(reverse)
 			});
 	}
@@ -1314,12 +1315,8 @@ namespace data
 		{
 			// update selection
 			m_ExploratorySelection.clear ();
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			std::vector<std::shared_ptr<const RouterInfo> > eligible;
-			eligible.reserve (m_RouterInfos.size ());
-#else		
-			auto& eligible = m_ExploratorySelection;
-#endif			
+			eligible.reserve (m_RouterInfos.size ());		
 			{
 				// collect eligible from current netdb
 				bool checkIsReal = i2p::tunnel::tunnels.GetPreciseTunnelCreationSuccessRate () < NETDB_TUNNEL_CREATION_RATE_THRESHOLD; // too low rate
@@ -1329,22 +1326,13 @@ namespace data
 					 	(!checkIsReal || (it.second->HasProfile () && it.second->GetProfile ()->IsReal ())))
 							eligible.push_back (it.second);
 			}
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 			if (eligible.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
 			{
 				 std::sample (eligible.begin(), eligible.end(), std::back_inserter(m_ExploratorySelection),
 				 	NETDB_MAX_EXPLORATORY_SELECTION_SIZE, std::mt19937(ts));
 			}	
 			else
-				std::swap (m_ExploratorySelection, eligible);
-#else			
-			if (m_ExploratorySelection.size () > NETDB_MAX_EXPLORATORY_SELECTION_SIZE)
-			{
-				// reduce number of eligible to max selection size
-				std::shuffle (m_ExploratorySelection.begin(), m_ExploratorySelection.end(), std::mt19937(ts));
-				m_ExploratorySelection.resize (NETDB_MAX_EXPLORATORY_SELECTION_SIZE);
-			}	
-#endif			
+				std::swap (m_ExploratorySelection, eligible);	
 			m_LastExploratorySelectionUpdateTime = ts;
 		}	
 		

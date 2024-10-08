@@ -541,34 +541,7 @@ namespace garlic
 					// otherwise ECIESx25519
 					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
 					if (!session->HandleNextMessage (buf, length, nullptr, 0))
-					{
-						// try to generate more tags for last tagset
-						if (m_LastTagset && (m_LastTagset->GetNextIndex () - m_LastTagset->GetTrimBehind () < 3*ECIESX25519_MAX_NUM_GENERATED_TAGS))
-						{
-							uint64_t missingTag; memcpy (&missingTag, buf, 8);
-							auto maxTags = std::max (m_NumRatchetInboundTags, ECIESX25519_MAX_NUM_GENERATED_TAGS);
-							LogPrint (eLogWarning, "Garlic: Trying to generate more ECIES-X25519-AEAD-Ratchet tags");
-							for (int i = 0; i < maxTags; i++)
-							{
-								auto nextTag = AddECIESx25519SessionNextTag (m_LastTagset);
-								if (!nextTag)
-								{
-									LogPrint (eLogError, "Garlic: Can't create new ECIES-X25519-AEAD-Ratchet tag for last tagset");
-									break;
-								}
-								if (nextTag == missingTag)
-								{
-									LogPrint (eLogDebug, "Garlic: Missing ECIES-X25519-AEAD-Ratchet tag was generated");
-									if (m_LastTagset->HandleNextMessage (buf, length, m_ECIESx25519Tags[nextTag].index))
-										found = true;
-									break;
-								}
-							}
-							if (!found) m_LastTagset = nullptr;
-						}
-						if (!found)
-							LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
-					}
+						LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
 				}
 				else
 					LogPrint (eLogError, "Garlic: Failed to decrypt message");
@@ -583,9 +556,7 @@ namespace garlic
 		auto it = m_ECIESx25519Tags.find (tag);
 		if (it != m_ECIESx25519Tags.end ())
 		{
-			if (it->second.tagset && it->second.tagset->HandleNextMessage (buf, len, it->second.index))
-				m_LastTagset = it->second.tagset;
-			else
+			if (!it->second.tagset || !it->second.tagset->HandleNextMessage (buf, len, it->second.index))
 				LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
 			m_ECIESx25519Tags.erase (it);
 			return true;
@@ -893,8 +864,6 @@ namespace garlic
 		}
 		if (numExpiredTags > 0)
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " ECIESx25519 tags expired for ", GetIdentHash().ToBase64 ());
-		if (m_LastTagset && m_LastTagset->IsExpired (ts))
-			m_LastTagset = nullptr;
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
@@ -1031,9 +1000,7 @@ namespace garlic
 			case eGarlicDeliveryTypeDestination:
 				LogPrint (eLogDebug, "Garlic: Type destination");
 				buf += 32; // TODO: check destination
-#if (__cplusplus >= 201703L) // C++ 17 or higher
 				[[fallthrough]];
-#endif
 				// no break here
 			case eGarlicDeliveryTypeLocal:
 			{

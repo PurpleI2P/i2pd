@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -15,13 +15,15 @@ namespace proxy {
 	{
 		public:
 
-			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy, bool addresshelper, std::shared_ptr<i2p::client::ClientDestination> localDestination);
+			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, const std::string & outproxy, 
+				bool addresshelper, bool senduseragent, std::shared_ptr<i2p::client::ClientDestination> localDestination);
 			HTTPProxy(const std::string& name, const std::string& address, uint16_t port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr) :
-				HTTPProxy(name, address, port, "", true, localDestination) {} ;
+				HTTPProxy(name, address, port, "", true, false, localDestination) {} ;
 			~HTTPProxy() {};
 
 			std::string GetOutproxyURL() const { return m_OutproxyUrl; }
-			bool GetHelperSupport() { return m_Addresshelper; }
+			bool GetHelperSupport() const { return m_Addresshelper; }
+			bool GetSendUserAgent () const { return m_SendUserAgent; }
 
 		protected:
 
@@ -33,7 +35,7 @@ namespace proxy {
 
 			std::string m_Name;
 			std::string m_OutproxyUrl;
-			bool m_Addresshelper;
+			bool m_Addresshelper, m_SendUserAgent;
 	};
 } // http
 } // i2p

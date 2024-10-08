@@ -54,9 +54,11 @@ namespace stream
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
 	const int MAX_NUM_RESEND_ATTEMPTS = 10;
 	const int INITIAL_WINDOW_SIZE = 10;
-	const int MIN_WINDOW_SIZE = 1;
-	const int MAX_WINDOW_SIZE = 1024;
-	const double RTT_EWMA_ALPHA = 0.125;
+	const int MIN_WINDOW_SIZE = 2;
+	const int MAX_WINDOW_SIZE = 512;
+	const double RTT_EWMA_ALPHA = 0.25;
+	const double SLOWRTT_EWMA_ALPHA = 0.05;
+	const double PREV_SPEED_KEEP_TIME_COEFF = 0.35; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
 	const int MIN_RTO = 20; // in milliseconds
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
@@ -68,7 +70,11 @@ namespace stream
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
 	const uint64_t SEND_INTERVAL = 1000; // in microseconds
-
+	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
+	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
+	const bool LOSS_BASED_CONTROL_ENABLED = 1; // 0/1
+	const uint64_t STREAMING_DESTINATION_POOLS_CLEANUP_INTERVAL = 646; // in seconds
+	
 	struct Packet
 	{
 		size_t len, offset;
@@ -241,11 +247,13 @@ namespace stream
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
 			void UpdatePacingTime ();
+			void ProcessWindowDrop ();
 			
 		private:
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			uint32_t m_DropWindowDelaySequenceNumber;
 			uint32_t m_TunnelsChangeSequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			int32_t m_PreviousReceivedSequenceNumber;
@@ -259,6 +267,7 @@ namespace stream
 			bool m_IsSendTime;
 			bool m_IsWinDropped;
 			bool m_IsTimeOutResend;
+			bool m_IsImmediateAckRequested;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
@@ -275,10 +284,12 @@ namespace stream
 			uint16_t m_Port;
 
 			SendBufferQueue m_SendBuffer;
-			double m_RTT, m_SlowRTT;
-			float m_WindowSize, m_LastWindowDropSize;
-			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample, m_PrevRTT, m_Jitter;
-			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, m_DropWindowDelayTime, m_LastSendTime; // microseconds
+			double m_RTT, m_SlowRTT, m_SlowRTT2;
+			float m_WindowSize, m_LastWindowDropSize, m_WindowDropTargetSize;
+			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
+			double m_Jitter;
+			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
+				m_LastSendTime; // miliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;
@@ -316,6 +327,7 @@ namespace stream
 
 			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
 			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
+			uint32_t GetRandom ();
 
 		private:
 
@@ -339,7 +351,8 @@ namespace stream
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
 			i2p::util::MemoryPool<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> > m_I2NPMsgsPool;
-
+			uint64_t m_LastCleanupTime; // in seconds
+			
 		public:
 
 			i2p::data::GzipInflator m_Inflator;

@@ -1,6 +1,6 @@
 SYS := $(shell $(CXX) -dumpmachine)
 
-CXXFLAGS += -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1 -DOPENSSL_SUPPRESS_DEPRECATED -pthread -Wl,--unresolved-symbols=ignore-in-object-files
+CXXFLAGS += -Wall -Wno-unused-parameter -Wextra -pedantic -O0 -g -std=c++17 -D_GLIBCXX_USE_NANOSLEEP=1 -DOPENSSL_SUPPRESS_DEPRECATED -pthread -Wl,--unresolved-symbols=ignore-in-object-files
 INCFLAGS += -I../libi2pd
 
 LIBI2PD = ../libi2pd.a
@@ -18,7 +18,7 @@ ifneq (, $(findstring mingw, $(SYS))$(findstring windows-gnu, $(SYS))$(findstrin
 endif
 
 LDLIBS = \
-	-lboost_filesystem$(BOOST_SUFFIX) \
+	-lboost_system$(BOOST_SUFFIX) \
 	-lboost_program_options$(BOOST_SUFFIX) \
 	-lssl \
 	-lcrypto \

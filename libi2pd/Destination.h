@@ -90,6 +90,10 @@ namespace client
 	const int DEFAULT_MAX_INBOUND_SPEED = 1730000000; // no more than 1.73 Gbytes/s
 	const char I2CP_PARAM_STREAMING_ANSWER_PINGS[] = "i2p.streaming.answerPings";
 	const int DEFAULT_ANSWER_PINGS = true;
+	const char I2CP_PARAM_STREAMING_PROFILE[] = "i2p.streaming.profile";
+	const int STREAMING_PROFILE_BULK = 1; // high bandwidth
+	const int STREAMING_PROFILE_INTERACTIVE = 2; // low bandwidth
+	const int DEFAULT_STREAMING_PROFILE = STREAMING_PROFILE_BULK;
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
@@ -289,7 +293,7 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis () {
 				return std::static_pointer_cast<ClientDestination>(shared_from_this ());
 			}
-			void PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey);
+			void PersistTemporaryKeys (EncryptionKey * keys);
 			void ReadAuthKey (const std::string& group, const std::map<std::string, std::string> * params);
 
 			template<typename Dest>

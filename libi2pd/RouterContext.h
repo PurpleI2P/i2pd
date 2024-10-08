@@ -154,6 +154,7 @@ namespace garlic
 			void PublishSSU2Address (int port, bool publish, bool v4, bool v6);
 			bool AddSSU2Introducer (const i2p::data::RouterInfo::Introducer& introducer, bool v4);
 			void RemoveSSU2Introducer (const i2p::data::IdentHash& h, bool v4);
+			void UpdateSSU2Introducer (const i2p::data::IdentHash& h, bool v4, uint32_t iTag, uint32_t iExp);
 			void ClearSSU2Introducers (bool v4);
 			bool IsUnreachable () const;
 			void SetUnreachable (bool v4, bool v6);
@@ -177,6 +178,7 @@ namespace garlic
 			void SetMTU (int mtu, bool v4);
 			void SetHidden(bool hide) { m_IsHiddenMode = hide; };
 			bool IsHidden() const { return m_IsHiddenMode; };
+			bool IsLimitedConnectivity () const { return m_Status == eRouterStatusProxy; }; // TODO: implement other cases
 			i2p::crypto::NoiseSymmetricState& GetCurrentNoiseState () { return m_CurrentNoiseState; };
 
 			void UpdateNTCP2V6Address (const boost::asio::ip::address& host); // called from Daemon. TODO: remove

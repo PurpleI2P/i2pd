@@ -5,7 +5,7 @@ SSLROOT = ${BREWROOT}/opt/openssl@1.1
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
 
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wno-overloaded-virtual
-NEEDED_CXXFLAGS ?= -std=c++11
+NEEDED_CXXFLAGS ?= -std=c++17
 INCFLAGS ?= -I${SSLROOT}/include -I${BOOSTROOT}/include
 LDFLAGS ?= ${LD_DEBUG}
 DEFINES += -DMAC_OSX

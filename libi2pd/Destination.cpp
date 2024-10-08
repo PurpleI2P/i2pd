@@ -37,6 +37,7 @@ namespace client
 		int inVar   = DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE;
 		int outVar  = DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE;
 		int numTags = DEFAULT_TAGS_TO_SEND;
+		bool isHighBandwidth = true;	
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		try
 		{
@@ -92,7 +93,7 @@ namespace client
 				it = params->find (I2CP_PARAM_DONT_PUBLISH_LEASESET);
 				if (it != params->end ())
 				{
-					// oveeride isPublic
+					// override isPublic
 					m_IsPublic = (it->second != "true");
 				}
 				it = params->find (I2CP_PARAM_LEASESET_TYPE);
@@ -121,6 +122,9 @@ namespace client
 						m_LeaseSetPrivKey.reset (nullptr);
 					}
 				}
+				it = params->find (I2CP_PARAM_STREAMING_PROFILE);
+				if (it != params->end ())
+					isHighBandwidth = std::stoi (it->second) != STREAMING_PROFILE_INTERACTIVE;
 			}
 		}
 		catch (std::exception & ex)
@@ -128,7 +132,7 @@ namespace client
 			LogPrint(eLogError, "Destination: Unable to parse parameters for destination: ", ex.what());
 		}
 		SetNumTags (numTags);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty, inVar, outVar);
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty, inVar, outVar, isHighBandwidth);
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 		if(params)
@@ -1013,18 +1017,15 @@ namespace client
 			}
 		}
 		// if no param or valid crypto type use from identity
-		bool isSingleKey = false;
 		if (encryptionKeyTypes.empty ())
-		{
-			isSingleKey = true;
-			encryptionKeyTypes.insert (GetIdentity ()->GetCryptoKeyType ());
-		}
+			encryptionKeyTypes.insert ( { GetIdentity ()->GetCryptoKeyType (),
+				i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD }); // usually 0,4
 
 		for (auto& it: encryptionKeyTypes)
 		{
 			auto encryptionKey = new EncryptionKey (it);
 			if (IsPublic ())
-				PersistTemporaryKeys (encryptionKey, isSingleKey);
+				PersistTemporaryKeys (encryptionKey);
 			else
 				encryptionKey->GenerateKeys ();
 			encryptionKey->CreateDecryptor ();
@@ -1383,12 +1384,11 @@ namespace client
 		return ret;
 	}
 
-	void ClientDestination::PersistTemporaryKeys (EncryptionKey * keys, bool isSingleKey)
+	void ClientDestination::PersistTemporaryKeys (EncryptionKey * keys)
 	{
 		if (!keys) return;
 		std::string ident = GetIdentHash().ToBase32();
-		std::string path  = i2p::fs::DataDirPath("destinations",
-			isSingleKey ? (ident + ".dat") : (ident + "." + std::to_string (keys->keyType) + ".dat"));
+		std::string path  = i2p::fs::DataDirPath("destinations", ident + "." + std::to_string (keys->keyType) + ".dat");
 		std::ifstream f(path, std::ifstream::binary);
 
 		if (f) {
