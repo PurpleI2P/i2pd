@@ -136,30 +136,35 @@ namespace data
 		if (ret)
 		{
 			SSL * ssl = SSL_new (ctx);
-			auto pkey = SSL_get_privatekey (ssl);
-			if (pkey)
+			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
+			EC_KEY * ecKey = EVP_PKEY_get1_EC_KEY (pkey);
+			if (ecKey)
 			{
-				uint8_t buf[100], signature[128];
-				size_t len = family.length ();
-				memcpy (buf, family.c_str (), len);
-				memcpy (buf + len, (const uint8_t *)ident, 32);
-				len += 32;
-				size_t l = 128;
-				EVP_MD_CTX * mdctx = EVP_MD_CTX_create ();
-				EVP_DigestSignInit (mdctx, NULL, NULL, NULL, pkey);
-				if (EVP_DigestSign (mdctx, signature, &l, buf, len))
+				auto group = EC_KEY_get0_group (ecKey);
+				if (group)
 				{
-					len = Base64EncodingBufferSize (l);
-					char * b64 = new char[len+1];
-					len = ByteStreamToBase64 (signature, l, b64, len);
-					b64[len] = 0;
-					sig = b64;
-					delete[] b64;
-				}	
-				else		
-					LogPrint (eLogError, "Family: signing failed");
-				EVP_MD_CTX_destroy (mdctx);
-			}	
+					int curve = EC_GROUP_get_curve_name (group);
+					if (curve == NID_X9_62_prime256v1)
+					{
+						uint8_t signingPrivateKey[32], buf[50], signature[64];
+						i2p::crypto::bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, 32);
+						i2p::crypto::ECDSAP256Signer signer (signingPrivateKey);
+						size_t len = family.length ();
+						memcpy (buf, family.c_str (), len);
+						memcpy (buf + len, (const uint8_t *)ident, 32);
+						len += 32;
+						signer.Sign (buf, len, signature);
+						len = Base64EncodingBufferSize (64);
+						char * b64 = new char[len+1];
+						len = ByteStreamToBase64 (signature, 64, b64, len);
+						b64[len] = 0;
+						sig = b64;
+						delete[] b64;
+					}
+					else
+						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
+				}
+			}
 			SSL_free (ssl);
 		}
 		else
