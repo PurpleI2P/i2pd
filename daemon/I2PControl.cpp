@@ -45,15 +45,23 @@ namespace client
 			i2pcp_crt = i2p::fs::DataDirPath(i2pcp_crt);
 		if (i2pcp_key.at(0) != '/')
 			i2pcp_key = i2p::fs::DataDirPath(i2pcp_key);
-		if (!i2p::fs::Exists (i2pcp_crt) || !i2p::fs::Exists (i2pcp_key)) {
+		if (!i2p::fs::Exists (i2pcp_crt) || !i2p::fs::Exists (i2pcp_key)) 
+		{
 			LogPrint (eLogInfo, "I2PControl: Creating new certificate for control connection");
 			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
-		} else {
+		} 
+		else 
 			LogPrint(eLogDebug, "I2PControl: Using cert from ", i2pcp_crt);
-		}
 		m_SSLContext.set_options (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::single_dh_use);
-		m_SSLContext.use_certificate_file (i2pcp_crt, boost::asio::ssl::context::pem);
-		m_SSLContext.use_private_key_file (i2pcp_key, boost::asio::ssl::context::pem);
+		boost::system::error_code ec;
+		m_SSLContext.use_certificate_file (i2pcp_crt, boost::asio::ssl::context::pem, ec);
+		if (!ec)		
+			m_SSLContext.use_private_key_file (i2pcp_key, boost::asio::ssl::context::pem, ec);
+		if (ec)
+		{
+			LogPrint (eLogInfo, "I2PControl: Failed to load ceritifcate: ", ec.message (), ". Recreating");
+			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
+		}	
 
 		// handlers
 		m_MethodHandlers["Authenticate"]       = &I2PControlService::AuthenticateHandler;
