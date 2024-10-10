@@ -61,6 +61,12 @@ namespace client
 		{
 			LogPrint (eLogInfo, "I2PControl: Failed to load ceritifcate: ", ec.message (), ". Recreating");
 			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
+			m_SSLContext.use_certificate_file (i2pcp_crt, boost::asio::ssl::context::pem, ec);
+			if (!ec)		
+				m_SSLContext.use_private_key_file (i2pcp_key, boost::asio::ssl::context::pem, ec);
+			if (ec) 
+				// give up
+				LogPrint (eLogError, "I2PControl: Can't load certificates");
 		}	
 
 		// handlers
@@ -411,7 +417,7 @@ namespace client
 			X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
 			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
 			X509_set_issuer_name (x509, name); // set issuer to ourselves
-			X509_sign (x509, pkey, EVP_sha1 ()); // sign
+			X509_sign (x509, pkey, EVP_sha1 ()); // sign, last param must be NULL for EdDSA
 
 			// save cert
 			if ((f = fopen (crt_path, "wb")) != NULL) {
