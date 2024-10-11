@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -107,8 +107,21 @@ namespace util
 				return GetNonThreadSafe (true);
 			}
 
-		private:
+			void GetWholeQueue (std::queue<Element>& queue)
+			{
+				if (!queue.empty ())
+				{	
+					std::queue<Element> newQueue;
+					queue.swap (newQueue);
+				}	
+				{
+					std::unique_lock<std::mutex> l(m_QueueMutex);
+					m_Queue.swap (queue);
+				}
+			}		
 
+		private:
+		
 			Element GetNonThreadSafe (bool peek = false)
 			{
 				if (!m_Queue.empty ())

@@ -483,14 +483,17 @@ namespace tunnel
 		{
 			try
 			{
-				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
-				if (msg)
+				std::queue <std::shared_ptr<I2NPMessage> > msgs;
+				if (m_Queue.Wait (1,0)) // 1 sec
 				{
+					m_Queue.GetWholeQueue (msgs);
 					int numMsgs = 0;
 					uint32_t prevTunnelID = 0, tunnelID = 0;
 					std::shared_ptr<TunnelBase> prevTunnel;
-					do
+					while (!msgs.empty ())
 					{
+						auto msg = msgs.front (); msgs.pop ();
+						if (!msg) continue;
 						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)
@@ -530,17 +533,18 @@ namespace tunnel
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
 						}
 
-						msg = (numMsgs <= MAX_TUNNEL_MSGS_BATCH_SIZE) ? m_Queue.Get () : nullptr;
-						if (msg)
-						{
-							prevTunnelID = tunnelID;
-							prevTunnel = tunnel;
-							numMsgs++;
-						}
-						else if (tunnel)
-							tunnel->FlushTunnelDataMsgs ();
+						prevTunnelID = tunnelID;
+						prevTunnel = tunnel;
+						numMsgs++;	
+						
+						if (msgs.empty ())
+						{	
+							if (numMsgs < MAX_TUNNEL_MSGS_BATCH_SIZE && !m_Queue.IsEmpty ())
+								m_Queue.GetWholeQueue (msgs); // try more
+							else if (tunnel)
+								tunnel->FlushTunnelDataMsgs (); // otherwise flush last
+						}	
 					}
-					while (msg);
 				}
 
 				if (i2p::transport::transports.IsOnline())
