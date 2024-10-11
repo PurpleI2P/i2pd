@@ -122,16 +122,18 @@ namespace data
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
 		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
 
+		std::queue <std::shared_ptr<const I2NPMessage> > msgs;
 		while (m_IsRunning)
 		{
 			try
 			{
-				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
-				if (msg)
+				if (m_Queue.Wait (1,0)) // 1 sec
 				{
-					int numMsgs = 0;
-					while (msg)
+					m_Queue.GetWholeQueue (msgs);
+					while (!msgs.empty ())
 					{
+						auto msg = msgs.front (); msgs.pop ();
+						if (!msg) continue;
 						LogPrint(eLogDebug, "NetDb: Got request with type ", (int) msg->GetTypeID ());
 						switch (msg->GetTypeID ())
 						{
@@ -145,9 +147,6 @@ namespace data
 								LogPrint (eLogError, "NetDb: Unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
 						}
-						if (numMsgs > 100) break;
-						msg = m_Queue.Get ();
-						numMsgs++;
 					}
 				}
 				if (!m_IsRunning) break;

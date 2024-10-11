@@ -479,11 +479,11 @@ namespace tunnel
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0, lastPoolsTs = 0, lastMemoryPoolTs = 0;
+		std::queue <std::shared_ptr<I2NPMessage> > msgs;
 		while (m_IsRunning)
 		{
 			try
 			{
-				std::queue <std::shared_ptr<I2NPMessage> > msgs;
 				if (m_Queue.Wait (1,0)) // 1 sec
 				{
 					m_Queue.GetWholeQueue (msgs);
