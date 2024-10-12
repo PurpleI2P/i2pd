@@ -479,7 +479,7 @@ namespace tunnel
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0, lastPoolsTs = 0, lastMemoryPoolTs = 0;
-		std::queue <std::shared_ptr<I2NPMessage> > msgs;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
 		while (m_IsRunning)
 		{
 			try
@@ -492,7 +492,7 @@ namespace tunnel
 					std::shared_ptr<TunnelBase> prevTunnel;
 					while (!msgs.empty ())
 					{
-						auto msg = msgs.front (); msgs.pop ();
+						auto msg = msgs.front (); msgs.pop_front ();
 						if (!msg) continue;
 						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
@@ -830,7 +830,7 @@ namespace tunnel
 		if (msg) m_Queue.Put (msg);
 	}
 
-	void Tunnels::PostTunnelData (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	void Tunnels::PostTunnelData (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_Queue.Put (msgs);
 	}

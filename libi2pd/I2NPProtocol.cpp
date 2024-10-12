@@ -932,14 +932,8 @@ namespace i2p
 	void I2NPMessagesHandler::Flush ()
 	{
 		if (!m_TunnelMsgs.empty ())
-		{
 			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
-			m_TunnelMsgs.clear ();
-		}
 		if (!m_TunnelGatewayMsgs.empty ())
-		{
 			i2p::tunnel::tunnels.PostTunnelData (m_TunnelGatewayMsgs);
-			m_TunnelGatewayMsgs.clear ();
-		}
 	}
 }

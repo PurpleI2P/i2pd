@@ -9,8 +9,7 @@
 #ifndef QUEUE_H__
 #define QUEUE_H__
 
-#include <queue>
-#include <vector>
+#include <list>
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -29,22 +28,20 @@ namespace util
 			void Put (Element e)
 			{
 				std::unique_lock<std::mutex> l(m_QueueMutex);
-				m_Queue.push (std::move(e));
+				m_Queue.push_back (std::move(e));
 				m_NonEmpty.notify_one ();
 			}
 
-			template<template<typename, typename...>class Container, typename... R>
-			void Put (const Container<Element, R...>& vec)
+			void Put (std::list<Element>& list)
 			{
-				if (!vec.empty ())
+				if (!list.empty ())
 				{
 					std::unique_lock<std::mutex> l(m_QueueMutex);
-					for (const auto& it: vec)
-						m_Queue.push (std::move(it));
+					m_Queue.splice (m_Queue.end (), list); 
 					m_NonEmpty.notify_one ();
-				}
-			}
-
+				}	
+			}		
+		
 			Element GetNext ()
 			{
 				std::unique_lock<std::mutex> l(m_QueueMutex);
@@ -107,11 +104,11 @@ namespace util
 				return GetNonThreadSafe (true);
 			}
 
-			void GetWholeQueue (std::queue<Element>& queue)
+			void GetWholeQueue (std::list<Element>& queue)
 			{
 				if (!queue.empty ())
 				{	
-					std::queue<Element> newQueue;
+					std::list<Element> newQueue;
 					queue.swap (newQueue);
 				}	
 				{
@@ -128,7 +125,7 @@ namespace util
 				{
 					auto el = m_Queue.front ();
 					if (!peek)
-						m_Queue.pop ();
+						m_Queue.pop_front ();
 					return el;
 				}
 				return nullptr;
@@ -136,7 +133,7 @@ namespace util
 
 		private:
 
-			std::queue<Element> m_Queue;
+			std::list<Element> m_Queue;
 			std::mutex m_QueueMutex;
 			std::condition_variable m_NonEmpty;
 	};
