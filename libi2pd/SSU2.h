@@ -17,6 +17,7 @@
 #include <random>
 #include "util.h"
 #include "SSU2Session.h"
+#include "SSU2OutOfSession.h"
 #include "Socks5.h"
 
 namespace i2p

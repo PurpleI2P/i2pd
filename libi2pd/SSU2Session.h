@@ -390,49 +390,18 @@ namespace transport
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 	};
-
-	
-	const int SSU2_PEER_TEST_RESEND_INTERVAL = 3000; // in milliseconds
-	const int SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE = 2000; // in milliseconds
-	const int SSU2_PEER_TEST_MAX_NUM_RESENDS = 3;
-	
-	class SSU2PeerTestSession: public SSU2Session // for PeerTest msgs 5,6,7
-	{
-		public:
-
-			SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID);
-
-			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }	
-			bool IsConnectedRecently () const { return m_IsConnectedRecently; }
-			void SetStatusChanged () { m_IsStatusChanged = true; }
-			
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
-				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
-			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
-			void Connect () override; // outgoing
-			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len) override; // incoming
-			
-		private:
-
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen); // PeerTest message
-			void SendPeerTest (uint8_t msg); // send or resend m_SignedData
-			void HandlePeerTest (const uint8_t * buf, size_t len) override;
-
-			void ScheduleResend ();
-			
-		private:
-
-			uint8_t m_MsgNumReceived, m_NumResends;
-			bool m_IsConnectedRecently, m_IsStatusChanged;
-			std::vector<uint8_t> m_SignedData; // for resends
-			boost::asio::deadline_timer m_PeerTestResendTimer;
-	};	
 	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
 	{
 		uint64_t data = 0;
 		i2p::crypto::ChaCha20 ((uint8_t *)&data, 8, kh, nonce, (uint8_t *)&data);
 		return data;
+	}
+
+	inline void CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4);
+		htole64buf (nonce + 4, seqn);
 	}
 }
 }
