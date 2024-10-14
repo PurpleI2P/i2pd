@@ -157,6 +157,10 @@ namespace transport
 		m_IntroducersV6.clear ();
 		m_ConnectedRecently.clear ();
 		m_RequestedPeerTests.clear ();
+
+		for (auto it: m_ReceivedPacketsQueue)
+			m_PacketsArrayPool.ReleaseMt (it);
+		m_ReceivedPacketsQueue.clear ();
 	}
 
 	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
@@ -398,10 +402,25 @@ namespace transport
 						break;
 					}
 				}
-				GetService ().post (std::bind (&SSU2Server::HandleReceivedPackets, this, packets));
+				InsertToReceivedPacketsQueue  (packets);
 			}
 			else
-				GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packet));
+			{
+				bool added = false;
+				{
+					// try to add single packet to existing packets array in queue
+					std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+					if (!m_ReceivedPacketsQueue.empty ())
+						added = m_ReceivedPacketsQueue.back ()->AddPacket (packet);
+				}	
+				if (!added)
+				{
+					// create new packets array for single packet
+					auto packets = m_PacketsArrayPool.AcquireMt ();
+					packets->AddPacket (packet);
+					InsertToReceivedPacketsQueue  (packets);
+				}	
+			}	
 			Receive (socket);
 		}
 		else
@@ -428,20 +447,6 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPacket (Packet * packet)
-	{
-		if (packet)
-		{
-			if (m_IsThroughProxy)
-				ProcessNextPacketFromProxy (packet->buf, packet->len);
-			else
-				ProcessNextPacket (packet->buf, packet->len, packet->from);
-			m_PacketsPool.ReleaseMt (packet);
-			if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
-				m_LastSession->FlushData ();
-		}
-	}
-
 	void SSU2Server::HandleReceivedPackets (Packets * packets)
 	{
 		if (!packets) return;
@@ -463,6 +468,30 @@ namespace transport
 			m_LastSession->FlushData ();
 	}
 
+	void SSU2Server::InsertToReceivedPacketsQueue (Packets * packets)
+	{
+		if (!packets) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			empty = m_ReceivedPacketsQueue.empty ();
+			m_ReceivedPacketsQueue.push_back (packets);
+		}
+		if (empty)
+		{
+			GetService ().post([this]()
+			{
+				std::list<Packets *> receivedPackets;
+				{
+					std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+					m_ReceivedPacketsQueue.swap (receivedPackets);
+				}
+				for (auto it: receivedPackets)
+					HandleReceivedPackets (it);
+			});	
+		}	
+	}	
+		
 	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)

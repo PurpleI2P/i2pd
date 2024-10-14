@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <list>
 #include <array>
 #include <mutex>
 #include <random>
@@ -64,7 +65,7 @@ namespace transport
 					return true;
 				} 
 				return false;
-			} 
+			}
 		};
 	
 		class ReceiveService: public i2p::util::RunnableService
@@ -145,10 +146,10 @@ namespace transport
 			void Receive (boost::asio::ip::udp::socket& socket);
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred,
 				Packet * packet, boost::asio::ip::udp::socket& socket);
-			void HandleReceivedPacket (Packet * packet);
 			void HandleReceivedPackets (Packets * packets);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
-
+			void InsertToReceivedPacketsQueue (Packets * packets);
+		
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 
@@ -206,6 +207,8 @@ namespace transport
 			std::mt19937 m_Rng;
 			std::map<boost::asio::ip::udp::endpoint, uint64_t> m_ConnectedRecently; // endpoint -> last activity time in seconds
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2PeerTestSession>, uint64_t > > m_RequestedPeerTests; // nonce->(Alice, timestamp) 
+			std::list<Packets *> m_ReceivedPacketsQueue;
+			mutable std::mutex m_ReceivedPacketsQueueMutex;
 		
 			// proxy
 			bool m_IsThroughProxy;
