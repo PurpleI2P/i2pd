@@ -158,8 +158,7 @@ namespace transport
 		m_ConnectedRecently.clear ();
 		m_RequestedPeerTests.clear ();
 
-		for (auto it: m_ReceivedPacketsQueue)
-			m_PacketsArrayPool.ReleaseMt (it);
+		m_PacketsPool.ReleaseMt (m_ReceivedPacketsQueue);
 		m_ReceivedPacketsQueue.clear ();
 	}
 
@@ -368,28 +367,23 @@ namespace transport
 				return;
 			}	
 			packet->len = bytes_transferred;
+			InsertToReceivedPacketsQueue (packet);
 			
+			size_t numPackets = 1;
 			boost::system::error_code ec;
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)
 			{
-				auto packets = m_PacketsArrayPool.AcquireMt ();
-				packets->AddPacket (packet);
-				while (moreBytes && packets->numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH)
-				{
+				do
+				{	
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
+						numPackets++;
 						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
-						{	
-							if (!packets->AddPacket (packet))
-							{
-								LogPrint (eLogError, "SSU2: Received packets array is full");
-								m_PacketsPool.ReleaseMt (packet);
-							}	
-						}	
+							InsertToReceivedPacketsQueue (packet); 
 						else // drop too short packets
 							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
@@ -402,25 +396,8 @@ namespace transport
 						break;
 					}
 				}
-				InsertToReceivedPacketsQueue  (packets);
+				while (moreBytes && numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH);
 			}
-			else
-			{
-				bool added = false;
-				{
-					// try to add single packet to existing packets array in queue
-					std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
-					if (!m_ReceivedPacketsQueue.empty ())
-						added = m_ReceivedPacketsQueue.back ()->AddPacket (packet);
-				}	
-				if (!added)
-				{
-					// create new packets array for single packet
-					auto packets = m_PacketsArrayPool.AcquireMt ();
-					packets->AddPacket (packet);
-					InsertToReceivedPacketsQueue  (packets);
-				}	
-			}	
 			Receive (socket);
 		}
 		else
@@ -447,47 +424,39 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPackets (Packets * packets)
+	void SSU2Server::HandleReceivedPackets (std::list<Packet *>&& packets)
 	{
-		if (!packets) return;
+		if (packets.empty ()) return;
 		if (m_IsThroughProxy)
-			for (size_t i = 0; i < packets->numPackets; i++)
-			{
-				auto& packet = (*packets)[i];
-				ProcessNextPacketFromProxy (packet->buf, packet->len);
-			}	
+			for (auto it: packets)
+				ProcessNextPacketFromProxy (it->buf, it->len);
 		else
-			for (size_t i = 0; i < packets->numPackets; i++)
-			{
-				auto& packet = (*packets)[i];
-				ProcessNextPacket (packet->buf, packet->len, packet->from);
-			}	
-		m_PacketsPool.ReleaseMt (packets->data (), packets->numPackets);
-		m_PacketsArrayPool.ReleaseMt (packets);
+			for (auto it: packets)
+				ProcessNextPacket (it->buf, it->len, it->from);
+		m_PacketsPool.ReleaseMt (packets);
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
 	}
 
-	void SSU2Server::InsertToReceivedPacketsQueue (Packets * packets)
+	void SSU2Server::InsertToReceivedPacketsQueue (Packet * packet)
 	{
-		if (!packets) return;
+		if (!packet) return;
 		bool empty = false;
 		{
 			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
 			empty = m_ReceivedPacketsQueue.empty ();
-			m_ReceivedPacketsQueue.push_back (packets);
+			m_ReceivedPacketsQueue.push_back (packet);
 		}
 		if (empty)
 		{
 			GetService ().post([this]()
 			{
-				std::list<Packets *> receivedPackets;
+				std::list<Packet *> receivedPackets;
 				{
 					std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
 					m_ReceivedPacketsQueue.swap (receivedPackets);
 				}
-				for (auto it: receivedPackets)
-					HandleReceivedPackets (it);
+				HandleReceivedPackets (std::move (receivedPackets));
 			});	
 		}	
 	}	
@@ -1167,7 +1136,6 @@ namespace transport
 			}	
 			
 			m_PacketsPool.CleanUpMt ();
-			m_PacketsArrayPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();

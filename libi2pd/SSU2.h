@@ -43,7 +43,7 @@ namespace transport
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
 	const int SSU2_HOLE_PUNCH_EXPIRATION = 150; // in seconds
-	const size_t SSU2_MAX_NUM_PACKETS_PER_BATCH = 32;
+	const size_t SSU2_MAX_NUM_PACKETS_PER_BATCH = 64;
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
 	{
@@ -52,20 +52,6 @@ namespace transport
 			uint8_t buf[SSU2_MAX_PACKET_SIZE];
 			size_t len;
 			boost::asio::ip::udp::endpoint from;
-		};
-
-		struct Packets: public std::array<Packet *, SSU2_MAX_NUM_PACKETS_PER_BATCH>
-		{
-			size_t numPackets = 0;
-			bool AddPacket (Packet *p) 
-			{
-				if (p && numPackets < size ()) 
-				{ 
-					data()[numPackets] = p; numPackets++; 
-					return true;
-				} 
-				return false;
-			}
 		};
 	
 		class ReceiveService: public i2p::util::RunnableService
@@ -146,9 +132,9 @@ namespace transport
 			void Receive (boost::asio::ip::udp::socket& socket);
 			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred,
 				Packet * packet, boost::asio::ip::udp::socket& socket);
-			void HandleReceivedPackets (Packets * packets);
+			void HandleReceivedPackets (std::list<Packet *>&& packets);
 			void ProcessNextPacket (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
-			void InsertToReceivedPacketsQueue (Packets * packets);
+			void InsertToReceivedPacketsQueue (Packet * packet);
 		
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
@@ -193,7 +179,6 @@ namespace transport
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2Session>, uint64_t > > m_PeerTests; // nonce->(Alice, timestamp). We are Bob
 			std::list<std::pair<i2p::data::IdentHash, uint32_t> > m_Introducers, m_IntroducersV6; // introducers we are connected to
 			i2p::util::MemoryPoolMt<Packet> m_PacketsPool;
-			i2p::util::MemoryPoolMt<Packets> m_PacketsArrayPool;
 			i2p::util::MemoryPool<SSU2SentPacket> m_SentPacketsPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage> m_IncompleteMessagesPool;
 			i2p::util::MemoryPool<SSU2IncompleteMessage::Fragment> m_FragmentsPool;
@@ -207,7 +192,7 @@ namespace transport
 			std::mt19937 m_Rng;
 			std::map<boost::asio::ip::udp::endpoint, uint64_t> m_ConnectedRecently; // endpoint -> last activity time in seconds
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2PeerTestSession>, uint64_t > > m_RequestedPeerTests; // nonce->(Alice, timestamp) 
-			std::list<Packets *> m_ReceivedPacketsQueue;
+			std::list<Packet *> m_ReceivedPacketsQueue;
 			mutable std::mutex m_ReceivedPacketsQueueMutex;
 		
 			// proxy
