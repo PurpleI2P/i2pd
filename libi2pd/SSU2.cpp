@@ -367,23 +367,22 @@ namespace transport
 				return;
 			}	
 			packet->len = bytes_transferred;
-			InsertToReceivedPacketsQueue (packet);
-			
-			size_t numPackets = 1;
+		
 			boost::system::error_code ec;
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)
 			{
-				do
+				std::list<Packet *> packets;
+				packets.push_back (packet);
+				while (moreBytes && packets.size () < SSU2_MAX_NUM_PACKETS_PER_BATCH)
 				{	
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
-						numPackets++;
 						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
-							InsertToReceivedPacketsQueue (packet); 
+							packets.push_back (packet);
 						else // drop too short packets
 							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
@@ -396,8 +395,10 @@ namespace transport
 						break;
 					}
 				}
-				while (moreBytes && numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH);
+				InsertToReceivedPacketsQueue (packets);
 			}
+			else
+				InsertToReceivedPacketsQueue (packet); 
 			Receive (socket);
 		}
 		else
@@ -448,17 +449,30 @@ namespace transport
 			m_ReceivedPacketsQueue.push_back (packet);
 		}
 		if (empty)
+			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+	}	
+
+	void SSU2Server::InsertToReceivedPacketsQueue (std::list<Packet *>& packets)
+	{
+		if (packets.empty ()) return;
+		bool empty = false;
 		{
-			GetService ().post([this]()
-			{
-				std::list<Packet *> receivedPackets;
-				{
-					std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
-					m_ReceivedPacketsQueue.swap (receivedPackets);
-				}
-				HandleReceivedPackets (std::move (receivedPackets));
-			});	
-		}	
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			empty = m_ReceivedPacketsQueue.empty ();
+			m_ReceivedPacketsQueue.splice (m_ReceivedPacketsQueue.end (), packets);
+		}
+		if (empty)
+			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+	}	
+		
+	void SSU2Server::HandleReceivedPacketsQueue ()
+	{
+		std::list<Packet *> receivedPackets;
+		{
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			m_ReceivedPacketsQueue.swap (receivedPackets);
+		}
+		HandleReceivedPackets (std::move (receivedPackets));
 	}	
 		
 	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
