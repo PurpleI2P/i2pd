@@ -1225,7 +1225,7 @@ namespace stream
 				m_NumPacketsToSend = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) / m_PacingTime;
 				m_PacingTimeRem = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) - (m_NumPacketsToSend * m_PacingTime);
 				m_IsSendTime = true;
-				if (m_WindowIncCounter && m_WindowSize < MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty ())
+				if (m_WindowIncCounter && m_WindowSize < MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
 				{
 					for (int i = 0; i < m_NumPacketsToSend; i++)
 					{
