@@ -1351,46 +1351,6 @@ namespace transport
 		SendSessionRequest (token);
 		return true;
 	}
-
-	void SSU2Session::SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep,
-		const uint8_t * introKey, uint64_t token)
-	{
-		// we are Charlie
-		LogPrint (eLogDebug, "SSU2: Sending HolePunch to ", ep);
-		Header header;
-		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
-		// fill packet
-		header.h.connID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
-		RAND_bytes (header.buf + 8, 4); // random packet num
-		header.h.type = eSSU2HolePunch;
-		header.h.flags[0] = 2; // ver
-		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
-		header.h.flags[2] = 0; // flag
-		memcpy (h, header.buf, 16);
-		uint64_t c = ~header.h.connID;
-		memcpy (h + 16, &c, 8); // source id
-		RAND_bytes (h + 24, 8); // token
-		// payload
-		payload[0] = eSSU2BlkDateTime;
-		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
-		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, ep);
-		payloadSize += CreateRelayResponseBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize,
-			eSSU2RelayResponseCodeAccept, nonce, token, ep.address ().is_v4 ());
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		// encrypt
-		uint8_t n[12];
-		CreateNonce (be32toh (header.h.packetNum), n);
-		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, introKey, n, payload, payloadSize + 16, true);
-		payloadSize += 16;
-		header.ll[0] ^= CreateHeaderMask (introKey, payload + (payloadSize - 24));
-		header.ll[1] ^= CreateHeaderMask (introKey, payload + (payloadSize - 12));
-		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
-		// send
-		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
-	}
 		
 	bool SSU2Session::ProcessHolePunch (uint8_t * buf, size_t len)
 	{
@@ -1985,8 +1945,8 @@ namespace transport
 	{
 		// we are Charlie
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
-		uint64_t token = 0;
-		bool isV4 = false;
+		boost::asio::ip::udp::endpoint ep;
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 		auto r = i2p::data::netdb.FindRouter (buf + 1); // Alice
 		if (r)
 		{
@@ -1999,31 +1959,29 @@ namespace transport
 			s.Insert (buf + 47, asz); // Alice Port, Alice IP
 			if (s.Verify (r->GetIdentity (), buf + 47 + asz))
 			{
-				// send HolePunch
-				boost::asio::ip::udp::endpoint ep;
+				// obtain and check endpoint and address for HolePunch
 				if (ExtractEndpoint (buf + 47, asz, ep))
 				{
-					std::shared_ptr<const i2p::data::RouterInfo::Address> addr;
 					if (!ep.address ().is_unspecified () && ep.port ())
-						addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
-					if (addr)
 					{
 						if (m_Server.IsSupported (ep.address ()))
 						{
-							token = m_Server.GetIncomingToken (ep);
-							isV4 = ep.address ().is_v4 ();
-							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
-							m_Server.AddConnectedRecently (ep, i2p::util::GetSecondsSinceEpoch ());
+							addr = ep.address ().is_v6 () ? r->GetSSU2V6Address () : r->GetSSU2V4Address ();
+							if (!addr)
+							{
+								LogPrint (eLogWarning, "SSU2: RelayIntro address for endpoint not found");
+								code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
+							}	
 						}
 						else
 						{
 							LogPrint (eLogWarning, "SSU2: RelayIntro unsupported address");
 							code = eSSU2RelayResponseCodeCharlieUnsupportedAddress;
-						}
+						}	
 					}
 					else
 					{
-						LogPrint (eLogWarning, "SSU2: RelayIntro unknown address");
+						LogPrint (eLogWarning, "SSU2: RelayIntro invalid endpoint");
 						code = eSSU2RelayResponseCodeCharlieAliceIsUnknown;
 					}
 				}
@@ -2059,8 +2017,16 @@ namespace transport
 		}
 		// send relay response to Bob
 		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+		uint32_t nonce = bufbe32toh (buf + 33);
 		packet->payloadSize = CreateRelayResponseBlock (packet->payload, m_MaxPayloadSize,
-			code, bufbe32toh (buf + 33), token, isV4);
+			code, nonce, m_Server.GetIncomingToken (ep), ep.address ().is_v4 ());
+		if (code == eSSU2RelayResponseCodeAccept && addr)
+		{
+			// send HolePunch 
+			auto holePunchSession = std::make_shared<SSU2HolePunchSession>(m_Server, nonce, ep, addr); 
+			m_Server.AddSession (holePunchSession);
+			holePunchSession->SendHolePunch (packet->payload, packet->payloadSize); // relay response block
+		}	
 		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		/*uint32_t packetNum = */SendData (packet->payload, packet->payloadSize);
 		// sometimes Bob doesn't ack this RelayResponse

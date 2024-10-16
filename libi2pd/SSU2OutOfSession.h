@@ -57,14 +57,18 @@ namespace transport
 		public:
 
 			SSU2HolePunchSession (SSU2Server& server, uint32_t nonce, const boost::asio::ip::udp::endpoint& remoteEndpoint,
-				std::shared_ptr<const i2p::data::RouterInfo::Address> localAddr);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
 
+			void SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen);
+			
+		private:
+			
 			void SendHolePunch ();
 			
 		private:
 
 			uint32_t m_Nonce;
-			uint64_t m_Token; // for RelayResponse block
+			std::vector<uint8_t> m_RelayResponseBlock;
 	};	
 }
 }

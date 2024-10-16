@@ -227,19 +227,18 @@ namespace transport
 
 	SSU2HolePunchSession::SSU2HolePunchSession (SSU2Server& server, uint32_t nonce,
 		const boost::asio::ip::udp::endpoint& remoteEndpoint,
-		std::shared_ptr<const i2p::data::RouterInfo::Address> localAddr):
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		SSU2Session (server), // we create full incoming session
 		m_Nonce (nonce)
 	{
 		// we are Charlie
-		m_Token = GetServer ().GetIncomingToken (remoteEndpoint);
 		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
 		uint32_t sourceConnID = ~destConnID;
 		SetSourceConnID (sourceConnID);
 		SetDestConnID (destConnID);	
 		SetState (eSSU2SessionStateHolePunch);
 		SetRemoteEndpoint (remoteEndpoint);
-		SetAddress (localAddr);
+		SetAddress (addr);
 		SetTerminationTimeout (SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT);	
 	}	
 
@@ -267,8 +266,12 @@ namespace transport
 		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
 		size_t payloadSize = 7;
 		payloadSize += CreateAddressBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize, ep);
-		payloadSize += CreateRelayResponseBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize,
-			eSSU2RelayResponseCodeAccept, m_Nonce, m_Token, ep.address ().is_v4 ());
+		// relay response block	
+		if (payloadSize + m_RelayResponseBlock.size () < GetMaxPayloadSize ())
+		{	
+			memcpy (payload + payloadSize, m_RelayResponseBlock.data (), m_RelayResponseBlock.size ());
+			payloadSize += m_RelayResponseBlock.size ();
+		}	
 		payloadSize += CreatePaddingBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize);
 		// encrypt
 		uint8_t n[12];
@@ -281,6 +284,17 @@ namespace transport
 		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+	}	
+
+	void SSU2HolePunchSession::SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen)
+	{
+#if __cplusplus >= 202002L // C++20
+		m_RelayResponseBlock.assign (relayResponseBlock, relayResponseBlock + relayResponseBlockLen);
+#else		
+		m_RelayResponseBlock.resize (relayResponseBlockLen);
+		memcpy (m_RelayResponseBlock.data (), relayResponseBlock, relayResponseBlockLen);
+#endif		
+		SendHolePunch ();
 	}	
 }
 }
