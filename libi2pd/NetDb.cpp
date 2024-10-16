@@ -654,7 +654,7 @@ namespace data
 			std::string ident = it.second->GetIdentHashBase64();
 			if (it.second->IsUpdated ())
 			{
-				if (it.second->GetBuffer ())
+				if (it.second->GetBuffer () && !it.second->IsUnreachable ())
 				{
 					// we have something to save
 					std::shared_ptr<RouterInfo::Buffer> buffer;
@@ -663,9 +663,8 @@ namespace data
 						buffer = it.second->CopyBuffer ();
 						it.second->ScheduleBufferToDelete ();
 					}
-					if (buffer && !it.second->IsUnreachable ()) // don't save bad router
+					if (buffer)
 						saveToDisk.push_back(std::make_pair(ident, buffer));
-					it.second->SetUnreachable (false);
 				}
 				it.second->SetUpdated (false);
 				updatedCount++;

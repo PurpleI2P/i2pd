@@ -293,7 +293,7 @@ namespace data
 			void DeleteBuffer () { m_Buffer = nullptr; m_IsBufferScheduledToDelete = false; };
 			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };	
 			std::shared_ptr<Buffer> CopyBuffer () const;
-			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = false; };
+			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; };
 			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
