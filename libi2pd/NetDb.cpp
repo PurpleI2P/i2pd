@@ -646,6 +646,11 @@ namespace data
 		for (auto& it: m_RouterInfos)
 		{
 			if (!it.second || it.second == own) continue; // skip own
+			if (it.second->IsBufferScheduledToDelete ()) // from previous SaveUpdated, we assume m_PersistingRouters complete
+			{
+				std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
+				it.second->DeleteBuffer ();
+			}	
 			std::string ident = it.second->GetIdentHashBase64();
 			if (it.second->IsUpdated ())
 			{
@@ -655,8 +660,8 @@ namespace data
 					std::shared_ptr<RouterInfo::Buffer> buffer;
 					{
 						std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
-						buffer = it.second->GetSharedBuffer ();
-						it.second->DeleteBuffer ();
+						buffer = it.second->CopyBuffer ();
+						it.second->ScheduleBufferToDelete ();
 					}
 					if (buffer && !it.second->IsUnreachable ()) // don't save bad router
 						saveToDisk.push_back(std::make_pair(ident, buffer));

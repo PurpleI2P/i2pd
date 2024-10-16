@@ -45,8 +45,9 @@ namespace data
 
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FamilyID (0), m_IsUpdated (false), m_IsUnreachable (false), m_IsFloodfill (false),
-		m_SupportedTransports (0),m_ReachableTransports (0), m_PublishedTransports (0),
-		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
+		m_IsBufferScheduledToDelete (false), m_SupportedTransports (0), 
+		m_ReachableTransports (0), m_PublishedTransports (0), m_Caps (0), m_Version (0), 
+		m_Congestion (eLowCongestion)
 	{
 		m_Addresses = AddressesPtr(new Addresses ()); // create empty list
 		m_Buffer = RouterInfo::NewBuffer (); // always RouterInfo's
@@ -1140,6 +1141,7 @@ namespace data
 		if (len > m_Buffer->size ()) len = m_Buffer->size ();
 		memcpy (m_Buffer->data (), buf, len);
 		m_Buffer->SetBufferLen (len);
+		m_IsBufferScheduledToDelete = false;
 	}
 
 	std::shared_ptr<RouterInfo::Buffer> RouterInfo::CopyBuffer () const
