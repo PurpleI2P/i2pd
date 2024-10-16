@@ -274,6 +274,8 @@ namespace transport
 			bool ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			bool ProcessRetry (uint8_t * buf, size_t len);
 			bool ProcessHolePunch (uint8_t * buf, size_t len);
+			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep,
+				const uint8_t * introKey, uint64_t token);
 			virtual bool ProcessPeerTest (uint8_t * buf, size_t len);
 			void ProcessData (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
 
