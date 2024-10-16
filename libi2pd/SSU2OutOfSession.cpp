@@ -229,7 +229,7 @@ namespace transport
 		const boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		SSU2Session (server), // we create full incoming session
-		m_Nonce (nonce)
+		m_Nonce (nonce), m_NumResends (0), m_HolePunchResendTimer (server.GetService ())
 	{
 		// we are Charlie
 		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
@@ -295,6 +295,36 @@ namespace transport
 		memcpy (m_RelayResponseBlock.data (), relayResponseBlock, relayResponseBlockLen);
 #endif		
 		SendHolePunch ();
+		ScheduleResend ();
+	}	
+
+	void SSU2HolePunchSession::ScheduleResend ()
+	{
+		if (m_NumResends < SSU2_HOLE_PUNCH_MAX_NUM_RESENDS)
+		{
+			m_HolePunchResendTimer.expires_from_now (boost::posix_time::milliseconds(
+				SSU2_HOLE_PUNCH_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_HOLE_PUNCH_RESEND_INTERVAL_VARIANCE));
+			std::weak_ptr<SSU2HolePunchSession> s(std::static_pointer_cast<SSU2HolePunchSession>(shared_from_this ()));
+			m_HolePunchResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+				{
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						auto s1 = s.lock ();
+						if (s1 && s1->GetState () == eSSU2SessionStateHolePunch) 
+						{
+							s1->SendHolePunch ();
+							s1->ScheduleResend ();	
+						}	
+					}	
+				});
+			m_NumResends++;
+		}	
+	}
+
+	bool SSU2HolePunchSession::ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len)
+	{
+		m_HolePunchResendTimer.cancel ();
+		return SSU2Session::ProcessFirstIncomingMessage (connID, buf, len);
 	}	
 }
 }

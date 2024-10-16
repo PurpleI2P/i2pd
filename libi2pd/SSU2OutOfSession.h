@@ -52,6 +52,10 @@ namespace transport
 			boost::asio::deadline_timer m_PeerTestResendTimer;
 	};	
 
+	const int SSU2_HOLE_PUNCH_RESEND_INTERVAL = 1000; // in milliseconds
+	const int SSU2_HOLE_PUNCH_RESEND_INTERVAL_VARIANCE = 500; // in milliseconds
+	const int SSU2_HOLE_PUNCH_MAX_NUM_RESENDS = 3;
+	
 	class SSU2HolePunchSession: public SSU2Session // Charlie
 	{
 		public:
@@ -60,15 +64,20 @@ namespace transport
 				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
 
 			void SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen);
+
+			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len) override; // SessionRequest
 			
 		private:
 			
 			void SendHolePunch ();
+			void ScheduleResend ();
 			
 		private:
 
 			uint32_t m_Nonce;
+			int m_NumResends;
 			std::vector<uint8_t> m_RelayResponseBlock;
+			boost::asio::deadline_timer m_HolePunchResendTimer;
 	};	
 }
 }
