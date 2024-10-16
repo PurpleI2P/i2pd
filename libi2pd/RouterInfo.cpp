@@ -56,7 +56,7 @@ namespace data
 
 	RouterInfo::RouterInfo (std::shared_ptr<Buffer>&& buf, size_t len):
 		m_FamilyID (0), m_IsUpdated (true), m_IsUnreachable (false), m_IsFloodfill (false),
-		m_SupportedTransports (0), m_ReachableTransports (0), m_PublishedTransports (0),
+		m_IsBufferScheduledToDelete (false), m_SupportedTransports (0), m_ReachableTransports (0), m_PublishedTransports (0),
 		m_Caps (0), m_Version (0), m_Congestion (eLowCongestion)
 	{
 		if (len <= MAX_RI_BUFFER_SIZE)
