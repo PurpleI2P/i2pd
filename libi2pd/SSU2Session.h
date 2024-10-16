@@ -112,6 +112,7 @@ namespace transport
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
+		eSSU2SessionStateHolePunch,
 		eSSU2SessionStatePeerTest,
 		eSSU2SessionStateTokenRequestReceived
 	};
@@ -295,6 +296,8 @@ namespace transport
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
+
+			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4);
 			
 		private:
 
@@ -320,7 +323,6 @@ namespace transport
 			uint32_t SendData (const uint8_t * buf, size_t len, uint8_t flags = 0); // returns packet num
 			void SendQuickAck ();
 			void SendTermination ();
-			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);
 			void SendPathResponse (const uint8_t * data, size_t len);
 			void SendPathChallenge ();
 
@@ -352,7 +354,6 @@ namespace transport
 			size_t CreateFirstFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg);
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
-			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
 			

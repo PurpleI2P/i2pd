@@ -479,9 +479,11 @@ namespace transport
 	{
 		if (session)
 		{
-			m_Sessions.emplace (session->GetConnID (), session);
-			if (session->GetState () != eSSU2SessionStatePeerTest)
-				AddSessionByRouterHash (session);
+			if (m_Sessions.emplace (session->GetConnID (), session).second)
+			{	
+				if (session->GetState () != eSSU2SessionStatePeerTest)
+					AddSessionByRouterHash (session);
+			}	
 		}
 	}
 
@@ -715,6 +717,9 @@ namespace transport
 					m_LastSession->SetRemoteEndpoint (senderEndpoint);
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
+				case eSSU2SessionStateHolePunch:
+					m_LastSession->ProcessFirstIncomingMessage (connID, buf, len); // SessionRequest
+				break;	
 				case eSSU2SessionStateClosing:
 					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
 					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)

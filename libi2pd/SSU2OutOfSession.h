@@ -51,6 +51,21 @@ namespace transport
 			std::vector<uint8_t> m_SignedData; // for resends
 			boost::asio::deadline_timer m_PeerTestResendTimer;
 	};	
+
+	class SSU2HolePunchSession: public SSU2Session // Charlie
+	{
+		public:
+
+			SSU2HolePunchSession (SSU2Server& server, uint32_t nonce, const boost::asio::ip::udp::endpoint& remoteEndpoint,
+				std::shared_ptr<const i2p::data::RouterInfo::Address> localAddr);
+
+			void SendHolePunch ();
+			
+		private:
+
+			uint32_t m_Nonce;
+			uint64_t m_Token; // for RelayResponse block
+	};	
 }
 }
 	

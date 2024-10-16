@@ -1352,46 +1352,6 @@ namespace transport
 		return true;
 	}
 
-	void SSU2Session::SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep,
-		const uint8_t * introKey, uint64_t token)
-	{
-		// we are Charlie
-		LogPrint (eLogDebug, "SSU2: Sending HolePunch to ", ep);
-		Header header;
-		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
-		// fill packet
-		header.h.connID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
-		RAND_bytes (header.buf + 8, 4); // random packet num
-		header.h.type = eSSU2HolePunch;
-		header.h.flags[0] = 2; // ver
-		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
-		header.h.flags[2] = 0; // flag
-		memcpy (h, header.buf, 16);
-		uint64_t c = ~header.h.connID;
-		memcpy (h + 16, &c, 8); // source id
-		RAND_bytes (h + 24, 8); // token
-		// payload
-		payload[0] = eSSU2BlkDateTime;
-		htobe16buf (payload + 1, 4);
-		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
-		size_t payloadSize = 7;
-		payloadSize += CreateAddressBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize, ep);
-		payloadSize += CreateRelayResponseBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize,
-			eSSU2RelayResponseCodeAccept, nonce, token, ep.address ().is_v4 ());
-		payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-		// encrypt
-		uint8_t n[12];
-		CreateNonce (be32toh (header.h.packetNum), n);
-		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, introKey, n, payload, payloadSize + 16, true);
-		payloadSize += 16;
-		header.ll[0] ^= CreateHeaderMask (introKey, payload + (payloadSize - 24));
-		header.ll[1] ^= CreateHeaderMask (introKey, payload + (payloadSize - 12));
-		memset (n, 0, 12);
-		i2p::crypto::ChaCha20 (h + 16, 16, introKey, n, h + 16);
-		// send
-		m_Server.Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
-	}
-
 	bool SSU2Session::ProcessHolePunch (uint8_t * buf, size_t len)
 	{
 		// we are Alice
@@ -1984,7 +1944,6 @@ namespace transport
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
 	{
 		// we are Charlie
-		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
 		SSU2RelayResponseCode code = eSSU2RelayResponseCodeAccept;
 		uint64_t token = 0;
 		bool isV4 = false;
@@ -2011,10 +1970,11 @@ namespace transport
 					{
 						if (m_Server.IsSupported (ep.address ()))
 						{
-							token = m_Server.GetIncomingToken (ep);
 							isV4 = ep.address ().is_v4 ();
-							SendHolePunch (bufbe32toh (buf + 33), ep, addr->i, token);
-							m_Server.AddConnectedRecently (ep, mts/1000);
+							auto holePunchSession = std::make_shared<SSU2HolePunchSession>(
+								m_Server, bufbe32toh (buf + 33), ep, addr); 
+							m_Server.AddSession (holePunchSession);
+							holePunchSession->SendHolePunch ();
 						}
 						else
 						{

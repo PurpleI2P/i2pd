@@ -224,5 +224,63 @@ namespace transport
 			m_NumResends++;
 		}	
 	}	
+
+	SSU2HolePunchSession::SSU2HolePunchSession (SSU2Server& server, uint32_t nonce,
+		const boost::asio::ip::udp::endpoint& remoteEndpoint,
+		std::shared_ptr<const i2p::data::RouterInfo::Address> localAddr):
+		SSU2Session (server), // we create full incoming session
+		m_Nonce (nonce)
+	{
+		// we are Charlie
+		m_Token = GetServer ().GetIncomingToken (remoteEndpoint);
+		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
+		uint32_t sourceConnID = ~destConnID;
+		SetSourceConnID (sourceConnID);
+		SetDestConnID (destConnID);	
+		SetState (eSSU2SessionStateHolePunch);
+		SetRemoteEndpoint (remoteEndpoint);
+		SetAddress (localAddr);
+		SetTerminationTimeout (SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT);	
+	}	
+
+	void SSU2HolePunchSession::SendHolePunch ()
+	{
+		auto addr = GetAddress ();
+		if (!addr) return;
+		auto& ep = GetRemoteEndpoint ();
+		LogPrint (eLogDebug, "SSU2: Sending HolePunch to ", ep);
+		Header header;
+		uint8_t h[32], payload[SSU2_MAX_PACKET_SIZE];
+		// fill packet
+		header.h.connID = GetDestConnID (); // dest id
+		RAND_bytes (header.buf + 8, 4); // random packet num
+		header.h.type = eSSU2HolePunch;
+		header.h.flags[0] = 2; // ver
+		header.h.flags[1] = (uint8_t)i2p::context.GetNetID (); // netID
+		header.h.flags[2] = 0; // flag
+		memcpy (h, header.buf, 16);
+		htobuf64 (h + 16, GetSourceConnID ()); // source id
+		RAND_bytes (h + 24, 8); // header token, to be ignored by Alice
+		// payload
+		payload[0] = eSSU2BlkDateTime;
+		htobe16buf (payload + 1, 4);
+		htobe32buf (payload + 3, (i2p::util::GetMillisecondsSinceEpoch () + 500)/1000);
+		size_t payloadSize = 7;
+		payloadSize += CreateAddressBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize, ep);
+		payloadSize += CreateRelayResponseBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize,
+			eSSU2RelayResponseCodeAccept, m_Nonce, m_Token, ep.address ().is_v4 ());
+		payloadSize += CreatePaddingBlock (payload + payloadSize, GetMaxPayloadSize () - payloadSize);
+		// encrypt
+		uint8_t n[12];
+		CreateNonce (be32toh (header.h.packetNum), n);
+		i2p::crypto::AEADChaCha20Poly1305 (payload, payloadSize, h, 32, addr->i, n, payload, payloadSize + 16, true);
+		payloadSize += 16;
+		header.ll[0] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 24));
+		header.ll[1] ^= CreateHeaderMask (addr->i, payload + (payloadSize - 12));
+		memset (n, 0, 12);
+		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
+		// send
+		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+	}	
 }
 }
