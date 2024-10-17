@@ -259,7 +259,7 @@ namespace tunnel
 			{
 				// update LeaseSet
 				auto dest = pool->GetLocalDestination ();
-				if (dest) dest->SetLeaseSetUpdated ();
+				if (dest) dest->SetLeaseSetUpdated (true);
 			}	
 		}	
 		EncryptTunnelMsg (msg, msg);

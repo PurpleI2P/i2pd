@@ -588,9 +588,12 @@ namespace client
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msgID);
 	}
 
-	void LeaseSetDestination::SetLeaseSetUpdated ()
+	void LeaseSetDestination::SetLeaseSetUpdated (bool post)
 	{
-		UpdateLeaseSet ();
+		if (post)
+			m_Service.post([s = shared_from_this ()]() { s->UpdateLeaseSet (); });
+		else	
+			UpdateLeaseSet ();
 	}
 
 	void LeaseSetDestination::Publish ()

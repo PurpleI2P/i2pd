@@ -150,7 +150,7 @@ namespace client
 			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag);
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
-			void SetLeaseSetUpdated ();
+			void SetLeaseSetUpdated (bool post) override;
 
 			bool IsPublic () const { return m_IsPublic; };
 			void SetPublic (bool pub) { m_IsPublic = pub; };
