@@ -2312,7 +2312,7 @@ namespace transport
 										{	
 											if (!session->IsConnectedRecently ())
 												SetRouterStatus (eRouterStatusOK);
-										 	// send msg 6
+										 	// send msg 6 immeditely
 											session->SendPeerTest (6, buf + offset, len - offset, addr);
 										}
 										else
@@ -2323,6 +2323,8 @@ namespace transport
 										session->m_Address = addr;
 										if (GetTestingState ())
 										{
+											// schedule msg 6 with delay
+											session->SendPeerTest (6, buf + offset, len - offset, addr, true);
 											SetTestingState (false);
 											if (GetRouterStatus () != eRouterStatusFirewalled && addr->IsPeerTesting ())
 											{

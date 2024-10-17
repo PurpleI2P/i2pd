@@ -31,18 +31,18 @@ namespace transport
 			void SetStatusChanged () { m_IsStatusChanged = true; }
 			
 			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
-				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
+				std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool delayed = false);
 			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
 			void Connect () override; // outgoing
 			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len) override; // incoming
 			
 		private:
 
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen); // PeerTest message
+			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed = false); // PeerTest message
 			void SendPeerTest (uint8_t msg); // send or resend m_SignedData
 			void HandlePeerTest (const uint8_t * buf, size_t len) override;
 
-			void ScheduleResend ();
+			void ScheduleResend (uint8_t msg);
 			
 		private:
 
@@ -74,7 +74,6 @@ namespace transport
 			
 		private:
 
-			uint32_t m_Nonce;
 			int m_NumResends;
 			std::vector<uint8_t> m_RelayResponseBlock;
 			boost::asio::deadline_timer m_HolePunchResendTimer;

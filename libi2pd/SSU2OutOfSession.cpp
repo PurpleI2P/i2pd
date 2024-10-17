@@ -83,6 +83,7 @@ namespace transport
 			{	
 				if (htobe64 (((uint64_t)nonce << 32) | nonce) == GetSourceConnID ())
 				{
+					m_PeerTestResendTimer.cancel (); // calcel delayed msg 6 if any
 					m_IsConnectedRecently = GetServer ().IsConnectedRecently (GetRemoteEndpoint ());
 					if (GetAddress ())
 					{
@@ -111,9 +112,6 @@ namespace transport
 			case 7: // Alice from Charlie 2
 			{	
 				m_PeerTestResendTimer.cancel (); // no more msg 6 resends
-				auto addr = GetAddress ();
-				if (addr && addr->IsV6 ())
-					i2p::context.SetStatusV6 (eRouterStatusOK); // set status OK for ipv6 even if from SSU2
 				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());	
 				break;
@@ -163,7 +161,7 @@ namespace transport
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
 	}	
 
-	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen)
+	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed)
 	{
 #if __cplusplus >= 202002L // C++20
 		m_SignedData.assign (signedData, signedData + signedDataLen);
@@ -171,18 +169,19 @@ namespace transport
 		m_SignedData.resize (signedDataLen);
 		memcpy (m_SignedData.data (), signedData, signedDataLen);
 #endif		
-		SendPeerTest (msg);
+		if (!delayed)
+			SendPeerTest (msg);
 		// schedule resend for msgs 5 or 6
 		if (msg == 5 || msg == 6)
-			ScheduleResend ();
+			ScheduleResend (msg);
 	}	
 		
 	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
-		std::shared_ptr<const i2p::data::RouterInfo::Address> addr)
+		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool delayed)
 	{
 		if (!addr) return;
 		SetAddress (addr);
-		SendPeerTest (msg, signedData, signedDataLen);	
+		SendPeerTest (msg, signedData, signedDataLen, delayed);	
 	}	
 
 	void SSU2PeerTestSession::Connect ()
@@ -196,32 +195,29 @@ namespace transport
 		return false;
 	}	
 
-	void SSU2PeerTestSession::ScheduleResend ()
+	void SSU2PeerTestSession::ScheduleResend (uint8_t msg)
 	{
 		if (m_NumResends < SSU2_PEER_TEST_MAX_NUM_RESENDS)
 		{
 			m_PeerTestResendTimer.expires_from_now (boost::posix_time::milliseconds(
 				SSU2_PEER_TEST_RESEND_INTERVAL + GetServer ().GetRng ()() % SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE));
 			std::weak_ptr<SSU2PeerTestSession> s(std::static_pointer_cast<SSU2PeerTestSession>(shared_from_this ()));
-			m_PeerTestResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+			m_PeerTestResendTimer.async_wait ([s, msg](const boost::system::error_code& ecode)
 				{
 					if (ecode != boost::asio::error::operation_aborted)
 					{
 						auto s1 = s.lock ();
 						if (s1) 
 						{
-							int msg = 0;
-							if (s1->m_MsgNumReceived < 6)
-								msg = (s1->m_MsgNumReceived == 5) ? 6 : 5;
-							if (msg) // 5 or 6
+							if (msg > s1->m_MsgNumReceived) 
 							{	
 								s1->SendPeerTest (msg);
-								s1->ScheduleResend ();
+								s1->m_NumResends++;
+								s1->ScheduleResend (msg);
 							}	
 						}	
 					}	
 				});
-			m_NumResends++;
 		}	
 	}	
 
@@ -229,7 +225,7 @@ namespace transport
 		const boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr):
 		SSU2Session (server), // we create full incoming session
-		m_Nonce (nonce), m_NumResends (0), m_HolePunchResendTimer (server.GetService ())
+		m_NumResends (0), m_HolePunchResendTimer (server.GetService ())
 	{
 		// we are Charlie
 		uint64_t destConnID = htobe64 (((uint64_t)nonce << 32) | nonce); // dest id
@@ -313,11 +309,11 @@ namespace transport
 						if (s1 && s1->GetState () == eSSU2SessionStateHolePunch) 
 						{
 							s1->SendHolePunch ();
+							s1->m_NumResends++;
 							s1->ScheduleResend ();	
 						}	
 					}	
 				});
-			m_NumResends++;
 		}	
 	}
 
