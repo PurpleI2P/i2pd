@@ -65,6 +65,12 @@ namespace transport
 		return true;
 	}	
 
+	void SSU2PeerTestSession::HandleAddress (const uint8_t * buf, size_t len)
+	{
+		if (!ExtractEndpoint (buf, len, m_OurEndpoint))
+			LogPrint (eLogWarning, "SSU2: Can't hanlde address block from peer test message");
+	}	
+		
 	void SSU2PeerTestSession::HandlePeerTest (const uint8_t * buf, size_t len)
 	{
 		// msgs 5-7
@@ -112,6 +118,29 @@ namespace transport
 			case 7: // Alice from Charlie 2
 			{	
 				m_PeerTestResendTimer.cancel (); // no more msg 6 resends
+				if (m_MsgNumReceived < 5 && m_OurEndpoint.port ()) // msg 5 was not received
+				{
+					if (m_OurEndpoint.address ().is_v4 ()) // ipv4
+					{
+						if (i2p::context.GetStatus () == eRouterStatusFirewalled)
+						{	
+						    if (m_OurEndpoint.port () != GetServer ().GetPort (true))
+								i2p::context.SetError (eRouterErrorSymmetricNAT);
+							else if (i2p::context.GetError () == eRouterErrorSymmetricNAT)
+								i2p::context.SetError (eRouterErrorNone);
+						}
+					}	
+					else
+					{
+						if (i2p::context.GetStatusV6 () == eRouterStatusFirewalled)
+						{	
+						    if (m_OurEndpoint.port () != GetServer ().GetPort (false))
+								i2p::context.SetErrorV6 (eRouterErrorSymmetricNAT);
+							else if (i2p::context.GetErrorV6 () == eRouterErrorSymmetricNAT)
+								i2p::context.SetErrorV6 (eRouterErrorNone);
+						}
+					}	
+				}	
 				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());	
 				break;

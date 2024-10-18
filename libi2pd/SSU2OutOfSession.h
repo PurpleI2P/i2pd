@@ -41,6 +41,7 @@ namespace transport
 			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed = false); // PeerTest message
 			void SendPeerTest (uint8_t msg); // send or resend m_SignedData
 			void HandlePeerTest (const uint8_t * buf, size_t len) override;
+			void HandleAddress (const uint8_t * buf, size_t len) override;
 
 			void ScheduleResend (uint8_t msg);
 			
@@ -50,6 +51,7 @@ namespace transport
 			bool m_IsConnectedRecently, m_IsStatusChanged;
 			std::vector<uint8_t> m_SignedData; // for resends
 			boost::asio::deadline_timer m_PeerTestResendTimer;
+			boost::asio::ip::udp::endpoint m_OurEndpoint; // as seen by peer
 	};	
 
 	const int SSU2_HOLE_PUNCH_RESEND_INTERVAL = 1000; // in milliseconds

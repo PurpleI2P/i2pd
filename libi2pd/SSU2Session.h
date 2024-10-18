@@ -296,6 +296,8 @@ namespace transport
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
+
+			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			
 		private:
 
@@ -328,8 +330,7 @@ namespace transport
 			void HandleRouterInfo (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
-			void HandleAddress (const uint8_t * buf, size_t len);
-			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
+			virtual void HandleAddress (const uint8_t * buf, size_t len);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
 			void AdjustMaxPayloadSize ();
