@@ -186,24 +186,23 @@ namespace garlic
 			void UpdateTimestamp (uint64_t ts); // in seconds, called from NetDb before publishing
 
 			// implements LocalDestination
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const;
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
-			void SetLeaseSetUpdated () {};
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const override{ return m_Keys.GetPublic (); };
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, i2p::data::CryptoKeyType preferredCrypto) const override;
+			void SetLeaseSetUpdated (bool post) override {};
 
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () { return nullptr; };
-			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const;
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () override { return nullptr; };
+			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const override;
 
 			// override GarlicDestination
-			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
-			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg) override;
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg) override;
 
 		protected:
 
 			// implements GarlicDestination
-			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID);
+			void HandleI2NPMessage (const uint8_t * buf, size_t len) override;
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) override;
 
 		private:
 
@@ -216,6 +215,7 @@ namespace garlic
 			void UpdateSSU2Keys ();
 			bool Load ();
 			void SaveKeys ();
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 			uint16_t SelectRandomPort () const;
 			void PublishNTCP2Address (std::shared_ptr<i2p::data::RouterInfo::Address> address, int port, bool publish) const;
 

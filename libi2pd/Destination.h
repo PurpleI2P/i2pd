@@ -142,14 +142,14 @@ namespace client
 			void CancelDestinationRequestWithEncryptedLeaseSet (std::shared_ptr<const i2p::data::BlindedPublicKey> dest, bool notify = true);
 
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet ();
-			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () override;
+			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const override { return m_Pool; }
 
 			// override GarlicDestination
-			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
-			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag);
-			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
-			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag) override;
+			void SubmitECIESx25519Key (const uint8_t * key, uint64_t tag) override;
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg) override;
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg) override;
 			void SetLeaseSetUpdated (bool post) override;
 
 			bool IsPublic () const { return m_IsPublic; };
@@ -158,8 +158,8 @@ namespace client
 		protected:
 
 			// implements GarlicDestination
-			void HandleI2NPMessage (const uint8_t * buf, size_t len);
-			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID);
+			void HandleI2NPMessage (const uint8_t * buf, size_t len) override;
+			bool HandleCloveI2NPMessage (I2NPMessageType typeID, const uint8_t * payload, size_t len, uint32_t msgID) override;
 
 			void SetLeaseSet (std::shared_ptr<const i2p::data::LocalLeaseSet> newLeaseSet);
 			int GetLeaseSetType () const { return m_LeaseSetType; };
