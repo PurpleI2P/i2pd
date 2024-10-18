@@ -73,14 +73,14 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service), m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT), m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0),
 		m_WindowDropTargetSize (0), m_WindowIncCounter (0), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()), m_PrevRTTSample (INITIAL_RTT), 
 		m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_RemoteLeaseChangeTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -101,13 +101,13 @@ namespace stream
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
-		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_LocalDestination (local),
+		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), m_RTT (INITIAL_RTT), m_SlowRTT (INITIAL_RTT), m_SlowRTT2 (INITIAL_RTT),
 		m_WindowSize (INITIAL_WINDOW_SIZE), m_LastWindowDropSize  (0), m_WindowDropTargetSize (0), m_WindowIncCounter (0), 
 		m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_PrevRTTSample (INITIAL_RTT), m_Jitter (0), m_MinPacingTime (0),
-		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0),
+		m_PacingTime (INITIAL_PACING_TIME), m_PacingTimeRem (0), m_LastSendTime (0), m_RemoteLeaseChangeTime (0),
 		m_LastACKSendTime (0), m_PacketACKInterval (1), m_PacketACKIntervalRem (0), // for limit inbound speed
 		m_NumResendAttempts (0), m_NumPacketsToSend (0), m_MTU (STREAMING_MTU)
 	{
@@ -256,6 +256,7 @@ namespace stream
 				if (receivedSeqn <= m_PreviousReceivedSequenceNumber || receivedSeqn == m_LastReceivedSequenceNumber)
  				{
  					m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+ 					CancelRemoteLeaseChange ();
  					UpdateCurrentRemoteLease ();
  				}
  				m_PreviousReceivedSequenceNumber = receivedSeqn;
@@ -1104,6 +1105,7 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet)
 		{
+			CancelRemoteLeaseChange ();
 			UpdateCurrentRemoteLease ();
 			if (!m_RemoteLeaseSet)
 			{
@@ -1127,9 +1129,28 @@ namespace stream
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate || // excluded from LeaseSet
-			ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate) // excluded from LeaseSet
+		{
+			CancelRemoteLeaseChange ();
 			UpdateCurrentRemoteLease (true);
+		}
+		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTT)
+		{
+			CancelRemoteLeaseChange ();
+			m_CurrentRemoteLease = m_NextRemoteLease;
+			HalveWindowSize ();
+		}
+		auto currentRemoteLease = m_CurrentRemoteLease;
+		if (!m_IsRemoteLeaseChangeInProgress && m_RemoteLeaseSet && m_CurrentRemoteLease && ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+		{
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (false);
+			if (leases.size () > 1)
+			{
+				m_IsRemoteLeaseChangeInProgress = true;
+				UpdateCurrentRemoteLease (true);
+				m_NextRemoteLease = m_CurrentRemoteLease;
+			}
+		}
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
 			bool freshTunnel = false;
@@ -1166,6 +1187,11 @@ namespace stream
 						msg
 					});
 				m_NumSentBytes += it->GetLength ();
+				if (m_IsRemoteLeaseChangeInProgress && !m_RemoteLeaseChangeTime)
+				{
+					m_RemoteLeaseChangeTime = ts;
+					m_CurrentRemoteLease = currentRemoteLease; // change it back before new lease is confirmed
+				}
 			}
 			m_CurrentOutboundTunnel->SendTunnelDataMsgs (msgs);
 		}
@@ -1366,6 +1392,7 @@ namespace stream
 					}
 					else
 					{
+						CancelRemoteLeaseChange ();
 						UpdateCurrentRemoteLease (); // pick another lease
 						LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
 							", another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
@@ -1506,22 +1533,9 @@ namespace stream
 			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
 		}
-		if (isLeaseChanged)
+		if (isLeaseChanged && !m_IsRemoteLeaseChangeInProgress)
 		{
-			// drop window to initial upon RemoteLease change
-			m_RTO = INITIAL_RTO;
-			if (m_WindowSize > INITIAL_WINDOW_SIZE)
-			{
-				m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
-				m_IsWinDropped = true;
-			}
-			else
-				m_WindowSize = INITIAL_WINDOW_SIZE;
-			m_LastWindowDropSize = 0;
-			m_WindowIncCounter = 0;
-			m_IsFirstRttSample = true;
-			m_IsFirstACK = true;
-			UpdatePacingTime ();
+			HalveWindowSize ();
 		}
 	}
 
@@ -1559,7 +1573,30 @@ namespace stream
 		m_IsWinDropped = true; // don't drop window twice
 		UpdatePacingTime ();
 	}
-		
+
+	void Stream::HalveWindowSize ()
+	{
+		m_RTO = INITIAL_RTO;
+		if (m_WindowSize > INITIAL_WINDOW_SIZE)
+		{
+			m_WindowDropTargetSize = std::max (m_WindowSize/2, (float)INITIAL_WINDOW_SIZE);
+			m_IsWinDropped = true;
+		}
+		else
+			m_WindowSize = INITIAL_WINDOW_SIZE;
+		m_LastWindowDropSize = 0;
+		m_WindowIncCounter = 0;
+		m_IsFirstRttSample = true;
+		m_IsFirstACK = true;
+		UpdatePacingTime ();
+	}
+
+	void Stream::CancelRemoteLeaseChange ()
+	{
+		m_RemoteLeaseChangeTime = 0;
+		m_IsRemoteLeaseChangeInProgress = false;
+	}
+
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_PendingIncomingTimer (m_Owner->GetService ()), 
