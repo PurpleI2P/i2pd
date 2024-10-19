@@ -2303,11 +2303,11 @@ namespace transport
 							{
 								session->SetRemoteIdentity (r->GetIdentity ());
 								auto addr = r->GetSSU2Address (m_Address->IsV4 ());
-								if (addr)
+								if (addr && addr->IsPeerTesting ())
 								{
 									if (session->GetMsgNumReceived () >= 5)
 									{
-										// msg 5 already received 
+										// msg 5 already received and we know remote endpoint
 										if (session->GetMsgNumReceived () == 5)
 										{	
 											if (!session->IsConnectedRecently ())
@@ -2324,7 +2324,11 @@ namespace transport
 										if (GetTestingState ())
 										{
 											// schedule msg 6 with delay
-											session->SendPeerTest (6, buf + offset, len - offset, addr, true);
+											if (!addr->host.is_unspecified () && addr->port)
+											{	
+												session->SetRemoteEndpoint (boost::asio::ip::udp::endpoint (addr->host, addr->port));
+												session->SendPeerTest (6, buf + offset, len - offset, addr, true);
+											}	
 											SetTestingState (false);
 											if (GetRouterStatus () != eRouterStatusFirewalled && addr->IsPeerTesting ())
 											{
@@ -2342,7 +2346,7 @@ namespace transport
 								}
 								else
 								{
-									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found");
+									LogPrint (eLogWarning, "SSU2: Peer test 4 address not found or not supported");
 									session->Done ();
 								}
 							}
