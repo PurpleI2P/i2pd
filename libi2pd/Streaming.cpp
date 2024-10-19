@@ -1144,12 +1144,14 @@ namespace stream
 		if (!m_IsRemoteLeaseChangeInProgress && m_RemoteLeaseSet && m_CurrentRemoteLease && ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (false);
-			if (leases.size () > 1)
+			if (leases.size ())
 			{
 				m_IsRemoteLeaseChangeInProgress = true;
 				UpdateCurrentRemoteLease (true);
 				m_NextRemoteLease = m_CurrentRemoteLease;
 			}
+			else
+				UpdateCurrentRemoteLease (true);
 		}
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{
