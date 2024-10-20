@@ -39,6 +39,7 @@ namespace data
 {
 	const int NETDB_MIN_ROUTERS = 90;
 	const int NETDB_MIN_FLOODFILLS = 5;
+	const int NETDB_MIN_TRANSPORTS = 10 ; // otherwise assume offline
 	const int NETDB_NUM_FLOODFILLS_THRESHOLD = 1200;
 	const int NETDB_NUM_ROUTERS_THRESHOLD = 4*NETDB_NUM_FLOODFILLS_THRESHOLD;
 	const int NETDB_TUNNEL_CREATION_RATE_THRESHOLD = 10; // in %

@@ -638,7 +638,8 @@ namespace data
 		if (checkForExpiration && uptime > i2p::transport::SSU2_TO_INTRODUCER_SESSION_DURATION) // 1 hour
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
-
+		bool isOffline = checkForExpiration && i2p::transport::transports.GetNumPeers () < NETDB_MIN_TRANSPORTS; // enough routers and uptime, but no tranports
+			
 		std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > > saveToDisk;
 		std::list<std::string> removeFromDisk;	
 			
@@ -672,7 +673,7 @@ namespace data
 			if (r->GetProfile ()->IsUnreachable ())
 				r->SetUnreachable (true);
 			// make router reachable back if too few routers or floodfills
-			if (r->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate ||
+			if (r->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate || isOffline ||
 				(r->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
 				r->SetUnreachable (false);
 			if (!r->IsUnreachable ())
