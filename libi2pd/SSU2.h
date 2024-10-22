@@ -147,6 +147,7 @@ namespace transport
 			void ScheduleResend (bool more);
 			void HandleResendTimer (const boost::system::error_code& ecode);
 
+			bool CheckPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, bool peerTest);
 			void ConnectThroughIntroducer (std::shared_ptr<SSU2Session> session);
 			std::vector<std::shared_ptr<SSU2Session> > FindIntroducers (int maxNumIntroducers,
 				bool v4, const std::unordered_set<i2p::data::IdentHash>& excluded);

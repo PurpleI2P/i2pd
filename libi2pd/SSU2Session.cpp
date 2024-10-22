@@ -226,6 +226,13 @@ namespace transport
 			if (m_Server.AddPendingOutgoingSession (shared_from_this ()))
 			{                                                             
 				m_Server.RemoveSession (GetConnID ());
+				// update endpoint in profile because we know it now 
+				auto identity = GetRemoteIdentity ();
+				if (identity)
+				{	
+					auto profile = i2p::data::GetRouterProfile (identity->GetIdentHash ());
+					if (profile) profile->SetLastEndpoint (m_RemoteEndpoint);
+				}	
 				// connect
 				LogPrint (eLogDebug, "SSU2: Connecting after introduction to ", GetIdentHashBase64());
 				Connect ();
@@ -1169,6 +1176,8 @@ namespace transport
 					" and actual endpoint ", m_RemoteEndpoint.address (), " from ", i2p::data::GetIdentHashAbbreviation (ri->GetIdentHash ()));
 			return false;
 		}
+		if (!m_Address->published)
+			ri->GetProfile ()->SetLastEndpoint (m_RemoteEndpoint);
 		SetRemoteIdentity (ri->GetRouterIdentity ());
 		AdjustMaxPayloadSize ();
 		m_Server.AddSessionByRouterHash (shared_from_this ()); // we know remote router now

@@ -833,6 +833,29 @@ namespace transport
 		}
 	}
 
+	bool SSU2Server::CheckPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, bool peerTest)
+	{
+		auto s = FindPendingOutgoingSession (ep);
+		if (s)
+		{
+			if (peerTest)
+			{
+				// if peer test requested add it to the list for pending session
+				auto onEstablished = s->GetOnEstablished ();
+				if (onEstablished)
+					s->SetOnEstablished ([s, onEstablished]()
+						{
+							onEstablished ();
+							s->SendPeerTest ();
+						});
+				else
+					s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+			}
+			return true;
+		}
+		return false;
+	}	
+		
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
@@ -852,34 +875,28 @@ namespace transport
 			if (isValidEndpoint)
 			{
 				if (i2p::transport::transports.IsInReservedRange(address->host)) return false;
-				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
-				if (s)
-				{
-					if (peerTest)
-					{
-						// if peer test requested add it to the list for pending session
-						auto onEstablished = s->GetOnEstablished ();
-						if (onEstablished)
-							s->SetOnEstablished ([s, onEstablished]()
-								{
-									onEstablished ();
-									s->SendPeerTest ();
-								});
-						else
-							s->SetOnEstablished ([s]() { s->SendPeerTest (); });
-					}
-					return false;
-				}
+				if (CheckPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port), peerTest)) return false;
 			}
 
 			auto session = std::make_shared<SSU2Session> (*this, router, address);
+			if (!isValidEndpoint && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
+			{
+				// router doesn't publish endpoint, but we connected before and hole punch might be alive
+				const auto& ep = router->GetProfile ()->GetLastEndpoint ();
+				if (IsConnectedRecently (ep))
+				{
+					if (CheckPendingOutgoingSession (ep, peerTest)) return false;
+					session->SetRemoteEndpoint (ep);
+					isValidEndpoint = true;
+				}	
+			}	
 			if (peerTest)
 				session->SetOnEstablished ([session]() {session->SendPeerTest (); });
 
-			if (address->UsesIntroducer ())
-				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
-			else if (isValidEndpoint) // we can't connect without endpoint
+			if (isValidEndpoint) // we know endpoint
 				GetService ().post ([session]() { session->Connect (); });
+			else if (address->UsesIntroducer ()) // we don't know endpoint yet
+				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
 			else
 				return false;
 		}
