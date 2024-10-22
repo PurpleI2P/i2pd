@@ -997,7 +997,7 @@ namespace crypto
 		}
 		else
 		{
-#if defined(LIBRESSL_VERSION_NUMBER)
+#if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x4000000fL
 			std::vector<uint8_t> m(msgLen + 16);
 			if (msg == buf)
 			{	
