@@ -194,6 +194,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::IdentityEx> m_PendingTimeOffsetFrom;
 			std::mt19937 m_Rng;
 			std::map<boost::asio::ip::udp::endpoint, uint64_t> m_ConnectedRecently; // endpoint -> last activity time in seconds
+			mutable std::mutex m_ConnectedRecentlyMutex;
 			std::unordered_map<uint32_t, std::pair <std::weak_ptr<SSU2PeerTestSession>, uint64_t > > m_RequestedPeerTests; // nonce->(Alice, timestamp) 
 			std::list<Packet *> m_ReceivedPacketsQueue;
 			mutable std::mutex m_ReceivedPacketsQueueMutex;

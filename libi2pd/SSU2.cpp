@@ -219,6 +219,7 @@ namespace transport
 	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep)
 	{
 		if (!ep.port () || ep.address ().is_unspecified ()) return false;
+		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto it = m_ConnectedRecently.find (ep);
 		if (it != m_ConnectedRecently.end ())
 		{	
@@ -234,6 +235,7 @@ namespace transport
 	{
 		if (!ep.port () || ep.address ().is_unspecified () || 
 		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
+		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto [it, added] = m_ConnectedRecently.try_emplace (ep, ts);
 		if (!added && ts > it->second)
 			it->second = ts; // renew timestamp of existing endpoint
