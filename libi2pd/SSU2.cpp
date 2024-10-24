@@ -884,7 +884,7 @@ namespace transport
 			if (!isValidEndpoint && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
 			{
 				// router doesn't publish endpoint, but we connected before and hole punch might be alive
-				const auto& ep = router->GetProfile ()->GetLastEndpoint ();
+				auto ep = router->GetProfile ()->GetLastEndpoint ();
 				if (IsConnectedRecently (ep))
 				{
 					if (CheckPendingOutgoingSession (ep, peerTest)) return false;
