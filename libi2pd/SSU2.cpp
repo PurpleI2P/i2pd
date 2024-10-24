@@ -216,16 +216,16 @@ namespace transport
 		return ep.port ();
 	}
 
-	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep)
+	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep, bool max)
 	{
 		if (!ep.port () || ep.address ().is_unspecified ()) return false;
 		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto it = m_ConnectedRecently.find (ep);
 		if (it != m_ConnectedRecently.end ())
 		{	
-			if (i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+			if (i2p::util::GetSecondsSinceEpoch () <= it->second + (max ? SSU2_MAX_HOLE_PUNCH_EXPIRATION : SSU2_MIN_HOLE_PUNCH_EXPIRATION))
 				return true;
-			else
+			else if (max)
 				m_ConnectedRecently.erase (it);
 		}	
 		return false;
@@ -234,7 +234,7 @@ namespace transport
 	void SSU2Server::AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts)
 	{
 		if (!ep.port () || ep.address ().is_unspecified () || 
-		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
+		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_MAX_HOLE_PUNCH_EXPIRATION) return;
 		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto [it, added] = m_ConnectedRecently.try_emplace (ep, ts);
 		if (!added && ts > it->second)
@@ -885,7 +885,7 @@ namespace transport
 			{
 				// router doesn't publish endpoint, but we connected before and hole punch might be alive
 				auto ep = router->GetProfile ()->GetLastEndpoint ();
-				if (IsConnectedRecently (ep))
+				if (IsConnectedRecently (ep, false))
 				{
 					if (CheckPendingOutgoingSession (ep, peerTest)) return false;
 					session->SetRemoteEndpoint (ep);
@@ -1148,7 +1148,7 @@ namespace transport
 
 			for (auto it = m_ConnectedRecently.begin (); it != m_ConnectedRecently.end (); )
 			{
-				if (ts > it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+				if (ts > it->second + SSU2_MAX_HOLE_PUNCH_EXPIRATION)
 					it = m_ConnectedRecently.erase (it);
 				else
 					it++;

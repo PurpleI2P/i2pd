@@ -42,7 +42,8 @@ namespace transport
 	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
-	const int SSU2_HOLE_PUNCH_EXPIRATION = 150; // in seconds
+	const int SSU2_MIN_HOLE_PUNCH_EXPIRATION = 45; // in seconds
+	const int SSU2_MAX_HOLE_PUNCH_EXPIRATION = 181; // in seconds
 	const size_t SSU2_MAX_NUM_PACKETS_PER_BATCH = 64;
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
@@ -77,7 +78,7 @@ namespace transport
 			bool UsesProxy () const { return m_IsThroughProxy; };
 			bool IsSupported (const boost::asio::ip::address& addr) const;
 			uint16_t GetPort (bool v4) const;
-			bool IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep);
+			bool IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep, bool max = true);
 			void AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts);
 			std::mt19937& GetRng () { return m_Rng; }
 			bool IsMaxNumIntroducers (bool v4) const { return (v4 ? m_Introducers.size () : m_IntroducersV6.size ()) >= SSU2_MAX_NUM_INTRODUCERS; }

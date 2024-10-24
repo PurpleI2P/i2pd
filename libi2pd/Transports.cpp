@@ -685,7 +685,7 @@ namespace transport
 					if (ep.address ().is_v4 ())
 					{	
 						if ((supportedTransports & i2p::data::RouterInfo::eSSU2V4) &&
-							m_SSU2Server->IsConnectedRecently (ep))
+							m_SSU2Server->IsConnectedRecently (ep, false))
 							peer->priority.push_back (i2p::data::RouterInfo::eSSU2V4);
 					}	
 					else if (ep.address ().is_v6 ())
