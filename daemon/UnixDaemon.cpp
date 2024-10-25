@@ -221,7 +221,7 @@ namespace i2p
 
 		void DaemonLinux::run ()
 		{
-			i2p::util::SetThreadName ("Daemon");
+			i2p::util::SetThreadName ("i2pd-daemon");
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));
