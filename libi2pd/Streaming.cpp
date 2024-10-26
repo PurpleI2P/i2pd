@@ -1237,7 +1237,8 @@ namespace stream
 		if (m_Status != eStreamStatusTerminated)
 		{
 			m_SendTimer.cancel ();
-			m_SendTimer.expires_from_now (boost::posix_time::microseconds(SEND_INTERVAL));
+			m_SendTimer.expires_from_now (boost::posix_time::microseconds(
+				SEND_INTERVAL + m_LocalDestination.GetRandom () % SEND_INTERVAL_VARIANCE));
 			m_SendTimer.async_wait (std::bind (&Stream::HandleSendTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
@@ -1250,8 +1251,17 @@ namespace stream
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			if (m_LastSendTime && ts*1000 > m_LastSendTime*1000 + m_PacingTime)
 			{
-				m_NumPacketsToSend = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) / m_PacingTime;
-				m_PacingTimeRem = ((ts*1000 - m_LastSendTime*1000) + m_PacingTimeRem) - (m_NumPacketsToSend * m_PacingTime);
+				if (m_PacingTime)
+				{	
+					auto numPackets = std::lldiv (m_PacingTimeRem + ts*1000 - m_LastSendTime*1000, m_PacingTime);
+					m_NumPacketsToSend = numPackets.quot;
+					m_PacingTimeRem = numPackets.rem;
+				}	
+				else
+				{
+					LogPrint (eLogError, "Streaming: pacing time is zero");
+					m_NumPacketsToSend = 1; m_PacingTimeRem = 0;
+				}	
 				m_IsSendTime = true;
 				if (m_WindowIncCounter && m_WindowSize < MAX_WINDOW_SIZE && !m_SendBuffer.IsEmpty () && m_PacingTime > m_MinPacingTime)
 				{

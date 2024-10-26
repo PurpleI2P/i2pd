@@ -69,7 +69,8 @@ namespace stream
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
-	const uint64_t SEND_INTERVAL = 1000; // in microseconds
+	const uint64_t SEND_INTERVAL = 10000; // in microseconds
+	const uint64_t SEND_INTERVAL_VARIANCE = 2000; // in microseconds
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
 	const bool LOSS_BASED_CONTROL_ENABLED = 1; // 0/1
