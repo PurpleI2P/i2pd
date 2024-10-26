@@ -83,7 +83,7 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo::Address> addr, bool noise):
 		TransportSession (in_RemoteRouter, SSU2_CONNECT_TIMEOUT),
 		m_Server (server), m_Address (addr), m_RemoteTransports (0), m_RemotePeerTestTransports (0),
-		m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
+		m_RemoteVersion (0), m_DestConnID (0), m_SourceConnID (0), m_State (eSSU2SessionStateUnknown),
 		m_SendPacketNum (0), m_ReceivePacketNum (0), m_LastDatetimeSentPacketNum (0),
 		m_IsDataReceived (false), m_RTT (SSU2_UNKNOWN_RTT),
 		m_MsgLocalExpirationTimeout (I2NP_MESSAGE_LOCAL_EXPIRATION_TIMEOUT_MAX),
@@ -103,6 +103,7 @@ namespace transport
 				InitNoiseXKState1 (*m_NoiseState, m_Address->s);
 			m_RemoteEndpoint = boost::asio::ip::udp::endpoint (m_Address->host, m_Address->port);
 			m_RemoteTransports = in_RemoteRouter->GetCompatibleTransports (false);
+			m_RemoteVersion = in_RemoteRouter->GetVersion ();
 			if (in_RemoteRouter->IsSSU2PeerTesting (true)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V4;
 			if (in_RemoteRouter->IsSSU2PeerTesting (false)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V6;
 			RAND_bytes ((uint8_t *)&m_DestConnID, 8);
@@ -1185,7 +1186,8 @@ namespace transport
 		m_RemotePeerTestTransports = 0;
 		if (ri->IsSSU2PeerTesting (true)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V4;
 		if (ri->IsSSU2PeerTesting (false)) m_RemotePeerTestTransports |= i2p::data::RouterInfo::eSSU2V6;
-
+		m_RemoteVersion = ri->GetVersion ();
+		
 		// handle other blocks
 		HandlePayload (decryptedPayload.data () + riSize + 3, decryptedPayload.size () - riSize - 3);
 		Established ();
@@ -2037,11 +2039,13 @@ namespace transport
 			holePunchSession->SendHolePunch (packet->payload, packet->payloadSize); // relay response block
 		}	
 		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-		/*uint32_t packetNum = */SendData (packet->payload, packet->payloadSize);
-		// sometimes Bob doesn't ack this RelayResponse
-		// TODO: uncomment line below once the problem is resolved
-		//packet->sendTime = mts;
-		//m_SentPackets.emplace (packetNum, packet);
+		uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+		if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
+		{	
+			// sometimes Bob doesn't ack this RelayResponse in older versions
+			packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
+			m_SentPackets.emplace (packetNum, packet);
+		}	
 	}
 
 	void SSU2Session::HandleRelayResponse (const uint8_t * buf, size_t len)
@@ -2076,11 +2080,13 @@ namespace transport
 				memcpy (payload + 3, buf, len); // forward to Alice as is
 				packet->payloadSize = len + 3;
 				packet->payloadSize += CreatePaddingBlock (payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-				/*uint32_t packetNum = */it->second.first->SendData (packet->payload, packet->payloadSize);
-				// sometimes Alice doesn't ack this RelayResponse
-				// TODO: uncomment line below once the problem is resolved
-				//packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
-				//it->second.first->m_SentPackets.emplace (packetNum, packet);
+				uint32_t packetNum = it->second.first->SendData (packet->payload, packet->payloadSize);
+				if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
+				{	
+					// sometimes Alice doesn't ack this RelayResponse in older versions
+					packet->sendTime = i2p::util::GetMillisecondsSinceEpoch ();
+					it->second.first->m_SentPackets.emplace (packetNum, packet);
+				}	
 			}
 			else
 			{

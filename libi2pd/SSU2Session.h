@@ -15,6 +15,7 @@
 #include <set>
 #include <list>
 #include <boost/asio.hpp>
+#include "version.h"
 #include "Crypto.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -55,6 +56,7 @@ namespace transport
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 	const int SSU2_SEND_DATETIME_NUM_PACKETS = 256;
+	const int SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION = MAKE_VERSION_NUMBER(0, 9, 64); // 0.9.64
 
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
@@ -368,6 +370,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			i2p::data::RouterInfo::CompatibleTransports m_RemoteTransports, m_RemotePeerTestTransports; 
+			int m_RemoteVersion;
 			uint64_t m_DestConnID, m_SourceConnID;
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64];
