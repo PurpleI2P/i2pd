@@ -42,8 +42,8 @@ namespace transport
 	const int SSU2_KEEP_ALIVE_INTERVAL = 15; // in seconds
 	const int SSU2_KEEP_ALIVE_INTERVAL_VARIANCE = 4; // in seconds
 	const int SSU2_PROXY_CONNECT_RETRY_TIMEOUT = 30; // in seconds
-	const int SSU2_MIN_HOLE_PUNCH_EXPIRATION = 45; // in seconds
-	const int SSU2_MAX_HOLE_PUNCH_EXPIRATION = 181; // in seconds
+	const int SSU2_MIN_HOLE_PUNCH_EXPIRATION = 30; // in seconds
+	const int SSU2_MAX_HOLE_PUNCH_EXPIRATION = 160; // in seconds
 	const size_t SSU2_MAX_NUM_PACKETS_PER_BATCH = 64;
 
 	class SSU2Server: private i2p::util::RunnableServiceWithWork
