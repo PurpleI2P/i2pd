@@ -2162,29 +2162,33 @@ namespace transport
 					GetRemoteIdentity ()->GetIdentHash ());
 				if (session) // session with Charlie
 				{
-					m_Server.AddPeerTest (nonce, shared_from_this (), ts/1000);
-					auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
-					// Alice's RouterInfo
-					auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
-					if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-					packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
-					if (!packet->payloadSize && r)
-						session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-					if (packet->payloadSize + len + 48 > m_MaxPayloadSize)
-					{
-						// doesn't fit one message, send RouterInfo in separate message
+					if (m_Server.AddPeerTest (nonce, shared_from_this (), ts/1000))
+					{	
+						auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+						// Alice's RouterInfo
+						auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ());
+						if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
+						packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+						if (!packet->payloadSize && r)
+							session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+						if (packet->payloadSize + len + 48 > m_MaxPayloadSize)
+						{
+							// doesn't fit one message, send RouterInfo in separate message
+							uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
+							packet->sendTime = ts;
+							session->m_SentPackets.emplace (packetNum, packet);
+							packet = m_Server.GetSentPacketsPool ().AcquireShared (); // new packet
+						}
+						// PeerTest to Charlie
+						packet->payloadSize += CreatePeerTestBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, 2,
+							eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
+						packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 						uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
 						packet->sendTime = ts;
 						session->m_SentPackets.emplace (packetNum, packet);
-						packet = m_Server.GetSentPacketsPool ().AcquireShared (); // new packet
 					}
-					// PeerTest to Charlie
-					packet->payloadSize += CreatePeerTestBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, 2,
-						eSSU2PeerTestCodeAccept, GetRemoteIdentity ()->GetIdentHash (), buf + offset, len - offset);
-					packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-					uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize, SSU2_FLAG_IMMEDIATE_ACK_REQUESTED);
-					packet->sendTime = ts;
-					session->m_SentPackets.emplace (packetNum, packet);
+					else
+						LogPrint (eLogInfo, "SSU2: Peer test 1 nonce ", nonce, " already exists. Ignored");
 				}
 				else
 				{
