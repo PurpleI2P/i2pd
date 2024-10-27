@@ -477,7 +477,7 @@ namespace transport
 		HandleReceivedPackets (std::move (receivedPackets));
 	}	
 		
-	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
+	bool SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)
 		{
@@ -485,8 +485,10 @@ namespace transport
 			{	
 				if (session->GetState () != eSSU2SessionStatePeerTest)
 					AddSessionByRouterHash (session);
+				return true;
 			}	
 		}
+		return false;
 	}
 
 	void SSU2Server::RemoveSession (uint64_t connID)

@@ -85,7 +85,7 @@ namespace transport
 			bool IsSyncClockFromPeers () const { return m_IsSyncClockFromPeers; };
 			void AdjustTimeOffset (int64_t offset, std::shared_ptr<const i2p::data::IdentityEx> from);
 
-			void AddSession (std::shared_ptr<SSU2Session> session);
+			bool AddSession (std::shared_ptr<SSU2Session> session);
 			void RemoveSession (uint64_t connID);
 			void RequestRemoveSession (uint64_t connID);
 			void AddSessionByRouterHash (std::shared_ptr<SSU2Session> session);

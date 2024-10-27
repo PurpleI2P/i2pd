@@ -1931,25 +1931,28 @@ namespace transport
 			return;
 		}
 		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
-		session->m_RelaySessions.emplace (bufbe32toh (buf + 1), // nonce
-			std::make_pair (shared_from_this (), mts/1000) );
+		uint32_t nonce = bufbe32toh (buf + 1);
+		if (session->m_RelaySessions.emplace (nonce, std::make_pair (shared_from_this (), mts/1000)).second)
+		{
+			// send relay intro to Charlie
+			auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
+			if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
+			if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
 
-		// send relay intro to Charlie
-		auto r = i2p::data::netdb.FindRouter (GetRemoteIdentity ()->GetIdentHash ()); // Alice's RI
-		if (r && (r->IsUnreachable () || !i2p::data::netdb.PopulateRouterInfoBuffer (r))) r = nullptr;
-		if (!r) LogPrint (eLogWarning, "SSU2: RelayRequest Alice's router info not found");
-
-		auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
-		packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
-		if (!packet->payloadSize && r)
-			session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
-		packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
-		if (packet->payloadSize < m_MaxPayloadSize)
-			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
-		uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
-		packet->sendTime = mts;
-		// Charlie always responds with RelayResponse
-		session->m_SentPackets.emplace (packetNum, packet);
+			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+			packet->payloadSize = r ? CreateRouterInfoBlock (packet->payload, m_MaxPayloadSize - len - 32, r) : 0;
+			if (!packet->payloadSize && r)
+				session->SendFragmentedMessage (CreateDatabaseStoreMsg (r));
+			packet->payloadSize += CreateRelayIntroBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize, buf + 1, len -1);
+			if (packet->payloadSize < m_MaxPayloadSize)
+				packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+			uint32_t packetNum = session->SendData (packet->payload, packet->payloadSize);
+			packet->sendTime = mts;
+			// Charlie always responds with RelayResponse
+			session->m_SentPackets.emplace (packetNum, packet);
+		}
+		else
+			LogPrint (eLogInfo, "SSU2: Relay request nonce ", nonce, " already exists. Ignore");
 	}
 
 	void SSU2Session::HandleRelayIntro (const uint8_t * buf, size_t len, int attempts)
@@ -2035,8 +2038,13 @@ namespace transport
 		{
 			// send HolePunch 
 			auto holePunchSession = std::make_shared<SSU2HolePunchSession>(m_Server, nonce, ep, addr); 
-			m_Server.AddSession (holePunchSession);
-			holePunchSession->SendHolePunch (packet->payload, packet->payloadSize); // relay response block
+			if (m_Server.AddSession (holePunchSession))
+				holePunchSession->SendHolePunch (packet->payload, packet->payloadSize); // relay response block
+			else
+			{
+				LogPrint (eLogInfo, "SSU2: Relay intro nonce ", nonce, " already exists. Ignore");
+				return;
+			}		
 		}	
 		packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 		uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
@@ -3043,7 +3051,7 @@ namespace transport
 		{
 			if (ts > it->second.second + SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT)
 			{
-				LogPrint (eLogWarning, "SSU2: Relay nonce ", it->first, " was not responded in ", SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT, " seconds, deleted");
+				LogPrint (eLogInfo, "SSU2: Relay nonce ", it->first, " was not responded in ", SSU2_RELAY_NONCE_EXPIRATION_TIMEOUT, " seconds, deleted");
 				it = m_RelaySessions.erase (it);
 			}
 			else
