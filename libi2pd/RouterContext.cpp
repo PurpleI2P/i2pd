@@ -1489,7 +1489,7 @@ namespace i2p
 	void RouterContext::UpdateCongestion ()
 	{
 		auto c = i2p::data::RouterInfo::eLowCongestion;
-		if (!AcceptsTunnels () || !m_ShareRatio)
+		if (!AcceptsTunnels () || !m_ShareRatio || (m_Error == eRouterErrorSymmetricNAT && !SupportsV6 () && !SupportsMesh ()))                                        	
 			c = i2p::data::RouterInfo::eRejectAll;
 		else
 		{
