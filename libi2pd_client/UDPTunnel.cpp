@@ -203,7 +203,7 @@ namespace client
 		std::vector<std::shared_ptr<DatagramSessionInfo> > sessions;
 		std::lock_guard<std::mutex> lock (m_SessionsMutex);
 
-		for (auto it: m_Sessions)
+        for (const auto &it: m_Sessions)
 		{
 			auto s = it.second;
 			if (!s->m_Destination) continue;
