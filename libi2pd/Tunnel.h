@@ -18,6 +18,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <random>
 #include "util.h"
 #include "Queue.h"
 #include "Crypto.h"
@@ -244,6 +245,8 @@ namespace tunnel
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 
+			std::mt19937& GetRng () { return m_Rng; };
+			
 		private:
 
 			template<class TTunnel>
@@ -307,6 +310,7 @@ namespace tunnel
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;
 			int m_TunnelCreationAttemptsNum;
+			std::mt19937 m_Rng;
 
 		public:
 
