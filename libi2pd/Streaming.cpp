@@ -1276,10 +1276,12 @@ namespace stream
 							else
 								m_WindowSize += (m_WindowSize - (1 - PREV_SPEED_KEEP_TIME_COEFF)) / m_WindowSize;
 							if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
-							m_WindowIncCounter --;
-							UpdatePacingTime ();
+							m_WindowIncCounter--;
 						}
+						else
+							break;
 					}
+					UpdatePacingTime ();
 				}
 				if (m_IsNAcked)
 					ResendPacket ();
