@@ -1822,7 +1822,7 @@ namespace transport
 							LogPrint(eLogError, "NTCP2: HTTP proxy write error ", ec.message());
 					});
 
-				boost::asio::streambuf * readbuff = new boost::asio::streambuf;
+				auto readbuff = std::make_shared<boost::asio::streambuf>();
 				boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n",
 					[readbuff, timer, conn] (const boost::system::error_code & ec, std::size_t transferred)
 					{
@@ -1842,7 +1842,6 @@ namespace transport
 								{
 									timer->cancel();
 									conn->ClientLogin();
-									delete readbuff;
 									return;
 								}
 								else
@@ -1852,7 +1851,6 @@ namespace transport
 								LogPrint(eLogError, "NTCP2: HTTP proxy gave malformed response");
 							timer->cancel();
 							conn->Terminate();
-							delete readbuff;
 						}
 					});
 				break;

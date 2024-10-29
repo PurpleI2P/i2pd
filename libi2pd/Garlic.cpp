@@ -897,7 +897,7 @@ namespace garlic
 		}
 	}
 
-	void GarlicDestination::SetLeaseSetUpdated ()
+	void GarlicDestination::SetLeaseSetUpdated (bool post)
 	{
 		{
 			std::unique_lock<std::mutex> l(m_SessionsMutex);

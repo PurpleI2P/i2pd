@@ -290,9 +290,11 @@ namespace data
 			const uint8_t * GetBuffer () const { return m_Buffer ? m_Buffer->data () : nullptr; };
 			const uint8_t * LoadBuffer (const std::string& fullPath); // load if necessary
 			size_t GetBufferLen () const { return m_Buffer ? m_Buffer->GetBufferLen () : 0; };
-			void DeleteBuffer () { m_Buffer = nullptr; };
+			void DeleteBuffer () { m_Buffer = nullptr; m_IsBufferScheduledToDelete = false; };
 			std::shared_ptr<Buffer> GetSharedBuffer () const { return m_Buffer; };	
 			std::shared_ptr<Buffer> CopyBuffer () const;
+			void ScheduleBufferToDelete () { m_IsBufferScheduledToDelete = true; };
+			bool IsBufferScheduledToDelete () const { return m_IsBufferScheduledToDelete; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; };
@@ -354,7 +356,7 @@ namespace data
 #else		
 			AddressesPtr m_Addresses;
 #endif		
-			bool m_IsUpdated, m_IsUnreachable, m_IsFloodfill;
+			bool m_IsUpdated, m_IsUnreachable, m_IsFloodfill, m_IsBufferScheduledToDelete;
 			CompatibleTransports m_SupportedTransports, m_ReachableTransports, m_PublishedTransports;
 			uint8_t m_Caps;
 			char m_BandwidthCap;

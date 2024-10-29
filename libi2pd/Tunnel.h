@@ -18,6 +18,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <random>
 #include "util.h"
 #include "Queue.h"
 #include "Crypto.h"
@@ -229,7 +230,7 @@ namespace tunnel
 			std::shared_ptr<InboundTunnel> CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel);
 			std::shared_ptr<OutboundTunnel> CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool);
 			void PostTunnelData (std::shared_ptr<I2NPMessage> msg);
-			void PostTunnelData (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+			void PostTunnelData (std::list<std::shared_ptr<I2NPMessage> >& msgs); // and cleanup msgs
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
 			std::shared_ptr<TunnelPool> CreateTunnelPool (int numInboundHops, 
@@ -244,6 +245,8 @@ namespace tunnel
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
 			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 
+			std::mt19937& GetRng () { return m_Rng; };
+			
 		private:
 
 			template<class TTunnel>
@@ -307,6 +310,7 @@ namespace tunnel
 			int m_TotalNumSuccesiveTunnelCreations, m_TotalNumFailedTunnelCreations;
 			double m_TunnelCreationSuccessRate;
 			int m_TunnelCreationAttemptsNum;
+			std::mt19937 m_Rng;
 
 		public:
 

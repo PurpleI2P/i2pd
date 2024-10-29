@@ -69,7 +69,8 @@ namespace stream
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	const int MAX_RECEIVE_TIMEOUT = 20; // in seconds
 	const uint16_t DELAY_CHOKING = 60000; // in milliseconds
-	const uint64_t SEND_INTERVAL = 1000; // in microseconds
+	const uint64_t SEND_INTERVAL = 10000; // in microseconds
+	const uint64_t SEND_INTERVAL_VARIANCE = 2000; // in microseconds
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL = 7500; // in milliseconds 
 	const uint64_t REQUEST_IMMEDIATE_ACK_INTERVAL_VARIANCE = 3200; // in milliseconds 	
 	const bool LOSS_BASED_CONTROL_ENABLED = 1; // 0/1
@@ -248,6 +249,8 @@ namespace stream
 
 			void UpdatePacingTime ();
 			void ProcessWindowDrop ();
+			void HalveWindowSize ();
+			void CancelRemoteLeaseChange ();
 			
 		private:
 
@@ -268,12 +271,14 @@ namespace stream
 			bool m_IsWinDropped;
 			bool m_IsTimeOutResend;
 			bool m_IsImmediateAckRequested;
+			bool m_IsRemoteLeaseChangeInProgress;
 			StreamingDestination& m_LocalDestination;
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::crypto::Verifier> m_TransientVerifier; // in case of offline key
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
+			std::shared_ptr<const i2p::data::Lease> m_NextRemoteLease;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
@@ -289,7 +294,7 @@ namespace stream
 			int m_WindowIncCounter, m_RTO, m_AckDelay, m_PrevRTTSample;
 			double m_Jitter;
 			uint64_t m_MinPacingTime, m_PacingTime, m_PacingTimeRem, // microseconds
-				m_LastSendTime; // miliseconds
+				m_LastSendTime, m_RemoteLeaseChangeTime;	// miliseconds
 			uint64_t m_LastACKSendTime, m_PacketACKInterval, m_PacketACKIntervalRem; // for limit inbound speed
 			int m_NumResendAttempts, m_NumPacketsToSend;
 			size_t m_MTU;

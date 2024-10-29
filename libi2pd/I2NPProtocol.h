@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unordered_set>
 #include <memory>
+#include <list>
 #include <functional>
 #include "Crypto.h"
 #include "I2PEndian.h"
@@ -328,7 +329,7 @@ namespace tunnel
 
 		private:
 
-			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
+			std::list<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
 }
 

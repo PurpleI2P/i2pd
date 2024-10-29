@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -7,7 +7,6 @@
 */
 
 #include <string.h>
-#include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include "Crypto.h"
 #include "FS.h"
@@ -25,6 +24,8 @@ namespace data
 
 	Families::~Families ()
 	{
+		for (auto it : m_SigningKeys)
+			if (it.second.first) EVP_PKEY_free (it.second.first);
 	}
 
 	void Families::LoadCertificate (const std::string& filename)
@@ -47,48 +48,16 @@ namespace data
 					cn += 3;
 					char * family = strstr (cn, ".family");
 					if (family) family[0] = 0;
-				}
-				auto pkey = X509_get_pubkey (cert);
-				int keyType = EVP_PKEY_base_id (pkey);
-				switch (keyType)
-				{
-					case EVP_PKEY_DSA:
-						// TODO:
-					break;
-					case EVP_PKEY_EC:
-					{
-						EC_KEY * ecKey = EVP_PKEY_get1_EC_KEY (pkey);
-						if (ecKey)
+					auto pkey = X509_get_pubkey (cert);
+					if (pkey)
+					{	
+						if (!m_SigningKeys.emplace (cn, std::make_pair(pkey, (int)m_SigningKeys.size () + 1)).second)
 						{
-							auto group = EC_KEY_get0_group (ecKey);
-							if (group)
-							{
-								int curve = EC_GROUP_get_curve_name (group);
-								if (curve == NID_X9_62_prime256v1)
-								{
-									uint8_t signingKey[64];
-									BIGNUM * x = BN_new(), * y = BN_new();
-									EC_POINT_get_affine_coordinates_GFp (group,
-										EC_KEY_get0_public_key (ecKey), x, y, NULL);
-									i2p::crypto::bn2buf (x, signingKey, 32);
-									i2p::crypto::bn2buf (y, signingKey + 32, 32);
-									BN_free (x); BN_free (y);
-									verifier = std::make_shared<i2p::crypto::ECDSAP256Verifier>();
-									verifier->SetPublicKey (signingKey);
-								}
-								else
-									LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
-							}
-							EC_KEY_free (ecKey);
-						}
-						break;
-					}
-					default:
-						LogPrint (eLogWarning, "Family: Certificate key type ", keyType, " is not supported");
+							EVP_PKEY_free (pkey);
+							LogPrint (eLogError, "Family: Duplicated family name ", cn);
+						}	
+					}	
 				}
-				EVP_PKEY_free (pkey);
-				if (verifier && cn)
-					m_SigningKeys.emplace (cn, std::make_pair(verifier, (int)m_SigningKeys.size () + 1));
 			}
 			SSL_free (ssl);
 		}
@@ -130,14 +99,22 @@ namespace data
 			LogPrint (eLogError, "Family: ", family, " is too long");
 			return false;
 		}
-
-		memcpy (buf, family.c_str (), len);
-		memcpy (buf + len, (const uint8_t *)ident, 32);
-		len += 32;
-		Base64ToByteStream (signature, signatureLen, signatureBuf, 64);
 		auto it = m_SigningKeys.find (family);
-		if (it != m_SigningKeys.end ())
-			return it->second.first->Verify (buf, len, signatureBuf);
+		if (it != m_SigningKeys.end () && it->second.first)
+		{	
+			memcpy (buf, family.c_str (), len);
+			memcpy (buf + len, (const uint8_t *)ident, 32);
+			len += 32;
+			auto signatureBufLen = Base64ToByteStream (signature, signatureLen, signatureBuf, 64);
+			if (signatureBufLen)
+			{
+				EVP_MD_CTX * ctx = EVP_MD_CTX_create ();
+				EVP_DigestVerifyInit (ctx, NULL, NULL, NULL, it->second.first);
+				auto ret = EVP_DigestVerify (ctx, signatureBuf, signatureBufLen, buf, len);
+				EVP_MD_CTX_destroy (ctx);
+				return ret;
+			}	
+		}	
 		// TODO: process key
 		return true;
 	}

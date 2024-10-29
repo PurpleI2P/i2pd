@@ -157,6 +157,9 @@ namespace transport
 		m_IntroducersV6.clear ();
 		m_ConnectedRecently.clear ();
 		m_RequestedPeerTests.clear ();
+
+		m_PacketsPool.ReleaseMt (m_ReceivedPacketsQueue);
+		m_ReceivedPacketsQueue.clear ();
 	}
 
 	void SSU2Server::SetLocalAddress (const boost::asio::ip::address& localAddress)
@@ -213,15 +216,16 @@ namespace transport
 		return ep.port ();
 	}
 
-	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep)
+	bool SSU2Server::IsConnectedRecently (const boost::asio::ip::udp::endpoint& ep, bool max)
 	{
 		if (!ep.port () || ep.address ().is_unspecified ()) return false;
+		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto it = m_ConnectedRecently.find (ep);
 		if (it != m_ConnectedRecently.end ())
 		{	
-			if (i2p::util::GetSecondsSinceEpoch () <= it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+			if (i2p::util::GetSecondsSinceEpoch () <= it->second + (max ? SSU2_MAX_HOLE_PUNCH_EXPIRATION : SSU2_MIN_HOLE_PUNCH_EXPIRATION))
 				return true;
-			else
+			else if (max)
 				m_ConnectedRecently.erase (it);
 		}	
 		return false;
@@ -230,7 +234,8 @@ namespace transport
 	void SSU2Server::AddConnectedRecently (const boost::asio::ip::udp::endpoint& ep, uint64_t ts)
 	{
 		if (!ep.port () || ep.address ().is_unspecified () || 
-		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_HOLE_PUNCH_EXPIRATION) return;
+		    i2p::util::GetSecondsSinceEpoch () > ts + SSU2_MAX_HOLE_PUNCH_EXPIRATION) return;
+		std::lock_guard<std::mutex> l(m_ConnectedRecentlyMutex);
 		auto [it, added] = m_ConnectedRecently.try_emplace (ep, ts);
 		if (!added && ts > it->second)
 			it->second = ts; // renew timestamp of existing endpoint
@@ -364,28 +369,22 @@ namespace transport
 				return;
 			}	
 			packet->len = bytes_transferred;
-			
+		
 			boost::system::error_code ec;
 			size_t moreBytes = socket.available (ec);
 			if (!ec && moreBytes)
 			{
-				auto packets = m_PacketsArrayPool.AcquireMt ();
-				packets->AddPacket (packet);
-				while (moreBytes && packets->numPackets < SSU2_MAX_NUM_PACKETS_PER_BATCH)
-				{
+				std::list<Packet *> packets;
+				packets.push_back (packet);
+				while (moreBytes && packets.size () < SSU2_MAX_NUM_PACKETS_PER_BATCH)
+				{	
 					packet = m_PacketsPool.AcquireMt ();
 					packet->len = socket.receive_from (boost::asio::buffer (packet->buf, SSU2_MAX_PACKET_SIZE), packet->from, 0, ec);
 					if (!ec)
 					{
 						i2p::transport::transports.UpdateReceivedBytes (packet->len);
 						if (packet->len >= SSU2_MIN_RECEIVED_PACKET_SIZE)
-						{	
-							if (!packets->AddPacket (packet))
-							{
-								LogPrint (eLogError, "SSU2: Received packets array is full");
-								m_PacketsPool.ReleaseMt (packet);
-							}	
-						}	
+							packets.push_back (packet);
 						else // drop too short packets
 							m_PacketsPool.ReleaseMt (packet);
 						moreBytes = socket.available(ec);
@@ -398,10 +397,10 @@ namespace transport
 						break;
 					}
 				}
-				GetService ().post (std::bind (&SSU2Server::HandleReceivedPackets, this, packets));
+				InsertToReceivedPacketsQueue (packets);
 			}
 			else
-				GetService ().post (std::bind (&SSU2Server::HandleReceivedPacket, this, packet));
+				InsertToReceivedPacketsQueue (packet); 
 			Receive (socket);
 		}
 		else
@@ -428,49 +427,68 @@ namespace transport
 		}
 	}
 
-	void SSU2Server::HandleReceivedPacket (Packet * packet)
+	void SSU2Server::HandleReceivedPackets (std::list<Packet *>&& packets)
 	{
-		if (packet)
-		{
-			if (m_IsThroughProxy)
-				ProcessNextPacketFromProxy (packet->buf, packet->len);
-			else
-				ProcessNextPacket (packet->buf, packet->len, packet->from);
-			m_PacketsPool.ReleaseMt (packet);
-			if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
-				m_LastSession->FlushData ();
-		}
-	}
-
-	void SSU2Server::HandleReceivedPackets (Packets * packets)
-	{
-		if (!packets) return;
+		if (packets.empty ()) return;
 		if (m_IsThroughProxy)
-			for (size_t i = 0; i < packets->numPackets; i++)
-			{
-				auto& packet = (*packets)[i];
-				ProcessNextPacketFromProxy (packet->buf, packet->len);
-			}	
+			for (auto it: packets)
+				ProcessNextPacketFromProxy (it->buf, it->len);
 		else
-			for (size_t i = 0; i < packets->numPackets; i++)
-			{
-				auto& packet = (*packets)[i];
-				ProcessNextPacket (packet->buf, packet->len, packet->from);
-			}	
-		m_PacketsPool.ReleaseMt (packets->data (), packets->numPackets);
-		m_PacketsArrayPool.ReleaseMt (packets);
+			for (auto it: packets)
+				ProcessNextPacket (it->buf, it->len, it->from);
+		m_PacketsPool.ReleaseMt (packets);
 		if (m_LastSession && m_LastSession->GetState () != eSSU2SessionStateTerminated)
 			m_LastSession->FlushData ();
 	}
 
-	void SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
+	void SSU2Server::InsertToReceivedPacketsQueue (Packet * packet)
+	{
+		if (!packet) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			empty = m_ReceivedPacketsQueue.empty ();
+			m_ReceivedPacketsQueue.push_back (packet);
+		}
+		if (empty)
+			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+	}	
+
+	void SSU2Server::InsertToReceivedPacketsQueue (std::list<Packet *>& packets)
+	{
+		if (packets.empty ()) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			empty = m_ReceivedPacketsQueue.empty ();
+			m_ReceivedPacketsQueue.splice (m_ReceivedPacketsQueue.end (), packets);
+		}
+		if (empty)
+			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
+	}	
+		
+	void SSU2Server::HandleReceivedPacketsQueue ()
+	{
+		std::list<Packet *> receivedPackets;
+		{
+			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
+			m_ReceivedPacketsQueue.swap (receivedPackets);
+		}
+		HandleReceivedPackets (std::move (receivedPackets));
+	}	
+		
+	bool SSU2Server::AddSession (std::shared_ptr<SSU2Session> session)
 	{
 		if (session)
 		{
-			m_Sessions.emplace (session->GetConnID (), session);
-			if (session->GetState () != eSSU2SessionStatePeerTest)
-				AddSessionByRouterHash (session);
+			if (m_Sessions.emplace (session->GetConnID (), session).second)
+			{	
+				if (session->GetState () != eSSU2SessionStatePeerTest)
+					AddSessionByRouterHash (session);
+				return true;
+			}	
 		}
+		return false;
 	}
 
 	void SSU2Server::RemoveSession (uint64_t connID)
@@ -703,6 +721,9 @@ namespace transport
 					m_LastSession->SetRemoteEndpoint (senderEndpoint);
 					m_LastSession->ProcessPeerTest (buf, len);
 				break;
+				case eSSU2SessionStateHolePunch:
+					m_LastSession->ProcessFirstIncomingMessage (connID, buf, len); // SessionRequest
+				break;	
 				case eSSU2SessionStateClosing:
 					m_LastSession->ProcessData (buf, len, senderEndpoint); // we might receive termintaion block
 					if (m_LastSession && m_LastSession->GetState () == eSSU2SessionStateClosing)
@@ -816,6 +837,29 @@ namespace transport
 		}
 	}
 
+	bool SSU2Server::CheckPendingOutgoingSession (const boost::asio::ip::udp::endpoint& ep, bool peerTest)
+	{
+		auto s = FindPendingOutgoingSession (ep);
+		if (s)
+		{
+			if (peerTest)
+			{
+				// if peer test requested add it to the list for pending session
+				auto onEstablished = s->GetOnEstablished ();
+				if (onEstablished)
+					s->SetOnEstablished ([s, onEstablished]()
+						{
+							onEstablished ();
+							s->SendPeerTest ();
+						});
+				else
+					s->SetOnEstablished ([s]() { s->SendPeerTest (); });
+			}
+			return true;
+		}
+		return false;
+	}	
+		
 	bool SSU2Server::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
 		std::shared_ptr<const i2p::data::RouterInfo::Address> address, bool peerTest)
 	{
@@ -835,34 +879,28 @@ namespace transport
 			if (isValidEndpoint)
 			{
 				if (i2p::transport::transports.IsInReservedRange(address->host)) return false;
-				auto s = FindPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port));
-				if (s)
-				{
-					if (peerTest)
-					{
-						// if peer test requested add it to the list for pending session
-						auto onEstablished = s->GetOnEstablished ();
-						if (onEstablished)
-							s->SetOnEstablished ([s, onEstablished]()
-								{
-									onEstablished ();
-									s->SendPeerTest ();
-								});
-						else
-							s->SetOnEstablished ([s]() { s->SendPeerTest (); });
-					}
-					return false;
-				}
+				if (CheckPendingOutgoingSession (boost::asio::ip::udp::endpoint (address->host, address->port), peerTest)) return false;
 			}
 
 			auto session = std::make_shared<SSU2Session> (*this, router, address);
+			if (!isValidEndpoint && router->GetProfile ()->HasLastEndpoint (address->IsV4 ()))
+			{
+				// router doesn't publish endpoint, but we connected before and hole punch might be alive
+				auto ep = router->GetProfile ()->GetLastEndpoint ();
+				if (IsConnectedRecently (ep, false))
+				{
+					if (CheckPendingOutgoingSession (ep, peerTest)) return false;
+					session->SetRemoteEndpoint (ep);
+					isValidEndpoint = true;
+				}	
+			}	
 			if (peerTest)
 				session->SetOnEstablished ([session]() {session->SendPeerTest (); });
 
-			if (address->UsesIntroducer ())
-				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
-			else if (isValidEndpoint) // we can't connect without endpoint
+			if (isValidEndpoint) // we know endpoint
 				GetService ().post ([session]() { session->Connect (); });
+			else if (address->UsesIntroducer ()) // we don't know endpoint yet
+				GetService ().post (std::bind (&SSU2Server::ConnectThroughIntroducer, this, session));
 			else
 				return false;
 		}
@@ -1112,7 +1150,7 @@ namespace transport
 
 			for (auto it = m_ConnectedRecently.begin (); it != m_ConnectedRecently.end (); )
 			{
-				if (ts > it->second + SSU2_HOLE_PUNCH_EXPIRATION)
+				if (ts > it->second + SSU2_MAX_HOLE_PUNCH_EXPIRATION)
 					it = m_ConnectedRecently.erase (it);
 				else
 					it++;
@@ -1138,7 +1176,6 @@ namespace transport
 			}	
 			
 			m_PacketsPool.CleanUpMt ();
-			m_PacketsArrayPool.CleanUpMt ();
 			m_SentPacketsPool.CleanUp ();
 			m_IncompleteMessagesPool.CleanUp ();
 			m_FragmentsPool.CleanUp ();

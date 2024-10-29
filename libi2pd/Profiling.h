@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <future>
+#include <boost/asio.hpp>
 #include "Identity.h"
 
 namespace i2p
@@ -67,6 +68,11 @@ namespace data
 			
 			bool IsUseful() const;
 			bool IsDuplicated () const { return m_IsDuplicated; };
+
+			const boost::asio::ip::udp::endpoint& GetLastEndpoint () const { return m_LastEndpoint; }
+			void SetLastEndpoint (const boost::asio::ip::udp::endpoint& ep) { m_LastEndpoint = ep; }
+			bool HasLastEndpoint (bool v4) const { return !m_LastEndpoint.address ().is_unspecified () && m_LastEndpoint.port () && 
+				((v4 && m_LastEndpoint.address ().is_v4 ()) || (!v4 && m_LastEndpoint.address ().is_v6 ())); }
 			
 		private:
 
@@ -90,6 +96,8 @@ namespace data
 			uint32_t m_NumTimesRejected;
 			bool m_HasConnected; // successful trusted(incoming or NTCP2) connection 
 			bool m_IsDuplicated;
+			// connectivity
+			boost::asio::ip::udp::endpoint m_LastEndpoint; // SSU2 for non-published addresses
 	};
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash);

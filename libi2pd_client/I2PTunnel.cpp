@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -784,7 +784,7 @@ namespace client
 			}
 			if (!found)
 			{
-				LogPrint (eLogError, "I2PTunnel: Unable to resolve to compatible address");
+				LogPrint (eLogError, "I2PTunnel: Unable to resolve ", m_Address, " to compatible address");
 				return;
 			}
 
@@ -794,7 +794,7 @@ namespace client
 			Accept ();
 		}
 		else
-			LogPrint (eLogError, "I2PTunnel: Unable to resolve server tunnel address: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: Unable to resolve server tunnel address ", m_Address, ": ", ecode.message ());
 	}
 
 	void I2PServerTunnel::SetAccessList (const std::set<i2p::data::IdentHash>& accessList)

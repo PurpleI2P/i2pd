@@ -250,7 +250,18 @@ namespace tunnel
 
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
-		if (GetState () != eTunnelStateExpiring) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive
+		if (!IsEstablished () && GetState () != eTunnelStateExpiring) 
+		{	
+			// incoming messages means a tunnel is alive
+			SetState (eTunnelStateEstablished); 
+			auto pool = GetTunnelPool ();
+			if (pool)
+			{
+				// update LeaseSet
+				auto dest = pool->GetLocalDestination ();
+				if (dest) dest->SetLeaseSetUpdated (true);
+			}	
+		}	
 		EncryptTunnelMsg (msg, msg);
 		msg->from = GetSharedFromThis ();
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
@@ -339,7 +350,8 @@ namespace tunnel
 
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_MaxNumTransitTunnels (DEFAULT_MAX_NUM_TRANSIT_TUNNELS),
 		m_TotalNumSuccesiveTunnelCreations (0), m_TotalNumFailedTunnelCreations (0), // for normal average
-		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0)
+		m_TunnelCreationSuccessRate (TCSR_START_VALUE), m_TunnelCreationAttemptsNum(0),
+		m_Rng(i2p::util::GetMonotonicMicroseconds ()%1000000LL)
 	{
 	}
 
@@ -479,18 +491,21 @@ namespace tunnel
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0, lastPoolsTs = 0, lastMemoryPoolTs = 0;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
 		while (m_IsRunning)
 		{
 			try
 			{
-				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
-				if (msg)
+				if (m_Queue.Wait (1,0)) // 1 sec
 				{
+					m_Queue.GetWholeQueue (msgs);
 					int numMsgs = 0;
 					uint32_t prevTunnelID = 0, tunnelID = 0;
 					std::shared_ptr<TunnelBase> prevTunnel;
-					do
+					while (!msgs.empty ())
 					{
+						auto msg = msgs.front (); msgs.pop_front ();
+						if (!msg) continue;
 						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)
@@ -530,17 +545,18 @@ namespace tunnel
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
 						}
 
-						msg = (numMsgs <= MAX_TUNNEL_MSGS_BATCH_SIZE) ? m_Queue.Get () : nullptr;
-						if (msg)
-						{
-							prevTunnelID = tunnelID;
-							prevTunnel = tunnel;
-							numMsgs++;
-						}
-						else if (tunnel)
-							tunnel->FlushTunnelDataMsgs ();
+						prevTunnelID = tunnelID;
+						prevTunnel = tunnel;
+						numMsgs++;	
+						
+						if (msgs.empty ())
+						{	
+							if (numMsgs < MAX_TUNNEL_MSGS_BATCH_SIZE && !m_Queue.IsEmpty ())
+								m_Queue.GetWholeQueue (msgs); // try more
+							else if (tunnel)
+								tunnel->FlushTunnelDataMsgs (); // otherwise flush last
+						}	
 					}
-					while (msg);
 				}
 
 				if (i2p::transport::transports.IsOnline())
@@ -826,7 +842,7 @@ namespace tunnel
 		if (msg) m_Queue.Put (msg);
 	}
 
-	void Tunnels::PostTunnelData (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	void Tunnels::PostTunnelData (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_Queue.Put (msgs);
 	}

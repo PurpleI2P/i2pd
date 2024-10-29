@@ -672,6 +672,31 @@ namespace transport
 				if (transport & compatibleTransports)
 					peer->priority.push_back (transport);
 		}	
+		if (peer->priority.empty ())
+		{
+			// try recently connected SSU2 if any
+			auto supportedTransports = context.GetRouterInfo ().GetCompatibleTransports (false) &
+				peer->router->GetCompatibleTransports (false);
+			if (supportedTransports & (i2p::data::RouterInfo::eSSU2V4 | i2p::data::RouterInfo::eSSU2V6))
+			{
+				auto ep = peer->router->GetProfile ()->GetLastEndpoint ();
+				if (!ep.address ().is_unspecified () && ep.port ())
+				{	
+					if (ep.address ().is_v4 ())
+					{	
+						if ((supportedTransports & i2p::data::RouterInfo::eSSU2V4) &&
+							m_SSU2Server->IsConnectedRecently (ep, false))
+							peer->priority.push_back (i2p::data::RouterInfo::eSSU2V4);
+					}	
+					else if (ep.address ().is_v6 ())
+					{
+						if ((supportedTransports & i2p::data::RouterInfo::eSSU2V6) &&
+							m_SSU2Server->IsConnectedRecently (ep))
+							peer->priority.push_back (i2p::data::RouterInfo::eSSU2V6);
+					}
+				}	
+			}	
+		}	
 	}
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)

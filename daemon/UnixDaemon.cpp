@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -25,6 +25,7 @@
 #include "RouterContext.h"
 #include "ClientContext.h"
 #include "Transports.h"
+#include "util.h"
 
 void handle_signal(int sig)
 {
@@ -220,6 +221,7 @@ namespace i2p
 
 		void DaemonLinux::run ()
 		{
+			i2p::util::SetThreadName ("i2pd-daemon");
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));

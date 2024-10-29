@@ -122,16 +122,18 @@ namespace data
 		uint64_t lastProfilesCleanup = i2p::util::GetMonotonicMilliseconds (), lastObsoleteProfilesCleanup = lastProfilesCleanup;
 		int16_t profilesCleanupVariance = 0, obsoleteProfilesCleanVariance = 0;
 
+		std::list<std::shared_ptr<const I2NPMessage> > msgs;
 		while (m_IsRunning)
 		{
 			try
 			{
-				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
-				if (msg)
+				if (m_Queue.Wait (1,0)) // 1 sec
 				{
-					int numMsgs = 0;
-					while (msg)
+					m_Queue.GetWholeQueue (msgs);
+					while (!msgs.empty ())
 					{
+						auto msg = msgs.front (); msgs.pop_front ();
+						if (!msg) continue;
 						LogPrint(eLogDebug, "NetDb: Got request with type ", (int) msg->GetTypeID ());
 						switch (msg->GetTypeID ())
 						{
@@ -145,9 +147,6 @@ namespace data
 								LogPrint (eLogError, "NetDb: Unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
 						}
-						if (numMsgs > 100) break;
-						msg = m_Queue.Get ();
-						numMsgs++;
 					}
 				}
 				if (!m_IsRunning) break;
@@ -639,70 +638,74 @@ namespace data
 		if (checkForExpiration && uptime > i2p::transport::SSU2_TO_INTRODUCER_SESSION_DURATION) // 1 hour
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
-
+		bool isOffline = checkForExpiration && i2p::transport::transports.GetNumPeers () < NETDB_MIN_TRANSPORTS; // enough routers and uptime, but no tranports
+			
 		std::list<std::pair<std::string, std::shared_ptr<RouterInfo::Buffer> > > saveToDisk;
 		std::list<std::string> removeFromDisk;	
 			
 		auto own = i2p::context.GetSharedRouterInfo ();
-		for (auto& it: m_RouterInfos)
+		for (auto [ident, r]: m_RouterInfos)
 		{
-			if (!it.second || it.second == own) continue; // skip own
-			std::string ident = it.second->GetIdentHashBase64();
-			if (it.second->IsUpdated ())
+			if (!r || r == own) continue; // skip own
+			if (r->IsBufferScheduledToDelete ()) // from previous SaveUpdated, we assume m_PersistingRouters complete
 			{
-				if (it.second->GetBuffer ())
+				std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
+				r->DeleteBuffer ();
+			}	
+			if (r->IsUpdated ())
+			{
+				if (r->GetBuffer () && !r->IsUnreachable ())
 				{
 					// we have something to save
 					std::shared_ptr<RouterInfo::Buffer> buffer;
 					{
 						std::lock_guard<std::mutex> l(m_RouterInfosMutex); // possible collision between DeleteBuffer and Update
-						buffer = it.second->GetSharedBuffer ();
-						it.second->DeleteBuffer ();
+						buffer = r->CopyBuffer ();
+						r->ScheduleBufferToDelete ();
 					}
-					if (buffer && !it.second->IsUnreachable ()) // don't save bad router
-						saveToDisk.push_back(std::make_pair(ident, buffer));
-					it.second->SetUnreachable (false);
+					if (buffer)
+						saveToDisk.push_back(std::make_pair(ident.ToBase64 (), buffer));
 				}
-				it.second->SetUpdated (false);
+				r->SetUpdated (false);
 				updatedCount++;
 				continue;
 			}
-			if (it.second->GetProfile ()->IsUnreachable ())
-				it.second->SetUnreachable (true);
+			if (r->GetProfile ()->IsUnreachable ())
+				r->SetUnreachable (true);
 			// make router reachable back if too few routers or floodfills
-			if (it.second->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate ||
-				(it.second->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
-				it.second->SetUnreachable (false);
-			if (!it.second->IsUnreachable ())
+			if (r->IsUnreachable () && (total - deletedCount < NETDB_MIN_ROUTERS || isLowRate || isOffline ||
+				(r->IsFloodfill () && totalFloodfills - deletedFloodfillsCount < NETDB_MIN_FLOODFILLS)))
+				r->SetUnreachable (false);
+			if (!r->IsUnreachable ())
 			{
 				// find & mark expired routers
-				if (!it.second->GetCompatibleTransports (true)) // non reachable by any transport
-					it.second->SetUnreachable (true);
-				else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < it.second->GetTimestamp ())
+				if (!r->GetCompatibleTransports (true)) // non reachable by any transport
+					r->SetUnreachable (true);
+				else if (ts + NETDB_EXPIRATION_TIMEOUT_THRESHOLD*1000LL < r->GetTimestamp ())
 				{
-					LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (it.second->GetTimestamp () - ts)/1000LL, " seconds");
-					it.second->SetUnreachable (true);
+					LogPrint (eLogWarning, "NetDb: RouterInfo is from future for ", (r->GetTimestamp () - ts)/1000LL, " seconds");
+					r->SetUnreachable (true);
 				}
 				else if (checkForExpiration) 
 				{	
-					if (ts > it.second->GetTimestamp () + expirationTimeout)
-						it.second->SetUnreachable (true);
-					else if ((ts > it.second->GetTimestamp () + expirationTimeout/2) && // more than half of expiration
-						total > NETDB_NUM_ROUTERS_THRESHOLD && !it.second->IsHighBandwidth() &&  // low bandwidth
-						!it.second->IsFloodfill() && (!i2p::context.IsFloodfill () || // non floodfill 
-					    (CreateRoutingKey (it.second->GetIdentHash ()) ^ i2p::context.GetIdentHash ()).metric[0] >= 0x02)) // different first 7 bits 
-							it.second->SetUnreachable (true);
+					if (ts > r->GetTimestamp () + expirationTimeout)
+						r->SetUnreachable (true);
+					else if ((ts > r->GetTimestamp () + expirationTimeout/2) && // more than half of expiration
+						total > NETDB_NUM_ROUTERS_THRESHOLD && !r->IsHighBandwidth() &&  // low bandwidth
+						!r->IsFloodfill() && (!i2p::context.IsFloodfill () || // non floodfill 
+					    (CreateRoutingKey (ident) ^ i2p::context.GetIdentHash ()).metric[0] >= 0x02)) // different first 7 bits 
+							r->SetUnreachable (true);
 				}	
 			}
 			// make router reachable back if connected now
-			if (it.second->IsUnreachable () && i2p::transport::transports.IsConnected (it.second->GetIdentHash ()))
-				it.second->SetUnreachable (false);
+			if (r->IsUnreachable () && i2p::transport::transports.IsConnected (ident))
+				r->SetUnreachable (false);
 			
-			if (it.second->IsUnreachable ())
+			if (r->IsUnreachable ())
 			{
-				if (it.second->IsFloodfill ()) deletedFloodfillsCount++;
+				if (r->IsFloodfill ()) deletedFloodfillsCount++;
 				// delete RI file
-				removeFromDisk.push_back (ident);
+				removeFromDisk.push_back (ident.ToBase64());
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}

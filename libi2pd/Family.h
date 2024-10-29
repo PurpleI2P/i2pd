@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -12,7 +12,7 @@
 #include <map>
 #include <string>
 #include <memory>
-#include "Signature.h"
+#include <openssl/evp.h>
 #include "Identity.h"
 
 namespace i2p
@@ -37,7 +37,7 @@ namespace data
 
 		private:
 
-			std::map<std::string, std::pair<std::shared_ptr<i2p::crypto::Verifier>, FamilyID> > m_SigningKeys; // family -> (verifier, id)
+			std::map<std::string, std::pair<EVP_PKEY *, FamilyID> > m_SigningKeys; // family -> (verification pkey, id)
 	};
 
 	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident);

@@ -141,7 +141,7 @@ namespace tunnel
 			m_InboundTunnels.insert (createdTunnel);
 		}
 		if (m_LocalDestination)
-			m_LocalDestination->SetLeaseSetUpdated ();
+			m_LocalDestination->SetLeaseSetUpdated (true);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel)
@@ -330,7 +330,7 @@ namespace tunnel
 		}
 
 		if (num < m_NumInboundTunnels && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
-			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
+			m_LocalDestination->SetLeaseSetUpdated (true); // update LeaseSet immediately
 	}
 
 	void TunnelPool::TestTunnels ()
@@ -377,10 +377,10 @@ namespace tunnel
 								it.second.second->SetState (eTunnelStateTestFailed);
 						}
 						if (failed && m_LocalDestination)
-							m_LocalDestination->SetLeaseSetUpdated ();
+							m_LocalDestination->SetLeaseSetUpdated (true);
 					}
 					if (m_LocalDestination)
-						m_LocalDestination->SetLeaseSetUpdated ();
+						m_LocalDestination->SetLeaseSetUpdated (true);
 				}
 				else if (it.second.second->GetState () != eTunnelStateExpiring)
 					it.second.second->SetState (eTunnelStateTestFailed);

@@ -15,6 +15,7 @@
 #include <set>
 #include <list>
 #include <boost/asio.hpp>
+#include "version.h"
 #include "Crypto.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -55,6 +56,7 @@ namespace transport
 	const int SSU2_MAX_NUM_ACK_RANGES = 32; // to send
 	const uint8_t SSU2_MAX_NUM_FRAGMENTS = 64;
 	const int SSU2_SEND_DATETIME_NUM_PACKETS = 256;
+	const int SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION = MAKE_VERSION_NUMBER(0, 9, 64); // 0.9.64
 
 	// flags
 	const uint8_t SSU2_FLAG_IMMEDIATE_ACK_REQUESTED = 0x01;
@@ -112,6 +114,7 @@ namespace transport
 		eSSU2SessionStateTerminated,
 		eSSU2SessionStateFailed,
 		eSSU2SessionStateIntroduced,
+		eSSU2SessionStateHolePunch,
 		eSSU2SessionStatePeerTest,
 		eSSU2SessionStateTokenRequestReceived
 	};
@@ -295,6 +298,8 @@ namespace transport
 			size_t CreateAddressBlock (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			size_t CreatePaddingBlock (uint8_t * buf, size_t len, size_t minSize = 0);
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint8_t msg, SSU2PeerTestCode code, const uint8_t * routerHash, const uint8_t * signedData, size_t signedDataLen);
+
+			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
 			
 		private:
 
@@ -320,7 +325,6 @@ namespace transport
 			uint32_t SendData (const uint8_t * buf, size_t len, uint8_t flags = 0); // returns packet num
 			void SendQuickAck ();
 			void SendTermination ();
-			void SendHolePunch (uint32_t nonce, const boost::asio::ip::udp::endpoint& ep, const uint8_t * introKey, uint64_t token);
 			void SendPathResponse (const uint8_t * data, size_t len);
 			void SendPathChallenge ();
 
@@ -328,8 +332,7 @@ namespace transport
 			void HandleRouterInfo (const uint8_t * buf, size_t len);
 			void HandleAck (const uint8_t * buf, size_t len);
 			void HandleAckRange (uint32_t firstPacketNum, uint32_t lastPacketNum, uint64_t ts);
-			void HandleAddress (const uint8_t * buf, size_t len);
-			bool ExtractEndpoint (const uint8_t * buf, size_t size, boost::asio::ip::udp::endpoint& ep);
+			virtual void HandleAddress (const uint8_t * buf, size_t len);
 			size_t CreateEndpoint (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& ep);
 			std::shared_ptr<const i2p::data::RouterInfo::Address> FindLocalAddress () const;
 			void AdjustMaxPayloadSize ();
@@ -353,6 +356,7 @@ namespace transport
 			size_t CreateFollowOnFragmentBlock (uint8_t * buf, size_t len, std::shared_ptr<I2NPMessage> msg, uint8_t& fragmentNum, uint32_t msgID);
 			size_t CreateRelayIntroBlock (uint8_t * buf, size_t len, const uint8_t * introData, size_t introDataLen);
 			size_t CreateRelayResponseBlock (uint8_t * buf, size_t len, SSU2RelayResponseCode code, uint32_t nonce, uint64_t token, bool v4);
+
 			size_t CreatePeerTestBlock (uint8_t * buf, size_t len, uint32_t nonce); // Alice
 			size_t CreateTerminationBlock (uint8_t * buf, size_t len);
 			
@@ -366,6 +370,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo::Address> m_Address;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			i2p::data::RouterInfo::CompatibleTransports m_RemoteTransports, m_RemotePeerTestTransports; 
+			int m_RemoteVersion;
 			uint64_t m_DestConnID, m_SourceConnID;
 			SSU2SessionState m_State;
 			uint8_t m_KeyDataSend[64], m_KeyDataReceive[64];
@@ -390,49 +395,18 @@ namespace transport
 			std::unordered_map<uint32_t, uint32_t> m_ReceivedI2NPMsgIDs; // msgID -> timestamp in seconds
 			uint64_t m_LastResendTime, m_LastResendAttemptTime; // in milliseconds
 	};
-
-	
-	const int SSU2_PEER_TEST_RESEND_INTERVAL = 3000; // in milliseconds
-	const int SSU2_PEER_TEST_RESEND_INTERVAL_VARIANCE = 2000; // in milliseconds
-	const int SSU2_PEER_TEST_MAX_NUM_RESENDS = 3;
-	
-	class SSU2PeerTestSession: public SSU2Session // for PeerTest msgs 5,6,7
-	{
-		public:
-
-			SSU2PeerTestSession (SSU2Server& server, uint64_t sourceConnID, uint64_t destConnID);
-
-			uint8_t GetMsgNumReceived () const { return m_MsgNumReceived; }	
-			bool IsConnectedRecently () const { return m_IsConnectedRecently; }
-			void SetStatusChanged () { m_IsStatusChanged = true; }
-			
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, 
-				std::shared_ptr<const i2p::data::RouterInfo::Address> addr);
-			bool ProcessPeerTest (uint8_t * buf, size_t len) override;
-			void Connect () override; // outgoing
-			bool ProcessFirstIncomingMessage (uint64_t connID, uint8_t * buf, size_t len) override; // incoming
-			
-		private:
-
-			void SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen); // PeerTest message
-			void SendPeerTest (uint8_t msg); // send or resend m_SignedData
-			void HandlePeerTest (const uint8_t * buf, size_t len) override;
-
-			void ScheduleResend ();
-			
-		private:
-
-			uint8_t m_MsgNumReceived, m_NumResends;
-			bool m_IsConnectedRecently, m_IsStatusChanged;
-			std::vector<uint8_t> m_SignedData; // for resends
-			boost::asio::deadline_timer m_PeerTestResendTimer;
-	};	
 	
 	inline uint64_t CreateHeaderMask (const uint8_t * kh, const uint8_t * nonce)
 	{
 		uint64_t data = 0;
 		i2p::crypto::ChaCha20 ((uint8_t *)&data, 8, kh, nonce, (uint8_t *)&data);
 		return data;
+	}
+
+	inline void CreateNonce (uint64_t seqn, uint8_t * nonce)
+	{
+		memset (nonce, 0, 4);
+		htole64buf (nonce + 4, seqn);
 	}
 }
 }

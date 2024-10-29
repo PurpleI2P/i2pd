@@ -396,8 +396,26 @@ namespace i2p
 					return false;
 				}	
 				uint8_t retCode = 0;
+				// decide if we should accept tunnel
+				bool accept = i2p::context.AcceptsTunnels ();
+				if (accept)
+				{
+					auto congestionLevel = i2p::context.GetCongestionLevel (false);
+					if (congestionLevel >= CONGESTION_LEVEL_MEDIUM)
+					{	
+						if (congestionLevel < CONGESTION_LEVEL_FULL)
+						{
+							// random reject depending on congestion level
+							int level = i2p::tunnel::tunnels.GetRng ()() % (CONGESTION_LEVEL_FULL - CONGESTION_LEVEL_MEDIUM) + CONGESTION_LEVEL_MEDIUM;
+							if (congestionLevel > level)
+								accept = false;
+						}	
+						else	
+							accept = false;
+					}	
+				}	
 				// replace record to reply
-				if (i2p::context.AcceptsTunnels () && i2p::context.GetCongestionLevel (false) < CONGESTION_LEVEL_FULL)
+				if (accept)
 				{
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -932,14 +950,8 @@ namespace i2p
 	void I2NPMessagesHandler::Flush ()
 	{
 		if (!m_TunnelMsgs.empty ())
-		{
 			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
-			m_TunnelMsgs.clear ();
-		}
 		if (!m_TunnelGatewayMsgs.empty ())
-		{
 			i2p::tunnel::tunnels.PostTunnelData (m_TunnelGatewayMsgs);
-			m_TunnelGatewayMsgs.clear ();
-		}
 	}
 }
