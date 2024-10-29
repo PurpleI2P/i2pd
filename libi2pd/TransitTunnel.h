@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -10,7 +10,7 @@
 #define TRANSIT_TUNNEL_H__
 
 #include <inttypes.h>
-#include <vector>
+#include <list>
 #include <mutex>
 #include <memory>
 #include "Crypto.h"
@@ -61,7 +61,7 @@ namespace tunnel
 		private:
 
 			size_t m_NumTransmittedBytes;
-			std::vector<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
+			std::list<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
 	};
 
 	class TransitTunnelGateway: public TransitTunnel
