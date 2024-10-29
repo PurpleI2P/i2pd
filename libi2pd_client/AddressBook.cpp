@@ -305,7 +305,7 @@ namespace client
 		identHash = hash;
 	}
 
-	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
+	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false),
 		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr),
 		m_IsEnabled (true)
 	{
@@ -344,20 +344,28 @@ namespace client
 			delete m_SubscriptionsUpdateTimer;
 			m_SubscriptionsUpdateTimer = nullptr;
 		}
-		if (m_IsDownloading)
+		bool isDownloading = m_Downloading.valid ();
+		if (isDownloading)
 		{
-			LogPrint (eLogInfo, "Addressbook: Subscriptions are downloading, abort");
-			for (int i = 0; i < 30; i++)
-			{
-				if (!m_IsDownloading)
+			if (m_Downloading.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+				isDownloading = false;
+			else	
+			{	
+				LogPrint (eLogInfo, "Addressbook: Subscriptions are downloading, abort");
+				for (int i = 0; i < 30; i++)
 				{
-					LogPrint (eLogInfo, "Addressbook: Subscriptions download complete");
-					break;
+					if (m_Downloading.wait_for(std::chrono::seconds(1)) == std::future_status::ready) // wait for 1 seconds
+					{
+						isDownloading = false;
+						LogPrint (eLogInfo, "Addressbook: Subscriptions download complete");
+						break;
+					}
 				}
-				std::this_thread::sleep_for (std::chrono::seconds (1)); // wait for 1 seconds
-			}
-			LogPrint (eLogError, "Addressbook: Subscription download timeout");
-			m_IsDownloading = false;
+			}	
+			if (!isDownloading)
+				m_Downloading.get ();
+			else
+				LogPrint (eLogError, "Addressbook: Subscription download timeout");
 		}
 		if (m_Storage)
 		{
@@ -644,7 +652,6 @@ namespace client
 
 	void AddressBook::DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
-		m_IsDownloading = false;
 		m_NumRetries++;
 		int nextUpdateTimeout = m_NumRetries*CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
 		if (m_NumRetries > CONTINIOUS_SUBSCRIPTION_MAX_NUM_RETRIES || nextUpdateTimeout > CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT)
@@ -699,7 +706,13 @@ namespace client
 				LogPrint(eLogWarning, "Addressbook: Missing local destination, skip subscription update");
 				return;
 			}
-			if (!m_IsDownloading && dest->IsReady ())
+			bool isDownloading = m_Downloading.valid ();
+			if (isDownloading && m_Downloading.wait_for(std::chrono::seconds(0)) == std::future_status::ready) // still active?
+			{
+				m_Downloading.get ();
+				isDownloading = false;
+			}	
+			if (!isDownloading && dest->IsReady ())
 			{
 				if (!m_IsLoaded)
 				{
@@ -708,17 +721,15 @@ namespace client
 					std::string defaultSubURL; i2p::config::GetOption("addressbook.defaulturl", defaultSubURL);
 					if (!m_DefaultSubscription)
 						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, defaultSubURL);
-					m_IsDownloading = true;
-					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_DefaultSubscription));
-					load_hosts.detach(); // TODO: use join
+					m_Downloading = std::async (std::launch::async,
+						std::bind (&AddressBookSubscription::CheckUpdates, m_DefaultSubscription));
 				}
 				else if (!m_Subscriptions.empty ())
 				{
 					// pick random subscription
 					auto ind = rand () % m_Subscriptions.size();
-					m_IsDownloading = true;
-					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_Subscriptions[ind]));
-					load_hosts.detach(); // TODO: use join
+					m_Downloading = std::async (std::launch::async,
+						std::bind (&AddressBookSubscription::CheckUpdates, m_Subscriptions[ind]));
 				}
 			}
 			else
