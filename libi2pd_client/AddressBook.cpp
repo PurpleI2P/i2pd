@@ -582,16 +582,15 @@ namespace client
 			}
 			else
 			{
-				LogPrint (eLogInfo, "Addressbook: Loading subscriptions from config file");
+				LogPrint (eLogInfo, "Addressbook: Loading subscriptions from config");
 				// using config file items
 				std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
 				std::vector<std::string> subsList;
 				boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
 
 				for (const auto& s: subsList)
-				{
-					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
-				}
+					if (!s.empty ())
+						m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}
 		}
@@ -823,7 +822,7 @@ namespace client
 		}
 	}
 
-	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
+	AddressBookSubscription::AddressBookSubscription (AddressBook& book, std::string_view link):
 		m_Book (book), m_Link (link)
 	{
 	}
