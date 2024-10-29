@@ -462,13 +462,13 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
 	{
-		m_Service->post ([this, ident, msgs = std::move(msgs)] ()
+		m_Service->post ([this, ident, msgs = std::move(msgs)] () mutable
 			{
 				PostMessages (ident, msgs);
 			});	
 	}	
 	
-	void Transports::PostMessages (i2p::data::IdentHash ident, std::list<std::shared_ptr<i2p::I2NPMessage> > msgs)
+	void Transports::PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{
