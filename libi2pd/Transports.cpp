@@ -450,15 +450,23 @@ namespace transport
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		if (m_IsOnline)
-			SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });
+			SendMessages (ident, { msg });
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		m_Service->post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}
 
-	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs)
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
+	{
+		m_Service->post ([this, ident, msgs = std::move(msgs)] ()
+			{
+				PostMessages (ident, msgs);
+			});	
+	}	
+	
+	void Transports::PostMessages (i2p::data::IdentHash ident, std::list<std::shared_ptr<i2p::I2NPMessage> > msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{
@@ -517,11 +525,16 @@ namespace transport
 						return;
 					}	
 				}	
-				for (auto& it1: msgs)
-					if (sz > MAX_NUM_DELAYED_MESSAGES/2 && it1->onDrop)
-						it1->Drop (); // drop earlier because we can handle it
-					else
-						peer->delayedMessages.push_back (it1);
+				if (sz > MAX_NUM_DELAYED_MESSAGES/2)
+				{	
+					for (auto& it1: msgs)
+						if (it1->onDrop)
+							it1->Drop (); // drop earlier because we can handle it
+						else
+							peer->delayedMessages.push_back (it1);
+				}	
+				else
+					peer->delayedMessages.splice (peer->delayedMessages.end (), msgs);
 			}
 			else
 			{
@@ -865,7 +878,7 @@ namespace transport
 				if (it->second->delayedMessages.size () > 0)
 				{
 					// check if first message is our DatabaseStore (publishing)
-					auto firstMsg = peer->delayedMessages[0];
+					auto firstMsg = peer->delayedMessages.front ();
 					if (firstMsg && firstMsg->GetTypeID () == eI2NPDatabaseStore &&
 							i2p::data::IdentHash(firstMsg->GetPayload () + DATABASE_STORE_KEY_OFFSET) == i2p::context.GetIdentHash ())
 						sendDatabaseStore = false; // we have it in the list already
@@ -887,7 +900,10 @@ namespace transport
 					return;
 				}
 				if (!session->IsOutgoing ()) // incoming
-					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
+				{
+					std::list<std::shared_ptr<I2NPMessage> > msgs{ CreateDatabaseStoreMsg () };
+					session->SendI2NPMessages (msgs); // send DatabaseStore
+				}	
 				auto r = i2p::data::netdb.FindRouter (ident); // router should be in netdb after SessionConfirmed
 				if (r) r->GetProfile ()->Connected ();
 				auto ts = i2p::util::GetSecondsSinceEpoch ();

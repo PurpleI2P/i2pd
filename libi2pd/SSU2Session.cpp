@@ -293,6 +293,8 @@ namespace transport
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
+			if (!m_IntermediateQueue.empty ())
+				m_SendQueue.splice (m_SendQueue.end (), m_IntermediateQueue);
 			for (auto& it: m_SendQueue)
 				it->Drop ();
 			m_SendQueue.clear ();
@@ -372,14 +374,27 @@ namespace transport
 
 	}
 
-	void SSU2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	void SSU2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this (), msgs));
+		if (m_State == eSSU2SessionStateTerminated || msgs.empty ()) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			empty = m_IntermediateQueue.empty ();
+			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
+		}
+		if (empty)
+			m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
-	void SSU2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	void SSU2Session::PostI2NPMessages ()
 	{
 		if (m_State == eSSU2SessionStateTerminated) return;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			m_IntermediateQueue.swap (msgs);		
+		}	
 		uint64_t mts = i2p::util::GetMonotonicMicroseconds ();
 		bool isSemiFull = false;
 		if (m_SendQueue.size ())
@@ -415,7 +430,7 @@ namespace transport
 	void SSU2Session::MoveSendQueue (std::shared_ptr<SSU2Session> other)
 	{
 		if (!other || m_SendQueue.empty ()) return;
-		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_SendQueue)
 			if (!it->IsExpired (ts))
@@ -424,7 +439,7 @@ namespace transport
 				it->Drop ();
 		m_SendQueue.clear ();
 		if (!msgs.empty ())
-			other->PostI2NPMessages (msgs);
+			other->SendI2NPMessages (msgs);
 	}	
 		
 	bool SSU2Session::SendQueue ()

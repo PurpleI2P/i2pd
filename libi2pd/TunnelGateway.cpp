@@ -221,7 +221,7 @@ namespace tunnel
 	void TunnelGateway::SendBuffer ()
 	{
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
-		std::vector<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
+		std::list<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
 		const auto& tunnelDataMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto& tunnelMsg : tunnelDataMsgs)
 		{
