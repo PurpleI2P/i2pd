@@ -376,7 +376,11 @@ namespace transport
 
 	void SSU2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		if (m_State == eSSU2SessionStateTerminated || msgs.empty ()) return;
+		if (m_State == eSSU2SessionStateTerminated || msgs.empty ()) 
+		{
+			msgs.clear ();
+			return;
+		}	
 		bool empty = false;
 		{
 			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);

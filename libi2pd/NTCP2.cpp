@@ -1301,7 +1301,11 @@ namespace transport
 
 	void NTCP2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		if (m_IsTerminated || msgs.empty ()) return;
+		if (m_IsTerminated || msgs.empty ()) 
+		{
+			msgs.clear ();
+			return;
+		}	
 		bool empty = false;
 		{
 			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
