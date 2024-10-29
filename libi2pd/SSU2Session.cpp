@@ -412,16 +412,24 @@ namespace transport
 					" is semi-full (size = ", m_SendQueue.size (), ", lag = ", queueLag / 1000, ", rtt = ", (int)m_RTT, ")");
 			}
 		}
-		for (auto it: msgs)
-		{
-			if (isSemiFull && it->onDrop)
-				it->Drop (); // drop earlier because we can handle it
-			else
+		if (isSemiFull)
+		{	
+			for (auto it: msgs)
 			{
-				it->SetEnqueueTime (mts);
-				m_SendQueue.push_back (std::move (it));
+				if (it->onDrop)
+					it->Drop (); // drop earlier because we can handle it
+				else
+				{
+					it->SetEnqueueTime (mts);
+					m_SendQueue.push_back (std::move (it));
+				}
 			}
-		}
+		}	
+		else
+		{
+			for (auto& it: msgs) it->SetEnqueueTime (mts);
+			m_SendQueue.splice (m_SendQueue.end (), msgs);
+		}	
 		if (IsEstablished ())
 		{	
 			SendQueue ();
