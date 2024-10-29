@@ -141,7 +141,7 @@ namespace transport
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
-			void SendMessages (const i2p::data::IdentHash& ident, const std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
+			void SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			void SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs);
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);

@@ -234,7 +234,7 @@ namespace tunnel
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}
 		m_Buffer.ClearTunnelDataMsgs ();
-		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), newTunnelMsgs);
+		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
 	}
 }
 }

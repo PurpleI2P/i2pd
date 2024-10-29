@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2022, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -59,8 +59,7 @@ namespace tunnel
 			auto num = m_TunnelDataMsgs.size ();
 			if (num > 1)
 				LogPrint (eLogDebug, "TransitTunnel: ", GetTunnelID (), "->", GetNextTunnelID (), " ", num);
-			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
-			m_TunnelDataMsgs.clear ();
+			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs); // send and clear
 		}
 	}
 

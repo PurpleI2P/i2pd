@@ -453,9 +453,11 @@ namespace transport
 			SendMessages (ident, { msg });
 	}
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
-		m_Service->post (std::bind (&Transports::PostMessages, this, ident, msgs));
+		std::list<std::shared_ptr<i2p::I2NPMessage> > msgs1;
+		msgs.swap (msgs1);
+		SendMessages (ident, std::move (msgs1));
 	}
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
@@ -888,8 +890,7 @@ namespace transport
 				else
 					session->SetTerminationTimeout (10); // most likely it's publishing, no follow-up messages expected, set timeout to 10 seconds
 				peer->sessions.push_back (session);
-				session->SendI2NPMessages (peer->delayedMessages);
-				peer->delayedMessages.clear ();
+				session->SendI2NPMessages (peer->delayedMessages); // send and clear
 			}
 			else // incoming connection or peer test
 			{
