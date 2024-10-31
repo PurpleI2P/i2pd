@@ -480,8 +480,13 @@ namespace transport
 		}
 		if(RoutesRestricted() && !IsRestrictedPeer(ident)) return;
 		std::shared_ptr<Peer> peer;
-		auto it = m_Peers.find (ident);
-		if (it == m_Peers.end ())
+		{
+			std::lock_guard<std::mutex> l(m_PeersMutex);
+			auto it = m_Peers.find (ident);
+			if (it != m_Peers.end ())
+				peer = it->second;
+		}	
+		if (!peer)
 		{
 			// check if not banned
 			if (i2p::data::IsRouterBanned (ident)) return; // don't create peer to unreachable router
@@ -494,7 +499,7 @@ namespace transport
 
 				peer = std::make_shared<Peer>(r, i2p::util::GetSecondsSinceEpoch ());
 				{	
-					std::unique_lock<std::mutex> l(m_PeersMutex);
+					std::lock_guard<std::mutex> l(m_PeersMutex);
 					peer = m_Peers.emplace (ident, peer).first->second;
 				}
 				if (peer)
@@ -506,8 +511,6 @@ namespace transport
 			}
 			if (!connected) return;
 		}
-		else
-			peer = it->second;
 		
 		if (!peer) return;
 		if (peer->IsConnected ())
@@ -522,7 +525,7 @@ namespace transport
 					if (i2p::data::IsRouterBanned (ident))
 					{
 						LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
-						std::unique_lock<std::mutex> l(m_PeersMutex);
+						std::lock_guard<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (ident);
 						return;
 					}	
@@ -542,7 +545,7 @@ namespace transport
 			{
 				LogPrint (eLogWarning, "Transports: Delayed messages queue size to ",
 					ident.ToBase64 (), " exceeds ", MAX_NUM_DELAYED_MESSAGES);
-				std::unique_lock<std::mutex> l(m_PeersMutex);
+				std::lock_guard<std::mutex> l(m_PeersMutex);
 				m_Peers.erase (ident);
 			}
 		}
@@ -617,7 +620,7 @@ namespace transport
 			if (!i2p::context.IsLimitedConnectivity () && peer->router->IsReachableFrom (i2p::context.GetRouterInfo ()))
 				i2p::data::netdb.SetUnreachable (ident, true); // we are here because all connection attempts failed but router claimed them
 			peer->Done ();
-			std::unique_lock<std::mutex> l(m_PeersMutex);
+			std::lock_guard<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
 			return false;
 		}
@@ -625,7 +628,7 @@ namespace transport
 		{
 			LogPrint (eLogWarning, "Transports: Router ", ident.ToBase64 (), " is banned. Peer dropped");
 			peer->Done ();
-			std::unique_lock<std::mutex> l(m_PeersMutex);
+			std::lock_guard<std::mutex> l(m_PeersMutex);
 			m_Peers.erase (ident);
 			return false;
 		}
@@ -721,23 +724,29 @@ namespace transport
 
 	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
 	{
-		auto it = m_Peers.find (ident);
-		if (it != m_Peers.end () && !it->second->router)
+		std::shared_ptr<Peer> peer;
 		{
-			if (r)
+			std::lock_guard<std::mutex> l(m_PeersMutex);
+			auto it = m_Peers.find (ident);
+			if (it != m_Peers.end ())
 			{
-				LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
-				it->second->SetRouter (r);
-				if (!it->second->IsConnected ())
-					ConnectToPeer (ident, it->second);
-			}
-			else
-			{
-				LogPrint (eLogWarning, "Transports: RouterInfo not found, failed to send messages");
-				std::unique_lock<std::mutex> l(m_PeersMutex);
-				m_Peers.erase (it);
-			}
+				if (r)
+					peer = it->second;
+				else
+					m_Peers.erase (it);
+			}	
 		}
+				
+		if (peer && !peer->router && r)
+		{
+			LogPrint (eLogDebug, "Transports: RouterInfo for ", ident.ToBase64 (), " found, trying to connect");
+			peer->SetRouter (r);
+			if (!peer->IsConnected ())
+				ConnectToPeer (ident, peer);
+		}
+		else if (!r)
+			LogPrint (eLogInfo, "Transports: RouterInfo not found, failed to send messages");
+
 	}
 
 	void Transports::DetectExternalIP ()
@@ -911,7 +920,7 @@ namespace transport
 				auto peer = std::make_shared<Peer>(r, ts);
 				peer->sessions.push_back (session);
 				peer->router = nullptr;
-				std::unique_lock<std::mutex> l(m_PeersMutex);
+				std::lock_guard<std::mutex> l(m_PeersMutex);
 				m_Peers.emplace (ident, peer);
 			}
 		});
@@ -940,7 +949,7 @@ namespace transport
 					}
 					else
 					{
-						std::unique_lock<std::mutex> l(m_PeersMutex);
+						std::lock_guard<std::mutex> l(m_PeersMutex);
 						m_Peers.erase (it);
 					}
 				}
@@ -950,9 +959,13 @@ namespace transport
 
 	bool Transports::IsConnected (const i2p::data::IdentHash& ident) const
 	{
-		std::unique_lock<std::mutex> l(m_PeersMutex);
+		std::lock_guard<std::mutex> l(m_PeersMutex);
+#if __cplusplus >= 202002L // C++20
+		return m_Peers.contains (ident);
+#else		
 		auto it = m_Peers.find (ident);
 		return it != m_Peers.end ();
+#endif		
 	}
 
 	void Transports::HandlePeerCleanupTimer (const boost::system::error_code& ecode)
@@ -976,7 +989,7 @@ namespace transport
 						auto profile = i2p::data::GetRouterProfile (it->first);
 						if (profile) profile->Unreachable ();
 					}	*/
-					std::unique_lock<std::mutex> l(m_PeersMutex);
+					std::lock_guard<std::mutex> l(m_PeersMutex);
 					it = m_Peers.erase (it);
 				}
 				else
@@ -1026,7 +1039,7 @@ namespace transport
 		{
 			uint16_t inds[3];
 			RAND_bytes ((uint8_t *)inds, sizeof (inds));
-			std::unique_lock<std::mutex> l(m_PeersMutex);
+			std::lock_guard<std::mutex> l(m_PeersMutex);
 			auto count = m_Peers.size ();
 			if(count == 0) return nullptr;
 			inds[0] %= count;
