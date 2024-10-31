@@ -491,9 +491,9 @@ namespace transport
 			{
 				auto r = netdb.FindRouter (ident);
 				if (r && (r->IsUnreachable () || !r->IsReachableFrom (i2p::context.GetRouterInfo ()))) return; // router found but non-reachable
-				{
-					auto ts = i2p::util::GetSecondsSinceEpoch ();
-					peer = std::make_shared<Peer>(r, ts);
+
+				peer = std::make_shared<Peer>(r, i2p::util::GetSecondsSinceEpoch ());
+				{	
 					std::unique_lock<std::mutex> l(m_PeersMutex);
 					peer = m_Peers.emplace (ident, peer).first->second;
 				}
@@ -722,7 +722,7 @@ namespace transport
 	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
 	{
 		auto it = m_Peers.find (ident);
-		if (it != m_Peers.end ())
+		if (it != m_Peers.end () && !it->second->router)
 		{
 			if (r)
 			{
