@@ -111,7 +111,6 @@ namespace transport
 					SendPeerTest (7, buf + offset, len - offset);
 				else
 					LogPrint (eLogWarning, "SSU2: Unknown address for peer test 6");
-				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());
 				break;
 			}			
@@ -141,7 +140,6 @@ namespace transport
 						}
 					}	
 				}	
-				GetServer ().AddConnectedRecently (GetRemoteEndpoint (), i2p::util::GetSecondsSinceEpoch ());
 				GetServer ().RequestRemoveSession (GetConnID ());	
 				break;
 			}	
@@ -188,6 +186,7 @@ namespace transport
 		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, GetRemoteEndpoint ());
+		UpdateNumSentBytes (payloadSize + 32);
 	}	
 
 	void SSU2PeerTestSession::SendPeerTest (uint8_t msg, const uint8_t * signedData, size_t signedDataLen, bool delayed)
@@ -309,6 +308,7 @@ namespace transport
 		i2p::crypto::ChaCha20 (h + 16, 16, addr->i, n, h + 16);
 		// send
 		GetServer ().Send (header.buf, 16, h + 16, 16, payload, payloadSize, ep);
+		UpdateNumSentBytes (payloadSize + 32);
 	}	
 
 	void SSU2HolePunchSession::SendHolePunch (const uint8_t * relayResponseBlock, size_t relayResponseBlockLen)
