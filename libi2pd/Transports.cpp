@@ -66,12 +66,12 @@ namespace transport
 		while (m_IsRunning)
 		{
 			int num, total = 0;
-			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 10)
+			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < m_QueueSize)
 			{
 				CreateEphemeralKeys (num);
 				total += num;
 			}
-			if (total >= 10)
+			if (total > m_QueueSize)
 			{
 				LogPrint (eLogWarning, "Transports: ", total, " ephemeral keys generated at the time");
 				std::this_thread::sleep_for (std::chrono::seconds(1)); // take a break
@@ -124,12 +124,12 @@ namespace transport
 	{
 		if (pair)
 		{
-			std::unique_lock<std::mutex>l(m_AcquiredMutex);
+			std::unique_lock<std::mutex> l(m_AcquiredMutex);
 			if ((int)m_Queue.size () < 2*m_QueueSize)
 				m_Queue.push (pair);
 		}
 		else
-			LogPrint(eLogError, "Transports: Return null DHKeys");
+			LogPrint(eLogError, "Transports: Return null keys");
 	}
 
 	void Peer::UpdateParams (std::shared_ptr<const i2p::data::RouterInfo> router)
@@ -149,7 +149,7 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_CheckReserved(true), m_Thread (nullptr),
 		m_Service (nullptr), m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_UpdateBandwidthTimer (nullptr), m_SSU2Server (nullptr), m_NTCP2Server (nullptr),
-		m_X25519KeysPairSupplier (15), // 15 pre-generated keys
+		m_X25519KeysPairSupplier (NUM_X25519_PRE_GENERATED_KEYS),
 		m_TotalSentBytes (0), m_TotalReceivedBytes (0), m_TotalTransitTransmittedBytes (0),
 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth (0),
 		m_InBandwidth15s (0), m_OutBandwidth15s (0), m_TransitBandwidth15s (0),

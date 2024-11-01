@@ -108,7 +108,8 @@ namespace transport
 	const int PEER_TEST_DELAY_INTERVAL_VARIANCE = 30; // in milliseconds
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
 	const int CHECK_PROFILE_NUM_DELAYED_MESSAGES = 15; // check profile after
-
+	const int NUM_X25519_PRE_GENERATED_KEYS = 25; // pre-generated x25519 keys pairs
+	
 	const int TRAFFIC_SAMPLE_COUNT = 301; // seconds
 
 	struct TrafficSample
