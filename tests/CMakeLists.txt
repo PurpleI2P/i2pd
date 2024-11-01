@@ -49,10 +49,6 @@ set(test-gost-sig_SRCS
   test-gost-sig.cpp
 )
 
-set(test-x25519_SRCS
-  test-x25519.cpp
-)
-
 set(test-aeadchacha20poly1305_SRCS
   test-aeadchacha20poly1305.cpp
 )
@@ -77,7 +73,6 @@ add_executable(test-http-url ${test-http-url_SRCS})
 add_executable(test-base-64 ${test-base-64_SRCS})
 add_executable(test-gost ${test-gost_SRCS})
 add_executable(test-gost-sig ${test-gost-sig_SRCS})
-add_executable(test-x25519 ${test-x25519_SRCS})
 add_executable(test-aeadchacha20poly1305 ${test-aeadchacha20poly1305_SRCS})
 add_executable(test-blinding ${test-blinding_SRCS})
 add_executable(test-elligator ${test-elligator_SRCS})
@@ -102,7 +97,6 @@ target_link_libraries(test-http-url ${LIBS})
 target_link_libraries(test-base-64 ${LIBS})
 target_link_libraries(test-gost ${LIBS})
 target_link_libraries(test-gost-sig ${LIBS})
-target_link_libraries(test-x25519 ${LIBS})
 target_link_libraries(test-aeadchacha20poly1305 ${LIBS})
 target_link_libraries(test-blinding ${LIBS})
 target_link_libraries(test-elligator ${LIBS})
@@ -116,7 +110,6 @@ add_test(test-http-url ${TEST_PATH}/test-http-url)
 add_test(test-base-64 ${TEST_PATH}/test-base-64)
 add_test(test-gost ${TEST_PATH}/test-gost)
 add_test(test-gost-sig ${TEST_PATH}/test-gost-sig)
-add_test(test-x25519 ${TEST_PATH}/test-x25519)
 add_test(test-aeadchacha20poly1305 ${TEST_PATH}/test-aeadchacha20poly1305)
 add_test(test-blinding ${TEST_PATH}/test-blinding)
 add_test(test-elligator ${TEST_PATH}/test-elligator)
