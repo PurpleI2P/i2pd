@@ -25,7 +25,7 @@ namespace transport
 {
 	template<typename Keys>
 	EphemeralKeysSupplier<Keys>::EphemeralKeysSupplier (int size):
-		m_QueueSize (size), m_IsRunning (false), m_Thread (nullptr)
+		m_QueueSize (size), m_IsRunning (false)
 	{
 	}
 
@@ -39,7 +39,7 @@ namespace transport
 	void EphemeralKeysSupplier<Keys>::Start ()
 	{
 		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this));
+		m_Thread.reset (new std::thread (std::bind (&EphemeralKeysSupplier<Keys>::Run, this)));
 	}
 
 	template<typename Keys>
@@ -53,8 +53,7 @@ namespace transport
 		if (m_Thread)
 		{
 			m_Thread->join ();
-			delete m_Thread;
-			m_Thread = 0;
+			m_Thread = nullptr;
 		}
 	}
 
@@ -78,6 +77,7 @@ namespace transport
 			}
 			else
 			{
+				m_KeysPool.CleanUpMt ();
 				std::unique_lock<std::mutex> l(m_AcquiredMutex);
 				if (!m_IsRunning) break;
 				m_Acquired.wait (l); // wait for element gets acquired
@@ -92,7 +92,7 @@ namespace transport
 		{
 			for (int i = 0; i < num; i++)
 			{
-				auto pair = std::make_shared<Keys> ();
+				auto pair = m_KeysPool.AcquireSharedMt ();
 				pair->GenerateKeys ();
 				std::unique_lock<std::mutex> l(m_AcquiredMutex);
 				m_Queue.push (pair);
@@ -114,7 +114,7 @@ namespace transport
 			}
 		}
 		// queue is empty, create new
-		auto pair = std::make_shared<Keys> ();
+		auto pair = m_KeysPool.AcquireSharedMt ();
 		pair->GenerateKeys ();
 		return pair;
 	}

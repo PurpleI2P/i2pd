@@ -26,6 +26,7 @@
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -53,9 +54,10 @@ namespace transport
 
 			const int m_QueueSize;
 			std::queue<std::shared_ptr<Keys> > m_Queue;
+			i2p::util::MemoryPoolMt<Keys> m_KeysPool;
 
 			bool m_IsRunning;
-			std::thread * m_Thread;
+			std::unique_ptr<std::thread> m_Thread;
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
 	};
