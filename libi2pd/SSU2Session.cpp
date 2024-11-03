@@ -1959,8 +1959,12 @@ namespace transport
 				eSSU2RelayResponseCodeBobRelayTagNotFound, nonce, 0, false);
 			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
 			uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
-			packet->sendTime = mts;
-			session->m_SentPackets.emplace (packetNum, packet);
+			if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
+			{	
+				// sometimes Alice doesn't ack this RelayResponse in older versions
+				packet->sendTime = mts;
+				m_SentPackets.emplace (packetNum, packet);
+			}	
 			return;
 		}
 		if (session->m_RelaySessions.emplace (nonce, std::make_pair (shared_from_this (), mts/1000)).second)
