@@ -337,13 +337,14 @@ namespace transport
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
+		
+		LogPrint(eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
+			" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") established");
 		if (m_OnEstablished)
 		{
 			m_OnEstablished ();
 			m_OnEstablished = nullptr;
 		}
-		LogPrint(eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
-			" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") established");
 	}
 
 	void SSU2Session::Done ()
@@ -1944,21 +1945,24 @@ namespace transport
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
+		uint32_t nonce = bufbe32toh (buf + 1); // nonce
 		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
 		auto session = m_Server.FindRelaySession (relayTag);
 		if (!session)
 		{
 			LogPrint (eLogWarning, "SSU2: RelayRequest session with relay tag ", relayTag, " not found");
 			// send relay response back to Alice
-			uint8_t payload[SSU2_MAX_PACKET_SIZE];
-			size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize,
-				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), 0, false);
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-			SendData (payload, payloadSize);
+			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+			packet->payloadSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
+			packet->payloadSize += CreateRelayResponseBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize,
+				eSSU2RelayResponseCodeBobRelayTagNotFound, nonce, 0, false);
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+			uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+			packet->sendTime = mts;
+			session->m_SentPackets.emplace (packetNum, packet);
 			return;
 		}
-		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
-		uint32_t nonce = bufbe32toh (buf + 1);
 		if (session->m_RelaySessions.emplace (nonce, std::make_pair (shared_from_this (), mts/1000)).second)
 		{
 			// send relay intro to Charlie
