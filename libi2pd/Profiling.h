@@ -38,11 +38,13 @@ namespace data
 	const int PEER_PROFILE_AUTOCLEAN_VARIANCE = 900; // in seconds (15 minutes)
 	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_TIMEOUT = 5400; // in seconds (1.5 hours)
 	const int PEER_PROFILE_OBSOLETE_PROFILES_CLEAN_VARIANCE = 2400; // in seconds (40 minutes)
-	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 150; // in seconds (2.5 minutes)
+	const int PEER_PROFILE_DECLINED_RECENTLY_INTERVAL = 330; // in seconds (5.5 minutes)
+	const int PEER_PROFILE_MAX_DECLINED_INTERVAL = 4400; // in second (1.5 hours)
 	const int PEER_PROFILE_PERSIST_INTERVAL = 3300; // in seconds (55 minutes)
 	const int PEER_PROFILE_UNREACHABLE_INTERVAL = 480; // in seconds (8 minutes)
 	const int PEER_PROFILE_USEFUL_THRESHOLD = 3;
-
+	const int PEER_PROFILE_ALWAYS_DECLINING_NUM = 5; // num declines in row to consider always declined
+	
 	class RouterProfile
 	{
 		public:
@@ -81,7 +83,7 @@ namespace data
 			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
 			bool IsLowPartcipationRate () const;
 			bool IsLowReplyRate () const;
-			bool IsDeclinedRecently ();
+			bool IsDeclinedRecently (uint64_t ts);
 
 		private:
 

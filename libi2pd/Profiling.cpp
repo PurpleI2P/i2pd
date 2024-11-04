@@ -206,10 +206,9 @@ namespace data
 		return m_NumTunnelsNonReplied > 10*(total + 1);
 	}
 
-	bool RouterProfile::IsDeclinedRecently ()
+	bool RouterProfile::IsDeclinedRecently (uint64_t ts)
 	{
 		if (!m_LastDeclineTime) return false;
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		if (ts > m_LastDeclineTime + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL ||
 		    ts + PEER_PROFILE_DECLINED_RECENTLY_INTERVAL < m_LastDeclineTime)
 			m_LastDeclineTime = 0;
@@ -218,7 +217,10 @@ namespace data
 
 	bool RouterProfile::IsBad ()
 	{
-		if (IsDeclinedRecently () || IsUnreachable () || m_IsDuplicated) return true;
+		if (IsUnreachable () || m_IsDuplicated) return true;
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts > PEER_PROFILE_MAX_DECLINED_INTERVAL + m_LastDeclineTime) return false;
+		if (IsDeclinedRecently (ts)) return true; 
 		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () /*|| IsLowReplyRate ()*/;
 		if (isBad && m_NumTimesRejected > 10*(m_NumTimesTaken + 1))
 		{
