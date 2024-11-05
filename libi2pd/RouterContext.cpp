@@ -323,10 +323,6 @@ namespace i2p
 				case eRouterStatusFirewalled:
 					SetUnreachable (true, false); // ipv4
 				break;
-				case eRouterStatusProxy:
-					m_AcceptsTunnels = false;
-					UpdateCongestion ();
-				break;	
 				default:
 					;
 			}
@@ -1489,7 +1485,7 @@ namespace i2p
 	void RouterContext::UpdateCongestion ()
 	{
 		auto c = i2p::data::RouterInfo::eLowCongestion;
-		if (!AcceptsTunnels () || !m_ShareRatio || (m_Error == eRouterErrorSymmetricNAT && !SupportsV6 () && !SupportsMesh ()))                                        	
+		if (!AcceptsTunnels () || !m_ShareRatio)                                        	
 			c = i2p::data::RouterInfo::eRejectAll;
 		else
 		{
