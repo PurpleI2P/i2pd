@@ -108,6 +108,9 @@ namespace tunnel
 		const i2p::data::IdentHash& nextIdent, uint32_t nextTunnelID,
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
 		bool isGateway, bool isEndpoint);
+
+	void HandleShortTransitTunnelBuildMsg (uint8_t * buf, size_t len);
+	void HandleVariableTransitTunnelBuildMsg (uint8_t * buf, size_t len);
 }
 }
 
