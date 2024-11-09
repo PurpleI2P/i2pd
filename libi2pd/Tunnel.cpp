@@ -533,14 +533,22 @@ namespace tunnel
 
 								break;
 							}
-							case eI2NPVariableTunnelBuild:
-							case eI2NPVariableTunnelBuildReply:
 							case eI2NPShortTunnelBuild:
+								HandleShortTunnelBuildMsg (msg);
+							break;	
+							case eI2NPVariableTunnelBuild:
+								HandleVariableTunnelBuildMsg (msg);
+							break;	
 							case eI2NPShortTunnelBuildReply:
+								HandleTunnelBuildReplyMsg (msg, true);
+							break;
+							case eI2NPVariableTunnelBuildReply:
+								HandleTunnelBuildReplyMsg (msg, false);
+							break;	
 							case eI2NPTunnelBuild:
 							case eI2NPTunnelBuildReply:
-								HandleTunnelBuildI2NPMessage (msg);
-							break;
+								LogPrint (eLogWarning, "Tunnel: TunnelBuild is too old for ECIES router");
+							break;	
 							default:
 								LogPrint (eLogWarning, "Tunnel: Unexpected message type ", (int) typeID);
 						}
@@ -613,6 +621,94 @@ namespace tunnel
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
+	void Tunnels::HandleShortTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
+	{
+		if (!msg) return;
+		auto tunnel = GetPendingInboundTunnel (msg->GetMsgID()); // replyMsgID
+		if (tunnel)
+		{
+			// endpoint of inbound tunnel
+			LogPrint (eLogDebug, "Tunnel: ShortTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
+			if (tunnel->HandleTunnelBuildResponse (msg->GetPayload(), msg->GetPayloadLength()))
+			{
+				LogPrint (eLogInfo, "Tunnel: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				tunnel->SetState (eTunnelStateEstablished);
+				AddInboundTunnel (tunnel);
+			}
+			else
+			{
+				LogPrint (eLogInfo, "Tunnel: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (eTunnelStateBuildFailed);
+			}
+			return;
+		}
+		else
+			i2p::tunnel::HandleShortTransitTunnelBuildMsg (msg);
+	}	
+
+	void Tunnels::HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
+	{
+		auto tunnel = GetPendingInboundTunnel (msg->GetMsgID()); // replyMsgID
+		if (tunnel)
+		{
+			// endpoint of inbound tunnel
+			LogPrint (eLogDebug, "Tunnel: VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
+			if (tunnel->HandleTunnelBuildResponse (msg->GetPayload(), msg->GetPayloadLength()))
+			{
+				LogPrint (eLogInfo, "Tunnel: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				tunnel->SetState (eTunnelStateEstablished);
+				AddInboundTunnel (tunnel);
+			}
+			else
+			{
+				LogPrint (eLogInfo, "Tunnel: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (eTunnelStateBuildFailed);
+			}
+		}
+		else
+			i2p::tunnel::HandleVariableTransitTunnelBuildMsg (msg);
+	}	
+
+	void Tunnels::HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort)
+	{
+		if (!msg) return;
+		uint8_t * buf = msg->GetPayload();
+		size_t len = msg->GetPayloadLength();
+		int num = buf[0];
+		LogPrint (eLogDebug, "Tunnel: TunnelBuildReplyMsg of ", num, " records replyMsgID=", msg->GetMsgID());
+		if (num > i2p::tunnel::MAX_NUM_RECORDS)
+		{
+			LogPrint (eLogError, "Tunnel: Too many records in TunnelBuildReply message ", num);
+			return;
+		}
+		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
+		if (len < num*recordSize + 1)
+		{
+			LogPrint (eLogError, "Tunnel: TunnelBuildReply message of ", num, " records is too short ", len);
+			return;
+		}
+
+		auto tunnel = GetPendingOutboundTunnel (msg->GetMsgID()); // replyMsgID
+		if (tunnel)
+		{
+			// reply for outbound tunnel
+			if (tunnel->HandleTunnelBuildResponse (buf, len))
+			{
+				LogPrint (eLogInfo, "Tunnel: Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				tunnel->SetState (eTunnelStateEstablished);
+				AddOutboundTunnel (tunnel);
+			}
+			else
+			{
+				LogPrint (eLogInfo, "Tunnel: Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (eTunnelStateBuildFailed);
+			}
+		}
+		else
+			LogPrint (eLogWarning, "Tunnel: Pending tunnel for message ", msg->GetMsgID(), " not found");
+
+	}	
+		
 	void Tunnels::ManageTunnels (uint64_t ts)
 	{
 		ManagePendingTunnels (ts);

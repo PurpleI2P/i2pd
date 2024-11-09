@@ -122,8 +122,11 @@ namespace tunnel
 		}
 	}
 
-	void HandleShortTransitTunnelBuildMsg (uint8_t * buf, size_t len)
+	void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
 	{
+		if (!msg) return;
+		uint8_t * buf = msg->GetPayload();
+		size_t len = msg->GetPayloadLength();
 		int num = buf[0];
 		LogPrint (eLogDebug, "TransitTunnel: ShortTunnelBuild ", num, " records");
 		if (num > i2p::tunnel::MAX_NUM_RECORDS)
@@ -359,8 +362,11 @@ namespace tunnel
 		return false;
 	}
 
-	void HandleVariableTransitTunnelBuildMsg (uint8_t * buf, size_t len)
+	void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
 	{
+		if (!msg) return;
+		uint8_t * buf = msg->GetPayload();
+		size_t len = msg->GetPayloadLength();
 		int num = buf[0];
 		LogPrint (eLogDebug, "TransitTunnel: VariableTunnelBuild ", num, " records");
 		if (num > i2p::tunnel::MAX_NUM_RECORDS)

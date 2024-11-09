@@ -257,7 +257,10 @@ namespace tunnel
 			std::shared_ptr<TTunnel> GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels);
 
 			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
-
+			void HandleShortTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
+			void HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
+			void HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort);
+			
 			void Run ();
 			void ManageTunnels (uint64_t ts);
 			void ManageOutboundTunnels (uint64_t ts);

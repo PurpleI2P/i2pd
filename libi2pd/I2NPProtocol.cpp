@@ -371,94 +371,6 @@ namespace i2p
 		return !msg->GetPayload ()[DATABASE_STORE_TYPE_OFFSET]; // 0- RouterInfo
 	}
 
-	static void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
-	{
-		auto tunnel = i2p::tunnel::tunnels.GetPendingInboundTunnel (replyMsgID);
-		if (tunnel)
-		{
-			// endpoint of inbound tunnel
-			LogPrint (eLogDebug, "I2NP: VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
-			if (tunnel->HandleTunnelBuildResponse (buf, len))
-			{
-				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
-				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);
-				i2p::tunnel::tunnels.AddInboundTunnel (tunnel);
-			}
-			else
-			{
-				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
-				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);
-			}
-		}
-		else
-			i2p::tunnel::HandleVariableTransitTunnelBuildMsg (buf, len);
-	}
-
-	static void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
-	{
-		LogPrint (eLogWarning, "I2NP: TunnelBuild is too old for ECIES router");
-	}
-
-	static void HandleTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len, bool isShort)
-	{
-		int num = buf[0];
-		LogPrint (eLogDebug, "I2NP: TunnelBuildReplyMsg of ", num, " records replyMsgID=", replyMsgID);
-		if (num > i2p::tunnel::MAX_NUM_RECORDS)
-		{
-			LogPrint (eLogError, "I2NP: Too many records in TunnelBuildReply message ", num);
-			return;
-		}
-		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
-		if (len < num*recordSize + 1)
-		{
-			LogPrint (eLogError, "I2NP: TunnelBuildReply message of ", num, " records is too short ", len);
-			return;
-		}
-
-		auto tunnel = i2p::tunnel::tunnels.GetPendingOutboundTunnel (replyMsgID);
-		if (tunnel)
-		{
-			// reply for outbound tunnel
-			if (tunnel->HandleTunnelBuildResponse (buf, len))
-			{
-				LogPrint (eLogInfo, "I2NP: Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
-				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);
-				i2p::tunnel::tunnels.AddOutboundTunnel (tunnel);
-			}
-			else
-			{
-				LogPrint (eLogInfo, "I2NP: Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
-				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);
-			}
-		}
-		else
-			LogPrint (eLogWarning, "I2NP: Pending tunnel for message ", replyMsgID, " not found");
-	}
-
-	static void HandleShortTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
-	{
-		auto tunnel = i2p::tunnel::tunnels.GetPendingInboundTunnel (replyMsgID);
-		if (tunnel)
-		{
-			// endpoint of inbound tunnel
-			LogPrint (eLogDebug, "I2NP: ShortTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
-			if (tunnel->HandleTunnelBuildResponse (buf, len))
-			{
-				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
-				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);
-				i2p::tunnel::tunnels.AddInboundTunnel (tunnel);
-			}
-			else
-			{
-				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
-				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);
-			}
-			return;
-		}
-		else
-			i2p::tunnel::HandleShortTransitTunnelBuildMsg (buf, len);
-	}
-
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
 		auto msg = NewI2NPTunnelMessage (false);
@@ -552,41 +464,6 @@ namespace i2p
 			l = len;
 		}
 		return l;
-	}
-
-	void HandleTunnelBuildI2NPMessage (std::shared_ptr<I2NPMessage> msg)
-	{
-		if (msg)
-		{
-			uint8_t typeID = msg->GetTypeID();
-			uint32_t msgID = msg->GetMsgID();
-			LogPrint (eLogDebug, "I2NP: Handling tunnel build message with len=", msg->GetLength(),", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
-			uint8_t * payload = msg->GetPayload();
-			auto size = msg->GetPayloadLength();
-			switch (typeID)
-			{
-				case eI2NPVariableTunnelBuild:
-					HandleVariableTunnelBuildMsg (msgID, payload, size);
-					break;
-				case eI2NPShortTunnelBuild:
-					HandleShortTunnelBuildMsg (msgID, payload, size);
-					break;
-				case eI2NPVariableTunnelBuildReply:
-					HandleTunnelBuildReplyMsg (msgID, payload, size, false);
-					break;
-				case eI2NPShortTunnelBuildReply:
-					HandleTunnelBuildReplyMsg (msgID, payload, size, true);
-					break;
-				case eI2NPTunnelBuild:
-					HandleTunnelBuildMsg (payload, size);
-					break;
-				case eI2NPTunnelBuildReply:
-					// TODO:
-					break;
-				default:
-					LogPrint (eLogError, "I2NP: Unexpected message with type", (int)typeID, " during handling TBM; skipping");
-			}
-		}
 	}
 
 	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg)
