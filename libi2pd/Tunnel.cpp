@@ -130,8 +130,19 @@ namespace tunnel
 
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
 	{
-		LogPrint (eLogDebug, "Tunnel: TunnelBuildResponse ", (int)msg[0], " records.");
-
+		int num = msg[0];
+		LogPrint (eLogDebug, "Tunnel: TunnelBuildResponse ", num, " records.");
+		if (num > MAX_NUM_RECORDS)
+		{
+			LogPrint (eLogError, "Tunnel: Too many records in TunnelBuildResponse", num);
+			return false;
+		}		
+		if (len < num*m_Config->GetRecordSize () + 1)
+		{
+			LogPrint (eLogError, "Tunnel: TunnelBuildResponse of ", num, " records is too short ", len);
+			return false;
+		}
+		
 		TunnelHopConfig * hop = m_Config->GetLastHop ();
 		while (hop)
 		{
@@ -152,7 +163,7 @@ namespace tunnel
 			while (hop1)
 			{
 				auto idx = hop1->recordIndex;
-				if (idx >= 0 && idx < msg[0])
+				if (idx >= 0 && idx < num)
 					hop->DecryptRecord (msg + 1, idx);
 				else
 					LogPrint (eLogWarning, "Tunnel: Hop index ", idx, " is out of range");
@@ -671,28 +682,12 @@ namespace tunnel
 
 	void Tunnels::HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort)
 	{
-		if (!msg) return;
-		uint8_t * buf = msg->GetPayload();
-		size_t len = msg->GetPayloadLength();
-		int num = buf[0];
-		LogPrint (eLogDebug, "Tunnel: TunnelBuildReplyMsg of ", num, " records replyMsgID=", msg->GetMsgID());
-		if (num > i2p::tunnel::MAX_NUM_RECORDS)
-		{
-			LogPrint (eLogError, "Tunnel: Too many records in TunnelBuildReply message ", num);
-			return;
-		}
-		size_t recordSize = isShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE;
-		if (len < num*recordSize + 1)
-		{
-			LogPrint (eLogError, "Tunnel: TunnelBuildReply message of ", num, " records is too short ", len);
-			return;
-		}
-
 		auto tunnel = GetPendingOutboundTunnel (msg->GetMsgID()); // replyMsgID
 		if (tunnel)
 		{
 			// reply for outbound tunnel
-			if (tunnel->HandleTunnelBuildResponse (buf, len))
+			LogPrint (eLogDebug, "Tunnel: TunnelBuildReply for tunnel ", tunnel->GetTunnelID ());
+			if (tunnel->HandleTunnelBuildResponse (msg->GetPayload(), msg->GetPayloadLength()))
 			{
 				LogPrint (eLogInfo, "Tunnel: Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
 				tunnel->SetState (eTunnelStateEstablished);
