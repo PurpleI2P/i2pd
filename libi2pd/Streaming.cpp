@@ -71,7 +71,7 @@ namespace stream
 		m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
@@ -99,7 +99,7 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
@@ -1471,17 +1471,26 @@ namespace stream
 			if (!remoteLeaseSet)
 			{
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), m_RemoteLeaseSet ? " expired" : " not found");
-				if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
-				{
-					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
-						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
-					return; // we keep m_RemoteLeaseSet for possible next request
+				if (!m_IsIncoming) // outgoing
+				{	
+					if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
+					{
+						m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
+							std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
+						return; // we keep m_RemoteLeaseSet for possible next request
+					}
+					else
+					{
+						m_RemoteLeaseSet = nullptr;
+						m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+					}
 				}
-				else
+				else // incoming
 				{
-					m_RemoteLeaseSet = nullptr;
-					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
-				}
+					// just close the socket without sending FIN or RST
+					m_Status = eStreamStatusClosed;
+					AsyncClose ();
+				}	
 			}
 			else
 			{
@@ -1696,6 +1705,12 @@ namespace stream
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}
+				if (m_IncomingStreams.size () > MAX_NUM_INCOMING_STREAMS) // TODO: configurable
+				{
+					LogPrint(eLogWarning, "Streaming: Number of incoming streams exceeds ", MAX_NUM_INCOMING_STREAMS);
+					DeletePacket (packet); 
+					return;
+				}	
 				auto incomingStream = CreateNewIncomingStream (receiveStreamID);
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
