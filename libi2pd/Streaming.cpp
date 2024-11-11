@@ -1705,9 +1705,9 @@ namespace stream
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}
-				if (m_IncomingStreams.size () > MAX_NUM_INCOMING_STREAMS) // TODO: configurable
+				if ((int)m_Streams.size () > m_Owner->GetStreamingMaxConcurrentStreams ())
 				{
-					LogPrint(eLogWarning, "Streaming: Number of incoming streams exceeds ", MAX_NUM_INCOMING_STREAMS);
+					LogPrint(eLogWarning, "Streaming: Number of streams exceeds ", m_Owner->GetStreamingMaxConcurrentStreams ());
 					DeletePacket (packet); 
 					return;
 				}	

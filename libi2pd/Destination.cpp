@@ -988,6 +988,7 @@ namespace client
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_StreamingOutboundSpeed (DEFAULT_MAX_OUTBOUND_SPEED),
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
+		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS), 
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
 		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
 		m_ReadyChecker(service)
@@ -1059,6 +1060,8 @@ namespace client
 				it = params->find (I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED);
 				if (it != params->end ())
 					m_StreamingInboundSpeed = std::stoi(it->second);
+				if (it != params->end ())
+					m_StreamingMaxConcurrentStreams = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 					m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
