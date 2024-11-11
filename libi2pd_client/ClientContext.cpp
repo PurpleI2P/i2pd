@@ -422,7 +422,8 @@ namespace client
 			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
 			{ I2CP_PARAM_LEASESET_TYPE, "3" },
 			{ I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4" },
-			{ I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest" }
+			{ I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest" },
+			{ I2CP_PARAM_STREAMING_PROFILE, "2" }
 		};
 		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
