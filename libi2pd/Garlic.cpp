@@ -761,7 +761,7 @@ namespace garlic
 				session->SetRemoteStaticKey (staticKey);
 			}
 			if (destination->IsDestination ())
-				session->SetDestination (destination->GetIdentHash ()); // TODO: remove
+				session->SetDestination (destination->GetIdentHash ()); // NS or NSR
 			return session;
 		}
 		else

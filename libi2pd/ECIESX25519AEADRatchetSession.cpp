@@ -1112,6 +1112,7 @@ namespace garlic
 	bool ECIESX25519AEADRatchetSession::CheckExpired (uint64_t ts)
 	{
 		CleanupUnconfirmedLeaseSet (ts);
+		if (!m_Destination && ts > m_LastActivityTimestamp + ECIESX25519_SESSION_CREATE_TIMEOUT) return true; // m_LastActivityTimestamp is NS receive time 
 		return ts > m_LastActivityTimestamp + ECIESX25519_RECEIVE_EXPIRATION_TIMEOUT && // seconds
 			ts*1000 > m_LastSentTimestamp + ECIESX25519_SEND_EXPIRATION_TIMEOUT*1000; // milliseconds
 	}
