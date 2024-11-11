@@ -421,7 +421,8 @@ namespace client
 			{ I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, "3" },
 			{ I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, "3" },
 			{ I2CP_PARAM_LEASESET_TYPE, "3" },
-			{ I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4" }
+			{ I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, "0,4" },
+			{ I2CP_PARAM_OUTBOUND_NICKNAME, "SharedDest" }
 		};
 		m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519,
 			i2p::data::CRYPTO_KEY_TYPE_ELGAMAL, &params); // non-public, EDDSA
@@ -475,7 +476,7 @@ namespace client
 		options[I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED, DEFAULT_MAX_INBOUND_SPEED);
 		options[I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS, DEFAULT_MAX_CONCURRENT_STREAMS);
 		options[I2CP_PARAM_STREAMING_ANSWER_PINGS] = GetI2CPOption(section, I2CP_PARAM_STREAMING_ANSWER_PINGS, isServer ? DEFAULT_ANSWER_PINGS : false);
-		options[I2CP_PARAM_STREAMING_PROFILE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE); 
+		options[I2CP_PARAM_STREAMING_PROFILE] = GetI2CPOption(section, I2CP_PARAM_STREAMING_PROFILE, DEFAULT_STREAMING_PROFILE);
 		options[I2CP_PARAM_LEASESET_TYPE] = GetI2CPOption(section, I2CP_PARAM_LEASESET_TYPE, DEFAULT_LEASESET_TYPE);
 		std::string encType = GetI2CPStringOption(section, I2CP_PARAM_LEASESET_ENCRYPTION_TYPE, isServer ? "4" : "0,4");
 		if (encType.length () > 0) options[I2CP_PARAM_LEASESET_ENCRYPTION_TYPE] = encType;
@@ -596,6 +597,11 @@ namespace client
 					std::map<std::string, std::string> options;
 					ReadI2CPOptions (section, false, options);
 
+					// Set I2CP name if not set
+					auto itopt = options.find (I2CP_PARAM_OUTBOUND_NICKNAME);
+					if (itopt == options.end ())
+						options[I2CP_PARAM_OUTBOUND_NICKNAME] = name;
+
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
 					{
@@ -668,7 +674,7 @@ namespace client
 							std::string outproxy = section.second.get("outproxy", "");
 							bool addresshelper = section.second.get("addresshelper", true);
 							bool senduseragent = section.second.get("senduseragent", false);
-							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port, 
+							auto tun = std::make_shared<i2p::proxy::HTTPProxy>(name, address, port,
 								outproxy, addresshelper, senduseragent, localDestination);
 							clientTunnel = tun;
 							clientEndpoint = tun->GetLocalEndpoint ();
@@ -749,6 +755,11 @@ namespace client
 					// I2CP
 					std::map<std::string, std::string> options;
 					ReadI2CPOptions (section, true, options);
+
+					// Set I2CP name if not set
+					auto itopt = options.find (I2CP_PARAM_INBOUND_NICKNAME);
+					if (itopt == options.end ())
+						options[I2CP_PARAM_INBOUND_NICKNAME] = name;
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					auto it = destinations.find (keys);
@@ -897,6 +908,7 @@ namespace client
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
+					params[I2CP_PARAM_OUTBOUND_NICKNAME] = "HTTPProxy";
 					localDestination = CreateNewLocalDestination (keys, false, &params);
 					if (localDestination) localDestination->Acquire ();
 				}
@@ -905,7 +917,7 @@ namespace client
 			}
 			try
 			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, 
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort,
 					httpOutProxyURL, httpAddresshelper, httpSendUserAgent, localDestination);
 				m_HttpProxy->Start();
 			}
@@ -945,6 +957,7 @@ namespace client
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
+					params[I2CP_PARAM_OUTBOUND_NICKNAME] = "SOCKSProxy";
 					localDestination = CreateNewLocalDestination (keys, false, &params);
 					if (localDestination) localDestination->Acquire ();
 				}
