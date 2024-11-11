@@ -1713,7 +1713,12 @@ namespace stream
 				}	
 				auto incomingStream = CreateNewIncomingStream (receiveStreamID);
 				incomingStream->HandleNextPacket (packet); // SYN
-				auto ident = incomingStream->GetRemoteIdentity();
+				if (!incomingStream->GetRemoteLeaseSet ())
+				{
+					LogPrint (eLogWarning, "Streaming: No remote LeaseSet for incoming stream. Terminated");
+					incomingStream->Terminate (); // can't send FIN anyway
+					return;
+				}	
 
 				// handle saved packets if any
 				{
@@ -1815,7 +1820,8 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.erase (stream->GetRecvStreamID ());
-			m_IncomingStreams.erase (stream->GetSendStreamID ());
+			if (stream->IsIncoming ())
+				m_IncomingStreams.erase (stream->GetSendStreamID ());
 			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
