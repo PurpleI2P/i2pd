@@ -1510,7 +1510,7 @@ namespace i2p
 		if (m_CleanupTimer)
 		{	
 			m_CleanupTimer->cancel ();
-			m_CleanupTimer->expires_from_now (boost::posix_time::minutes(ROUTER_INFO_CLEANUP_INTERVAL));
+			m_CleanupTimer->expires_from_now (boost::posix_time::seconds(ROUTER_INFO_CLEANUP_INTERVAL));
 			m_CleanupTimer->async_wait (std::bind (&RouterContext::HandleCleanupTimer,
 				this, std::placeholders::_1));
 		}	

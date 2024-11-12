@@ -37,7 +37,7 @@ namespace garlic
 	const int ROUTER_INFO_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int ROUTER_INFO_MAX_PUBLISH_EXCLUDED_FLOODFILLS = 15;
 	const int ROUTER_INFO_CONGESTION_UPDATE_INTERVAL = 12*60; // in seconds
-	const int ROUTER_INFO_CLEANUP_INTERVAL = 5; // in minutes
+	const int ROUTER_INFO_CLEANUP_INTERVAL = 102; // in seconds
 
 	enum RouterStatus
 	{
