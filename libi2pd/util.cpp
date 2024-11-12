@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -169,6 +169,14 @@ namespace util
 				LogPrint (eLogError, m_Name, ": Runtime exception: ", ex.what ());
 			}
 		}
+	}
+
+	void RunnableService::SetName (std::string_view name)
+	{
+		if (name.length() < 16)
+			m_Name = name;
+		else
+			m_Name = name.substr(0,15);
 	}
 
 	void SetThreadName (const char *name) {

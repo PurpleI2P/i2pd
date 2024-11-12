@@ -183,7 +183,7 @@ namespace util
 			void StartIOService ();
 			void StopIOService ();
 
-			void SetName (std::string_view name) { m_Name = name; };
+			void SetName (std::string_view name);
 
 		private:
 
