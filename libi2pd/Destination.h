@@ -200,6 +200,9 @@ namespace client
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
+			std::list<std::shared_ptr<I2NPMessage> > m_IncomingMsgsQueue;
+			mutable std::mutex m_IncomingMsgsQueueMutex;
+			
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::mutex m_LeaseSetMutex;
 			std::shared_ptr<const i2p::data::LocalLeaseSet> m_LeaseSet;

@@ -347,7 +347,24 @@ namespace client
 
 	void LeaseSetDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&LeaseSetDestination::HandleGarlicMessage, shared_from_this (), msg));
+		if (!msg) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_IncomingMsgsQueueMutex);
+			empty = m_IncomingMsgsQueue.empty ();
+			m_IncomingMsgsQueue.push_back (msg);
+		}
+		if (empty)
+			m_Service.post([s = shared_from_this ()]() 
+			{ 
+				std::list<std::shared_ptr<I2NPMessage> > receivedMsgs;
+				{
+					std::lock_guard<std::mutex> l(s->m_IncomingMsgsQueueMutex);
+					s->m_IncomingMsgsQueue.swap (receivedMsgs);
+				}
+			    for (auto& it: receivedMsgs)
+			    	s->HandleGarlicMessage (it);               
+			});
 	}
 
 	void LeaseSetDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
