@@ -122,7 +122,7 @@ namespace tunnel
 		}
 	}
 
-	void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
+	void TransitTunnelBuildMsgHandler::HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (!msg) return;
 		uint8_t * buf = msg->GetPayload();
@@ -275,7 +275,7 @@ namespace tunnel
 		}
 	}	
 		
-	static bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
+	bool TransitTunnelBuildMsgHandler::HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
 		{
@@ -362,7 +362,7 @@ namespace tunnel
 		return false;
 	}
 
-	void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
+	void TransitTunnelBuildMsgHandler::HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (!msg) return;
 		uint8_t * buf = msg->GetPayload();

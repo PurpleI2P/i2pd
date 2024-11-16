@@ -482,10 +482,12 @@ namespace tunnel
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Tunnels::Run, this));
+		m_TransitTunnelBuildMsgHandler.Start ();
 	}
 
 	void Tunnels::Stop ()
 	{
+		m_TransitTunnelBuildMsgHandler.Stop ();
 		m_IsRunning = false;
 		m_Queue.WakeUp ();
 		if (m_Thread)
@@ -654,7 +656,7 @@ namespace tunnel
 			return;
 		}
 		else
-			i2p::tunnel::HandleShortTransitTunnelBuildMsg (msg);
+			m_TransitTunnelBuildMsgHandler.HandleShortTransitTunnelBuildMsg (std::move (msg));
 	}	
 
 	void Tunnels::HandleVariableTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg)
@@ -677,7 +679,7 @@ namespace tunnel
 			}
 		}
 		else
-			i2p::tunnel::HandleVariableTransitTunnelBuildMsg (msg);
+			m_TransitTunnelBuildMsgHandler.HandleVariableTransitTunnelBuildMsg (std::move (msg));
 	}	
 
 	void Tunnels::HandleTunnelBuildReplyMsg (std::shared_ptr<I2NPMessage> msg, bool isShort)

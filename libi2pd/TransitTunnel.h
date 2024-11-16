@@ -109,8 +109,20 @@ namespace tunnel
 		const i2p::crypto::AESKey& layerKey, const i2p::crypto::AESKey& ivKey,
 		bool isGateway, bool isEndpoint);
 
-	void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
-	void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage> msg);
+	class TransitTunnelBuildMsgHandler
+	{	
+		public:
+
+			void Start () {};
+			void Stop () {};
+			
+			void HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
+			void HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg);
+
+		private:
+
+			bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
+	};
 }
 }
 

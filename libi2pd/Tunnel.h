@@ -314,7 +314,8 @@ namespace tunnel
 			double m_TunnelCreationSuccessRate;
 			int m_TunnelCreationAttemptsNum;
 			std::mt19937 m_Rng;
-
+			TransitTunnelBuildMsgHandler m_TransitTunnelBuildMsgHandler;
+			
 		public:
 
 			// for HTTP only
