@@ -122,7 +122,16 @@ namespace tunnel
 		}
 	}
 
-	void TransitTunnelBuildMsgHandler::HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
+	void TransitTunnels::Start () 
+	{
+	}
+		
+	void TransitTunnels::Stop ()
+	{
+		m_TransitTunnels.clear ();
+	}	
+		
+	void TransitTunnels::HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (!msg) return;
 		uint8_t * buf = msg->GetPayload();
@@ -194,7 +203,7 @@ namespace tunnel
 						layerKey, ivKey,
 						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
 						clearText[SHORT_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel))
+					if (!AddTransitTunnel (transitTunnel))
 						retCode = 30;
 				}
 
@@ -275,7 +284,7 @@ namespace tunnel
 		}
 	}	
 		
-	bool TransitTunnelBuildMsgHandler::HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
+	bool TransitTunnels::HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
 		{
@@ -324,7 +333,7 @@ namespace tunnel
 							clearText + ECIES_BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
 							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_GATEWAY_FLAG,
 							clearText[ECIES_BUILD_REQUEST_RECORD_FLAG_OFFSET] & TUNNEL_BUILD_RECORD_ENDPOINT_FLAG);
-					if (!i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel))
+					if (!AddTransitTunnel (transitTunnel))
 						retCode = 30;
 				}
 				else
@@ -362,7 +371,7 @@ namespace tunnel
 		return false;
 	}
 
-	void TransitTunnelBuildMsgHandler::HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
+	void TransitTunnels::HandleVariableTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
 	{
 		if (!msg) return;
 		uint8_t * buf = msg->GetPayload();
@@ -396,5 +405,50 @@ namespace tunnel
 						bufbe32toh (clearText + ECIES_BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 		}
 	}
+
+	bool TransitTunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
+	{
+		if (tunnels.AddTunnel (tunnel))
+			m_TransitTunnels.push_back (tunnel);
+		else
+		{
+			LogPrint (eLogError, "TransitTunnel: Tunnel with id ", tunnel->GetTunnelID (), " already exists");
+			return false;
+		}
+		return true;
+	}
+		
+	void TransitTunnels::ManageTransitTunnels (uint64_t ts)
+	{
+		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
+		{
+			auto tunnel = *it;
+			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT ||
+			    ts + TUNNEL_EXPIRATION_TIMEOUT < tunnel->GetCreationTime ())
+			{
+				LogPrint (eLogDebug, "TransitTunnel: Transit tunnel with id ", tunnel->GetTunnelID (), " expired");
+				tunnels.RemoveTunnel (tunnel->GetTunnelID ());
+				it = m_TransitTunnels.erase (it);
+			}
+			else
+			{
+				tunnel->Cleanup ();
+				it++;
+			}
+		}
+	}
+
+	int TransitTunnels::GetTransitTunnelsExpirationTimeout ()
+	{
+		int timeout = 0;
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		// TODO: possible race condition with I2PControl
+		for (const auto& it : m_TransitTunnels)
+		{
+			int t = it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
+			if (t > timeout) timeout = t;
+		}
+		return timeout;
+	}	
 }
 }

@@ -223,8 +223,9 @@ namespace tunnel
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
+			bool AddTunnel (std::shared_ptr<TunnelBase> tunnel);
+			void RemoveTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
-			bool AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
 			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			std::shared_ptr<InboundTunnel> CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<TunnelPool> pool, std::shared_ptr<OutboundTunnel> outboundTunnel);
@@ -243,7 +244,7 @@ namespace tunnel
 
 			void SetMaxNumTransitTunnels (uint32_t maxNumTransitTunnels);
 			uint32_t GetMaxNumTransitTunnels () const { return m_MaxNumTransitTunnels; };
-			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.size() / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
+			int GetCongestionLevel() const { return m_MaxNumTransitTunnels ? CONGESTION_LEVEL_FULL * m_TransitTunnels.GetNumTransitTunnels () / m_MaxNumTransitTunnels : CONGESTION_LEVEL_FULL; }
 
 			std::mt19937& GetRng () { return m_Rng; };
 			
@@ -265,7 +266,6 @@ namespace tunnel
 			void ManageTunnels (uint64_t ts);
 			void ManageOutboundTunnels (uint64_t ts);
 			void ManageInboundTunnels (uint64_t ts);
-			void ManageTransitTunnels (uint64_t ts);
 			void ManagePendingTunnels (uint64_t ts);
 			template<class PendingTunnels>
 			void ManagePendingTunnels (PendingTunnels& pendingTunnels, uint64_t ts);
@@ -300,7 +300,6 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
-			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
 			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
@@ -314,14 +313,14 @@ namespace tunnel
 			double m_TunnelCreationSuccessRate;
 			int m_TunnelCreationAttemptsNum;
 			std::mt19937 m_Rng;
-			TransitTunnelBuildMsgHandler m_TransitTunnelBuildMsgHandler;
+			TransitTunnels m_TransitTunnels;
 			
 		public:
 
 			// for HTTP only
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
-			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
+			auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;
