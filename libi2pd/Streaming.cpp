@@ -757,8 +757,8 @@ namespace stream
 				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
 				if (m_RemoteLeaseSet)
 				{
-					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
-					m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
+					m_MTU = (m_RoutingSession && m_RoutingSession->IsRatchets ()) ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
 				}
 				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
 					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
@@ -1115,7 +1115,15 @@ namespace stream
 			}
 		}
 		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
-			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+		{	
+			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
+			if (!m_RoutingSession)
+			{
+				LogPrint (eLogError, "Streaming: Can't obtain routing session, sSID=", m_SendStreamID);
+				Terminate ();
+				return;
+			}	
+		}	
 		if (!m_CurrentOutboundTunnel && m_RoutingSession) // first message to send
 		{
 			// try to get shared path first
@@ -1416,7 +1424,13 @@ namespace stream
 				SendPackets (packets);
 				m_LastSendTime = ts;
 				m_IsSendTime = false;
-				if (m_IsNAcked || m_IsResendNeeded) ScheduleSend ();
+				if (m_IsNAcked || m_IsResendNeeded) 
+				{
+					if (m_SequenceNumber > 1) // doesn't resend agressively very first packet
+						ScheduleSend ();
+					else
+						ScheduleResend ();
+				}	
 			}
 			else
 				SendBuffer ();

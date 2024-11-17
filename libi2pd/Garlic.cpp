@@ -426,7 +426,8 @@ namespace garlic
 	}
 
 	GarlicDestination::GarlicDestination (): m_NumTags (32), // 32 tags by default
-		m_PayloadBuffer (nullptr), m_NumRatchetInboundTags (0) // 0 means standard
+		m_PayloadBuffer (nullptr), m_LastIncomingSessionTimestamp (0), 
+		m_NumRatchetInboundTags (0) // 0 means standard
 	{
 	}
 
@@ -539,9 +540,17 @@ namespace garlic
 				else if (SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
 				{
 					// otherwise ECIESx25519
-					auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
-					if (!session->HandleNextMessage (buf, length, nullptr, 0))
-						LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
+					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+					if (ts > m_LastIncomingSessionTimestamp + INCOMING_SESSIONS_MINIMAL_INTERVAL) 
+					{	
+						auto session = std::make_shared<ECIESX25519AEADRatchetSession> (this, false); // incoming
+						if (session->HandleNextMessage (buf, length, nullptr, 0))
+							m_LastIncomingSessionTimestamp = ts;
+						else
+							LogPrint (eLogError, "Garlic: Can't handle ECIES-X25519-AEAD-Ratchet message");
+					}
+					else
+						LogPrint (eLogWarning, "Garlic: Incoming sessions come too ofter");
 				}
 				else
 					LogPrint (eLogError, "Garlic: Failed to decrypt message");
@@ -737,7 +746,8 @@ namespace garlic
 	}
 
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
-		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
+		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet,
+	    bool requestNewIfNotFound)
 	{
 		if (destination->GetEncryptionType () == i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD &&
 			SupportsEncryptionType (i2p::data::CRYPTO_KEY_TYPE_ECIES_X25519_AEAD))
@@ -752,15 +762,16 @@ namespace garlic
 				if (session->IsInactive (i2p::util::GetSecondsSinceEpoch ()))
 				{
 					LogPrint (eLogDebug, "Garlic: Session restarted");
+					requestNewIfNotFound = true; // it's not a new session
 					session = nullptr;
 				}
 			}
-			if (!session)
+			if (!session && requestNewIfNotFound)
 			{
 				session = std::make_shared<ECIESX25519AEADRatchetSession> (this, true);
 				session->SetRemoteStaticKey (staticKey);
 			}
-			if (destination->IsDestination ())
+			if (session && destination->IsDestination ())
 				session->SetDestination (destination->GetIdentHash ()); // NS or NSR
 			return session;
 		}
