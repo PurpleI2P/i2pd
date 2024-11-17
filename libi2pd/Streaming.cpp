@@ -705,7 +705,8 @@ namespace stream
 
 	void Stream::SendBuffer ()
 	{
-		ScheduleSend ();
+		if (m_RemoteLeaseSet) // don't scheudle send for first SYN for incoming stream
+			ScheduleSend ();
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
 		if (numMsgs <= 0 || !m_IsSendTime) // window is full
