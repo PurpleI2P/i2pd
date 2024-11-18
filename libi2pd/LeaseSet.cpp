@@ -425,10 +425,15 @@ namespace data
 		if (offset + 1 > len) return 0;
 		int numLeases = buf[offset]; offset++;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		if (GetExpirationTime () > ts + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT*1000LL)
+		if (GetExpirationTime () > ts + LEASESET_EXPIRATION_TIME_THRESHOLD)
 		{
-			LogPrint (eLogWarning, "LeaseSet2: Expiration time is too long ", GetExpirationTime ()/1000LL);
-			SetExpirationTime (ts + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT*1000LL);
+			LogPrint (eLogWarning, "LeaseSet2: Expiration time is from future ", GetExpirationTime ()/1000LL);
+			return 0;
+		}	
+		if (ts > m_PublishedTimestamp*1000LL + LEASESET_EXPIRATION_TIME_THRESHOLD)
+		{
+			LogPrint (eLogWarning, "LeaseSet2: Published time is too old ", m_PublishedTimestamp);
+			return 0;
 		}	
 		if (IsStoreLeases ())
 		{
@@ -440,6 +445,11 @@ namespace data
 				lease.tunnelGateway = buf + offset; offset += 32; // gateway
 				lease.tunnelID = bufbe32toh (buf + offset); offset += 4; // tunnel ID
 				lease.endDate = bufbe32toh (buf + offset)*1000LL; offset += 4; // end date
+				if (lease.endDate > ts + LEASESET_EXPIRATION_TIME_THRESHOLD)
+				{
+					LogPrint (eLogWarning, "LeaseSet2: Lease end date is from future ", lease.endDate);
+					return 0;
+				}	
 				UpdateLease (lease, ts);
 			}
 			UpdateLeasesEnd ();

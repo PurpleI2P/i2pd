@@ -62,7 +62,8 @@ namespace data
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
 	const size_t LEASE2_SIZE = 40; // 32 + 4 + 4
 	const uint8_t MAX_NUM_LEASES = 16;
-
+	const uint64_t LEASESET_EXPIRATION_TIME_THRESHOLD = 12*60*1000; // in milliseconds
+	
 	const uint8_t NETDB_STORE_TYPE_LEASESET = 1;
 	class LeaseSet: public RoutingDestination
 	{
@@ -180,7 +181,7 @@ namespace data
 		private:
 
 			uint8_t m_StoreType;
-			uint32_t m_PublishedTimestamp = 0;
+			uint32_t m_PublishedTimestamp = 0; // seconds
 			bool m_IsPublic = true, m_IsPublishedEncrypted = false;
 			std::shared_ptr<i2p::crypto::Verifier> m_TransientVerifier;
 			CryptoKeyType m_EncryptionType;
