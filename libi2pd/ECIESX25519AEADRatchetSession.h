@@ -31,6 +31,7 @@ namespace garlic
 	const int ECIESX25519_SEND_EXPIRATION_TIMEOUT = 480; // in seconds
 	const int ECIESX25519_RECEIVE_EXPIRATION_TIMEOUT = 600; // in seconds
 	const int ECIESX25519_SESSION_CREATE_TIMEOUT = 3; // in seconds, NSR must be send after NS received
+	const int ECIESX25519_SESSION_ESTABLISH_TIMEOUT = 15; // in seconds 
 	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // in seconds
 	const int ECIESX25519_ACK_REQUEST_INTERVAL = 33000; // in milliseconds
 	const int ECIESX25519_ACK_REQUEST_MAX_NUM_ATTEMPTS = 3;
