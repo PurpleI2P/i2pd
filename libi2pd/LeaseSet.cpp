@@ -425,6 +425,11 @@ namespace data
 		if (offset + 1 > len) return 0;
 		int numLeases = buf[offset]; offset++;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (GetExpirationTime () > ts + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT*1000LL)
+		{
+			LogPrint (eLogWarning, "LeaseSet2: Expiration time is too long ", GetExpirationTime ()/1000LL);
+			SetExpirationTime (ts + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT*1000LL);
+		}	
 		if (IsStoreLeases ())
 		{
 			UpdateLeasesBegin ();
