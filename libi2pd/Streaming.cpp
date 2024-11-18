@@ -1338,7 +1338,7 @@ namespace stream
 	void Stream::ResendPacket ()
 	{
 		// check for resend attempts
-		if (m_SequenceNumber == 1 && m_NumResendAttempts > 0)
+		if (m_IsIncoming && m_SequenceNumber == 1 && m_NumResendAttempts > 0)
 		{
 			LogPrint (eLogWarning, "Streaming: SYNACK packet was not ACKed after ", m_NumResendAttempts, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 			m_Status = eStreamStatusReset;
