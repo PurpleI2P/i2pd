@@ -1116,7 +1116,7 @@ namespace stream
 		}
 		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
 		{	
-			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
+			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming || m_SequenceNumber > 1);
 			if (!m_RoutingSession)
 			{
 				LogPrint (eLogError, "Streaming: Can't obtain routing session, sSID=", m_SendStreamID);
