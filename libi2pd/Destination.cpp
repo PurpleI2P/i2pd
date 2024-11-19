@@ -168,7 +168,7 @@ namespace client
 		LoadTags ();
 		m_Pool->SetLocalDestination (shared_from_this ());
 		m_Pool->SetActive (true);
-		m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+		m_CleanupTimer.expires_from_now (boost::posix_time::seconds (DESTINATION_CLEANUP_TIMEOUT));
 		m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -985,7 +985,7 @@ namespace client
 		{
 			if (it->second->IsEmpty () || ts > it->second->GetExpirationTime ()) // leaseset expired
 			{
-				LogPrint (eLogWarning, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				LogPrint (eLogDebug, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_RemoteLeaseSets.erase (it);
 			}
 			else
