@@ -52,6 +52,7 @@ namespace garlic
 	const int OUTGOING_TAGS_CONFIRMATION_TIMEOUT = 10; // 10 seconds
 	const int LEASESET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
 	const int ROUTING_PATH_EXPIRATION_TIMEOUT = 120; // in seconds
+	const int INCOMING_SESSIONS_MINIMAL_INTERVAL = 200; // in milliseconds
 
 	struct SessionTag: public i2p::data::Tag<32>
 	{
@@ -234,7 +235,8 @@ namespace garlic
 			int GetNumTags () const { return m_NumTags; };
 			void SetNumRatchetInboundTags (int numTags) { m_NumRatchetInboundTags = numTags; };
 			int GetNumRatchetInboundTags () const { return m_NumRatchetInboundTags; };
-			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);
+			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination,
+				bool attachLeaseSet, bool requestNewIfNotFound = true);
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
 			std::shared_ptr<I2NPMessage> WrapMessageForRouter (std::shared_ptr<const i2p::data::RouterInfo> router,
@@ -284,6 +286,7 @@ namespace garlic
 			std::unordered_map<i2p::data::IdentHash, ElGamalAESSessionPtr> m_Sessions;
 			std::unordered_map<i2p::data::Tag<32>, ECIESX25519AEADRatchetSessionPtr> m_ECIESx25519Sessions; // static key -> session
 			uint8_t * m_PayloadBuffer; // for ECIESX25519AEADRatchet
+			uint64_t m_LastIncomingSessionTimestamp; // in millseconds
 			// incoming
 			int m_NumRatchetInboundTags;
 			std::unordered_map<SessionTag, std::shared_ptr<AESDecryption>, std::hash<i2p::data::Tag<32> > > m_Tags;

@@ -240,17 +240,12 @@ namespace crypto
 // x25519
 	X25519Keys::X25519Keys ()
 	{
-#if OPENSSL_X25519
 		m_Ctx = EVP_PKEY_CTX_new_id (NID_X25519, NULL);
 		m_Pkey = nullptr;
-#else
-		m_Ctx = BN_CTX_new ();
-#endif
 	}
 
 	X25519Keys::X25519Keys (const uint8_t * priv, const uint8_t * pub)
 	{
-#if OPENSSL_X25519
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL);
 		if (pub)
@@ -260,29 +255,16 @@ namespace crypto
 			size_t len = 32;
 			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
 		}
-#else
-		m_Ctx = BN_CTX_new ();
-		memcpy (m_PrivateKey, priv, 32);
-		if (pub)
-			memcpy (m_PublicKey, pub, 32);
-		else
-			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
-#endif
 	}
 
 	X25519Keys::~X25519Keys ()
 	{
-#if OPENSSL_X25519
 		EVP_PKEY_CTX_free (m_Ctx);
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
-#else
-		BN_CTX_free (m_Ctx);
-#endif
 	}
 
 	void X25519Keys::GenerateKeys ()
 	{
-#if OPENSSL_X25519
 		if (m_Pkey)
 		{
 			EVP_PKEY_free (m_Pkey);
@@ -294,16 +276,11 @@ namespace crypto
 		m_Ctx = EVP_PKEY_CTX_new (m_Pkey, NULL); // TODO: do we really need to re-create m_Ctx?
 		size_t len = 32;
 		EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
-#else
-		RAND_bytes (m_PrivateKey, 32);
-		GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
-#endif
 	}
 
 	bool X25519Keys::Agree (const uint8_t * pub, uint8_t * shared)
 	{
 		if (!pub || (pub[31] & 0x80)) return false; // not x25519 key
-#if OPENSSL_X25519
 		EVP_PKEY_derive_init (m_Ctx);
 		auto pkey = EVP_PKEY_new_raw_public_key (EVP_PKEY_X25519, NULL, pub, 32);
 		if (!pkey) return false;
@@ -311,25 +288,17 @@ namespace crypto
 		size_t len = 32;
 		EVP_PKEY_derive (m_Ctx, shared, &len);
 		EVP_PKEY_free (pkey);
-#else
-		GetEd25519 ()->ScalarMul (pub, m_PrivateKey, shared, m_Ctx);
-#endif
 		return true;
 	}
 
 	void X25519Keys::GetPrivateKey (uint8_t * priv) const
 	{
-#if OPENSSL_X25519
 		size_t len = 32;
 		EVP_PKEY_get_raw_private_key (m_Pkey, priv, &len);
-#else
-		memcpy (priv, m_PrivateKey, 32);
-#endif
 	}
 
 	void X25519Keys::SetPrivateKey (const uint8_t * priv, bool calculatePublic)
 	{
-#if OPENSSL_X25519
 		if (m_Ctx) EVP_PKEY_CTX_free (m_Ctx);
 		if (m_Pkey) EVP_PKEY_free (m_Pkey);
 		m_Pkey = EVP_PKEY_new_raw_private_key (EVP_PKEY_X25519, NULL, priv, 32);
@@ -339,11 +308,6 @@ namespace crypto
 			size_t len = 32;
 			EVP_PKEY_get_raw_public_key (m_Pkey, m_PublicKey, &len);
 		}
-#else
-		memcpy (m_PrivateKey, priv, 32);
-		if (calculatePublic)
-			GetEd25519 ()->ScalarMulB (m_PrivateKey, m_PublicKey, m_Ctx);
-#endif
 	}
 
 // ElGamal

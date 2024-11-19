@@ -37,7 +37,7 @@ namespace client
 		int inVar   = DEFAULT_INBOUND_TUNNELS_LENGTH_VARIANCE;
 		int outVar  = DEFAULT_OUTBOUND_TUNNELS_LENGTH_VARIANCE;
 		int numTags = DEFAULT_TAGS_TO_SEND;
-		bool isHighBandwidth = true;	
+		bool isHighBandwidth = true;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		try
 		{
@@ -168,7 +168,7 @@ namespace client
 		LoadTags ();
 		m_Pool->SetLocalDestination (shared_from_this ());
 		m_Pool->SetActive (true);
-		m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+		m_CleanupTimer.expires_from_now (boost::posix_time::seconds (DESTINATION_CLEANUP_TIMEOUT));
 		m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -347,7 +347,24 @@ namespace client
 
 	void LeaseSetDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&LeaseSetDestination::HandleGarlicMessage, shared_from_this (), msg));
+		if (!msg) return;
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_IncomingMsgsQueueMutex);
+			empty = m_IncomingMsgsQueue.empty ();
+			m_IncomingMsgsQueue.push_back (msg);
+		}
+		if (empty)
+			m_Service.post([s = shared_from_this ()]() 
+			{ 
+				std::list<std::shared_ptr<I2NPMessage> > receivedMsgs;
+				{
+					std::lock_guard<std::mutex> l(s->m_IncomingMsgsQueueMutex);
+					s->m_IncomingMsgsQueue.swap (receivedMsgs);
+				}
+			    for (auto& it: receivedMsgs)
+			    	s->HandleGarlicMessage (it);               
+			});
 	}
 
 	void LeaseSetDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
@@ -471,7 +488,7 @@ namespace client
 			{
 				auto it2 = m_LeaseSetRequests.find (key);
 				if (it2 != m_LeaseSetRequests.end ())
-				{	
+				{
 					request = it2->second;
 					m_LeaseSetRequests.erase (it2);
 					if (request->requestedBlindedKey)
@@ -493,14 +510,14 @@ namespace client
 						// publishing verification doesn't have requestedBlindedKey
 						auto localLeaseSet = GetLeaseSetMt ();
 						if (localLeaseSet->GetStoreHash () == key)
-						{	
-							auto ls = std::make_shared<i2p::data::LeaseSet2> (i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2, 
+						{
+							auto ls = std::make_shared<i2p::data::LeaseSet2> (i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2,
 								localLeaseSet->GetBuffer (), localLeaseSet->GetBufferLen (), false);
-							leaseSet = ls;	
-						}	
+							leaseSet = ls;
+						}
 						else
 							LogPrint (eLogWarning, "Destination: Encrypted LeaseSet2 received for request without blinded key");
-					}	
+					}
 				}
 				else
 					LogPrint (eLogWarning, "Destination: Couldn't find request for encrypted LeaseSet2");
@@ -511,14 +528,14 @@ namespace client
 		}
 
 		if (!request)
-		{	
+		{
 			auto it1 = m_LeaseSetRequests.find (key);
 			if (it1 != m_LeaseSetRequests.end ())
-			{	
+			{
 				request = it1->second;
 				m_LeaseSetRequests.erase (it1);
-			}	
-		}	
+			}
+		}
 		if (request)
 		{
 			request->requestTimeoutTimer.cancel ();
@@ -550,7 +567,7 @@ namespace client
 			LogPrint (eLogWarning, "Destination: Request for ", key.ToBase64 (), " not found");
 	}
 
-	void LeaseSetDestination::SendNextLeaseSetRequest (const i2p::data::IdentHash& key, 
+	void LeaseSetDestination::SendNextLeaseSetRequest (const i2p::data::IdentHash& key,
 		std::shared_ptr<LeaseSetRequest> request)
 	{
 		bool found = false;
@@ -570,8 +587,8 @@ namespace client
 			request->Complete (nullptr);
 			m_LeaseSetRequests.erase (key);
 		}
-	}	
-		
+	}
+
 	void LeaseSetDestination::HandleDeliveryStatusMessage (uint32_t msgID)
 	{
 		if (msgID == m_PublishReplyToken)
@@ -592,7 +609,7 @@ namespace client
 	{
 		if (post)
 			m_Service.post([s = shared_from_this ()]() { s->UpdateLeaseSet (); });
-		else	
+		else
 			UpdateLeaseSet ();
 	}
 
@@ -631,7 +648,7 @@ namespace client
 		if (!outbound || !inbound)
 		{
 			if (!m_Pool->GetInboundTunnels ().empty () && !m_Pool->GetOutboundTunnels ().empty ())
-			{	
+			{
 				LogPrint (eLogInfo, "Destination: No compatible tunnels with ", floodfill->GetIdentHash ().ToBase64 (), ". Trying another floodfill");
 				m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 				floodfill = i2p::data::netdb.GetClosestFloodfill (leaseSet->GetStoreHash (), m_ExcludedFloodfills);
@@ -649,10 +666,10 @@ namespace client
 				}
 				else
 					LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
-			}	
+			}
 			else
 				LogPrint (eLogDebug, "Destination: No tunnels in pool");
-			
+
 			if (!floodfill || !outbound || !inbound)
 			{
 				// we can't publish now
@@ -880,8 +897,8 @@ namespace client
 				AddECIESx25519Key (replyKey, replyTag);
 			else
 				AddSessionKey (replyKey, replyTag);
-			
-			auto msg = WrapMessageForRouter (nextFloodfill, 
+
+			auto msg = WrapMessageForRouter (nextFloodfill,
 				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, request->replyTunnel, replyKey, replyTag, isECIES));
 			auto s = shared_from_this ();
 			msg->onDrop = [s, dest, request]()
@@ -890,7 +907,7 @@ namespace client
 						{
 							s->SendNextLeaseSetRequest (dest, request);
 						});
-				};	
+				};
 			request->outboundTunnel->SendTunnelDataMsgs (
 				{
 					i2p::tunnel::TunnelMessageBlock
@@ -953,7 +970,8 @@ namespace client
 			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
 			CleanupDestination ();
-			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+			m_CleanupTimer.expires_from_now (boost::posix_time::seconds (DESTINATION_CLEANUP_TIMEOUT +
+				(m_Pool ? m_Pool->GetRng ()() % DESTINATION_CLEANUP_TIMEOUT_VARIANCE : 0)));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
@@ -967,7 +985,7 @@ namespace client
 		{
 			if (it->second->IsEmpty () || ts > it->second->GetExpirationTime ()) // leaseset expired
 			{
-				LogPrint (eLogWarning, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				LogPrint (eLogDebug, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_RemoteLeaseSets.erase (it);
 			}
 			else
@@ -988,6 +1006,7 @@ namespace client
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
 		m_StreamingOutboundSpeed (DEFAULT_MAX_OUTBOUND_SPEED),
 		m_StreamingInboundSpeed (DEFAULT_MAX_INBOUND_SPEED),
+		m_StreamingMaxConcurrentStreams (DEFAULT_MAX_CONCURRENT_STREAMS),
 		m_IsStreamingAnswerPings (DEFAULT_ANSWER_PINGS), m_LastPort (0),
 		m_DatagramDestination (nullptr), m_RefCounter (0), m_LastPublishedTimestamp (0),
 		m_ReadyChecker(service)
@@ -1059,6 +1078,8 @@ namespace client
 				it = params->find (I2CP_PARAM_STREAMING_MAX_INBOUND_SPEED);
 				if (it != params->end ())
 					m_StreamingInboundSpeed = std::stoi(it->second);
+				if (it != params->end ())
+					m_StreamingMaxConcurrentStreams = std::stoi(it->second);
 				it = params->find (I2CP_PARAM_STREAMING_ANSWER_PINGS);
 				if (it != params->end ())
 					m_IsStreamingAnswerPings = std::stoi (it->second); // 1 for true
@@ -1438,11 +1459,11 @@ namespace client
 				keySections.push_back ({m_StandardEncryptionKey->keyType, (uint16_t)m_StandardEncryptionKey->decryptor->GetPublicKeyLen (), m_StandardEncryptionKey->pub} );
 
 			auto publishedTimestamp = i2p::util::GetSecondsSinceEpoch ();
-			if (publishedTimestamp <= m_LastPublishedTimestamp) 
+			if (publishedTimestamp <= m_LastPublishedTimestamp)
 			{
 				LogPrint (eLogDebug, "Destination: LeaseSet update at the same second");
 				publishedTimestamp++; // force newer timestamp
-			}	
+			}
 			bool isPublishedEncrypted = GetLeaseSetType () == i2p::data::NETDB_STORE_TYPE_ENCRYPTED_LEASESET2;
 			auto ls2 = std::make_shared<i2p::data::LocalLeaseSet2> (i2p::data::NETDB_STORE_TYPE_STANDARD_LEASESET2,
 				m_Keys, keySections, tunnels, IsPublic (), publishedTimestamp, isPublishedEncrypted);
@@ -1514,6 +1535,8 @@ namespace client
 		RunnableService ("Destination"),
 		ClientDestination (GetIOService (), keys, isPublic, params)
 	{
+		if (!GetNickname ().empty ())
+			RunnableService::SetName (GetNickname ());
 	}
 
 	RunnableClientDestination::~RunnableClientDestination ()

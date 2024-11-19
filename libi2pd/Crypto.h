@@ -31,7 +31,6 @@
 #if (OPENSSL_VERSION_NUMBER >= 0x010101000) // 1.1.1
 #	define OPENSSL_HKDF 1
 #	define OPENSSL_EDDSA 1
-#	define OPENSSL_X25519 1
 #	if (!defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER != 0x030000000)) // 3.0.0, regression in SipHash, not implemented in LibreSSL
 #		define OPENSSL_SIPHASH 1
 #	endif
@@ -70,13 +69,8 @@ namespace crypto
 		private:
 
 			uint8_t m_PublicKey[32];
-#if OPENSSL_X25519
 			EVP_PKEY_CTX * m_Ctx;
 			EVP_PKEY * m_Pkey;
-#else
-			BN_CTX * m_Ctx;
-			uint8_t m_PrivateKey[32];
-#endif
 			bool m_IsElligatorIneligible = false; // true if definitely ineligible
 	};
 

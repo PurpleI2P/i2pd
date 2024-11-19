@@ -71,7 +71,7 @@ namespace stream
 		m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_Status (eStreamStatusNew), m_IsIncoming (false), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service),
@@ -99,7 +99,7 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed
-		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
+		m_Status (eStreamStatusNew), m_IsIncoming (true), m_IsAckSendScheduled (false), m_IsNAcked (false), m_IsFirstACK (false), 
 		m_IsResendNeeded (false), m_IsFirstRttSample (false), m_IsSendTime (true), m_IsWinDropped (false),
 		m_IsTimeOutResend (false), m_IsImmediateAckRequested (false), m_IsRemoteLeaseChangeInProgress (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_SendTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
@@ -705,7 +705,8 @@ namespace stream
 
 	void Stream::SendBuffer ()
 	{
-		ScheduleSend ();
+		if (m_RemoteLeaseSet) // don't scheudle send for first SYN for incoming stream
+			ScheduleSend ();
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
 		if (numMsgs <= 0 || !m_IsSendTime) // window is full
@@ -756,8 +757,8 @@ namespace stream
 				if (!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());;
 				if (m_RemoteLeaseSet)
 				{
-					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
-					m_MTU = m_RoutingSession->IsRatchets () ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
+					m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming);
+					m_MTU = (m_RoutingSession && m_RoutingSession->IsRatchets ()) ? STREAMING_MTU_RATCHETS : STREAMING_MTU;
 				}
 				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED |
 					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
@@ -1114,7 +1115,15 @@ namespace stream
 			}
 		}
 		if (!m_RoutingSession || m_RoutingSession->IsTerminated () || !m_RoutingSession->IsReadyToSend ()) // expired and detached or new session sent
-			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+		{	
+			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true, !m_IsIncoming || m_SequenceNumber > 1);
+			if (!m_RoutingSession)
+			{
+				LogPrint (eLogError, "Streaming: Can't obtain routing session, sSID=", m_SendStreamID);
+				Terminate ();
+				return;
+			}	
+		}	
 		if (!m_CurrentOutboundTunnel && m_RoutingSession) // first message to send
 		{
 			// try to get shared path first
@@ -1328,98 +1337,105 @@ namespace stream
 	
 	void Stream::ResendPacket ()
 	{
-			// check for resend attempts
-			if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
-			{
-				LogPrint (eLogWarning, "Streaming: packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
-				m_Status = eStreamStatusReset;
-				Close ();
-				return;
-			}
+		// check for resend attempts
+		if (m_IsIncoming && m_SequenceNumber == 1 && m_NumResendAttempts > 0)
+		{
+			LogPrint (eLogWarning, "Streaming: SYNACK packet was not ACKed after ", m_NumResendAttempts, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			m_Status = eStreamStatusReset;
+			Close ();
+			return;
+		}
+		if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
+		{
+			LogPrint (eLogWarning, "Streaming: packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			m_Status = eStreamStatusReset;
+			Close ();
+			return;
+		}
 
-			// collect packets to resend
-			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			std::vector<Packet *> packets;
-			if (m_IsNAcked)
+		// collect packets to resend
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		std::vector<Packet *> packets;
+		if (m_IsNAcked)
+		{
+			for (auto it : m_NACKedPackets)
 			{
-				for (auto it : m_NACKedPackets)
+				if (ts >= it->sendTime + m_RTO)
 				{
-					if (ts >= it->sendTime + m_RTO)
-					{
-						if (ts < it->sendTime + m_RTO*2)
-							it->resent = true;
-						else
-							it->resent = false;
-						it->sendTime = ts;
-						packets.push_back (it);
-						if ((int)packets.size () >= m_NumPacketsToSend) break;
-					}
-				}
-			}
-			else
-			{
-				for (auto it : m_SentPackets)
-				{
-					if (ts >= it->sendTime + m_RTO)
-					{
-						if (ts < it->sendTime + m_RTO*2)
-							it->resent = true;
-						else
-							it->resent = false;
-						it->sendTime = ts;
-						packets.push_back (it);
-						if ((int)packets.size () >= m_NumPacketsToSend) break;
-					}
-				}
-			}
-			
-			// select tunnels if necessary and send
-			if (packets.size () > 0 && m_IsSendTime)
-			{
-				if (m_IsNAcked) m_NumResendAttempts = 1;
-				else if (m_IsTimeOutResend) m_NumResendAttempts++;
-				if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
-				{
-					// loss-based CC
-					if (!m_IsWinDropped && LOSS_BASED_CONTROL_ENABLED)
-						ProcessWindowDrop ();
-				}
-				else if (m_IsTimeOutResend)
-				{
-					m_IsTimeOutResend = false;
-					m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
-					m_WindowDropTargetSize = INITIAL_WINDOW_SIZE;
-					m_LastWindowDropSize = 0;
-					m_WindowIncCounter = 0;
-					m_IsWinDropped = true;
-					m_IsFirstRttSample = true;
-					m_DropWindowDelaySequenceNumber = 0;
-					m_IsFirstACK = true;
-					UpdatePacingTime ();
-					if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
-					if (m_NumResendAttempts & 1)
-					{
-						// pick another outbound tunnel
-						m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
-						LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
-							", another outbound tunnel has been selected for stream with sSID=", m_SendStreamID);
-					}
+					if (ts < it->sendTime + m_RTO*2)
+						it->resent = true;
 					else
-					{
-						CancelRemoteLeaseChange ();
-						UpdateCurrentRemoteLease (); // pick another lease
-						LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
-							", another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
-					}
+						it->resent = false;
+					it->sendTime = ts;
+					packets.push_back (it);
+					if ((int)packets.size () >= m_NumPacketsToSend) break;
 				}
-				SendPackets (packets);
-				m_LastSendTime = ts;
-				m_IsSendTime = false;
-				if (m_IsNAcked || m_IsResendNeeded) ScheduleSend ();
 			}
-			else
-				SendBuffer ();
-			if (!m_IsNAcked && !m_IsResendNeeded) ScheduleResend ();
+		}
+		else
+		{
+			for (auto it : m_SentPackets)
+			{
+				if (ts >= it->sendTime + m_RTO)
+				{
+					if (ts < it->sendTime + m_RTO*2)
+						it->resent = true;
+					else
+						it->resent = false;
+					it->sendTime = ts;
+					packets.push_back (it);
+					if ((int)packets.size () >= m_NumPacketsToSend) break;
+				}
+			}
+		}
+		
+		// select tunnels if necessary and send
+		if (packets.size () > 0 && m_IsSendTime)
+		{
+			if (m_IsNAcked) m_NumResendAttempts = 1;
+			else if (m_IsTimeOutResend) m_NumResendAttempts++;
+			if (m_NumResendAttempts == 1 && m_RTO != INITIAL_RTO)
+			{
+				// loss-based CC
+				if (!m_IsWinDropped && LOSS_BASED_CONTROL_ENABLED)
+					ProcessWindowDrop ();
+			}
+			else if (m_IsTimeOutResend)
+			{
+				m_IsTimeOutResend = false;
+				m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
+				m_WindowDropTargetSize = INITIAL_WINDOW_SIZE;
+				m_LastWindowDropSize = 0;
+				m_WindowIncCounter = 0;
+				m_IsWinDropped = true;
+				m_IsFirstRttSample = true;
+				m_DropWindowDelaySequenceNumber = 0;
+				m_IsFirstACK = true;
+				UpdatePacingTime ();
+				if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
+				if (m_NumResendAttempts & 1)
+				{
+					// pick another outbound tunnel
+					m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+					LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
+						", another outbound tunnel has been selected for stream with sSID=", m_SendStreamID);
+				}
+				else
+				{
+					CancelRemoteLeaseChange ();
+					UpdateCurrentRemoteLease (); // pick another lease
+					LogPrint (eLogWarning, "Streaming: Resend #", m_NumResendAttempts,
+						", another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+				}
+			}
+			SendPackets (packets);
+			m_LastSendTime = ts;
+			m_IsSendTime = false;
+			if (m_IsNAcked || m_IsResendNeeded) ScheduleSend ();
+		}
+		else
+			SendBuffer ();
+		if (!m_IsNAcked && !m_IsResendNeeded) ScheduleResend ();
 	}
 
 	void Stream::ScheduleAck (int timeout)
@@ -1471,17 +1487,26 @@ namespace stream
 			if (!remoteLeaseSet)
 			{
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), m_RemoteLeaseSet ? " expired" : " not found");
-				if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
-				{
-					m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
-						std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
-					return; // we keep m_RemoteLeaseSet for possible next request
+				if (!m_IsIncoming) // outgoing
+				{	
+					if (m_RemoteLeaseSet && m_RemoteLeaseSet->IsPublishedEncrypted ())
+					{
+						m_LocalDestination.GetOwner ()->RequestDestinationWithEncryptedLeaseSet (
+							std::make_shared<i2p::data::BlindedPublicKey>(m_RemoteIdentity));
+						return; // we keep m_RemoteLeaseSet for possible next request
+					}
+					else
+					{
+						m_RemoteLeaseSet = nullptr;
+						m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+					}
 				}
-				else
+				else // incoming
 				{
-					m_RemoteLeaseSet = nullptr;
-					m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
-				}
+					// just close the socket without sending FIN or RST
+					m_Status = eStreamStatusClosed;
+					AsyncClose ();
+				}	
 			}
 			else
 			{
@@ -1696,9 +1721,20 @@ namespace stream
 					DeletePacket (packet); // drop it, because previous should be connected
 					return;
 				}
+				if (m_Owner->GetStreamingMaxConcurrentStreams () > 0 && (int)m_Streams.size () > m_Owner->GetStreamingMaxConcurrentStreams ())
+				{
+					LogPrint(eLogWarning, "Streaming: Number of streams exceeds ", m_Owner->GetStreamingMaxConcurrentStreams ());
+					DeletePacket (packet); 
+					return;
+				}	
 				auto incomingStream = CreateNewIncomingStream (receiveStreamID);
 				incomingStream->HandleNextPacket (packet); // SYN
-				auto ident = incomingStream->GetRemoteIdentity();
+				if (!incomingStream->GetRemoteLeaseSet ())
+				{
+					LogPrint (eLogWarning, "Streaming: No remote LeaseSet for incoming stream. Terminated");
+					incomingStream->Terminate (); // can't send FIN anyway
+					return;
+				}	
 
 				// handle saved packets if any
 				{
@@ -1800,7 +1836,8 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.erase (stream->GetRecvStreamID ());
-			m_IncomingStreams.erase (stream->GetSendStreamID ());
+			if (stream->IsIncoming ())
+				m_IncomingStreams.erase (stream->GetSendStreamID ());
 			if (m_LastStream == stream) m_LastStream = nullptr;
 		}
 		auto ts = i2p::util::GetSecondsSinceEpoch ();

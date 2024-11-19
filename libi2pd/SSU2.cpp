@@ -457,13 +457,20 @@ namespace transport
 	void SSU2Server::InsertToReceivedPacketsQueue (std::list<Packet *>& packets)
 	{
 		if (packets.empty ()) return;
-		bool empty = false;
+		size_t queueSize = 0;
 		{
 			std::lock_guard<std::mutex> l(m_ReceivedPacketsQueueMutex);
-			empty = m_ReceivedPacketsQueue.empty ();
-			m_ReceivedPacketsQueue.splice (m_ReceivedPacketsQueue.end (), packets);
+			queueSize = m_ReceivedPacketsQueue.size ();
+			if (queueSize < SSU2_MAX_RECEIVED_QUEUE_SIZE)
+				m_ReceivedPacketsQueue.splice (m_ReceivedPacketsQueue.end (), packets);
+			else
+			{
+				LogPrint (eLogError, "SSU2: Received queue size ", queueSize, " exceeds max size", SSU2_MAX_RECEIVED_QUEUE_SIZE);
+				m_PacketsPool.ReleaseMt (packets);
+				queueSize = 0; // invoke processing just in case
+			}		
 		}
-		if (empty)
+		if (!queueSize)
 			GetService ().post([this]() { HandleReceivedPacketsQueue (); });
 	}	
 		

@@ -153,7 +153,7 @@ namespace transport
 			void ServerLogin (); // Bob
 
 			void SendLocalRouterInfo (bool update) override; // after handshake or by update
-			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
+			void SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs) override;
 			void MoveSendQueue (std::shared_ptr<NTCP2Session> other);
 			
 		private:
@@ -196,7 +196,7 @@ namespace transport
 			void SendRouterInfo ();
 			void SendTermination (NTCP2TerminationReason reason);
 			void SendTerminationAndTerminate (NTCP2TerminationReason reason);
-			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
+			void PostI2NPMessages ();
 
 		private:
 
@@ -229,7 +229,10 @@ namespace transport
 			bool m_IsSending, m_IsReceiving;
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			uint64_t m_NextRouterInfoResendTime; // seconds since epoch
-
+			
+			std::list<std::shared_ptr<I2NPMessage> > m_IntermediateQueue; // from transports
+			mutable std::mutex m_IntermediateQueueMutex;
+			
 			uint16_t m_PaddingSizes[16];
 			int m_NextPaddingSize;
 	};

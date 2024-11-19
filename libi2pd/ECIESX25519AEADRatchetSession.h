@@ -30,6 +30,8 @@ namespace garlic
 	const int ECIESX25519_SEND_INACTIVITY_TIMEOUT = 5000; // number of milliseconds we can send empty(pyaload only) packet after
 	const int ECIESX25519_SEND_EXPIRATION_TIMEOUT = 480; // in seconds
 	const int ECIESX25519_RECEIVE_EXPIRATION_TIMEOUT = 600; // in seconds
+	const int ECIESX25519_SESSION_CREATE_TIMEOUT = 3; // in seconds, NSR must be send after NS received
+	const int ECIESX25519_SESSION_ESTABLISH_TIMEOUT = 15; // in seconds 
 	const int ECIESX25519_PREVIOUS_TAGSET_EXPIRATION_TIMEOUT = 180; // in seconds
 	const int ECIESX25519_ACK_REQUEST_INTERVAL = 33000; // in milliseconds
 	const int ECIESX25519_ACK_REQUEST_MAX_NUM_ATTEMPTS = 3;
@@ -169,7 +171,7 @@ namespace garlic
 			void SetRemoteStaticKey (const uint8_t * key) { memcpy (m_RemoteStaticKey, key, 32); }
 
 			void Terminate () { m_IsTerminated = true; }
-			void SetDestination (const i2p::data::IdentHash& dest) // TODO:
+			void SetDestination (const i2p::data::IdentHash& dest)
 			{
 				if (!m_Destination) m_Destination.reset (new i2p::data::IdentHash (dest));
 			}
@@ -224,7 +226,7 @@ namespace garlic
 			uint64_t m_SessionCreatedTimestamp = 0, m_LastActivityTimestamp = 0, // incoming (in seconds)
 				m_LastSentTimestamp = 0; // in milliseconds
 			std::shared_ptr<RatchetTagSet> m_SendTagset, m_NSRSendTagset;
-			std::unique_ptr<i2p::data::IdentHash> m_Destination;// TODO: might not need it
+			std::unique_ptr<i2p::data::IdentHash> m_Destination;// must be set for NS if outgoing and NSR if incoming
 			std::list<std::pair<uint16_t, int> > m_AckRequests; // incoming (tagsetid, index)
 			bool m_SendReverseKey = false, m_SendForwardKey = false, m_IsTerminated = false;
 			std::unique_ptr<DHRatchet> m_NextReceiveRatchet, m_NextSendRatchet;

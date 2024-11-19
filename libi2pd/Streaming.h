@@ -186,6 +186,7 @@ namespace stream
 			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () const { return m_RemoteIdentity; };
 			bool IsOpen () const { return m_Status == eStreamStatusOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
+			bool IsIncoming () const { return m_IsIncoming; };
 			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
 			void ResetRoutingPath ();
@@ -262,6 +263,7 @@ namespace stream
 			int32_t m_PreviousReceivedSequenceNumber;
 			int32_t m_LastConfirmedReceivedSequenceNumber; // for limit inbound speed
 			StreamStatus m_Status;
+			bool m_IsIncoming;
 			bool m_IsAckSendScheduled;
 			bool m_IsNAcked;
 			bool m_IsFirstACK;

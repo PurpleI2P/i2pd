@@ -293,6 +293,8 @@ namespace transport
 			m_SentHandshakePacket.reset (nullptr);
 			m_SessionConfirmedFragment.reset (nullptr);
 			m_PathChallenge.reset (nullptr);
+			if (!m_IntermediateQueue.empty ())
+				m_SendQueue.splice (m_SendQueue.end (), m_IntermediateQueue);
 			for (auto& it: m_SendQueue)
 				it->Drop ();
 			m_SendQueue.clear ();
@@ -335,13 +337,14 @@ namespace transport
 		SetTerminationTimeout (SSU2_TERMINATION_TIMEOUT);
 		SendQueue ();
 		transports.PeerConnected (shared_from_this ());
+		
+		LogPrint(eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
+			" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") established");
 		if (m_OnEstablished)
 		{
 			m_OnEstablished ();
 			m_OnEstablished = nullptr;
 		}
-		LogPrint(eLogDebug, "SSU2: Session with ", GetRemoteEndpoint (),
-			" (", i2p::data::GetIdentHashAbbreviation (GetRemoteIdentity ()->GetIdentHash ()), ") established");
 	}
 
 	void SSU2Session::Done ()
@@ -372,14 +375,31 @@ namespace transport
 
 	}
 
-	void SSU2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	void SSU2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this (), msgs));
+		if (m_State == eSSU2SessionStateTerminated || msgs.empty ()) 
+		{
+			msgs.clear ();
+			return;
+		}	
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			empty = m_IntermediateQueue.empty ();
+			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
+		}
+		if (empty)
+			m_Server.GetService ().post (std::bind (&SSU2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
-	void SSU2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	void SSU2Session::PostI2NPMessages ()
 	{
 		if (m_State == eSSU2SessionStateTerminated) return;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			m_IntermediateQueue.swap (msgs);		
+		}	
 		uint64_t mts = i2p::util::GetMonotonicMicroseconds ();
 		bool isSemiFull = false;
 		if (m_SendQueue.size ())
@@ -393,16 +413,24 @@ namespace transport
 					" is semi-full (size = ", m_SendQueue.size (), ", lag = ", queueLag / 1000, ", rtt = ", (int)m_RTT, ")");
 			}
 		}
-		for (auto it: msgs)
-		{
-			if (isSemiFull && it->onDrop)
-				it->Drop (); // drop earlier because we can handle it
-			else
+		if (isSemiFull)
+		{	
+			for (auto it: msgs)
 			{
-				it->SetEnqueueTime (mts);
-				m_SendQueue.push_back (std::move (it));
+				if (it->onDrop)
+					it->Drop (); // drop earlier because we can handle it
+				else
+				{
+					it->SetEnqueueTime (mts);
+					m_SendQueue.push_back (std::move (it));
+				}
 			}
-		}
+		}	
+		else
+		{
+			for (auto& it: msgs) it->SetEnqueueTime (mts);
+			m_SendQueue.splice (m_SendQueue.end (), msgs);
+		}	
 		if (IsEstablished ())
 		{	
 			SendQueue ();
@@ -415,7 +443,7 @@ namespace transport
 	void SSU2Session::MoveSendQueue (std::shared_ptr<SSU2Session> other)
 	{
 		if (!other || m_SendQueue.empty ()) return;
-		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_SendQueue)
 			if (!it->IsExpired (ts))
@@ -424,7 +452,7 @@ namespace transport
 				it->Drop ();
 		m_SendQueue.clear ();
 		if (!msgs.empty ())
-			other->PostI2NPMessages (msgs);
+			other->SendI2NPMessages (msgs);
 	}	
 		
 	bool SSU2Session::SendQueue ()
@@ -1917,21 +1945,28 @@ namespace transport
 	void SSU2Session::HandleRelayRequest (const uint8_t * buf, size_t len)
 	{
 		// we are Bob
+		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
+		uint32_t nonce = bufbe32toh (buf + 1); // nonce
 		uint32_t relayTag = bufbe32toh (buf + 5); // relay tag
 		auto session = m_Server.FindRelaySession (relayTag);
 		if (!session)
 		{
 			LogPrint (eLogWarning, "SSU2: RelayRequest session with relay tag ", relayTag, " not found");
 			// send relay response back to Alice
-			uint8_t payload[SSU2_MAX_PACKET_SIZE];
-			size_t payloadSize = CreateRelayResponseBlock (payload, m_MaxPayloadSize,
-				eSSU2RelayResponseCodeBobRelayTagNotFound, bufbe32toh (buf + 1), 0, false);
-			payloadSize += CreatePaddingBlock (payload + payloadSize, m_MaxPayloadSize - payloadSize);
-			SendData (payload, payloadSize);
+			auto packet = m_Server.GetSentPacketsPool ().AcquireShared ();
+			packet->payloadSize = CreateAckBlock (packet->payload, m_MaxPayloadSize);
+			packet->payloadSize += CreateRelayResponseBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize,
+				eSSU2RelayResponseCodeBobRelayTagNotFound, nonce, 0, false);
+			packet->payloadSize += CreatePaddingBlock (packet->payload + packet->payloadSize, m_MaxPayloadSize - packet->payloadSize);
+			uint32_t packetNum = SendData (packet->payload, packet->payloadSize);
+			if (m_RemoteVersion >= SSU2_MIN_RELAY_RESPONSE_RESEND_VERSION)
+			{	
+				// sometimes Alice doesn't ack this RelayResponse in older versions
+				packet->sendTime = mts;
+				m_SentPackets.emplace (packetNum, packet);
+			}	
 			return;
 		}
-		auto mts = i2p::util::GetMillisecondsSinceEpoch ();
-		uint32_t nonce = bufbe32toh (buf + 1);
 		if (session->m_RelaySessions.emplace (nonce, std::make_pair (shared_from_this (), mts/1000)).second)
 		{
 			// send relay intro to Charlie

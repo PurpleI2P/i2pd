@@ -103,6 +103,7 @@ namespace http
 
 	bool URL::parse(std::string_view url) 
 	{
+		if (url.empty ()) return false;
 		std::size_t pos_p = 0; /* < current parse position */
 		std::size_t pos_c = 0; /* < work position */
 		if(url.at(0) != '/' || pos_p > 0) 

@@ -384,8 +384,7 @@ namespace data
 			if (it == m_LeaseSets.end () || it->second->GetStoreType () != storeType ||
 				leaseSet->GetPublishedTimestamp () > it->second->GetPublishedTimestamp ())
 			{
-				if (leaseSet->IsPublic () && !leaseSet->IsExpired () &&
-				     i2p::util::GetSecondsSinceEpoch () + NETDB_EXPIRATION_TIMEOUT_THRESHOLD > leaseSet->GetPublishedTimestamp ())
+				if (leaseSet->IsPublic () && !leaseSet->IsExpired ())
 				{
 					// TODO: implement actual update
 					if (CheckLogLevel (eLogInfo))
@@ -480,7 +479,7 @@ namespace data
 	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)
 	{
 		LogPrint(eLogInfo, "NetDB: Reseeding from floodfill ", ri.GetIdentHashBase64());
-		std::vector<std::shared_ptr<i2p::I2NPMessage> > requests;
+		std::list<std::shared_ptr<i2p::I2NPMessage> > requests;
 
 		i2p::data::IdentHash ourIdent = i2p::context.GetIdentHash();
 		i2p::data::IdentHash ih = ri.GetIdentHash();

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2021, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -181,6 +181,8 @@ namespace tunnel
 				return peers;
 			}
 
+			size_t GetRecordSize () const { return m_IsShort ? SHORT_TUNNEL_BUILD_RECORD_SIZE : TUNNEL_BUILD_RECORD_SIZE; };
+			
 		protected:
 
 			// this constructor can't be called from outside

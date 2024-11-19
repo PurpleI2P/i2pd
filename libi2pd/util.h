@@ -137,8 +137,8 @@ namespace util
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (size_t i = 0; i < num; i++)
 					this->Release (arr[i]);
-			}	
-			
+			}
+
 			template<template<typename, typename...>class C, typename... R>
 			void ReleaseMt(const C<T *, R...>& c)
 			{
@@ -146,7 +146,7 @@ namespace util
 				for (auto& it: c)
 					this->Release (it);
 			}
-			
+
 			template<typename... TArgs>
 			std::shared_ptr<T> AcquireSharedMt (TArgs&&... args)
 			{
@@ -182,6 +182,8 @@ namespace util
 
 			void StartIOService ();
 			void StopIOService ();
+
+			void SetName (std::string_view name);
 
 		private:
 

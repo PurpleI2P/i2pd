@@ -26,6 +26,7 @@
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -53,9 +54,10 @@ namespace transport
 
 			const int m_QueueSize;
 			std::queue<std::shared_ptr<Keys> > m_Queue;
+			i2p::util::MemoryPoolMt<Keys> m_KeysPool;
 
 			bool m_IsRunning;
-			std::thread * m_Thread;
+			std::unique_ptr<std::thread> m_Thread;
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
 	};
@@ -71,7 +73,7 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::list<std::shared_ptr<TransportSession> > sessions;
 		uint64_t creationTime, nextRouterInfoUpdateTime, lastSelectionTime;
-		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
+		std::list<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 		std::vector<i2p::data::RouterInfo::SupportedTransports> priority;
 		bool isHighBandwidth, isEligible;
 
@@ -108,7 +110,8 @@ namespace transport
 	const int PEER_TEST_DELAY_INTERVAL_VARIANCE = 30; // in milliseconds
 	const int MAX_NUM_DELAYED_MESSAGES = 150;
 	const int CHECK_PROFILE_NUM_DELAYED_MESSAGES = 15; // check profile after
-
+	const int NUM_X25519_PRE_GENERATED_KEYS = 25; // pre-generated x25519 keys pairs
+	
 	const int TRAFFIC_SAMPLE_COUNT = 301; // seconds
 
 	struct TrafficSample
@@ -141,7 +144,8 @@ namespace transport
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
-			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
+			void SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
+			void SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs);
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
 			void PeerDisconnected (std::shared_ptr<TransportSession> session);
@@ -185,7 +189,7 @@ namespace transport
 			void Run ();
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident);
-			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
+			void PostMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, std::shared_ptr<Peer> peer);
 			void SetPriority (std::shared_ptr<Peer> peer) const;
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);

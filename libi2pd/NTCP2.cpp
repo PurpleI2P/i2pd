@@ -375,6 +375,8 @@ namespace transport
 			m_Socket.close ();
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCP2Session (shared_from_this ());
+			if (!m_IntermediateQueue.empty ())
+				m_SendQueue.splice (m_SendQueue.end (), m_IntermediateQueue);
 			for (auto& it: m_SendQueue)
 				it->Drop ();
 			m_SendQueue.clear ();
@@ -1207,7 +1209,7 @@ namespace transport
 	void NTCP2Session::MoveSendQueue (std::shared_ptr<NTCP2Session> other)
 	{
 		if (!other || m_SendQueue.empty ()) return;
-		std::vector<std::shared_ptr<I2NPMessage> > msgs;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_SendQueue)
 			if (!it->IsExpired (ts))
@@ -1216,7 +1218,7 @@ namespace transport
 				it->Drop ();
 		m_SendQueue.clear ();
 		if (!msgs.empty ())
-			other->PostI2NPMessages (msgs);
+			other->SendI2NPMessages (msgs);
 	}	
 		
 	size_t NTCP2Session::CreatePaddingBlock (size_t msgLen, uint8_t * buf, size_t len)
@@ -1297,20 +1299,42 @@ namespace transport
 		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
 	}
 
-	void NTCP2Session::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
+	void NTCP2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		m_Server.GetService ().post (std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this (), msgs));
+		if (m_IsTerminated || msgs.empty ()) 
+		{
+			msgs.clear ();
+			return;
+		}	
+		bool empty = false;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			empty = m_IntermediateQueue.empty ();
+			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
+		}
+		if (empty)
+			m_Server.GetService ().post (std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
-	void NTCP2Session::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	void NTCP2Session::PostI2NPMessages ()
 	{
 		if (m_IsTerminated) return;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
+		{
+			std::lock_guard<std::mutex> l(m_IntermediateQueueMutex);
+			m_IntermediateQueue.swap (msgs);		
+		}	
 		bool isSemiFull = m_SendQueue.size () > NTCP2_MAX_OUTGOING_QUEUE_SIZE/2;
-		for (auto it: msgs)
-			if (isSemiFull && it->onDrop)
-				it->Drop (); // drop earlier because we can handle it
-			else
-				m_SendQueue.push_back (std::move (it));
+		if (isSemiFull)
+		{	
+			for (auto it: msgs)
+				if (it->onDrop)
+					it->Drop (); // drop earlier because we can handle it
+				else
+					m_SendQueue.push_back (std::move (it));
+		}	
+		else
+			m_SendQueue.splice (m_SendQueue.end (), msgs);
 		
 		if (!m_IsSending && m_IsEstablished)
 			SendQueue ();

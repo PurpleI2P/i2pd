@@ -42,7 +42,8 @@ namespace client
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically
 	const int LEASESET_REQUEST_TIMEOUT = 5; // in seconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 40; // in seconds
-	const int DESTINATION_CLEANUP_TIMEOUT = 3; // in minutes
+	const int DESTINATION_CLEANUP_TIMEOUT = 44; // in seconds
+	const int DESTINATION_CLEANUP_TIMEOUT_VARIANCE = 30; // in seconds
 	const unsigned int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
 
 	// I2CP
@@ -94,7 +95,9 @@ namespace client
 	const int STREAMING_PROFILE_BULK = 1; // high bandwidth
 	const int STREAMING_PROFILE_INTERACTIVE = 2; // low bandwidth
 	const int DEFAULT_STREAMING_PROFILE = STREAMING_PROFILE_BULK;
-
+	const char I2CP_PARAM_STREAMING_MAX_CONCURRENT_STREAMS[] = "i2p.streaming.maxConcurrentStreams";
+	const int DEFAULT_MAX_CONCURRENT_STREAMS = 2048;
+	
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
 	class LeaseSetDestination: public i2p::garlic::GarlicDestination,
@@ -197,6 +200,9 @@ namespace client
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::unordered_map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
+			std::list<std::shared_ptr<I2NPMessage> > m_IncomingMsgsQueue;
+			mutable std::mutex m_IncomingMsgsQueueMutex;
+			
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::mutex m_LeaseSetMutex;
 			std::shared_ptr<const i2p::data::LocalLeaseSet> m_LeaseSet;
@@ -269,6 +275,7 @@ namespace client
 			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 			int GetStreamingOutboundSpeed () const { return m_StreamingOutboundSpeed; }
 			int GetStreamingInboundSpeed () const { return m_StreamingInboundSpeed; }
+			int GetStreamingMaxConcurrentStreams () const { return m_StreamingMaxConcurrentStreams; }
 			bool IsStreamingAnswerPings () const { return m_IsStreamingAnswerPings; }
 
 			// datagram
@@ -305,9 +312,7 @@ namespace client
 			std::unique_ptr<EncryptionKey> m_StandardEncryptionKey;
 			std::unique_ptr<EncryptionKey> m_ECIESx25519EncryptionKey;
 
-			int m_StreamingAckDelay;
-			int m_StreamingOutboundSpeed;
-			int m_StreamingInboundSpeed;
+			int m_StreamingAckDelay,m_StreamingOutboundSpeed, m_StreamingInboundSpeed, m_StreamingMaxConcurrentStreams;
 			bool m_IsStreamingAnswerPings;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;

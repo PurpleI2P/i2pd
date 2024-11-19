@@ -221,7 +221,7 @@ namespace tunnel
 	void TunnelGateway::SendBuffer ()
 	{
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
-		std::vector<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
+		std::list<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
 		const auto& tunnelDataMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto& tunnelMsg : tunnelDataMsgs)
 		{
@@ -234,7 +234,7 @@ namespace tunnel
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}
 		m_Buffer.ClearTunnelDataMsgs ();
-		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), newTunnelMsgs);
+		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), std::move (newTunnelMsgs));
 	}
 }
 }

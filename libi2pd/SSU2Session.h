@@ -261,7 +261,7 @@ namespace transport
 			void FlushData ();
 			void Done () override;
 			void SendLocalRouterInfo (bool update) override;
-			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) override;
+			void SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs) override;
 			void MoveSendQueue (std::shared_ptr<SSU2Session> other);
 			uint32_t GetRelayTag () const override { return m_RelayTag; };
 			size_t Resend (uint64_t ts); // return number of resent packets
@@ -307,7 +307,7 @@ namespace transport
 			void Established ();
 			void ScheduleConnectTimer ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
-			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
+			void PostI2NPMessages ();
 			bool SendQueue (); // returns true if ack block was sent
 			bool SendFragmentedMessage (std::shared_ptr<I2NPMessage> msg);
 			void ResendHandshakePacket ();
@@ -381,6 +381,8 @@ namespace transport
 			std::unordered_map<uint32_t, std::pair <std::shared_ptr<SSU2Session>, uint64_t > > m_RelaySessions; // nonce->(Alice, timestamp) for Bob or nonce->(Charlie, timestamp) for Alice
 			std::list<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			i2p::I2NPMessagesHandler m_Handler;
+			std::list<std::shared_ptr<I2NPMessage> > m_IntermediateQueue; // from transports
+			mutable std::mutex m_IntermediateQueueMutex;
 			bool m_IsDataReceived;
 			double m_RTT;
 			int m_MsgLocalExpirationTimeout;
