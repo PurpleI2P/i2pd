@@ -84,7 +84,7 @@ namespace util
 				return m_Queue.empty ();
 			}
 
-			int GetSize ()
+			int GetSize () const
 			{
 				std::unique_lock<std::mutex> l(m_QueueMutex);
 				return m_Queue.size ();
@@ -134,7 +134,7 @@ namespace util
 		private:
 
 			std::list<Element> m_Queue;
-			std::mutex m_QueueMutex;
+			mutable std::mutex m_QueueMutex;
 			std::condition_variable m_NonEmpty;
 	};
 }
