@@ -149,6 +149,7 @@ namespace tunnel
 
 			// for HTTP only
 			const auto& GetTransitTunnels () const { return m_TransitTunnels; };
+			size_t GetTunnelBuildMsgQueueSize () const { return m_TunnelBuildMsgQueue.GetSize (); };
 	};
 }
 }

@@ -327,7 +327,8 @@ namespace tunnel
 			size_t CountInboundTunnels() const;
 			size_t CountOutboundTunnels() const;
 
-			int GetQueueSize () { return m_Queue.GetSize (); };
+			size_t GetQueueSize () const { return m_Queue.GetSize (); };
+			size_t GetTBMQueueSize () const { return m_TransitTunnels.GetTunnelBuildMsgQueueSize (); };
 			int GetTunnelCreationSuccessRate () const { return std::round(m_TunnelCreationSuccessRate * 100); } // in percents
 			double GetPreciseTunnelCreationSuccessRate () const { return m_TunnelCreationSuccessRate * 100; } // in percents
 			int GetTotalTunnelCreationSuccessRate () const // in percents

@@ -701,6 +701,7 @@ namespace http {
 	{
 		s << "<b>" << tr("Tunnels") << ":</b><br>\r\n";
 		s << "<b>" << tr("Queue size") << ":</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n<br>\r\n";
+		s << "<b>" << tr("TBM Queue size") << ":</b> " << i2p::tunnel::tunnels.GetTBMQueueSize () << "<br>\r\n<br>\r\n";
 
 		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 
