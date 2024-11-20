@@ -122,13 +122,85 @@ namespace tunnel
 		}
 	}
 
+	TransitTunnels::TransitTunnels ():
+		m_IsRunning (false)
+	{
+	}
+		
+	TransitTunnels::~TransitTunnels ()
+	{
+		Stop ();
+	}	
+		
 	void TransitTunnels::Start () 
 	{
+		m_IsRunning = true;
+		m_Thread.reset (new std::thread (std::bind (&TransitTunnels::Run, this)));
 	}
 		
 	void TransitTunnels::Stop ()
 	{
+		m_IsRunning = false;
+		m_TunnelBuildMsgQueue.WakeUp ();
+		if (m_Thread)
+		{
+			m_Thread->join ();
+			m_Thread = nullptr;
+		}
 		m_TransitTunnels.clear ();
+	}	
+
+	void TransitTunnels::Run () 
+	{
+		i2p::util::SetThreadName("TBM");
+		uint64_t lastTs = 0;
+		std::list<std::shared_ptr<I2NPMessage> > msgs;
+		while (m_IsRunning)
+		{
+			try
+			{
+				if (m_TunnelBuildMsgQueue.Wait (TRANSIT_TUNNELS_QUEUE_WAIT_INTERVAL, 0))
+				{
+					m_TunnelBuildMsgQueue.GetWholeQueue (msgs);
+					while (!msgs.empty ())
+					{
+						auto msg = msgs.front (); msgs.pop_front ();
+						if (!msg) continue;
+						uint8_t typeID = msg->GetTypeID ();
+						switch (typeID)
+						{
+							case eI2NPShortTunnelBuild:
+								HandleShortTransitTunnelBuildMsg (std::move (msg));
+							break;	
+							case eI2NPVariableTunnelBuild:
+								HandleVariableTransitTunnelBuildMsg (std::move (msg));
+							break;	
+							default:
+								LogPrint (eLogWarning, "TransitTunnel: Unexpected message type ", (int) typeID);
+						}
+						if (!m_IsRunning) break;
+					}	
+				}	
+				if (m_IsRunning)
+				{
+					uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+					if (ts  >= lastTs + TUNNEL_MANAGE_INTERVAL || ts + TUNNEL_MANAGE_INTERVAL < lastTs)
+					{
+						ManageTransitTunnels (ts);
+						lastTs = ts;
+					}
+				}	
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "TransitTunnel: Runtime exception: ", ex.what ());
+			}
+		}
+	}
+
+	void TransitTunnels::PostTransitTunnelBuildMsg  (std::shared_ptr<I2NPMessage>&& msg)
+	{
+		if (msg) m_TunnelBuildMsgQueue.Put (msg);
 	}	
 		
 	void TransitTunnels::HandleShortTransitTunnelBuildMsg (std::shared_ptr<I2NPMessage>&& msg)
@@ -234,6 +306,7 @@ namespace tunnel
 					{
 						if (transitTunnel)
 						{
+							LogPrint (eLogDebug, "TransitTunnel: Failed to send reply for transit tunnel ", transitTunnel->GetTunnelID ());
 							auto t = transitTunnel->GetCreationTime ();
 							if (t > i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT)
 								// make transit tunnel expired 

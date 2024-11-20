@@ -300,8 +300,9 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
+			mutable std::mutex m_TunnelsMutex;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
-			std::mutex m_PoolsMutex;
+			mutable std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
@@ -320,7 +321,7 @@ namespace tunnel
 			// for HTTP only
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
-			auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
+			const auto& GetTransitTunnels () const { return m_TransitTunnels.GetTransitTunnels (); };
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;
