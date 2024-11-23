@@ -13,12 +13,9 @@ LDFLAGS ?= ${LD_DEBUG}
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match $(CXX) 'clang'),5)
 	NEEDED_CXXFLAGS += -std=c++17
-else ifeq ($(shell expr match ${CXXVER} "7"),1) # gcc 7
-	NEEDED_CXXFLAGS += -std=c++17
-	LDLIBS = -lboost_filesystem
 else ifeq ($(shell expr match ${CXXVER} "[8-9]"),1) # gcc 8 - 9
 	NEEDED_CXXFLAGS += -std=c++17
-	LDLIBS = -lstdc++fs
+	LDLIBS = -lboost_system -lstdc++fs
 else ifeq ($(shell expr match ${CXXVER} "1[0-2]"),2) # gcc 10 - 12
 	NEEDED_CXXFLAGS += -std=c++17
 else ifeq ($(shell expr match ${CXXVER} "1[3-9]"),2) # gcc 13+
@@ -34,7 +31,6 @@ ifeq ($(USE_STATIC),yes)
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
 	LIBDIR := /usr/lib/$(SYS)
-	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_program_options.a
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
@@ -44,7 +40,7 @@ ifeq ($(USE_UPNP),yes)
 endif
 	LDLIBS += -lpthread -ldl
 else
-	LDLIBS += -lcrypto -lssl -lz -lboost_system -lboost_program_options -lpthread -latomic
+	LDLIBS += -lcrypto -lssl -lz -lboost_program_options -lpthread -latomic
 ifeq ($(USE_UPNP),yes)
 	LDLIBS += -lminiupnpc
 endif
