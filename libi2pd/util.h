@@ -202,11 +202,11 @@ namespace util
 		protected:
 
 			RunnableServiceWithWork (const std::string& name):
-				RunnableService (name), m_Work (GetIOService ()) {}
+				RunnableService (name), m_Work (GetIOService ().get_executor ()) {}
 
 		private:
 
-			boost::asio::io_context::work m_Work;
+			boost::asio::executor_work_guard<boost::asio::io_context::executor_type> m_Work;
 	};
 
 	void SetThreadName (const char *name);

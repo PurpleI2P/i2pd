@@ -406,7 +406,7 @@ namespace transport
 
 	void NTCP2Session::Done ()
 	{
-		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+		boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 	}
 
 	void NTCP2Session::Established ()
@@ -508,7 +508,7 @@ namespace transport
 				{
 					// we don't care about padding, send SessionCreated and close session
 					SendSessionCreated ();
-					m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ()));
+					boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ()));
 				}
 				else if (paddingLen > 0)
 				{
@@ -1296,7 +1296,7 @@ namespace transport
 	void NTCP2Session::SendTerminationAndTerminate (NTCP2TerminationReason reason)
 	{
 		SendTermination (reason);
-		m_Server.GetService ().post (std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
+		boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::Terminate, shared_from_this ())); // let termination message go
 	}
 
 	void NTCP2Session::SendI2NPMessages (std::list<std::shared_ptr<I2NPMessage> >& msgs)
@@ -1313,7 +1313,7 @@ namespace transport
 			m_IntermediateQueue.splice (m_IntermediateQueue.end (), msgs);
 		}
 		if (empty)
-			m_Server.GetService ().post (std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::PostI2NPMessages, shared_from_this ()));
 	}
 
 	void NTCP2Session::PostI2NPMessages ()
@@ -1350,7 +1350,7 @@ namespace transport
 	void NTCP2Session::SendLocalRouterInfo (bool update)
 	{
 		if (update || !IsOutgoing ()) // we send it in SessionConfirmed for outgoing session
-			m_Server.GetService ().post (std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
+			boost::asio::post (m_Server.GetService (), std::bind (&NTCP2Session::SendRouterInfo, shared_from_this ()));
 	}
 
 	NTCP2Server::NTCP2Server ():
@@ -1374,14 +1374,13 @@ namespace transport
 			{
 				LogPrint(eLogInfo, "NTCP2: Using proxy to connect to peers");
 				// TODO: resolve proxy until it is resolved
-				boost::asio::ip::tcp::resolver::query q(m_ProxyAddress, std::to_string(m_ProxyPort));
 				boost::system::error_code e;
-				auto itr = m_Resolver.resolve(q, e);
+				auto itr = m_Resolver.resolve(m_ProxyAddress, std::to_string(m_ProxyPort), e);
 				if(e)
 					LogPrint(eLogCritical, "NTCP2: Failed to resolve proxy ", e.message());
 				else
 				{
-					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr));
+					m_ProxyEndpoint.reset (new boost::asio::ip::tcp::endpoint(*itr.begin ()));
 					if (m_ProxyEndpoint)
 						LogPrint(eLogDebug, "NTCP2: m_ProxyEndpoint ", *m_ProxyEndpoint);
 				}
@@ -1541,7 +1540,7 @@ namespace transport
 		}
 		LogPrint (eLogDebug, "NTCP2: Connecting to ", conn->GetRemoteEndpoint (),
 			" (", i2p::data::GetIdentHashAbbreviation (conn->GetRemoteIdentity ()->GetIdentHash ()), ")");
-		GetService ().post([this, conn]()
+		boost::asio::post (GetService (), [this, conn]()
 			{
 				if (this->AddNTCP2Session (conn))
 				{
@@ -1762,7 +1761,7 @@ namespace transport
 			LogPrint (eLogError, "NTCP2: Can't connect to unspecified address");
 			return;
 		}
-		GetService().post([this, conn]()
+		boost::asio::post (GetService(), [this, conn]()
 		{
 			if (this->AddNTCP2Session (conn))
 			{
@@ -1860,7 +1859,7 @@ namespace transport
 						{
 							readbuff->commit(transferred);
 							i2p::http::HTTPRes res;
-							if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
+							if(res.parse(std::string {boost::asio::buffers_begin(readbuff->data ()), boost::asio::buffers_begin(readbuff->data ()) + readbuff->size ()}) > 0)
 							{
 								if(res.code == 200)
 								{

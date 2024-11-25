@@ -283,7 +283,7 @@ namespace client
 		public:
 
 			TCPIPAcceptor (const std::string& address, uint16_t port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
-				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port), localDestination) {}
+				ServiceAcceptor (boost::asio::ip::tcp::endpoint (boost::asio::ip::make_address(address), port), localDestination) {}
 	};	
 }
 }

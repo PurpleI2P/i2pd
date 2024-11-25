@@ -175,7 +175,7 @@ namespace transport
 		if (!m_Service)
 		{
 			m_Service = new boost::asio::io_context ();
-			m_Work = new boost::asio::io_context::work (*m_Service);
+			m_Work = new boost::asio::executor_work_guard<boost::asio::io_context::executor_type> (m_Service->get_executor ());
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
@@ -249,7 +249,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
@@ -275,7 +275,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec)
 				{
 					if (m_NTCP2Server) m_NTCP2Server->SetLocalAddress (addr);
@@ -302,7 +302,7 @@ namespace transport
 			if (!address.empty ())
 			{
 				boost::system::error_code ec;
-				auto addr = boost::asio::ip::address::from_string (address, ec);
+				auto addr = boost::asio::ip::make_address (address, ec);
 				if (!ec && m_NTCP2Server && i2p::util::net::IsYggdrasilAddress (addr))
 					m_NTCP2Server->SetLocalAddress (addr);
 			}
@@ -462,7 +462,7 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, std::list<std::shared_ptr<i2p::I2NPMessage> >&& msgs)
 	{
-		m_Service->post ([this, ident, msgs = std::move(msgs)] () mutable
+		boost::asio::post (*m_Service, [this, ident, msgs = std::move(msgs)] () mutable
 			{
 				PostMessages (ident, msgs);
 			});	
@@ -719,7 +719,7 @@ namespace transport
 
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
-		m_Service->post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
+		boost::asio::post (*m_Service, std::bind (&Transports::HandleRequestComplete, this, r, ident));
 	}
 
 	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
@@ -856,7 +856,7 @@ namespace transport
 
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service->post([session, this]()
+		boost::asio::post (*m_Service, [session, this]()
 		{
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
@@ -928,7 +928,7 @@ namespace transport
 
 	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service->post([session, this]()
+		boost::asio::post (*m_Service, [session, this]()
 		{
 			auto remoteIdentity = session->GetRemoteIdentity ();
 			if (!remoteIdentity) return;
@@ -1276,7 +1276,7 @@ namespace transport
 			std::string yggaddress; i2p::config::GetOption ("meshnets.yggaddress", yggaddress);
 			if (!yggaddress.empty ())
 			{
-				yggaddr = boost::asio::ip::address_v6::from_string (yggaddress);
+				yggaddr = boost::asio::ip::make_address (yggaddress).to_v6 ();
 				if (yggaddr.is_unspecified () || !i2p::util::net::IsYggdrasilAddress (yggaddr) ||
 					!i2p::util::net::IsLocalAddress (yggaddr))
 				{
@@ -1321,7 +1321,7 @@ namespace transport
 				if (ipv6)
 				{
 					std::string ipv6Addr; i2p::config::GetOption("ntcp2.addressv6", ipv6Addr);
-					auto addr = boost::asio::ip::address_v6::from_string (ipv6Addr);
+					auto addr = boost::asio::ip::make_address (ipv6Addr).to_v6 ();
 					if (!addr.is_unspecified () && addr != boost::asio::ip::address_v6::any ())
 						i2p::context.UpdateNTCP2V6Address (addr); // set ipv6 address if configured
 				}

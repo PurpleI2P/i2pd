@@ -717,7 +717,7 @@ namespace client
 	{
 		m_Endpoint.port (m_Port);
 		boost::system::error_code ec;
-		auto addr = boost::asio::ip::address::from_string (m_Address, ec);
+		auto addr = boost::asio::ip::make_address (m_Address, ec);
 		if (!ec)
 		{
 			m_Endpoint.address (addr);
@@ -726,7 +726,7 @@ namespace client
 		else
 		{
 			auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(GetService ());
-			resolver->async_resolve (boost::asio::ip::tcp::resolver::query (m_Address, ""),
+			resolver->async_resolve (m_Address, "",
 				std::bind (&I2PServerTunnel::HandleResolve, this,
 					std::placeholders::_1, std::placeholders::_2, resolver));
 		}
@@ -743,7 +743,7 @@ namespace client
 		ClearHandlers ();
 	}
 
-	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
+	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::results_type endpoints,
 		std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
 	{
 		if (!ecode)
@@ -752,8 +752,7 @@ namespace client
 			boost::asio::ip::tcp::endpoint ep;
 			if (m_LocalAddress)
 			{
-				boost::asio::ip::tcp::resolver::iterator end;
-				while (it != end)
+				for (auto it = endpoints.begin (); it != endpoints.end ();)
 				{
 					ep = *it;
 					if (!ep.address ().is_unspecified ())
@@ -780,7 +779,7 @@ namespace client
 			else
 			{
 				found = true;
-				ep = *it; // first available
+				ep = *endpoints.begin (); // first available
 			}
 			if (!found)
 			{
@@ -789,7 +788,7 @@ namespace client
 			}
 
 			auto addr = ep.address ();
-			LogPrint (eLogInfo, "I2PTunnel: Server tunnel ", (*it).host_name (), " has been resolved to ", addr);
+			LogPrint (eLogInfo, "I2PTunnel: Server tunnel ", (*endpoints.begin ()).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
 			Accept ();
 		}
@@ -806,7 +805,7 @@ namespace client
 	void I2PServerTunnel::SetLocalAddress (const std::string& localAddress)
 	{
 		boost::system::error_code ec;
-		auto addr = boost::asio::ip::address::from_string(localAddress, ec);
+		auto addr = boost::asio::ip::make_address(localAddress, ec);
 		if (!ec)
 			m_LocalAddress.reset (new boost::asio::ip::address (addr));
 		else

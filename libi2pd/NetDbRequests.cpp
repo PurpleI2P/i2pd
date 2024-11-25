@@ -179,7 +179,7 @@ namespace data
 
 	void NetDbRequests::RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r)
 	{
-		GetIOService ().post ([this, ident, r]()
+		boost::asio::post (GetIOService (), [this, ident, r]()
 			{                      
 				std::shared_ptr<RequestedDestination> request;
 				auto it = m_RequestedDestinations.find (ident);
@@ -267,7 +267,7 @@ namespace data
 					{
 						if (dest->IsActive ())
 						{
-							s->GetIOService ().post ([s, dest]()
+							boost::asio::post (s->GetIOService (), [s, dest]()
 								{
 									if (dest->IsActive ()) s->SendNextRequest (dest);
 								});
@@ -345,7 +345,7 @@ namespace data
 
 	void NetDbRequests::PostDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		GetIOService ().post ([this, msg]()
+		boost::asio::post (GetIOService (), [this, msg]()
 			{
 				HandleDatabaseSearchReplyMsg (msg);
 			});	
@@ -431,7 +431,7 @@ namespace data
 	void NetDbRequests::PostRequestDestination (const IdentHash& destination, 
 		const RequestedDestination::RequestComplete& requestComplete, bool direct)
 	{
-		GetIOService ().post ([this, destination, requestComplete, direct]()
+		boost::asio::post (GetIOService (), [this, destination, requestComplete, direct]()
 			{
 				RequestDestination (destination, requestComplete, direct);
 			});	

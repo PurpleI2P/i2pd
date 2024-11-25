@@ -123,8 +123,8 @@ const char *inet_ntop_xp(int af, const void *src, char *dst, socklen_t size)
 #endif
 #endif
 
-#define address_pair_v4(a,b) { boost::asio::ip::address_v4::from_string (a).to_ulong (), boost::asio::ip::address_v4::from_string (b).to_ulong () }
-#define address_pair_v6(a,b) { boost::asio::ip::address_v6::from_string (a).to_bytes (), boost::asio::ip::address_v6::from_string (b).to_bytes () }
+#define address_pair_v4(a,b) { boost::asio::ip::make_address (a).to_v4 ().to_uint (), boost::asio::ip::make_address(b).to_v4 ().to_uint () }
+#define address_pair_v6(a,b) { boost::asio::ip::make_address (a).to_v6 ().to_bytes (), boost::asio::ip::make_address(b).to_v6 ().to_bytes () }
 
 namespace i2p
 {
@@ -478,7 +478,7 @@ namespace net
 							inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
 						freeifaddrs(addrs);
 						std::string cur_ifaddr(addr);
-						return boost::asio::ip::address::from_string(cur_ifaddr);
+						return boost::asio::ip::make_address(cur_ifaddr);
 					}
 				}
 			}
@@ -498,7 +498,7 @@ namespace net
 			fallback = "127.0.0.1";
 			LogPrint(eLogWarning, "NetIface: Cannot find IPv4 address for interface ", ifname);
 		}
-		return boost::asio::ip::address::from_string(fallback);
+		return boost::asio::ip::make_address(fallback);
 #endif
 	}
 
@@ -664,7 +664,7 @@ namespace net
 				address_pair_v4("224.0.0.0",    "255.255.255.255")
 			};
 
-			uint32_t ipv4_address = host.to_v4 ().to_ulong ();
+			uint32_t ipv4_address = host.to_v4 ().to_uint ();
 			for (const auto& it : reservedIPv4Ranges) {
 				if (ipv4_address >= it.first && ipv4_address <= it.second)
 					return true;

@@ -83,8 +83,8 @@ namespace http
 
 			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
+			boost::asio::io_context m_Service;
+			boost::asio::executor_work_guard<boost::asio::io_context::executor_type> m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::string m_Hostname;
 	};

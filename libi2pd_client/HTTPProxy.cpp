@@ -98,7 +98,7 @@ namespace proxy {
 
 			typedef std::function<void(boost::asio::ip::tcp::endpoint)> ProxyResolvedHandler;
 
-			void HandleUpstreamProxyResolved(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator itr, ProxyResolvedHandler handler);
+			void HandleUpstreamProxyResolved(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::results_type endpoints, ProxyResolvedHandler handler);
 
 			void SocksProxySuccess();
 			void HandoverToUpstreamProxy();
@@ -584,20 +584,22 @@ namespace proxy {
 			}
 			else
 			{
-				boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
-				m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
-					m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamHTTPProxyConnect, this, std::placeholders::_1));
-				}));
+				m_proxy_resolver.async_resolve(m_ProxyURL.host, std::to_string(m_ProxyURL.port), std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, 
+				    std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) 
+				    {
+					 	m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamHTTPProxyConnect, this, std::placeholders::_1));
+					}));
 			}
 		}
 		else if (m_ProxyURL.schema == "socks")
 		{
 			/* handle upstream socks proxy */
 			if (!m_ProxyURL.port) m_ProxyURL.port = 9050; // default to tor default if not specified
-			boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
-			m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
-				m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamSocksProxyConnect, this, std::placeholders::_1));
-			}));
+			m_proxy_resolver.async_resolve(m_ProxyURL.host, std::to_string(m_ProxyURL.port), std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, 
+			    std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) 
+			    {
+					m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamSocksProxyConnect, this, std::placeholders::_1));
+				}));
 		}
 		else
 		{
@@ -606,10 +608,10 @@ namespace proxy {
 		}
 	}
 
-	void HTTPReqHandler::HandleUpstreamProxyResolved(const boost::system::error_code & ec, boost::asio::ip::tcp::resolver::iterator it, ProxyResolvedHandler handler)
+	void HTTPReqHandler::HandleUpstreamProxyResolved(const boost::system::error_code & ec, boost::asio::ip::tcp::resolver::results_type endpoints, ProxyResolvedHandler handler)
 	{
 		if(ec) GenericProxyError(tr("Cannot resolve upstream proxy"), ec.message());
-		else handler(*it);
+		else handler(*endpoints.begin ());
 	}
 
 	void HTTPReqHandler::HandleUpstreamSocksProxyConnect(const boost::system::error_code & ec)

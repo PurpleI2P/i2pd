@@ -667,7 +667,7 @@ namespace stream
 		{
 			// make sure that AsycReceive complete
 			auto s = shared_from_this();
-			m_Service.post ([s]()
+			boost::asio::post (m_Service, [s]()
 		    {
 				s->m_ReceiveTimer.cancel ();
 			});
@@ -695,7 +695,7 @@ namespace stream
 		else if (handler)
 			handler(boost::system::error_code ());
 		auto s = shared_from_this ();
-		m_Service.post ([s, buffer]()
+		boost::asio::post (m_Service, [s, buffer]()
 			{
 				if (buffer)
 					s->m_SendBuffer.Add (buffer);
@@ -1058,7 +1058,7 @@ namespace stream
 		m_LocalDestination.GetOwner ()->Sign (packet, size, signature);
 
 		p->len = size;
-		m_Service.post (std::bind (&Stream::SendPacket, shared_from_this (), p));
+		boost::asio::post (m_Service, std::bind (&Stream::SendPacket, shared_from_this (), p));
 		LogPrint (eLogDebug, "Streaming: FIN sent, sSID=", m_SendStreamID);
 	}
 
@@ -1855,7 +1855,7 @@ namespace stream
 		if (it == m_Streams.end ())
 			return false;
 		auto s = it->second;
-		m_Owner->GetService ().post ([this, s] ()
+		boost::asio::post (m_Owner->GetService (), [this, s] ()
 			{
 				s->Close (); // try to send FIN
 				s->Terminate (false);
@@ -1868,7 +1868,7 @@ namespace stream
 	{
 		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet
 		auto s = shared_from_this ();
-		m_Owner->GetService ().post([s](void)
+		boost::asio::post (m_Owner->GetService (), [s](void)
 			{
 				// take care about incoming queue
 				for (auto& it: s->m_PendingIncomingStreams)
@@ -1887,7 +1887,7 @@ namespace stream
 
 	void StreamingDestination::AcceptOnce (const Acceptor& acceptor)
 	{
-		m_Owner->GetService ().post([acceptor, this](void)
+		boost::asio::post (m_Owner->GetService (), [acceptor, this](void)
 			{
 				if (!m_PendingIncomingStreams.empty ())
 				{

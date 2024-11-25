@@ -202,7 +202,7 @@ namespace stream
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
 			size_t Receive (uint8_t * buf, size_t len, int timeout);
 
-			void AsyncClose() { m_Service.post(std::bind(&Stream::Close, shared_from_this())); };
+			void AsyncClose() { boost::asio::post(m_Service, std::bind(&Stream::Close, shared_from_this())); };
 
 			/** only call close from destination thread, use Stream::AsyncClose for other threads */
 			void Close ();
@@ -238,7 +238,7 @@ namespace stream
 			void UpdateCurrentRemoteLease (bool expired = false);
 
 			template<typename Buffer, typename ReceiveHandler>
-			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
+			void HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
 
 			void ScheduleSend ();
 			void HandleSendTimer (const boost::system::error_code& ecode);
@@ -375,7 +375,7 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		auto s = shared_from_this();
-		m_Service.post ([s, buffer, handler, timeout](void)
+		boost::asio::post (m_Service, [s, buffer, handler, timeout](void)
 		{
 			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
@@ -394,9 +394,9 @@ namespace stream
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
-	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout)
+	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, Buffer& buffer, ReceiveHandler handler, int remainingTimeout)
 	{
-		size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), boost::asio::buffer_size(buffer));
+		size_t received = ConcatenatePackets ((uint8_t *)buffer.data (), buffer.size ());
 		if (received > 0)
 			handler (boost::system::error_code (), received);
 		else if (ecode == boost::asio::error::operation_aborted)

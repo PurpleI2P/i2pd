@@ -208,7 +208,7 @@ namespace transport
 			bool m_IsRunning, m_IsNAT, m_CheckReserved;
 			std::thread * m_Thread;
 			boost::asio::io_context * m_Service;
-			boost::asio::io_context::work * m_Work;
+			boost::asio::executor_work_guard<boost::asio::io_context::executor_type> * m_Work;
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer, * m_UpdateBandwidthTimer;
 
 			SSU2Server * m_SSU2Server;
