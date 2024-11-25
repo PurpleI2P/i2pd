@@ -175,9 +175,9 @@ namespace stream
 	{
 		public:
 
-			Stream (boost::asio::io_service& service, StreamingDestination& local,
+			Stream (boost::asio::io_context& service, StreamingDestination& local,
 				std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0); // outgoing
-			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming
+			Stream (boost::asio::io_context& service, StreamingDestination& local); // incoming
 
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
@@ -255,7 +255,7 @@ namespace stream
 			
 		private:
 
-			boost::asio::io_service& m_Service;
+			boost::asio::io_context& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			uint32_t m_DropWindowDelaySequenceNumber;
 			uint32_t m_TunnelsChangeSequenceNumber;

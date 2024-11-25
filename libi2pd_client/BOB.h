@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2023, The PurpleI2P Project
+* Copyright (c) 2013-2024, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -254,7 +254,7 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			boost::asio::io_service& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); };
 			void AddDestination (const std::string& name, std::shared_ptr<BOBDestination> dest);
 			void DeleteDestination (const std::string& name);
 			std::shared_ptr<BOBDestination> FindDestination (const std::string& name);

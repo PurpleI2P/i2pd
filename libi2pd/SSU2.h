@@ -61,7 +61,7 @@ namespace transport
 			public:
 
 				ReceiveService (const std::string& name): RunnableService (name) {};
-				boost::asio::io_service& GetService () { return GetIOService (); };
+				auto& GetService () { return GetIOService (); };
 				void Start () { StartIOService (); };
 				void Stop () { StopIOService (); };
 		};
@@ -73,7 +73,7 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-			boost::asio::io_service& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); };
 			void SetLocalAddress (const boost::asio::ip::address& localAddress);
 			bool SetProxy (const std::string& address, uint16_t port);
 			bool UsesProxy () const { return m_IsThroughProxy; };

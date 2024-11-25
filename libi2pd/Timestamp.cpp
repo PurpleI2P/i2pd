@@ -60,7 +60,7 @@ namespace util
 	static void SyncTimeWithNTP (const std::string& address)
 	{
 		LogPrint (eLogInfo, "Timestamp: NTP request to ", address);
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::system::error_code ec;
 		auto it = boost::asio::ip::udp::resolver (service).resolve (
 			boost::asio::ip::udp::resolver::query (address, "ntp"), ec);

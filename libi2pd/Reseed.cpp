@@ -552,7 +552,7 @@ namespace data
 		if (!url.port)
 			url.port = 443;
 
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::system::error_code ecode;
 
 		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
@@ -746,7 +746,7 @@ namespace data
 		if (!url.port) url.port = 80;
 
 		boost::system::error_code ecode;
-		boost::asio::io_service service;
+		boost::asio::io_context service;
 		boost::asio::ip::tcp::socket s(service, boost::asio::ip::tcp::v6());
 
 		auto it = boost::asio::ip::tcp::resolver(service).resolve (

@@ -81,7 +81,7 @@ namespace client
 	{
 		public:
 
-			I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
+			I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 				std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread, 
 			    const std::map<std::string, std::string>& params);
 			~I2CPDestination () {};
@@ -227,7 +227,7 @@ namespace client
 
 			void Start ();
 			void Stop ();
-			boost::asio::io_service& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); };
 			bool IsSingleThread () const { return m_IsSingleThread; };
 
 			bool InsertSession (std::shared_ptr<I2CPSession> session);

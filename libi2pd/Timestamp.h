@@ -52,7 +52,7 @@ namespace util
 
 			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
-			boost::asio::io_service m_Service;
+			boost::asio::io_context m_Service;
 			boost::asio::deadline_timer m_Timer;
 			int m_SyncInterval;
 			std::vector<std::string> m_NTPServersList;

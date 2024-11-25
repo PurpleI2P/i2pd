@@ -139,7 +139,7 @@ namespace transport
 			bool IsOnline() const { return m_IsOnline; };
 			void SetOnline (bool online);
 
-			boost::asio::io_service& GetService () { return *m_Service; };
+			auto& GetService () { return *m_Service; };
 			std::shared_ptr<i2p::crypto::X25519Keys> GetNextX25519KeysPair ();
 			void ReuseX25519KeysPair (std::shared_ptr<i2p::crypto::X25519Keys> pair);
 
@@ -207,8 +207,8 @@ namespace transport
 			volatile bool m_IsOnline;
 			bool m_IsRunning, m_IsNAT, m_CheckReserved;
 			std::thread * m_Thread;
-			boost::asio::io_service * m_Service;
-			boost::asio::io_service::work * m_Work;
+			boost::asio::io_context * m_Service;
+			boost::asio::io_context::work * m_Work;
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer, * m_UpdateBandwidthTimer;
 
 			SSU2Server * m_SSU2Server;

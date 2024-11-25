@@ -23,7 +23,7 @@ namespace i2p
 {
 namespace client
 {
-	LeaseSetDestination::LeaseSetDestination (boost::asio::io_service& service,
+	LeaseSetDestination::LeaseSetDestination (boost::asio::io_context& service,
 		bool isPublic, const std::map<std::string, std::string> * params):
 		m_Service (service), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service),
@@ -1000,7 +1000,7 @@ namespace client
 		return i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 	}
 
-	ClientDestination::ClientDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys,
+	ClientDestination::ClientDestination (boost::asio::io_context& service, const i2p::data::PrivateKeys& keys,
 		bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (service, isPublic, params),
 		m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),

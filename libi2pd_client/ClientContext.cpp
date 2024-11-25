@@ -345,7 +345,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (
-		boost::asio::io_service& service, bool isPublic,
+		boost::asio::io_context& service, bool isPublic,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
@@ -399,7 +399,7 @@ namespace client
 		return localDestination;
 	}
 
-	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_service& service,
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (boost::asio::io_context& service,
 		const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());

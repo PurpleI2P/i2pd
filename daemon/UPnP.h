@@ -67,7 +67,7 @@ namespace transport
 			std::unique_ptr<std::thread> m_Thread;
 			std::condition_variable m_Started;
 			std::mutex m_StartedMutex;
-			boost::asio::io_service m_Service;
+			boost::asio::io_context m_Service;
 			boost::asio::deadline_timer m_Timer;
 			bool m_upnpUrlsInitialized = false;
 			struct UPNPUrls m_upnpUrls;

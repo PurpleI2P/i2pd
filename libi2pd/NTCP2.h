@@ -253,7 +253,7 @@ namespace transport
 
 			void Start ();
 			void Stop ();
-			boost::asio::io_service& GetService () { return GetIOService (); };
+			auto& GetService () { return GetIOService (); };
 			std::mt19937& GetRng () { return m_Rng; };
 
 			bool AddNTCP2Session (std::shared_ptr<NTCP2Session> session, bool incoming = false);

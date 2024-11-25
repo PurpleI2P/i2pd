@@ -66,7 +66,7 @@ namespace stream
 		}
 	}
 
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local,
+	Stream::Stream (boost::asio::io_context& service, StreamingDestination& local,
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
 		m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
@@ -95,7 +95,7 @@ namespace stream
 			m_PacketACKInterval = (1000000LL*STREAMING_MTU)/inboundSpeed;
 	}
 
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
+	Stream::Stream (boost::asio::io_context& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_DropWindowDelaySequenceNumber (0),
 		m_TunnelsChangeSequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_PreviousReceivedSequenceNumber (-1),
 		m_LastConfirmedReceivedSequenceNumber (0), // for limit inbound speed

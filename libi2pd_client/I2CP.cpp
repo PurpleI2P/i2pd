@@ -24,7 +24,7 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (boost::asio::io_service& service, std::shared_ptr<I2CPSession> owner,
+	I2CPDestination::I2CPDestination (boost::asio::io_context& service, std::shared_ptr<I2CPSession> owner,
 		std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, bool isSameThread,
 	    const std::map<std::string, std::string>& params):
 		LeaseSetDestination (service, isPublic, &params),

@@ -174,8 +174,8 @@ namespace transport
 	{
 		if (!m_Service)
 		{
-			m_Service = new boost::asio::io_service ();
-			m_Work = new boost::asio::io_service::work (*m_Service);
+			m_Service = new boost::asio::io_context ();
+			m_Work = new boost::asio::io_context::work (*m_Service);
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 			m_UpdateBandwidthTimer = new boost::asio::deadline_timer (*m_Service);
