@@ -60,7 +60,7 @@ namespace stream
 	const double SLOWRTT_EWMA_ALPHA = 0.05;
 	const double PREV_SPEED_KEEP_TIME_COEFF = 0.35; // 0.1 - 1 // how long will the window size stay around the previous drop level, less is longer
 	const int MIN_RTO = 20; // in milliseconds
-	const int INITIAL_RTT = 8000; // in milliseconds
+	const int INITIAL_RTT = 1500; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int INITIAL_PACING_TIME = 1000 * INITIAL_RTT / INITIAL_WINDOW_SIZE; // in microseconds
 	const int MIN_SEND_ACK_TIMEOUT = 2; // in milliseconds

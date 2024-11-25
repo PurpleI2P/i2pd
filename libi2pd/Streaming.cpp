@@ -537,7 +537,7 @@ namespace stream
 				m_LocalDestination.DeletePacket (sentPacket);
 				acknowledged = true;
 				if (m_WindowSize < MAX_WINDOW_SIZE && !m_IsFirstACK)
-					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTT) // dirty
+					if (m_RTT < m_LocalDestination.GetRandom () % INITIAL_RTO) // dirty
 						m_WindowIncCounter++;
 			}
 			else
@@ -1143,7 +1143,7 @@ namespace stream
 			CancelRemoteLeaseChange ();
 			UpdateCurrentRemoteLease (true);
 		}
-		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTT)
+		if (m_RemoteLeaseChangeTime && m_IsRemoteLeaseChangeInProgress && ts > m_RemoteLeaseChangeTime + INITIAL_RTO)
 		{
 			CancelRemoteLeaseChange ();
 			m_CurrentRemoteLease = m_NextRemoteLease;
