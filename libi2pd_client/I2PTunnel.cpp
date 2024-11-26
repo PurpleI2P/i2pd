@@ -752,9 +752,9 @@ namespace client
 			boost::asio::ip::tcp::endpoint ep;
 			if (m_LocalAddress)
 			{
-				for (auto it = endpoints.begin (); it != endpoints.end ();)
+				for (const auto& it: endpoints)
 				{
-					ep = *it;
+					ep = it;
 					if (!ep.address ().is_unspecified ())
 					{
 						if (ep.address ().is_v4 ())
@@ -773,7 +773,6 @@ namespace client
 						}
 					}
 					if (found) break;
-					it++;
 				}
 			}
 			else

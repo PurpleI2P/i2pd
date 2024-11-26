@@ -641,9 +641,9 @@ namespace data
 			if (!ecode)
 			{
 				bool connected = false;
-				for (auto it = endpoints.begin (); it != endpoints.end ();)
+				for (const auto& it: endpoints)
 				{
-					boost::asio::ip::tcp::endpoint ep = *it;
+					boost::asio::ip::tcp::endpoint ep = it;
 					bool supported = false;
 					if (!ep.address ().is_unspecified ())
 					{
@@ -663,7 +663,6 @@ namespace data
 							break;
 						}
 					}
-					it++;
 				}
 				if (!connected)
 				{
@@ -750,9 +749,9 @@ namespace data
 		if (!ecode)
 		{
 			bool connected = false;
-			for (auto it = endpoints.begin (); it != endpoints.end ();)
+			for (const auto& it: endpoints)
 			{
-				boost::asio::ip::tcp::endpoint ep = *it;
+				boost::asio::ip::tcp::endpoint ep = it;
 				if (
 					i2p::util::net::IsYggdrasilAddress (ep.address ()) &&
 					i2p::context.SupportsMesh ()
@@ -766,7 +765,6 @@ namespace data
 						break;
 					}
 				}
-				it++;
 			}
 			if (!connected)
 			{
